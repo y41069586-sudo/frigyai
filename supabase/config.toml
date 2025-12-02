@@ -1,5 +1,11 @@
 project_id = "zbvrhyyjlnmeqtjbvtwt"
 
+[functions.generate-meal-plan]
+verify_jwt = false
+
+[functions.analyze-food]
+verify_jwt = false
+
 [functions.analyze-ingredients]
 verify_jwt = false
 
