@@ -45,7 +45,32 @@ const PremiumPage = () => {
 
       console.log('Checkout response:', { data, error });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's an auth error (401)
+        if (error.message?.includes('401') || data?.error?.includes('anmelden') || data?.error?.includes('abgelaufen')) {
+          toast({
+            title: 'Sitzung abgelaufen',
+            description: 'Bitte melde dich erneut an.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
+          return;
+        }
+        throw error;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Fehler',
+          description: data.error,
+          variant: 'destructive',
+        });
+        if (data.error.includes('anmelden') || data.error.includes('abgelaufen')) {
+          navigate('/auth');
+        }
+        setLoading(false);
+        return;
+      }
 
       if (data?.url) {
         console.log('Opening payment link:', data.url);
