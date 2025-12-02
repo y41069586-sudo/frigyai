@@ -46,6 +46,9 @@ serve(async (req) => {
       logStep("No existing customer found");
     }
 
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://38287fff-a52b-43ff-b7d7-4ca0ea11b4ff.lovableproject.com";
+    logStep("Using origin", { origin });
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -56,8 +59,9 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/premium?success=true`,
-      cancel_url: `${req.headers.get("origin")}/premium?canceled=true`,
+      success_url: `${origin}/premium?success=true`,
+      cancel_url: `${origin}/premium?canceled=true`,
+      billing_address_collection: "auto",
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
