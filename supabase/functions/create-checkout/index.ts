@@ -33,40 +33,12 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Use Stripe Payment Link instead of Checkout Session for better reliability
+    const paymentLinkUrl = "https://buy.stripe.com/test_7sY8wP0DmcbJ6O60YL87K00";
+    
+    logStep("Using payment link", { url: paymentLinkUrl });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Found existing customer", { customerId });
-    } else {
-      logStep("No existing customer found");
-    }
-
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://38287fff-a52b-43ff-b7d7-4ca0ea11b4ff.lovableproject.com";
-    logStep("Using origin", { origin });
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: "price_1SZrRBGj66h7dQy6o8nlG6wJ",
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${origin}/premium?success=true`,
-      cancel_url: `${origin}/premium?canceled=true`,
-      billing_address_collection: "auto",
-    });
-
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
-
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ url: paymentLinkUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
