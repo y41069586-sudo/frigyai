@@ -25,34 +25,54 @@ const PremiumPage = () => {
   }, []);
 
   const handleSubscribe = async () => {
-    if (!session) return;
+    if (!session) {
+      toast({
+        title: 'Nicht angemeldet',
+        description: 'Bitte melde dich an, um fortzufahren.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
+      console.log('Starting checkout process...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
+      console.log('Checkout response:', { data, error });
+
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        console.log('Redirecting to:', data.url);
+        window.location.href = data.url;
+      } else {
+        throw new Error('Keine Checkout-URL erhalten');
       }
     } catch (error: any) {
+      console.error('Checkout error:', error);
       toast({
         title: 'Fehler',
-        description: error.message,
+        description: error.message || 'Ein Fehler ist aufgetreten',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
 
   const handleManageSubscription = async () => {
-    if (!session) return;
+    if (!session) {
+      toast({
+        title: 'Nicht angemeldet',
+        description: 'Bitte melde dich an, um fortzufahren.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -65,15 +85,16 @@ const PremiumPage = () => {
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url;
+      } else {
+        throw new Error('Keine Portal-URL erhalten');
       }
     } catch (error: any) {
       toast({
         title: 'Fehler',
-        description: error.message,
+        description: error.message || 'Ein Fehler ist aufgetreten',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
