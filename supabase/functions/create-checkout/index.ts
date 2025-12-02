@@ -25,12 +25,27 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("No auth header - user needs to login");
+      return new Response(JSON.stringify({ error: "Bitte melde dich zuerst an" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !data.user?.email) {
+      logStep("Auth failed - session expired", { error: authError?.message });
+      return new Response(JSON.stringify({ error: "Sitzung abgelaufen. Bitte erneut anmelden." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Use Stripe Payment Link instead of Checkout Session for better reliability
