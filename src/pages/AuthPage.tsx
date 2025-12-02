@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -11,30 +11,49 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn, signUp, user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
-  if (user) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    if (isLogin) {
-      const { error } = await signIn(email, password);
-      if (!error) {
-        navigate('/');
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (!error) {
+          navigate('/');
+        }
+      } else {
+        const { error } = await signUp(email, password);
+        if (!error) {
+          setIsLogin(true);
+        }
       }
-    } else {
-      const { error } = await signUp(email, password);
-      if (!error) {
-        setIsLogin(true);
-      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
+        <div className="text-center">
+          <Leaf className="h-12 w-12 text-primary animate-pulse mx-auto mb-4" />
+          <p className="text-muted-foreground">Laden...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-primary">
@@ -83,8 +102,9 @@ const AuthPage = () => {
               type="submit"
               className="w-full glow-button"
               size="lg"
+              disabled={isSubmitting}
             >
-              {isLogin ? 'Anmelden' : 'Registrieren'}
+              {isSubmitting ? 'Laden...' : (isLogin ? 'Anmelden' : 'Registrieren')}
             </Button>
           </form>
 
