@@ -57,29 +57,61 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
+    // First check for active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
     });
-    const hasActiveSub = subscriptions.data.length > 0;
-    let productId = null;
-    let subscriptionEnd = null;
-
-    if (hasActiveSub) {
+    
+    if (subscriptions.data.length > 0) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
-      productId = subscription.items.data[0].price.product;
-      logStep("Determined subscription product", { productId });
-    } else {
-      logStep("No active subscription found");
+      const subscriptionEnd = subscription.current_period_end 
+        ? new Date(subscription.current_period_end * 1000).toISOString()
+        : null;
+      const productId = subscription.items.data[0]?.price?.product || null;
+      
+      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd, productId });
+      
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: productId,
+        subscription_end: subscriptionEnd
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+    
+    logStep("No active subscription, checking for successful payments");
+
+    // If no subscription, check for successful one-time payments (from payment links)
+    const paymentIntents = await stripe.paymentIntents.list({
+      customer: customerId,
+      limit: 10,
+    });
+    
+    const successfulPayment = paymentIntents.data.find((pi: { status: string }) => pi.status === "succeeded");
+    
+    if (successfulPayment) {
+      logStep("Successful payment found", { paymentId: successfulPayment.id, amount: successfulPayment.amount });
+      
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: "premium_one_time",
+        subscription_end: null // One-time payment, no end date
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
+    logStep("No active subscription or successful payment found");
+    
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      product_id: productId,
-      subscription_end: subscriptionEnd
+      subscribed: false,
+      product_id: null,
+      subscription_end: null
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
