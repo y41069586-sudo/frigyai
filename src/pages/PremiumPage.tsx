@@ -38,32 +38,40 @@ const PremiumPage = () => {
     setLoading(true);
     try {
       console.log('Starting checkout process...');
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const response = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      console.log('Checkout response:', { data, error });
+      console.log('Checkout response:', response);
 
-      // Handle auth errors - session expired
-      if (data?.error && (data.error.includes('anmelden') || data.error.includes('abgelaufen') || data.error.includes('Sitzung'))) {
-        toast({
-          title: 'Sitzung abgelaufen',
-          description: 'Bitte melde dich erneut an.',
-          variant: 'destructive',
-        });
-        // Sign out to clear invalid session
-        await supabase.auth.signOut();
-        navigate('/auth');
-        return;
+      // Check for any error - either from invoke error or from response data
+      const errorMessage = response.error?.message || response.data?.error;
+      
+      if (errorMessage) {
+        // Check if it's a session/auth error
+        if (errorMessage.includes('401') || 
+            errorMessage.includes('anmelden') || 
+            errorMessage.includes('abgelaufen') || 
+            errorMessage.includes('Sitzung') ||
+            errorMessage.includes('session') ||
+            errorMessage.includes('Auth')) {
+          toast({
+            title: 'Sitzung abgelaufen',
+            description: 'Bitte melde dich erneut an.',
+            variant: 'destructive',
+          });
+          await supabase.auth.signOut();
+          navigate('/auth');
+          return;
+        }
+        throw new Error(errorMessage);
       }
 
-      if (error) throw error;
-
-      if (data?.url) {
-        console.log('Opening payment link:', data.url);
-        window.open(data.url, '_blank');
+      if (response.data?.url) {
+        console.log('Opening payment link:', response.data.url);
+        window.open(response.data.url, '_blank');
         toast({
           title: 'Weiterleitung zu Stripe',
           description: 'Der Zahlungslink wird in einem neuen Tab geöffnet.',
