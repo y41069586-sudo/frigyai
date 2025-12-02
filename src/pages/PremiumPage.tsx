@@ -31,6 +31,7 @@ const PremiumPage = () => {
         description: 'Bitte melde dich an, um fortzufahren.',
         variant: 'destructive',
       });
+      navigate('/auth');
       return;
     }
 
@@ -45,32 +46,20 @@ const PremiumPage = () => {
 
       console.log('Checkout response:', { data, error });
 
-      if (error) {
-        // Check if it's an auth error (401)
-        if (error.message?.includes('401') || data?.error?.includes('anmelden') || data?.error?.includes('abgelaufen')) {
-          toast({
-            title: 'Sitzung abgelaufen',
-            description: 'Bitte melde dich erneut an.',
-            variant: 'destructive',
-          });
-          navigate('/auth');
-          return;
-        }
-        throw error;
-      }
-
-      if (data?.error) {
+      // Handle auth errors - session expired
+      if (data?.error && (data.error.includes('anmelden') || data.error.includes('abgelaufen') || data.error.includes('Sitzung'))) {
         toast({
-          title: 'Fehler',
-          description: data.error,
+          title: 'Sitzung abgelaufen',
+          description: 'Bitte melde dich erneut an.',
           variant: 'destructive',
         });
-        if (data.error.includes('anmelden') || data.error.includes('abgelaufen')) {
-          navigate('/auth');
-        }
-        setLoading(false);
+        // Sign out to clear invalid session
+        await supabase.auth.signOut();
+        navigate('/auth');
         return;
       }
+
+      if (error) throw error;
 
       if (data?.url) {
         console.log('Opening payment link:', data.url);
@@ -89,6 +78,7 @@ const PremiumPage = () => {
         description: error.message || 'Ein Fehler ist aufgetreten',
         variant: 'destructive',
       });
+    } finally {
       setLoading(false);
     }
   };
