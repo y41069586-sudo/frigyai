@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, List, Heart, Sparkles, LogOut } from "lucide-react";
+import { Camera, List, Heart, Sparkles, LogOut, Crown, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
@@ -7,7 +8,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 
 const Index = () => {
-  const { user, subscriptionStatus, signOut } = useAuth();
+  const { user, subscriptionStatus, signOut, checkSubscription } = useAuth();
+
+  // Refresh subscription status on page load
+  useEffect(() => {
+    if (user) {
+      checkSubscription();
+    }
+  }, [user]);
   const navigate = useNavigate();
 
   return (
@@ -46,10 +54,23 @@ const Index = () => {
           <div className="flex items-center space-x-2">
             {user ? (
               <>
-                {subscriptionStatus?.subscribed && (
-                  <NavLink to="/meal-plans">
-                    <Button variant="ghost" size="sm" className="hover:bg-primary/20">
-                      <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                {subscriptionStatus?.subscribed ? (
+                  <>
+                    <div className="flex items-center px-3 py-1 bg-primary/20 rounded-full border border-primary/50">
+                      <Crown className="h-4 w-4 text-primary mr-1" />
+                      <span className="text-sm font-medium text-primary">Premium</span>
+                    </div>
+                    <NavLink to="/meal-plans">
+                      <Button variant="ghost" size="sm" className="hover:bg-primary/20">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Meal Plans
+                      </Button>
+                    </NavLink>
+                  </>
+                ) : (
+                  <NavLink to="/premium">
+                    <Button size="sm" className="glow-button">
+                      <Sparkles className="h-4 w-4 mr-2" />
                       Premium
                     </Button>
                   </NavLink>
@@ -137,32 +158,55 @@ const Index = () => {
             </Button>
           </motion.div>
 
-          {!subscriptionStatus?.subscribed && user && (
+          {user && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
               className="mt-12"
             >
-              <NavLink to="/premium">
-                <div className="p-8 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-lg rounded-3xl border border-primary/30 hover:shadow-neon transition-all duration-300 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-                        <h3 className="text-2xl font-bold neon-text">Premium freischalten</h3>
+              {subscriptionStatus?.subscribed ? (
+                <NavLink to="/meal-plans">
+                  <div className="p-8 bg-gradient-to-r from-primary/30 to-primary/20 backdrop-blur-lg rounded-3xl border-2 border-primary shadow-neon transition-all duration-300 cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Crown className="h-6 w-6 text-primary" />
+                          <h3 className="text-2xl font-bold neon-text">Premium Aktiv ✓</h3>
+                        </div>
+                        <p className="text-muted-foreground mb-2">
+                          Du hast Zugriff auf alle Premium-Features!
+                        </p>
+                        <p className="text-lg font-medium text-primary">Meal Plans • Einkaufslisten • Makro-Tracking</p>
                       </div>
-                      <p className="text-muted-foreground mb-2">
-                        Wöchentliche Meal Plans • Einkaufslisten • Makro-Tracking
-                      </p>
-                      <p className="text-3xl font-bold text-primary">Nur 4,99€/Monat</p>
+                      <Button className="glow-button" size="lg">
+                        <Calendar className="mr-2 h-5 w-5" />
+                        Meal Plans öffnen
+                      </Button>
                     </div>
-                    <Button className="glow-button" size="lg">
-                      Mehr erfahren
-                    </Button>
                   </div>
-                </div>
-              </NavLink>
+                </NavLink>
+              ) : (
+                <NavLink to="/premium">
+                  <div className="p-8 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-lg rounded-3xl border border-primary/30 hover:shadow-neon transition-all duration-300 cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+                          <h3 className="text-2xl font-bold neon-text">Premium freischalten</h3>
+                        </div>
+                        <p className="text-muted-foreground mb-2">
+                          Wöchentliche Meal Plans • Einkaufslisten • Makro-Tracking
+                        </p>
+                        <p className="text-3xl font-bold text-primary">Nur 4,99€/Monat</p>
+                      </div>
+                      <Button className="glow-button" size="lg">
+                        Mehr erfahren
+                      </Button>
+                    </div>
+                  </div>
+                </NavLink>
+              )}
             </motion.div>
           )}
 
