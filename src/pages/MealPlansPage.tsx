@@ -91,16 +91,23 @@ const MealPlansPage = () => {
 
     setIsGenerating(true);
     try {
-      // Get user's daily calorie target from tracker
+      // Get user's full macro profile from tracker
       const profileData = localStorage.getItem('userProfile');
       let dailyCalories = 1600;
+      let dailyProtein = 120;
+      let dailyCarbs = 160;
+      let dailyFat = 53;
+      
       if (profileData) {
         const profile = JSON.parse(profileData);
         dailyCalories = profile.dailyCalories || 1600;
+        dailyProtein = profile.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
+        dailyCarbs = profile.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
+        dailyFat = profile.dailyFat || Math.round(dailyCalories * 0.3 / 9);
       }
 
       const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-        body: { preferences: '', dailyCalories },
+        body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
       });
 
       if (error) throw error;
@@ -139,38 +146,52 @@ const MealPlansPage = () => {
   const displayPlan = mealPlan.length > 0 ? mealPlan : [
     { day: 'Montag', meals: [
       { type: 'Frühstück', name: 'Griechischer Joghurt Bowl', calories: 320, protein: 25, carbs: 35, fat: 8, prepTime: 5, ingredients: [{ name: 'Griechischer Joghurt 0%', amount: '200g', price: 1.20 }, { name: 'Beeren', amount: '100g', price: 1.50 }], instructions: ['Joghurt in eine Schüssel geben', 'Mit Beeren toppen'] },
-      { type: 'Mittagessen', name: 'Hähnchen-Salat', calories: 380, protein: 35, carbs: 20, fat: 15, prepTime: 15, ingredients: [{ name: 'Hähnchenbrust', amount: '150g', price: 2.50 }, { name: 'Salat Mix', amount: '100g', price: 1.00 }], instructions: ['Hähnchen braten', 'Mit Salat servieren'] },
-      { type: 'Abendessen', name: 'Lachs mit Gemüse', calories: 420, protein: 32, carbs: 25, fat: 22, prepTime: 20, ingredients: [{ name: 'Lachs', amount: '150g', price: 4.50 }, { name: 'Brokkoli', amount: '200g', price: 1.20 }], instructions: ['Lachs braten', 'Gemüse dünsten'] }
+      { type: 'Snack', name: 'Mandeln & Apfel', calories: 160, protein: 5, carbs: 15, fat: 10, prepTime: 1, ingredients: [{ name: 'Mandeln', amount: '20g', price: 0.50 }, { name: 'Apfel', amount: '1', price: 0.40 }], instructions: ['Mandeln portionieren', 'Apfel waschen'] },
+      { type: 'Mittagessen', name: 'Hähnchen-Salat', calories: 480, protein: 40, carbs: 25, fat: 18, prepTime: 15, ingredients: [{ name: 'Hähnchenbrust', amount: '180g', price: 3.00 }, { name: 'Salat Mix', amount: '150g', price: 1.20 }], instructions: ['Hähnchen braten', 'Mit Salat servieren'] },
+      { type: 'Snack', name: 'Magerquark mit Honig', calories: 150, protein: 20, carbs: 12, fat: 1, prepTime: 2, ingredients: [{ name: 'Magerquark', amount: '150g', price: 0.70 }, { name: 'Honig', amount: '10g', price: 0.20 }], instructions: ['Quark in Schüssel geben', 'Mit Honig süßen'] },
+      { type: 'Abendessen', name: 'Lachs mit Gemüse', calories: 420, protein: 35, carbs: 20, fat: 22, prepTime: 20, ingredients: [{ name: 'Lachs', amount: '150g', price: 4.50 }, { name: 'Brokkoli', amount: '200g', price: 1.20 }], instructions: ['Lachs braten', 'Gemüse dünsten'] }
     ]},
     { day: 'Dienstag', meals: [
       { type: 'Frühstück', name: 'Protein Pancakes', calories: 350, protein: 28, carbs: 40, fat: 10, prepTime: 10, ingredients: [{ name: 'Proteinpulver', amount: '30g', price: 0.80 }, { name: 'Haferflocken', amount: '50g', price: 0.30 }], instructions: ['Zutaten mischen', 'In der Pfanne braten'] },
-      { type: 'Mittagessen', name: 'Quinoa Bowl', calories: 400, protein: 22, carbs: 45, fat: 14, prepTime: 15, ingredients: [{ name: 'Quinoa', amount: '80g', price: 1.00 }, { name: 'Kichererbsen', amount: '100g', price: 0.70 }], instructions: ['Quinoa kochen', 'Mit Kichererbsen toppen'] },
-      { type: 'Abendessen', name: 'Puten-Wrap', calories: 380, protein: 30, carbs: 35, fat: 12, prepTime: 10, ingredients: [{ name: 'Putenbrust', amount: '120g', price: 2.20 }, { name: 'Wrap', amount: '1 Stück', price: 0.50 }], instructions: ['Pute braten', 'In Wrap wickeln'] }
+      { type: 'Snack', name: 'Hüttenkäse mit Gurke', calories: 120, protein: 15, carbs: 5, fat: 4, prepTime: 2, ingredients: [{ name: 'Hüttenkäse', amount: '100g', price: 0.80 }, { name: 'Gurke', amount: '50g', price: 0.20 }], instructions: ['Hüttenkäse portionieren', 'Mit Gurke servieren'] },
+      { type: 'Mittagessen', name: 'Quinoa Bowl', calories: 450, protein: 25, carbs: 50, fat: 16, prepTime: 15, ingredients: [{ name: 'Quinoa', amount: '80g', price: 1.00 }, { name: 'Kichererbsen', amount: '100g', price: 0.70 }], instructions: ['Quinoa kochen', 'Mit Kichererbsen toppen'] },
+      { type: 'Snack', name: 'Proteinriegel', calories: 180, protein: 20, carbs: 15, fat: 6, prepTime: 0, ingredients: [{ name: 'Proteinriegel', amount: '1', price: 2.00 }], instructions: ['Auspacken und genießen'] },
+      { type: 'Abendessen', name: 'Puten-Wrap', calories: 400, protein: 32, carbs: 38, fat: 14, prepTime: 10, ingredients: [{ name: 'Putenbrust', amount: '150g', price: 2.50 }, { name: 'Wrap', amount: '1 Stück', price: 0.50 }], instructions: ['Pute braten', 'In Wrap wickeln'] }
     ]},
     { day: 'Mittwoch', meals: [
       { type: 'Frühstück', name: 'Avocado Toast', calories: 340, protein: 12, carbs: 30, fat: 20, prepTime: 5, ingredients: [{ name: 'Avocado', amount: '1/2', price: 1.00 }, { name: 'Vollkornbrot', amount: '2 Scheiben', price: 0.40 }], instructions: ['Avocado zerdrücken', 'Auf Toast verteilen'] },
-      { type: 'Mittagessen', name: 'Thunfisch-Salat', calories: 320, protein: 35, carbs: 15, fat: 14, prepTime: 10, ingredients: [{ name: 'Thunfisch', amount: '150g', price: 2.00 }, { name: 'Gemischter Salat', amount: '150g', price: 1.20 }], instructions: ['Thunfisch abtropfen', 'Mit Salat mischen'] },
+      { type: 'Snack', name: 'Skyr Natur', calories: 100, protein: 12, carbs: 6, fat: 0, prepTime: 1, ingredients: [{ name: 'Skyr', amount: '150g', price: 0.90 }], instructions: ['Skyr in Schüssel geben'] },
+      { type: 'Mittagessen', name: 'Thunfisch-Salat', calories: 420, protein: 40, carbs: 18, fat: 18, prepTime: 10, ingredients: [{ name: 'Thunfisch', amount: '180g', price: 2.50 }, { name: 'Gemischter Salat', amount: '150g', price: 1.20 }], instructions: ['Thunfisch abtropfen', 'Mit Salat mischen'] },
+      { type: 'Snack', name: 'Gekochtes Ei', calories: 140, protein: 12, carbs: 1, fat: 10, prepTime: 10, ingredients: [{ name: 'Eier', amount: '2', price: 0.60 }], instructions: ['Eier kochen', 'Schälen'] },
       { type: 'Abendessen', name: 'Rindfleisch-Pfanne', calories: 450, protein: 38, carbs: 20, fat: 25, prepTime: 20, ingredients: [{ name: 'Rindfleisch', amount: '150g', price: 4.00 }, { name: 'Paprika', amount: '200g', price: 1.50 }], instructions: ['Rindfleisch anbraten', 'Gemüse hinzufügen'] }
     ]},
     { day: 'Donnerstag', meals: [
-      { type: 'Frühstück', name: 'Smoothie Bowl', calories: 300, protein: 20, carbs: 40, fat: 8, prepTime: 5, ingredients: [{ name: 'Gefrorene Beeren', amount: '150g', price: 1.80 }, { name: 'Banane', amount: '1', price: 0.20 }], instructions: ['Alles mixen', 'In Schüssel geben'] },
-      { type: 'Mittagessen', name: 'Linsen-Suppe', calories: 350, protein: 22, carbs: 45, fat: 8, prepTime: 15, ingredients: [{ name: 'Rote Linsen', amount: '100g', price: 0.80 }, { name: 'Karotten', amount: '100g', price: 0.40 }], instructions: ['Linsen kochen', 'Gemüse hinzufügen'] },
-      { type: 'Abendessen', name: 'Garnelen mit Reis', calories: 400, protein: 30, carbs: 45, fat: 12, prepTime: 20, ingredients: [{ name: 'Garnelen', amount: '150g', price: 5.00 }, { name: 'Reis', amount: '80g', price: 0.30 }], instructions: ['Garnelen braten', 'Mit Reis servieren'] }
+      { type: 'Frühstück', name: 'Smoothie Bowl', calories: 300, protein: 20, carbs: 40, fat: 8, prepTime: 5, ingredients: [{ name: 'Gefrorene Beeren', amount: '150g', price: 1.80 }, { name: 'Proteinpulver', amount: '25g', price: 0.70 }], instructions: ['Alles mixen', 'In Schüssel geben'] },
+      { type: 'Snack', name: 'Nüsse & Trockenfrüchte', calories: 180, protein: 5, carbs: 18, fat: 11, prepTime: 0, ingredients: [{ name: 'Nussmix', amount: '30g', price: 0.80 }], instructions: ['Portionieren'] },
+      { type: 'Mittagessen', name: 'Linsen-Suppe', calories: 400, protein: 25, carbs: 50, fat: 10, prepTime: 15, ingredients: [{ name: 'Rote Linsen', amount: '100g', price: 0.80 }, { name: 'Karotten', amount: '100g', price: 0.40 }], instructions: ['Linsen kochen', 'Gemüse hinzufügen'] },
+      { type: 'Snack', name: 'Griechischer Joghurt', calories: 120, protein: 18, carbs: 5, fat: 3, prepTime: 1, ingredients: [{ name: 'Griechischer Joghurt 0%', amount: '170g', price: 1.00 }], instructions: ['In Schüssel geben'] },
+      { type: 'Abendessen', name: 'Garnelen mit Reis', calories: 420, protein: 32, carbs: 48, fat: 12, prepTime: 20, ingredients: [{ name: 'Garnelen', amount: '150g', price: 5.00 }, { name: 'Reis', amount: '80g', price: 0.30 }], instructions: ['Garnelen braten', 'Mit Reis servieren'] }
     ]},
     { day: 'Freitag', meals: [
       { type: 'Frühstück', name: 'Eier mit Spinat', calories: 280, protein: 22, carbs: 8, fat: 18, prepTime: 10, ingredients: [{ name: 'Eier', amount: '3', price: 0.90 }, { name: 'Spinat', amount: '100g', price: 1.00 }], instructions: ['Eier verquirlen', 'Mit Spinat braten'] },
-      { type: 'Mittagessen', name: 'Buddha Bowl', calories: 420, protein: 18, carbs: 50, fat: 16, prepTime: 15, ingredients: [{ name: 'Süßkartoffel', amount: '150g', price: 0.80 }, { name: 'Hummus', amount: '50g', price: 0.70 }], instructions: ['Süßkartoffel backen', 'Alles zusammenstellen'] },
-      { type: 'Abendessen', name: 'Hähnchen-Curry', calories: 400, protein: 35, carbs: 30, fat: 15, prepTime: 20, ingredients: [{ name: 'Hähnchen', amount: '150g', price: 2.50 }, { name: 'Kokosmilch light', amount: '100ml', price: 0.80 }], instructions: ['Hähnchen anbraten', 'Sauce hinzufügen'] }
+      { type: 'Snack', name: 'Mozzarella Sticks', calories: 150, protein: 12, carbs: 2, fat: 11, prepTime: 2, ingredients: [{ name: 'Mini Mozzarella', amount: '50g', price: 1.00 }], instructions: ['Auspacken'] },
+      { type: 'Mittagessen', name: 'Buddha Bowl', calories: 450, protein: 22, carbs: 55, fat: 18, prepTime: 15, ingredients: [{ name: 'Süßkartoffel', amount: '150g', price: 0.80 }, { name: 'Hummus', amount: '50g', price: 0.70 }, { name: 'Hähnchen', amount: '100g', price: 1.80 }], instructions: ['Süßkartoffel backen', 'Alles zusammenstellen'] },
+      { type: 'Snack', name: 'Edamame', calories: 120, protein: 12, carbs: 9, fat: 5, prepTime: 3, ingredients: [{ name: 'Edamame', amount: '100g', price: 1.50 }], instructions: ['In Salzwasser kochen'] },
+      { type: 'Abendessen', name: 'Hähnchen-Curry', calories: 420, protein: 38, carbs: 32, fat: 16, prepTime: 20, ingredients: [{ name: 'Hähnchen', amount: '170g', price: 2.80 }, { name: 'Kokosmilch light', amount: '100ml', price: 0.80 }], instructions: ['Hähnchen anbraten', 'Sauce hinzufügen'] }
     ]},
     { day: 'Samstag', meals: [
       { type: 'Frühstück', name: 'French Toast', calories: 350, protein: 18, carbs: 40, fat: 12, prepTime: 10, ingredients: [{ name: 'Vollkornbrot', amount: '2 Scheiben', price: 0.40 }, { name: 'Ei', amount: '2', price: 0.60 }], instructions: ['Brot in Ei tauchen', 'Golden braten'] },
-      { type: 'Mittagessen', name: 'Caesar Salat', calories: 380, protein: 28, carbs: 20, fat: 22, prepTime: 15, ingredients: [{ name: 'Romana Salat', amount: '150g', price: 1.50 }, { name: 'Parmesan', amount: '30g', price: 1.00 }], instructions: ['Salat waschen', 'Mit Dressing mischen'] },
+      { type: 'Snack', name: 'Harzer Käse', calories: 80, protein: 15, carbs: 0, fat: 1, prepTime: 0, ingredients: [{ name: 'Harzer Käse', amount: '50g', price: 0.60 }], instructions: ['In Scheiben schneiden'] },
+      { type: 'Mittagessen', name: 'Caesar Salat', calories: 450, protein: 35, carbs: 22, fat: 26, prepTime: 15, ingredients: [{ name: 'Hähnchenbrust', amount: '150g', price: 2.50 }, { name: 'Romana Salat', amount: '150g', price: 1.50 }], instructions: ['Hähnchen braten', 'Mit Salat und Dressing mischen'] },
+      { type: 'Snack', name: 'Protein Shake', calories: 150, protein: 25, carbs: 5, fat: 3, prepTime: 2, ingredients: [{ name: 'Proteinpulver', amount: '30g', price: 0.80 }, { name: 'Milch 1.5%', amount: '200ml', price: 0.25 }], instructions: ['Alles shaken'] },
       { type: 'Abendessen', name: 'Steak mit Salat', calories: 480, protein: 42, carbs: 10, fat: 30, prepTime: 15, ingredients: [{ name: 'Rindersteak', amount: '200g', price: 6.00 }, { name: 'Rucola', amount: '100g', price: 1.20 }], instructions: ['Steak braten', 'Mit Salat servieren'] }
     ]},
     { day: 'Sonntag', meals: [
       { type: 'Frühstück', name: 'Omelett', calories: 320, protein: 24, carbs: 5, fat: 22, prepTime: 10, ingredients: [{ name: 'Eier', amount: '3', price: 0.90 }, { name: 'Champignons', amount: '100g', price: 1.00 }], instructions: ['Eier verquirlen', 'Mit Pilzen braten'] },
-      { type: 'Mittagessen', name: 'Poke Bowl', calories: 400, protein: 30, carbs: 40, fat: 14, prepTime: 15, ingredients: [{ name: 'Lachs', amount: '120g', price: 3.60 }, { name: 'Sushi Reis', amount: '80g', price: 0.40 }], instructions: ['Reis kochen', 'Mit Lachs toppen'] },
-      { type: 'Abendessen', name: 'Lachs Teriyaki', calories: 420, protein: 32, carbs: 25, fat: 22, prepTime: 20, ingredients: [{ name: 'Lachs', amount: '150g', price: 4.50 }, { name: 'Teriyaki Sauce', amount: '30ml', price: 0.50 }], instructions: ['Lachs marinieren', 'Im Ofen backen'] }
+      { type: 'Snack', name: 'Quark mit Beeren', calories: 140, protein: 18, carbs: 12, fat: 1, prepTime: 2, ingredients: [{ name: 'Magerquark', amount: '150g', price: 0.70 }, { name: 'Beeren', amount: '50g', price: 0.80 }], instructions: ['Quark mit Beeren mischen'] },
+      { type: 'Mittagessen', name: 'Poke Bowl', calories: 450, protein: 32, carbs: 45, fat: 16, prepTime: 15, ingredients: [{ name: 'Lachs', amount: '140g', price: 4.20 }, { name: 'Sushi Reis', amount: '80g', price: 0.40 }], instructions: ['Reis kochen', 'Mit Lachs toppen'] },
+      { type: 'Snack', name: 'Thunfisch auf Cracker', calories: 130, protein: 18, carbs: 8, fat: 3, prepTime: 3, ingredients: [{ name: 'Thunfisch', amount: '60g', price: 0.80 }, { name: 'Vollkorn Cracker', amount: '2', price: 0.30 }], instructions: ['Thunfisch auf Cracker verteilen'] },
+      { type: 'Abendessen', name: 'Lachs Teriyaki', calories: 420, protein: 35, carbs: 28, fat: 20, prepTime: 20, ingredients: [{ name: 'Lachs', amount: '150g', price: 4.50 }, { name: 'Teriyaki Sauce', amount: '30ml', price: 0.50 }], instructions: ['Lachs marinieren', 'Im Ofen backen'] }
     ]}
   ];
 
@@ -247,7 +268,7 @@ const MealPlansPage = () => {
                   >
                     <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
                       <h3 className="text-lg font-bold mb-3 text-primary">{day.day}</h3>
-                      <div className="grid md:grid-cols-3 gap-3">
+                      <div className="grid md:grid-cols-5 gap-2">
                         {day.meals.map((meal, mealIndex) => (
                           <div
                             key={mealIndex}
