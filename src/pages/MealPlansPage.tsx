@@ -88,8 +88,16 @@ const MealPlansPage = () => {
 
     setIsGenerating(true);
     try {
+      // Get user's daily calorie target from tracker
+      const profileData = localStorage.getItem('userProfile');
+      let dailyCalories = 1600;
+      if (profileData) {
+        const profile = JSON.parse(profileData);
+        dailyCalories = profile.dailyCalories || 1600;
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-        body: { preferences: '' },
+        body: { preferences: '', dailyCalories },
       });
 
       if (error) throw error;
@@ -97,7 +105,7 @@ const MealPlansPage = () => {
       if (data?.mealPlan) {
         setMealPlan(data.mealPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify(data.mealPlan));
-        toast({ title: 'Neuer Wochenplan generiert!', description: 'Dein personalisierter Plan ist fertig.' });
+        toast({ title: 'Neuer Wochenplan generiert!', description: `Plan mit ${dailyCalories} kcal/Tag erstellt.` });
       }
     } catch (error) {
       console.error('Error generating meal plan:', error);
