@@ -99,7 +99,7 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="mb-8"
+            className="mb-12"
           >
             <HeroAnimation />
           </motion.div>
