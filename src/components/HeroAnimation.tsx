@@ -16,7 +16,7 @@ const HeroAnimation = () => {
   const fridgeOpen = step >= 1;
 
   return (
-    <div className="relative w-full max-w-lg mx-auto h-80 md:h-96">
+    <div className="relative w-full max-w-xl mx-auto h-96 md:h-[500px]">
       {/* Person/Stickfigure - LEFT SIDE */}
       <motion.div
         className="absolute left-[5%] md:left-[10%] top-1/2 -translate-y-1/2"
@@ -113,7 +113,7 @@ const HeroAnimation = () => {
 
       {/* FRIDGE - CENTER */}
       <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-44 md:w-36 md:h-52"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-56 md:w-52 md:h-72"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
@@ -121,102 +121,174 @@ const HeroAnimation = () => {
         {/* Fridge Interior */}
         <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-100 dark:from-slate-200 dark:to-slate-300 rounded-xl shadow-inner overflow-hidden">
           {/* Shelves */}
-          <div className="absolute left-0 right-0 top-[28%] h-[2px] bg-slate-300" />
-          <div className="absolute left-0 right-0 top-[52%] h-[2px] bg-slate-300" />
-          <div className="absolute left-0 right-0 top-[76%] h-[2px] bg-slate-300" />
+          <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
+          <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-slate-300" />
+          <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-slate-300" />
           
           {/* Food Items */}
           <AnimatePresence>
             {fridgeOpen && (
               <>
-                {/* Top Shelf - Milk & Juice */}
+                {/* Top Shelf - Milk carton, Orange juice, Apple */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="absolute top-[4%] left-[8%] w-4 h-8 md:w-5 md:h-10 bg-white rounded-sm border border-slate-200 shadow-sm"
+                  className="absolute top-[3%] left-[8%] w-6 h-12 md:w-8 md:h-14 rounded-sm shadow-md overflow-hidden"
                 >
-                  <div className="w-full h-2 bg-blue-500 rounded-t-sm" />
-                  <div className="w-2 h-1 bg-blue-500 mx-auto mt-0.5 rounded-sm" />
+                  {/* Milk carton */}
+                  <div className="w-full h-full bg-white border border-slate-200">
+                    <div className="w-full h-3 bg-blue-400 rounded-t-sm" />
+                    <div className="flex justify-center mt-1">
+                      <div className="w-3 h-4 bg-blue-100 rounded-sm" />
+                    </div>
+                  </div>
                 </motion.div>
+                
+                {/* Orange juice */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.25 }}
-                  className="absolute top-[5%] left-[30%] w-3.5 h-7 md:w-4 md:h-8 bg-orange-500 rounded-sm shadow-sm"
-                />
+                  className="absolute top-[4%] left-[35%] w-5 h-10 md:w-6 md:h-12 rounded-sm shadow-md overflow-hidden"
+                >
+                  <div className="w-full h-full bg-orange-400">
+                    <div className="w-full h-2 bg-orange-600 rounded-t-sm" />
+                    <div className="w-2 h-2 bg-orange-200 rounded-full mx-auto mt-1" />
+                  </div>
+                </motion.div>
+
+                {/* Apple */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
-                  className="absolute top-[6%] right-[25%] w-3 h-6 md:w-3.5 md:h-7 bg-green-500 rounded-sm shadow-sm"
-                />
+                  className="absolute top-[6%] right-[30%] w-5 h-5 md:w-6 md:h-6"
+                >
+                  <div className="w-full h-full bg-red-500 rounded-full shadow-md relative">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-2 bg-amber-700 rounded-full" />
+                    <div className="absolute top-0 right-1 w-2 h-2 bg-green-500 rounded-full transform -rotate-45" />
+                  </div>
+                </motion.div>
+
+                {/* Eggs */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.35 }}
-                  className="absolute top-[8%] right-[8%] w-4 h-4 md:w-5 md:h-5 bg-amber-100 rounded-full border border-amber-200 shadow-sm"
-                />
+                  className="absolute top-[5%] right-[8%] w-8 h-6 md:w-10 md:h-7 bg-amber-50 rounded border border-amber-100 shadow-sm flex items-center justify-center gap-0.5"
+                >
+                  <div className="w-2 h-3 bg-amber-100 rounded-full" />
+                  <div className="w-2 h-3 bg-amber-100 rounded-full" />
+                  <div className="w-2 h-3 bg-amber-100 rounded-full" />
+                </motion.div>
 
                 {/* Second Shelf - Vegetables */}
+                {/* Carrot */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="absolute top-[32%] left-[8%] w-5 h-3 md:w-6 md:h-4 bg-orange-400 rounded-full shadow-sm"
-                  style={{ borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%" }}
-                />
+                  className="absolute top-[28%] left-[8%]"
+                >
+                  <div className="w-3 h-8 md:w-4 md:h-10 bg-gradient-to-b from-orange-400 to-orange-500 rounded-b-full shadow-md relative">
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-3 flex justify-center">
+                      <div className="w-1 h-3 bg-green-500 rounded-full transform -rotate-12" />
+                      <div className="w-1 h-3 bg-green-500 rounded-full" />
+                      <div className="w-1 h-3 bg-green-500 rounded-full transform rotate-12" />
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Tomato */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.45 }}
-                  className="absolute top-[31%] left-[35%] w-4 h-4 md:w-5 md:h-5 bg-red-500 rounded-full shadow-sm"
-                />
+                  className="absolute top-[30%] left-[30%] w-5 h-5 md:w-7 md:h-7"
+                >
+                  <div className="w-full h-full bg-gradient-to-br from-red-400 to-red-600 rounded-full shadow-md relative">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-2 bg-green-500 rounded-b-full" />
+                  </div>
+                </motion.div>
+
+                {/* Avocado */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="absolute top-[32%] right-[20%] w-4 h-4 md:w-5 md:h-5 bg-green-600 rounded-full shadow-sm"
-                />
+                  className="absolute top-[28%] right-[25%] w-5 h-7 md:w-6 md:h-8"
+                >
+                  <div className="w-full h-full bg-gradient-to-b from-green-600 to-green-800 rounded-full shadow-md" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }} />
+                </motion.div>
+
+                {/* Cheese */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.55 }}
-                  className="absolute top-[33%] right-[5%] w-3 h-5 md:w-4 md:h-6 bg-yellow-400 rounded-sm shadow-sm"
-                />
+                  className="absolute top-[30%] right-[5%] w-6 h-5 md:w-8 md:h-6"
+                >
+                  <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-yellow-400 rounded-sm shadow-md relative">
+                    <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-yellow-200 rounded-full" />
+                    <div className="absolute bottom-1 right-2 w-1 h-1 bg-yellow-200 rounded-full" />
+                  </div>
+                </motion.div>
 
                 {/* Third Shelf - Containers */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="absolute top-[56%] left-[5%] w-8 h-5 md:w-10 md:h-6 bg-primary/20 rounded border border-primary/40 shadow-sm"
-                />
+                  className="absolute top-[53%] left-[5%] w-10 h-6 md:w-14 md:h-8 bg-primary/20 rounded border border-primary/40 shadow-sm"
+                >
+                  <div className="w-full h-1.5 bg-primary/30 rounded-t" />
+                </motion.div>
+                
+                {/* Yogurt */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.65 }}
-                  className="absolute top-[57%] right-[15%] w-6 h-4 md:w-8 md:h-5 bg-blue-100 rounded border border-blue-200 shadow-sm"
-                />
+                  className="absolute top-[54%] left-[45%] w-5 h-5 md:w-6 md:h-6"
+                >
+                  <div className="w-full h-full bg-white rounded-sm border border-slate-200 shadow-sm">
+                    <div className="w-full h-1.5 bg-pink-400 rounded-t-sm" />
+                  </div>
+                </motion.div>
+
+                {/* Broccoli */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.7 }}
-                  className="absolute top-[58%] right-[3%] w-4 h-4 md:w-5 md:h-5 bg-pink-400 rounded-full shadow-sm"
-                />
+                  className="absolute top-[53%] right-[8%] w-6 h-6 md:w-8 md:h-8"
+                >
+                  <div className="w-full h-full relative">
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-3 bg-green-700 rounded-sm" />
+                    <div className="absolute top-0 left-0 w-3 h-3 bg-green-500 rounded-full" />
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full" />
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-green-600 rounded-full" />
+                  </div>
+                </motion.div>
 
-                {/* Bottom Drawer - Veggies */}
+                {/* Bottom Drawer - Mixed Veggies */}
                 <motion.div
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.75 }}
-                  className="absolute bottom-[3%] left-[5%] right-[5%] h-6 md:h-7 bg-green-50 rounded border border-slate-200 flex items-center justify-center gap-1 px-1"
+                  className="absolute bottom-[2%] left-[4%] right-[4%] h-8 md:h-10 bg-gradient-to-b from-green-50 to-green-100 rounded border border-slate-200 flex items-center justify-around px-2"
                 >
-                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />
-                  <div className="w-2.5 h-2.5 bg-red-400 rounded-full" />
-                  <div className="w-2.5 h-2.5 bg-orange-400 rounded-full" />
-                  <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />
-                  <div className="w-2.5 h-2.5 bg-green-400 rounded-full" />
+                  {/* Lettuce */}
+                  <div className="w-4 h-4 md:w-5 md:h-5 bg-gradient-to-br from-green-300 to-green-500 rounded-full" />
+                  {/* Pepper */}
+                  <div className="w-3 h-5 md:w-4 md:h-6 bg-gradient-to-b from-red-400 to-red-600 rounded-b-full rounded-t-sm" />
+                  {/* Cucumber */}
+                  <div className="w-2 h-5 md:w-3 md:h-6 bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+                  {/* Lemon */}
+                  <div className="w-4 h-3 md:w-5 md:h-4 bg-gradient-to-br from-yellow-300 to-yellow-400 rounded-full" />
+                  {/* Spinach */}
+                  <div className="w-4 h-4 md:w-5 md:h-5 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
                 </motion.div>
               </>
             )}
@@ -227,18 +299,18 @@ const HeroAnimation = () => {
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 dark:from-slate-400 dark:via-slate-300 dark:to-slate-400 rounded-xl border-2 border-slate-300 shadow-xl origin-right"
           animate={{
-            rotateY: fridgeOpen ? 105 : 0,
+            rotateY: fridgeOpen ? 110 : 0,
           }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
           {/* Door Handle */}
-          <div className="absolute left-2 top-[45%] w-1.5 h-8 md:h-10 bg-slate-400 rounded-full shadow-inner" />
+          <div className="absolute left-3 top-[45%] w-2 h-10 md:h-12 bg-slate-400 rounded-full shadow-inner" />
           
           {/* Freezer Line */}
           <div className="absolute left-0 right-0 top-[25%] h-[3px] bg-slate-300" />
           
           {/* Door Texture */}
-          <div className="absolute inset-2 rounded-lg bg-gradient-to-br from-white/20 to-transparent" />
+          <div className="absolute inset-2 rounded-lg bg-gradient-to-br from-white/30 to-transparent" />
         </motion.div>
       </motion.div>
 

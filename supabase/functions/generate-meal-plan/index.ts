@@ -16,13 +16,23 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { preferences } = await req.json();
+    const { preferences, dailyCalories } = await req.json();
+
+    const targetCalories = dailyCalories || 1600;
+    const breakfastCal = Math.round(targetCalories * 0.25);
+    const lunchCal = Math.round(targetCalories * 0.40);
+    const dinnerCal = Math.round(targetCalories * 0.35);
 
     const systemPrompt = `Du bist ein erfahrener Ernährungsberater für gesunde, kalorienarme Mahlzeiten zum Abnehmen.
 Generiere einen Wochenplan mit Frühstück, Mittagessen und Abendessen für jeden Tag (Montag bis Sonntag).
 
+WICHTIG - Kalorienziel pro Tag: ${targetCalories} kcal
+- Frühstück: ca. ${breakfastCal} kcal (25%)
+- Mittagessen: ca. ${lunchCal} kcal (40%)
+- Abendessen: ca. ${dinnerCal} kcal (35%)
+
 Regeln:
-- Jede Mahlzeit unter 500 Kalorien
+- Die Summe aller 3 Mahlzeiten pro Tag MUSS ungefähr ${targetCalories} kcal ergeben!
 - Hoher Proteingehalt
 - Einfache Zubereitung (unter 20 Minuten)
 - Realistische deutsche Gerichte
@@ -38,7 +48,7 @@ Antworte NUR mit validem JSON in diesem Format:
         {
           "type": "Frühstück",
           "name": "Name des Gerichts",
-          "calories": 350,
+          "calories": ${breakfastCal},
           "protein": 25,
           "carbs": 30,
           "fat": 12,
