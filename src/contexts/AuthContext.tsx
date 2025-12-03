@@ -48,7 +48,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-    let subscriptionCheckDone = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
@@ -58,20 +57,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentSession?.user ?? null);
         setLoading(false);
         
-        // Only check subscription once on sign in, not on every state change
-        if (currentSession?.user && event === 'SIGNED_IN' && !subscriptionCheckDone) {
-          subscriptionCheckDone = true;
+        // Check subscription on sign in
+        if (currentSession?.user && event === 'SIGNED_IN') {
           setTimeout(() => {
             if (mounted) checkSubscription();
           }, 100);
         } else if (!currentSession) {
           setSubscriptionStatus(null);
-          subscriptionCheckDone = false;
         }
       }
     );
 
-    // Initial session check - only once
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       if (!mounted) return;
       
@@ -79,19 +76,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(initialSession?.user ?? null);
       setLoading(false);
       
-      if (initialSession?.user && !subscriptionCheckDone) {
-        subscriptionCheckDone = true;
+      if (initialSession?.user) {
         setTimeout(() => {
           if (mounted) checkSubscription();
         }, 100);
       }
     });
 
+    // Re-check subscription when window regains focus (e.g., returning from Stripe)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && session?.user) {
+        checkSubscription();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [session]);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
