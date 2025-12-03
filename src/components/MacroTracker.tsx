@@ -26,6 +26,9 @@ interface UserProfile {
   weight: number;
   targetWeight: number;
   dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
 }
 
 interface MacroTrackerProps {
@@ -66,11 +69,15 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
   const targetCalories = Math.round(tdee - dailyDeficit);
 
   const saveProfile = () => {
+    const finalCalories = Math.max(1200, targetCalories);
     const newProfile = {
       age,
       weight,
       targetWeight,
-      dailyCalories: Math.max(1200, targetCalories),
+      dailyCalories: finalCalories,
+      dailyProtein: Math.round(finalCalories * 0.3 / 4), // 30% from protein
+      dailyCarbs: Math.round(finalCalories * 0.4 / 4),   // 40% from carbs
+      dailyFat: Math.round(finalCalories * 0.3 / 9),     // 30% from fat
     };
     localStorage.setItem('userProfile', JSON.stringify(newProfile));
     setProfile(newProfile);

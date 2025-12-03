@@ -16,28 +16,43 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { preferences, dailyCalories } = await req.json();
+    const { preferences, dailyCalories, dailyProtein, dailyCarbs, dailyFat } = await req.json();
 
     const targetCalories = dailyCalories || 1600;
-    const breakfastCal = Math.round(targetCalories * 0.25);
-    const lunchCal = Math.round(targetCalories * 0.40);
-    const dinnerCal = Math.round(targetCalories * 0.35);
+    const targetProtein = dailyProtein || Math.round(targetCalories * 0.3 / 4);
+    const targetCarbs = dailyCarbs || Math.round(targetCalories * 0.4 / 4);
+    const targetFat = dailyFat || Math.round(targetCalories * 0.3 / 9);
+
+    // Distribution: Breakfast 20%, Snack 10%, Lunch 35%, Snack 10%, Dinner 25%
+    const breakfastCal = Math.round(targetCalories * 0.20);
+    const snackCal = Math.round(targetCalories * 0.10);
+    const lunchCal = Math.round(targetCalories * 0.35);
+    const dinnerCal = Math.round(targetCalories * 0.25);
 
     const systemPrompt = `Du bist ein erfahrener Ernährungsberater für gesunde, kalorienarme Mahlzeiten zum Abnehmen.
-Generiere einen Wochenplan mit Frühstück, Mittagessen und Abendessen für jeden Tag (Montag bis Sonntag).
+Generiere einen Wochenplan mit Frühstück, Snack (vormittags), Mittagessen, Snack (nachmittags) und Abendessen für jeden Tag (Montag bis Sonntag).
 
-WICHTIG - Kalorienziel pro Tag: ${targetCalories} kcal
-- Frühstück: ca. ${breakfastCal} kcal (25%)
-- Mittagessen: ca. ${lunchCal} kcal (40%)
-- Abendessen: ca. ${dinnerCal} kcal (35%)
+WICHTIG - Tägliche Ziele:
+- Kalorien: ${targetCalories} kcal
+- Protein: ${targetProtein}g (high priority!)
+- Kohlenhydrate: ${targetCarbs}g
+- Fett: ${targetFat}g
+
+Kalorienverteilung pro Mahlzeit:
+- Frühstück: ca. ${breakfastCal} kcal (20%)
+- Snack (vormittags): ca. ${snackCal} kcal (10%)
+- Mittagessen: ca. ${lunchCal} kcal (35%)
+- Snack (nachmittags): ca. ${snackCal} kcal (10%)
+- Abendessen: ca. ${dinnerCal} kcal (25%)
 
 Regeln:
-- Die Summe aller 3 Mahlzeiten pro Tag MUSS ungefähr ${targetCalories} kcal ergeben!
-- Hoher Proteingehalt
+- Die Summe aller 5 Mahlzeiten pro Tag MUSS ungefähr ${targetCalories} kcal ergeben!
+- Tägliches Protein MUSS ungefähr ${targetProtein}g erreichen!
+- Hoher Proteingehalt bei jeder Mahlzeit
+- Snacks: proteinreich und sättigend (z.B. Griechischer Joghurt, Nüsse, Proteinriegel, Quark, Eier)
 - Einfache Zubereitung (unter 20 Minuten)
 - Realistische deutsche Gerichte
-- Genaue Zutaten mit Mengenangaben
-- Schritt-für-Schritt Anleitung
+- Genaue Zutaten mit Mengenangaben und realistischen Preisen
 
 Antworte NUR mit validem JSON in diesem Format:
 {
@@ -58,13 +73,44 @@ Antworte NUR mit validem JSON in diesem Format:
             {"name": "Zutat 2", "amount": "50g", "price": 0.80}
           ],
           "instructions": ["Schritt 1", "Schritt 2", "Schritt 3"]
+        },
+        {
+          "type": "Snack",
+          "name": "Griechischer Joghurt mit Nüssen",
+          "calories": ${snackCal},
+          "protein": 15,
+          "carbs": 10,
+          "fat": 8,
+          "prepTime": 2,
+          "ingredients": [
+            {"name": "Griechischer Joghurt 0%", "amount": "150g", "price": 0.90}
+          ],
+          "instructions": ["Joghurt in Schüssel geben", "Mit Nüssen toppen"]
+        },
+        {
+          "type": "Mittagessen",
+          "name": "...",
+          "calories": ${lunchCal},
+          ...
+        },
+        {
+          "type": "Snack",
+          "name": "...",
+          "calories": ${snackCal},
+          ...
+        },
+        {
+          "type": "Abendessen",
+          "name": "...",
+          "calories": ${dinnerCal},
+          ...
         }
       ]
     }
   ]
 }`;
 
-    console.log('[GENERATE-MEAL-PLAN] Calling AI gateway...');
+    console.log('[GENERATE-MEAL-PLAN] Calling AI gateway with targets:', { targetCalories, targetProtein, targetCarbs, targetFat });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -76,7 +122,7 @@ Antworte NUR mit validem JSON in diesem Format:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Erstelle einen abwechslungsreichen Wochenplan für gesunde Mahlzeiten. ${preferences ? `Präferenzen: ${preferences}` : ''}` }
+          { role: 'user', content: `Erstelle einen abwechslungsreichen Wochenplan für gesunde Mahlzeiten mit ${targetCalories} kcal und ${targetProtein}g Protein pro Tag. Jeder Tag muss ALLE 5 Mahlzeiten haben: Frühstück, Snack, Mittagessen, Snack, Abendessen. ${preferences ? `Präferenzen: ${preferences}` : ''}` }
         ],
       }),
     });
