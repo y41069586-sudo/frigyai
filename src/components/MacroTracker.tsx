@@ -28,16 +28,20 @@ interface UserProfile {
   dailyCalories: number;
 }
 
-export const MacroTracker = () => {
+interface MacroTrackerProps {
+  onSetupComplete?: () => void;
+}
+
+export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
   const [step, setStep] = useState<'onboarding' | 'tracker'>(
-    localStorage.getItem('macroProfile') ? 'tracker' : 'onboarding'
+    localStorage.getItem('userProfile') ? 'tracker' : 'onboarding'
   );
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [age, setAge] = useState(25);
   const [weight, setWeight] = useState(80);
   const [targetWeight, setTargetWeight] = useState(75);
   const [profile, setProfile] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('macroProfile');
+    const saved = localStorage.getItem('userProfile');
     return saved ? JSON.parse(saved) : null;
   });
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>(() => {
@@ -68,9 +72,10 @@ export const MacroTracker = () => {
       targetWeight,
       dailyCalories: Math.max(1200, targetCalories),
     };
-    localStorage.setItem('macroProfile', JSON.stringify(newProfile));
+    localStorage.setItem('userProfile', JSON.stringify(newProfile));
     setProfile(newProfile);
     setStep('tracker');
+    onSetupComplete?.();
   };
 
   const saveFoodEntries = (entries: FoodEntry[]) => {
@@ -326,7 +331,7 @@ export const MacroTracker = () => {
             variant="ghost"
             size="sm"
             onClick={() => {
-              localStorage.removeItem('macroProfile');
+              localStorage.removeItem('userProfile');
               setStep('onboarding');
               setOnboardingStep(0);
             }}

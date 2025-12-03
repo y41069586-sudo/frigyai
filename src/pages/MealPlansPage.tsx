@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2 } from 'lucide-react';
+import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,6 +43,8 @@ const MealPlansPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [trackerSetup, setTrackerSetup] = useState(false);
+  const [activeTab, setActiveTab] = useState('tracker');
 
   useEffect(() => {
     if (!user) {
@@ -52,8 +54,11 @@ const MealPlansPage = () => {
     }
   }, [user, subscriptionStatus, navigate]);
 
-  // Load saved meal plan
+  // Check tracker setup and load saved meal plan
   useEffect(() => {
+    const profile = localStorage.getItem('userProfile');
+    setTrackerSetup(!!profile);
+    
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
       try {
@@ -64,7 +69,23 @@ const MealPlansPage = () => {
     }
   }, []);
 
+  // Listen for tracker setup changes
+  const handleTrackerSetup = () => {
+    const profile = localStorage.getItem('userProfile');
+    setTrackerSetup(!!profile);
+  };
+
   const generateMealPlan = async () => {
+    if (!trackerSetup) {
+      toast({ 
+        title: 'Tracker einrichten', 
+        description: 'Bitte richte zuerst deinen Tracker ein', 
+        variant: 'destructive' 
+      });
+      setActiveTab('tracker');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
@@ -89,6 +110,18 @@ const MealPlansPage = () => {
   const openMealDetail = (meal: Meal) => {
     setSelectedMeal(meal);
     setDialogOpen(true);
+  };
+
+  const handleTabChange = (value: string) => {
+    if ((value === 'meals' || value === 'shopping') && !trackerSetup) {
+      toast({ 
+        title: 'Tracker einrichten', 
+        description: 'Bitte richte zuerst deinen Tracker ein', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    setActiveTab(value);
   };
 
   // Default mock data if no plan generated yet
@@ -145,21 +178,33 @@ const MealPlansPage = () => {
       </nav>
 
       <div className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="meals" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 bg-card/50 border border-primary/20">
-            <TabsTrigger value="meals" className="data-[state=active]:bg-primary/20">
-              <ChefHat className="h-4 w-4 mr-2" />
-              Wochenplan
-            </TabsTrigger>
-            <TabsTrigger value="shopping" className="data-[state=active]:bg-primary/20">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Einkaufsliste
-            </TabsTrigger>
-            <TabsTrigger value="macros" className="data-[state=active]:bg-primary/20">
+            <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20">
               <Flame className="h-4 w-4 mr-2" />
               Tracker
             </TabsTrigger>
+            <TabsTrigger 
+              value="meals" 
+              className={`data-[state=active]:bg-primary/20 ${!trackerSetup ? 'opacity-50' : ''}`}
+            >
+              {!trackerSetup && <Lock className="h-3 w-3 mr-1" />}
+              <ChefHat className="h-4 w-4 mr-2" />
+              Wochenplan
+            </TabsTrigger>
+            <TabsTrigger 
+              value="shopping" 
+              className={`data-[state=active]:bg-primary/20 ${!trackerSetup ? 'opacity-50' : ''}`}
+            >
+              {!trackerSetup && <Lock className="h-3 w-3 mr-1" />}
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Einkaufsliste
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="tracker">
+            <MacroTracker onSetupComplete={handleTrackerSetup} />
+          </TabsContent>
 
           <TabsContent value="meals">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -171,7 +216,7 @@ const MealPlansPage = () => {
                 <Button 
                   className="glow-button" 
                   onClick={generateMealPlan}
-                  disabled={isGenerating}
+                  disabled={isGenerating || !trackerSetup}
                 >
                   {isGenerating ? (
                     <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generiere...</>
@@ -220,10 +265,6 @@ const MealPlansPage = () => {
 
           <TabsContent value="shopping">
             <ShoppingList mealPlan={displayPlan} />
-          </TabsContent>
-
-          <TabsContent value="macros">
-            <MacroTracker />
           </TabsContent>
         </Tabs>
       </div>
