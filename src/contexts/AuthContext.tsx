@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +46,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Use ref to track session for visibility change handler (avoids dependency issues)
+  const sessionRef = useRef<Session | null>(null);
+  
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -60,7 +67,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Check subscription on sign in
         if (currentSession?.user && event === 'SIGNED_IN') {
           setTimeout(() => {
-            if (mounted) checkSubscription();
+            if (mounted && currentSession) {
+              supabase.functions.invoke('check-subscription', {
+                headers: {
+                  Authorization: `Bearer ${currentSession.access_token}`,
+                },
+              }).then(({ data, error }) => {
+                if (!error && mounted) {
+                  setSubscriptionStatus(data);
+                }
+              });
+            }
           }, 100);
         } else if (!currentSession) {
           setSubscriptionStatus(null);
@@ -78,15 +95,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (initialSession?.user) {
         setTimeout(() => {
-          if (mounted) checkSubscription();
+          if (mounted && initialSession) {
+            supabase.functions.invoke('check-subscription', {
+              headers: {
+                Authorization: `Bearer ${initialSession.access_token}`,
+              },
+            }).then(({ data, error }) => {
+              if (!error && mounted) {
+                setSubscriptionStatus(data);
+              }
+            });
+          }
         }, 100);
       }
     });
 
     // Re-check subscription when window regains focus (e.g., returning from Stripe)
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && session?.user) {
-        checkSubscription();
+      const currentSession = sessionRef.current;
+      if (document.visibilityState === 'visible' && currentSession?.user) {
+        supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${currentSession.access_token}`,
+          },
+        }).then(({ data, error }) => {
+          if (!error && mounted) {
+            setSubscriptionStatus(data);
+          }
+        });
       }
     };
 
@@ -97,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [session]);
+  }, []);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
