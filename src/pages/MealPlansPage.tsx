@@ -37,7 +37,7 @@ interface DayPlan {
 }
 
 const MealPlansPage = () => {
-  const { user, subscriptionStatus } = useAuth();
+  const { user, subscriptionStatus, loading } = useAuth();
   const navigate = useNavigate();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,12 +47,15 @@ const MealPlansPage = () => {
   const [activeTab, setActiveTab] = useState('tracker');
 
   useEffect(() => {
+    // Wait for auth to finish loading before redirecting
+    if (loading) return;
+    
     if (!user) {
       navigate('/auth');
-    } else if (!subscriptionStatus?.subscribed) {
+    } else if (subscriptionStatus !== null && !subscriptionStatus.subscribed) {
       navigate('/premium');
     }
-  }, [user, subscriptionStatus, navigate]);
+  }, [user, subscriptionStatus, loading, navigate]);
 
   // Check tracker setup and load saved meal plan
   useEffect(() => {

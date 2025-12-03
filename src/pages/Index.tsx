@@ -8,18 +8,15 @@ import { NavLink } from "@/components/NavLink";
 import HeroAnimation from "@/components/HeroAnimation";
 
 const Index = () => {
-  const { user, subscriptionStatus, signOut, checkSubscription } = useAuth();
+  const { user, subscriptionStatus, signOut } = useAuth();
   const [trackerSetup, setTrackerSetup] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      checkSubscription();
-    }
     // Check if tracker is set up
     const profile = localStorage.getItem("userProfile");
     setTrackerSetup(!!profile);
-  }, [user]);
+  }, []);
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
