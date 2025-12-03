@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { NavLink } from '@/components/NavLink';
 
 const PremiumPage = () => {
-  const { user, session, subscriptionStatus, checkSubscription } = useAuth();
+  const { user, session, subscriptionStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -19,10 +19,6 @@ const PremiumPage = () => {
       navigate('/auth');
     }
   }, [user, navigate]);
-
-  useEffect(() => {
-    checkSubscription();
-  }, []);
 
   const handleSubscribe = async () => {
     if (!session) {
