@@ -366,20 +366,6 @@ const HeroAnimation = () => {
         )}
       </AnimatePresence>
 
-      {/* Step Text */}
-      <motion.div
-        key={step}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute bottom-0 left-0 right-0 text-center"
-      >
-        <p className="text-sm text-muted-foreground">
-          {step === 0 && "Was soll ich heute kochen...? 🤔"}
-          {step === 1 && "Kühlschrank scannen! 📸"}
-          {step === 2 && "Abnehm-Rezepte erhalten! 🥗"}
-          {step === 3 && "Leichter abnehmen! 💪"}
-        </p>
-      </motion.div>
     </div>
   );
 };
