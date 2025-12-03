@@ -66,12 +66,13 @@ const PremiumPage = () => {
       }
 
       if (response.data?.url) {
-        console.log('Opening payment link:', response.data.url);
-        window.open(response.data.url, '_blank');
+        console.log('Redirecting to payment link:', response.data.url);
         toast({
           title: 'Weiterleitung zu Stripe',
-          description: 'Der Zahlungslink wird in einem neuen Tab geöffnet.',
+          description: 'Du wirst jetzt weitergeleitet...',
         });
+        // Direct redirect instead of popup (avoids popup blockers)
+        window.location.href = response.data.url;
       } else {
         throw new Error('Keine Checkout-URL erhalten');
       }
