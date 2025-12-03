@@ -47,37 +47,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+    let subscriptionCheckDone = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, currentSession) => {
+        if (!mounted) return;
         
-        if (session?.user) {
-          setTimeout(() => {
-            checkSubscription();
-          }, 0);
-        } else {
-          setSubscriptionStatus(null);
-        }
-        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         setLoading(false);
+        
+        // Only check subscription once on sign in, not on every state change
+        if (currentSession?.user && event === 'SIGNED_IN' && !subscriptionCheckDone) {
+          subscriptionCheckDone = true;
+          setTimeout(() => {
+            if (mounted) checkSubscription();
+          }, 100);
+        } else if (!currentSession) {
+          setSubscriptionStatus(null);
+          subscriptionCheckDone = false;
+        }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Initial session check - only once
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!mounted) return;
       
-      if (session?.user) {
-        setTimeout(() => {
-          checkSubscription();
-        }, 0);
-      }
-      
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
       setLoading(false);
+      
+      if (initialSession?.user && !subscriptionCheckDone) {
+        subscriptionCheckDone = true;
+        setTimeout(() => {
+          if (mounted) checkSubscription();
+        }, 100);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
