@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Target, ShoppingCart, Lock } from "lucide-react";
+import { Camera, Heart, LogOut, Crown, Calendar, Target, ShoppingCart, Lock, Settings, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import HeroAnimation from "@/components/HeroAnimation";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const { user, subscriptionStatus, signOut } = useAuth();
+  const { user, session, subscriptionStatus, signOut } = useAuth();
   const [trackerSetup, setTrackerSetup] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,6 +21,27 @@ const Index = () => {
     const profile = localStorage.getItem("userProfile");
     setTrackerSetup(!!profile);
   }, []);
+
+  const handleManageSubscription = async () => {
+    if (!session) {
+      toast({ title: 'Nicht angemeldet', variant: 'destructive' });
+      return;
+    }
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
@@ -56,10 +81,36 @@ const Index = () => {
               <>
                 {subscriptionStatus?.subscribed && (
                   <>
-                    <div className="flex items-center px-3 py-1 bg-primary/20 rounded-full border border-primary/50">
-                      <Crown className="h-4 w-4 text-primary mr-1" />
-                      <span className="text-sm font-medium text-primary">Premium</span>
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" className="flex items-center px-3 py-1 bg-primary/20 rounded-full border border-primary/50 hover:bg-primary/30">
+                          <Crown className="h-4 w-4 text-primary mr-1" />
+                          <span className="text-sm font-medium text-primary">Premium</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-2" align="end">
+                        <div className="space-y-1">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={handleManageSubscription}
+                            disabled={portalLoading}
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            Abo verwalten
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={handleManageSubscription}
+                            disabled={portalLoading}
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Abo kündigen
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <NavLink to="/meal-plans">
                       <Button variant="ghost" size="sm" className="hover:bg-primary/20">
                         <Calendar className="h-4 w-4 mr-2" />
