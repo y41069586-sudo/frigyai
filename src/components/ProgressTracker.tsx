@@ -99,7 +99,7 @@ export const ProgressTracker = () => {
   }));
 
   const currentWeight = entries.length > 0 ? entries[entries.length - 1].weight : startWeight;
-  const weightLost = startWeight && currentWeight && entries.length > 0 ? startWeight - currentWeight : 0;
+  const weightLost = startWeight && currentWeight && entries.length > 0 ? Math.max(0, startWeight - currentWeight) : null;
   const progress = startWeight && targetWeight && currentWeight 
     ? Math.min(100, Math.max(0, ((startWeight - currentWeight) / (startWeight - targetWeight)) * 100))
     : 0;
@@ -119,7 +119,9 @@ export const ProgressTracker = () => {
             <p className="text-xs text-muted-foreground">Aktuell (kg)</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
-            <p className="text-2xl font-bold text-green-500">-{weightLost.toFixed(1)}</p>
+            <p className="text-2xl font-bold text-green-500">
+              {weightLost !== null ? `-${weightLost.toFixed(1)}` : '--'}
+            </p>
             <p className="text-xs text-muted-foreground">Verloren (kg)</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
