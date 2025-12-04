@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets } from 'lucide-react';
+import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,6 +15,7 @@ import { WaterTracker } from '@/components/WaterTracker';
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 interface Ingredient {
   name: string;
   amount: string;
@@ -39,7 +40,7 @@ interface DayPlan {
 }
 
 const MealPlansPage = () => {
-  const { user, subscriptionStatus, loading } = useAuth();
+  const { user, session, subscriptionStatus, loading } = useAuth();
   const navigate = useNavigate();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,6 +48,23 @@ const MealPlansPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [activeTab, setActiveTab] = useState('tracker');
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleManageSubscription = async () => {
+    if (!session) return;
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (error: any) {
+      toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Wait for auth to finish loading before redirecting
@@ -206,10 +224,36 @@ const MealPlansPage = () => {
           <NavLink to="/">
             <h1 className="text-2xl font-bold neon-text">Healthy3</h1>
           </NavLink>
-          <div className="flex items-center space-x-2">
-            <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-            <span className="text-sm font-medium">Premium</span>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="flex items-center space-x-2 hover:bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                <span className="text-sm font-medium">Premium</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="end">
+              <div className="space-y-1">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Abo verwalten
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Abo kündigen
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </nav>
 
