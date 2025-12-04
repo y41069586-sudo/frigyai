@@ -28,13 +28,19 @@ const Index = () => {
       return;
     }
     setPortalLoading(true);
+    toast({ title: 'Lade Stripe-Portal...', description: 'Bitte warten' });
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, '_blank');
+        // Try to open in new tab, fallback to same window
+        const newWindow = window.open(data.url, '_blank');
+        if (!newWindow) {
+          // Popup blocked, use redirect
+          window.location.href = data.url;
+        }
       }
     } catch (error: any) {
       toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
