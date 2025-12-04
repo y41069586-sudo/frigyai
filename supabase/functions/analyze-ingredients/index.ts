@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const FREE_SCAN_LIMIT = 2;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,6 +19,94 @@ serve(async (req) => {
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    // Check authentication
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+    let isPremium = false;
+
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      userId = userData.user?.id || null;
+      const userEmail = userData.user?.email;
+
+      // Check if user has premium subscription via Stripe
+      if (userEmail) {
+        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+        if (stripeKey) {
+          try {
+            const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
+            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+            const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+            
+            if (customers.data.length > 0) {
+              const subscriptions = await stripe.subscriptions.list({
+                customer: customers.data[0].id,
+                status: "active",
+                limit: 1,
+              });
+              isPremium = subscriptions.data.length > 0;
+            }
+          } catch (stripeError) {
+            console.error("Stripe check error:", stripeError);
+          }
+        }
+      }
+    }
+
+    // Check scan limits for non-premium users
+    if (userId && !isPremium) {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get today's scan count
+      const { data: usageData } = await supabaseClient
+        .from('scan_usage')
+        .select('scan_count')
+        .eq('user_id', userId)
+        .eq('scan_date', today)
+        .single();
+
+      const currentCount = usageData?.scan_count || 0;
+
+      if (currentCount >= FREE_SCAN_LIMIT) {
+        console.log(`User ${userId} exceeded free scan limit (${currentCount}/${FREE_SCAN_LIMIT})`);
+        return new Response(
+          JSON.stringify({ 
+            error: "scan_limit_exceeded",
+            message: "Du hast dein tägliches Scan-Limit erreicht. Upgrade auf Premium für unbegrenzte Scans!",
+            scansUsed: currentCount,
+            scansLimit: FREE_SCAN_LIMIT
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Increment scan count
+      if (usageData) {
+        await supabaseClient
+          .from('scan_usage')
+          .update({ scan_count: currentCount + 1 })
+          .eq('user_id', userId)
+          .eq('scan_date', today);
+      } else {
+        await supabaseClient
+          .from('scan_usage')
+          .insert({ user_id: userId, scan_date: today, scan_count: 1 });
+      }
+
+      console.log(`User ${userId} scan count: ${currentCount + 1}/${FREE_SCAN_LIMIT}`);
     }
 
     console.log("Analyzing image for ingredients...");
@@ -81,8 +172,26 @@ serve(async (req) => {
         .filter((item: string) => item.length > 0);
     }
 
+    // Return remaining scans info for free users
+    let scansRemaining = null;
+    if (userId && !isPremium) {
+      const today = new Date().toISOString().split('T')[0];
+      const { data: usageData } = await supabaseClient
+        .from('scan_usage')
+        .select('scan_count')
+        .eq('user_id', userId)
+        .eq('scan_date', today)
+        .single();
+      
+      scansRemaining = FREE_SCAN_LIMIT - (usageData?.scan_count || 0);
+    }
+
     return new Response(
-      JSON.stringify({ ingredients }),
+      JSON.stringify({ 
+        ingredients,
+        scansRemaining,
+        isPremium
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
