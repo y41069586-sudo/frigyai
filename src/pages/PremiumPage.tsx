@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, Check, Calendar, ShoppingCart, BarChart } from 'lucide-react';
+import { Sparkles, Check, Calendar, ShoppingCart, BarChart, XCircle, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { NavLink } from '@/components/NavLink';
 
@@ -179,9 +179,22 @@ const PremiumPage = () => {
                     variant="outline"
                     className="w-full"
                   >
+                    <Settings className="mr-2 h-4 w-4" />
                     Abo verwalten
                   </Button>
+                  <Button
+                    onClick={handleManageSubscription}
+                    disabled={loading}
+                    variant="ghost"
+                    className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Abo kündigen
+                  </Button>
                 </div>
+                <p className="text-xs text-muted-foreground text-center mt-4">
+                  Du wirst zum Stripe Kundenportal weitergeleitet, wo du dein Abo verwalten oder kündigen kannst.
+                </p>
               </div>
             ) : (
               <>
