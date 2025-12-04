@@ -3,16 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock } from 'lucide-react';
+import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
 import { ShoppingList } from '@/components/ShoppingList';
 import { MacroTracker } from '@/components/MacroTracker';
+import { ProgressTracker } from '@/components/ProgressTracker';
+import { WaterTracker } from '@/components/WaterTracker';
+import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
 interface Ingredient {
   name: string;
   amount: string;
@@ -142,6 +144,8 @@ const MealPlansPage = () => {
     setActiveTab(value);
   };
 
+  const canAccessPremiumFeatures = trackerSetup;
+
   // Default mock data if no plan generated yet
   const displayPlan = mealPlan.length > 0 ? mealPlan : [
     { day: 'Montag', meals: [
@@ -211,26 +215,34 @@ const MealPlansPage = () => {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-card/50 border border-primary/20">
+          <TabsList className="grid w-full grid-cols-5 bg-card/50 border border-primary/20">
             <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20">
-              <Flame className="h-4 w-4 mr-2" />
-              Tracker
+              <Flame className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Tracker</span>
+            </TabsTrigger>
+            <TabsTrigger value="progress" className="data-[state=active]:bg-primary/20">
+              <TrendingDown className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Fortschritt</span>
             </TabsTrigger>
             <TabsTrigger 
               value="meals" 
-              className={`data-[state=active]:bg-primary/20 ${!trackerSetup ? 'opacity-50' : ''}`}
+              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
             >
-              {!trackerSetup && <Lock className="h-3 w-3 mr-1" />}
-              <ChefHat className="h-4 w-4 mr-2" />
-              Wochenplan
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
+              <ChefHat className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Wochenplan</span>
             </TabsTrigger>
             <TabsTrigger 
               value="shopping" 
-              className={`data-[state=active]:bg-primary/20 ${!trackerSetup ? 'opacity-50' : ''}`}
+              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
             >
-              {!trackerSetup && <Lock className="h-3 w-3 mr-1" />}
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Einkaufsliste
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
+              <ShoppingCart className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Einkaufsliste</span>
+            </TabsTrigger>
+            <TabsTrigger value="water" className="data-[state=active]:bg-primary/20">
+              <Droplets className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Wasser</span>
             </TabsTrigger>
           </TabsList>
 
@@ -238,24 +250,31 @@ const MealPlansPage = () => {
             <MacroTracker onSetupComplete={handleTrackerSetup} />
           </TabsContent>
 
+          <TabsContent value="progress">
+            <ProgressTracker />
+          </TabsContent>
+
           <TabsContent value="meals">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-2xl font-bold neon-text mb-1">Dein Wochenplan</h2>
                   <p className="text-sm text-muted-foreground">Klicke auf ein Gericht für Details</p>
                 </div>
-                <Button 
-                  className="glow-button" 
-                  onClick={generateMealPlan}
-                  disabled={isGenerating || !trackerSetup}
-                >
-                  {isGenerating ? (
-                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generiere...</>
-                  ) : (
-                    <><Calendar className="mr-2 h-5 w-5" /> Neue Woche</>
-                  )}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ExportMealPlan mealPlan={displayPlan} />
+                  <Button 
+                    className="glow-button" 
+                    onClick={generateMealPlan}
+                    disabled={isGenerating || !trackerSetup}
+                  >
+                    {isGenerating ? (
+                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generiere...</>
+                    ) : (
+                      <><Calendar className="mr-2 h-5 w-5" /> Neue Woche</>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid gap-4">
@@ -297,6 +316,13 @@ const MealPlansPage = () => {
 
           <TabsContent value="shopping">
             <ShoppingList mealPlan={displayPlan} />
+          </TabsContent>
+
+          <TabsContent value="water">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <h2 className="text-2xl font-bold neon-text mb-4">Hydrierung</h2>
+              <WaterTracker />
+            </motion.div>
           </TabsContent>
         </Tabs>
       </div>
