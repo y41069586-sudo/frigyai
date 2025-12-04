@@ -51,14 +51,19 @@ const MealPlansPage = () => {
   const [portalLoading, setPortalLoading] = useState(false);
 
   const handleManageSubscription = async () => {
-    if (!session) return;
+    if (!session) {
+      toast({ title: 'Nicht angemeldet', variant: 'destructive' });
+      return;
+    }
     setPortalLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
     } catch (error: any) {
       toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
     } finally {
