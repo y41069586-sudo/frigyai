@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle } from 'lucide-react';
+import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -157,6 +157,42 @@ const MealPlansPage = () => {
   const openMealDetail = (meal: Meal) => {
     setSelectedMeal(meal);
     setDialogOpen(true);
+  };
+
+  const addMealToTracker = (meal: Meal, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening meal detail
+    
+    // Get current food entries from localStorage
+    const saved = localStorage.getItem('todayFood');
+    let entries = [];
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.date === new Date().toDateString()) {
+        entries = data.entries;
+      }
+    }
+    
+    // Add the meal
+    const newEntry = {
+      id: Date.now().toString(),
+      name: meal.name,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+    };
+    
+    entries.push(newEntry);
+    localStorage.setItem('todayFood', JSON.stringify({
+      date: new Date().toDateString(),
+      entries,
+    }));
+    
+    toast({ 
+      title: 'Gegessen! ✓', 
+      description: `${meal.name} - ${meal.calories} kcal zum Tracker hinzugefügt` 
+    });
   };
 
   const handleTabChange = (value: string) => {
@@ -365,6 +401,15 @@ const MealPlansPage = () => {
                               <span className="text-amber-400">{meal.carbs}g K</span>
                               <span className="text-blue-400">{meal.fat}g F</span>
                             </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full mt-2 h-7 text-xs border-primary/30 hover:bg-primary/20"
+                              onClick={(e) => addMealToTracker(meal, e)}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Gegessen
+                            </Button>
                           </div>
                         ))}
                       </div>
