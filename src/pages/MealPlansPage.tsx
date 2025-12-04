@@ -160,7 +160,7 @@ const MealPlansPage = () => {
   };
 
   const handleTabChange = (value: string) => {
-    if ((value === 'meals' || value === 'shopping') && !trackerSetup) {
+    if ((value === 'meals' || value === 'shopping' || value === 'water' || value === 'progress') && !trackerSetup) {
       toast({ 
         title: 'Tracker einrichten', 
         description: 'Bitte richte zuerst deinen Tracker ein', 
@@ -289,11 +289,19 @@ const MealPlansPage = () => {
               <ShoppingCart className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Einkaufsliste</span>
             </TabsTrigger>
-            <TabsTrigger value="water" className="data-[state=active]:bg-primary/20">
+            <TabsTrigger 
+              value="water" 
+              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
+            >
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
               <Droplets className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Wasser</span>
             </TabsTrigger>
-            <TabsTrigger value="progress" className="data-[state=active]:bg-primary/20">
+            <TabsTrigger 
+              value="progress" 
+              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
+            >
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
               <TrendingDown className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Fortschritt</span>
             </TabsTrigger>
