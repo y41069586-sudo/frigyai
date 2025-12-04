@@ -99,6 +99,7 @@ const PremiumPage = () => {
     }
 
     setLoading(true);
+    toast({ title: 'Lade Stripe-Portal...', description: 'Bitte warten' });
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: {
@@ -109,7 +110,10 @@ const PremiumPage = () => {
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const newWindow = window.open(data.url, '_blank');
+        if (!newWindow) {
+          window.location.href = data.url;
+        }
       } else {
         throw new Error('Keine Portal-URL erhalten');
       }

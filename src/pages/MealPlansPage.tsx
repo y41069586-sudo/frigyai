@@ -56,13 +56,17 @@ const MealPlansPage = () => {
       return;
     }
     setPortalLoading(true);
+    toast({ title: 'Lade Stripe-Portal...', description: 'Bitte warten' });
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const newWindow = window.open(data.url, '_blank');
+        if (!newWindow) {
+          window.location.href = data.url;
+        }
       }
     } catch (error: any) {
       toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
