@@ -63,21 +63,41 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
 
   const weightDiff = weight - targetWeight;
   const weeksToGoal = 4;
-  const dailyDeficit = (weightDiff * 7700) / (weeksToGoal * 7);
-  const bmr = 10 * weight + 6.25 * 175 - 5 * age + 5;
-  const tdee = bmr * 1.5;
-  const targetCalories = Math.round(tdee - dailyDeficit);
+  
+  // Mifflin-St Jeor BMR formula (assuming average height 170cm and moderate activity)
+  const height = 170;
+  const bmr = 10 * weight + 6.25 * height - 5 * age + 5; // +5 for male, -161 for female
+  const tdee = Math.round(bmr * 1.55); // Moderate activity multiplier
+  
+  // Safe weight loss: max 0.75kg per week = realistic and sustainable
+  const maxWeeklyLoss = 0.75;
+  const actualWeeklyLoss = Math.min(weightDiff / weeksToGoal, maxWeeklyLoss);
+  const dailyDeficit = (actualWeeklyLoss * 7700) / 7; // 7700 kcal = 1kg fat
+  
+  // Calculate target calories with minimum floor
+  const calculatedCalories = Math.round(tdee - dailyDeficit);
+  const minCalories = age < 25 ? 1500 : age < 40 ? 1400 : 1300; // Age-based minimum
+  const targetCalories = Math.max(minCalories, calculatedCalories);
+  
+  // Protein: 2g per kg body weight (important for muscle retention during weight loss)
+  const targetProtein = Math.round(weight * 2);
+  // Fat: 0.8-1g per kg (essential fats)
+  const targetFat = Math.round(weight * 0.9);
+  // Carbs: remaining calories
+  const proteinCalories = targetProtein * 4;
+  const fatCalories = targetFat * 9;
+  const carbCalories = Math.max(0, targetCalories - proteinCalories - fatCalories);
+  const targetCarbs = Math.round(carbCalories / 4);
 
   const saveProfile = () => {
-    const finalCalories = Math.max(1200, targetCalories);
     const newProfile = {
       age,
       weight,
       targetWeight,
-      dailyCalories: finalCalories,
-      dailyProtein: Math.round(finalCalories * 0.3 / 4), // 30% from protein
-      dailyCarbs: Math.round(finalCalories * 0.4 / 4),   // 40% from carbs
-      dailyFat: Math.round(finalCalories * 0.3 / 9),     // 30% from fat
+      dailyCalories: targetCalories,
+      dailyProtein: targetProtein,
+      dailyCarbs: targetCarbs,
+      dailyFat: targetFat,
     };
     localStorage.setItem('userProfile', JSON.stringify(newProfile));
     setProfile(newProfile);
@@ -216,31 +236,38 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
         <div className="space-y-4 text-center">
           <div className="p-6 bg-primary/10 rounded-2xl">
             <Flame className="h-12 w-12 mx-auto text-primary mb-2" />
-            <p className="text-4xl font-bold text-primary">{Math.max(1200, targetCalories)}</p>
+            <p className="text-4xl font-bold text-primary">{targetCalories}</p>
             <p className="text-muted-foreground">Kalorien pro Tag</p>
           </div>
           
+          <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3">
+            <p>Grundumsatz: ~{bmr.toFixed(0)} kcal</p>
+            <p>Mit Aktivität: ~{tdee} kcal</p>
+            <p>Defizit: -{Math.round(dailyDeficit)} kcal/Tag</p>
+          </div>
+          
           <p className="text-lg">
-            {weightDiff <= 2 ? (
+            {actualWeeklyLoss < weightDiff / weeksToGoal ? (
+              <span className="text-amber-500">Max. {(actualWeeklyLoss * 4).toFixed(1)}kg in 4 Wochen empfohlen - gesund abnehmen! ⚡</span>
+            ) : weightDiff <= 2 ? (
               <span className="text-green-500">Das ist ein entspanntes Ziel - du schaffst das locker! 💪</span>
-            ) : weightDiff <= 4 ? (
-              <span className="text-primary">Ambitioniert aber machbar - bleib dran! 🔥</span>
             ) : (
-              <span className="text-amber-500">Das ist sehr intensiv - aber mit Disziplin schaffst du das! ⚡</span>
+              <span className="text-primary">Ambitioniert aber machbar - bleib dran! 🔥</span>
             )}
           </p>
           
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="p-3 bg-background/50 rounded-xl">
-              <p className="text-lg font-bold text-red-400">{Math.round(targetCalories * 0.3 / 4)}g</p>
+              <p className="text-lg font-bold text-red-400">{targetProtein}g</p>
               <p className="text-xs text-muted-foreground">Protein</p>
+              <p className="text-[10px] text-muted-foreground/60">2g/kg</p>
             </div>
             <div className="p-3 bg-background/50 rounded-xl">
-              <p className="text-lg font-bold text-amber-400">{Math.round(targetCalories * 0.4 / 4)}g</p>
+              <p className="text-lg font-bold text-amber-400">{targetCarbs}g</p>
               <p className="text-xs text-muted-foreground">Carbs</p>
             </div>
             <div className="p-3 bg-background/50 rounded-xl">
-              <p className="text-lg font-bold text-blue-400">{Math.round(targetCalories * 0.3 / 9)}g</p>
+              <p className="text-lg font-bold text-blue-400">{targetFat}g</p>
               <p className="text-xs text-muted-foreground">Fett</p>
             </div>
           </div>
