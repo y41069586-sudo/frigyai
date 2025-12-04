@@ -63,26 +63,63 @@ const HeroAnimation = () => {
           />
         </div>
 
-        <AnimatePresence>
-          {step >= 1 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1, x: 25, y: -18 }}
-              className="absolute top-10 right-0"
-            >
-              <div className="w-6 h-10 bg-card border-2 border-primary rounded-md flex items-center justify-center shadow-lg">
-                <Camera className="w-3 h-3 text-primary" />
-              </div>
-              {step === 1 && (
-                <motion.div
-                  className="absolute -right-12 top-1/2 w-12 h-0.5 bg-gradient-to-r from-primary to-transparent"
-                  animate={{ opacity: [1, 0.3, 1] }}
-                  transition={{ duration: 0.4, repeat: Infinity }}
-                />
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {step >= 1 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1, x: 25, y: -18 }}
+                className="absolute top-10 right-0"
+              >
+                <div className="w-6 h-10 bg-card border-2 border-primary rounded-md flex items-center justify-center shadow-lg">
+                  <Camera className="w-3 h-3 text-primary" />
+                </div>
+                {step === 1 && (
+                  <>
+                    {/* Large scan beam covering the fridge */}
+                    <motion.div
+                      className="absolute -right-4 top-1/2 -translate-y-1/2 origin-left"
+                      style={{ width: '160px', height: '220px' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      {/* Main scan cone */}
+                      <svg width="100%" height="100%" viewBox="0 0 160 220" className="absolute">
+                        <defs>
+                          <linearGradient id="scanGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+                            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
+                            <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <motion.polygon
+                          points="0,110 160,0 160,220"
+                          fill="url(#scanGradient)"
+                          animate={{ opacity: [0.6, 0.9, 0.6] }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                        />
+                      </svg>
+                      {/* Animated scan lines */}
+                      <motion.div
+                        className="absolute left-0 top-0 w-full h-full"
+                        style={{ background: 'repeating-linear-gradient(90deg, transparent, transparent 8px, hsl(var(--primary) / 0.3) 8px, hsl(var(--primary) / 0.3) 9px)' }}
+                        animate={{ x: [0, 10, 0] }}
+                        transition={{ duration: 0.8, repeat: Infinity }}
+                      />
+                    </motion.div>
+                    {/* Scan line sweep */}
+                    <motion.div
+                      className="absolute -right-4 w-40 h-1 bg-gradient-to-r from-primary via-primary/80 to-transparent rounded-full shadow-[0_0_10px_hsl(var(--primary))]"
+                      animate={{ 
+                        y: [-100, 100, -100],
+                        opacity: [1, 0.7, 1]
+                      }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
       </motion.div>
 
       {/* Question marks */}

@@ -220,10 +220,6 @@ const MealPlansPage = () => {
               <Flame className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Tracker</span>
             </TabsTrigger>
-            <TabsTrigger value="progress" className="data-[state=active]:bg-primary/20">
-              <TrendingDown className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Fortschritt</span>
-            </TabsTrigger>
             <TabsTrigger 
               value="meals" 
               className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
@@ -243,6 +239,10 @@ const MealPlansPage = () => {
             <TabsTrigger value="water" className="data-[state=active]:bg-primary/20">
               <Droplets className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Wasser</span>
+            </TabsTrigger>
+            <TabsTrigger value="progress" className="data-[state=active]:bg-primary/20">
+              <TrendingDown className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Fortschritt</span>
             </TabsTrigger>
           </TabsList>
 

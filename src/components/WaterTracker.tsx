@@ -78,15 +78,67 @@ export const WaterTracker = () => {
 
       {/* Water visualization */}
       <div className="relative h-32 bg-background/50 rounded-xl overflow-hidden mb-4">
+        {/* Animated water fill */}
         <motion.div
-          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500/80 to-blue-400/60"
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600/90 via-blue-500/70 to-blue-400/50"
           initial={{ height: 0 }}
           animate={{ height: `${Math.min(100, progress)}%` }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        >
+          {/* Animated waves */}
+          <svg className="absolute top-0 left-0 w-full" viewBox="0 0 100 10" preserveAspectRatio="none" style={{ height: '12px', transform: 'translateY(-50%)' }}>
+            <motion.path
+              d="M0 5 Q 12.5 0, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z"
+              fill="hsl(200 80% 55% / 0.8)"
+              animate={{ d: [
+                "M0 5 Q 12.5 0, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z",
+                "M0 5 Q 12.5 10, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z",
+                "M0 5 Q 12.5 0, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z"
+              ]}}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </svg>
+          <svg className="absolute top-0 left-0 w-full" viewBox="0 0 100 10" preserveAspectRatio="none" style={{ height: '10px', transform: 'translateY(-30%)' }}>
+            <motion.path
+              d="M0 5 Q 12.5 8, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z"
+              fill="hsl(200 70% 60% / 0.5)"
+              animate={{ d: [
+                "M0 5 Q 12.5 8, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z",
+                "M0 5 Q 12.5 2, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z",
+                "M0 5 Q 12.5 8, 25 5 T 50 5 T 75 5 T 100 5 V 10 H 0 Z"
+              ]}}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+            />
+          </svg>
+          
+          {/* Bubbles */}
+          {progress > 20 && (
+            <>
+              <motion.div
+                className="absolute w-2 h-2 bg-white/40 rounded-full"
+                style={{ left: '20%' }}
+                animate={{ y: [0, -30, -60], opacity: [0.6, 0.3, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+              />
+              <motion.div
+                className="absolute w-1.5 h-1.5 bg-white/30 rounded-full"
+                style={{ left: '50%' }}
+                animate={{ y: [0, -25, -50], opacity: [0.5, 0.2, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, delay: 0.5 }}
+              />
+              <motion.div
+                className="absolute w-1 h-1 bg-white/35 rounded-full"
+                style={{ left: '75%' }}
+                animate={{ y: [0, -35, -70], opacity: [0.6, 0.3, 0] }}
+                transition={{ duration: 2.2, repeat: Infinity, delay: 1 }}
+              />
+            </>
+          )}
+        </motion.div>
+        
+        <div className="absolute inset-0 flex items-center justify-center z-10">
           <div className="text-center">
-            <p className="text-3xl font-bold">{glasses}</p>
+            <p className="text-3xl font-bold drop-shadow-lg">{glasses}</p>
             <p className="text-xs text-muted-foreground">Gläser heute</p>
           </div>
         </div>
@@ -94,7 +146,7 @@ export const WaterTracker = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full"
+            className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full z-10"
           >
             ✓ Ziel
           </motion.div>

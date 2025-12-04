@@ -99,7 +99,7 @@ export const ProgressTracker = () => {
   }));
 
   const currentWeight = entries.length > 0 ? entries[entries.length - 1].weight : startWeight;
-  const weightLost = startWeight && currentWeight ? startWeight - currentWeight : 0;
+  const weightLost = startWeight && currentWeight && entries.length > 0 ? startWeight - currentWeight : 0;
   const progress = startWeight && targetWeight && currentWeight 
     ? Math.min(100, Math.max(0, ((startWeight - currentWeight) / (startWeight - targetWeight)) * 100))
     : 0;
