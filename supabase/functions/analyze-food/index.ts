@@ -1,9 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Max 10MB for base64 image (roughly 13.3MB in base64 encoding)
+const MAX_BASE64_SIZE = 13_300_000;
+
+// Input validation schema
+const requestSchema = z.object({
+  food: z.string().min(1).max(500).optional(),
+  imageBase64: z.string().max(MAX_BASE64_SIZE).optional(),
+}).refine(data => data.food || data.imageBase64, {
+  message: "Either 'food' or 'imageBase64' must be provided",
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,12 +23,19 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const body = await req.json();
+    
+    // Validate input
+    const parseResult = requestSchema.safeParse(body);
+    if (!parseResult.success) {
+      console.error("Validation error:", parseResult.error);
+      return new Response(
+        JSON.stringify({ error: "Invalid input", details: parseResult.error.flatten() }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const { food, imageBase64 } = await req.json();
+    
+    const { food, imageBase64 } = parseResult.data;
 
     const systemPrompt = `Du bist ein zertifizierter Ernährungsberater mit Expertise in Lebensmittelanalyse und Makronährstoffberechnung.
 
@@ -73,6 +92,11 @@ Antworte NUR mit validem JSON in diesem Format:
         role: 'user',
         content: `Analysiere dieses Essen und gib die Nährwerte zurück: ${food}`
       });
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     console.log('[ANALYZE-FOOD] Calling AI gateway...');

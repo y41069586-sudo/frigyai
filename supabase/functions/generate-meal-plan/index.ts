@@ -1,9 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const requestSchema = z.object({
+  preferences: z.string().max(1000).optional().default(""),
+  dailyCalories: z.number().min(800).max(10000).optional(),
+  dailyProtein: z.number().min(0).max(500).optional(),
+  dailyCarbs: z.number().min(0).max(1000).optional(),
+  dailyFat: z.number().min(0).max(500).optional(),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,7 +26,19 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { preferences, dailyCalories, dailyProtein, dailyCarbs, dailyFat } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const parseResult = requestSchema.safeParse(body);
+    if (!parseResult.success) {
+      console.error("Validation error:", parseResult.error);
+      return new Response(
+        JSON.stringify({ error: "Invalid input", details: parseResult.error.flatten() }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { preferences, dailyCalories, dailyProtein, dailyCarbs, dailyFat } = parseResult.data;
 
     const targetCalories = dailyCalories || 1600;
     const targetProtein = dailyProtein || Math.round(targetCalories * 0.3 / 4);
