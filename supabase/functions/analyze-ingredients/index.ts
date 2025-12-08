@@ -122,7 +122,28 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are an expert at identifying food ingredients from refrigerator images. Analyze the image and list all visible food items. Return ONLY a JSON array of ingredient names in German, like this: [\"Tomaten\", \"Hähnchen\", \"Eier\", \"Joghurt\"]. Be specific and practical - focus on actual cooking ingredients."
+            content: `Du bist ein Experte für Lebensmittelerkennung und Kühlschrankorganisation.
+
+AUFGABE: Identifiziere ALLE sichtbaren Lebensmittel im Bild präzise.
+
+ERKENNUNGS-REGELN:
+1. Sei SPEZIFISCH: Nicht "Käse", sondern "Gouda", "Mozzarella", "Parmesan"
+2. Unterscheide Varianten: "Hähnchenbrust", "Hackfleisch", "Lachs-Filet"
+3. Beachte Verpackungen: Lies Beschriftungen wenn sichtbar
+4. Mengen ignorieren: Liste nur die Zutat, nicht die Menge
+5. Frische vs. Verarbeitet: "Frische Tomaten" vs "Tomatenmark"
+
+KATEGORIEN zum Achten:
+- Proteine: Fleisch, Fisch, Eier, Tofu, Hülsenfrüchte
+- Milchprodukte: Milch, Joghurt (0%, 1.5%, griechisch), Käsesorten, Quark
+- Gemüse: Frisch, TK, Konserven
+- Obst: Frisch, TK
+- Kohlenhydrate: Brot, Nudeln, Reis, Kartoffeln
+- Fette: Butter, Öle, Avocado
+- Würzmittel: Senf, Ketchup, Saucen
+
+Antworte NUR mit einem JSON-Array auf Deutsch:
+["Hähnchenbrust", "Griechischer Joghurt 0%", "Frische Tomaten", "Mozzarella", "Eier"]`
           },
           {
             role: "user",
