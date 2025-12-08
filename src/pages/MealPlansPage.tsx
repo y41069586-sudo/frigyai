@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check } from 'lucide-react';
+import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,8 @@ import { MacroTracker } from '@/components/MacroTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { WaterTracker } from '@/components/WaterTracker';
 import { ExportMealPlan } from '@/components/ExportMealPlan';
+import { ReminderSettings } from '@/components/ReminderSettings';
+import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -49,6 +51,9 @@ const MealPlansPage = () => {
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [activeTab, setActiveTab] = useState('tracker');
   const [portalLoading, setPortalLoading] = useState(false);
+
+  // Initialize reminder system
+  useReminders();
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -304,7 +309,7 @@ const MealPlansPage = () => {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-card/50 border border-primary/20">
+          <TabsList className="grid w-full grid-cols-6 bg-card/50 border border-primary/20">
             <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20">
               <Flame className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Tracker</span>
@@ -341,6 +346,13 @@ const MealPlansPage = () => {
               <TrendingDown className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Fortschritt</span>
             </TabsTrigger>
+            <TabsTrigger 
+              value="reminders" 
+              className="data-[state=active]:bg-primary/20"
+            >
+              <Bell className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Erinnerungen</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="tracker">
@@ -349,6 +361,16 @@ const MealPlansPage = () => {
 
           <TabsContent value="progress">
             <ProgressTracker />
+          </TabsContent>
+
+          <TabsContent value="reminders">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold neon-text mb-1">Erinnerungen</h2>
+                <p className="text-sm text-muted-foreground">Lass dich an wichtige Aktivitäten erinnern</p>
+              </div>
+              <ReminderSettings />
+            </motion.div>
           </TabsContent>
 
           <TabsContent value="meals">
