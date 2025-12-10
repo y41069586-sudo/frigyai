@@ -200,9 +200,9 @@ const Index = () => {
               className="grid grid-cols-2 gap-3"
             >
               <NavLink to={trackerSetup ? "/meal-plans?tab=meals" : "/meal-plans"}>
-                <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-orange-400/50 transition-all">
+                <div className="p-4 rounded-xl bg-orange-500/15 border border-orange-500/40 hover:border-orange-500/60 transition-all">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-orange-500/15">
+                    <div className="p-2 rounded-lg bg-orange-500/25">
                       <Calendar className="h-5 w-5 text-orange-400" />
                     </div>
                     <span className="text-sm font-medium">Wochenplan</span>
@@ -210,9 +210,9 @@ const Index = () => {
                 </div>
               </NavLink>
               <NavLink to={trackerSetup ? "/meal-plans?tab=shopping" : "/meal-plans"}>
-                <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-green-400/50 transition-all">
+                <div className="p-4 rounded-xl bg-green-500/15 border border-green-500/40 hover:border-green-500/60 transition-all">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-green-500/15">
+                    <div className="p-2 rounded-lg bg-green-500/25">
                       <ShoppingCart className="h-5 w-5 text-green-400" />
                     </div>
                     <span className="text-sm font-medium">Einkaufsliste</span>
