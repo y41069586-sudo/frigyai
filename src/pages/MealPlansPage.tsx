@@ -269,23 +269,23 @@ const MealPlansPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-primary">
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
           <NavLink to="/">
-            <h1 className="text-2xl font-bold neon-text">Healthy3</h1>
+            <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
           </NavLink>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 hover:bg-primary/10">
-                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-                <span className="text-sm font-medium">Premium</span>
+              <Button variant="ghost" size="sm" className="flex items-center space-x-1 sm:space-x-2 hover:bg-primary/10 touch-target">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
+                <span className="text-xs sm:text-sm font-medium">Premium</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-56 p-2" align="end">
               <div className="space-y-1">
                 <Button
                   variant="ghost"
-                  className="w-full justify-start"
+                  className="w-full justify-start touch-target"
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
                 >
@@ -294,7 +294,7 @@ const MealPlansPage = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
                 >
@@ -307,51 +307,51 @@ const MealPlansPage = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-card/50 border border-primary/20">
-            <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20">
-              <Flame className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Tracker</span>
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 safe-bottom">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-6 bg-card/50 border border-primary/20 h-auto p-1">
+            <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20 flex-col sm:flex-row gap-0.5 sm:gap-1 py-2 sm:py-1.5 touch-target">
+              <Flame className="h-4 w-4" />
+              <span className="text-[10px] sm:text-sm">Tracker</span>
             </TabsTrigger>
             <TabsTrigger 
               value="meals" 
-              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
+              className={`data-[state=active]:bg-primary/20 flex-col sm:flex-row gap-0.5 sm:gap-1 py-2 sm:py-1.5 touch-target ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
             >
-              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
-              <ChefHat className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Wochenplan</span>
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 absolute top-0.5 right-0.5" />}
+              <ChefHat className="h-4 w-4" />
+              <span className="text-[10px] sm:text-sm">Plan</span>
             </TabsTrigger>
             <TabsTrigger 
               value="shopping" 
-              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
+              className={`data-[state=active]:bg-primary/20 flex-col sm:flex-row gap-0.5 sm:gap-1 py-2 sm:py-1.5 touch-target ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
             >
-              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
-              <ShoppingCart className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Einkaufsliste</span>
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 absolute top-0.5 right-0.5" />}
+              <ShoppingCart className="h-4 w-4" />
+              <span className="text-[10px] sm:text-sm">Liste</span>
             </TabsTrigger>
             <TabsTrigger 
               value="water" 
-              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
+              className={`data-[state=active]:bg-primary/20 flex-col sm:flex-row gap-0.5 sm:gap-1 py-2 sm:py-1.5 touch-target ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
             >
-              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
-              <Droplets className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Wasser</span>
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 absolute top-0.5 right-0.5" />}
+              <Droplets className="h-4 w-4" />
+              <span className="text-[10px] sm:text-sm">Wasser</span>
             </TabsTrigger>
             <TabsTrigger 
               value="progress" 
-              className={`data-[state=active]:bg-primary/20 ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
+              className={`data-[state=active]:bg-primary/20 flex-col sm:flex-row gap-0.5 sm:gap-1 py-2 sm:py-1.5 touch-target ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
             >
-              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 mr-1" />}
-              <TrendingDown className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Fortschritt</span>
+              {!canAccessPremiumFeatures && <Lock className="h-3 w-3 absolute top-0.5 right-0.5" />}
+              <TrendingDown className="h-4 w-4" />
+              <span className="text-[10px] sm:text-sm">Stats</span>
             </TabsTrigger>
             <TabsTrigger 
               value="reminders" 
-              className="data-[state=active]:bg-primary/20"
+              className="data-[state=active]:bg-primary/20 flex-col sm:flex-row gap-0.5 sm:gap-1 py-2 sm:py-1.5 touch-target"
             >
-              <Bell className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Erinnerungen</span>
+              <Bell className="h-4 w-4" />
+              <span className="text-[10px] sm:text-sm">Alarm</span>
             </TabsTrigger>
           </TabsList>
 
@@ -375,28 +375,28 @@ const MealPlansPage = () => {
 
           <TabsContent value="meals">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+              <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold neon-text mb-1">Dein Wochenplan</h2>
-                  <p className="text-sm text-muted-foreground">Klicke auf ein Gericht für Details</p>
+                  <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">Dein Wochenplan</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Tippe auf ein Gericht für Details</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <ExportMealPlan mealPlan={displayPlan} />
                   <Button 
-                    className="glow-button" 
+                    className="glow-button flex-1 sm:flex-none touch-target" 
                     onClick={generateMealPlan}
                     disabled={isGenerating || !trackerSetup}
                   >
                     {isGenerating ? (
-                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generiere...</>
+                      <><Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> Generiere...</>
                     ) : (
-                      <><Calendar className="mr-2 h-5 w-5" /> Neue Woche</>
+                      <><Calendar className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Neue Woche</>
                     )}
                   </Button>
                 </div>
               </div>
 
-              <div className="grid gap-4">
+              <div className="space-y-3 sm:space-y-4">
                 {displayPlan.map((day, index) => (
                   <motion.div
                     key={day.day}
@@ -404,32 +404,32 @@ const MealPlansPage = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
-                      <h3 className="text-lg font-bold mb-3 text-primary">{day.day}</h3>
-                      <div className="grid md:grid-cols-5 gap-2">
+                    <Card className="p-3 sm:p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
+                      <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                         {day.meals.map((meal, mealIndex) => (
                           <div
                             key={mealIndex}
                             onClick={() => openMealDetail(meal)}
-                            className="p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 hover:scale-[1.02]"
+                            className="p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98]"
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <p className="text-xs text-muted-foreground">{meal.type}</p>
-                              <span className="text-xs text-primary font-medium">{meal.calories} kcal</span>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{meal.type}</p>
+                              <span className="text-[10px] sm:text-xs text-primary font-medium">{meal.calories}</span>
                             </div>
-                            <p className="font-medium text-sm">{meal.name}</p>
-                            <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-                              <span className="text-red-400">{meal.protein}g P</span>
-                              <span className="text-amber-400">{meal.carbs}g K</span>
-                              <span className="text-blue-400">{meal.fat}g F</span>
+                            <p className="font-medium text-xs sm:text-sm line-clamp-2">{meal.name}</p>
+                            <div className="flex gap-1 sm:gap-2 mt-1 text-[10px] sm:text-xs text-muted-foreground">
+                              <span className="text-red-400">{meal.protein}P</span>
+                              <span className="text-amber-400">{meal.carbs}K</span>
+                              <span className="text-blue-400">{meal.fat}F</span>
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="w-full mt-2 h-7 text-xs border-primary/30 hover:bg-primary/20"
+                              className="w-full mt-1.5 sm:mt-2 h-6 sm:h-7 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
                               onClick={(e) => addMealToTracker(meal, e)}
                             >
-                              <Check className="h-3 w-3 mr-1" />
+                              <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
                               Gegessen
                             </Button>
                           </div>
