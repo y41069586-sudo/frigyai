@@ -8,11 +8,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useGamification } from '@/hooks/useGamification';
 
 const ML_PER_GLASS = 250;
 
 export const WaterTracker = () => {
   const { user } = useAuth();
+  const { recordActivity, checkAndAwardBadge } = useGamification();
   const [glasses, setGlasses] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [dailyGoal, setDailyGoal] = useState(8); // Default 8 glasses = 2L
@@ -76,9 +78,13 @@ export const WaterTracker = () => {
           title: `+${ML_PER_GLASS}ml getrunken! 💧`, 
           description: `Schon ${mlDrunk}ml heute` 
         });
+        // Record activity for streak
+        recordActivity();
       }
       if (newGlasses >= dailyGoal && glasses < dailyGoal) {
         toast({ title: '🎉 Tagesziel erreicht!', description: 'Super gemacht!' });
+        // Award water goal badge
+        checkAndAwardBadge('water_goal');
       }
     }
     

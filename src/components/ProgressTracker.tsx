@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useGamification } from '@/hooks/useGamification';
 
 interface WeightEntry {
   id: string;
@@ -17,6 +18,7 @@ interface WeightEntry {
 
 export const ProgressTracker = () => {
   const { user } = useAuth();
+  const { recordActivity, checkAndAwardBadge } = useGamification();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -76,6 +78,9 @@ export const ProgressTracker = () => {
       toast({ title: 'Gewicht eingetragen!' });
       setNewWeight('');
       loadEntries();
+      // Record activity for streak and award badge
+      recordActivity();
+      checkAndAwardBadge('weight_tracked');
     }
     setIsLoading(false);
   };
