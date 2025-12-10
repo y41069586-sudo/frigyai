@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Target, ShoppingCart, Lock, Settings, XCircle, Droplets, TrendingDown } from "lucide-react";
+import { Camera, Heart, LogOut, Crown, Calendar, Target, Settings, XCircle, Droplets, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +17,6 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if tracker is set up
     const profile = localStorage.getItem("userProfile");
     setTrackerSetup(!!profile);
   }, []);
@@ -35,10 +34,8 @@ const Index = () => {
       });
       if (error) throw error;
       if (data?.url) {
-        // Try to open in new tab, fallback to same window
         const newWindow = window.open(data.url, '_blank');
         if (!newWindow) {
-          // Popup blocked, use redirect
           window.location.href = data.url;
         }
       }
@@ -51,48 +48,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Animated background elements - hidden on mobile for performance */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
-        <motion.div
-          className="absolute top-20 right-20 w-64 h-64 rounded-full bg-primary/10 blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 left-20 w-48 h-48 rounded-full bg-primary/5 blur-2xl"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-        />
-      </div>
-
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {user ? (
               <>
                 {subscriptionStatus?.subscribed && (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="sm" className="px-2 sm:px-3 bg-primary/20 rounded-full border border-primary/50">
-                        <Crown className="h-4 w-4 text-primary" />
-                        <span className="hidden sm:inline text-sm text-primary ml-1">Premium</span>
+                      <Button variant="ghost" size="icon" className="bg-primary/20 rounded-full">
+                        <Crown className="h-5 w-5 text-primary" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-2 bg-card" align="end">
@@ -105,6 +72,11 @@ const Index = () => {
                     </PopoverContent>
                   </Popover>
                 )}
+                <NavLink to="/meal-plans">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/20">
+                    <Calendar className="h-5 w-5" />
+                  </Button>
+                </NavLink>
                 <NavLink to="/favorites">
                   <Button variant="ghost" size="icon" className="hover:bg-primary/20">
                     <Heart className="h-5 w-5" />
@@ -141,69 +113,23 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center space-y-3 sm:space-y-4"
+            className="text-center space-y-3"
           >
             <h2 className="text-2xl sm:text-4xl font-bold">
               Leichter <span className="text-neon">Abnehmen</span>
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-sm mx-auto">
-              Fotografiere deinen Kühlschrank und erhalte gesunde Rezepte mit nur 3-4 Zutaten
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen
             </p>
           </motion.div>
 
-          {/* Scan Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Button
-              size="lg"
-              onClick={() => navigate("/scan")}
-              className="w-full glow-button gradient-neon text-black font-semibold text-base sm:text-lg py-5 sm:py-6 rounded-2xl"
-            >
-              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-              Kühlschrank scannen
-            </Button>
-          </motion.div>
-
-          {/* Feature Cards */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="grid grid-cols-3 gap-2 sm:gap-4"
-          >
-            {[
-              { icon: "🥗", title: "3 Zutaten", desc: "Einfache Rezepte" },
-              { icon: "🔥", title: "< 500 kcal", desc: "Zum Abnehmen" },
-              { icon: "⏱️", title: "< 15 Min", desc: "Schnell zubereitet" },
-            ].map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 + index * 0.1 }}
-                className="glass-card p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center"
-              >
-                <span className="text-2xl sm:text-3xl">{feature.icon}</span>
-                <h3 className="font-semibold text-xs sm:text-sm mt-1 sm:mt-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-[10px] sm:text-xs hidden sm:block">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Premium Features for logged-in users */}
+          {/* Tracker Status Card */}
           {user && subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="space-y-3"
+              transition={{ delay: 0.4 }}
             >
-              <h3 className="text-lg font-semibold text-center">Premium Features</h3>
-              
-              {/* Tracker Setup Card */}
               <NavLink to="/meal-plans">
                 <div className={`p-4 rounded-2xl border-2 transition-all ${
                   trackerSetup 
@@ -215,87 +141,68 @@ const Index = () => {
                       <Target className={`h-6 w-6 ${trackerSetup ? "text-primary" : "text-primary/70"}`} />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-bold">
-                        {trackerSetup ? "Kalorienziel aktiv" : "Tracker einrichten"}
+                      <h4 className="font-bold flex items-center gap-2">
+                        {trackerSetup ? "Tracker eingerichtet" : "Tracker einrichten"}
+                        {trackerSetup && <span className="text-primary">✓</span>}
                       </h4>
                       <p className="text-xs text-muted-foreground">
-                        {trackerSetup ? "Tippe um deinen Fortschritt zu sehen" : "Lege dein Abnehmziel fest"}
+                        {trackerSetup ? "Dein Kalorienziel ist aktiv" : "Lege dein Abnehmziel fest"}
                       </p>
                     </div>
-                    <Button size="sm" variant={trackerSetup ? "outline" : "default"} className={!trackerSetup ? "glow-button" : ""}>
+                    <Button size="sm" className="glow-button">
                       {trackerSetup ? "Öffnen" : "Start"}
                     </Button>
                   </div>
                 </div>
               </NavLink>
-
-              {/* Feature Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <NavLink to={trackerSetup ? "/meal-plans?tab=meals" : "#"}>
-                  <div className={`p-4 rounded-xl border transition-all ${
-                    trackerSetup 
-                      ? "bg-card hover:border-primary/50" 
-                      : "bg-muted/30 opacity-50 cursor-not-allowed"
-                  }`}>
-                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-orange-500/20" : "bg-muted"}`}>
-                      {trackerSetup ? <Calendar className="h-5 w-5 text-orange-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
-                    </div>
-                    <h4 className="font-semibold text-sm">Wochenplan</h4>
-                    <p className="text-xs text-muted-foreground">7 Tage Meal Plan</p>
-                  </div>
-                </NavLink>
-
-                <NavLink to={trackerSetup ? "/meal-plans?tab=shopping" : "#"}>
-                  <div className={`p-4 rounded-xl border transition-all ${
-                    trackerSetup 
-                      ? "bg-card hover:border-primary/50" 
-                      : "bg-muted/30 opacity-50 cursor-not-allowed"
-                  }`}>
-                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-green-500/20" : "bg-muted"}`}>
-                      {trackerSetup ? <ShoppingCart className="h-5 w-5 text-green-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
-                    </div>
-                    <h4 className="font-semibold text-sm">Einkaufsliste</h4>
-                    <p className="text-xs text-muted-foreground">Automatisch erstellt</p>
-                  </div>
-                </NavLink>
-
-                <NavLink to={trackerSetup ? "/meal-plans?tab=water" : "#"}>
-                  <div className={`p-4 rounded-xl border transition-all ${
-                    trackerSetup 
-                      ? "bg-card hover:border-primary/50" 
-                      : "bg-muted/30 opacity-50 cursor-not-allowed"
-                  }`}>
-                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-cyan-500/20" : "bg-muted"}`}>
-                      {trackerSetup ? <Droplets className="h-5 w-5 text-cyan-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
-                    </div>
-                    <h4 className="font-semibold text-sm">Wasser</h4>
-                    <p className="text-xs text-muted-foreground">Trinke genug</p>
-                  </div>
-                </NavLink>
-
-                <NavLink to={trackerSetup ? "/meal-plans?tab=progress" : "#"}>
-                  <div className={`p-4 rounded-xl border transition-all ${
-                    trackerSetup 
-                      ? "bg-card hover:border-primary/50" 
-                      : "bg-muted/30 opacity-50 cursor-not-allowed"
-                  }`}>
-                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-purple-500/20" : "bg-muted"}`}>
-                      {trackerSetup ? <TrendingDown className="h-5 w-5 text-purple-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
-                    </div>
-                    <h4 className="font-semibold text-sm">Fortschritt</h4>
-                    <p className="text-xs text-muted-foreground">Gewichtsverlauf</p>
-                  </div>
-                </NavLink>
-              </div>
             </motion.div>
           )}
+
+          {/* Water Tracker Card */}
+          {user && subscriptionStatus?.subscribed && trackerSetup && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <NavLink to="/meal-plans?tab=water">
+                <div className="p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-cyan-500/20">
+                      <Droplets className="h-6 w-6 text-cyan-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold">Wasser Tracker</h4>
+                      <p className="text-xs text-muted-foreground">Trinke genug!</p>
+                    </div>
+                  </div>
+                </div>
+              </NavLink>
+            </motion.div>
+          )}
+
+          {/* Scan Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Button
+              size="lg"
+              onClick={() => navigate("/scan")}
+              className="w-full glow-button gradient-neon text-black font-semibold text-base sm:text-lg py-5 sm:py-6 rounded-2xl"
+            >
+              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
+              Kühlschrank scannen
+            </Button>
+          </motion.div>
 
           {/* Premium Upsell for non-subscribed users */}
           {user && !subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.5 }}
             >
               <NavLink to="/premium">
                 <div className="p-5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/30 hover:shadow-neon transition-all">
@@ -317,31 +224,12 @@ const Index = () => {
             </motion.div>
           )}
 
-          {/* Favorites Quick Access */}
-          {user && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9 }}
-            >
-              <NavLink to="/favorites">
-                <div className="p-3 rounded-xl bg-card/50 border border-border/30 flex items-center justify-between hover:border-primary/30 transition-all">
-                  <div className="flex items-center gap-3">
-                    <Heart className="h-5 w-5 text-red-400" />
-                    <span className="text-sm">Meine Favoriten</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">→</span>
-                </div>
-              </NavLink>
-            </motion.div>
-          )}
-
           {/* Auth CTA for non-logged in users */}
           {!user && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.5 }}
             >
               <NavLink to="/auth">
                 <div className="p-4 bg-card rounded-xl border border-border/50 text-center hover:border-primary/50 transition-all">
