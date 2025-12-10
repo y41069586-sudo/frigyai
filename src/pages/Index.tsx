@@ -159,14 +159,14 @@ const Index = () => {
           )}
 
           {/* Wasser & Stats Cards */}
-          {user && subscriptionStatus?.subscribed && trackerSetup && (
+          {user && subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
               className="grid grid-cols-2 gap-3"
             >
-              <NavLink to="/meal-plans?tab=water">
+              <NavLink to={trackerSetup ? "/meal-plans?tab=water" : "/meal-plans"}>
                 <div className="p-4 rounded-2xl bg-card border border-cyan-500/30 hover:border-cyan-500/60 transition-all h-full">
                   <div className="flex flex-col items-center text-center gap-2">
                     <div className="p-3 rounded-xl bg-cyan-500/20">
@@ -177,7 +177,7 @@ const Index = () => {
                   </div>
                 </div>
               </NavLink>
-              <NavLink to="/meal-plans?tab=progress">
+              <NavLink to={trackerSetup ? "/meal-plans?tab=progress" : "/meal-plans"}>
                 <div className="p-4 rounded-2xl bg-card border border-purple-500/30 hover:border-purple-500/60 transition-all h-full">
                   <div className="flex flex-col items-center text-center gap-2">
                     <div className="p-3 rounded-xl bg-purple-500/20">
@@ -192,14 +192,14 @@ const Index = () => {
           )}
 
           {/* Wochenplan & Einkaufsliste - small */}
-          {user && subscriptionStatus?.subscribed && trackerSetup && (
+          {user && subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
               className="grid grid-cols-2 gap-3"
             >
-              <NavLink to="/meal-plans?tab=meals">
+              <NavLink to={trackerSetup ? "/meal-plans?tab=meals" : "/meal-plans"}>
                 <div className="p-3 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 transition-all">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-orange-400" />
@@ -207,7 +207,7 @@ const Index = () => {
                   </div>
                 </div>
               </NavLink>
-              <NavLink to="/meal-plans?tab=shopping">
+              <NavLink to={trackerSetup ? "/meal-plans?tab=shopping" : "/meal-plans"}>
                 <div className="p-3 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 transition-all">
                   <div className="flex items-center gap-2">
                     <ShoppingCart className="h-4 w-4 text-green-400" />
