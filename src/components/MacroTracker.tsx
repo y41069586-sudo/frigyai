@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useGamification } from '@/hooks/useGamification';
 
 interface FoodEntry {
   id: string;
@@ -36,6 +37,7 @@ interface MacroTrackerProps {
 }
 
 export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
+  const { recordActivity, checkAndAwardBadge } = useGamification();
   const [step, setStep] = useState<'onboarding' | 'tracker'>(
     localStorage.getItem('userProfile') ? 'tracker' : 'onboarding'
   );
@@ -143,6 +145,10 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
       toast({ title: 'Essen hinzugefügt', description: `${data.name} - ${data.calories} kcal` });
+      
+      // Record activity for streak and award badge
+      recordActivity();
+      checkAndAwardBadge('meal_logged');
     } catch (error) {
       console.error('Error analyzing food:', error);
       toast({ title: 'Fehler', description: 'Konnte Essen nicht analysieren', variant: 'destructive' });
