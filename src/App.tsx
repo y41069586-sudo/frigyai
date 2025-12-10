@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AnimatePresence } from "framer-motion";
+import { SplashScreen } from "@/components/SplashScreen";
 import Index from "./pages/Index";
 import ScanPage from "./pages/ScanPage";
 import ManualPage from "./pages/ManualPage";
@@ -17,30 +20,45 @@ import MealPlansPage from "./pages/MealPlansPage";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/scan" element={<ScanPage />} />
-            <Route path="/manual" element={<ManualPage />} />
-            <Route path="/recipes" element={<RecipesPage />} />
-            <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/premium" element={<PremiumPage />} />
-            <Route path="/meal-plans" element={<MealPlansPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(() => {
+    const hasSeenSplash = sessionStorage.getItem('hasSeenSplash');
+    return !hasSeenSplash;
+  });
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('hasSeenSplash', 'true');
+    setShowSplash(false);
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AnimatePresence mode="wait">
+          {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+        </AnimatePresence>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/scan" element={<ScanPage />} />
+              <Route path="/manual" element={<ManualPage />} />
+              <Route path="/recipes" element={<RecipesPage />} />
+              <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/meal-plans" element={<MealPlansPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
