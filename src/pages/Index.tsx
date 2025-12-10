@@ -51,352 +51,271 @@ const Index = () => {
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Animated background elements - hidden on mobile for performance */}
+      {/* Subtle background - hidden on mobile */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         <motion.div
           className="absolute top-20 right-20 w-64 h-64 rounded-full bg-primary/10 blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 left-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.5, 0.3, 0.5],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
+      {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
-          <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="flex items-center gap-2">
             {user ? (
               <>
                 {subscriptionStatus?.subscribed && (
-                  <>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center px-2 sm:px-3 py-1 bg-primary/20 rounded-full border border-primary/50 hover:bg-primary/30">
-                          <Crown className="h-4 w-4 text-primary" />
-                          <span className="hidden sm:inline text-sm font-medium text-primary ml-1">Premium</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-56 p-2" align="end">
-                        <div className="space-y-1">
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start touch-target"
-                            onClick={handleManageSubscription}
-                            disabled={portalLoading}
-                          >
-                            <Settings className="mr-2 h-4 w-4" />
-                            Abo verwalten
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
-                            onClick={handleManageSubscription}
-                            disabled={portalLoading}
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Abo kündigen
-                          </Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    <NavLink to="/meal-plans">
-                      <Button variant="ghost" size="sm" className="hover:bg-primary/20 px-2 sm:px-3 touch-target">
-                        <Calendar className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-2">Meal Plans</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="px-2 sm:px-3 bg-primary/20 rounded-full border border-primary/50">
+                        <Crown className="h-4 w-4 text-primary" />
+                        <span className="hidden sm:inline text-sm text-primary ml-1">Premium</span>
                       </Button>
-                    </NavLink>
-                  </>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 bg-card" align="end">
+                      <Button variant="ghost" className="w-full justify-start" onClick={handleManageSubscription} disabled={portalLoading}>
+                        <Settings className="mr-2 h-4 w-4" /> Abo verwalten
+                      </Button>
+                      <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleManageSubscription} disabled={portalLoading}>
+                        <XCircle className="mr-2 h-4 w-4" /> Abo kündigen
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
                 )}
                 <NavLink to="/favorites">
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/20 touch-target">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/20">
                     <Heart className="h-5 w-5" />
                   </Button>
                 </NavLink>
-                <Button variant="ghost" size="icon" onClick={signOut} className="hover:bg-primary/20 touch-target">
+                <Button variant="ghost" size="icon" onClick={signOut} className="hover:bg-primary/20">
                   <LogOut className="h-5 w-5" />
                 </Button>
               </>
             ) : (
               <NavLink to="/auth">
-                <Button className="glow-button" size="sm">
-                  Anmelden
-                </Button>
+                <Button className="glow-button" size="sm">Anmelden</Button>
               </NavLink>
             )}
           </div>
         </div>
       </nav>
 
-      <div className="relative z-10 container mx-auto px-3 sm:px-4 py-6 sm:py-8 safe-bottom">
-        <div className="max-w-6xl mx-auto">
+      <div className="relative z-10 container mx-auto px-4 py-6 safe-bottom">
+        <div className="max-w-2xl mx-auto space-y-6">
           
-          {/* Hero Animation - smaller on mobile */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8 sm:mb-12 md:mb-16"
-          >
-            <HeroAnimation />
-          </motion.div>
-
-          {/* Hero Text */}
+          {/* Hero Section - Compact */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-center mb-6 sm:mb-8 md:mb-10 mt-2 sm:mt-4"
+            className="text-center py-4"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 leading-tight">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
               Leichter <span className="text-neon">Abnehmen</span>
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-xl mx-auto px-2">
-              Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen
+            <p className="text-sm text-muted-foreground">
+              3-Zutaten Rezepte • Unter 500 kcal • Unter 15 Min
             </p>
           </motion.div>
 
-          {/* Main Action - Tracker First */}
-          {user && subscriptionStatus?.subscribed && (
+          {/* Main Scan Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Button
+              size="lg"
+              onClick={() => navigate("/scan")}
+              className="w-full glow-button gradient-neon text-black font-semibold text-lg py-6 rounded-2xl"
+            >
+              <Camera className="mr-2 h-6 w-6" />
+              Kühlschrank scannen
+            </Button>
+          </motion.div>
+
+          {/* Dashboard Grid */}
+          {user && subscriptionStatus?.subscribed ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="mb-8"
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
             >
+              {/* Section Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Dein Dashboard</h3>
+                <span className={`text-xs px-2 py-1 rounded-full ${trackerSetup ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  {trackerSetup ? '✓ Aktiv' : 'Setup nötig'}
+                </span>
+              </div>
+
+              {/* Primary Card - Tracker */}
               <NavLink to="/meal-plans">
-                <div className={`p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer ${
+                <div className={`p-4 rounded-2xl border-2 transition-all ${
                   trackerSetup 
-                    ? "bg-primary/20 border-primary shadow-neon" 
-                    : "bg-card border-primary/50 hover:border-primary"
+                    ? "bg-primary/10 border-primary/50 hover:border-primary" 
+                    : "bg-card border-primary/30 hover:border-primary animate-pulse"
                 }`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                      <div className={`p-2 sm:p-3 rounded-xl shrink-0 ${trackerSetup ? "bg-primary/30" : "bg-muted"}`}>
-                        <Target className={`h-6 w-6 sm:h-8 sm:w-8 ${trackerSetup ? "text-primary" : "text-muted-foreground"}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-base sm:text-xl font-bold truncate">
-                          {trackerSetup ? "Tracker eingerichtet ✓" : "1. Tracker einrichten"}
-                        </h3>
-                        <p className="text-muted-foreground text-xs sm:text-sm truncate">
-                          {trackerSetup 
-                            ? "Dein Kalorienziel ist aktiv" 
-                            : "Starte hier um dein Ziel festzulegen"}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${trackerSetup ? "bg-primary/20" : "bg-primary/10"}`}>
+                      <Target className={`h-7 w-7 ${trackerSetup ? "text-primary" : "text-primary/70"}`} />
                     </div>
-                    <Button className={`shrink-0 ${trackerSetup ? "glow-button" : ""}`} size="sm">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-base">
+                        {trackerSetup ? "Kalorienziel aktiv" : "Tracker einrichten"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {trackerSetup ? "Tippe um deinen Fortschritt zu sehen" : "Lege dein Abnehmziel fest"}
+                      </p>
+                    </div>
+                    <Button size="sm" variant={trackerSetup ? "outline" : "default"} className={!trackerSetup ? "glow-button" : ""}>
                       {trackerSetup ? "Öffnen" : "Start"}
                     </Button>
                   </div>
                 </div>
               </NavLink>
 
-              {/* Connected Features - Grid Layout */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                {/* Wasser Tracker - Größer */}
-                <NavLink to={trackerSetup ? "/meal-plans?tab=water" : "#"} className="col-span-2 sm:col-span-1">
-                  <div className={`p-4 sm:p-5 rounded-xl border transition-all ${
-                    trackerSetup 
-                      ? "bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/30 hover:border-cyan-500/50 cursor-pointer" 
-                      : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-3 rounded-xl ${trackerSetup ? "bg-cyan-500/20" : "bg-muted"}`}>
-                        {trackerSetup ? (
-                          <Droplets className="h-6 w-6 text-cyan-400" />
-                        ) : (
-                          <Lock className="h-6 w-6 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-base">Wasser Tracker</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {trackerSetup ? "Trinke genug!" : "Tracker zuerst einrichten"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </NavLink>
-
-                {/* Stats - Größer */}
-                <NavLink to={trackerSetup ? "/meal-plans?tab=progress" : "#"} className="col-span-2 sm:col-span-1">
-                  <div className={`p-4 sm:p-5 rounded-xl border transition-all ${
-                    trackerSetup 
-                      ? "bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 hover:border-purple-500/50 cursor-pointer" 
-                      : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-3 rounded-xl ${trackerSetup ? "bg-purple-500/20" : "bg-muted"}`}>
-                        {trackerSetup ? (
-                          <TrendingDown className="h-6 w-6 text-purple-400" />
-                        ) : (
-                          <Lock className="h-6 w-6 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-base">Fortschritt</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {trackerSetup ? "Dein Gewichtsverlauf" : "Tracker zuerst einrichten"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </NavLink>
-
-                {/* Wochenplan - Kleiner */}
+              {/* Feature Grid - 2x2 */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Wochenplan */}
                 <NavLink to={trackerSetup ? "/meal-plans?tab=meals" : "#"}>
-                  <div className={`p-3 rounded-xl border transition-all ${
+                  <div className={`p-4 rounded-xl border h-full transition-all ${
                     trackerSetup 
-                      ? "bg-card border-border/50 hover:border-primary/50 cursor-pointer" 
-                      : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
+                      ? "bg-card hover:border-primary/50 cursor-pointer" 
+                      : "bg-muted/30 opacity-50 cursor-not-allowed"
                   }`}>
-                    <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-lg ${trackerSetup ? "bg-primary/20" : "bg-muted"}`}>
-                        {trackerSetup ? (
-                          <Calendar className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm">Wochenplan</h4>
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {trackerSetup ? "Meal Plan" : "Gesperrt"}
-                        </p>
-                      </div>
+                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-orange-500/20" : "bg-muted"}`}>
+                      {trackerSetup ? <Calendar className="h-5 w-5 text-orange-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
                     </div>
+                    <h4 className="font-semibold text-sm">Wochenplan</h4>
+                    <p className="text-[11px] text-muted-foreground">7 Tage Meal Plan</p>
                   </div>
                 </NavLink>
 
-                {/* Einkaufsliste - Kleiner */}
+                {/* Einkaufsliste */}
                 <NavLink to={trackerSetup ? "/meal-plans?tab=shopping" : "#"}>
-                  <div className={`p-3 rounded-xl border transition-all ${
+                  <div className={`p-4 rounded-xl border h-full transition-all ${
                     trackerSetup 
-                      ? "bg-card border-border/50 hover:border-primary/50 cursor-pointer" 
-                      : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
+                      ? "bg-card hover:border-primary/50 cursor-pointer" 
+                      : "bg-muted/30 opacity-50 cursor-not-allowed"
                   }`}>
-                    <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-lg ${trackerSetup ? "bg-primary/20" : "bg-muted"}`}>
-                        {trackerSetup ? (
-                          <ShoppingCart className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm">Einkaufsliste</h4>
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {trackerSetup ? "Automatisch" : "Gesperrt"}
-                        </p>
-                      </div>
+                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-green-500/20" : "bg-muted"}`}>
+                      {trackerSetup ? <ShoppingCart className="h-5 w-5 text-green-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
                     </div>
+                    <h4 className="font-semibold text-sm">Einkaufsliste</h4>
+                    <p className="text-[11px] text-muted-foreground">Automatisch erstellt</p>
+                  </div>
+                </NavLink>
+
+                {/* Wasser Tracker */}
+                <NavLink to={trackerSetup ? "/meal-plans?tab=water" : "#"}>
+                  <div className={`p-4 rounded-xl border h-full transition-all ${
+                    trackerSetup 
+                      ? "bg-card hover:border-primary/50 cursor-pointer" 
+                      : "bg-muted/30 opacity-50 cursor-not-allowed"
+                  }`}>
+                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-cyan-500/20" : "bg-muted"}`}>
+                      {trackerSetup ? <Droplets className="h-5 w-5 text-cyan-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
+                    </div>
+                    <h4 className="font-semibold text-sm">Wasser</h4>
+                    <p className="text-[11px] text-muted-foreground">Trinke genug</p>
+                  </div>
+                </NavLink>
+
+                {/* Fortschritt */}
+                <NavLink to={trackerSetup ? "/meal-plans?tab=progress" : "#"}>
+                  <div className={`p-4 rounded-xl border h-full transition-all ${
+                    trackerSetup 
+                      ? "bg-card hover:border-primary/50 cursor-pointer" 
+                      : "bg-muted/30 opacity-50 cursor-not-allowed"
+                  }`}>
+                    <div className={`p-2 rounded-lg w-fit mb-2 ${trackerSetup ? "bg-purple-500/20" : "bg-muted"}`}>
+                      {trackerSetup ? <TrendingDown className="h-5 w-5 text-purple-400" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
+                    </div>
+                    <h4 className="font-semibold text-sm">Fortschritt</h4>
+                    <p className="text-[11px] text-muted-foreground">Gewichtsverlauf</p>
                   </div>
                 </NavLink>
               </div>
             </motion.div>
-          )}
-
-          {/* Scan CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex justify-center mb-8 sm:mb-12 px-2"
-          >
-            <Button
-              size="lg"
-              onClick={() => navigate("/scan")}
-              className="glow-button pulse-glow gradient-neon text-black font-semibold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-2xl group w-full sm:w-auto max-w-sm touch-target"
-            >
-              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform" />
-              Kühlschrank scannen
-            </Button>
-          </motion.div>
-
-          {/* Premium upsell for non-premium users */}
-          {user && !subscriptionStatus?.subscribed && (
+          ) : user && !subscriptionStatus?.subscribed ? (
+            /* Premium Upsell */
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mb-12"
+              transition={{ delay: 0.2 }}
             >
               <NavLink to="/premium">
-                <div className="p-6 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-lg rounded-2xl border border-primary/30 hover:shadow-neon transition-all cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Crown className="h-5 w-5 text-primary animate-pulse" />
-                        <h3 className="text-xl font-bold neon-text">Premium freischalten</h3>
-                      </div>
-                      <p className="text-muted-foreground text-sm">
-                        Tracker • Wochenpläne • Einkaufslisten
-                      </p>
+                <div className="p-5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/30 hover:shadow-neon transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-primary/20">
+                      <Crown className="h-7 w-7 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg">Premium freischalten</h3>
+                      <p className="text-xs text-muted-foreground">Tracker • Wochenpläne • Einkaufslisten</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">4,99€</p>
-                      <p className="text-xs text-muted-foreground">/Monat</p>
+                      <p className="text-xl font-bold text-primary">4,99€</p>
+                      <p className="text-[10px] text-muted-foreground">/Monat</p>
                     </div>
                   </div>
                 </div>
               </NavLink>
             </motion.div>
+          ) : (
+            /* Not logged in - show features */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { icon: "🥗", title: "3 Zutaten", desc: "Einfach" },
+                  { icon: "🔥", title: "< 500 kcal", desc: "Abnehmen" },
+                  { icon: "⏱️", title: "< 15 Min", desc: "Schnell" },
+                ].map((f, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-card border border-border/50 text-center">
+                    <span className="text-2xl">{f.icon}</span>
+                    <h4 className="font-semibold text-sm mt-1">{f.title}</h4>
+                    <p className="text-[10px] text-muted-foreground">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+              
+              <NavLink to="/auth">
+                <div className="p-4 bg-card rounded-xl border border-border/50 text-center hover:border-primary/50 transition-all">
+                  <p className="text-sm text-muted-foreground mb-2">Anmelden für alle Features</p>
+                  <Button className="glow-button">Jetzt starten</Button>
+                </div>
+              </NavLink>
+            </motion.div>
           )}
 
-          {/* Features */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {[
-              {
-                title: "Nur 3 Zutaten",
-                description: "Ultra-einfache Rezepte",
-              },
-              {
-                title: "Unter 500 kcal",
-                description: "Perfekt zum Abnehmen",
-              },
-              {
-                title: "Unter 15 Min",
-                description: "Schnell & gesund",
-              },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.0 + index * 0.1 }}
-                className="text-center p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-all"
-              >
-                <h3 className="text-lg font-semibold mb-1 text-neon">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
+          {/* Favorites Quick Access */}
+          {user && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <NavLink to="/favorites">
+                <div className="p-3 rounded-xl bg-card/50 border border-border/30 flex items-center justify-between hover:border-primary/30 transition-all">
+                  <div className="flex items-center gap-3">
+                    <Heart className="h-5 w-5 text-red-400" />
+                    <span className="text-sm">Meine Favoriten</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">→</span>
+                </div>
+              </NavLink>
+            </motion.div>
+          )}
+
         </div>
       </div>
     </div>
