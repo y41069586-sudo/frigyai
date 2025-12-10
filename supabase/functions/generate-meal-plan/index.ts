@@ -208,8 +208,7 @@ Antworte NUR mit validem JSON in diesem Format:
     });
   } catch (error: unknown) {
     console.error('[GENERATE-MEAL-PLAN] Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es erneut." }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
