@@ -153,7 +153,7 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-12"
+            className="mb-4 sm:mb-8 md:mb-12"
           >
             <HeroAnimation />
           </motion.div>
@@ -163,12 +163,12 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-center mb-6 sm:mb-10"
+            className="text-center mb-6 sm:mb-8 md:mb-10 mt-2 sm:mt-4"
           >
-            <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 leading-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 leading-tight">
               Leichter <span className="text-neon">Abnehmen</span>
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto px-2">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-xl mx-auto px-2">
               Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen
             </p>
           </motion.div>
