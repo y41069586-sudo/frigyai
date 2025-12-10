@@ -384,17 +384,18 @@ const MealPlansPage = () => {
                   <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">Dein Wochenplan</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">Tippe auf ein Gericht für Details</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <ExportMealPlan mealPlan={displayPlan} />
                   <Button 
-                    className="glow-button flex-1 sm:flex-none touch-target" 
+                    className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
+                    size="sm"
                     onClick={generateMealPlan}
                     disabled={isGenerating || !trackerSetup}
                   >
                     {isGenerating ? (
-                      <><Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> Generiere...</>
+                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span className="hidden sm:inline">Generiere...</span></>
                     ) : (
-                      <><Calendar className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Neue Woche</>
+                      <><Calendar className="mr-1 h-4 w-4" /> <span className="sm:hidden">Neu</span><span className="hidden sm:inline">Neue Woche</span></>
                     )}
                   </Button>
                 </div>

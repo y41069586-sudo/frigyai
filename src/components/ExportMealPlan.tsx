@@ -184,15 +184,18 @@ export const ExportMealPlan = ({ mealPlan }: ExportMealPlanProps) => {
   if (mealPlan.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button variant="outline" size="sm" onClick={exportToPDF} className="hover:border-primary">
-        <FileText className="h-4 w-4 mr-1" /> PDF
+    <div className="flex gap-1.5 sm:gap-2">
+      <Button variant="outline" size="sm" onClick={exportToPDF} className="hover:border-primary px-2 sm:px-3">
+        <FileText className="h-4 w-4" />
+        <span className="hidden sm:inline ml-1">PDF</span>
       </Button>
-      <Button variant="outline" size="sm" onClick={exportToText} className="hover:border-primary">
-        <Download className="h-4 w-4 mr-1" /> Text
+      <Button variant="outline" size="sm" onClick={exportToText} className="hover:border-primary px-2 sm:px-3">
+        <Download className="h-4 w-4" />
+        <span className="hidden sm:inline ml-1">Text</span>
       </Button>
-      <Button variant="outline" size="sm" onClick={addToCalendar} className="hover:border-primary">
-        <Calendar className="h-4 w-4 mr-1" /> Kalender
+      <Button variant="outline" size="sm" onClick={addToCalendar} className="hover:border-primary px-2 sm:px-3">
+        <Calendar className="h-4 w-4" />
+        <span className="hidden sm:inline ml-1">Kalender</span>
       </Button>
     </div>
   );
