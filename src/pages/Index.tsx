@@ -133,12 +133,12 @@ const Index = () => {
               <NavLink to="/meal-plans">
                 <div className={`p-4 rounded-2xl border-2 transition-all ${
                   trackerSetup 
-                    ? "bg-primary/10 border-primary/50 hover:border-primary" 
-                    : "bg-card border-primary/30 hover:border-primary animate-pulse"
+                    ? "bg-primary/15 border-primary/50 hover:border-primary" 
+                    : "bg-primary/10 border-primary/40 hover:border-primary"
                 }`}>
                   <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${trackerSetup ? "bg-primary/20" : "bg-primary/10"}`}>
-                      <Target className={`h-6 w-6 ${trackerSetup ? "text-primary" : "text-primary/70"}`} />
+                    <div className="p-3 rounded-xl bg-primary/20">
+                      <Target className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-bold flex items-center gap-2">
@@ -167,9 +167,9 @@ const Index = () => {
               className="grid grid-cols-2 gap-3"
             >
               <NavLink to={trackerSetup ? "/meal-plans?tab=water" : "/meal-plans"}>
-                <div className="p-4 rounded-2xl bg-card border border-cyan-500/30 hover:border-cyan-500/60 transition-all h-full">
+                <div className="p-4 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 hover:border-cyan-500/60 transition-all h-full">
                   <div className="flex flex-col items-center text-center gap-2">
-                    <div className="p-3 rounded-xl bg-cyan-500/20">
+                    <div className="p-3 rounded-xl bg-cyan-500/25">
                       <Droplets className="h-6 w-6 text-cyan-400" />
                     </div>
                     <h4 className="font-bold text-sm">Wasser</h4>
@@ -178,9 +178,9 @@ const Index = () => {
                 </div>
               </NavLink>
               <NavLink to={trackerSetup ? "/meal-plans?tab=progress" : "/meal-plans"}>
-                <div className="p-4 rounded-2xl bg-card border border-purple-500/30 hover:border-purple-500/60 transition-all h-full">
+                <div className="p-4 rounded-2xl bg-purple-500/15 border border-purple-500/40 hover:border-purple-500/60 transition-all h-full">
                   <div className="flex flex-col items-center text-center gap-2">
-                    <div className="p-3 rounded-xl bg-purple-500/20">
+                    <div className="p-3 rounded-xl bg-purple-500/25">
                       <TrendingDown className="h-6 w-6 text-purple-400" />
                     </div>
                     <h4 className="font-bold text-sm">Stats</h4>
@@ -191,7 +191,7 @@ const Index = () => {
             </motion.div>
           )}
 
-          {/* Wochenplan & Einkaufsliste - small */}
+          {/* Wochenplan & Einkaufsliste */}
           {user && subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -200,18 +200,22 @@ const Index = () => {
               className="grid grid-cols-2 gap-3"
             >
               <NavLink to={trackerSetup ? "/meal-plans?tab=meals" : "/meal-plans"}>
-                <div className="p-3 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 transition-all">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-orange-400" />
-                    <span className="text-xs font-medium">Wochenplan</span>
+                <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-orange-400/50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/15">
+                      <Calendar className="h-5 w-5 text-orange-400" />
+                    </div>
+                    <span className="text-sm font-medium">Wochenplan</span>
                   </div>
                 </div>
               </NavLink>
               <NavLink to={trackerSetup ? "/meal-plans?tab=shopping" : "/meal-plans"}>
-                <div className="p-3 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 transition-all">
-                  <div className="flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4 text-green-400" />
-                    <span className="text-xs font-medium">Einkaufsliste</span>
+                <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-green-400/50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/15">
+                      <ShoppingCart className="h-5 w-5 text-green-400" />
+                    </div>
+                    <span className="text-sm font-medium">Einkaufsliste</span>
                   </div>
                 </div>
               </NavLink>
