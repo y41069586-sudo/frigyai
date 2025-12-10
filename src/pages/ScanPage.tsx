@@ -158,23 +158,23 @@ const ScanPage = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 safe-bottom">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="flex items-center justify-between mb-4 sm:mb-8 gap-2"
         >
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/")}
-              className="mr-4"
+              className="mr-2 sm:mr-4 shrink-0 touch-target"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-xl sm:text-3xl font-bold truncate">
               Kühlschrank <span className="text-neon">scannen</span>
             </h1>
           </div>
@@ -184,15 +184,15 @@ const ScanPage = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full shrink-0 text-xs sm:text-sm ${
                 scansRemaining > 0 
                   ? 'bg-primary/10 text-primary' 
                   : 'bg-destructive/10 text-destructive'
               }`}
             >
-              <Camera className="h-4 w-4" />
+              <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="font-semibold">
-                {scansRemaining}/{FREE_SCAN_LIMIT} Scans heute
+                {scansRemaining}/{FREE_SCAN_LIMIT}
               </span>
             </motion.div>
           )}
@@ -201,10 +201,11 @@ const ScanPage = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 text-yellow-500"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0 text-xs sm:text-sm"
             >
-              <Crown className="h-4 w-4" />
-              <span className="font-semibold">Unbegrenzte Scans</span>
+              <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="font-semibold hidden sm:inline">Unbegrenzt</span>
+              <span className="font-semibold sm:hidden">∞</span>
             </motion.div>
           )}
         </motion.div>
@@ -242,7 +243,7 @@ const ScanPage = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all bg-card ${
+              className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all bg-card ${
                 scanLimitReached && !isPremium
                   ? 'border-muted cursor-not-allowed opacity-50'
                   : 'border-primary/50 hover:border-primary cursor-pointer'
@@ -253,15 +254,15 @@ const ScanPage = () => {
                 }
               }}
             >
-              <Upload className="h-16 w-16 mx-auto mb-4 text-primary" />
-              <h2 className="text-2xl font-semibold mb-2">
+              <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">
                 Foto hochladen
               </h2>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
                 Mache ein Foto von deinem Kühlschrank oder wähle ein Bild aus
               </p>
               <Button 
-                className="gradient-neon text-black font-semibold glow-button"
+                className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
                 disabled={scanLimitReached && !isPremium}
               >
                 Bild auswählen

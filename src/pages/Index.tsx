@@ -51,8 +51,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Animated background elements - hidden on mobile for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         <motion.div
           className="absolute top-20 right-20 w-64 h-64 rounded-full bg-primary/10 blur-3xl"
           animate={{
@@ -79,26 +79,26 @@ const Index = () => {
         />
       </div>
 
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold neon-text">Healthy3</h1>
-          <div className="flex items-center space-x-2">
+      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {user ? (
               <>
                 {subscriptionStatus?.subscribed && (
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" className="flex items-center px-3 py-1 bg-primary/20 rounded-full border border-primary/50 hover:bg-primary/30">
-                          <Crown className="h-4 w-4 text-primary mr-1" />
-                          <span className="text-sm font-medium text-primary">Premium</span>
+                        <Button variant="ghost" size="sm" className="flex items-center px-2 sm:px-3 py-1 bg-primary/20 rounded-full border border-primary/50 hover:bg-primary/30">
+                          <Crown className="h-4 w-4 text-primary" />
+                          <span className="hidden sm:inline text-sm font-medium text-primary ml-1">Premium</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-56 p-2" align="end">
                         <div className="space-y-1">
                           <Button
                             variant="ghost"
-                            className="w-full justify-start"
+                            className="w-full justify-start touch-target"
                             onClick={handleManageSubscription}
                             disabled={portalLoading}
                           >
@@ -107,7 +107,7 @@ const Index = () => {
                           </Button>
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
                             onClick={handleManageSubscription}
                             disabled={portalLoading}
                           >
@@ -118,19 +118,19 @@ const Index = () => {
                       </PopoverContent>
                     </Popover>
                     <NavLink to="/meal-plans">
-                      <Button variant="ghost" size="sm" className="hover:bg-primary/20">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Meal Plans
+                      <Button variant="ghost" size="sm" className="hover:bg-primary/20 px-2 sm:px-3 touch-target">
+                        <Calendar className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-2">Meal Plans</span>
                       </Button>
                     </NavLink>
                   </>
                 )}
                 <NavLink to="/favorites">
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/20">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/20 touch-target">
                     <Heart className="h-5 w-5" />
                   </Button>
                 </NavLink>
-                <Button variant="ghost" size="icon" onClick={signOut} className="hover:bg-primary/20">
+                <Button variant="ghost" size="icon" onClick={signOut} className="hover:bg-primary/20 touch-target">
                   <LogOut className="h-5 w-5" />
                 </Button>
               </>
@@ -145,15 +145,15 @@ const Index = () => {
         </div>
       </nav>
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="relative z-10 container mx-auto px-3 sm:px-4 py-6 sm:py-8 safe-bottom">
         <div className="max-w-6xl mx-auto">
           
-          {/* Hero Animation */}
+          {/* Hero Animation - smaller on mobile */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="mb-12"
+            className="mb-6 sm:mb-12"
           >
             <HeroAnimation />
           </motion.div>
@@ -163,12 +163,12 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-center mb-10"
+            className="text-center mb-6 sm:mb-10"
           >
-            <h2 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 leading-tight">
               Leichter <span className="text-neon">Abnehmen</span>
             </h2>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto px-2">
               Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen
             </p>
           </motion.div>
@@ -182,29 +182,29 @@ const Index = () => {
               className="mb-8"
             >
               <NavLink to="/meal-plans">
-                <div className={`p-6 rounded-2xl border-2 transition-all cursor-pointer ${
+                <div className={`p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer ${
                   trackerSetup 
                     ? "bg-primary/20 border-primary shadow-neon" 
                     : "bg-card border-primary/50 hover:border-primary"
                 }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${trackerSetup ? "bg-primary/30" : "bg-muted"}`}>
-                        <Target className={`h-8 w-8 ${trackerSetup ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                      <div className={`p-2 sm:p-3 rounded-xl shrink-0 ${trackerSetup ? "bg-primary/30" : "bg-muted"}`}>
+                        <Target className={`h-6 w-6 sm:h-8 sm:w-8 ${trackerSetup ? "text-primary" : "text-muted-foreground"}`} />
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold">
+                      <div className="min-w-0">
+                        <h3 className="text-base sm:text-xl font-bold truncate">
                           {trackerSetup ? "Tracker eingerichtet ✓" : "1. Tracker einrichten"}
                         </h3>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted-foreground text-xs sm:text-sm truncate">
                           {trackerSetup 
                             ? "Dein Kalorienziel ist aktiv" 
-                            : "Starte hier um dein Kalorienziel festzulegen"}
+                            : "Starte hier um dein Ziel festzulegen"}
                         </p>
                       </div>
                     </div>
-                    <Button className={trackerSetup ? "glow-button" : ""} size="lg">
-                      {trackerSetup ? "Öffnen" : "Jetzt starten"}
+                    <Button className={`shrink-0 ${trackerSetup ? "glow-button" : ""}`} size="sm">
+                      {trackerSetup ? "Öffnen" : "Start"}
                     </Button>
                   </div>
                 </div>
@@ -268,14 +268,14 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex justify-center mb-12"
+            className="flex justify-center mb-8 sm:mb-12 px-2"
           >
             <Button
               size="lg"
               onClick={() => navigate("/scan")}
-              className="glow-button pulse-glow gradient-neon text-black font-semibold text-lg px-8 py-6 rounded-2xl group"
+              className="glow-button pulse-glow gradient-neon text-black font-semibold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-2xl group w-full sm:w-auto max-w-sm touch-target"
             >
-              <Camera className="mr-2 h-6 w-6 group-hover:scale-110 transition-transform" />
+              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform" />
               Kühlschrank scannen
             </Button>
           </motion.div>
