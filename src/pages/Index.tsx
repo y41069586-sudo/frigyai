@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Target, Settings, XCircle, Droplets, Share2 } from "lucide-react";
+import { Camera, Heart, LogOut, Crown, Calendar, Target, Settings, XCircle, Droplets, TrendingDown, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -158,23 +158,60 @@ const Index = () => {
             </motion.div>
           )}
 
-          {/* Water Tracker Card */}
+          {/* Wasser & Stats Cards */}
           {user && subscriptionStatus?.subscribed && trackerSetup && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
+              className="grid grid-cols-2 gap-3"
             >
               <NavLink to="/meal-plans?tab=water">
-                <div className="p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all">
-                  <div className="flex items-center gap-4">
+                <div className="p-4 rounded-2xl bg-card border border-cyan-500/30 hover:border-cyan-500/60 transition-all h-full">
+                  <div className="flex flex-col items-center text-center gap-2">
                     <div className="p-3 rounded-xl bg-cyan-500/20">
                       <Droplets className="h-6 w-6 text-cyan-400" />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold">Wasser Tracker</h4>
-                      <p className="text-xs text-muted-foreground">Trinke genug!</p>
+                    <h4 className="font-bold text-sm">Wasser</h4>
+                    <p className="text-xs text-muted-foreground">Trinke genug!</p>
+                  </div>
+                </div>
+              </NavLink>
+              <NavLink to="/meal-plans?tab=progress">
+                <div className="p-4 rounded-2xl bg-card border border-purple-500/30 hover:border-purple-500/60 transition-all h-full">
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="p-3 rounded-xl bg-purple-500/20">
+                      <TrendingDown className="h-6 w-6 text-purple-400" />
                     </div>
+                    <h4 className="font-bold text-sm">Stats</h4>
+                    <p className="text-xs text-muted-foreground">Dein Fortschritt</p>
+                  </div>
+                </div>
+              </NavLink>
+            </motion.div>
+          )}
+
+          {/* Wochenplan & Einkaufsliste - small */}
+          {user && subscriptionStatus?.subscribed && trackerSetup && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="grid grid-cols-2 gap-3"
+            >
+              <NavLink to="/meal-plans?tab=meals">
+                <div className="p-3 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 transition-all">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-orange-400" />
+                    <span className="text-xs font-medium">Wochenplan</span>
+                  </div>
+                </div>
+              </NavLink>
+              <NavLink to="/meal-plans?tab=shopping">
+                <div className="p-3 rounded-xl bg-card/50 border border-border/30 hover:border-primary/30 transition-all">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-green-400" />
+                    <span className="text-xs font-medium">Einkaufsliste</span>
                   </div>
                 </div>
               </NavLink>
