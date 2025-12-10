@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import confetti from 'canvas-confetti';
 
 export interface Badge {
   id: string;
@@ -180,6 +181,32 @@ export const useGamification = () => {
       if (error && !error.message.includes('duplicate')) throw error;
 
       const badgeDef = BADGE_DEFINITIONS.find(b => b.type === badgeType);
+      
+      // Trigger confetti animation
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF88', '#00D4FF'],
+      });
+      
+      // Second burst for more impact
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#FFD700', '#FFA500', '#FF6347'],
+        });
+        confetti({
+          particleCount: 50,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#FFD700', '#FFA500', '#FF6347'],
+        });
+      }, 150);
       
       toast({
         title: `${badgeDef?.icon} Neues Badge freigeschaltet!`,
