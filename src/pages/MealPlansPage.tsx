@@ -18,6 +18,7 @@ import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import StreakBadge from '@/components/StreakBadge';
 interface Ingredient {
   name: string;
   amount: string;
@@ -278,36 +279,39 @@ const MealPlansPage = () => {
           <NavLink to="/">
             <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
           </NavLink>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center space-x-1 sm:space-x-2 hover:bg-primary/10 touch-target">
-                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
-                <span className="text-xs sm:text-sm font-medium">Premium</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-2" align="end">
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start touch-target"
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Abo verwalten
+          <div className="flex items-center gap-2">
+            <StreakBadge />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center space-x-1 sm:space-x-2 hover:bg-primary/10 touch-target">
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
+                  <span className="text-xs sm:text-sm font-medium">Premium</span>
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Abo kündigen
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start touch-target"
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Abo verwalten
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Abo kündigen
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </nav>
 
