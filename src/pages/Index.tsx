@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Target, ShoppingCart, Lock, Settings, XCircle } from "lucide-react";
+import { Camera, Heart, LogOut, Crown, Calendar, Target, ShoppingCart, Lock, Settings, XCircle, Droplets, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -210,50 +210,102 @@ const Index = () => {
                 </div>
               </NavLink>
 
-              {/* Connected Features */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <NavLink to={trackerSetup ? "/meal-plans" : "#"}>
-                  <div className={`p-4 rounded-xl border transition-all ${
+              {/* Connected Features - Grid Layout */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {/* Wasser Tracker - Größer */}
+                <NavLink to={trackerSetup ? "/meal-plans?tab=water" : "#"} className="col-span-2 sm:col-span-1">
+                  <div className={`p-4 sm:p-5 rounded-xl border transition-all ${
                     trackerSetup 
-                      ? "bg-card border-border/50 hover:border-primary/50 cursor-pointer" 
+                      ? "bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/30 hover:border-cyan-500/50 cursor-pointer" 
                       : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
                   }`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${trackerSetup ? "bg-primary/20" : "bg-muted"}`}>
+                      <div className={`p-3 rounded-xl ${trackerSetup ? "bg-cyan-500/20" : "bg-muted"}`}>
                         {trackerSetup ? (
-                          <Calendar className="h-5 w-5 text-primary" />
+                          <Droplets className="h-6 w-6 text-cyan-400" />
                         ) : (
-                          <Lock className="h-5 w-5 text-muted-foreground" />
+                          <Lock className="h-6 w-6 text-muted-foreground" />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold">Wochenplan</h4>
+                        <h4 className="font-bold text-base">Wasser Tracker</h4>
                         <p className="text-xs text-muted-foreground">
-                          {trackerSetup ? "Generiere deinen Meal Plan" : "Tracker zuerst einrichten"}
+                          {trackerSetup ? "Trinke genug!" : "Tracker zuerst einrichten"}
                         </p>
                       </div>
                     </div>
                   </div>
                 </NavLink>
 
-                <NavLink to={trackerSetup ? "/meal-plans" : "#"}>
-                  <div className={`p-4 rounded-xl border transition-all ${
+                {/* Stats - Größer */}
+                <NavLink to={trackerSetup ? "/meal-plans?tab=progress" : "#"} className="col-span-2 sm:col-span-1">
+                  <div className={`p-4 sm:p-5 rounded-xl border transition-all ${
+                    trackerSetup 
+                      ? "bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 hover:border-purple-500/50 cursor-pointer" 
+                      : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-3 rounded-xl ${trackerSetup ? "bg-purple-500/20" : "bg-muted"}`}>
+                        {trackerSetup ? (
+                          <TrendingDown className="h-6 w-6 text-purple-400" />
+                        ) : (
+                          <Lock className="h-6 w-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-base">Fortschritt</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {trackerSetup ? "Dein Gewichtsverlauf" : "Tracker zuerst einrichten"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </NavLink>
+
+                {/* Wochenplan - Kleiner */}
+                <NavLink to={trackerSetup ? "/meal-plans?tab=meals" : "#"}>
+                  <div className={`p-3 rounded-xl border transition-all ${
                     trackerSetup 
                       ? "bg-card border-border/50 hover:border-primary/50 cursor-pointer" 
                       : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
                   }`}>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div className={`p-2 rounded-lg ${trackerSetup ? "bg-primary/20" : "bg-muted"}`}>
                         {trackerSetup ? (
-                          <ShoppingCart className="h-5 w-5 text-primary" />
+                          <Calendar className="h-4 w-4 text-primary" />
                         ) : (
-                          <Lock className="h-5 w-5 text-muted-foreground" />
+                          <Lock className="h-4 w-4 text-muted-foreground" />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold">Einkaufsliste</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {trackerSetup ? "Automatisch aus Wochenplan" : "Tracker zuerst einrichten"}
+                        <h4 className="font-semibold text-sm">Wochenplan</h4>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {trackerSetup ? "Meal Plan" : "Gesperrt"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </NavLink>
+
+                {/* Einkaufsliste - Kleiner */}
+                <NavLink to={trackerSetup ? "/meal-plans?tab=shopping" : "#"}>
+                  <div className={`p-3 rounded-xl border transition-all ${
+                    trackerSetup 
+                      ? "bg-card border-border/50 hover:border-primary/50 cursor-pointer" 
+                      : "bg-muted/50 border-muted cursor-not-allowed opacity-60"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`p-2 rounded-lg ${trackerSetup ? "bg-primary/20" : "bg-muted"}`}>
+                        {trackerSetup ? (
+                          <ShoppingCart className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm">Einkaufsliste</h4>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {trackerSetup ? "Automatisch" : "Gesperrt"}
                         </p>
                       </div>
                     </div>

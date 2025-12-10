@@ -16,11 +16,11 @@ const HeroAnimation = () => {
   const fridgeOpen = step >= 1;
 
   return (
-    <div className="relative w-full max-w-xl mx-auto h-96 md:h-[500px]">
+    <div className="relative w-full max-w-md sm:max-w-xl mx-auto h-64 sm:h-80 md:h-[420px]">
       {/* Person/Stickfigure - LEFT SIDE */}
       <motion.div
-        className="absolute left-[5%] md:left-[10%] top-1/2 -translate-y-1/2"
-        initial={{ opacity: 0, x: -50 }}
+        className="absolute left-[3%] sm:left-[5%] md:left-[10%] top-1/2 -translate-y-1/2 scale-75 sm:scale-90 md:scale-100 origin-left"
+        initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
@@ -106,7 +106,7 @@ const HeroAnimation = () => {
 
       {/* FRIDGE - CENTER */}
       <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-56 md:w-52 md:h-72"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-40 sm:w-36 sm:h-52 md:w-48 md:h-64"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
@@ -342,9 +342,9 @@ const HeroAnimation = () => {
       <AnimatePresence>
         {step >= 2 && (
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            className="absolute right-[2%] md:right-[5%] top-[15%] flex flex-col gap-2"
+            className="absolute right-[1%] sm:right-[3%] md:right-[5%] top-[12%] sm:top-[15%] flex flex-col gap-1.5 sm:gap-2 scale-75 sm:scale-90 md:scale-100 origin-right"
           >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
