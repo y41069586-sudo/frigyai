@@ -9,7 +9,6 @@ import HeroAnimation from "@/components/HeroAnimation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import GamificationCard from "@/components/GamificationCard";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut } = useAuth();
@@ -159,16 +158,6 @@ const Index = () => {
             </motion.div>
           )}
 
-          {/* Gamification Card */}
-          {user && subscriptionStatus?.subscribed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-            >
-              <GamificationCard />
-            </motion.div>
-          )}
 
           {/* Wasser & Stats Cards */}
           {user && subscriptionStatus?.subscribed && (
