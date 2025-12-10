@@ -29,7 +29,18 @@ export const useReminders = () => {
   const lastWeightReminderRef = useRef<string>('');
 
   useEffect(() => {
+    // Check if notifications are supported and permitted
+    const checkNotificationPermission = () => {
+      if (!('Notification' in window)) {
+        console.log('Notifications not supported');
+        return false;
+      }
+      return Notification.permission === 'granted';
+    };
+
     const checkReminders = () => {
+      if (!checkNotificationPermission()) return;
+      
       const saved = localStorage.getItem('reminderConfig');
       if (!saved) return;
 
@@ -38,6 +49,8 @@ export const useReminders = () => {
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const today = now.toDateString();
 
+      console.log('Checking reminders at:', currentTime);
+
       // Check meal reminders
       if (config.meals.enabled) {
         config.meals.times.forEach(time => {
@@ -45,6 +58,7 @@ export const useReminders = () => {
           if (currentTime === time && lastMealReminderRef.current !== reminderKey) {
             lastMealReminderRef.current = reminderKey;
             const mealName = getNextMealName(now.getHours());
+            console.log('Sending meal reminder:', mealName);
             sendNotification(
               `🍽️ ${mealName} Zeit!`,
               'Vergiss nicht, deine Mahlzeit zu loggen.'
@@ -58,6 +72,7 @@ export const useReminders = () => {
         const reminderKey = `${today}-weight`;
         if (currentTime === config.weight.time && lastWeightReminderRef.current !== reminderKey) {
           lastWeightReminderRef.current = reminderKey;
+          console.log('Sending weight reminder');
           sendNotification(
             '⚖️ Zeit zum Wiegen!',
             'Dokumentiere deinen Fortschritt.'
@@ -67,6 +82,8 @@ export const useReminders = () => {
     };
 
     const startWaterReminder = () => {
+      if (!checkNotificationPermission()) return;
+      
       const saved = localStorage.getItem('reminderConfig');
       if (!saved) return;
 
@@ -75,11 +92,15 @@ export const useReminders = () => {
       // Clear existing interval
       if (waterIntervalRef.current) {
         clearInterval(waterIntervalRef.current);
+        waterIntervalRef.current = null;
       }
 
       if (config.water.enabled) {
         const intervalMs = config.water.interval * 60 * 60 * 1000; // Convert hours to ms
+        console.log('Starting water reminder every', config.water.interval, 'hours');
+        
         waterIntervalRef.current = window.setInterval(() => {
+          console.log('Sending water reminder');
           sendNotification(
             '💧 Wasser trinken!',
             'Zeit für ein Glas Wasser.'
@@ -88,6 +109,9 @@ export const useReminders = () => {
       }
     };
 
+    // Run initial check
+    checkReminders();
+    
     // Check every minute for time-based reminders
     checkIntervalRef.current = window.setInterval(checkReminders, 60000);
     

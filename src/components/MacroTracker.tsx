@@ -69,15 +69,23 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
   const bmr = 10 * weight + 6.25 * height - 5 * age + 5; // +5 for male, -161 for female
   const tdee = Math.round(bmr * 1.55); // Moderate activity multiplier
   
-  // Safe weight loss: max 0.75kg per week = realistic and sustainable
-  const maxWeeklyLoss = 0.75;
-  const actualWeeklyLoss = Math.min(weightDiff / weeksToGoal, maxWeeklyLoss);
+  // Calculate the requested weekly loss (what user wants)
+  const requestedWeeklyLoss = weightDiff / weeksToGoal;
+  
+  // Safe weight loss limits: 1kg per week max, but warn above 0.75kg
+  const maxWeeklyLoss = 1.0; // Maximum allowed
+  const recommendedWeeklyLoss = 0.75; // Recommended max for health
+  const actualWeeklyLoss = Math.min(requestedWeeklyLoss, maxWeeklyLoss);
+  const isAggressiveGoal = requestedWeeklyLoss > recommendedWeeklyLoss;
+  const isCapped = requestedWeeklyLoss > maxWeeklyLoss;
+  
   const dailyDeficit = (actualWeeklyLoss * 7700) / 7; // 7700 kcal = 1kg fat
   
   // Calculate target calories with minimum floor
   const calculatedCalories = Math.round(tdee - dailyDeficit);
   const minCalories = age < 25 ? 1500 : age < 40 ? 1400 : 1300; // Age-based minimum
   const targetCalories = Math.max(minCalories, calculatedCalories);
+  const isAtMinimum = calculatedCalories < minCalories;
   
   // Protein: 2g per kg body weight (important for muscle retention during weight loss)
   const targetProtein = Math.round(weight * 2);
@@ -240,21 +248,41 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
             <p className="text-muted-foreground">Kalorien pro Tag</p>
           </div>
           
-          <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3">
+          <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3 space-y-1">
             <p>Grundumsatz: ~{bmr.toFixed(0)} kcal</p>
             <p>Mit Aktivität: ~{tdee} kcal</p>
-            <p>Defizit: -{Math.round(dailyDeficit)} kcal/Tag</p>
+            <p className={isAggressiveGoal ? 'text-amber-400 font-medium' : ''}>
+              Defizit: -{Math.round(dailyDeficit)} kcal/Tag 
+              {isAggressiveGoal && ' ⚠️'}
+            </p>
+            <p className="text-xs">
+              Ziel: {(actualWeeklyLoss * 4).toFixed(1)}kg in 4 Wochen ({(actualWeeklyLoss).toFixed(2)}kg/Woche)
+            </p>
           </div>
           
-          <p className="text-lg">
-            {actualWeeklyLoss < weightDiff / weeksToGoal ? (
-              <span className="text-amber-500">Max. {(actualWeeklyLoss * 4).toFixed(1)}kg in 4 Wochen empfohlen - gesund abnehmen! ⚡</span>
+          <div className="text-sm">
+            {isCapped ? (
+              <p className="text-red-400 bg-red-500/10 p-2 rounded-lg">
+                ⚠️ Dein Ziel von {weightDiff}kg wurde auf max. 4kg/Monat begrenzt - mehr ist ungesund!
+              </p>
+            ) : isAtMinimum ? (
+              <p className="text-amber-400 bg-amber-500/10 p-2 rounded-lg">
+                ⚠️ Kalorienziel auf {minCalories} kcal angehoben - weniger ist nicht empfohlen.
+              </p>
+            ) : isAggressiveGoal ? (
+              <p className="text-amber-400 bg-amber-500/10 p-2 rounded-lg">
+                ⚡ Ambitioniertes Ziel! Mehr als 3kg/Monat ist anspruchsvoll aber machbar.
+              </p>
             ) : weightDiff <= 2 ? (
-              <span className="text-green-500">Das ist ein entspanntes Ziel - du schaffst das locker! 💪</span>
+              <p className="text-green-400 bg-green-500/10 p-2 rounded-lg">
+                💪 Entspanntes Ziel - du schaffst das locker!
+              </p>
             ) : (
-              <span className="text-primary">Ambitioniert aber machbar - bleib dran! 🔥</span>
+              <p className="text-primary bg-primary/10 p-2 rounded-lg">
+                🔥 Gutes Ziel - bleib dran!
+              </p>
             )}
-          </p>
+          </div>
           
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="p-3 bg-background/50 rounded-xl">
