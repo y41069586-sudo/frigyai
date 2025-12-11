@@ -31,12 +31,12 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
       <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
     </div>
 
-    {/* Clean scan effect - just glow border and scan line */}
+    {/* Scan effect inside fridge */}
     {scanning && (
-      <motion.div className="absolute -inset-1 pointer-events-none rounded-xl">
+      <>
         {/* Glowing border */}
         <motion.div
-          className="absolute inset-0 rounded-xl border-2 border-[#90EE90]"
+          className="absolute inset-0 rounded-xl border-2 border-[#90EE90] pointer-events-none"
           style={{ boxShadow: '0 0 20px rgba(144,238,144,0.6), 0 0 40px rgba(144,238,144,0.3)' }}
           animate={{ 
             boxShadow: [
@@ -48,14 +48,14 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Scan line - more visible and smooth back-and-forth */}
+        {/* Scan line - stays inside fridge */}
         <motion.div
-          className="absolute left-0 right-0 h-1.5 rounded-full bg-[#90EE90]"
-          style={{ boxShadow: '0 0 20px rgba(144,238,144,1), 0 0 40px rgba(144,238,144,0.8), 0 0 60px rgba(144,238,144,0.5)' }}
-          animate={{ top: ['0%', '95%', '0%'] }}
+          className="absolute left-1 right-1 h-1.5 rounded-full bg-[#90EE90] pointer-events-none overflow-hidden"
+          style={{ boxShadow: '0 0 20px rgba(144,238,144,1), 0 0 40px rgba(144,238,144,0.8)' }}
+          animate={{ top: ['5%', '90%', '5%'] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
-      </motion.div>
+      </>
     )}
 
     {/* Fridge Door (open) */}
@@ -156,6 +156,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {slide.type === "scan" && (
                 <div className="relative">
                   <MiniFridge scanning />
+                  <motion.div
+                    className="absolute -bottom-3 -right-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Camera className="w-6 h-6 text-primary-foreground" />
+                  </motion.div>
                 </div>
               )}
               {slide.type === "recipes" && (
