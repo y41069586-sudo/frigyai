@@ -31,18 +31,27 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
       <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
     </div>
 
-    {/* Scan effect */}
+    {/* Scan effect with rounded corners */}
     {scanning && (
-      <motion.div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+      <motion.div className="absolute inset-0 pointer-events-none">
+        {/* Corner brackets - neon white */}
+        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white rounded-tl-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white rounded-tr-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-white rounded-bl-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white rounded-br-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        
+        {/* Scan line - neon white */}
         <motion.div
-          className="absolute left-0 right-0 h-2 bg-gradient-to-b from-transparent via-primary to-transparent shadow-[0_0_20px_hsl(var(--primary))]"
-          animate={{ top: ['0%', '100%', '0%'] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute left-1 right-1 h-1 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_15px_rgba(255,255,255,0.9)]"
+          animate={{ top: ['5%', '90%', '5%'] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />
+        
+        {/* Subtle overlay glow */}
         <motion.div
-          className="absolute inset-0 bg-primary/10"
-          animate={{ opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 0.8, repeat: Infinity }}
+          className="absolute inset-0 rounded-xl bg-white/5"
+          animate={{ opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 1, repeat: Infinity }}
         />
       </motion.div>
     )}
