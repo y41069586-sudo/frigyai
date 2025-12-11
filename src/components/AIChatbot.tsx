@@ -79,16 +79,17 @@ export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
 
   return (
     <>
-      {/* Floating Chat Button */}
+      {/* Floating Chat Button - smaller on mobile, positioned to not interfere */}
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 z-50 p-4 rounded-full bg-primary shadow-lg glow-button"
-        whileHover={{ scale: 1.1 }}
+        className="fixed bottom-4 right-4 z-40 p-2.5 sm:p-3 rounded-full bg-primary/80 hover:bg-primary shadow-md sm:shadow-lg backdrop-blur-sm"
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        initial={{ scale: 0 }}
-        animate={{ scale: isOpen ? 0 : 1 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 0.9 }}
+        transition={{ duration: 0.2 }}
       >
-        <Bot className="h-6 w-6 text-primary-foreground" />
+        <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
       </motion.button>
 
       {/* Chat Panel */}
