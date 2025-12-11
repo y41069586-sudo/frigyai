@@ -228,12 +228,49 @@ const Index = () => {
           )}
 
 
-          {/* Wasser & Stats Cards - Locked when no tracker */}
+          {/* Wochenplan & Einkaufsliste - Locked when no tracker */}
           {user && subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
+              className="grid grid-cols-2 gap-3"
+            >
+              <LockedCard locked={!trackerSetup}>
+                <NavLink to="/meal-plans?tab=meals">
+                  <div className="p-4 rounded-2xl bg-orange-500/15 border border-orange-500/40 hover:border-orange-500/60 transition-all h-full">
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className="p-3 rounded-xl bg-orange-500/25">
+                        <Calendar className="h-6 w-6 text-orange-400" />
+                      </div>
+                      <h4 className="font-bold text-sm">Wochenplan</h4>
+                      <p className="text-xs text-muted-foreground">Deckt dein Kalorienziel</p>
+                    </div>
+                  </div>
+                </NavLink>
+              </LockedCard>
+              <LockedCard locked={!trackerSetup}>
+                <NavLink to="/meal-plans?tab=shopping">
+                  <div className="p-4 rounded-2xl bg-green-500/15 border border-green-500/40 hover:border-green-500/60 transition-all h-full">
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className="p-3 rounded-xl bg-green-500/25">
+                        <ShoppingCart className="h-6 w-6 text-green-400" />
+                      </div>
+                      <h4 className="font-bold text-sm">Einkaufsliste</h4>
+                      <p className="text-xs text-muted-foreground">Passend zum Wochenplan</p>
+                    </div>
+                  </div>
+                </NavLink>
+              </LockedCard>
+            </motion.div>
+          )}
+
+          {/* Wasser & Stats Cards - Locked when no tracker */}
+          {user && subscriptionStatus?.subscribed && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
               className="grid grid-cols-2 gap-3"
             >
               <LockedCard locked={!trackerSetup}>
@@ -258,41 +295,6 @@ const Index = () => {
                       </div>
                       <h4 className="font-bold text-sm">Stats</h4>
                       <p className="text-xs text-muted-foreground">Dein Fortschritt</p>
-                    </div>
-                  </div>
-                </NavLink>
-              </LockedCard>
-            </motion.div>
-          )}
-
-          {/* Wochenplan & Einkaufsliste - Locked when no tracker */}
-          {user && subscriptionStatus?.subscribed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="grid grid-cols-2 gap-3"
-            >
-              <LockedCard locked={!trackerSetup}>
-                <NavLink to="/meal-plans?tab=meals">
-                  <div className="p-4 rounded-xl bg-orange-500/15 border border-orange-500/40 hover:border-orange-500/60 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-orange-500/25">
-                        <Calendar className="h-5 w-5 text-orange-400" />
-                      </div>
-                      <span className="text-sm font-medium">Wochenplan</span>
-                    </div>
-                  </div>
-                </NavLink>
-              </LockedCard>
-              <LockedCard locked={!trackerSetup}>
-                <NavLink to="/meal-plans?tab=shopping">
-                  <div className="p-4 rounded-xl bg-green-500/15 border border-green-500/40 hover:border-green-500/60 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/25">
-                        <ShoppingCart className="h-5 w-5 text-green-400" />
-                      </div>
-                      <span className="text-sm font-medium">Einkaufsliste</span>
                     </div>
                   </div>
                 </NavLink>
