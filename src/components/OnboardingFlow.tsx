@@ -2,101 +2,11 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Camera, Utensils, TrendingDown } from "lucide-react";
+import frigLogo from "@/assets/frig-logo.png";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
-
-// Logo component - green fridge with scan corners (like uploaded image)
-const FrigLogo = ({ size = "normal" }: { size?: "small" | "normal" | "large" }) => {
-  const dimensions = size === "small" ? "w-20 h-20" : size === "large" ? "w-40 h-40" : "w-28 h-28";
-  const iconSize = size === "small" ? "w-10 h-14" : size === "large" ? "w-20 h-28" : "w-14 h-20";
-  const cornerSize = size === "small" ? 12 : size === "large" ? 24 : 16;
-  const strokeWidth = size === "small" ? 2 : size === "large" ? 4 : 3;
-  
-  return (
-    <div className={`${dimensions} relative flex items-center justify-center`}>
-      {/* Green rounded background */}
-      <div 
-        className="absolute inset-0 rounded-[20%]"
-        style={{ 
-          background: 'linear-gradient(135deg, #5FD068 0%, #4ABA54 50%, #3DA347 100%)',
-          boxShadow: '0 8px 32px rgba(90, 200, 100, 0.4), inset 0 2px 4px rgba(255,255,255,0.2)'
-        }}
-      />
-      
-      {/* Inner lighter background */}
-      <div 
-        className="absolute inset-2 rounded-[18%]"
-        style={{ 
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
-          boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1)'
-        }}
-      />
-      
-      {/* Scan corners */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-        {/* Top Left Corner */}
-        <path 
-          d={`M ${15} ${30} L ${15} ${15} L ${30} ${15}`} 
-          fill="none" 
-          stroke="rgba(255,255,255,0.9)" 
-          strokeWidth={strokeWidth} 
-          strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
-        />
-        {/* Top Right Corner */}
-        <path 
-          d={`M ${70} ${15} L ${85} ${15} L ${85} ${30}`} 
-          fill="none" 
-          stroke="rgba(255,255,255,0.9)" 
-          strokeWidth={strokeWidth} 
-          strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
-        />
-        {/* Bottom Left Corner */}
-        <path 
-          d={`M ${15} ${70} L ${15} ${85} L ${30} ${85}`} 
-          fill="none" 
-          stroke="rgba(255,255,255,0.9)" 
-          strokeWidth={strokeWidth} 
-          strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
-        />
-        {/* Bottom Right Corner */}
-        <path 
-          d={`M ${70} ${85} L ${85} ${85} L ${85} ${70}`} 
-          fill="none" 
-          stroke="rgba(255,255,255,0.9)" 
-          strokeWidth={strokeWidth} 
-          strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
-        />
-      </svg>
-      
-      {/* Fridge Icon */}
-      <div 
-        className={`${iconSize} relative z-10`}
-        style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' }}
-      >
-        <svg viewBox="0 0 40 56" fill="none" className="w-full h-full">
-          {/* Fridge body */}
-          <rect x="4" y="4" width="32" height="48" rx="4" 
-            stroke="rgba(255,255,255,0.95)" 
-            strokeWidth="2.5" 
-            fill="none"
-          />
-          {/* Freezer line */}
-          <line x1="4" y1="18" x2="36" y2="18" stroke="rgba(255,255,255,0.95)" strokeWidth="2" />
-          {/* Freezer handle */}
-          <line x1="28" y1="10" x2="28" y2="14" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5" strokeLinecap="round" />
-          {/* Fridge handle */}
-          <line x1="28" y1="26" x2="28" y2="34" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
-      </div>
-    </div>
-  );
-};
 
 // Mini fridge with visible food items inside
 const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
@@ -241,6 +151,18 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
     </motion.div>
   </div>
 );
+
+// Frig AI Logo Component using actual image
+const FrigLogoImage = ({ size = "normal" }: { size?: "small" | "normal" | "large" }) => {
+  const sizeClass = size === "small" ? "w-16 h-16" : size === "large" ? "w-32 h-32" : "w-24 h-24";
+  return (
+    <img 
+      src={frigLogo} 
+      alt="Frig AI Logo" 
+      className={`${sizeClass} rounded-[22%]`}
+    />
+  );
+};
 
 const slides = [
   {
