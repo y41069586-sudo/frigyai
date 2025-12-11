@@ -21,13 +21,9 @@ import MealPlansPage from "./pages/MealPlansPage";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(() => {
-    const hasSeenSplash = sessionStorage.getItem('hasSeenSplash');
-    return !hasSeenSplash;
-  });
+  const [showSplash, setShowSplash] = useState(true);
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem('hasSeenSplash', 'true');
     setShowSplash(false);
   };
 
