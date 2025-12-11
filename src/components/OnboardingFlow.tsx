@@ -48,13 +48,22 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Scan line - stays inside fridge */}
+        {/* Scan beam - gradient beam effect */}
         <motion.div
-          className="absolute left-1 right-1 h-1.5 rounded-full bg-[#90EE90] pointer-events-none overflow-hidden"
-          style={{ boxShadow: '0 0 20px rgba(144,238,144,1), 0 0 40px rgba(144,238,144,0.8)' }}
-          animate={{ top: ['5%', '90%', '5%'] }}
+          className="absolute left-0 right-0 h-12 pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(144,238,144,0.3) 20%, rgba(144,238,144,0.8) 50%, rgba(144,238,144,0.3) 80%, transparent 100%)',
+            boxShadow: '0 0 30px rgba(144,238,144,0.6)'
+          }}
+          animate={{ top: ['0%', '75%', '0%'] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
+        >
+          {/* Bright center line */}
+          <div 
+            className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 bg-[#90EE90]"
+            style={{ boxShadow: '0 0 15px rgba(144,238,144,1), 0 0 30px rgba(144,238,144,0.8)' }}
+          />
+        </motion.div>
       </>
     )}
 
