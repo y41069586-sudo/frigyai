@@ -60,13 +60,11 @@ const Index = () => {
     
     return (
       <div onClick={handleLockedClick} className="cursor-pointer relative">
-        <div className="opacity-40 pointer-events-none">
+        <div className="opacity-50 pointer-events-none">
           {children}
         </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-background/90 p-2 rounded-full border border-muted">
-            <Lock className="h-5 w-5 text-muted-foreground" />
-          </div>
+        <div className="absolute top-2 right-2 bg-background/90 p-1.5 rounded-full border border-muted shadow-sm">
+          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
       </div>
     );
@@ -168,7 +166,7 @@ const Index = () => {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-bold flex items-center gap-2">
-                        {trackerSetup ? "Tracker eingerichtet" : "⚠️ Tracker einrichten"}
+                        {trackerSetup ? "Tracker eingerichtet" : "Tracker einrichten"}
                         {trackerSetup && <span className="text-primary">✓</span>}
                       </h4>
                       <p className="text-xs text-muted-foreground">
