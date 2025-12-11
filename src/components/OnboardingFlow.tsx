@@ -10,26 +10,26 @@ interface OnboardingFlowProps {
 const slides = [
   {
     icon: Leaf,
-    title: "Willkommen bei Healthy3",
-    description: "Dein persönlicher Begleiter für eine gesündere Ernährung und nachhaltiges Abnehmen.",
+    title: "Keine Ahnung was du essen sollst?",
+    description: "Du stehst vorm Kühlschrank und weißt nicht, was du kochen kannst, um abzunehmen? Das kennen wir.",
     gradient: "from-primary/20 to-primary/5",
   },
   {
-    icon: Target,
-    title: "Deine Ziele im Fokus",
-    description: "Setze realistische Ziele und verfolge deinen Fortschritt mit personalisierten Kalorien- und Makro-Zielen.",
-    gradient: "from-emerald-500/20 to-emerald-500/5",
-  },
-  {
     icon: Utensils,
-    title: "Smarte Rezepte",
-    description: "Scanne deinen Kühlschrank und erhalte leckere, kalorienarme Rezepte mit nur 3-4 Zutaten.",
+    title: "Scanne deinen Kühlschrank",
+    description: "Mach einfach ein Foto von deinem Kühlschrank – unsere KI erkennt alle Zutaten automatisch.",
     gradient: "from-cyan-500/20 to-cyan-500/5",
   },
   {
+    icon: Target,
+    title: "Rezepte die zu dir passen",
+    description: "Erhalte leckere, kalorienarme Rezepte mit nur 3-4 Zutaten – perfekt auf dein Abnehm-Ziel abgestimmt.",
+    gradient: "from-emerald-500/20 to-emerald-500/5",
+  },
+  {
     icon: TrendingDown,
-    title: "Sichtbare Erfolge",
-    description: "Tracke dein Gewicht, Wasser und Mahlzeiten – und sieh wie du Woche für Woche Fortschritte machst.",
+    title: "Abnehmen war nie einfacher",
+    description: "Kein Rätselraten mehr. Kein Stress. Einfach scannen, kochen und Ergebnisse sehen.",
     gradient: "from-violet-500/20 to-violet-500/5",
   },
 ];
