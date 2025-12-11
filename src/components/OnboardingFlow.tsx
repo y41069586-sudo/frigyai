@@ -31,26 +31,26 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
       <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
     </div>
 
-    {/* Scan effect with rounded corners */}
+    {/* Scan effect with rounded corners - light green/white */}
     {scanning && (
       <motion.div className="absolute inset-0 pointer-events-none">
-        {/* Corner brackets - neon white */}
-        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white rounded-tl-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white rounded-tr-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-white rounded-bl-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white rounded-br-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        {/* Corner brackets - light green neon with thicker borders */}
+        <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-[#90EE90] rounded-tl-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
+        <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-[#90EE90] rounded-tr-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
+        <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-[#90EE90] rounded-bl-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
+        <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-[#90EE90] rounded-br-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
         
-        {/* Scan line - neon white */}
+        {/* Scan line - bright green with strong glow */}
         <motion.div
-          className="absolute left-1 right-1 h-1 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_15px_rgba(255,255,255,0.9)]"
+          className="absolute left-2 right-2 h-1.5 bg-gradient-to-r from-transparent via-[#90EE90] to-transparent shadow-[0_0_25px_rgba(144,238,144,1),0_0_50px_rgba(144,238,144,0.8)]"
           animate={{ top: ['5%', '90%', '5%'] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Subtle overlay glow */}
+        {/* Green overlay glow */}
         <motion.div
-          className="absolute inset-0 rounded-xl bg-white/5"
-          animate={{ opacity: [0.1, 0.2, 0.1] }}
+          className="absolute inset-0 rounded-xl bg-[#90EE90]/10"
+          animate={{ opacity: [0.15, 0.3, 0.15] }}
           transition={{ duration: 1, repeat: Infinity }}
         />
       </motion.div>
@@ -154,13 +154,27 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {slide.type === "scan" && (
                 <div className="relative">
                   <MiniFridge scanning />
+                  {/* Fridge Logo Icon with scan corners */}
                   <motion.div
-                    className="absolute -top-2 -right-8 w-12 h-16 bg-card border-2 border-primary rounded-lg flex items-center justify-center shadow-lg"
+                    className="absolute -top-4 -right-10 w-14 h-18 flex items-center justify-center"
                     initial={{ scale: 0, rotate: -20 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <Camera className="w-6 h-6 text-primary" />
+                    {/* Mini fridge icon */}
+                    <div className="relative w-12 h-16 bg-white rounded-lg shadow-lg border border-gray-200">
+                      {/* Fridge door line */}
+                      <div className="absolute left-0 right-0 top-[35%] h-[1px] bg-gray-300" />
+                      {/* Fridge handle */}
+                      <div className="absolute right-1.5 top-[15%] w-1 h-3 bg-gray-400 rounded-full" />
+                      <div className="absolute right-1.5 top-[50%] w-1 h-3 bg-gray-400 rounded-full" />
+                      
+                      {/* Scan corners - light green */}
+                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-[#90EE90] rounded-tl-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
+                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-[#90EE90] rounded-tr-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-[#90EE90] rounded-bl-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-[#90EE90] rounded-br-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
+                    </div>
                   </motion.div>
                 </div>
               )}
