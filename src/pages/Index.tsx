@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Heart, LogOut, Crown, Calendar, Target, Settings, XCircle, Droplets, TrendingDown, ShoppingCart, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -9,17 +9,44 @@ import HeroAnimation from "@/components/HeroAnimation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { SplashScreen } from "@/components/SplashScreen";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut } = useAuth();
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const profile = localStorage.getItem("userProfile");
     setTrackerSetup(!!profile);
+    
+    // Check if onboarding was already completed
+    const onboardingDone = localStorage.getItem("onboardingComplete");
+    if (onboardingDone) {
+      setOnboardingComplete(true);
+    }
   }, []);
+  
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    const onboardingDone = localStorage.getItem("onboardingComplete");
+    if (!onboardingDone) {
+      setShowOnboarding(true);
+    } else {
+      setOnboardingComplete(true);
+    }
+  };
+  
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("onboardingComplete", "true");
+    setShowOnboarding(false);
+    setOnboardingComplete(true);
+  };
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -70,12 +97,22 @@ const Index = () => {
     );
   };
 
+  // Show splash screen first
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+  
+  // Show onboarding after splash
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
+          <h1 className="text-xl sm:text-2xl font-bold neon-text">Frig AI</h1>
           <div className="flex items-center gap-1 sm:gap-2">
             {user ? (
               <>
@@ -122,15 +159,19 @@ const Index = () => {
       <div className="relative z-10 container mx-auto px-4 py-4 sm:py-8 safe-bottom">
         <div className="max-w-md mx-auto space-y-6 sm:space-y-8">
           
-          {/* Hero Animation */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="flex justify-center"
-          >
-            <HeroAnimation />
-          </motion.div>
+          {/* Hero Animation - Only shows after onboarding */}
+          <AnimatePresence>
+            {onboardingComplete && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="flex justify-center"
+              >
+                <HeroAnimation />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Main Content */}
           <motion.div
