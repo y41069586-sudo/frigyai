@@ -4,17 +4,35 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
-// Neon white fridge icon component
-const FridgeIcon = () => (
-  <div className="relative w-12 h-16">
-    {/* Fridge body - neon white outline */}
-    <div className="absolute inset-0 border-2 border-white rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.8),0_0_30px_rgba(255,255,255,0.4)]">
-      {/* Freezer line */}
-      <div className="absolute left-2 right-2 top-[30%] h-0.5 bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
-      {/* Freezer handle */}
-      <div className="absolute right-2 top-[14%] w-1 h-3 bg-white rounded-full shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
-      {/* Main handle */}
-      <div className="absolute right-2 top-[50%] w-1 h-5 bg-white rounded-full shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+// Neon white fridge with scan corners
+const FridgeScanIcon = () => (
+  <div className="relative w-20 h-20">
+    {/* Dark background */}
+    <div className="absolute inset-0 bg-black/80 rounded-2xl" />
+    
+    {/* Scan corners - neon white */}
+    {/* Top left */}
+    <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-white rounded-tl-sm shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+    {/* Top right */}
+    <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-white rounded-tr-sm shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+    {/* Bottom left */}
+    <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-white rounded-bl-sm shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+    {/* Bottom right */}
+    <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-white rounded-br-sm shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+    
+    {/* Fridge in center */}
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative w-8 h-11">
+        {/* Fridge body - filled white with glow */}
+        <div className="absolute inset-0 bg-white rounded-md shadow-[0_0_15px_rgba(255,255,255,0.9),0_0_30px_rgba(255,255,255,0.5)]">
+          {/* Freezer line */}
+          <div className="absolute left-1 right-1 top-[28%] h-0.5 bg-black/30" />
+          {/* Freezer handle */}
+          <div className="absolute right-1.5 top-[12%] w-0.5 h-2 bg-black/40 rounded-full" />
+          {/* Main handle */}
+          <div className="absolute right-1.5 top-[45%] w-0.5 h-3 bg-black/40 rounded-full" />
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -58,8 +76,8 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           animate={{ rotate: [0, 5, -5, 0] }}
           transition={{ duration: 2, delay: 0.5, repeat: Infinity }}
         >
-          <div className="w-20 h-20 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-            <FridgeIcon />
+          <div className="flex items-center justify-center">
+            <FridgeScanIcon />
           </div>
           
           {/* Pulse ring */}
