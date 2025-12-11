@@ -7,43 +7,43 @@ interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-// Mini fridge animation component for onboarding - Neon white style
+// Mini fridge animation component for onboarding - Neon green style
 const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
   <div className="relative w-32 h-44">
-    {/* Neon white fridge outline */}
-    <div className="absolute inset-0 border-2 border-white rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.6),0_0_40px_rgba(255,255,255,0.3)]">
+    {/* Neon green fridge outline */}
+    <div className="absolute inset-0 border-3 border-[#39FF14] rounded-xl shadow-[0_0_20px_rgba(57,255,20,0.7),0_0_40px_rgba(57,255,20,0.4)]" style={{ borderWidth: '3px' }}>
       {/* Freezer compartment line */}
-      <div className="absolute left-3 right-3 top-[30%] h-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+      <div className="absolute left-3 right-3 top-[30%] h-0.5 bg-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.9)]" />
       
       {/* Freezer handle */}
-      <div className="absolute right-4 top-[14%] w-1.5 h-5 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+      <div className="absolute right-4 top-[14%] w-1.5 h-5 bg-[#39FF14] rounded-full shadow-[0_0_10px_rgba(57,255,20,0.9)]" />
       
       {/* Main handle */}
-      <div className="absolute right-4 top-[50%] w-1.5 h-8 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+      <div className="absolute right-4 top-[50%] w-1.5 h-8 bg-[#39FF14] rounded-full shadow-[0_0_10px_rgba(57,255,20,0.9)]" />
       
       {/* Inner glow */}
-      <div className="absolute inset-2 rounded-lg bg-white/5" />
+      <div className="absolute inset-2 rounded-lg bg-[#39FF14]/5" />
     </div>
 
     {/* Scan effect with rounded corners */}
     {scanning && (
       <motion.div className="absolute inset-0 pointer-events-none">
-        {/* Corner brackets - neon white */}
-        <div className="absolute -top-2 -left-2 w-8 h-8 border-t-3 border-l-3 border-white rounded-tl-2xl shadow-[0_0_15px_rgba(255,255,255,0.9)]" style={{ borderWidth: '3px' }} />
-        <div className="absolute -top-2 -right-2 w-8 h-8 border-t-3 border-r-3 border-white rounded-tr-2xl shadow-[0_0_15px_rgba(255,255,255,0.9)]" style={{ borderWidth: '3px' }} />
-        <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-3 border-l-3 border-white rounded-bl-2xl shadow-[0_0_15px_rgba(255,255,255,0.9)]" style={{ borderWidth: '3px' }} />
-        <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-3 border-r-3 border-white rounded-br-2xl shadow-[0_0_15px_rgba(255,255,255,0.9)]" style={{ borderWidth: '3px' }} />
+        {/* Corner brackets - neon green */}
+        <div className="absolute -top-2 -left-2 w-8 h-8 border-[#39FF14] rounded-tl-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderRightWidth: 0, borderBottomWidth: 0 }} />
+        <div className="absolute -top-2 -right-2 w-8 h-8 border-[#39FF14] rounded-tr-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderLeftWidth: 0, borderBottomWidth: 0 }} />
+        <div className="absolute -bottom-2 -left-2 w-8 h-8 border-[#39FF14] rounded-bl-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderRightWidth: 0, borderTopWidth: 0 }} />
+        <div className="absolute -bottom-2 -right-2 w-8 h-8 border-[#39FF14] rounded-br-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderLeftWidth: 0, borderTopWidth: 0 }} />
         
-        {/* Scan line - neon white */}
+        {/* Scan line - neon green */}
         <motion.div
-          className="absolute -left-1 -right-1 h-1 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_20px_rgba(255,255,255,1)]"
+          className="absolute -left-1 -right-1 h-1 bg-gradient-to-r from-transparent via-[#39FF14] to-transparent shadow-[0_0_20px_rgba(57,255,20,1)]"
           animate={{ top: ['0%', '95%', '0%'] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />
         
         {/* Subtle overlay glow */}
         <motion.div
-          className="absolute inset-0 rounded-xl bg-white/10"
+          className="absolute inset-0 rounded-xl bg-[#39FF14]/10"
           animate={{ opacity: [0.1, 0.3, 0.1] }}
           transition={{ duration: 1, repeat: Infinity }}
         />
