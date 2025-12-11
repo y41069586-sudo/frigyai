@@ -4,11 +4,12 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, Check, Calendar, ShoppingCart, BarChart, XCircle, Settings, Droplets, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Sparkles, Check, Calendar, ShoppingCart, BarChart, XCircle, Settings, Droplets, TrendingDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { NavLink } from '@/components/NavLink';
 import { WaterTracker } from '@/components/WaterTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
+import frigLogo from '@/assets/frig-logo.png';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus } = useAuth();
@@ -140,12 +141,25 @@ const PremiumPage = () => {
   const isPremium = subscriptionStatus?.subscribed;
 
   return (
-    <div className="min-h-screen bg-gradient-primary">
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <NavLink to="/">
-            <h1 className="text-2xl font-bold neon-text">Healthy3</h1>
-          </NavLink>
+    <div className="min-h-screen bg-gradient-primary safe-area-inset">
+      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="mr-2 touch-target h-10 w-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <NavLink to="/">
+              <div className="flex items-center gap-2">
+                <img src={frigLogo} alt="Frig AI" className="h-8 w-8 rounded-lg" />
+                <h1 className="text-lg sm:text-2xl font-bold neon-text">Frig AI</h1>
+              </div>
+            </NavLink>
+          </div>
         </div>
       </nav>
 
