@@ -48,12 +48,12 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Scan line */}
+        {/* Scan line - more visible and smooth back-and-forth */}
         <motion.div
-          className="absolute left-1 right-1 h-1 rounded-full bg-gradient-to-r from-transparent via-[#90EE90] to-transparent"
-          style={{ boxShadow: '0 0 15px rgba(144,238,144,1), 0 0 30px rgba(144,238,144,0.6)' }}
-          animate={{ top: ['0%', '100%'] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+          className="absolute left-0 right-0 h-1.5 rounded-full bg-[#90EE90]"
+          style={{ boxShadow: '0 0 20px rgba(144,238,144,1), 0 0 40px rgba(144,238,144,0.8), 0 0 60px rgba(144,238,144,0.5)' }}
+          animate={{ top: ['0%', '95%', '0%'] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
       </motion.div>
     )}
