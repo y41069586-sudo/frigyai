@@ -7,48 +7,63 @@ interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-// Mini fridge animation component for onboarding - Neon green style
+// Mini fridge animation component for onboarding
 const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
   <div className="relative w-32 h-44">
-    {/* Neon green fridge outline */}
-    <div className="absolute inset-0 border-3 border-[#39FF14] rounded-xl shadow-[0_0_20px_rgba(57,255,20,0.7),0_0_40px_rgba(57,255,20,0.4)]" style={{ borderWidth: '3px' }}>
-      {/* Freezer compartment line */}
-      <div className="absolute left-3 right-3 top-[30%] h-0.5 bg-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.9)]" />
+    {/* Fridge Interior */}
+    <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-100 rounded-xl shadow-inner overflow-hidden">
+      <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
+      <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-slate-300" />
+      <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-slate-300" />
       
-      {/* Freezer handle */}
-      <div className="absolute right-4 top-[14%] w-1.5 h-5 bg-[#39FF14] rounded-full shadow-[0_0_10px_rgba(57,255,20,0.9)]" />
-      
-      {/* Main handle */}
-      <div className="absolute right-4 top-[50%] w-1.5 h-8 bg-[#39FF14] rounded-full shadow-[0_0_10px_rgba(57,255,20,0.9)]" />
-      
-      {/* Inner glow */}
-      <div className="absolute inset-2 rounded-lg bg-[#39FF14]/5" />
+      {/* Food Items */}
+      <div className="absolute top-[5%] left-[10%] w-6 h-10 bg-white border border-slate-200 rounded-sm">
+        <div className="w-full h-2 bg-blue-400 rounded-t-sm" />
+      </div>
+      <div className="absolute top-[6%] left-[45%] w-5 h-8 bg-orange-400 rounded-sm">
+        <div className="w-full h-1.5 bg-orange-600 rounded-t-sm" />
+      </div>
+      <div className="absolute top-[8%] right-[12%] w-5 h-5 bg-red-500 rounded-full" />
+      <div className="absolute top-[30%] left-[10%] w-3 h-8 bg-gradient-to-b from-orange-400 to-orange-500 rounded-b-full" />
+      <div className="absolute top-[32%] left-[35%] w-5 h-5 bg-gradient-to-br from-red-400 to-red-600 rounded-full" />
+      <div className="absolute top-[30%] right-[15%] w-5 h-6 bg-gradient-to-b from-green-600 to-green-800 rounded-full" />
+      <div className="absolute top-[55%] left-[10%] w-10 h-6 bg-primary/20 rounded border border-primary/40" />
+      <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
     </div>
 
     {/* Scan effect with rounded corners */}
     {scanning && (
       <motion.div className="absolute inset-0 pointer-events-none">
-        {/* Corner brackets - neon green */}
-        <div className="absolute -top-2 -left-2 w-8 h-8 border-[#39FF14] rounded-tl-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderRightWidth: 0, borderBottomWidth: 0 }} />
-        <div className="absolute -top-2 -right-2 w-8 h-8 border-[#39FF14] rounded-tr-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderLeftWidth: 0, borderBottomWidth: 0 }} />
-        <div className="absolute -bottom-2 -left-2 w-8 h-8 border-[#39FF14] rounded-bl-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderRightWidth: 0, borderTopWidth: 0 }} />
-        <div className="absolute -bottom-2 -right-2 w-8 h-8 border-[#39FF14] rounded-br-2xl shadow-[0_0_15px_rgba(57,255,20,0.9)]" style={{ borderWidth: '3px', borderLeftWidth: 0, borderTopWidth: 0 }} />
+        {/* Corner brackets - neon white */}
+        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white rounded-tl-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white rounded-tr-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-white rounded-bl-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white rounded-br-xl shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
         
-        {/* Scan line - neon green */}
+        {/* Scan line - neon white */}
         <motion.div
-          className="absolute -left-1 -right-1 h-1 bg-gradient-to-r from-transparent via-[#39FF14] to-transparent shadow-[0_0_20px_rgba(57,255,20,1)]"
-          animate={{ top: ['0%', '95%', '0%'] }}
+          className="absolute left-1 right-1 h-1 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_15px_rgba(255,255,255,0.9)]"
+          animate={{ top: ['5%', '90%', '5%'] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />
         
         {/* Subtle overlay glow */}
         <motion.div
-          className="absolute inset-0 rounded-xl bg-[#39FF14]/10"
-          animate={{ opacity: [0.1, 0.3, 0.1] }}
+          className="absolute inset-0 rounded-xl bg-white/5"
+          animate={{ opacity: [0.1, 0.2, 0.1] }}
           transition={{ duration: 1, repeat: Infinity }}
         />
       </motion.div>
     )}
+
+    {/* Fridge Door (open) */}
+    <motion.div
+      className="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 rounded-xl border-2 border-slate-300 shadow-xl origin-right"
+      style={{ rotateY: 110, transformStyle: 'preserve-3d' }}
+    >
+      <div className="absolute left-2 top-[45%] w-1.5 h-8 bg-slate-400 rounded-full" />
+      <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
+    </motion.div>
   </div>
 );
 
