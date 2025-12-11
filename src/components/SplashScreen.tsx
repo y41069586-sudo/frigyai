@@ -1,9 +1,23 @@
 import { motion } from "framer-motion";
-import { Leaf } from "lucide-react";
 
 interface SplashScreenProps {
   onComplete: () => void;
 }
+
+// Neon white fridge icon component
+const FridgeIcon = () => (
+  <div className="relative w-12 h-16">
+    {/* Fridge body - neon white outline */}
+    <div className="absolute inset-0 border-2 border-white rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.8),0_0_30px_rgba(255,255,255,0.4)]">
+      {/* Freezer line */}
+      <div className="absolute left-2 right-2 top-[30%] h-0.5 bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+      {/* Freezer handle */}
+      <div className="absolute right-2 top-[14%] w-1 h-3 bg-white rounded-full shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+      {/* Main handle */}
+      <div className="absolute right-2 top-[50%] w-1 h-5 bg-white rounded-full shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+    </div>
+  </div>
+);
 
 export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   return (
@@ -19,10 +33,10 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     >
       {/* Animated background glow */}
       <motion.div
-        className="absolute w-64 h-64 rounded-full bg-primary/20 blur-3xl"
+        className="absolute w-64 h-64 rounded-full bg-white/10 blur-3xl"
         animate={{
           scale: [1, 1.5, 1],
-          opacity: [0.3, 0.6, 0.3],
+          opacity: [0.2, 0.4, 0.2],
         }}
         transition={{
           duration: 2,
@@ -41,29 +55,29 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         {/* Icon */}
         <motion.div
           className="relative"
-          animate={{ rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 1.5, delay: 0.5 }}
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 2, delay: 0.5, repeat: Infinity }}
         >
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-2xl shadow-primary/30">
-            <Leaf className="w-10 h-10 text-primary-foreground" />
+          <div className="w-20 h-20 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+            <FridgeIcon />
           </div>
           
           {/* Pulse ring */}
           <motion.div
-            className="absolute inset-0 rounded-2xl border-2 border-primary"
+            className="absolute inset-0 rounded-2xl border-2 border-white/60"
             animate={{ scale: [1, 1.4], opacity: [0.8, 0] }}
-            transition={{ duration: 1, repeat: Infinity, ease: "easeOut" }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
           />
         </motion.div>
 
         {/* Text */}
         <motion.h1
-          className="text-4xl font-bold neon-text"
+          className="text-4xl font-bold text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          Healthy3
+          Frig AI
         </motion.h1>
 
         {/* Tagline */}
@@ -87,7 +101,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         {[0, 1, 2].map((i) => (
           <motion.div
             key={i}
-            className="w-2 h-2 rounded-full bg-primary"
+            className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
             animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
             transition={{
               duration: 0.8,
