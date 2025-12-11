@@ -24,8 +24,7 @@ const queryClient = new QueryClient();
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    localStorage.removeItem('hasSeenOnboarding'); // TEST: Remove after testing
-    return true;
+    return !localStorage.getItem('hasSeenOnboarding');
   });
 
   const handleSplashComplete = () => {
