@@ -1,36 +1,78 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Leaf, Target, Utensils, TrendingDown, ChevronRight } from "lucide-react";
+import { ChevronRight, Camera, Utensils, TrendingDown } from "lucide-react";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
+// Mini fridge animation component for onboarding
+const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
+  <div className="relative w-32 h-44">
+    {/* Fridge Interior */}
+    <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-100 rounded-xl shadow-inner overflow-hidden">
+      <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
+      <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-slate-300" />
+      <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-slate-300" />
+      
+      {/* Food Items */}
+      <div className="absolute top-[5%] left-[10%] w-6 h-10 bg-white border border-slate-200 rounded-sm">
+        <div className="w-full h-2 bg-blue-400 rounded-t-sm" />
+      </div>
+      <div className="absolute top-[6%] left-[45%] w-5 h-8 bg-orange-400 rounded-sm">
+        <div className="w-full h-1.5 bg-orange-600 rounded-t-sm" />
+      </div>
+      <div className="absolute top-[8%] right-[12%] w-5 h-5 bg-red-500 rounded-full" />
+      <div className="absolute top-[30%] left-[10%] w-3 h-8 bg-gradient-to-b from-orange-400 to-orange-500 rounded-b-full" />
+      <div className="absolute top-[32%] left-[35%] w-5 h-5 bg-gradient-to-br from-red-400 to-red-600 rounded-full" />
+      <div className="absolute top-[30%] right-[15%] w-5 h-6 bg-gradient-to-b from-green-600 to-green-800 rounded-full" />
+      <div className="absolute top-[55%] left-[10%] w-10 h-6 bg-primary/20 rounded border border-primary/40" />
+      <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
+    </div>
+
+    {/* Scan effect */}
+    {scanning && (
+      <motion.div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute left-0 right-0 h-2 bg-gradient-to-b from-transparent via-primary to-transparent shadow-[0_0_20px_hsl(var(--primary))]"
+          animate={{ top: ['0%', '100%', '0%'] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute inset-0 bg-primary/10"
+          animate={{ opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        />
+      </motion.div>
+    )}
+
+    {/* Fridge Door (open) */}
+    <motion.div
+      className="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 rounded-xl border-2 border-slate-300 shadow-xl origin-right"
+      style={{ rotateY: 110, transformStyle: 'preserve-3d' }}
+    >
+      <div className="absolute left-2 top-[45%] w-1.5 h-8 bg-slate-400 rounded-full" />
+      <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
+    </motion.div>
+  </div>
+);
+
 const slides = [
   {
-    icon: Leaf,
-    title: "Keine Ahnung was du essen sollst?",
-    description: "Du stehst vorm Kühlschrank und weißt nicht, was du kochen kannst, um abzunehmen? Das kennen wir.",
-    gradient: "from-primary/20 to-primary/5",
+    type: "visual" as const,
+    title: "Was essen?",
+    subtitle: "Keine Idee beim Kühlschrank?",
   },
   {
-    icon: Utensils,
-    title: "Scanne deinen Kühlschrank",
-    description: "Mach einfach ein Foto von deinem Kühlschrank – unsere KI erkennt alle Zutaten automatisch.",
-    gradient: "from-cyan-500/20 to-cyan-500/5",
+    type: "scan" as const,
+    title: "Scannen",
+    subtitle: "Foto vom Kühlschrank machen",
   },
   {
-    icon: Target,
-    title: "Rezepte die zu dir passen",
-    description: "Erhalte leckere, kalorienarme Rezepte mit nur 3-4 Zutaten – perfekt auf dein Abnehm-Ziel abgestimmt.",
-    gradient: "from-emerald-500/20 to-emerald-500/5",
-  },
-  {
-    icon: TrendingDown,
-    title: "Abnehmen war nie einfacher",
-    description: "Kein Rätselraten mehr. Kein Stress. Einfach scannen, kochen und Ergebnisse sehen.",
-    gradient: "from-violet-500/20 to-violet-500/5",
+    type: "recipes" as const,
+    title: "Fertig!",
+    subtitle: "Kalorienarme Rezepte erhalten",
   },
 ];
 
@@ -50,7 +92,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const slide = slides[currentSlide];
-  const Icon = slide.icon;
 
   return (
     <motion.div
@@ -82,19 +123,69 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             transition={{ duration: 0.3 }}
             className="flex flex-col items-center"
           >
-            {/* Icon with Gradient Background */}
+            {/* Visual Content */}
             <motion.div
-              className={`w-32 h-32 rounded-full bg-gradient-to-br ${slide.gradient} flex items-center justify-center mb-8`}
+              className="mb-8"
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
             >
-              <Icon className="w-16 h-16 text-primary" strokeWidth={1.5} />
+              {slide.type === "visual" && (
+                <div className="relative">
+                  <MiniFridge />
+                  <motion.div
+                    className="absolute -top-4 -right-4 text-4xl"
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    🤔
+                  </motion.div>
+                </div>
+              )}
+              {slide.type === "scan" && (
+                <div className="relative">
+                  <MiniFridge scanning />
+                  <motion.div
+                    className="absolute -top-2 -right-8 w-12 h-16 bg-card border-2 border-primary rounded-lg flex items-center justify-center shadow-lg"
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <Camera className="w-6 h-6 text-primary" />
+                  </motion.div>
+                </div>
+              )}
+              {slide.type === "recipes" && (
+                <div className="flex flex-col gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.15 }}
+                      className="flex items-center gap-3 p-3 bg-card border-2 border-primary/50 rounded-xl shadow-lg"
+                    >
+                      <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                        <Utensils className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-semibold">Rezept {i}</div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="text-primary font-bold">{280 + i * 50} kcal</span>
+                          <span>•</span>
+                          <span>3 Zutaten</span>
+                        </div>
+                      </div>
+                      <TrendingDown className="w-4 h-4 text-primary ml-auto" />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* Title */}
             <motion.h1
-              className="text-2xl font-bold text-foreground mb-4"
+              className="text-3xl font-bold text-foreground mb-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -102,14 +193,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {slide.title}
             </motion.h1>
 
-            {/* Description */}
+            {/* Subtitle */}
             <motion.p
-              className="text-muted-foreground text-base leading-relaxed"
+              className="text-muted-foreground text-lg"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              {slide.description}
+              {slide.subtitle}
             </motion.p>
           </motion.div>
         </AnimatePresence>
