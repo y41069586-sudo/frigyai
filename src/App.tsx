@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AnimatePresence } from "framer-motion";
 import { SplashScreen } from "@/components/SplashScreen";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
 import Index from "./pages/Index";
 import ScanPage from "./pages/ScanPage";
 import ManualPage from "./pages/ManualPage";
@@ -22,9 +23,17 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('hasSeenOnboarding');
+  });
 
   const handleSplashComplete = () => {
     setShowSplash(false);
+  };
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasSeenOnboarding', 'true');
+    setShowOnboarding(false);
   };
 
   return (
@@ -34,6 +43,11 @@ const App = () => {
         <Sonner />
         <AnimatePresence mode="wait">
           {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+        </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {!showSplash && showOnboarding && (
+            <OnboardingFlow onComplete={handleOnboardingComplete} />
+          )}
         </AnimatePresence>
         <AuthProvider>
           <BrowserRouter>
