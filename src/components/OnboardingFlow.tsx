@@ -7,28 +7,192 @@ interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-// Mini fridge animation component for onboarding
+// Logo component - green fridge with scan corners (like uploaded image)
+const FrigLogo = ({ size = "normal" }: { size?: "small" | "normal" | "large" }) => {
+  const dimensions = size === "small" ? "w-20 h-20" : size === "large" ? "w-40 h-40" : "w-28 h-28";
+  const iconSize = size === "small" ? "w-10 h-14" : size === "large" ? "w-20 h-28" : "w-14 h-20";
+  const cornerSize = size === "small" ? 12 : size === "large" ? 24 : 16;
+  const strokeWidth = size === "small" ? 2 : size === "large" ? 4 : 3;
+  
+  return (
+    <div className={`${dimensions} relative flex items-center justify-center`}>
+      {/* Green rounded background */}
+      <div 
+        className="absolute inset-0 rounded-[20%]"
+        style={{ 
+          background: 'linear-gradient(135deg, #5FD068 0%, #4ABA54 50%, #3DA347 100%)',
+          boxShadow: '0 8px 32px rgba(90, 200, 100, 0.4), inset 0 2px 4px rgba(255,255,255,0.2)'
+        }}
+      />
+      
+      {/* Inner lighter background */}
+      <div 
+        className="absolute inset-2 rounded-[18%]"
+        style={{ 
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+          boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1)'
+        }}
+      />
+      
+      {/* Scan corners */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+        {/* Top Left Corner */}
+        <path 
+          d={`M ${15} ${30} L ${15} ${15} L ${30} ${15}`} 
+          fill="none" 
+          stroke="rgba(255,255,255,0.9)" 
+          strokeWidth={strokeWidth} 
+          strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
+        />
+        {/* Top Right Corner */}
+        <path 
+          d={`M ${70} ${15} L ${85} ${15} L ${85} ${30}`} 
+          fill="none" 
+          stroke="rgba(255,255,255,0.9)" 
+          strokeWidth={strokeWidth} 
+          strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
+        />
+        {/* Bottom Left Corner */}
+        <path 
+          d={`M ${15} ${70} L ${15} ${85} L ${30} ${85}`} 
+          fill="none" 
+          stroke="rgba(255,255,255,0.9)" 
+          strokeWidth={strokeWidth} 
+          strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
+        />
+        {/* Bottom Right Corner */}
+        <path 
+          d={`M ${70} ${85} L ${85} ${85} L ${85} ${70}`} 
+          fill="none" 
+          stroke="rgba(255,255,255,0.9)" 
+          strokeWidth={strokeWidth} 
+          strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }}
+        />
+      </svg>
+      
+      {/* Fridge Icon */}
+      <div 
+        className={`${iconSize} relative z-10`}
+        style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' }}
+      >
+        <svg viewBox="0 0 40 56" fill="none" className="w-full h-full">
+          {/* Fridge body */}
+          <rect x="4" y="4" width="32" height="48" rx="4" 
+            stroke="rgba(255,255,255,0.95)" 
+            strokeWidth="2.5" 
+            fill="none"
+          />
+          {/* Freezer line */}
+          <line x1="4" y1="18" x2="36" y2="18" stroke="rgba(255,255,255,0.95)" strokeWidth="2" />
+          {/* Freezer handle */}
+          <line x1="28" y1="10" x2="28" y2="14" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Fridge handle */}
+          <line x1="28" y1="26" x2="28" y2="34" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+// Mini fridge with visible food items inside
 const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
   <div className="relative w-32 h-44">
     {/* Fridge Interior */}
-    <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-100 rounded-xl shadow-inner overflow-hidden">
-      <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
-      <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-slate-300" />
-      <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-slate-300" />
+    <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50 rounded-xl shadow-inner overflow-hidden">
+      {/* Shelves */}
+      <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-200" />
+      <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-slate-200" />
+      <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-slate-200" />
       
-      {/* Food Items */}
-      <div className="absolute top-[5%] left-[10%] w-6 h-10 bg-white border border-slate-200 rounded-sm">
-        <div className="w-full h-2 bg-blue-400 rounded-t-sm" />
+      {/* Top Shelf - Milk, Juice, Apple */}
+      <div className="absolute top-[3%] left-[8%] w-6 h-10">
+        {/* Milk carton */}
+        <div className="w-full h-full bg-white border border-slate-200 rounded-sm shadow-sm">
+          <div className="w-full h-2.5 bg-blue-400 rounded-t-sm" />
+          <div className="text-[4px] text-center text-blue-600 mt-0.5 font-bold">MILK</div>
+        </div>
       </div>
-      <div className="absolute top-[6%] left-[45%] w-5 h-8 bg-orange-400 rounded-sm">
-        <div className="w-full h-1.5 bg-orange-600 rounded-t-sm" />
+      <div className="absolute top-[4%] left-[38%] w-5 h-9">
+        {/* Orange juice */}
+        <div className="w-full h-full bg-orange-400 rounded-sm shadow-sm">
+          <div className="w-full h-2 bg-orange-600 rounded-t-sm" />
+          <div className="w-3 h-3 bg-orange-200 rounded-full mx-auto mt-1" />
+        </div>
       </div>
-      <div className="absolute top-[8%] right-[12%] w-5 h-5 bg-red-500 rounded-full" />
-      <div className="absolute top-[30%] left-[10%] w-3 h-8 bg-gradient-to-b from-orange-400 to-orange-500 rounded-b-full" />
-      <div className="absolute top-[32%] left-[35%] w-5 h-5 bg-gradient-to-br from-red-400 to-red-600 rounded-full" />
-      <div className="absolute top-[30%] right-[15%] w-5 h-6 bg-gradient-to-b from-green-600 to-green-800 rounded-full" />
-      <div className="absolute top-[55%] left-[10%] w-10 h-6 bg-primary/20 rounded border border-primary/40" />
-      <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
+      <div className="absolute top-[6%] right-[25%] w-5 h-5">
+        {/* Apple */}
+        <div className="w-full h-full bg-gradient-to-br from-red-400 to-red-600 rounded-full shadow-sm relative">
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-amber-700 rounded-full" />
+          <div className="absolute -top-0.5 right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full" />
+        </div>
+      </div>
+      <div className="absolute top-[4%] right-[6%] w-7 h-5 bg-amber-50 rounded border border-amber-100 shadow-sm flex items-center justify-center gap-0.5">
+        {/* Eggs */}
+        <div className="w-1.5 h-2 bg-amber-100 rounded-full" />
+        <div className="w-1.5 h-2 bg-amber-100 rounded-full" />
+        <div className="w-1.5 h-2 bg-amber-100 rounded-full" />
+      </div>
+      
+      {/* Second Shelf - Vegetables */}
+      <div className="absolute top-[28%] left-[8%]">
+        {/* Carrot */}
+        <div className="w-3 h-7 bg-gradient-to-b from-orange-400 to-orange-500 rounded-b-full shadow-sm relative">
+          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex">
+            <div className="w-0.5 h-2 bg-green-500 rounded-full transform -rotate-12" />
+            <div className="w-0.5 h-2 bg-green-500 rounded-full" />
+            <div className="w-0.5 h-2 bg-green-500 rounded-full transform rotate-12" />
+          </div>
+        </div>
+      </div>
+      <div className="absolute top-[30%] left-[30%] w-5 h-5">
+        {/* Tomato */}
+        <div className="w-full h-full bg-gradient-to-br from-red-400 to-red-600 rounded-full shadow-sm relative">
+          <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2 h-1.5 bg-green-500 rounded-b-full" />
+        </div>
+      </div>
+      <div className="absolute top-[28%] right-[25%] w-4 h-6">
+        {/* Avocado */}
+        <div className="w-full h-full bg-gradient-to-b from-green-600 to-green-800 rounded-full shadow-sm" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }} />
+      </div>
+      <div className="absolute top-[30%] right-[6%] w-6 h-4">
+        {/* Cheese */}
+        <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-yellow-400 rounded-sm shadow-sm relative">
+          <div className="absolute top-0.5 left-1 w-1 h-1 bg-yellow-200 rounded-full" />
+          <div className="absolute bottom-0.5 right-1.5 w-0.5 h-0.5 bg-yellow-200 rounded-full" />
+        </div>
+      </div>
+      
+      {/* Third Shelf - Containers */}
+      <div className="absolute top-[53%] left-[6%] w-10 h-5 bg-primary/20 rounded border border-primary/40 shadow-sm">
+        <div className="w-full h-1 bg-primary/30 rounded-t" />
+      </div>
+      <div className="absolute top-[54%] left-[45%] w-5 h-5">
+        {/* Yogurt */}
+        <div className="w-full h-full bg-white rounded-sm border border-slate-200 shadow-sm">
+          <div className="w-full h-1.5 bg-pink-400 rounded-t-sm" />
+        </div>
+      </div>
+      <div className="absolute top-[53%] right-[8%] w-6 h-6">
+        {/* Broccoli */}
+        <div className="w-full h-full relative">
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-2 bg-green-700 rounded-sm" />
+          <div className="absolute top-0 left-0 w-2 h-2 bg-green-500 rounded-full" />
+          <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
+          <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-green-600 rounded-full" />
+        </div>
+      </div>
+      
+      {/* Bottom Drawer */}
+      <div className="absolute bottom-[2%] left-[4%] right-[4%] h-6 bg-gradient-to-b from-green-50 to-green-100 rounded border border-slate-200 flex items-center justify-around px-1">
+        <div className="w-3 h-3 bg-gradient-to-br from-green-300 to-green-500 rounded-full" />
+        <div className="w-2 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-b-full rounded-t-sm" />
+        <div className="w-1.5 h-4 bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+        <div className="w-3 h-2 bg-gradient-to-br from-yellow-300 to-yellow-400 rounded-full" />
+      </div>
     </div>
 
     {/* Scan effect inside fridge */}
@@ -50,18 +214,18 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
         
         {/* Scan beam - gradient beam effect */}
         <motion.div
-          className="absolute left-0 right-0 h-12 pointer-events-none"
+          className="absolute left-1 right-1 h-10 pointer-events-none rounded-lg overflow-hidden"
           style={{ 
-            background: 'linear-gradient(to bottom, transparent 0%, rgba(144,238,144,0.3) 20%, rgba(144,238,144,0.8) 50%, rgba(144,238,144,0.3) 80%, transparent 100%)',
-            boxShadow: '0 0 30px rgba(144,238,144,0.6)'
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(144,238,144,0.2) 20%, rgba(144,238,144,0.7) 50%, rgba(144,238,144,0.2) 80%, transparent 100%)',
+            boxShadow: '0 0 25px rgba(144,238,144,0.5)'
           }}
-          animate={{ top: ['0%', '75%', '0%'] }}
+          animate={{ top: ['5%', '80%', '5%'] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
           {/* Bright center line */}
           <div 
             className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 bg-[#90EE90]"
-            style={{ boxShadow: '0 0 15px rgba(144,238,144,1), 0 0 30px rgba(144,238,144,0.8)' }}
+            style={{ boxShadow: '0 0 12px rgba(144,238,144,1), 0 0 24px rgba(144,238,144,0.8)' }}
           />
         </motion.div>
       </>
