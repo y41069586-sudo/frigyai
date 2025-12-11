@@ -272,26 +272,26 @@ const Index = () => {
             >
               <LockedCard locked={!trackerSetup}>
                 <NavLink to="/meal-plans?tab=meals">
-                  <div className="p-4 rounded-2xl bg-orange-500/15 border border-orange-500/40 hover:border-orange-500/60 transition-all min-h-[130px] flex items-center justify-center">
+                  <div className="p-4 rounded-2xl bg-orange-500/15 border border-orange-500/40 hover:border-orange-500/60 transition-all h-[140px] flex items-center justify-center">
                     <div className="flex flex-col items-center text-center gap-2">
                       <div className="p-3 rounded-xl bg-orange-500/25">
                         <Calendar className="h-6 w-6 text-orange-400" />
                       </div>
                       <h4 className="font-bold text-sm">Wochenplan</h4>
-                      <p className="text-xs text-muted-foreground">Deckt dein Kalorienziel</p>
+                      <p className="text-xs text-muted-foreground leading-tight">Deckt dein<br/>Kalorienziel</p>
                     </div>
                   </div>
                 </NavLink>
               </LockedCard>
               <LockedCard locked={!trackerSetup}>
                 <NavLink to="/meal-plans?tab=shopping">
-                  <div className="p-4 rounded-2xl bg-green-500/15 border border-green-500/40 hover:border-green-500/60 transition-all min-h-[130px] flex items-center justify-center">
+                  <div className="p-4 rounded-2xl bg-green-500/15 border border-green-500/40 hover:border-green-500/60 transition-all h-[140px] flex items-center justify-center">
                     <div className="flex flex-col items-center text-center gap-2">
                       <div className="p-3 rounded-xl bg-green-500/25">
                         <ShoppingCart className="h-6 w-6 text-green-400" />
                       </div>
                       <h4 className="font-bold text-sm">Einkaufsliste</h4>
-                      <p className="text-xs text-muted-foreground">Passend zum Wochenplan</p>
+                      <p className="text-xs text-muted-foreground leading-tight">Passend zum<br/>Wochenplan</p>
                     </div>
                   </div>
                 </NavLink>
