@@ -20,6 +20,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import StreakBadge from '@/components/StreakBadge';
+import { AIChatbot } from '@/components/AIChatbot';
+
+interface UserProfile {
+  age: number;
+  weight: number;
+  targetWeight: number;
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}
 interface Ingredient {
   name: string;
   amount: string;
@@ -51,6 +62,7 @@ const MealPlansPage = () => {
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [trackerSetup, setTrackerSetup] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
   // Read tab from URL params
@@ -101,6 +113,13 @@ const MealPlansPage = () => {
   useEffect(() => {
     const profile = localStorage.getItem('userProfile');
     setTrackerSetup(!!profile);
+    if (profile) {
+      try {
+        setUserProfile(JSON.parse(profile));
+      } catch (e) {
+        console.error('Failed to parse user profile');
+      }
+    }
     
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
@@ -483,6 +502,9 @@ const MealPlansPage = () => {
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
       />
+
+      {/* AI Chatbot */}
+      <AIChatbot userProfile={userProfile} />
     </div>
   );
 };
