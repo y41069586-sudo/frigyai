@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Bot, Send, X, Sparkles, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
+import { useAuth } from '@/contexts/AuthContext';
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -24,6 +24,7 @@ interface AIChatbotProps {
 }
 
 export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
+  const { session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -49,6 +50,9 @@ export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-chat', {
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`,
+        } : undefined,
         body: {
           message: userMessage.content,
           userProfile: userProfile,
