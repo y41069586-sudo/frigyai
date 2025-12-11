@@ -11,11 +11,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { SplashScreen } from "@/components/SplashScreen";
+import { AIChatbot } from "@/components/AIChatbot";
 import frigLogo from "@/assets/frig-logo.png";
+
+interface UserProfile {
+  age: number;
+  weight: number;
+  targetWeight: number;
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut } = useAuth();
   const [trackerSetup, setTrackerSetup] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -25,6 +37,13 @@ const Index = () => {
   useEffect(() => {
     const profile = localStorage.getItem("userProfile");
     setTrackerSetup(!!profile);
+    if (profile) {
+      try {
+        setUserProfile(JSON.parse(profile));
+      } catch (e) {
+        console.error('Failed to parse user profile');
+      }
+    }
     
     // Check if onboarding was already completed
     const onboardingDone = localStorage.getItem("onboardingComplete");
@@ -361,6 +380,11 @@ const Index = () => {
 
         </div>
       </div>
+
+      {/* AI Chatbot - Only for subscribed users */}
+      {user && subscriptionStatus?.subscribed && (
+        <AIChatbot userProfile={userProfile} />
+      )}
     </div>
   );
 };
