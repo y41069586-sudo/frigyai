@@ -1,92 +1,9 @@
 import { motion } from "framer-motion";
+import frigLogo from "@/assets/frig-logo.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
 }
-
-// Frig AI Logo - green fridge with scan corners
-const FrigLogo = () => (
-  <div className="w-32 h-32 relative flex items-center justify-center">
-    {/* Green rounded background */}
-    <div 
-      className="absolute inset-0 rounded-[22%]"
-      style={{ 
-        background: 'linear-gradient(135deg, #5FD068 0%, #4ABA54 50%, #3DA347 100%)',
-        boxShadow: '0 8px 40px rgba(90, 200, 100, 0.5), inset 0 2px 4px rgba(255,255,255,0.2)'
-      }}
-    />
-    
-    {/* Inner lighter background */}
-    <div 
-      className="absolute inset-2.5 rounded-[20%]"
-      style={{ 
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
-        boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1)'
-      }}
-    />
-    
-    {/* Scan corners */}
-    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-      {/* Top Left Corner */}
-      <path 
-        d="M 15 30 L 15 15 L 30 15" 
-        fill="none" 
-        stroke="rgba(255,255,255,0.9)" 
-        strokeWidth="3" 
-        strokeLinecap="round"
-        style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.8))' }}
-      />
-      {/* Top Right Corner */}
-      <path 
-        d="M 70 15 L 85 15 L 85 30" 
-        fill="none" 
-        stroke="rgba(255,255,255,0.9)" 
-        strokeWidth="3" 
-        strokeLinecap="round"
-        style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.8))' }}
-      />
-      {/* Bottom Left Corner */}
-      <path 
-        d="M 15 70 L 15 85 L 30 85" 
-        fill="none" 
-        stroke="rgba(255,255,255,0.9)" 
-        strokeWidth="3" 
-        strokeLinecap="round"
-        style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.8))' }}
-      />
-      {/* Bottom Right Corner */}
-      <path 
-        d="M 70 85 L 85 85 L 85 70" 
-        fill="none" 
-        stroke="rgba(255,255,255,0.9)" 
-        strokeWidth="3" 
-        strokeLinecap="round"
-        style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.8))' }}
-      />
-    </svg>
-    
-    {/* Fridge Icon */}
-    <div 
-      className="w-16 h-24 relative z-10"
-      style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.6))' }}
-    >
-      <svg viewBox="0 0 40 56" fill="none" className="w-full h-full">
-        {/* Fridge body */}
-        <rect x="4" y="4" width="32" height="48" rx="4" 
-          stroke="rgba(255,255,255,0.95)" 
-          strokeWidth="2.5" 
-          fill="none"
-        />
-        {/* Freezer line */}
-        <line x1="4" y1="18" x2="36" y2="18" stroke="rgba(255,255,255,0.95)" strokeWidth="2" />
-        {/* Freezer handle */}
-        <line x1="28" y1="10" x2="28" y2="14" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5" strokeLinecap="round" />
-        {/* Fridge handle */}
-        <line x1="28" y1="26" x2="28" y2="34" stroke="rgba(255,255,255,0.95)" strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    </div>
-  </div>
-);
 
 export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   return (
@@ -121,7 +38,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {/* New Frig Logo */}
+        {/* Frig Logo Image */}
         <motion.div
           animate={{ 
             boxShadow: [
@@ -133,7 +50,11 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="rounded-[22%]"
         >
-          <FrigLogo />
+          <img 
+            src={frigLogo} 
+            alt="Frig AI Logo" 
+            className="w-32 h-32 rounded-[22%]"
+          />
         </motion.div>
 
         {/* Text */}
