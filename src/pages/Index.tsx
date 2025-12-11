@@ -192,6 +192,22 @@ const Index = () => {
             </p>
           </motion.div>
 
+          {/* Scan Button - Above Tracker */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Button
+              size="lg"
+              onClick={() => navigate("/scan")}
+              className="w-full glow-button gradient-neon text-black font-semibold text-base sm:text-lg py-5 sm:py-6 rounded-2xl"
+            >
+              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
+              Kühlschrank scannen
+            </Button>
+          </motion.div>
+
           {/* Tracker Status Card - Always clickable */}
           {user && subscriptionStatus?.subscribed && (
             <motion.div
@@ -226,7 +242,6 @@ const Index = () => {
               </NavLink>
             </motion.div>
           )}
-
 
           {/* Wochenplan & Einkaufsliste - Locked when no tracker */}
           {user && subscriptionStatus?.subscribed && (
@@ -265,58 +280,41 @@ const Index = () => {
             </motion.div>
           )}
 
-          {/* Wasser & Stats Cards - Locked when no tracker */}
+          {/* Wasser & Statistiken Cards - Smaller, with scroll fade-in */}
           {user && subscriptionStatus?.subscribed && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="grid grid-cols-2 gap-3"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+              className="grid grid-cols-2 gap-2"
             >
               <LockedCard locked={!trackerSetup}>
                 <NavLink to="/meal-plans?tab=water">
-                  <div className="p-4 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 hover:border-cyan-500/60 transition-all h-full">
-                    <div className="flex flex-col items-center text-center gap-2">
-                      <div className="p-3 rounded-xl bg-cyan-500/25">
-                        <Droplets className="h-6 w-6 text-cyan-400" />
+                  <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-500/50 transition-all h-full">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-cyan-500/20">
+                        <Droplets className="h-4 w-4 text-cyan-400" />
                       </div>
-                      <h4 className="font-bold text-sm">Wasser</h4>
-                      <p className="text-xs text-muted-foreground">Trinke genug!</p>
+                      <span className="text-xs font-medium">Wasser</span>
                     </div>
                   </div>
                 </NavLink>
               </LockedCard>
               <LockedCard locked={!trackerSetup}>
                 <NavLink to="/meal-plans?tab=progress">
-                  <div className="p-4 rounded-2xl bg-purple-500/15 border border-purple-500/40 hover:border-purple-500/60 transition-all h-full">
-                    <div className="flex flex-col items-center text-center gap-2">
-                      <div className="p-3 rounded-xl bg-purple-500/25">
-                        <TrendingDown className="h-6 w-6 text-purple-400" />
+                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-500/50 transition-all h-full">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-purple-500/20">
+                        <TrendingDown className="h-4 w-4 text-purple-400" />
                       </div>
-                      <h4 className="font-bold text-sm">Stats</h4>
-                      <p className="text-xs text-muted-foreground">Dein Fortschritt</p>
+                      <span className="text-xs font-medium">Statistiken</span>
                     </div>
                   </div>
                 </NavLink>
               </LockedCard>
             </motion.div>
           )}
-
-          {/* Scan Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Button
-              size="lg"
-              onClick={() => navigate("/scan")}
-              className="w-full glow-button gradient-neon text-black font-semibold text-base sm:text-lg py-5 sm:py-6 rounded-2xl"
-            >
-              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-              Kühlschrank scannen
-            </Button>
-          </motion.div>
 
           {/* Premium Upsell for non-subscribed users */}
           {user && !subscriptionStatus?.subscribed && (
