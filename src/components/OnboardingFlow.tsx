@@ -312,18 +312,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Bottom Section */}
-      <div className="w-full max-w-sm space-y-6 pb-4">
+      <div className="w-full max-w-xs space-y-4 pb-6">
         {/* Progress Dots */}
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1.5">
           {slides.map((_, index) => (
             <motion.div
               key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-1.5 rounded-full transition-all duration-300 ${
                 index === currentSlide
-                  ? "w-8 bg-primary"
+                  ? "w-6 bg-primary"
                   : index < currentSlide
-                  ? "w-2 bg-primary/50"
-                  : "w-2 bg-muted"
+                  ? "w-1.5 bg-primary/50"
+                  : "w-1.5 bg-muted"
               }`}
               initial={false}
               animate={{
@@ -333,18 +333,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           ))}
         </div>
 
-        {/* Next Button */}
+        {/* Next Button - Smaller and cleaner */}
         <Button
           onClick={handleNext}
-          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-lg shadow-primary/25"
+          className="w-full h-11 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
         >
           {currentSlide < slides.length - 1 ? (
             <>
               Weiter
-              <ChevronRight className="ml-2 w-5 h-5" />
+              <ChevronRight className="ml-1 w-4 h-4" />
             </>
           ) : (
-            "Los geht's!"
+            "Los geht's"
           )}
         </Button>
       </div>
