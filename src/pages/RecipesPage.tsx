@@ -85,37 +85,38 @@ const RecipesPage = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 safe-bottom">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="flex items-center justify-between mb-4 sm:mb-8 gap-2"
         >
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/")}
-              className="mr-4"
+              onClick={() => navigate(-1)}
+              className="mr-2 sm:mr-4 shrink-0 touch-target h-10 w-10"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-xl sm:text-3xl font-bold truncate">
               Deine <span className="text-neon">Rezepte</span>
             </h1>
           </div>
           <Button
             onClick={generateRecipes}
             variant="outline"
-            className="border-primary hover:bg-primary/10"
+            size="sm"
+            className="border-primary hover:bg-primary/10 shrink-0 text-xs sm:text-sm touch-target"
           >
             Neu generieren
           </Button>
         </motion.div>
 
         {/* Recipes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {recipes.map((recipe, index) => (
             <motion.div
               key={recipe.id}
@@ -130,9 +131,15 @@ const RecipesPage = () => {
 
         {recipes.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground px-4">
               Keine Rezepte gefunden. Versuche es mit anderen Zutaten.
             </p>
+            <Button
+              onClick={() => navigate("/")}
+              className="mt-4 gradient-neon text-black font-semibold touch-target"
+            >
+              Zurück zum Start
+            </Button>
           </div>
         )}
       </div>

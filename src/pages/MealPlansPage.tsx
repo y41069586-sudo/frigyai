@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell } from 'lucide-react';
+import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
+import frigLogo from '@/assets/frig-logo.png';
 import { ShoppingList } from '@/components/ShoppingList';
 import { MacroTracker } from '@/components/MacroTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
@@ -273,12 +274,25 @@ const MealPlansPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-primary">
+    <div className="min-h-screen bg-gradient-primary safe-area-inset">
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
-          <NavLink to="/">
-            <h1 className="text-xl sm:text-2xl font-bold neon-text">Healthy3</h1>
-          </NavLink>
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="mr-2 touch-target h-10 w-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <NavLink to="/">
+              <div className="flex items-center gap-2">
+                <img src={frigLogo} alt="Frig AI" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
+                <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">Frig AI</h1>
+              </div>
+            </NavLink>
+          </div>
           <div className="flex items-center gap-2">
             <StreakBadge />
             <Popover>

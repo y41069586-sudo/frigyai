@@ -36,28 +36,28 @@ const FavoritesPage = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 safe-bottom">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center mb-8"
+          className="flex items-center mb-4 sm:mb-8"
         >
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/")}
-            className="mr-4"
+            onClick={() => navigate(-1)}
+            className="mr-2 sm:mr-4 shrink-0 touch-target h-10 w-10"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-xl sm:text-3xl font-bold truncate">
             Meine <span className="text-neon">Favoriten</span>
           </h1>
         </motion.div>
 
         {favorites.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {favorites.map((recipe, index) => (
               <motion.div
                 key={recipe.id}
@@ -73,18 +73,18 @@ const FavoritesPage = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-20"
+            className="text-center py-12 sm:py-20 px-4"
           >
-            <Heart className="h-24 w-24 mx-auto mb-6 text-muted-foreground opacity-20" />
-            <h2 className="text-2xl font-semibold mb-4">
+            <Heart className="h-16 w-16 sm:h-24 sm:w-24 mx-auto mb-4 sm:mb-6 text-muted-foreground opacity-20" />
+            <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
               Noch keine Favoriten
             </h2>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
               Speichere deine Lieblingsrezepte, um sie später wiederzufinden
             </p>
             <Button
               onClick={() => navigate("/")}
-              className="gradient-neon text-black font-semibold glow-button"
+              className="gradient-neon text-black font-semibold glow-button touch-target"
             >
               Rezepte entdecken
             </Button>
