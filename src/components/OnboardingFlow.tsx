@@ -31,27 +31,29 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
       <div className="absolute top-[56%] right-[15%] w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full" />
     </div>
 
-    {/* Scan effect with rounded corners - light green/white */}
+    {/* Clean scan effect - just glow border and scan line */}
     {scanning && (
-      <motion.div className="absolute inset-0 pointer-events-none">
-        {/* Corner brackets - light green neon with thicker borders */}
-        <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-[#90EE90] rounded-tl-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
-        <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-[#90EE90] rounded-tr-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
-        <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-[#90EE90] rounded-bl-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
-        <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-[#90EE90] rounded-br-2xl shadow-[0_0_20px_rgba(144,238,144,0.9),0_0_40px_rgba(144,238,144,0.5)]" />
-        
-        {/* Scan line - bright green with strong glow */}
+      <motion.div className="absolute -inset-1 pointer-events-none rounded-xl">
+        {/* Glowing border */}
         <motion.div
-          className="absolute left-2 right-2 h-1.5 bg-gradient-to-r from-transparent via-[#90EE90] to-transparent shadow-[0_0_25px_rgba(144,238,144,1),0_0_50px_rgba(144,238,144,0.8)]"
-          animate={{ top: ['5%', '90%', '5%'] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute inset-0 rounded-xl border-2 border-[#90EE90]"
+          style={{ boxShadow: '0 0 20px rgba(144,238,144,0.6), 0 0 40px rgba(144,238,144,0.3)' }}
+          animate={{ 
+            boxShadow: [
+              '0 0 20px rgba(144,238,144,0.6), 0 0 40px rgba(144,238,144,0.3)',
+              '0 0 30px rgba(144,238,144,0.9), 0 0 60px rgba(144,238,144,0.5)',
+              '0 0 20px rgba(144,238,144,0.6), 0 0 40px rgba(144,238,144,0.3)'
+            ]
+          }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Green overlay glow */}
+        {/* Scan line */}
         <motion.div
-          className="absolute inset-0 rounded-xl bg-[#90EE90]/10"
-          animate={{ opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 1, repeat: Infinity }}
+          className="absolute left-1 right-1 h-1 rounded-full bg-gradient-to-r from-transparent via-[#90EE90] to-transparent"
+          style={{ boxShadow: '0 0 15px rgba(144,238,144,1), 0 0 30px rgba(144,238,144,0.6)' }}
+          animate={{ top: ['0%', '100%'] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
         />
       </motion.div>
     )}
@@ -154,28 +156,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {slide.type === "scan" && (
                 <div className="relative">
                   <MiniFridge scanning />
-                  {/* Fridge Logo Icon with scan corners */}
-                  <motion.div
-                    className="absolute -top-4 -right-10 w-14 h-18 flex items-center justify-center"
-                    initial={{ scale: 0, rotate: -20 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    {/* Mini fridge icon */}
-                    <div className="relative w-12 h-16 bg-white rounded-lg shadow-lg border border-gray-200">
-                      {/* Fridge door line */}
-                      <div className="absolute left-0 right-0 top-[35%] h-[1px] bg-gray-300" />
-                      {/* Fridge handle */}
-                      <div className="absolute right-1.5 top-[15%] w-1 h-3 bg-gray-400 rounded-full" />
-                      <div className="absolute right-1.5 top-[50%] w-1 h-3 bg-gray-400 rounded-full" />
-                      
-                      {/* Scan corners - light green */}
-                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-[#90EE90] rounded-tl-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
-                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-[#90EE90] rounded-tr-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
-                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-[#90EE90] rounded-bl-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-[#90EE90] rounded-br-lg shadow-[0_0_10px_rgba(144,238,144,0.8)]" />
-                    </div>
-                  </motion.div>
                 </div>
               )}
               {slide.type === "recipes" && (
