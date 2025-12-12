@@ -61,16 +61,17 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 15,
-          qrbox: { width: 280, height: 100 },
-          aspectRatio: 1.5,
+          fps: 10,
+          qrbox: { width: 300, height: 150 },
+          disableFlip: false,
         },
         async (decodedText) => {
           // Barcode detected
+          console.log("Barcode erkannt:", decodedText);
           await handleBarcode(decodedText);
         },
         () => {
-          // Scanning in progress
+          // Scanning in progress - no action needed
         }
       );
     } catch (err: any) {
