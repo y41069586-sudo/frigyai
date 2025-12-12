@@ -19,12 +19,23 @@ const PremiumPage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'water' | 'weight'>('overview');
+  const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
 
   useEffect(() => {
     if (!user) {
       navigate('/auth');
     }
   }, [user, navigate]);
+
+  // Auto-trigger checkout if coming from onboarding
+  useEffect(() => {
+    const shouldStartCheckout = localStorage.getItem('startCheckoutAfterAuth');
+    if (shouldStartCheckout === 'true' && session && !autoCheckoutTriggered && !subscriptionStatus?.subscribed) {
+      localStorage.removeItem('startCheckoutAfterAuth');
+      setAutoCheckoutTriggered(true);
+      handleSubscribe();
+    }
+  }, [session, autoCheckoutTriggered, subscriptionStatus]);
 
   const handleSubscribe = async () => {
     if (!session) {
