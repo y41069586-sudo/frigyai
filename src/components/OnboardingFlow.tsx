@@ -203,7 +203,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handlePremiumPlan = () => {
-    setShowPremiumDetails(true);
+    // Go directly to auth -> Stripe, skip premium details page
+    onComplete(true);
   };
 
   const handleStartTrial = () => {
