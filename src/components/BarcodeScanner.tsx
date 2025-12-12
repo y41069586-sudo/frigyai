@@ -42,7 +42,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setError(null);
       setIsScanning(true);
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       // Only most common product barcode formats for speed
       const formatsToSupport = [
@@ -56,9 +56,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 30, // Maximum speed
-          qrbox: { width: 320, height: 120 },
-          disableFlip: true, // Faster without flip check
+          fps: 60, // Maximum possible speed
+          disableFlip: true,
+          // No qrbox = scan entire camera view for distance detection
         },
         async (decodedText) => {
           await handleBarcode(decodedText);
