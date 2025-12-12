@@ -180,13 +180,21 @@ const AuthPage = () => {
               {isGoogleLoading ? t.loading : t.signInWithGoogle}
             </Button>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
               <button
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2 block w-full"
               >
                 {isLogin ? t.noAccount : t.alreadyHaveAccount}
               </button>
+              {isLogin && (
+                <button
+                  onClick={() => navigate("/reset-password")}
+                  className="text-sm text-primary hover:underline transition-colors"
+                >
+                  {t.forgotPassword}
+                </button>
+              )}
             </div>
           </div>
         </motion.div>

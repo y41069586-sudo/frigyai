@@ -9,6 +9,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AnimatePresence } from "framer-motion";
 import { SplashScreen } from "@/components/SplashScreen";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Index from "./pages/Index";
 import ScanPage from "./pages/ScanPage";
 import ManualPage from "./pages/ManualPage";
@@ -19,6 +20,9 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import PremiumPage from "./pages/PremiumPage";
 import MealPlansPage from "./pages/MealPlansPage";
+import ProfilePage from "./pages/ProfilePage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +48,7 @@ const AppContent = () => {
 
   return (
     <>
+      <OfflineIndicator />
       <AnimatePresence mode="wait">
         {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
       </AnimatePresence>
@@ -62,6 +67,9 @@ const AppContent = () => {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/premium" element={<PremiumPage />} />
         <Route path="/meal-plans" element={<MealPlansPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
