@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell } from 'lucide-react';
+import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import StreakBadge from '@/components/StreakBadge';
 import { AIChatbot } from '@/components/AIChatbot';
 import { BottomNavigation } from '@/components/BottomNavigation';
+import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 
 interface UserProfile {
   age: number;
@@ -60,6 +61,7 @@ const MealPlansPage = () => {
   const { user, session, subscriptionStatus, loading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
@@ -67,6 +69,7 @@ const MealPlansPage = () => {
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   // Read tab from URL params
   const urlParams = new URLSearchParams(window.location.search);
@@ -76,18 +79,16 @@ const MealPlansPage = () => {
   // Initialize reminder system
   useReminders();
 
-  // Show success message after subscription purchase
+  // Show success dialog after subscription purchase
   useEffect(() => {
-    const subscriptionParam = urlParams.get('subscription');
+    const subscriptionParam = searchParams.get('subscription');
     if (subscriptionParam === 'success') {
-      toast({
-        title: "🎉 Willkommen bei FriG AI Premium!",
-        description: "Dein 7-Tage kostenloser Test hat begonnen. Genieße alle Premium-Features!",
-      });
+      setShowSuccessDialog(true);
       // Clean up URL
-      window.history.replaceState({}, '', '/meal-plans');
+      searchParams.delete('subscription');
+      setSearchParams(searchParams, { replace: true });
     }
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -486,6 +487,12 @@ const MealPlansPage = () => {
         meal={selectedMeal} 
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
+      />
+
+      {/* Premium Success Dialog */}
+      <PremiumSuccessDialog 
+        open={showSuccessDialog} 
+        onClose={() => setShowSuccessDialog(false)} 
       />
 
       {/* AI Chatbot */}

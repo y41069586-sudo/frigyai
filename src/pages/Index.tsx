@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Settings, XCircle } from "lucide-react";
+import { Camera, Heart, LogOut, Crown, Calendar, Settings, XCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -173,6 +173,11 @@ const Index = () => {
                 <NavLink to="/favorites">
                   <Button variant="ghost" size="icon" className="hover:bg-primary/20">
                     <Heart className="h-5 w-5" />
+                  </Button>
+                </NavLink>
+                <NavLink to="/profile">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/20">
+                    <User className="h-5 w-5" />
                   </Button>
                 </NavLink>
                 <Button variant="ghost" size="icon" onClick={signOut} className="hover:bg-primary/20">
