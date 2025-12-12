@@ -204,7 +204,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-background p-6 safe-area-inset"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-between bg-background p-6 safe-area-inset"
     >
       {/* Skip Button */}
       <div className="w-full flex justify-end pt-2">
