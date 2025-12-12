@@ -33,38 +33,47 @@ const Index = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   
-  // Skip splash/onboarding if coming from subscription success or if user already completed onboarding
+  // Check localStorage once at mount
   const urlParams = new URLSearchParams(window.location.search);
   const isFromSubscription = urlParams.get('subscription') === 'success';
-  const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
   
-  // Only show splash if: not loading, no user logged in, and hasn't completed onboarding
+  // Initialize states based on localStorage - user is logged in = skip everything
   const [showSplash, setShowSplash] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState(isFromSubscription || hasCompletedOnboarding);
+  const [onboardingComplete, setOnboardingComplete] = useState(true); // Default to true, we'll check
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
-  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   
-  // Wait for auth to load, then decide if splash should show
+  // Determine splash/onboarding state after auth loads
   useEffect(() => {
-    if (!loading && !authChecked) {
-      setAuthChecked(true);
-      // ALWAYS skip splash/onboarding for logged-in users
-      if (user) {
-        setShowSplash(false);
-        setOnboardingComplete(true);
-        localStorage.setItem('onboardingComplete', 'true');
-      } else if (hasCompletedOnboarding || isFromSubscription) {
-        // Skip for users who already completed onboarding
-        setShowSplash(false);
-        setOnboardingComplete(true);
-      } else {
-        // First time visitor without account - show splash
-        setShowSplash(true);
-      }
+    // Wait for auth to finish loading
+    if (loading) return;
+    
+    // Logged in users NEVER see splash/onboarding
+    if (user) {
+      console.log('[Index] User logged in, skipping splash/onboarding');
+      setShowSplash(false);
+      setShowOnboarding(false);
+      setOnboardingComplete(true);
+      localStorage.setItem('onboardingComplete', 'true');
+      return;
     }
-  }, [loading, user, authChecked, hasCompletedOnboarding, isFromSubscription]);
+    
+    // Not logged in - check if already completed onboarding
+    const hasCompleted = localStorage.getItem('onboardingComplete') === 'true';
+    if (hasCompleted || isFromSubscription) {
+      console.log('[Index] Onboarding already completed or from subscription');
+      setShowSplash(false);
+      setShowOnboarding(false);
+      setOnboardingComplete(true);
+      return;
+    }
+    
+    // First time visitor - show splash
+    console.log('[Index] First time visitor, showing splash');
+    setShowSplash(true);
+    setOnboardingComplete(false);
+  }, [loading, user, isFromSubscription]);
   
   // Redirect to meal-plans if coming from successful subscription
   useEffect(() => {
@@ -166,7 +175,7 @@ const Index = () => {
   const scansRemaining = 2 - dailyScansUsed;
 
   // Wait for auth check before showing anything
-  if (loading || !authChecked) {
+  if (loading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="animate-pulse">
