@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AnimatePresence } from "framer-motion";
@@ -22,7 +22,8 @@ import MealPlansPage from "./pages/MealPlansPage";
 
 const queryClient = new QueryClient();
 
-const App = () => {
+const AppContent = () => {
+  const navigate = useNavigate();
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(true);
 
@@ -30,42 +31,53 @@ const App = () => {
     setShowSplash(false);
   };
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = (goToPremium?: boolean) => {
     localStorage.setItem('hasSeenOnboarding', 'true');
     setShowOnboarding(false);
+    if (goToPremium) {
+      navigate('/premium');
+    }
   };
 
+  return (
+    <>
+      <AnimatePresence mode="wait">
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {!showSplash && showOnboarding && (
+          <OnboardingFlow onComplete={handleOnboardingComplete} />
+        )}
+      </AnimatePresence>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/scan" element={<ScanPage />} />
+        <Route path="/manual" element={<ManualPage />} />
+        <Route path="/recipes" element={<RecipesPage />} />
+        <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+        <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/premium" element={<PremiumPage />} />
+        <Route path="/meal-plans" element={<MealPlansPage />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <AnimatePresence mode="wait">
-            {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-          </AnimatePresence>
-          <AnimatePresence mode="wait">
-            {!showSplash && showOnboarding && (
-              <OnboardingFlow onComplete={handleOnboardingComplete} />
-            )}
-          </AnimatePresence>
-          <AuthProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/scan" element={<ScanPage />} />
-                <Route path="/manual" element={<ManualPage />} />
-                <Route path="/recipes" element={<RecipesPage />} />
-                <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-                <Route path="/favorites" element={<FavoritesPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/premium" element={<PremiumPage />} />
-                <Route path="/meal-plans" element={<MealPlansPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>
     </QueryClientProvider>
