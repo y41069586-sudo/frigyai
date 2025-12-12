@@ -367,51 +367,6 @@ const MealPlansPage = () => {
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 bg-card/50 border border-primary/20 h-auto p-0.5 sm:p-1 gap-0.5 sm:gap-1">
-            <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2">
-              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t.tracker}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="meals" 
-              className={`data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2 relative ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
-            >
-              {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-              <ChefHat className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t.weeklyPlan.split(' ')[0]}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="shopping" 
-              className={`data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2 relative ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
-            >
-              {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-              <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t.shoppingList.split(' ')[0]}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="water" 
-              className={`data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2 relative ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
-            >
-              {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-              <Droplets className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t.water}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="progress" 
-              className={`data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2 relative ${!canAccessPremiumFeatures ? 'opacity-50' : ''}`}
-            >
-              {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-              <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t.stats}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="reminders" 
-              className="data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2"
-            >
-              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t.reminderSettings.split(' ')[0]}</span>
-            </TabsTrigger>
-          </TabsList>
 
           <TabsContent value="tracker">
             <MacroTracker onSetupComplete={handleTrackerSetup} />
