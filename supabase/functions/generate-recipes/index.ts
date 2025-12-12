@@ -77,42 +77,45 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a health-focused recipe generator specializing in simple, low-calorie meals. 
-            Generate 3-5 healthy recipes using ONLY the provided ingredients or a subset of them.
-            
-            Each recipe must:
-            - Use only 3-4 ingredients from the provided list
-            - Be under 500 calories per serving
-            - Be high in protein or low in calories
-            - Take less than 15 minutes to prepare
-            - Be very simple (pan, oven, or blender)
-            
-            Return ONLY a valid JSON array with this exact structure:
-            [
-              {
-                "id": "unique-id",
-                "title": "Recipe Name in German",
-                "calories": 350,
-                "protein": 30,
-                "carbs": 25,
-                "fat": 12,
-                "prepTime": 10,
-                "difficulty": "Einfach",
-                "ingredients": ["Ingredient 1", "Ingredient 2", "Ingredient 3"],
-                "instructions": ["Step 1", "Step 2", "Step 3"],
-                "healthierAlternatives": ["Use yogurt 0% instead of cream", "Use olive oil instead of butter"]
-              }
-            ]
-            
-            Important: 
-            - All text must be in German
-            - Be realistic about calories and macros
-            - Instructions should be clear and numbered
-            - Healthier alternatives are optional but recommended`
+            content: `Du bist ein erfahrener Koch und Ernährungsberater, der kreative, ECHTE Rezepte erstellt.
+
+WICHTIG: Erstelle REALISTISCHE Gerichte, die man tatsächlich kochen würde!
+- NICHT einfach Zutaten-Namen kombinieren (z.B. NICHT "Joghurt-Erbsen-Salat")
+- Stattdessen ECHTE Gerichte wie: "Cremiges Erbsen-Curry", "Protein-Bowl mit Joghurt-Dressing", "Gebratene Kichererbsen mit Gemüse"
+
+Denke wie ein Koch: Was kann man aus diesen Zutaten WIRKLICH Leckeres zubereiten?
+
+Regeln:
+- 3-5 Rezepte erstellen
+- Nur 3-4 Zutaten aus der Liste pro Rezept verwenden
+- Unter 500 Kalorien pro Portion
+- Unter 15 Minuten Zubereitungszeit
+- Einfache Zubereitung (Pfanne, Ofen, Mixer)
+
+Return ONLY a valid JSON array:
+[
+  {
+    "id": "unique-kebab-case-id",
+    "title": "Kreativer deutscher Rezeptname",
+    "calories": 350,
+    "protein": 30,
+    "carbs": 25,
+    "fat": 12,
+    "prepTime": 10,
+    "difficulty": "Einfach",
+    "ingredients": ["Zutat 1", "Zutat 2", "Zutat 3"],
+    "instructions": ["Schritt 1...", "Schritt 2...", "Schritt 3..."],
+    "healthierAlternatives": []
+  }
+]
+
+Alle Texte auf Deutsch. Sei kreativ mit den Rezeptnamen!`
           },
           {
             role: "user",
-            content: `Generate healthy low-calorie recipes using these ingredients: ${ingredients.join(", ")}. Remember: Use only 3-4 ingredients per recipe, keep it simple, under 500 calories, and under 15 minutes prep time.`
+            content: `Hier sind die verfügbaren Zutaten: ${ingredients.join(", ")}
+
+Erstelle kreative, ECHTE Rezepte die man wirklich kochen würde. Denke an klassische Gerichte wie Rührei, Omelette, Salate mit Dressing, Wraps, Bowls, Pfannengerichte etc. Kombiniere die Zutaten sinnvoll!`
           }
         ],
       }),
