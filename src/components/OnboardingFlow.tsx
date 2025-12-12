@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Sparkles, Check } from "lucide-react";
+import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Sparkles, Check, Calendar, ShoppingCart, BarChart, Droplets, MessageCircle, ArrowLeft } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 
@@ -161,6 +161,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
   const [showPlanSelection, setShowPlanSelection] = useState(false);
+  const [showPremiumDetails, setShowPremiumDetails] = useState(false);
 
   const slides = [
     { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle, type: "welcome" as const },
@@ -169,6 +170,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     { title: t.onboardingSlide4Title, subtitle: t.onboardingSlide4Subtitle, type: "recipes" as const },
     { title: t.onboardingSlide5Title, subtitle: t.onboardingSlide5Subtitle, type: "track" as const },
     { title: t.onboardingSlide6Title, subtitle: t.onboardingSlide6Subtitle, type: "goal" as const },
+  ];
+
+  const premiumFeatures = [
+    { icon: Calendar, text: t.weeklyPersonalizedMealPlans || "Wöchentliche personalisierte Meal Plans" },
+    { icon: ShoppingCart, text: t.automaticShoppingLists || "Automatische Einkaufslisten" },
+    { icon: BarChart, text: t.macroTrackingCalorieAnalysis || "Makro-Tracking & Kalorienanalyse" },
+    { icon: Sparkles, text: t.unlimitedRecipeGeneration || "Unbegrenzte Rezeptgenerierung" },
+    { icon: Droplets, text: t.waterTrackerFeature || "Wasser-Tracker" },
+    { icon: TrendingDown, text: t.weightProgressFeature || "Gewichtsverlauf & Fortschritt" },
   ];
 
   const handleSelectLanguage = (lang: Language) => {
@@ -193,7 +203,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handlePremiumPlan = () => {
+    setShowPremiumDetails(true);
+  };
+
+  const handleStartTrial = () => {
     onComplete(true);
+  };
+
+  const handleBackToPlanSelection = () => {
+    setShowPremiumDetails(false);
   };
 
   // Language Selection Screen
@@ -236,6 +254,79 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.button>
             ))}
           </div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // Premium Details Screen (after clicking trial button)
+  if (showPremiumDetails) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset overflow-y-auto"
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50 px-4 py-3">
+          <div className="flex items-center gap-3 max-w-lg mx-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToPlanSelection}
+              className="h-10 w-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <img src={frigLogo} alt="Frig AI" className="h-8 w-8 rounded-lg" />
+              <span className="text-lg font-bold">Frig AI</span>
+            </div>
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col items-center px-4 py-6 max-w-lg mx-auto w-full"
+        >
+          {/* Title & Price */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold mb-2">Healthy3 Premium</h2>
+            <p className="text-4xl font-bold text-primary mb-1">4,99€</p>
+            <p className="text-muted-foreground">{t.perMonth}</p>
+          </div>
+
+          {/* Premium Features List */}
+          <div className="w-full space-y-3 mb-8">
+            {premiumFeatures.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 + index * 0.05 }}
+                className="flex items-center justify-between p-4 bg-card rounded-xl border border-border"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <feature.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium">{feature.text}</span>
+                </div>
+                <Check className="h-5 w-5 text-primary" />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          <Button
+            className="w-full bg-primary hover:bg-primary/90 h-14 text-lg font-semibold"
+            onClick={handleStartTrial}
+          >
+            {t.getPremiumNow || "Jetzt Premium werden"}
+          </Button>
         </motion.div>
       </motion.div>
     );
