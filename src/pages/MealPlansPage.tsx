@@ -58,7 +58,7 @@ interface DayPlan {
 }
 
 const MealPlansPage = () => {
-  const { user, session, subscriptionStatus, loading } = useAuth();
+  const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,6 +70,7 @@ const MealPlansPage = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
 
   // Read tab from URL params
   const urlParams = new URLSearchParams(window.location.search);
@@ -79,16 +80,33 @@ const MealPlansPage = () => {
   // Initialize reminder system
   useReminders();
 
-  // Show success dialog after subscription purchase
+  // Show success dialog and auto-refresh subscription after purchase
   useEffect(() => {
     const subscriptionParam = searchParams.get('subscription');
     if (subscriptionParam === 'success') {
-      setShowSuccessDialog(true);
-      // Clean up URL
-      searchParams.delete('subscription');
-      setSearchParams(searchParams, { replace: true });
+      setIsActivatingSubscription(true);
+      
+      // Poll for subscription activation every 2 seconds
+      let attempts = 0;
+      const maxAttempts = 15; // Max 30 seconds
+      
+      const pollSubscription = setInterval(async () => {
+        attempts++;
+        await checkSubscription();
+        
+        if (subscriptionStatus?.subscribed || attempts >= maxAttempts) {
+          clearInterval(pollSubscription);
+          setIsActivatingSubscription(false);
+          setShowSuccessDialog(true);
+          // Clean up URL
+          searchParams.delete('subscription');
+          setSearchParams(searchParams, { replace: true });
+        }
+      }, 2000);
+      
+      return () => clearInterval(pollSubscription);
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -326,6 +344,31 @@ const MealPlansPage = () => {
       { type: 'Abendessen', name: 'Lachs Teriyaki', calories: 420, protein: 35, carbs: 28, fat: 20, prepTime: 20, ingredients: [{ name: 'Lachs', amount: '150g', price: 4.50 }, { name: 'Teriyaki Sauce', amount: '30ml', price: 0.50 }], instructions: ['Lachs marinieren', 'Im Ofen backen'] }
     ]}
   ];
+
+  // Show loading screen while activating subscription
+  if (isActivatingSubscription) {
+    return (
+      <div className="min-h-screen bg-gradient-primary flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-6 p-8"
+        >
+          <div className="relative mx-auto w-20 h-20">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <Sparkles className="absolute inset-0 m-auto h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold mb-2">Premium wird aktiviert...</h2>
+            <p className="text-muted-foreground text-sm">
+              Bitte warte einen Moment, während wir dein Abo einrichten.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-primary safe-area-inset">
