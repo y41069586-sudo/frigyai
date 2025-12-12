@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Sparkles, Check } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
-import { useNavigate } from "react-router-dom";
 
 interface OnboardingFlowProps {
-  onComplete: () => void;
+  onComplete: (goToPremium?: boolean) => void;
 }
 
 // Mini fridge with visible food items inside
@@ -160,7 +159,6 @@ const languages: { code: Language; name: string; flag: string }[] = [
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
-  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
   const [showPlanSelection, setShowPlanSelection] = useState(false);
 
@@ -191,12 +189,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleFreePlan = () => {
-    onComplete();
+    onComplete(false);
   };
 
   const handlePremiumPlan = () => {
-    onComplete();
-    navigate('/premium');
+    onComplete(true);
   };
 
   // Language Selection Screen
