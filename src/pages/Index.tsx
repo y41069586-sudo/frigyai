@@ -33,6 +33,7 @@ const Index = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +53,31 @@ const Index = () => {
       setOnboardingComplete(true);
     }
   }, []);
+
+  // Fetch daily scan usage for free users
+  useEffect(() => {
+    const fetchScanUsage = async () => {
+      if (!user || subscriptionStatus?.subscribed) return;
+      
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+          .from('scan_usage')
+          .select('scan_count')
+          .eq('user_id', user.id)
+          .eq('scan_date', today)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setDailyScansUsed(data.scan_count);
+        }
+      } catch (e) {
+        console.error('Failed to fetch scan usage');
+      }
+    };
+    
+    fetchScanUsage();
+  }, [user, subscriptionStatus]);
   
   const handleSplashComplete = () => {
     setShowSplash(false);
@@ -97,13 +123,14 @@ const Index = () => {
     }
   };
 
+  const scansRemaining = 2 - dailyScansUsed;
 
-  // Show splash screen first
+  // Show splash screen first (no navigation)
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
   
-  // Show onboarding after splash
+  // Show onboarding after splash (no navigation)
   if (showOnboarding) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
@@ -207,6 +234,16 @@ const Index = () => {
               <Camera className="mr-4 h-10 w-10 sm:h-12 sm:w-12" />
               Kühlschrank scannen
             </Button>
+            
+            {/* Scan limit indicator for free users */}
+            {user && !subscriptionStatus?.subscribed && (
+              <p className="text-center text-sm text-muted-foreground mt-3">
+                <span className={scansRemaining > 0 ? "text-primary" : "text-destructive"}>
+                  {scansRemaining}/2 Scans
+                </span>
+                {" "}heute übrig • <NavLink to="/premium" className="text-primary underline">Unlimited mit Premium</NavLink>
+              </p>
+            )}
           </motion.div>
 
           {/* Motivational Tips */}
@@ -281,13 +318,13 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Bottom Navigation - Always visible for subscribed users */}
-      {user && subscriptionStatus?.subscribed && (
+      {/* Bottom Navigation - Only for subscribed users after onboarding */}
+      {user && subscriptionStatus?.subscribed && onboardingComplete && (
         <BottomNavigation />
       )}
 
       {/* AI Chatbot - Only for subscribed users */}
-      {user && subscriptionStatus?.subscribed && (
+      {user && subscriptionStatus?.subscribed && onboardingComplete && (
         <AIChatbot userProfile={userProfile} />
       )}
     </div>
