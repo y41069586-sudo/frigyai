@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Target, Settings, XCircle, Droplets, TrendingDown, ShoppingCart, Lock } from "lucide-react";
+import { Camera, Heart, LogOut, Crown, Calendar, Settings, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,29 +97,6 @@ const Index = () => {
     }
   };
 
-  const handleLockedClick = () => {
-    toast({
-      title: "🔒 Tracker zuerst einrichten",
-      description: "Richte deinen Tracker ein um alle Features freizuschalten",
-    });
-    navigate("/meal-plans");
-  };
-
-  // Locked card wrapper component
-  const LockedCard = ({ children, locked }: { children: React.ReactNode; locked: boolean }) => {
-    if (!locked) return <>{children}</>;
-    
-    return (
-      <div onClick={handleLockedClick} className="cursor-pointer relative">
-        <div className="opacity-50 pointer-events-none">
-          {children}
-        </div>
-        <div className="absolute top-2 right-2 bg-background/90 p-1.5 rounded-full border border-muted shadow-sm">
-          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-      </div>
-    );
-  };
 
   // Show splash screen first
   if (showSplash) {
@@ -215,129 +192,48 @@ const Index = () => {
             </p>
           </motion.div>
 
-          {/* Scan Button - Larger and more prominent */}
+          {/* Scan Button - Extra Large and prominent */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+            className="py-4"
           >
             <Button
               size="lg"
               onClick={() => navigate("/scan")}
-              className="w-full glow-button gradient-neon text-black font-bold text-lg sm:text-xl py-7 sm:py-8 rounded-2xl shadow-lg"
+              className="w-full glow-button gradient-neon text-black font-bold text-xl sm:text-2xl py-10 sm:py-12 rounded-3xl shadow-2xl hover:scale-[1.02] transition-transform"
             >
-              <Camera className="mr-3 h-7 w-7 sm:h-8 sm:w-8" />
+              <Camera className="mr-4 h-10 w-10 sm:h-12 sm:w-12" />
               Kühlschrank scannen
             </Button>
           </motion.div>
 
-          {/* Tracker Status Card - Always clickable */}
-          {user && subscriptionStatus?.subscribed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <NavLink to="/meal-plans">
-                <div className={`p-4 rounded-2xl border-2 transition-all ${
-                  trackerSetup 
-                    ? "bg-primary/15 border-primary/50 hover:border-primary" 
-                    : "bg-primary/10 border-primary/40 hover:border-primary animate-pulse"
-                }`}>
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/20">
-                      <Target className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold flex items-center gap-2">
-                        {trackerSetup ? "Tracker eingerichtet" : "Tracker einrichten"}
-                        {trackerSetup && <span className="text-primary">✓</span>}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {trackerSetup ? "Dein Kalorienziel ist aktiv" : "Pflicht: Features sind gesperrt"}
-                      </p>
-                    </div>
-                    <Button size="sm" className="glow-button">
-                      {trackerSetup ? "Öffnen" : "Start"}
-                    </Button>
-                  </div>
+          {/* Motivational Tips */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="space-y-3"
+          >
+            <div className="p-4 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+              <p className="text-sm text-muted-foreground text-center">
+                💡 <span className="text-foreground font-medium">Tipp:</span> Scanne deinen Kühlschrank und erhalte sofort kalorienarme Rezepte mit nur 3-4 Zutaten.
+              </p>
+            </div>
+            
+            {userProfile && (
+              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Dein Tagesziel</p>
+                  <p className="text-2xl font-bold text-primary">{userProfile.dailyCalories} kcal</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {userProfile.dailyProtein}g Protein • {userProfile.dailyCarbs}g Carbs • {userProfile.dailyFat}g Fett
+                  </p>
                 </div>
-              </NavLink>
-            </motion.div>
-          )}
-
-          {/* Wochenplan & Einkaufsliste - Locked when no tracker */}
-          {user && subscriptionStatus?.subscribed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="grid grid-cols-2 gap-3"
-            >
-              <LockedCard locked={!trackerSetup}>
-                <NavLink to="/meal-plans?tab=meals">
-                  <div className="p-4 rounded-2xl bg-orange-500/15 border border-orange-500/40 hover:border-orange-500/60 transition-all h-[140px] flex items-center justify-center">
-                    <div className="flex flex-col items-center text-center gap-2">
-                      <div className="p-3 rounded-xl bg-orange-500/25">
-                        <Calendar className="h-6 w-6 text-orange-400" />
-                      </div>
-                      <h4 className="font-bold text-sm">Wochenplan</h4>
-                      <p className="text-xs text-muted-foreground leading-tight">Deckt dein<br/>Kalorienziel</p>
-                    </div>
-                  </div>
-                </NavLink>
-              </LockedCard>
-              <LockedCard locked={!trackerSetup}>
-                <NavLink to="/meal-plans?tab=shopping">
-                  <div className="p-4 rounded-2xl bg-green-500/15 border border-green-500/40 hover:border-green-500/60 transition-all h-[140px] flex items-center justify-center">
-                    <div className="flex flex-col items-center text-center gap-2">
-                      <div className="p-3 rounded-xl bg-green-500/25">
-                        <ShoppingCart className="h-6 w-6 text-green-400" />
-                      </div>
-                      <h4 className="font-bold text-sm">Einkaufsliste</h4>
-                      <p className="text-xs text-muted-foreground leading-tight">Passend zum<br/>Wochenplan</p>
-                    </div>
-                  </div>
-                </NavLink>
-              </LockedCard>
-            </motion.div>
-          )}
-
-          {/* Wasser & Statistiken Cards - Smaller, with scroll fade-in */}
-          {user && subscriptionStatus?.subscribed && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="grid grid-cols-2 gap-2"
-            >
-              <LockedCard locked={!trackerSetup}>
-                <NavLink to="/meal-plans?tab=water">
-                  <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-500/50 transition-all h-full">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-cyan-500/20">
-                        <Droplets className="h-4 w-4 text-cyan-400" />
-                      </div>
-                      <span className="text-xs font-medium">Wasser</span>
-                    </div>
-                  </div>
-                </NavLink>
-              </LockedCard>
-              <LockedCard locked={!trackerSetup}>
-                <NavLink to="/meal-plans?tab=progress">
-                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-500/50 transition-all h-full">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-purple-500/20">
-                        <TrendingDown className="h-4 w-4 text-purple-400" />
-                      </div>
-                      <span className="text-xs font-medium">Statistiken</span>
-                    </div>
-                  </div>
-                </NavLink>
-              </LockedCard>
-            </motion.div>
-          )}
+              </div>
+            )}
+          </motion.div>
 
           {/* Premium Upsell for non-subscribed users */}
           {user && !subscriptionStatus?.subscribed && (
