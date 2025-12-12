@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { 
   User, Scale, Target, Flame, Camera, Plus, Trash2, 
-  ChevronRight, Sparkles, TrendingDown
+  ChevronRight, Sparkles, TrendingDown, Pencil
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
+import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 
-interface FoodEntry {
+export interface FoodEntry {
   id: string;
   name: string;
   calories: number;
@@ -34,9 +35,10 @@ interface UserProfile {
 
 interface MacroTrackerProps {
   onSetupComplete?: () => void;
+  onResetTracker?: () => void;
 }
 
-export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
+export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const [step, setStep] = useState<'onboarding' | 'tracker'>(
     localStorage.getItem('userProfile') ? 'tracker' : 'onboarding'
@@ -61,7 +63,29 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
   });
   const [foodInput, setFoodInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Expose reset function to parent
+  const resetTracker = () => {
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('todayFood');
+    setProfile(null);
+    setFoodEntries([]);
+    setStep('onboarding');
+    setOnboardingStep(0);
+    onResetTracker?.();
+  };
+
+  // Make resetTracker available via ref or callback
+  useEffect(() => {
+    // Store the reset function in window for chatbot access
+    (window as any).__resetMacroTracker = resetTracker;
+    return () => {
+      delete (window as any).__resetMacroTracker;
+    };
+  }, []);
 
   const weightDiff = weight - targetWeight;
   const weeksToGoal = 4;
@@ -165,6 +189,19 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
 
   const removeEntry = (id: string) => {
     saveFoodEntries(foodEntries.filter(e => e.id !== id));
+  };
+
+  const editEntry = (entry: FoodEntry) => {
+    setEditingEntry(entry);
+    setIsEditDialogOpen(true);
+  };
+
+  const saveEditedEntry = (updatedEntry: FoodEntry) => {
+    const updatedEntries = foodEntries.map(e => 
+      e.id === updatedEntry.id ? updatedEntry : e
+    );
+    saveFoodEntries(updatedEntries);
+    toast({ title: 'Eintrag aktualisiert', description: `${updatedEntry.name} - ${updatedEntry.calories} kcal` });
   };
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
@@ -455,12 +492,16 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
           >
-            <Card className="p-3 bg-card/60 border-primary/10">
+            <Card 
+              className="p-3 bg-card/60 border-primary/10 cursor-pointer hover:bg-card/80 transition-colors"
+              onClick={() => editEntry(entry)}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{entry.name}</span>
                     <span className="text-xs text-muted-foreground">{entry.time}</span>
+                    <Pencil className="h-3 w-3 text-muted-foreground" />
                   </div>
                   <div className="flex gap-3 text-xs text-muted-foreground mt-1">
                     <span>{entry.calories} kcal</span>
@@ -472,7 +513,10 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => removeEntry(entry.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeEntry(entry.id);
+                  }}
                   className="h-8 w-8 text-muted-foreground hover:text-red-500"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -490,6 +534,14 @@ export const MacroTracker = ({ onSetupComplete }: MacroTrackerProps) => {
           </Card>
         )}
       </div>
+
+      {/* Edit Food Entry Dialog */}
+      <EditFoodEntryDialog
+        entry={editingEntry}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={saveEditedEntry}
+      />
     </div>
   );
 };

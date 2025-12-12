@@ -135,6 +135,20 @@ const MealPlansPage = () => {
   const handleTrackerSetup = () => {
     const profile = localStorage.getItem('userProfile');
     setTrackerSetup(!!profile);
+    if (profile) {
+      try {
+        setUserProfile(JSON.parse(profile));
+      } catch (e) {
+        console.error('Failed to parse user profile');
+      }
+    }
+  };
+
+  // Handle tracker reset from chatbot
+  const handleResetTracker = () => {
+    setTrackerSetup(false);
+    setUserProfile(null);
+    setActiveTab('tracker');
   };
 
   const generateMealPlan = async () => {
@@ -504,7 +518,7 @@ const MealPlansPage = () => {
       />
 
       {/* AI Chatbot */}
-      <AIChatbot userProfile={userProfile} />
+      <AIChatbot userProfile={userProfile} onResetTracker={handleResetTracker} />
     </div>
   );
 };
