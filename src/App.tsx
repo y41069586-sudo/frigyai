@@ -35,7 +35,9 @@ const AppContent = () => {
     localStorage.setItem('hasSeenOnboarding', 'true');
     setShowOnboarding(false);
     if (goToPremium) {
-      navigate('/premium');
+      // Store intent to go to premium after auth
+      localStorage.setItem('redirectAfterAuth', '/premium');
+      navigate('/auth');
     }
   };
 

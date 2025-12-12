@@ -22,7 +22,13 @@ const AuthPage = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      navigate('/');
+      const redirectPath = localStorage.getItem('redirectAfterAuth');
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterAuth');
+        navigate(redirectPath);
+      } else {
+        navigate('/');
+      }
     }
   }, [user, loading, navigate]);
 
@@ -34,7 +40,13 @@ const AuthPage = () => {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (!error) {
-          navigate('/');
+          const redirectPath = localStorage.getItem('redirectAfterAuth');
+          if (redirectPath) {
+            localStorage.removeItem('redirectAfterAuth');
+            navigate(redirectPath);
+          } else {
+            navigate('/');
+          }
         }
       } else {
         const { error } = await signUp(email, password);
