@@ -47,12 +47,11 @@ const Index = () => {
       }
     }
     
-    // Check if onboarding was already completed
-    const onboardingDone = localStorage.getItem("onboardingComplete");
-    if (onboardingDone) {
+    // If user is logged in, skip onboarding automatically
+    if (user) {
       setOnboardingComplete(true);
     }
-  }, []);
+  }, [user]);
 
   // Fetch daily scan usage for free users
   useEffect(() => {
@@ -81,19 +80,19 @@ const Index = () => {
   
   const handleSplashComplete = () => {
     setShowSplash(false);
-    // Check again after splash completes
-    const onboardingDone = localStorage.getItem("onboardingComplete");
-    if (onboardingDone === "true") {
-      setOnboardingComplete(true);
-      setShowOnboarding(false);
-    } else {
+    // Only show onboarding if user is NOT logged in
+    if (!user) {
       setShowOnboarding(true);
       setOnboardingComplete(false);
+    } else {
+      // User is logged in - skip onboarding
+      setOnboardingComplete(true);
+      setShowOnboarding(false);
     }
   };
   
   const handleOnboardingComplete = () => {
-    localStorage.setItem("onboardingComplete", "true");
+    // Just close onboarding - user still needs to register/login
     setShowOnboarding(false);
     setOnboardingComplete(true);
   };
