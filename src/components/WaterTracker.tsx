@@ -9,12 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGamification } from '@/hooks/useGamification';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 const ML_PER_GLASS = 250;
 
 export const WaterTracker = () => {
   const { user } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
+  const { playWaterDrop, playGoalReached } = useSoundEffects();
   const [glasses, setGlasses] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [dailyGoal, setDailyGoal] = useState(8); // Default 8 glasses = 2L
@@ -74,6 +76,7 @@ export const WaterTracker = () => {
     } else {
       const mlDrunk = newGlasses * ML_PER_GLASS;
       if (change > 0) {
+        playWaterDrop(); // Play water drop sound
         toast({ 
           title: `+${ML_PER_GLASS}ml getrunken! 💧`, 
           description: `Schon ${mlDrunk}ml heute` 
@@ -82,6 +85,7 @@ export const WaterTracker = () => {
         recordActivity();
       }
       if (newGlasses >= dailyGoal && glasses < dailyGoal) {
+        playGoalReached(); // Play goal reached fanfare
         toast({ title: '🎉 Tagesziel erreicht!', description: 'Super gemacht!' });
         // Award water goal badge
         checkAndAwardBadge('water_goal');

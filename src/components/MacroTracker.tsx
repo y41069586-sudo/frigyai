@@ -11,7 +11,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { EditFoodEntryDialog } from './EditFoodEntryDialog';
+import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 
 export interface FoodEntry {
   id: string;
@@ -40,6 +42,7 @@ interface MacroTrackerProps {
 
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const { recordActivity, checkAndAwardBadge } = useGamification();
+  const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const [step, setStep] = useState<'onboarding' | 'tracker'>(
     localStorage.getItem('userProfile') ? 'tracker' : 'onboarding'
   );
@@ -66,6 +69,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Animated analyzing messages
@@ -167,6 +178,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setIsAnalyzing(true);
     if (imageBase64) {
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
+      playScanStart(); // Play scan start sound
     }
     try {
       // Only send non-empty food, or imageBase64
@@ -192,7 +204,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
-      toast({ title: 'Essen hinzugefügt', description: `${data.name} - ${data.calories} kcal` });
+      
+      // Show success overlay with confetti for image scans
+      if (imageBase64) {
+        setLastAnalyzedFood({
+          name: data.name,
+          calories: data.calories,
+          protein: data.protein,
+          carbs: data.carbs,
+          fat: data.fat,
+        });
+        setShowSuccessOverlay(true);
+        playSuccess(); // Play success sound
+      } else {
+        toast({ title: 'Essen hinzugefügt', description: `${data.name} - ${data.calories} kcal` });
+        playClick(); // Play click sound for text input
+      }
       
       // Record activity for streak and award badge
       recordActivity();
@@ -657,6 +684,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSave={saveEditedEntry}
+      />
+
+      {/* Success Overlay after successful scan */}
+      <ScanSuccessOverlay
+        isVisible={showSuccessOverlay}
+        foodName={lastAnalyzedFood?.name || ''}
+        calories={lastAnalyzedFood?.calories || 0}
+        protein={lastAnalyzedFood?.protein || 0}
+        carbs={lastAnalyzedFood?.carbs || 0}
+        fat={lastAnalyzedFood?.fat || 0}
+        onComplete={() => setShowSuccessOverlay(false)}
       />
     </div>
   );
