@@ -145,7 +145,7 @@ const FrigLogoImage = ({ size = "normal" }: { size?: "small" | "normal" | "large
   return (
     <img 
       src={frigLogo} 
-      alt="Frig AI Logo" 
+      alt="FriG AI Logo" 
       className={`${sizeClass} rounded-[22%]`}
     />
   );
@@ -281,8 +281,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2">
-              <img src={frigLogo} alt="Frig AI" className="h-8 w-8 rounded-lg" />
-              <span className="text-lg font-bold">Frig AI</span>
+              <img src={frigLogo} alt="FriG AI" className="h-8 w-8 rounded-lg" />
+              <span className="text-lg font-bold">FriG AI</span>
             </div>
           </div>
         </div>
