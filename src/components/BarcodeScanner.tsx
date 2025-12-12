@@ -41,48 +41,32 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     try {
       setError(null);
       setIsScanning(true);
-      console.log("Scanner wird gestartet...");
       
-      // Small delay to ensure DOM is ready
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Configure scanner for product barcodes (EAN, UPC, etc.)
+      // Only most common product barcode formats for speed
       const formatsToSupport = [
         Html5QrcodeSupportedFormats.EAN_13,
         Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
       ];
       
-      const scanner = new Html5Qrcode("barcode-reader", { formatsToSupport, verbose: true });
+      const scanner = new Html5Qrcode("barcode-reader", { formatsToSupport, verbose: false });
       scannerRef.current = scanner;
-
-      console.log("Scanner initialisiert, starte Kamera...");
 
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 300, height: 150 },
-          disableFlip: false,
+          fps: 30, // Maximum speed
+          qrbox: { width: 320, height: 120 },
+          disableFlip: true, // Faster without flip check
         },
         async (decodedText) => {
-          console.log("✅ Barcode erkannt:", decodedText);
           await handleBarcode(decodedText);
         },
-        (errorMessage) => {
-          // Log scan attempts (not errors, just no barcode found yet)
-          if (!errorMessage.includes("No MultiFormat Readers")) {
-            console.log("Scanning...", errorMessage);
-          }
-        }
+        () => {}
       );
-      
-      console.log("✅ Kamera erfolgreich gestartet");
     } catch (err: any) {
-      console.error("❌ Scanner Fehler:", err);
+      console.error("Scanner error:", err);
       setError("Kamera-Zugriff fehlgeschlagen. Bitte erlaube den Zugriff auf die Kamera.");
       setIsScanning(false);
     }
