@@ -63,9 +63,31 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   });
   const [foodInput, setFoodInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Animated analyzing messages
+  const analyzingMessages = [
+    "Dein Essen wird analysiert...",
+    "Danke für die Geduld...",
+    "Kalorien werden berechnet...",
+    "Nährwerte ermitteln...",
+    "Fast fertig..."
+  ];
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (isAnalyzing && analyzingImage) {
+      const interval = setInterval(() => {
+        setCurrentMessageIndex(prev => (prev + 1) % analyzingMessages.length);
+      }, 2000);
+      return () => clearInterval(interval);
+    } else {
+      setCurrentMessageIndex(0);
+    }
+  }, [isAnalyzing, analyzingImage]);
 
   // Expose reset function to parent
   const resetTracker = () => {
@@ -143,6 +165,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const analyzeFood = async (food: string, imageBase64?: string) => {
     setIsAnalyzing(true);
+    if (imageBase64) {
+      setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
+    }
     try {
       // Only send non-empty food, or imageBase64
       const body: { food?: string; imageBase64?: string } = {};
@@ -177,6 +202,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       toast({ title: 'Fehler', description: 'Konnte Essen nicht analysieren', variant: 'destructive' });
     } finally {
       setIsAnalyzing(false);
+      setAnalyzingImage(null);
     }
   };
 
@@ -487,6 +513,91 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           />
         </div>
       </Card>
+
+      {/* Analyzing State with Image Preview */}
+      <AnimatePresence>
+        {isAnalyzing && analyzingImage && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative rounded-2xl overflow-hidden"
+          >
+            {/* Background Image with Dark Overlay */}
+            <div className="relative aspect-video w-full">
+              <img
+                src={analyzingImage}
+                alt="Analyzing food"
+                className="w-full h-full object-cover"
+              />
+              {/* Dark Overlay */}
+              <div className="absolute inset-0 bg-black/60" />
+              
+              {/* Neon Glow Border */}
+              <div 
+                className="absolute inset-0 rounded-2xl"
+                style={{
+                  boxShadow: 'inset 0 0 30px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.3)',
+                  border: '2px solid rgba(34, 197, 94, 0.5)'
+                }}
+              />
+              
+              {/* Scanning Line Animation */}
+              <motion.div
+                className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
+                initial={{ top: 0 }}
+                animate={{ top: '100%' }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              />
+              
+              {/* Content Overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+                {/* Pulsing Icon */}
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="mb-4"
+                >
+                  <div 
+                    className="p-4 rounded-full bg-primary/20 backdrop-blur-sm"
+                    style={{ boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)' }}
+                  >
+                    <Sparkles className="h-8 w-8 text-primary" />
+                  </div>
+                </motion.div>
+                
+                {/* Animated Messages */}
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentMessageIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.5 }}
+                    className="text-lg font-medium text-white text-center"
+                    style={{ textShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
+                  >
+                    {analyzingMessages[currentMessageIndex]}
+                  </motion.p>
+                </AnimatePresence>
+                
+                {/* Loading Dots */}
+                <div className="flex gap-2 mt-4">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-primary"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                      style={{ boxShadow: '0 0 10px rgba(34, 197, 94, 0.8)' }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Food Entries */}
       <div className="space-y-2">
