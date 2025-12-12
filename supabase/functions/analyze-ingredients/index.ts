@@ -23,9 +23,40 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    // Initialize Supabase client first for auth check
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    // SECURITY: Check authentication BEFORE any processing
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Authentifizierung erforderlich. Bitte melde dich an." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
     
-    // Validate input
+    if (authError || !userData.user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Ungültiger Token. Bitte melde dich erneut an." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = userData.user.id;
+    const userEmail = userData.user.email;
+    console.log("User authenticated:", userId);
+
+    // Now parse and validate input
+    const body = await req.json();
     const parseResult = requestSchema.safeParse(body);
     if (!parseResult.success) {
       console.error("Validation error:", parseResult.error);
@@ -42,50 +73,31 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    // Check authentication
-    const authHeader = req.headers.get("Authorization");
-    let userId: string | null = null;
+    // Check if user has premium subscription via Stripe
     let isPremium = false;
-
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabaseClient.auth.getUser(token);
-      userId = userData.user?.id || null;
-      const userEmail = userData.user?.email;
-
-      // Check if user has premium subscription via Stripe
-      if (userEmail) {
-        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-        if (stripeKey) {
-          try {
-            const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
-            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-            const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-            
-            if (customers.data.length > 0) {
-              const subscriptions = await stripe.subscriptions.list({
-                customer: customers.data[0].id,
-                status: "active",
-                limit: 1,
-              });
-              isPremium = subscriptions.data.length > 0;
-            }
-          } catch (stripeError) {
-            console.error("Stripe check error:", stripeError);
+    if (userEmail) {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (stripeKey) {
+        try {
+          const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
+          const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+          const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+          if (customers.data.length > 0) {
+            const subscriptions = await stripe.subscriptions.list({
+              customer: customers.data[0].id,
+              status: "active",
+              limit: 1,
+            });
+            isPremium = subscriptions.data.length > 0;
           }
+        } catch (stripeError) {
+          console.error("Stripe check error:", stripeError);
         }
       }
     }
 
     // Check scan limits for non-premium users
-    if (userId && !isPremium) {
+    if (!isPremium) {
       const today = new Date().toISOString().split('T')[0];
       
       // Get today's scan count
