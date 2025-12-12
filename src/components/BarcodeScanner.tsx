@@ -114,7 +114,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Ultra-fast native detection loop
+  // Ultra-fast native detection loop - max 2 seconds
   const detectBarcodes = useCallback(async () => {
     if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
     
@@ -135,24 +135,29 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
 
     if (scanningRef.current) {
-      // Immediate next frame for fastest possible detection
-      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      // Scan every 50ms for max 2 second detection (20 attempts per second)
+      setTimeout(() => {
+        if (scanningRef.current) {
+          animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+        }
+      }, 50);
     }
   }, [lookupBarcode]);
 
-  // Start with native BarcodeDetector (Chrome, Edge)
+  // Start with native BarcodeDetector (Chrome, Edge) - optimized for speed
   const startNativeScanner = useCallback(async () => {
-    // Create detector with only EAN-13 for fastest detection
+    // Create detector with common barcode formats
     detectorRef.current = new (window as any).BarcodeDetector({
-      formats: ['ean_13', 'ean_8']
+      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
     });
 
-    // Lower resolution = faster processing = instant detection
+    // Higher resolution for faster, more accurate detection
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 }
       }
     });
 
@@ -170,7 +175,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [detectBarcodes]);
 
-  // Fallback for Safari/Firefox
+  // Fallback for Safari/Firefox - optimized for speed
   const startFallbackScanner = useCallback(async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
     
@@ -178,6 +183,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       formatsToSupport: [
         Html5QrcodeSupportedFormats.EAN_13,
         Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
       ], 
       verbose: false 
     });
@@ -186,7 +193,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     await scanner.start(
       { facingMode: "environment" },
       {
-        fps: 60,
+        fps: 30,
+        qrbox: { width: 300, height: 150 },
         disableFlip: true,
       },
       async (decodedText) => {

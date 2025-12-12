@@ -4,6 +4,7 @@ import { Camera, Heart, LogOut, Crown, Calendar, Settings, XCircle } from "lucid
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { NavLink } from "@/components/NavLink";
 import HeroAnimation from "@/components/HeroAnimation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +28,7 @@ interface UserProfile {
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut } = useAuth();
+  const { t } = useLanguage();
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -99,11 +101,11 @@ const Index = () => {
 
   const handleManageSubscription = async () => {
     if (!session) {
-      toast({ title: 'Nicht angemeldet', variant: 'destructive' });
+      toast({ title: t.error, variant: 'destructive' });
       return;
     }
     setPortalLoading(true);
-    toast({ title: 'Lade Stripe-Portal...', description: 'Bitte warten' });
+    toast({ title: t.loading });
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -116,7 +118,7 @@ const Index = () => {
         }
       }
     } catch (error: any) {
-      toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
+      toast({ title: t.error, description: error.message, variant: 'destructive' });
     } finally {
       setPortalLoading(false);
     }
@@ -155,10 +157,10 @@ const Index = () => {
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-2 bg-card" align="end">
                       <Button variant="ghost" className="w-full justify-start" onClick={handleManageSubscription} disabled={portalLoading}>
-                        <Settings className="mr-2 h-4 w-4" /> Abo verwalten
+                        <Settings className="mr-2 h-4 w-4" /> {t.manageSubscription}
                       </Button>
                       <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleManageSubscription} disabled={portalLoading}>
-                        <XCircle className="mr-2 h-4 w-4" /> Abo kündigen
+                        <XCircle className="mr-2 h-4 w-4" /> {t.cancelSubscription}
                       </Button>
                     </PopoverContent>
                   </Popover>
@@ -179,7 +181,7 @@ const Index = () => {
               </>
             ) : (
               <NavLink to="/auth">
-                <Button className="glow-button" size="sm">Anmelden</Button>
+                <Button className="glow-button" size="sm">{t.login}</Button>
               </NavLink>
             )}
           </div>
@@ -211,10 +213,10 @@ const Index = () => {
             className="text-center space-y-3"
           >
             <h2 className="text-2xl sm:text-4xl font-bold">
-              Leichter <span className="text-neon">Abnehmen</span>
+              {t.homeTitle.split(' ')[0]} <span className="text-neon">{t.homeTitle.split(' ').slice(1).join(' ')}</span>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base">
-              Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen
+              {t.homeSubtitle}
             </p>
           </motion.div>
 
@@ -231,16 +233,16 @@ const Index = () => {
               className="w-full glow-button gradient-neon text-black font-bold text-xl sm:text-2xl py-10 sm:py-12 rounded-3xl shadow-2xl hover:scale-[1.02] transition-transform"
             >
               <Camera className="mr-4 h-10 w-10 sm:h-12 sm:w-12" />
-              Kühlschrank scannen
+              {t.scanFridge}
             </Button>
             
             {/* Scan limit indicator for free users */}
             {user && !subscriptionStatus?.subscribed && (
               <p className="text-center text-sm text-muted-foreground mt-3">
                 <span className={scansRemaining > 0 ? "text-primary" : "text-destructive"}>
-                  {scansRemaining}/2 Scans
+                  {scansRemaining}/2 {t.scansRemaining}
                 </span>
-                {" "}heute übrig • <NavLink to="/premium" className="text-primary underline">Unlimited mit Premium</NavLink>
+                {" "}• <NavLink to="/premium" className="text-primary underline">{t.unlimitedWithPremium}</NavLink>
               </p>
             )}
           </motion.div>
@@ -254,17 +256,17 @@ const Index = () => {
           >
             <div className="p-4 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
               <p className="text-sm text-muted-foreground text-center">
-                💡 <span className="text-foreground font-medium">Tipp:</span> Scanne deinen Kühlschrank und erhalte sofort kalorienarme Rezepte mit nur 3-4 Zutaten.
+                💡 <span className="text-foreground font-medium">{t.tip}:</span> {t.tipText}
               </p>
             </div>
             
             {userProfile && (
               <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Dein Tagesziel</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t.dailyGoal}</p>
                   <p className="text-2xl font-bold text-primary">{userProfile.dailyCalories} kcal</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {userProfile.dailyProtein}g Protein • {userProfile.dailyCarbs}g Carbs • {userProfile.dailyFat}g Fett
+                    {userProfile.dailyProtein}g {t.protein} • {userProfile.dailyCarbs}g {t.carbs} • {userProfile.dailyFat}g {t.fat}
                   </p>
                 </div>
               </div>
@@ -285,12 +287,12 @@ const Index = () => {
                       <Crown className="h-7 w-7 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg">Premium freischalten</h3>
-                      <p className="text-xs text-muted-foreground">Tracker • Wochenpläne • Einkaufslisten</p>
+                      <h3 className="font-bold text-lg">{t.unlockPremium}</h3>
+                      <p className="text-xs text-muted-foreground">{t.premiumFeatures}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold text-primary">4,99€</p>
-                      <p className="text-[10px] text-muted-foreground">/Monat</p>
+                      <p className="text-[10px] text-muted-foreground">{t.perMonth}</p>
                     </div>
                   </div>
                 </div>
@@ -307,8 +309,8 @@ const Index = () => {
             >
               <NavLink to="/auth">
                 <div className="p-4 bg-card rounded-xl border border-border/50 text-center hover:border-primary/50 transition-all">
-                  <p className="text-sm text-muted-foreground mb-2">Anmelden für alle Features</p>
-                  <Button className="glow-button">Jetzt starten</Button>
+                  <p className="text-sm text-muted-foreground mb-2">{t.signInForFeatures}</p>
+                  <Button className="glow-button">{t.startNow}</Button>
                 </div>
               </NavLink>
             </motion.div>
