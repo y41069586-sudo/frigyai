@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { 
   User, Scale, Target, Flame, Camera, Plus, Trash2, 
-  ChevronRight, Sparkles, TrendingDown, Pencil
+  ChevronRight, Sparkles, TrendingDown, Pencil, Barcode
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { useGamification } from '@/hooks/useGamification';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
+import { BarcodeScanner } from './BarcodeScanner';
 
 export interface FoodEntry {
   id: string;
@@ -70,6 +71,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
     name: string;
     calories: number;
@@ -260,6 +262,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     );
     saveFoodEntries(updatedEntries);
     toast({ title: 'Eintrag aktualisiert', description: `${updatedEntry.name} - ${updatedEntry.calories} kcal` });
+  };
+
+  const handleBarcodeScanned = (food: { name: string; calories: number; protein: number; carbs: number; fat: number }) => {
+    const newEntry: FoodEntry = {
+      id: Date.now().toString(),
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+    };
+    saveFoodEntries([...foodEntries, newEntry]);
+    recordActivity();
+    checkAndAwardBadge('meal_logged');
+    playSuccess();
   };
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
@@ -527,8 +545,18 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             onClick={() => fileInputRef.current?.click()}
             disabled={isAnalyzing}
             className="shrink-0"
+            title="Foto aufnehmen"
           >
             <Camera className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowBarcodeScanner(true)}
+            disabled={isAnalyzing}
+            className="shrink-0"
+            title="Barcode scannen"
+          >
+            <Barcode className="h-4 w-4" />
           </Button>
           <input
             ref={fileInputRef}
@@ -540,6 +568,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           />
         </div>
       </Card>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onFoodScanned={handleBarcodeScanned}
+      />
 
       {/* Analyzing State with Image Preview */}
       <AnimatePresence>
