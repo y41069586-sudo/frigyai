@@ -50,13 +50,17 @@ const Index = () => {
   useEffect(() => {
     if (!loading && !authChecked) {
       setAuthChecked(true);
-      // If user is logged in OR has completed onboarding before, skip splash
-      if (user || hasCompletedOnboarding || isFromSubscription) {
+      // ALWAYS skip splash/onboarding for logged-in users
+      if (user) {
         setShowSplash(false);
         setOnboardingComplete(true);
         localStorage.setItem('onboardingComplete', 'true');
+      } else if (hasCompletedOnboarding || isFromSubscription) {
+        // Skip for users who already completed onboarding
+        setShowSplash(false);
+        setOnboardingComplete(true);
       } else {
-        // First time visitor - show splash
+        // First time visitor without account - show splash
         setShowSplash(true);
       }
     }
