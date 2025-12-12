@@ -20,6 +20,9 @@ const PremiumPage = () => {
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'water' | 'weight'>('overview');
   const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
+  const [isAutoCheckout, setIsAutoCheckout] = useState(() => {
+    return localStorage.getItem('startCheckoutAfterAuth') === 'true';
+  });
 
   useEffect(() => {
     if (!user) {
@@ -36,6 +39,23 @@ const PremiumPage = () => {
       handleSubscribe();
     }
   }, [session, autoCheckoutTriggered, subscriptionStatus]);
+
+  // Show loading screen while auto-checkout is in progress
+  if (isAutoCheckout && !subscriptionStatus?.subscribed) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-primary safe-area-inset">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <img src={frigLogo} alt="Frig AI" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
+          <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   const handleSubscribe = async () => {
     if (!session) {
