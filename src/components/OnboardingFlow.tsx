@@ -248,14 +248,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 safe-area-inset"
+        className="fixed inset-0 z-[100] flex flex-col items-center bg-background p-4 safe-area-inset overflow-y-auto"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="flex flex-col items-center gap-6 w-full max-w-sm"
+          className="flex flex-col items-center gap-4 w-full max-w-sm py-6"
         >
-          <FrigLogoImage size="normal" />
+          <FrigLogoImage size="small" />
           
           <h2 className="text-2xl font-bold text-center">{t.choosePlan}</h2>
 
@@ -268,9 +268,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           >
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-bold">{t.freePlan}</h3>
-              <span className="text-muted-foreground">€0</span>
+              <span className="text-xl font-bold">€0</span>
             </div>
-            <p className="text-muted-foreground text-sm mb-4">{t.freePlanDesc}</p>
+            <p className="text-muted-foreground text-sm mb-3">{t.freePlanDesc}</p>
+            <div className="flex flex-col gap-1.5 mb-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-muted-foreground" />
+                <span>{t.freeFeature1}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-muted-foreground" />
+                <span>{t.freeFeature2}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-muted-foreground" />
+                <span>{t.freeFeature3}</span>
+              </div>
+            </div>
             <Button
               variant="outline"
               className="w-full"
@@ -290,30 +304,50 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div className="absolute top-2 right-2">
               <Sparkles className="w-5 h-5 text-primary animate-pulse" />
             </div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-bold text-primary">{t.premiumPlan}</h3>
-              <span className="font-bold">€4,99<span className="text-muted-foreground text-sm">{t.perMonth}</span></span>
+              <div className="text-right">
+                <span className="text-xl font-bold">€4,99</span>
+                <span className="text-muted-foreground text-sm">{t.perMonth}</span>
+              </div>
             </div>
+            <p className="text-xs text-primary font-medium mb-2">{t.freeTrialInfo}</p>
             <p className="text-muted-foreground text-sm mb-3">{t.premiumPlanDesc}</p>
-            <div className="flex flex-col gap-1 mb-4">
+            <div className="flex flex-col gap-1.5 mb-4">
               <div className="flex items-center gap-2 text-sm">
                 <Check className="w-4 h-4 text-primary" />
-                <span>{t.unlimitedRecipeGeneration}</span>
+                <span>{t.premiumFeature1}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Check className="w-4 h-4 text-primary" />
-                <span>{t.weeklyPersonalizedMealPlans}</span>
+                <span>{t.premiumFeature2}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Check className="w-4 h-4 text-primary" />
-                <span>{t.macroTrackingCalorieAnalysis}</span>
+                <span>{t.premiumFeature3}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.premiumFeature4}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.premiumFeature5}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.premiumFeature6}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.premiumFeature7}</span>
               </div>
             </div>
             <Button
               className="w-full bg-primary hover:bg-primary/90"
               onClick={handlePremiumPlan}
             >
-              {t.getPremium}
+              {t.startFreeTrial}
             </Button>
           </motion.div>
         </motion.div>
