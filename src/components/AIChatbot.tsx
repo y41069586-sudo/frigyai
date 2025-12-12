@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Bot, Send, X, Sparkles, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -21,9 +23,10 @@ interface AIChatbotProps {
     weight: number;
     targetWeight: number;
   } | null;
+  onResetTracker?: () => void;
 }
 
-export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
+export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
   const { session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -34,6 +37,23 @@ export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const processActions = (response: string): string => {
+    // Check for reset tracker action
+    if (response.includes('[ACTION:RESET_TRACKER]')) {
+      // Execute the reset
+      if (onResetTracker) {
+        onResetTracker();
+        toast({
+          title: 'Tracker zurückgesetzt',
+          description: 'Deine Ziele wurden zurückgesetzt. Du kannst sie jetzt neu einrichten.',
+        });
+      }
+      // Remove the action tag from the displayed message
+      return response.replace('[ACTION:RESET_TRACKER]', '').trim();
+    }
+    return response;
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -62,10 +82,13 @@ export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
 
       if (error) throw error;
 
+      // Process any actions in the response
+      const processedResponse = processActions(data.response);
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response,
+        content: processedResponse,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -128,8 +151,8 @@ export const AIChatbot = ({ userProfile }: AIChatbotProps) => {
                 {messages.length === 0 && (
                   <div className="text-center text-muted-foreground py-8">
                     <Bot className="h-12 w-12 mx-auto mb-3 text-primary/50" />
-                    <p className="text-sm">Hallo! Ich bin dein KI-Ernährungsberater.</p>
-                    <p className="text-xs mt-1">Frag mich nach Rezepten, Tipps oder deinem Plan!</p>
+                    <p className="text-sm">Hallo! Ich bin dein KI-Assistent.</p>
+                    <p className="text-xs mt-1">Frag mich nach Rezepten, App-Hilfe oder sage "Tracker zurücksetzen"!</p>
                     {userProfile && (
                       <div className="mt-4 p-3 bg-primary/10 rounded-lg text-xs">
                         <p className="font-medium text-primary">Dein Ziel:</p>
