@@ -24,40 +24,7 @@ const PremiumPage = () => {
     return localStorage.getItem('startCheckoutAfterAuth') === 'true';
   });
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-    }
-  }, [user, navigate]);
-
-  // Auto-trigger checkout if coming from onboarding
-  useEffect(() => {
-    const shouldStartCheckout = localStorage.getItem('startCheckoutAfterAuth');
-    if (shouldStartCheckout === 'true' && session && !autoCheckoutTriggered && !subscriptionStatus?.subscribed) {
-      localStorage.removeItem('startCheckoutAfterAuth');
-      setAutoCheckoutTriggered(true);
-      handleSubscribe();
-    }
-  }, [session, autoCheckoutTriggered, subscriptionStatus]);
-
-  // Show loading screen while auto-checkout is in progress
-  if (isAutoCheckout && !subscriptionStatus?.subscribed) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-primary safe-area-inset">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <img src={frigLogo} alt="Frig AI" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
-          <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
-          <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  const handleSubscribe = async () => {
+  const startCheckout = async () => {
     if (!session) {
       toast({
         title: t.notLoggedIn,
@@ -117,9 +84,47 @@ const PremiumPage = () => {
         description: error.message || t.toastError,
         variant: 'destructive',
       });
+      setIsAutoCheckout(false);
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+    }
+  }, [user, navigate]);
+
+  // Auto-trigger checkout if coming from onboarding
+  useEffect(() => {
+    const shouldStartCheckout = localStorage.getItem('startCheckoutAfterAuth');
+    if (shouldStartCheckout === 'true' && session && !autoCheckoutTriggered && !subscriptionStatus?.subscribed) {
+      localStorage.removeItem('startCheckoutAfterAuth');
+      setAutoCheckoutTriggered(true);
+      startCheckout();
+    }
+  }, [session, autoCheckoutTriggered, subscriptionStatus]);
+
+  // Show loading screen while auto-checkout is in progress
+  if (isAutoCheckout && !subscriptionStatus?.subscribed) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-primary safe-area-inset">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <img src={frigLogo} alt="Frig AI" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
+          <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const handleSubscribe = async () => {
+    await startCheckout();
   };
 
   const handleManageSubscription = async () => {
