@@ -32,13 +32,14 @@ const Index = () => {
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  // Skip splash/onboarding if coming from subscription success
+  // Skip splash/onboarding if coming from subscription success or if user already completed onboarding
   const urlParams = new URLSearchParams(window.location.search);
   const isFromSubscription = urlParams.get('subscription') === 'success';
+  const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
   
-  const [showSplash, setShowSplash] = useState(!isFromSubscription);
+  const [showSplash, setShowSplash] = useState(!isFromSubscription && !hasCompletedOnboarding);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState(isFromSubscription);
+  const [onboardingComplete, setOnboardingComplete] = useState(isFromSubscription || hasCompletedOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
   
@@ -60,9 +61,12 @@ const Index = () => {
       }
     }
     
-    // If user is logged in, skip onboarding automatically
+    // If user is logged in, skip onboarding automatically and mark as complete
     if (user) {
       setOnboardingComplete(true);
+      setShowSplash(false);
+      setShowOnboarding(false);
+      localStorage.setItem('onboardingComplete', 'true');
     }
   }, [user]);
 
@@ -105,9 +109,10 @@ const Index = () => {
   };
   
   const handleOnboardingComplete = () => {
-    // Just close onboarding - user still needs to register/login
+    // Close onboarding and mark as complete in localStorage
     setShowOnboarding(false);
     setOnboardingComplete(true);
+    localStorage.setItem('onboardingComplete', 'true');
   };
 
   const handleManageSubscription = async () => {
