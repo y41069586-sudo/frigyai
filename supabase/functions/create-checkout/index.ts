@@ -48,12 +48,60 @@ serve(async (req) => {
     const user = data.user;
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Use Stripe Payment Link instead of Checkout Session for better reliability
-    const paymentLinkUrl = "https://buy.stripe.com/test_7sY8wP0DmcbJ6O60YL87K00";
-    
-    logStep("Using payment link", { url: paymentLinkUrl });
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
 
-    return new Response(JSON.stringify({ url: paymentLinkUrl }), {
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Check if customer already exists
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    let customerId: string | undefined;
+    
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+      logStep("Found existing customer", { customerId });
+      
+      // Check if user already has an active subscription
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 1,
+      });
+      
+      if (subscriptions.data.length > 0) {
+        logStep("User already has active subscription");
+        return new Response(JSON.stringify({ error: "Du hast bereits ein aktives Abonnement" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+    }
+
+    const origin = req.headers.get("origin") || "https://frig-ai.lovable.app";
+    
+    // Create checkout session with 7-day trial
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      customer_email: customerId ? undefined : user.email,
+      line_items: [
+        {
+          price: "price_1SZrRBGj66h7dQy6o8nlG6wJ", // Healthy3 Premium monthly price
+          quantity: 1,
+        },
+      ],
+      mode: "subscription",
+      subscription_data: {
+        trial_period_days: 7, // 7-day free trial
+      },
+      success_url: `${origin}/?subscription=success`,
+      cancel_url: `${origin}/?subscription=cancelled`,
+    });
+
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+
+    return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
