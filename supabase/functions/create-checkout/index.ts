@@ -95,8 +95,8 @@ serve(async (req) => {
       subscription_data: {
         trial_period_days: 7, // 7-day free trial
       },
-      success_url: `${origin}/?subscription=success`,
-      cancel_url: `${origin}/?subscription=cancelled`,
+      success_url: `${origin}/meal-plans?subscription=success`,
+      cancel_url: `${origin}/premium?subscription=cancelled`,
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

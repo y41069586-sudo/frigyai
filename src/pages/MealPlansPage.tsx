@@ -76,6 +76,19 @@ const MealPlansPage = () => {
   // Initialize reminder system
   useReminders();
 
+  // Show success message after subscription purchase
+  useEffect(() => {
+    const subscriptionParam = urlParams.get('subscription');
+    if (subscriptionParam === 'success') {
+      toast({
+        title: "🎉 Willkommen bei FriG AI Premium!",
+        description: "Dein 7-Tage kostenloser Test hat begonnen. Genieße alle Premium-Features!",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/meal-plans');
+    }
+  }, []);
+
   const handleManageSubscription = async () => {
     if (!session) {
       toast({ title: t.notLoggedIn, variant: 'destructive' });
