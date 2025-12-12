@@ -144,8 +144,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const analyzeFood = async (food: string, imageBase64?: string) => {
     setIsAnalyzing(true);
     try {
+      // Only send non-empty food, or imageBase64
+      const body: { food?: string; imageBase64?: string } = {};
+      if (food && food.trim()) body.food = food.trim();
+      if (imageBase64) body.imageBase64 = imageBase64;
+      
       const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body: { food, imageBase64 },
+        body,
       });
 
       if (error) throw error;
