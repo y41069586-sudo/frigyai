@@ -263,6 +263,21 @@ interface Translations {
   // Session expired
   sessionExpired: string;
   pleaseLoginAgain: string;
+  
+  // MacroTracker specific
+  nothingEatenToday: string;
+  addFirstFood: string;
+  egTwoEggsWithToast: string;
+  takePhoto: string;
+  scanBarcode: string;
+  letsGo: string;
+  
+  // Language Settings
+  languageSettings: string;
+  changeLanguage: string;
+  german: string;
+  english: string;
+  french: string;
   redirectingToStripe: string;
   noCheckoutUrl: string;
   noPortalUrl: string;
@@ -533,6 +548,21 @@ const translations: Record<Language, Translations> = {
     redirectingToStripe: "Du wirst jetzt weitergeleitet...",
     noCheckoutUrl: "Keine Checkout-URL erhalten",
     noPortalUrl: "Keine Portal-URL erhalten",
+    
+    // MacroTracker specific
+    nothingEatenToday: "Noch nichts gegessen heute",
+    addFirstFood: "Füge dein erstes Essen hinzu",
+    egTwoEggsWithToast: "z.B. 2 Eier mit Toast",
+    takePhoto: "Foto aufnehmen",
+    scanBarcode: "Barcode scannen",
+    letsGo: "Los geht's!",
+    
+    // Language Settings
+    languageSettings: "Spracheinstellungen",
+    changeLanguage: "Sprache ändern",
+    german: "Deutsch",
+    english: "Englisch",
+    french: "Französisch",
   },
   en: {
     // Navigation & Common
@@ -798,6 +828,21 @@ const translations: Record<Language, Translations> = {
     redirectingToStripe: "Redirecting you now...",
     noCheckoutUrl: "No checkout URL received",
     noPortalUrl: "No portal URL received",
+    
+    // MacroTracker specific
+    nothingEatenToday: "Nothing eaten today",
+    addFirstFood: "Add your first food",
+    egTwoEggsWithToast: "e.g. 2 eggs with toast",
+    takePhoto: "Take photo",
+    scanBarcode: "Scan barcode",
+    letsGo: "Let's go!",
+    
+    // Language Settings
+    languageSettings: "Language Settings",
+    changeLanguage: "Change language",
+    german: "German",
+    english: "English",
+    french: "French",
   },
   fr: {
     // Navigation & Common
@@ -1063,6 +1108,21 @@ const translations: Record<Language, Translations> = {
     redirectingToStripe: "Redirection en cours...",
     noCheckoutUrl: "Aucune URL de paiement reçue",
     noPortalUrl: "Aucune URL de portail reçue",
+    
+    // MacroTracker specific
+    nothingEatenToday: "Rien mangé aujourd'hui",
+    addFirstFood: "Ajoutez votre premier aliment",
+    egTwoEggsWithToast: "ex. 2 œufs avec toast",
+    takePhoto: "Prendre une photo",
+    scanBarcode: "Scanner le code-barres",
+    letsGo: "C'est parti!",
+    
+    // Language Settings
+    languageSettings: "Paramètres de langue",
+    changeLanguage: "Changer de langue",
+    german: "Allemand",
+    english: "Anglais",
+    french: "Français",
   },
 };
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Sparkles, Check, Calendar, ShoppingCart, BarChart, XCircle, Settings, Droplets, TrendingDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +14,7 @@ import frigLogo from '@/assets/frig-logo.png';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -27,8 +29,8 @@ const PremiumPage = () => {
   const handleSubscribe = async () => {
     if (!session) {
       toast({
-        title: 'Nicht angemeldet',
-        description: 'Bitte melde dich an, um fortzufahren.',
+        title: t.notLoggedIn,
+        description: t.pleaseLoginAgain,
         variant: 'destructive',
       });
       navigate('/auth');
@@ -56,8 +58,8 @@ const PremiumPage = () => {
             errorMessage.includes('session') ||
             errorMessage.includes('Auth')) {
           toast({
-            title: 'Sitzung abgelaufen',
-            description: 'Bitte melde dich erneut an.',
+            title: t.sessionExpired,
+            description: t.pleaseLoginAgain,
             variant: 'destructive',
           });
           await supabase.auth.signOut();
@@ -70,18 +72,18 @@ const PremiumPage = () => {
       if (response.data?.url) {
         console.log('Redirecting to payment link:', response.data.url);
         toast({
-          title: 'Weiterleitung zu Stripe',
-          description: 'Du wirst jetzt weitergeleitet...',
+          title: t.redirectingToStripe,
+          description: t.pleaseWait,
         });
         window.location.href = response.data.url;
       } else {
-        throw new Error('Keine Checkout-URL erhalten');
+        throw new Error(t.noCheckoutUrl);
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast({
-        title: 'Fehler',
-        description: error.message || 'Ein Fehler ist aufgetreten',
+        title: t.error,
+        description: error.message || t.toastError,
         variant: 'destructive',
       });
     } finally {
@@ -92,15 +94,15 @@ const PremiumPage = () => {
   const handleManageSubscription = async () => {
     if (!session) {
       toast({
-        title: 'Nicht angemeldet',
-        description: 'Bitte melde dich an, um fortzufahren.',
+        title: t.notLoggedIn,
+        description: t.pleaseLoginAgain,
         variant: 'destructive',
       });
       return;
     }
 
     setLoading(true);
-    toast({ title: 'Lade Stripe-Portal...', description: 'Bitte warten' });
+    toast({ title: t.loadingStripePortal, description: t.pleaseWait });
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: {
@@ -116,12 +118,12 @@ const PremiumPage = () => {
           window.location.href = data.url;
         }
       } else {
-        throw new Error('Keine Portal-URL erhalten');
+        throw new Error(t.noPortalUrl);
       }
     } catch (error: any) {
       toast({
-        title: 'Fehler',
-        description: error.message || 'Ein Fehler ist aufgetreten',
+        title: t.error,
+        description: error.message || t.toastError,
         variant: 'destructive',
       });
     } finally {
@@ -130,12 +132,12 @@ const PremiumPage = () => {
   };
 
   const features = [
-    { icon: Calendar, text: 'Wöchentliche personalisierte Meal Plans' },
-    { icon: ShoppingCart, text: 'Automatische Einkaufslisten' },
-    { icon: BarChart, text: 'Makro-Tracking & Kalorienanalyse' },
-    { icon: Sparkles, text: 'Unbegrenzte Rezeptgenerierung' },
-    { icon: Droplets, text: 'Wasser-Tracker' },
-    { icon: TrendingDown, text: 'Gewichtsverlauf & Fortschritt' },
+    { icon: Calendar, text: t.weeklyPersonalizedMealPlans },
+    { icon: ShoppingCart, text: t.automaticShoppingLists },
+    { icon: BarChart, text: t.macroTrackingCalorieAnalysis },
+    { icon: Sparkles, text: t.unlimitedRecipeGeneration },
+    { icon: Droplets, text: t.waterTrackerFeature },
+    { icon: TrendingDown, text: t.weightProgressFeature },
   ];
 
   const isPremium = subscriptionStatus?.subscribed;
@@ -179,10 +181,10 @@ const PremiumPage = () => {
                       <Sparkles className="h-8 w-8 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold neon-text">Premium Aktiv</h2>
+                      <h2 className="text-2xl font-bold neon-text">{t.premiumActive}</h2>
                       {subscriptionStatus?.subscription_end && (
                         <p className="text-sm text-muted-foreground">
-                          Erneuert am: {new Date(subscriptionStatus.subscription_end).toLocaleDateString('de-DE')}
+                          {t.renewsOn}: {new Date(subscriptionStatus.subscription_end).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -195,7 +197,7 @@ const PremiumPage = () => {
                       size="sm"
                     >
                       <Settings className="mr-2 h-4 w-4" />
-                      Verwalten
+                      {t.manage}
                     </Button>
                     <Button
                       onClick={handleManageSubscription}
@@ -205,7 +207,7 @@ const PremiumPage = () => {
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <XCircle className="mr-2 h-4 w-4" />
-                      Kündigen
+                      {t.cancelSubscription}
                     </Button>
                   </div>
                 </div>
@@ -219,7 +221,7 @@ const PremiumPage = () => {
                   className={activeSection === 'overview' ? 'glow-button' : ''}
                 >
                   <BarChart className="mr-2 h-4 w-4" />
-                  Übersicht
+                  {t.overview}
                 </Button>
                 <Button
                   variant={activeSection === 'water' ? 'default' : 'outline'}
@@ -227,7 +229,7 @@ const PremiumPage = () => {
                   className={activeSection === 'water' ? 'glow-button' : ''}
                 >
                   <Droplets className="mr-2 h-4 w-4" />
-                  Wasser-Tracker
+                  {t.waterTracker}
                 </Button>
                 <Button
                   variant={activeSection === 'weight' ? 'default' : 'outline'}
@@ -235,7 +237,7 @@ const PremiumPage = () => {
                   className={activeSection === 'weight' ? 'glow-button' : ''}
                 >
                   <TrendingDown className="mr-2 h-4 w-4" />
-                  Gewichtsverlauf
+                  {t.weightProgress}
                 </Button>
               </div>
 
@@ -249,7 +251,7 @@ const PremiumPage = () => {
                   <div className="bg-card/80 backdrop-blur-lg rounded-2xl p-6 border border-primary/20">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-primary" />
-                      Schnellzugriff
+                      {t.quickAccess}
                     </h3>
                     <div className="space-y-3">
                       <Button
@@ -257,7 +259,7 @@ const PremiumPage = () => {
                         className="w-full glow-button"
                       >
                         <Calendar className="mr-2 h-4 w-4" />
-                        Meal Plans
+                        {t.mealPlans}
                       </Button>
                       <Button
                         onClick={() => navigate('/manual')}
@@ -265,7 +267,7 @@ const PremiumPage = () => {
                         className="w-full"
                       >
                         <BarChart className="mr-2 h-4 w-4" />
-                        Tracker einrichten
+                        {t.setupTrackerButton}
                       </Button>
                       <Button
                         onClick={() => setActiveSection('water')}
@@ -273,7 +275,7 @@ const PremiumPage = () => {
                         className="w-full"
                       >
                         <Droplets className="mr-2 h-4 w-4" />
-                        Wasser-Tracker
+                        {t.waterTracker}
                       </Button>
                       <Button
                         onClick={() => setActiveSection('weight')}
@@ -281,13 +283,13 @@ const PremiumPage = () => {
                         className="w-full"
                       >
                         <TrendingDown className="mr-2 h-4 w-4" />
-                        Gewichtsverlauf
+                        {t.weightProgress}
                       </Button>
                     </div>
                   </div>
                   
                   <div className="bg-card/80 backdrop-blur-lg rounded-2xl p-6 border border-primary/20">
-                    <h3 className="font-semibold mb-4">Deine Premium-Features</h3>
+                    <h3 className="font-semibold mb-4">{t.yourPremiumFeatures}</h3>
                     <div className="space-y-2">
                       {features.map((feature, index) => (
                         <div key={index} className="flex items-center gap-2 text-sm">
@@ -328,7 +330,7 @@ const PremiumPage = () => {
                   Healthy3 Premium
                 </h2>
                 <p className="text-4xl font-bold text-primary mb-2">4,99€</p>
-                <p className="text-muted-foreground">pro Monat</p>
+                <p className="text-muted-foreground">{t.perMonth}</p>
               </div>
 
               <div className="space-y-4 mb-8">
@@ -355,7 +357,7 @@ const PremiumPage = () => {
                 className="w-full glow-button"
                 size="lg"
               >
-                {loading ? 'Lädt...' : 'Jetzt Premium werden'}
+                {loading ? t.loading : t.getPremiumNow}
               </Button>
             </div>
           )}

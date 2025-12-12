@@ -15,6 +15,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface FoodEntry {
   id: string;
@@ -42,6 +43,7 @@ interface MacroTrackerProps {
 }
 
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
+  const { t } = useLanguage();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const [step, setStep] = useState<'onboarding' | 'tracker'>(
@@ -81,13 +83,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Animated analyzing messages
+  // Animated analyzing messages - use translations
   const analyzingMessages = [
-    "Dein Essen wird analysiert...",
-    "Danke für die Geduld...",
-    "Kalorien werden berechnet...",
-    "Nährwerte ermitteln...",
-    "Fast fertig..."
+    t.analyzingFood,
+    t.patienceMessage,
+    t.calculatingCalories,
+    t.determiningNutrients,
+    t.almostDone
   ];
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
@@ -219,7 +221,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setShowSuccessOverlay(true);
         playSuccess(); // Play success sound
       } else {
-        toast({ title: 'Essen hinzugefügt', description: `${data.name} - ${data.calories} kcal` });
+        toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
         playClick(); // Play click sound for text input
       }
       
@@ -228,7 +230,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       checkAndAwardBadge('meal_logged');
     } catch (error) {
       console.error('Error analyzing food:', error);
-      toast({ title: 'Fehler', description: 'Konnte Essen nicht analysieren', variant: 'destructive' });
+      toast({ title: t.error, description: t.couldNotAnalyzeFood, variant: 'destructive' });
     } finally {
       setIsAnalyzing(false);
       setAnalyzingImage(null);
@@ -261,7 +263,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       e.id === updatedEntry.id ? updatedEntry : e
     );
     saveFoodEntries(updatedEntries);
-    toast({ title: 'Eintrag aktualisiert', description: `${updatedEntry.name} - ${updatedEntry.calories} kcal` });
+    toast({ title: t.entryUpdated, description: `${updatedEntry.name} - ${updatedEntry.calories} kcal` });
   };
 
   const handleBarcodeScanned = (food: { name: string; calories: number; protein: number; carbs: number; fat: number }) => {
@@ -288,12 +290,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const onboardingSteps = [
     {
       icon: User,
-      title: 'Wie alt bist du?',
+      title: t.howOldAreYou,
       content: (
         <div className="space-y-6">
           <div className="text-center">
             <span className="text-6xl font-bold text-primary">{age}</span>
-            <span className="text-2xl text-muted-foreground ml-2">Jahre</span>
+            <span className="text-2xl text-muted-foreground ml-2">{t.years}</span>
           </div>
           <Slider
             value={[age]}
@@ -308,12 +310,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Scale,
-      title: 'Wie viel wiegst du?',
+      title: t.howMuchDoYouWeigh,
       content: (
         <div className="space-y-6">
           <div className="text-center">
             <span className="text-6xl font-bold text-primary">{weight}</span>
-            <span className="text-2xl text-muted-foreground ml-2">kg</span>
+            <span className="text-2xl text-muted-foreground ml-2">{t.kg}</span>
           </div>
           <Slider
             value={[weight]}
@@ -328,12 +330,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Target,
-      title: 'Was ist dein Ziel in 4 Wochen?',
+      title: t.whatIsYourGoalIn4Weeks,
       content: (
         <div className="space-y-6">
           <div className="text-center">
             <span className="text-6xl font-bold text-primary">{targetWeight}</span>
-            <span className="text-2xl text-muted-foreground ml-2">kg</span>
+            <span className="text-2xl text-muted-foreground ml-2">{t.kg}</span>
           </div>
           <Slider
             value={[targetWeight]}
@@ -345,35 +347,35 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           />
           <div className="flex items-center gap-2 justify-center text-muted-foreground">
             <TrendingDown className="h-5 w-5 text-primary" />
-            <span>{weightDiff} kg abnehmen</span>
+            <span>{weightDiff} {t.kg} {t.loseWeight}</span>
           </div>
         </div>
       ),
     },
     {
       icon: Sparkles,
-      title: 'Dein persönlicher Plan',
+      title: t.yourPersonalPlan,
       content: (
         <div className="space-y-4 text-center">
           <div className="p-6 bg-primary/10 rounded-2xl">
             <Flame className="h-12 w-12 mx-auto text-primary mb-2" />
             <p className="text-4xl font-bold text-primary">{targetCalories}</p>
-            <p className="text-muted-foreground">Kalorien pro Tag</p>
+            <p className="text-muted-foreground">{t.caloriesPerDay}</p>
           </div>
           
           <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3 space-y-1">
-            <p>Grundumsatz: ~{bmr.toFixed(0)} kcal</p>
-            <p>Mit Aktivität: ~{tdee} kcal</p>
-            <p>Defizit: -{Math.round(dailyDeficit)} kcal/Tag</p>
+            <p>{t.baseMetabolism}: ~{bmr.toFixed(0)} kcal</p>
+            <p>{t.withActivity}: ~{tdee} kcal</p>
+            <p>{t.deficit}: -{Math.round(dailyDeficit)} kcal/{t.today.toLowerCase()}</p>
             <p className="text-xs">
-              Ziel: {weightDiff}kg in 4 Wochen ({weeklyLoss.toFixed(2)}kg/Woche)
+              {t.goal}: {weightDiff}{t.kg} {t.inWeeks} ({weeklyLoss.toFixed(2)}{t.kg}{t.weeklyRate})
             </p>
           </div>
           
           {isAtMinimum && (
             <div className="text-sm">
               <p className="text-amber-400 bg-amber-500/10 p-2 rounded-lg text-xs">
-                Kalorienziel auf {minCalories} kcal gesetzt für deine Gesundheit.
+                {t.calorieGoalSet} {minCalories} kcal {t.forYourHealth}
               </p>
             </div>
           )}
@@ -381,16 +383,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="p-3 bg-background/50 rounded-xl">
               <p className="text-lg font-bold text-red-400">{targetProtein}g</p>
-              <p className="text-xs text-muted-foreground">Protein</p>
-              <p className="text-[10px] text-muted-foreground/60">2g/kg</p>
+              <p className="text-xs text-muted-foreground">{t.protein}</p>
+              <p className="text-[10px] text-muted-foreground/60">2g/{t.kg}</p>
             </div>
             <div className="p-3 bg-background/50 rounded-xl">
               <p className="text-lg font-bold text-amber-400">{targetCarbs}g</p>
-              <p className="text-xs text-muted-foreground">Carbs</p>
+              <p className="text-xs text-muted-foreground">{t.carbs}</p>
             </div>
             <div className="p-3 bg-background/50 rounded-xl">
               <p className="text-lg font-bold text-blue-400">{targetFat}g</p>
-              <p className="text-xs text-muted-foreground">Fett</p>
+              <p className="text-xs text-muted-foreground">{t.fat}</p>
             </div>
           </div>
         </div>
@@ -442,7 +444,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                     onClick={() => setOnboardingStep(prev => prev - 1)}
                     className="flex-1"
                   >
-                    Zurück
+                    {t.back}
                   </Button>
                 )}
                 <Button
@@ -456,9 +458,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                   className="flex-1 glow-button"
                 >
                   {onboardingStep < onboardingSteps.length - 1 ? (
-                    <>Weiter <ChevronRight className="h-4 w-4 ml-1" /></>
+                    <>{t.next} <ChevronRight className="h-4 w-4 ml-1" /></>
                   ) : (
-                    'Los geht\'s!'
+                    t.letsGo
                   )}
                 </Button>
               </div>
@@ -475,7 +477,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-sm text-muted-foreground">Heute</p>
+            <p className="text-sm text-muted-foreground">{t.today}</p>
             <p className="text-2xl font-bold">
               <span className={totalCalories > (profile?.dailyCalories || 0) ? 'text-red-500' : 'text-primary'}>
                 {totalCalories}
@@ -492,7 +494,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               setOnboardingStep(0);
             }}
           >
-            Ziel ändern
+            {t.changeGoal}
           </Button>
         </div>
 
@@ -509,25 +511,25 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         <div className="grid grid-cols-3 gap-2 mt-4">
           <div className="text-center p-2 bg-background/30 rounded-lg">
             <p className="text-lg font-bold text-red-400">{totalProtein}g</p>
-            <p className="text-xs text-muted-foreground">Protein</p>
+            <p className="text-xs text-muted-foreground">{t.protein}</p>
           </div>
           <div className="text-center p-2 bg-background/30 rounded-lg">
             <p className="text-lg font-bold text-amber-400">{totalCarbs}g</p>
-            <p className="text-xs text-muted-foreground">Carbs</p>
+            <p className="text-xs text-muted-foreground">{t.carbs}</p>
           </div>
           <div className="text-center p-2 bg-background/30 rounded-lg">
             <p className="text-lg font-bold text-blue-400">{totalFat}g</p>
-            <p className="text-xs text-muted-foreground">Fett</p>
+            <p className="text-xs text-muted-foreground">{t.fat}</p>
           </div>
         </div>
       </Card>
 
       {/* Add Food */}
       <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <p className="font-semibold mb-3">Essen hinzufügen</p>
+        <p className="font-semibold mb-3">{t.addFood}</p>
         <div className="flex gap-2">
           <Input
-            placeholder="z.B. 2 Eier mit Toast"
+            placeholder={t.egTwoEggsWithToast}
             value={foodInput}
             onChange={(e) => setFoodInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && foodInput && analyzeFood(foodInput)}
@@ -545,7 +547,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             onClick={() => fileInputRef.current?.click()}
             disabled={isAnalyzing}
             className="shrink-0"
-            title="Foto aufnehmen"
+            title={t.takePhoto}
           >
             <Camera className="h-4 w-4" />
           </Button>
@@ -554,7 +556,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             onClick={() => setShowBarcodeScanner(true)}
             disabled={isAnalyzing}
             className="shrink-0"
-            title="Barcode scannen"
+            title={t.scanBarcode}
           >
             <Barcode className="h-4 w-4" />
           </Button>
@@ -707,8 +709,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         {foodEntries.length === 0 && (
           <Card className="p-8 text-center bg-card/60 border-primary/10">
             <Flame className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">Noch nichts gegessen heute</p>
-            <p className="text-sm text-muted-foreground mt-1">Füge dein erstes Essen hinzu</p>
+            <p className="text-muted-foreground">{t.nothingEatenToday}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t.addFirstFood}</p>
           </Card>
         )}
       </div>
