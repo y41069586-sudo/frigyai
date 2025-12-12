@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGamification } from '@/hooks/useGamification';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WeightEntry {
   id: string;
@@ -18,6 +19,7 @@ interface WeightEntry {
 
 export const ProgressTracker = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
@@ -64,7 +66,7 @@ export const ProgressTracker = () => {
     
     const weight = parseFloat(newWeight);
     if (isNaN(weight) || weight < 30 || weight > 300) {
-      toast({ title: 'Ungültiges Gewicht', variant: 'destructive' });
+      toast({ title: t.invalidWeight, variant: 'destructive' });
       return;
     }
 
@@ -74,9 +76,9 @@ export const ProgressTracker = () => {
       .insert({ user_id: user.id, weight });
 
     if (error) {
-      toast({ title: 'Fehler', description: 'Konnte Eintrag nicht speichern', variant: 'destructive' });
+      toast({ title: t.error, description: t.toastError, variant: 'destructive' });
     } else {
-      toast({ title: 'Gewicht eingetragen!' });
+      toast({ title: t.weightAdded });
       setNewWeight('');
       loadEntries();
       // Record activity for streak and award badge
@@ -93,7 +95,7 @@ export const ProgressTracker = () => {
       .eq('id', id);
 
     if (error) {
-      toast({ title: 'Fehler', variant: 'destructive' });
+      toast({ title: t.error, variant: 'destructive' });
     } else {
       loadEntries();
     }
@@ -115,24 +117,24 @@ export const ProgressTracker = () => {
       <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
           <TrendingDown className="h-5 w-5 text-primary" />
-          Gewichtsverlauf
+          {t.weightProgress}
         </h3>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <p className="text-2xl font-bold text-primary">{currentWeight?.toFixed(1) || '--'}</p>
-            <p className="text-xs text-muted-foreground">Aktuell (kg)</p>
+            <p className="text-xs text-muted-foreground">{t.current} ({t.kg})</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <p className="text-2xl font-bold text-green-500">
               {weightLost !== null ? `-${weightLost.toFixed(1)}` : '--'}
             </p>
-            <p className="text-xs text-muted-foreground">Verloren (kg)</p>
+            <p className="text-xs text-muted-foreground">{t.lost} ({t.kg})</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <p className="text-2xl font-bold">{targetWeight?.toFixed(1) || '--'}</p>
-            <p className="text-xs text-muted-foreground">Ziel (kg)</p>
+            <p className="text-xs text-muted-foreground">{t.goal} ({t.kg})</p>
           </div>
         </div>
 
@@ -140,7 +142,7 @@ export const ProgressTracker = () => {
         {targetWeight && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Fortschritt zum Ziel</span>
+              <span className="text-sm text-muted-foreground">{t.progressToGoal}</span>
               <span className="text-sm font-medium text-primary">{progress.toFixed(0)}%</span>
             </div>
             <div className="h-3 bg-background rounded-full overflow-hidden">
@@ -154,7 +156,7 @@ export const ProgressTracker = () => {
             {progress >= 100 && (
               <div className="flex items-center gap-2 mt-2 text-green-500">
                 <Trophy className="h-4 w-4" />
-                <span className="text-sm font-medium">Ziel erreicht! 🎉</span>
+                <span className="text-sm font-medium">{t.goalAchieved} 🎉</span>
               </div>
             )}
           </div>
@@ -193,7 +195,7 @@ export const ProgressTracker = () => {
         <div className="flex gap-2">
           <Input
             type="number"
-            placeholder="Gewicht in kg"
+            placeholder={`${t.weight} (${t.kg})`}
             value={newWeight}
             onChange={(e) => setNewWeight(e.target.value)}
             className="flex-1"
@@ -202,7 +204,7 @@ export const ProgressTracker = () => {
             max="300"
           />
           <Button onClick={addEntry} disabled={isLoading || !newWeight} className="glow-button">
-            <Plus className="h-4 w-4 mr-1" /> Eintragen
+            <Plus className="h-4 w-4 mr-1" /> {t.addWeight}
           </Button>
         </div>
 
@@ -212,7 +214,7 @@ export const ProgressTracker = () => {
             {entries.slice().reverse().slice(0, 5).map((entry) => (
               <div key={entry.id} className="flex items-center justify-between p-2 bg-background/30 rounded-lg">
                 <div>
-                  <span className="font-medium">{entry.weight} kg</span>
+                  <span className="font-medium">{entry.weight} {t.kg}</span>
                   <span className="text-xs text-muted-foreground ml-2">
                     {new Date(entry.recorded_at).toLocaleDateString('de-DE')}
                   </span>

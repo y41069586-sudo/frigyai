@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ShoppingCart, Check } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Ingredient {
   name: string;
@@ -20,6 +21,7 @@ interface ShoppingListProps {
 }
 
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
+  const { t } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
 
   useEffect(() => {
@@ -67,16 +69,16 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               <ShoppingCart className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold">Einkaufsliste</p>
+              <p className="font-semibold">{t.shoppingListTitle}</p>
               <p className="text-sm text-muted-foreground">
-                {purchasedCount} von {items.length} gekauft
+                {purchasedCount} {t.ofGoal} {items.length} {t.ofPurchased}
               </p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-primary">€{totalPrice.toFixed(2)}</p>
             <p className="text-sm text-muted-foreground">
-              €{purchasedPrice.toFixed(2)} ausgegeben
+              €{purchasedPrice.toFixed(2)} {t.spent}
             </p>
           </div>
         </div>
@@ -138,7 +140,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       {items.length === 0 && (
         <Card className="p-8 text-center bg-card/60 border-primary/10">
           <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">Generiere einen Wochenplan um die Einkaufsliste zu sehen</p>
+          <p className="text-muted-foreground">{t.generateMealPlanForList}</p>
         </Card>
       )}
     </div>

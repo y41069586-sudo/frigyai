@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import RecipeCard from "@/components/RecipeCard";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Recipe {
   id: string;
@@ -25,6 +26,7 @@ const RecipesPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const ingredients = location.state?.ingredients || [];
@@ -52,14 +54,14 @@ const RecipesPage = () => {
 
       setRecipes(data.recipes || []);
       toast({
-        title: "Rezepte generiert!",
-        description: `${data.recipes?.length || 0} gesunde Rezepte für dich gefunden.`,
+        title: t.recipesGenerated,
+        description: `${data.recipes?.length || 0} ${t.healthyRecipesFound}`,
       });
     } catch (error) {
       console.error("Error generating recipes:", error);
       toast({
-        title: "Fehler",
-        description: "Rezepte konnten nicht generiert werden. Bitte versuche es erneut.",
+        title: t.error,
+        description: t.couldNotAnalyze,
         variant: "destructive",
       });
     } finally {
@@ -73,10 +75,10 @@ const RecipesPage = () => {
         <div className="text-center">
           <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-primary" />
           <h2 className="text-2xl font-semibold mb-2">
-            KI erstellt deine <span className="text-neon">Rezepte</span>
+            {t.aiCreatingRecipes.split(' ').slice(0, 2).join(' ')} <span className="text-neon">{t.aiCreatingRecipes.split(' ').slice(2).join(' ')}</span>
           </h2>
           <p className="text-muted-foreground">
-            Einen Moment bitte...
+            {t.momentPlease}
           </p>
         </div>
       </div>
@@ -102,7 +104,7 @@ const RecipesPage = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-xl sm:text-3xl font-bold truncate">
-              Deine <span className="text-neon">Rezepte</span>
+              {t.yourRecipes.split(' ')[0]} <span className="text-neon">{t.yourRecipes.split(' ').slice(1).join(' ')}</span>
             </h1>
           </div>
           <Button
@@ -111,7 +113,7 @@ const RecipesPage = () => {
             size="sm"
             className="border-primary hover:bg-primary/10 shrink-0 text-xs sm:text-sm touch-target"
           >
-            Neu generieren
+            {t.regenerate}
           </Button>
         </motion.div>
 
@@ -132,13 +134,13 @@ const RecipesPage = () => {
         {recipes.length === 0 && !loading && (
           <div className="text-center py-12">
             <p className="text-base sm:text-lg text-muted-foreground px-4">
-              Keine Rezepte gefunden. Versuche es mit anderen Zutaten.
+              {t.noRecipesFound}
             </p>
             <Button
               onClick={() => navigate("/")}
               className="mt-4 gradient-neon text-black font-semibold touch-target"
             >
-              Zurück zum Start
+              {t.backToStart}
             </Button>
           </div>
         )}

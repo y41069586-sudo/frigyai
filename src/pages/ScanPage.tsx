@@ -7,12 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import IngredientsList from "@/components/IngredientsList";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const FREE_SCAN_LIMIT = 2;
 
 const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const { user, subscriptionStatus } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -54,8 +56,8 @@ const ScanPage = () => {
     // Check if user is logged in
     if (!user) {
       toast({
-        title: "Anmeldung erforderlich",
-        description: "Bitte melde dich an, um den Scanner zu nutzen.",
+        title: t.loginRequired,
+        description: t.loginToUseScanner,
         variant: "destructive",
       });
       navigate("/auth");
@@ -66,8 +68,8 @@ const ScanPage = () => {
     if (!isPremium && scansRemaining !== null && scansRemaining <= 0) {
       setScanLimitReached(true);
       toast({
-        title: "Scan-Limit erreicht",
-        description: "Upgrade auf Premium für unbegrenzte Scans!",
+        title: t.scanLimitReached,
+        description: t.upgradeToPremium,
         variant: "destructive",
       });
       return;
@@ -105,8 +107,8 @@ const ScanPage = () => {
           setScanLimitReached(true);
           setScansRemaining(0);
           toast({
-            title: "Scan-Limit erreicht",
-            description: "Du hast dein tägliches Limit von 2 Scans erreicht. Upgrade auf Premium für unbegrenzte Scans!",
+            title: t.scanLimitReached,
+            description: t.usedScansToday,
             variant: "destructive",
           });
           setImagePreview(null);
@@ -120,8 +122,8 @@ const ScanPage = () => {
         setScanLimitReached(true);
         setScansRemaining(0);
         toast({
-          title: "Scan-Limit erreicht",
-          description: data.message || "Upgrade auf Premium für unbegrenzte Scans!",
+          title: t.scanLimitReached,
+          description: data.message || t.upgradeToPremium,
           variant: "destructive",
         });
         setImagePreview(null);
@@ -136,14 +138,14 @@ const ScanPage = () => {
       }
 
       toast({
-        title: "Zutaten erkannt!",
-        description: `${data.ingredients?.length || 0} Zutaten gefunden.`,
+        title: t.ingredientsRecognized,
+        description: `${data.ingredients?.length || 0} ${t.ingredientsFound}.`,
       });
     } catch (error) {
       console.error("Error analyzing image:", error);
       toast({
-        title: "Fehler",
-        description: "Bild konnte nicht analysiert werden. Bitte versuche es erneut.",
+        title: t.error,
+        description: t.couldNotAnalyze,
         variant: "destructive",
       });
     } finally {
@@ -175,7 +177,7 @@ const ScanPage = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-xl sm:text-3xl font-bold truncate">
-              Kühlschrank <span className="text-neon">scannen</span>
+              {t.scanTitle.split(' ')[0]} <span className="text-neon">{t.scanTitle.split(' ').slice(1).join(' ')}</span>
             </h1>
           </div>
 
@@ -204,7 +206,7 @@ const ScanPage = () => {
               className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0 text-xs sm:text-sm"
             >
               <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="font-semibold hidden sm:inline">Unbegrenzt</span>
+              <span className="font-semibold hidden sm:inline">{t.unlimited}</span>
               <span className="font-semibold sm:hidden">∞</span>
             </motion.div>
           )}
@@ -221,9 +223,9 @@ const ScanPage = () => {
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-destructive">Tägliches Scan-Limit erreicht</h3>
+                  <h3 className="font-semibold text-destructive">{t.dailyScanLimitReached}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Du hast heute bereits {FREE_SCAN_LIMIT} Scans verwendet. Mit Premium bekommst du unbegrenzte Scans!
+                    {t.usedScansToday}
                   </p>
                   <Button
                     onClick={() => navigate("/premium")}
@@ -231,7 +233,7 @@ const ScanPage = () => {
                     size="sm"
                   >
                     <Crown className="h-4 w-4 mr-2" />
-                    Upgrade auf Premium
+                    {t.upgradeToPremium}
                   </Button>
                 </div>
               </div>
@@ -256,16 +258,16 @@ const ScanPage = () => {
             >
               <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
               <h2 className="text-xl sm:text-2xl font-semibold mb-2">
-                Foto hochladen
+                {t.uploadPhoto}
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
-                Mache ein Foto von deinem Kühlschrank oder wähle ein Bild aus
+                {t.takePhotoOrSelect}
               </p>
               <Button 
                 className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
                 disabled={scanLimitReached && !isPremium}
               >
-                Bild auswählen
+                {t.selectImage}
               </Button>
               <input
                 id="imageInput"
@@ -287,7 +289,7 @@ const ScanPage = () => {
               <div className="rounded-3xl overflow-hidden shadow-2xl">
                 <img
                   src={imagePreview}
-                  alt="Kühlschrank"
+                  alt={t.scanFridge}
                   className="w-full h-auto"
                 />
               </div>
@@ -296,7 +298,7 @@ const ScanPage = () => {
                 <div className="text-center py-12">
                   <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
                   <p className="text-lg text-muted-foreground">
-                    KI analysiert deine Zutaten...
+                    {t.aiAnalyzingIngredients}
                   </p>
                 </div>
               ) : (
@@ -317,14 +319,14 @@ const ScanPage = () => {
                       variant="outline"
                       className="flex-1"
                     >
-                      Neues Foto
+                      {t.newPhoto}
                     </Button>
                     <Button
                       onClick={handleGenerateRecipes}
                       disabled={ingredients.length === 0}
                       className="flex-1 gradient-neon text-black font-semibold glow-button"
                     >
-                      Rezepte generieren
+                      {t.generateRecipes}
                     </Button>
                   </div>
                 </>

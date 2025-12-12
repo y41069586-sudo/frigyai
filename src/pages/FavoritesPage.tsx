@@ -4,6 +4,7 @@ import { ArrowLeft, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import RecipeCard from "@/components/RecipeCard";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Recipe {
   id: string;
@@ -21,6 +22,7 @@ interface Recipe {
 
 const FavoritesPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [favorites, setFavorites] = useState<Recipe[]>([]);
 
   useEffect(() => {
@@ -52,7 +54,7 @@ const FavoritesPage = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl sm:text-3xl font-bold truncate">
-            Meine <span className="text-neon">Favoriten</span>
+            {t.myFavorites.split(' ')[0]} <span className="text-neon">{t.myFavorites.split(' ').slice(1).join(' ')}</span>
           </h1>
         </motion.div>
 
@@ -77,16 +79,16 @@ const FavoritesPage = () => {
           >
             <Heart className="h-16 w-16 sm:h-24 sm:w-24 mx-auto mb-4 sm:mb-6 text-muted-foreground opacity-20" />
             <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
-              Noch keine Favoriten
+              {t.noFavoritesYet}
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
-              Speichere deine Lieblingsrezepte, um sie später wiederzufinden
+              {t.saveFavoriteRecipes}
             </p>
             <Button
               onClick={() => navigate("/")}
               className="gradient-neon text-black font-semibold glow-button touch-target"
             >
-              Rezepte entdecken
+              {t.discoverRecipes}
             </Button>
           </motion.div>
         )}

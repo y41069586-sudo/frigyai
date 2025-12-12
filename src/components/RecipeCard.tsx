@@ -3,6 +3,7 @@ import { Clock, Flame, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Recipe {
   id: string;
@@ -24,6 +25,7 @@ interface RecipeCardProps {
 
 const RecipeCard = ({ recipe }: RecipeCardProps) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
@@ -89,15 +91,15 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
         {/* Macros */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
-            <div className="text-xs text-muted-foreground mb-1">Eiweiß</div>
+            <div className="text-xs text-muted-foreground mb-1">{t.proteinLabel}</div>
             <div className="font-semibold">{recipe.protein}g</div>
           </div>
           <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
-            <div className="text-xs text-muted-foreground mb-1">Kohlenhydrate</div>
+            <div className="text-xs text-muted-foreground mb-1">{t.carbsLabel}</div>
             <div className="font-semibold">{recipe.carbs}g</div>
           </div>
           <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
-            <div className="text-xs text-muted-foreground mb-1">Fett</div>
+            <div className="text-xs text-muted-foreground mb-1">{t.fatLabel}</div>
             <div className="font-semibold">{recipe.fat}g</div>
           </div>
         </div>
@@ -114,7 +116,7 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
           ))}
           {recipe.ingredients.length > 3 && (
             <span className="text-xs text-muted-foreground px-3 py-1">
-              +{recipe.ingredients.length - 3} mehr
+              +{recipe.ingredients.length - 3} {t.more}
             </span>
           )}
         </div>
