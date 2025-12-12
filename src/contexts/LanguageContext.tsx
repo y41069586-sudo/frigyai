@@ -68,7 +68,22 @@ interface Translations {
   onboardingSlide2Subtitle: string;
   onboardingSlide3Title: string;
   onboardingSlide3Subtitle: string;
+  onboardingSlide4Title: string;
+  onboardingSlide4Subtitle: string;
+  onboardingSlide5Title: string;
+  onboardingSlide5Subtitle: string;
+  onboardingSlide6Title: string;
+  onboardingSlide6Subtitle: string;
   recipe: string;
+  
+  // Plan Selection
+  choosePlan: string;
+  freePlan: string;
+  freePlanDesc: string;
+  premiumPlan: string;
+  premiumPlanDesc: string;
+  continueWithFree: string;
+  getPremium: string;
   ingredients: string;
   
   // Auth
@@ -344,14 +359,29 @@ const translations: Record<Language, Translations> = {
     
     // Onboarding
     selectLanguage: "Sprache wählen",
-    onboardingSlide1Title: "Was essen?",
-    onboardingSlide1Subtitle: "Keine Idee beim Kühlschrank?",
-    onboardingSlide2Title: "Scannen",
-    onboardingSlide2Subtitle: "Foto vom Kühlschrank machen",
-    onboardingSlide3Title: "Fertig!",
-    onboardingSlide3Subtitle: "Kalorienarme Rezepte erhalten",
+    onboardingSlide1Title: "Willkommen!",
+    onboardingSlide1Subtitle: "Dein smarter Kühlschrank-Assistent",
+    onboardingSlide2Title: "Kühlschrank scannen",
+    onboardingSlide2Subtitle: "Mach ein Foto von deinem Kühlschrank",
+    onboardingSlide3Title: "KI analysiert",
+    onboardingSlide3Subtitle: "Erkennt automatisch alle Zutaten",
+    onboardingSlide4Title: "Rezepte erhalten",
+    onboardingSlide4Subtitle: "Kalorienarme Rezepte mit nur 3-4 Zutaten",
+    onboardingSlide5Title: "Fortschritt tracken",
+    onboardingSlide5Subtitle: "Behalte deine Kalorien im Blick",
+    onboardingSlide6Title: "Leichter abnehmen",
+    onboardingSlide6Subtitle: "Erreiche dein Wunschgewicht",
     recipe: "Rezept",
     ingredients: "Zutaten",
+    
+    // Plan Selection
+    choosePlan: "Wähle deinen Plan",
+    freePlan: "Kostenlos",
+    freePlanDesc: "2 Kühlschrank-Scans pro Tag",
+    premiumPlan: "Premium",
+    premiumPlanDesc: "Unbegrenzte Scans, Wochenpläne, Tracker & mehr",
+    continueWithFree: "Kostenlos starten",
+    getPremium: "Premium holen",
     
     // Auth
     email: "E-Mail",
@@ -624,14 +654,29 @@ const translations: Record<Language, Translations> = {
     
     // Onboarding
     selectLanguage: "Select language",
-    onboardingSlide1Title: "What to eat?",
-    onboardingSlide1Subtitle: "No idea at the fridge?",
-    onboardingSlide2Title: "Scan",
+    onboardingSlide1Title: "Welcome!",
+    onboardingSlide1Subtitle: "Your smart fridge assistant",
+    onboardingSlide2Title: "Scan fridge",
     onboardingSlide2Subtitle: "Take a photo of your fridge",
-    onboardingSlide3Title: "Done!",
-    onboardingSlide3Subtitle: "Get low-calorie recipes",
+    onboardingSlide3Title: "AI analyzes",
+    onboardingSlide3Subtitle: "Automatically recognizes all ingredients",
+    onboardingSlide4Title: "Get recipes",
+    onboardingSlide4Subtitle: "Low-calorie recipes with just 3-4 ingredients",
+    onboardingSlide5Title: "Track progress",
+    onboardingSlide5Subtitle: "Keep your calories in check",
+    onboardingSlide6Title: "Lose weight easier",
+    onboardingSlide6Subtitle: "Reach your goal weight",
     recipe: "Recipe",
     ingredients: "ingredients",
+    
+    // Plan Selection
+    choosePlan: "Choose your plan",
+    freePlan: "Free",
+    freePlanDesc: "2 fridge scans per day",
+    premiumPlan: "Premium",
+    premiumPlanDesc: "Unlimited scans, meal plans, tracker & more",
+    continueWithFree: "Start free",
+    getPremium: "Get Premium",
     
     // Auth
     email: "Email",
@@ -904,14 +949,29 @@ const translations: Record<Language, Translations> = {
     
     // Onboarding
     selectLanguage: "Choisir la langue",
-    onboardingSlide1Title: "Quoi manger?",
-    onboardingSlide1Subtitle: "Pas d'idée devant le frigo?",
-    onboardingSlide2Title: "Scanner",
-    onboardingSlide2Subtitle: "Prendre une photo du frigo",
-    onboardingSlide3Title: "Terminé!",
-    onboardingSlide3Subtitle: "Obtenir des recettes légères",
+    onboardingSlide1Title: "Bienvenue!",
+    onboardingSlide1Subtitle: "Votre assistant frigo intelligent",
+    onboardingSlide2Title: "Scanner le frigo",
+    onboardingSlide2Subtitle: "Prenez une photo de votre frigo",
+    onboardingSlide3Title: "L'IA analyse",
+    onboardingSlide3Subtitle: "Reconnaît automatiquement tous les ingrédients",
+    onboardingSlide4Title: "Obtenir des recettes",
+    onboardingSlide4Subtitle: "Recettes légères avec seulement 3-4 ingrédients",
+    onboardingSlide5Title: "Suivre les progrès",
+    onboardingSlide5Subtitle: "Gardez un œil sur vos calories",
+    onboardingSlide6Title: "Perdre du poids facilement",
+    onboardingSlide6Subtitle: "Atteignez votre poids idéal",
     recipe: "Recette",
     ingredients: "ingrédients",
+    
+    // Plan Selection
+    choosePlan: "Choisissez votre plan",
+    freePlan: "Gratuit",
+    freePlanDesc: "2 scans de frigo par jour",
+    premiumPlan: "Premium",
+    premiumPlanDesc: "Scans illimités, plans repas, suivi et plus",
+    continueWithFree: "Commencer gratuitement",
+    getPremium: "Obtenir Premium",
     
     // Auth
     email: "E-mail",

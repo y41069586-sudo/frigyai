@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Camera, Utensils, TrendingDown, Globe } from "lucide-react";
+import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Sparkles, Check } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { useNavigate } from "react-router-dom";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -159,20 +160,21 @@ const languages: { code: Language; name: string; flag: string }[] = [
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
-  const [hasSelectedLanguage, setHasSelectedLanguage] = useState(false);
+  const [showPlanSelection, setShowPlanSelection] = useState(false);
 
   const slides = [
-    { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle },
-    { title: t.onboardingSlide2Title, subtitle: t.onboardingSlide2Subtitle },
-    { title: t.onboardingSlide3Title, subtitle: t.onboardingSlide3Subtitle },
+    { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle, type: "welcome" as const },
+    { title: t.onboardingSlide2Title, subtitle: t.onboardingSlide2Subtitle, type: "scan" as const },
+    { title: t.onboardingSlide3Title, subtitle: t.onboardingSlide3Subtitle, type: "analyze" as const },
+    { title: t.onboardingSlide4Title, subtitle: t.onboardingSlide4Subtitle, type: "recipes" as const },
+    { title: t.onboardingSlide5Title, subtitle: t.onboardingSlide5Subtitle, type: "track" as const },
+    { title: t.onboardingSlide6Title, subtitle: t.onboardingSlide6Subtitle, type: "goal" as const },
   ];
-
-  const slideTypes = ["visual", "scan", "recipes"] as const;
 
   const handleSelectLanguage = (lang: Language) => {
     setLanguage(lang);
-    setHasSelectedLanguage(true);
     setCurrentSlide(0);
   };
 
@@ -180,12 +182,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
-      onComplete();
+      setShowPlanSelection(true);
     }
   };
 
   const handleSkip = () => {
+    setShowPlanSelection(true);
+  };
+
+  const handleFreePlan = () => {
     onComplete();
+  };
+
+  const handlePremiumPlan = () => {
+    onComplete();
+    navigate('/premium');
   };
 
   // Language Selection Screen
@@ -233,8 +244,87 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     );
   }
 
+  // Plan Selection Screen
+  if (showPlanSelection) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 safe-area-inset"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="flex flex-col items-center gap-6 w-full max-w-sm"
+        >
+          <FrigLogoImage size="normal" />
+          
+          <h2 className="text-2xl font-bold text-center">{t.choosePlan}</h2>
+
+          {/* Free Plan */}
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="w-full p-4 rounded-xl border-2 border-border bg-card"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">{t.freePlan}</h3>
+              <span className="text-muted-foreground">€0</span>
+            </div>
+            <p className="text-muted-foreground text-sm mb-4">{t.freePlanDesc}</p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleFreePlan}
+            >
+              {t.continueWithFree}
+            </Button>
+          </motion.div>
+
+          {/* Premium Plan */}
+          <motion.div
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-full p-4 rounded-xl border-2 border-primary bg-primary/5 relative overflow-hidden"
+          >
+            <div className="absolute top-2 right-2">
+              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-primary">{t.premiumPlan}</h3>
+              <span className="font-bold">€4,99<span className="text-muted-foreground text-sm">{t.perMonth}</span></span>
+            </div>
+            <p className="text-muted-foreground text-sm mb-3">{t.premiumPlanDesc}</p>
+            <div className="flex flex-col gap-1 mb-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.unlimitedRecipeGeneration}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.weeklyPersonalizedMealPlans}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary" />
+                <span>{t.macroTrackingCalorieAnalysis}</span>
+              </div>
+            </div>
+            <Button
+              className="w-full bg-primary hover:bg-primary/90"
+              onClick={handlePremiumPlan}
+            >
+              {t.getPremium}
+            </Button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
   const currentSlideData = slides[currentSlide];
-  const slideType = slideTypes[currentSlide];
 
   return (
     <motion.div
@@ -273,21 +363,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
             >
-              {slideType === "visual" && (
+              {currentSlideData.type === "welcome" && (
                 <div className="relative">
-                  <MiniFridge />
+                  <FrigLogoImage size="large" />
                   <motion.div
-                    className="absolute -top-4 -right-4 text-4xl"
-                    animate={{ rotate: [0, 10, -10, 0] }}
+                    className="absolute -top-2 -right-2 text-3xl"
+                    animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                   >
-                    🤔
+                    👋
                   </motion.div>
                 </div>
               )}
-              {slideType === "scan" && (
+              {currentSlideData.type === "scan" && (
                 <div className="relative">
-                  <MiniFridge scanning />
+                  <MiniFridge />
                   <motion.div
                     className="absolute -bottom-3 -right-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg"
                     animate={{ scale: [1, 1.1, 1] }}
@@ -297,7 +387,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </motion.div>
                 </div>
               )}
-              {slideType === "recipes" && (
+              {currentSlideData.type === "analyze" && (
+                <div className="relative">
+                  <MiniFridge scanning />
+                </div>
+              )}
+              {currentSlideData.type === "recipes" && (
                 <div className="flex flex-col gap-3">
                   {[1, 2, 3].map((i) => (
                     <motion.div
@@ -321,6 +416,35 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <TrendingDown className="w-4 h-4 text-primary ml-auto" />
                     </motion.div>
                   ))}
+                </div>
+              )}
+              {currentSlideData.type === "track" && (
+                <div className="w-32 h-32 rounded-full border-8 border-primary/20 flex items-center justify-center relative">
+                  <motion.div
+                    className="absolute inset-2 rounded-full border-8 border-primary"
+                    style={{ borderRightColor: 'transparent', borderBottomColor: 'transparent' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  />
+                  <Target className="w-12 h-12 text-primary" />
+                </div>
+              )}
+              {currentSlideData.type === "goal" && (
+                <div className="relative">
+                  <motion.div
+                    className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Scale className="w-12 h-12 text-primary" />
+                  </motion.div>
+                  <motion.div
+                    className="absolute -top-2 -right-2 text-3xl"
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    🎯
+                  </motion.div>
                 </div>
               )}
             </motion.div>
