@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { SplashScreen } from "@/components/SplashScreen";
 import { AIChatbot } from "@/components/AIChatbot";
+import { BottomNavigation } from "@/components/BottomNavigation";
 import frigLogo from "@/assets/frig-logo.png";
 
 interface UserProfile {
@@ -54,11 +55,14 @@ const Index = () => {
   
   const handleSplashComplete = () => {
     setShowSplash(false);
+    // Check again after splash completes
     const onboardingDone = localStorage.getItem("onboardingComplete");
-    if (!onboardingDone) {
-      setShowOnboarding(true);
-    } else {
+    if (onboardingDone === "true") {
       setOnboardingComplete(true);
+      setShowOnboarding(false);
+    } else {
+      setShowOnboarding(true);
+      setOnboardingComplete(false);
     }
   };
   
@@ -179,7 +183,7 @@ const Index = () => {
         </div>
       </nav>
 
-      <div className="relative z-10 container mx-auto px-4 py-4 sm:py-8 safe-bottom">
+      <div className="relative z-10 container mx-auto px-4 py-4 sm:py-8 pb-24">
         <div className="max-w-md mx-auto space-y-6 sm:space-y-8">
           
           {/* Hero Animation - Only shows after onboarding */}
@@ -211,7 +215,7 @@ const Index = () => {
             </p>
           </motion.div>
 
-          {/* Scan Button - Above Tracker */}
+          {/* Scan Button - Larger and more prominent */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -220,9 +224,9 @@ const Index = () => {
             <Button
               size="lg"
               onClick={() => navigate("/scan")}
-              className="w-full glow-button gradient-neon text-black font-semibold text-base sm:text-lg py-5 sm:py-6 rounded-2xl"
+              className="w-full glow-button gradient-neon text-black font-bold text-lg sm:text-xl py-7 sm:py-8 rounded-2xl shadow-lg"
             >
-              <Camera className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
+              <Camera className="mr-3 h-7 w-7 sm:h-8 sm:w-8" />
               Kühlschrank scannen
             </Button>
           </motion.div>
@@ -380,6 +384,11 @@ const Index = () => {
 
         </div>
       </div>
+
+      {/* Bottom Navigation - Only for subscribed users */}
+      {user && subscriptionStatus?.subscribed && trackerSetup && (
+        <BottomNavigation />
+      )}
 
       {/* AI Chatbot - Only for subscribed users */}
       {user && subscriptionStatus?.subscribed && (
