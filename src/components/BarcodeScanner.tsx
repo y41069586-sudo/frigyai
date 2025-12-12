@@ -33,17 +33,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
   const scanningRef = useRef(false);
   const lastScannedRef = useRef<string | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
     
-    // Stop native stream
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     
-    // Stop html5-qrcode
     if (html5QrcodeRef.current) {
       html5QrcodeRef.current.stop().catch(() => {});
       html5QrcodeRef.current = null;
@@ -52,8 +56,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
-    
-    // Prevent duplicate scans
     if (lastScannedRef.current === barcode) return;
     lastScannedRef.current = barcode;
     
@@ -112,97 +114,89 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Native BarcodeDetector detection loop
+  // Ultra-fast native detection loop
   const detectBarcodes = useCallback(async () => {
     if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
     
     const video = videoRef.current;
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      requestAnimationFrame(detectBarcodes);
+    if (video.readyState < video.HAVE_CURRENT_DATA) {
+      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
       return;
     }
 
     try {
       const barcodes = await detectorRef.current.detect(video);
-      if (barcodes.length > 0) {
-        const barcode = barcodes[0].rawValue;
-        if (barcode) {
-          await lookupBarcode(barcode);
-          return;
-        }
+      if (barcodes.length > 0 && barcodes[0].rawValue) {
+        lookupBarcode(barcodes[0].rawValue);
+        return;
       }
-    } catch (err) {
-      // Detection failed, continue scanning
+    } catch {
+      // Continue scanning
     }
 
     if (scanningRef.current) {
-      requestAnimationFrame(detectBarcodes);
+      // Immediate next frame for fastest possible detection
+      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
   }, [lookupBarcode]);
 
   // Start with native BarcodeDetector (Chrome, Edge)
   const startNativeScanner = useCallback(async () => {
-    try {
-      detectorRef.current = new (window as any).BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
-      });
+    // Create detector with only EAN-13 for fastest detection
+    detectorRef.current = new (window as any).BarcodeDetector({
+      formats: ['ean_13', 'ean_8']
+    });
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        }
-      });
-
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        
-        setIsInitializing(false);
-        scanningRef.current = true;
-        requestAnimationFrame(detectBarcodes);
+    // Lower resolution = faster processing = instant detection
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 640 },
+        height: { ideal: 480 },
       }
-    } catch (err: any) {
-      throw err;
-    }
-  }, [detectBarcodes]);
+    });
 
-  // Fallback to html5-qrcode (Safari, Firefox)
-  const startFallbackScanner = useCallback(async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const formatsToSupport = [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-      ];
-      
-      const scanner = new Html5Qrcode("barcode-reader-fallback", { formatsToSupport, verbose: false });
-      html5QrcodeRef.current = scanner;
-
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 30,
-          qrbox: { width: 300, height: 150 },
-          disableFlip: true,
-        },
-        async (decodedText) => {
-          await lookupBarcode(decodedText);
-        },
-        () => {}
-      );
+    streamRef.current = stream;
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
       
       setIsInitializing(false);
       scanningRef.current = true;
-    } catch (err: any) {
-      throw err;
+      
+      // Start detection immediately
+      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
+  }, [detectBarcodes]);
+
+  // Fallback for Safari/Firefox
+  const startFallbackScanner = useCallback(async () => {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    const scanner = new Html5Qrcode("barcode-reader-fallback", { 
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+      ], 
+      verbose: false 
+    });
+    html5QrcodeRef.current = scanner;
+
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 60,
+        disableFlip: true,
+      },
+      async (decodedText) => {
+        await lookupBarcode(decodedText);
+      },
+      () => {}
+    );
+    
+    setIsInitializing(false);
+    scanningRef.current = true;
   }, [lookupBarcode]);
 
   const startCamera = useCallback(async () => {
@@ -219,7 +213,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     } catch (err: any) {
       console.error("Camera error:", err);
       if (err.name === 'NotAllowedError') {
-        setError("Kamera-Zugriff verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.");
+        setError("Kamera-Zugriff verweigert. Bitte erlaube den Zugriff.");
       } else if (err.name === 'NotFoundError') {
         setError("Keine Kamera gefunden.");
       } else {
@@ -233,10 +227,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (isOpen) {
       startCamera();
     }
-    
-    return () => {
-      stopCamera();
-    };
+    return () => stopCamera();
   }, [isOpen, startCamera, stopCamera]);
 
   const handleClose = () => {
@@ -271,9 +262,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         </div>
 
         {/* Scanner Area */}
-        <div className="flex-1 flex flex-col items-center justify-center relative">
+        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
           {error ? (
-            <div className="text-center space-y-4 px-6">
+            <div className="text-center space-y-4 px-6 z-20">
               <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
               <p className="text-white text-sm">{error}</p>
               <Button onClick={startCamera} variant="outline">
@@ -287,7 +278,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             </div>
           ) : null}
 
-          {/* Native Video Feed (Chrome, Edge) */}
+          {/* Native Video Feed */}
           {hasNativeBarcodeDetector && (
             <video
               ref={videoRef}
@@ -298,67 +289,37 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             />
           )}
 
-          {/* Fallback Scanner Container (Safari, Firefox) */}
+          {/* Fallback Scanner */}
           {!hasNativeBarcodeDetector && (
-            <div 
-              id="barcode-reader-fallback" 
-              className="w-full h-full"
-            />
+            <div id="barcode-reader-fallback" className="w-full h-full" />
           )}
 
-          {/* Scan overlay - only for native scanner */}
+          {/* Scan overlay */}
           {hasNativeBarcodeDetector && !error && !isLoading && !isInitializing && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="relative w-72 h-32">
-                <motion.div 
-                  className="absolute top-0 left-0 w-10 h-10 border-l-4 border-t-4 border-primary rounded-tl-lg"
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-                <motion.div 
-                  className="absolute top-0 right-0 w-10 h-10 border-r-4 border-t-4 border-primary rounded-tr-lg"
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-                />
-                <motion.div 
-                  className="absolute bottom-0 left-0 w-10 h-10 border-l-4 border-b-4 border-primary rounded-bl-lg"
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-                />
-                <motion.div 
-                  className="absolute bottom-0 right-0 w-10 h-10 border-r-4 border-b-4 border-primary rounded-br-lg"
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
-                />
-                
+              <div className="relative w-80 h-36 border-2 border-primary/50 rounded-xl">
                 <motion.div
-                  className="absolute left-4 right-4 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
-                  style={{ boxShadow: "0 0 20px rgba(95, 208, 104, 0.8)" }}
-                  animate={{ top: ["10%", "90%", "10%"] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-x-2 h-0.5 bg-primary rounded-full"
+                  style={{ boxShadow: "0 0 15px rgba(95, 208, 104, 1)" }}
+                  animate={{ top: ["5%", "95%", "5%"] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 />
               </div>
             </div>
           )}
 
-          {/* Initializing overlay */}
+          {/* Initializing */}
           {isInitializing && !error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-              <div className="text-center space-y-4">
-                <Loader2 className="h-12 w-12 text-primary mx-auto animate-spin" />
-                <p className="text-white text-sm">Kamera wird gestartet...</p>
-              </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gradient-to-t from-black/80 to-transparent absolute bottom-0 left-0 right-0">
-          <p className="text-center text-white/70 text-sm">
-            Halte den Barcode vor die Kamera
-          </p>
-          <p className="text-center text-white/40 text-xs mt-1">
-            {hasNativeBarcodeDetector ? "Native API • Soforterkennung" : "Safari-Modus aktiv"}
+        <div className="p-3 bg-gradient-to-t from-black to-transparent absolute bottom-0 left-0 right-0">
+          <p className="text-center text-white/60 text-xs">
+            {hasNativeBarcodeDetector ? "⚡ Sofort-Erkennung aktiv" : "Safari-Modus"}
           </p>
         </div>
       </motion.div>
