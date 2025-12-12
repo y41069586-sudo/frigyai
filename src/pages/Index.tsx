@@ -281,8 +281,8 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Bottom Navigation - Only for subscribed users */}
-      {user && subscriptionStatus?.subscribed && trackerSetup && (
+      {/* Bottom Navigation - Always visible for subscribed users */}
+      {user && subscriptionStatus?.subscribed && (
         <BottomNavigation />
       )}
 

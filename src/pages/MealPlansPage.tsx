@@ -21,6 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import StreakBadge from '@/components/StreakBadge';
 import { AIChatbot } from '@/components/AIChatbot';
+import { BottomNavigation } from '@/components/BottomNavigation';
 
 interface UserProfile {
   age: number;
@@ -362,7 +363,7 @@ const MealPlansPage = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 safe-bottom">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 bg-card/50 border border-primary/20 h-auto p-0.5 sm:p-1 gap-0.5 sm:gap-1">
             <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2">
@@ -519,6 +520,9 @@ const MealPlansPage = () => {
 
       {/* AI Chatbot */}
       <AIChatbot userProfile={userProfile} onResetTracker={handleResetTracker} />
+
+      {/* Bottom Navigation */}
+      <BottomNavigation activeTab={activeTab} />
     </div>
   );
 };
