@@ -7,6 +7,7 @@ import { Bot, Send, X, Sparkles, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Message {
   id: string;
@@ -28,6 +29,7 @@ interface AIChatbotProps {
 
 export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -45,8 +47,8 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
       if (onResetTracker) {
         onResetTracker();
         toast({
-          title: 'Tracker zurückgesetzt',
-          description: 'Deine Ziele wurden zurückgesetzt. Du kannst sie jetzt neu einrichten.',
+          title: t.trackerReset,
+          description: t.goalsReset,
         });
       }
       // Remove the action tag from the displayed message
@@ -97,7 +99,7 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Entschuldigung, ich konnte deine Anfrage nicht verarbeiten. Bitte versuche es erneut.',
+        content: t.couldNotProcess,
       }]);
     } finally {
       setIsLoading(false);
@@ -137,8 +139,8 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
                     <Sparkles className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">Frig AI Berater</h3>
-                    <p className="text-xs text-muted-foreground">Dein Ernährungsexperte</p>
+                    <h3 className="font-bold text-sm">{t.aiAdvisor}</h3>
+                    <p className="text-xs text-muted-foreground">{t.yourNutritionExpert}</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
@@ -151,12 +153,12 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
                 {messages.length === 0 && (
                   <div className="text-center text-muted-foreground py-8">
                     <Bot className="h-12 w-12 mx-auto mb-3 text-primary/50" />
-                    <p className="text-sm">Hallo! Ich bin dein KI-Assistent.</p>
-                    <p className="text-xs mt-1">Frag mich nach Rezepten, App-Hilfe oder sage "Tracker zurücksetzen"!</p>
+                    <p className="text-sm">{t.helloImAI}</p>
+                    <p className="text-xs mt-1">{t.askAboutRecipes}</p>
                     {userProfile && (
                       <div className="mt-4 p-3 bg-primary/10 rounded-lg text-xs">
-                        <p className="font-medium text-primary">Dein Ziel:</p>
-                        <p>{userProfile.dailyCalories} kcal • {userProfile.dailyProtein}g Protein</p>
+                        <p className="font-medium text-primary">{t.yourGoalLabel}:</p>
+                        <p>{userProfile.dailyCalories} kcal • {userProfile.dailyProtein}g {t.protein}</p>
                       </div>
                     )}
                   </div>
@@ -217,7 +219,7 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
               <div className="p-4 border-t border-primary/20">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Frag mich etwas..."
+                    placeholder={t.askMeSomething}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}

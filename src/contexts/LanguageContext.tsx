@@ -157,6 +157,12 @@ interface Translations {
   weightProgress: string;
   addWeight: string;
   noDataYet: string;
+  current: string;
+  lost: string;
+  progressToGoal: string;
+  goalAchieved: string;
+  invalidWeight: string;
+  weightAdded: string;
   
   // Toasts
   toastProductAdded: string;
@@ -178,6 +184,88 @@ interface Translations {
   
   // Snack
   snack: string;
+  
+  // Scan Page
+  scanTitle: string;
+  uploadPhoto: string;
+  takePhotoOrSelect: string;
+  selectImage: string;
+  ingredientsRecognized: string;
+  ingredientsFound: string;
+  couldNotAnalyze: string;
+  newPhoto: string;
+  generateRecipes: string;
+  dailyScanLimitReached: string;
+  usedScansToday: string;
+  upgradeToPremium: string;
+  unlimited: string;
+  loginRequired: string;
+  loginToUseScanner: string;
+  scanLimitReached: string;
+  aiAnalyzingIngredients: string;
+  
+  // Recipes Page
+  yourRecipes: string;
+  regenerate: string;
+  aiCreatingRecipes: string;
+  momentPlease: string;
+  noRecipesFound: string;
+  tryOtherIngredients: string;
+  backToStart: string;
+  recipesGenerated: string;
+  healthyRecipesFound: string;
+  
+  // Favorites
+  myFavorites: string;
+  noFavoritesYet: string;
+  saveFavoriteRecipes: string;
+  discoverRecipes: string;
+  
+  // Recipe Card
+  proteinLabel: string;
+  carbsLabel: string;
+  fatLabel: string;
+  more: string;
+  
+  // Premium Page
+  premiumActive: string;
+  renewsOn: string;
+  manage: string;
+  overview: string;
+  quickAccess: string;
+  setupTrackerButton: string;
+  yourPremiumFeatures: string;
+  weeklyPersonalizedMealPlans: string;
+  automaticShoppingLists: string;
+  macroTrackingCalorieAnalysis: string;
+  unlimitedRecipeGeneration: string;
+  waterTrackerFeature: string;
+  weightProgressFeature: string;
+  getPremiumNow: string;
+  
+  // Shopping List
+  shoppingListTitle: string;
+  ofPurchased: string;
+  spent: string;
+  generateMealPlanForList: string;
+  
+  // AI Chatbot
+  aiAdvisor: string;
+  yourNutritionExpert: string;
+  helloImAI: string;
+  askAboutRecipes: string;
+  yourGoalLabel: string;
+  askMeSomething: string;
+  trackerReset: string;
+  goalsReset: string;
+  couldNotProcess: string;
+  
+  // Session expired
+  sessionExpired: string;
+  pleaseLoginAgain: string;
+  redirectingToStripe: string;
+  noCheckoutUrl: string;
+  noPortalUrl: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -336,6 +424,12 @@ const translations: Record<Language, Translations> = {
     weightProgress: "Gewichtsverlauf",
     addWeight: "Gewicht hinzufügen",
     noDataYet: "Noch keine Daten",
+    current: "Aktuell",
+    lost: "Verloren",
+    progressToGoal: "Fortschritt zum Ziel",
+    goalAchieved: "Ziel erreicht!",
+    invalidWeight: "Ungültiges Gewicht",
+    weightAdded: "Gewicht eingetragen!",
     
     // Toasts
     toastProductAdded: "zum Tracker hinzugefügt",
@@ -357,6 +451,88 @@ const translations: Record<Language, Translations> = {
     
     // Snack
     snack: "Snack",
+    
+    // Scan Page
+    scanTitle: "Kühlschrank scannen",
+    uploadPhoto: "Foto hochladen",
+    takePhotoOrSelect: "Mache ein Foto von deinem Kühlschrank oder wähle ein Bild aus",
+    selectImage: "Bild auswählen",
+    ingredientsRecognized: "Zutaten erkannt!",
+    ingredientsFound: "Zutaten gefunden",
+    couldNotAnalyze: "Bild konnte nicht analysiert werden. Bitte versuche es erneut.",
+    newPhoto: "Neues Foto",
+    generateRecipes: "Rezepte generieren",
+    dailyScanLimitReached: "Tägliches Scan-Limit erreicht",
+    usedScansToday: "Du hast heute bereits 2 Scans verwendet. Mit Premium bekommst du unbegrenzte Scans!",
+    upgradeToPremium: "Upgrade auf Premium",
+    unlimited: "Unbegrenzt",
+    loginRequired: "Anmeldung erforderlich",
+    loginToUseScanner: "Bitte melde dich an, um den Scanner zu nutzen.",
+    scanLimitReached: "Scan-Limit erreicht",
+    aiAnalyzingIngredients: "KI analysiert deine Zutaten...",
+    
+    // Recipes Page
+    yourRecipes: "Deine Rezepte",
+    regenerate: "Neu generieren",
+    aiCreatingRecipes: "KI erstellt deine Rezepte",
+    momentPlease: "Einen Moment bitte...",
+    noRecipesFound: "Keine Rezepte gefunden. Versuche es mit anderen Zutaten.",
+    tryOtherIngredients: "Versuche es mit anderen Zutaten",
+    backToStart: "Zurück zum Start",
+    recipesGenerated: "Rezepte generiert!",
+    healthyRecipesFound: "gesunde Rezepte für dich gefunden.",
+    
+    // Favorites
+    myFavorites: "Meine Favoriten",
+    noFavoritesYet: "Noch keine Favoriten",
+    saveFavoriteRecipes: "Speichere deine Lieblingsrezepte, um sie später wiederzufinden",
+    discoverRecipes: "Rezepte entdecken",
+    
+    // Recipe Card
+    proteinLabel: "Eiweiß",
+    carbsLabel: "Kohlenhydrate",
+    fatLabel: "Fett",
+    more: "mehr",
+    
+    // Premium Page
+    premiumActive: "Premium Aktiv",
+    renewsOn: "Erneuert am",
+    manage: "Verwalten",
+    overview: "Übersicht",
+    quickAccess: "Schnellzugriff",
+    setupTrackerButton: "Tracker einrichten",
+    yourPremiumFeatures: "Deine Premium-Features",
+    weeklyPersonalizedMealPlans: "Wöchentliche personalisierte Meal Plans",
+    automaticShoppingLists: "Automatische Einkaufslisten",
+    macroTrackingCalorieAnalysis: "Makro-Tracking & Kalorienanalyse",
+    unlimitedRecipeGeneration: "Unbegrenzte Rezeptgenerierung",
+    waterTrackerFeature: "Wasser-Tracker",
+    weightProgressFeature: "Gewichtsverlauf & Fortschritt",
+    getPremiumNow: "Jetzt Premium werden",
+    
+    // Shopping List
+    shoppingListTitle: "Einkaufsliste",
+    ofPurchased: "gekauft",
+    spent: "ausgegeben",
+    generateMealPlanForList: "Generiere einen Wochenplan um die Einkaufsliste zu sehen",
+    
+    // AI Chatbot
+    aiAdvisor: "Frig AI Berater",
+    yourNutritionExpert: "Dein Ernährungsexperte",
+    helloImAI: "Hallo! Ich bin dein KI-Assistent.",
+    askAboutRecipes: "Frag mich nach Rezepten, App-Hilfe oder sage \"Tracker zurücksetzen\"!",
+    yourGoalLabel: "Dein Ziel",
+    askMeSomething: "Frag mich etwas...",
+    trackerReset: "Tracker zurückgesetzt",
+    goalsReset: "Deine Ziele wurden zurückgesetzt. Du kannst sie jetzt neu einrichten.",
+    couldNotProcess: "Entschuldigung, ich konnte deine Anfrage nicht verarbeiten. Bitte versuche es erneut.",
+    
+    // Session expired
+    sessionExpired: "Sitzung abgelaufen",
+    pleaseLoginAgain: "Bitte melde dich erneut an.",
+    redirectingToStripe: "Du wirst jetzt weitergeleitet...",
+    noCheckoutUrl: "Keine Checkout-URL erhalten",
+    noPortalUrl: "Keine Portal-URL erhalten",
   },
   en: {
     // Navigation & Common
@@ -513,6 +689,12 @@ const translations: Record<Language, Translations> = {
     weightProgress: "Weight Progress",
     addWeight: "Add Weight",
     noDataYet: "No data yet",
+    current: "Current",
+    lost: "Lost",
+    progressToGoal: "Progress to goal",
+    goalAchieved: "Goal achieved!",
+    invalidWeight: "Invalid weight",
+    weightAdded: "Weight added!",
     
     // Toasts
     toastProductAdded: "added to tracker",
@@ -534,6 +716,88 @@ const translations: Record<Language, Translations> = {
     
     // Snack
     snack: "Snack",
+    
+    // Scan Page
+    scanTitle: "Scan Fridge",
+    uploadPhoto: "Upload Photo",
+    takePhotoOrSelect: "Take a photo of your fridge or select an image",
+    selectImage: "Select Image",
+    ingredientsRecognized: "Ingredients recognized!",
+    ingredientsFound: "ingredients found",
+    couldNotAnalyze: "Could not analyze image. Please try again.",
+    newPhoto: "New Photo",
+    generateRecipes: "Generate Recipes",
+    dailyScanLimitReached: "Daily Scan Limit Reached",
+    usedScansToday: "You have already used 2 scans today. Get unlimited scans with Premium!",
+    upgradeToPremium: "Upgrade to Premium",
+    unlimited: "Unlimited",
+    loginRequired: "Login Required",
+    loginToUseScanner: "Please sign in to use the scanner.",
+    scanLimitReached: "Scan limit reached",
+    aiAnalyzingIngredients: "AI is analyzing your ingredients...",
+    
+    // Recipes Page
+    yourRecipes: "Your Recipes",
+    regenerate: "Regenerate",
+    aiCreatingRecipes: "AI is creating your recipes",
+    momentPlease: "Just a moment...",
+    noRecipesFound: "No recipes found. Try with other ingredients.",
+    tryOtherIngredients: "Try with other ingredients",
+    backToStart: "Back to Start",
+    recipesGenerated: "Recipes generated!",
+    healthyRecipesFound: "healthy recipes found for you.",
+    
+    // Favorites
+    myFavorites: "My Favorites",
+    noFavoritesYet: "No favorites yet",
+    saveFavoriteRecipes: "Save your favorite recipes to find them later",
+    discoverRecipes: "Discover Recipes",
+    
+    // Recipe Card
+    proteinLabel: "Protein",
+    carbsLabel: "Carbohydrates",
+    fatLabel: "Fat",
+    more: "more",
+    
+    // Premium Page
+    premiumActive: "Premium Active",
+    renewsOn: "Renews on",
+    manage: "Manage",
+    overview: "Overview",
+    quickAccess: "Quick Access",
+    setupTrackerButton: "Set up Tracker",
+    yourPremiumFeatures: "Your Premium Features",
+    weeklyPersonalizedMealPlans: "Weekly personalized meal plans",
+    automaticShoppingLists: "Automatic shopping lists",
+    macroTrackingCalorieAnalysis: "Macro tracking & calorie analysis",
+    unlimitedRecipeGeneration: "Unlimited recipe generation",
+    waterTrackerFeature: "Water tracker",
+    weightProgressFeature: "Weight progress & tracking",
+    getPremiumNow: "Get Premium Now",
+    
+    // Shopping List
+    shoppingListTitle: "Shopping List",
+    ofPurchased: "purchased",
+    spent: "spent",
+    generateMealPlanForList: "Generate a meal plan to see the shopping list",
+    
+    // AI Chatbot
+    aiAdvisor: "Frig AI Advisor",
+    yourNutritionExpert: "Your nutrition expert",
+    helloImAI: "Hello! I am your AI assistant.",
+    askAboutRecipes: "Ask me about recipes, app help, or say \"reset tracker\"!",
+    yourGoalLabel: "Your goal",
+    askMeSomething: "Ask me something...",
+    trackerReset: "Tracker reset",
+    goalsReset: "Your goals have been reset. You can now set them up again.",
+    couldNotProcess: "Sorry, I could not process your request. Please try again.",
+    
+    // Session expired
+    sessionExpired: "Session expired",
+    pleaseLoginAgain: "Please sign in again.",
+    redirectingToStripe: "Redirecting you now...",
+    noCheckoutUrl: "No checkout URL received",
+    noPortalUrl: "No portal URL received",
   },
   fr: {
     // Navigation & Common
@@ -690,6 +954,12 @@ const translations: Record<Language, Translations> = {
     weightProgress: "Évolution du poids",
     addWeight: "Ajouter le poids",
     noDataYet: "Pas encore de données",
+    current: "Actuel",
+    lost: "Perdu",
+    progressToGoal: "Progression vers l'objectif",
+    goalAchieved: "Objectif atteint!",
+    invalidWeight: "Poids invalide",
+    weightAdded: "Poids ajouté!",
     
     // Toasts
     toastProductAdded: "ajouté au suivi",
@@ -711,6 +981,88 @@ const translations: Record<Language, Translations> = {
     
     // Snack
     snack: "Collation",
+    
+    // Scan Page
+    scanTitle: "Scanner le frigo",
+    uploadPhoto: "Télécharger une photo",
+    takePhotoOrSelect: "Prenez une photo de votre frigo ou sélectionnez une image",
+    selectImage: "Sélectionner une image",
+    ingredientsRecognized: "Ingrédients reconnus!",
+    ingredientsFound: "ingrédients trouvés",
+    couldNotAnalyze: "Impossible d'analyser l'image. Veuillez réessayer.",
+    newPhoto: "Nouvelle photo",
+    generateRecipes: "Générer des recettes",
+    dailyScanLimitReached: "Limite de scan quotidienne atteinte",
+    usedScansToday: "Vous avez déjà utilisé 2 scans aujourd'hui. Obtenez des scans illimités avec Premium!",
+    upgradeToPremium: "Passer à Premium",
+    unlimited: "Illimité",
+    loginRequired: "Connexion requise",
+    loginToUseScanner: "Veuillez vous connecter pour utiliser le scanner.",
+    scanLimitReached: "Limite de scan atteinte",
+    aiAnalyzingIngredients: "L'IA analyse vos ingrédients...",
+    
+    // Recipes Page
+    yourRecipes: "Vos Recettes",
+    regenerate: "Régénérer",
+    aiCreatingRecipes: "L'IA crée vos recettes",
+    momentPlease: "Un instant s'il vous plaît...",
+    noRecipesFound: "Aucune recette trouvée. Essayez avec d'autres ingrédients.",
+    tryOtherIngredients: "Essayez avec d'autres ingrédients",
+    backToStart: "Retour au début",
+    recipesGenerated: "Recettes générées!",
+    healthyRecipesFound: "recettes saines trouvées pour vous.",
+    
+    // Favorites
+    myFavorites: "Mes Favoris",
+    noFavoritesYet: "Pas encore de favoris",
+    saveFavoriteRecipes: "Enregistrez vos recettes préférées pour les retrouver plus tard",
+    discoverRecipes: "Découvrir des recettes",
+    
+    // Recipe Card
+    proteinLabel: "Protéines",
+    carbsLabel: "Glucides",
+    fatLabel: "Lipides",
+    more: "plus",
+    
+    // Premium Page
+    premiumActive: "Premium Actif",
+    renewsOn: "Renouvellement le",
+    manage: "Gérer",
+    overview: "Aperçu",
+    quickAccess: "Accès rapide",
+    setupTrackerButton: "Configurer le suivi",
+    yourPremiumFeatures: "Vos fonctionnalités Premium",
+    weeklyPersonalizedMealPlans: "Plans de repas personnalisés hebdomadaires",
+    automaticShoppingLists: "Listes de courses automatiques",
+    macroTrackingCalorieAnalysis: "Suivi des macros & analyse calorique",
+    unlimitedRecipeGeneration: "Génération de recettes illimitée",
+    waterTrackerFeature: "Suivi d'eau",
+    weightProgressFeature: "Évolution du poids & suivi",
+    getPremiumNow: "Passer à Premium",
+    
+    // Shopping List
+    shoppingListTitle: "Liste de courses",
+    ofPurchased: "acheté",
+    spent: "dépensé",
+    generateMealPlanForList: "Générez un plan de repas pour voir la liste de courses",
+    
+    // AI Chatbot
+    aiAdvisor: "Conseiller Frig AI",
+    yourNutritionExpert: "Votre expert en nutrition",
+    helloImAI: "Bonjour! Je suis votre assistant IA.",
+    askAboutRecipes: "Demandez-moi des recettes, de l'aide sur l'app, ou dites \"réinitialiser le suivi\"!",
+    yourGoalLabel: "Votre objectif",
+    askMeSomething: "Posez-moi une question...",
+    trackerReset: "Suivi réinitialisé",
+    goalsReset: "Vos objectifs ont été réinitialisés. Vous pouvez maintenant les reconfigurer.",
+    couldNotProcess: "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer.",
+    
+    // Session expired
+    sessionExpired: "Session expirée",
+    pleaseLoginAgain: "Veuillez vous reconnecter.",
+    redirectingToStripe: "Redirection en cours...",
+    noCheckoutUrl: "Aucune URL de paiement reçue",
+    noPortalUrl: "Aucune URL de portail reçue",
   },
 };
 
