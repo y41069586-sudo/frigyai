@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frig-logo.png';
 
 const AuthPage = () => {
+  const { t } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,7 +53,7 @@ const AuthPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
         <div className="text-center">
           <img src={frigLogo} alt="Frig AI" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
-          <p className="text-muted-foreground">Laden...</p>
+          <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
@@ -86,12 +88,12 @@ const AuthPage = () => {
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">
-              {isLogin ? 'Anmelden' : 'Registrieren'}
+              {isLogin ? t.signIn : t.signUp}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">E-Mail</Label>
+                <Label htmlFor="email">{t.email}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -103,7 +105,7 @@ const AuthPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Passwort</Label>
+                <Label htmlFor="password">{t.password}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -121,7 +123,7 @@ const AuthPage = () => {
                 size="lg"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Laden...' : (isLogin ? 'Anmelden' : 'Registrieren')}
+                {isSubmitting ? t.loading : (isLogin ? t.signIn : t.signUp)}
               </Button>
             </form>
 
@@ -130,7 +132,7 @@ const AuthPage = () => {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Oder</span>
+                <span className="bg-card px-2 text-muted-foreground">{t.or}</span>
               </div>
             </div>
 
@@ -163,7 +165,7 @@ const AuthPage = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              {isGoogleLoading ? 'Laden...' : 'Mit Google anmelden'}
+              {isGoogleLoading ? t.loading : t.signInWithGoogle}
             </Button>
 
             <div className="mt-6 text-center">
@@ -171,9 +173,7 @@ const AuthPage = () => {
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2"
               >
-                {isLogin
-                  ? 'Noch kein Konto? Jetzt registrieren'
-                  : 'Bereits registriert? Jetzt anmelden'}
+                {isLogin ? t.noAccount : t.alreadyHaveAccount}
               </button>
             </div>
           </div>

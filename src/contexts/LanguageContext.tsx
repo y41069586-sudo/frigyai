@@ -26,6 +26,7 @@ interface Translations {
   loading: string;
   error: string;
   success: string;
+  or: string;
   
   // Home Page
   homeTitle: string;
@@ -83,13 +84,37 @@ interface Translations {
   
   // Tracker
   age: string;
+  years: string;
   weight: string;
+  kg: string;
   targetWeight: string;
   setupTracker: string;
   caloriesPerDay: string;
   addFood: string;
   eaten: string;
   kcalLeft: string;
+  today: string;
+  changeGoal: string;
+  howOldAreYou: string;
+  howMuchDoYouWeigh: string;
+  whatIsYourGoalIn4Weeks: string;
+  loseWeight: string;
+  yourPersonalPlan: string;
+  baseMetabolism: string;
+  withActivity: string;
+  deficit: string;
+  goal: string;
+  inWeeks: string;
+  weeklyRate: string;
+  calorieGoalSet: string;
+  forYourHealth: string;
+  foodAdded: string;
+  entryUpdated: string;
+  couldNotAnalyzeFood: string;
+  patienceMessage: string;
+  calculatingCalories: string;
+  determiningNutrients: string;
+  almostDone: string;
   
   // Meal Plans
   weeklyPlan: string;
@@ -106,13 +131,32 @@ interface Translations {
   friday: string;
   saturday: string;
   sunday: string;
+  newPlanGenerated: string;
+  planWithKcal: string;
+  couldNotGeneratePlan: string;
+  setupTrackerFirst: string;
+  reminderSettings: string;
   
   // Water Tracker
+  waterTracker: string;
   addGlass: string;
+  glasses: string;
   glassesOf: string;
   waterGoal: string;
   waterAdded: string;
   goalReached: string;
+  dailyGoalReached: string;
+  wellDone: string;
+  setDailyGoal: string;
+  perDay: string;
+  goalSaved: string;
+  ofGoal: string;
+  
+  // Progress & Stats
+  progressTracker: string;
+  weightProgress: string;
+  addWeight: string;
+  noDataYet: string;
   
   // Toasts
   toastProductAdded: string;
@@ -121,6 +165,19 @@ interface Translations {
   toastGoalReached: string;
   toastError: string;
   toastSuccess: string;
+  notLoggedIn: string;
+  loadingStripePortal: string;
+  pleaseWait: string;
+  
+  // Bottom Navigation
+  navMealPlan: string;
+  navShopping: string;
+  navTracker: string;
+  navWater: string;
+  navStats: string;
+  
+  // Snack
+  snack: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -148,6 +205,7 @@ const translations: Record<Language, Translations> = {
     loading: "Laden...",
     error: "Fehler",
     success: "Erfolgreich",
+    or: "Oder",
     
     // Home Page
     homeTitle: "Leichter Abnehmen",
@@ -199,19 +257,43 @@ const translations: Record<Language, Translations> = {
     signIn: "Anmelden",
     signUp: "Registrieren",
     signInWithGoogle: "Mit Google anmelden",
-    noAccount: "Noch kein Konto?",
-    alreadyHaveAccount: "Bereits ein Konto?",
+    noAccount: "Noch kein Konto? Jetzt registrieren",
+    alreadyHaveAccount: "Bereits registriert? Jetzt anmelden",
     forgotPassword: "Passwort vergessen?",
     
     // Tracker
     age: "Alter",
+    years: "Jahre",
     weight: "Gewicht",
+    kg: "kg",
     targetWeight: "Zielgewicht",
     setupTracker: "Tracker einrichten",
     caloriesPerDay: "Kalorien pro Tag",
     addFood: "Essen hinzufügen",
     eaten: "Gegessen",
     kcalLeft: "kcal übrig",
+    today: "Heute",
+    changeGoal: "Ziel ändern",
+    howOldAreYou: "Wie alt bist du?",
+    howMuchDoYouWeigh: "Wie viel wiegst du?",
+    whatIsYourGoalIn4Weeks: "Was ist dein Ziel in 4 Wochen?",
+    loseWeight: "abnehmen",
+    yourPersonalPlan: "Dein persönlicher Plan",
+    baseMetabolism: "Grundumsatz",
+    withActivity: "Mit Aktivität",
+    deficit: "Defizit",
+    goal: "Ziel",
+    inWeeks: "in 4 Wochen",
+    weeklyRate: "/Woche",
+    calorieGoalSet: "Kalorienziel auf",
+    forYourHealth: "gesetzt für deine Gesundheit.",
+    foodAdded: "Essen hinzugefügt",
+    entryUpdated: "Eintrag aktualisiert",
+    couldNotAnalyzeFood: "Konnte Essen nicht analysieren",
+    patienceMessage: "Danke für die Geduld...",
+    calculatingCalories: "Kalorien werden berechnet...",
+    determiningNutrients: "Nährwerte ermitteln...",
+    almostDone: "Fast fertig...",
     
     // Meal Plans
     weeklyPlan: "Wochenplan",
@@ -228,13 +310,32 @@ const translations: Record<Language, Translations> = {
     friday: "Freitag",
     saturday: "Samstag",
     sunday: "Sonntag",
+    newPlanGenerated: "Neuer Wochenplan generiert!",
+    planWithKcal: "Plan mit {kcal} kcal/Tag erstellt.",
+    couldNotGeneratePlan: "Konnte Wochenplan nicht generieren",
+    setupTrackerFirst: "Bitte richte zuerst deinen Tracker ein",
+    reminderSettings: "Erinnerungen",
     
     // Water Tracker
+    waterTracker: "Wasser-Tracker",
     addGlass: "Glas hinzufügen",
+    glasses: "Gläser",
     glassesOf: "Gläser von",
     waterGoal: "Wasserziel",
     waterAdded: "+250ml getrunken!",
-    goalReached: "Tagesziel erreicht!",
+    goalReached: "Ziel erreicht!",
+    dailyGoalReached: "Tagesziel erreicht!",
+    wellDone: "Super gemacht!",
+    setDailyGoal: "Tagesziel einstellen",
+    perDay: "pro Tag",
+    goalSaved: "Ziel gespeichert",
+    ofGoal: "von",
+    
+    // Progress & Stats
+    progressTracker: "Fortschritt",
+    weightProgress: "Gewichtsverlauf",
+    addWeight: "Gewicht hinzufügen",
+    noDataYet: "Noch keine Daten",
     
     // Toasts
     toastProductAdded: "zum Tracker hinzugefügt",
@@ -243,6 +344,19 @@ const translations: Record<Language, Translations> = {
     toastGoalReached: "Ziel erreicht!",
     toastError: "Ein Fehler ist aufgetreten",
     toastSuccess: "Erfolgreich gespeichert",
+    notLoggedIn: "Nicht angemeldet",
+    loadingStripePortal: "Lade Stripe-Portal...",
+    pleaseWait: "Bitte warten",
+    
+    // Bottom Navigation
+    navMealPlan: "Wochenplan",
+    navShopping: "Einkaufsliste",
+    navTracker: "Tracker",
+    navWater: "Wasser",
+    navStats: "Stats",
+    
+    // Snack
+    snack: "Snack",
   },
   en: {
     // Navigation & Common
@@ -268,6 +382,7 @@ const translations: Record<Language, Translations> = {
     loading: "Loading...",
     error: "Error",
     success: "Success",
+    or: "Or",
     
     // Home Page
     homeTitle: "Easier Weight Loss",
@@ -319,19 +434,43 @@ const translations: Record<Language, Translations> = {
     signIn: "Sign In",
     signUp: "Sign Up",
     signInWithGoogle: "Sign in with Google",
-    noAccount: "No account yet?",
-    alreadyHaveAccount: "Already have an account?",
+    noAccount: "No account yet? Sign up now",
+    alreadyHaveAccount: "Already have an account? Sign in",
     forgotPassword: "Forgot password?",
     
     // Tracker
     age: "Age",
+    years: "years",
     weight: "Weight",
+    kg: "kg",
     targetWeight: "Target Weight",
     setupTracker: "Set up Tracker",
     caloriesPerDay: "Calories per day",
     addFood: "Add food",
     eaten: "Eaten",
     kcalLeft: "kcal left",
+    today: "Today",
+    changeGoal: "Change goal",
+    howOldAreYou: "How old are you?",
+    howMuchDoYouWeigh: "How much do you weigh?",
+    whatIsYourGoalIn4Weeks: "What is your goal in 4 weeks?",
+    loseWeight: "lose",
+    yourPersonalPlan: "Your personal plan",
+    baseMetabolism: "Base metabolism",
+    withActivity: "With activity",
+    deficit: "Deficit",
+    goal: "Goal",
+    inWeeks: "in 4 weeks",
+    weeklyRate: "/week",
+    calorieGoalSet: "Calorie goal set to",
+    forYourHealth: "for your health.",
+    foodAdded: "Food added",
+    entryUpdated: "Entry updated",
+    couldNotAnalyzeFood: "Could not analyze food",
+    patienceMessage: "Thanks for your patience...",
+    calculatingCalories: "Calculating calories...",
+    determiningNutrients: "Determining nutrients...",
+    almostDone: "Almost done...",
     
     // Meal Plans
     weeklyPlan: "Weekly Plan",
@@ -348,13 +487,32 @@ const translations: Record<Language, Translations> = {
     friday: "Friday",
     saturday: "Saturday",
     sunday: "Sunday",
+    newPlanGenerated: "New weekly plan generated!",
+    planWithKcal: "Plan with {kcal} kcal/day created.",
+    couldNotGeneratePlan: "Could not generate meal plan",
+    setupTrackerFirst: "Please set up your tracker first",
+    reminderSettings: "Reminders",
     
     // Water Tracker
+    waterTracker: "Water Tracker",
     addGlass: "Add Glass",
+    glasses: "glasses",
     glassesOf: "glasses of",
     waterGoal: "Water Goal",
     waterAdded: "+250ml drank!",
-    goalReached: "Daily goal reached!",
+    goalReached: "Goal reached!",
+    dailyGoalReached: "Daily goal reached!",
+    wellDone: "Well done!",
+    setDailyGoal: "Set daily goal",
+    perDay: "per day",
+    goalSaved: "Goal saved",
+    ofGoal: "of",
+    
+    // Progress & Stats
+    progressTracker: "Progress",
+    weightProgress: "Weight Progress",
+    addWeight: "Add Weight",
+    noDataYet: "No data yet",
     
     // Toasts
     toastProductAdded: "added to tracker",
@@ -363,6 +521,19 @@ const translations: Record<Language, Translations> = {
     toastGoalReached: "Goal reached!",
     toastError: "An error occurred",
     toastSuccess: "Successfully saved",
+    notLoggedIn: "Not logged in",
+    loadingStripePortal: "Loading Stripe portal...",
+    pleaseWait: "Please wait",
+    
+    // Bottom Navigation
+    navMealPlan: "Meal Plan",
+    navShopping: "Shopping",
+    navTracker: "Tracker",
+    navWater: "Water",
+    navStats: "Stats",
+    
+    // Snack
+    snack: "Snack",
   },
   fr: {
     // Navigation & Common
@@ -388,6 +559,7 @@ const translations: Record<Language, Translations> = {
     loading: "Chargement...",
     error: "Erreur",
     success: "Succès",
+    or: "Ou",
     
     // Home Page
     homeTitle: "Perdre du poids facilement",
@@ -439,19 +611,43 @@ const translations: Record<Language, Translations> = {
     signIn: "Connexion",
     signUp: "Inscription",
     signInWithGoogle: "Se connecter avec Google",
-    noAccount: "Pas encore de compte?",
-    alreadyHaveAccount: "Déjà un compte?",
+    noAccount: "Pas encore de compte? Inscrivez-vous",
+    alreadyHaveAccount: "Déjà un compte? Connectez-vous",
     forgotPassword: "Mot de passe oublié?",
     
     // Tracker
     age: "Âge",
+    years: "ans",
     weight: "Poids",
+    kg: "kg",
     targetWeight: "Poids cible",
     setupTracker: "Configurer le suivi",
     caloriesPerDay: "Calories par jour",
     addFood: "Ajouter un aliment",
     eaten: "Mangé",
     kcalLeft: "kcal restantes",
+    today: "Aujourd'hui",
+    changeGoal: "Modifier l'objectif",
+    howOldAreYou: "Quel âge avez-vous?",
+    howMuchDoYouWeigh: "Combien pesez-vous?",
+    whatIsYourGoalIn4Weeks: "Quel est votre objectif en 4 semaines?",
+    loseWeight: "perdre",
+    yourPersonalPlan: "Votre plan personnel",
+    baseMetabolism: "Métabolisme de base",
+    withActivity: "Avec activité",
+    deficit: "Déficit",
+    goal: "Objectif",
+    inWeeks: "en 4 semaines",
+    weeklyRate: "/semaine",
+    calorieGoalSet: "Objectif calorique fixé à",
+    forYourHealth: "pour votre santé.",
+    foodAdded: "Aliment ajouté",
+    entryUpdated: "Entrée mise à jour",
+    couldNotAnalyzeFood: "Impossible d'analyser l'aliment",
+    patienceMessage: "Merci pour votre patience...",
+    calculatingCalories: "Calcul des calories...",
+    determiningNutrients: "Détermination des nutriments...",
+    almostDone: "Presque terminé...",
     
     // Meal Plans
     weeklyPlan: "Plan de la semaine",
@@ -468,13 +664,32 @@ const translations: Record<Language, Translations> = {
     friday: "Vendredi",
     saturday: "Samedi",
     sunday: "Dimanche",
+    newPlanGenerated: "Nouveau plan hebdomadaire généré!",
+    planWithKcal: "Plan avec {kcal} kcal/jour créé.",
+    couldNotGeneratePlan: "Impossible de générer le plan de repas",
+    setupTrackerFirst: "Veuillez d'abord configurer votre suivi",
+    reminderSettings: "Rappels",
     
     // Water Tracker
+    waterTracker: "Suivi d'eau",
     addGlass: "Ajouter un verre",
+    glasses: "verres",
     glassesOf: "verres de",
     waterGoal: "Objectif d'eau",
     waterAdded: "+250ml bu!",
     goalReached: "Objectif atteint!",
+    dailyGoalReached: "Objectif quotidien atteint!",
+    wellDone: "Bien joué!",
+    setDailyGoal: "Définir l'objectif quotidien",
+    perDay: "par jour",
+    goalSaved: "Objectif enregistré",
+    ofGoal: "de",
+    
+    // Progress & Stats
+    progressTracker: "Progression",
+    weightProgress: "Évolution du poids",
+    addWeight: "Ajouter le poids",
+    noDataYet: "Pas encore de données",
     
     // Toasts
     toastProductAdded: "ajouté au suivi",
@@ -483,6 +698,19 @@ const translations: Record<Language, Translations> = {
     toastGoalReached: "Objectif atteint!",
     toastError: "Une erreur s'est produite",
     toastSuccess: "Enregistré avec succès",
+    notLoggedIn: "Non connecté",
+    loadingStripePortal: "Chargement du portail Stripe...",
+    pleaseWait: "Veuillez patienter",
+    
+    // Bottom Navigation
+    navMealPlan: "Repas",
+    navShopping: "Courses",
+    navTracker: "Suivi",
+    navWater: "Eau",
+    navStats: "Stats",
+    
+    // Snack
+    snack: "Collation",
   },
 };
 

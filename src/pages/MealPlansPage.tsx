@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
@@ -57,6 +58,7 @@ interface DayPlan {
 
 const MealPlansPage = () => {
   const { user, session, subscriptionStatus, loading } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -76,11 +78,11 @@ const MealPlansPage = () => {
 
   const handleManageSubscription = async () => {
     if (!session) {
-      toast({ title: 'Nicht angemeldet', variant: 'destructive' });
+      toast({ title: t.notLoggedIn, variant: 'destructive' });
       return;
     }
     setPortalLoading(true);
-    toast({ title: 'Lade Stripe-Portal...', description: 'Bitte warten' });
+    toast({ title: t.loadingStripePortal, description: t.pleaseWait });
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -93,7 +95,7 @@ const MealPlansPage = () => {
         }
       }
     } catch (error: any) {
-      toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
+      toast({ title: t.error, description: error.message, variant: 'destructive' });
     } finally {
       setPortalLoading(false);
     }
@@ -155,8 +157,8 @@ const MealPlansPage = () => {
   const generateMealPlan = async () => {
     if (!trackerSetup) {
       toast({ 
-        title: 'Tracker einrichten', 
-        description: 'Bitte richte zuerst deinen Tracker ein', 
+        title: t.setupTracker, 
+        description: t.setupTrackerFirst, 
         variant: 'destructive' 
       });
       setActiveTab('tracker');
@@ -189,11 +191,11 @@ const MealPlansPage = () => {
       if (data?.mealPlan) {
         setMealPlan(data.mealPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify(data.mealPlan));
-        toast({ title: 'Neuer Wochenplan generiert!', description: `Plan mit ${dailyCalories} kcal/Tag erstellt.` });
+        toast({ title: t.newPlanGenerated, description: t.planWithKcal.replace('{kcal}', String(dailyCalories)) });
       }
     } catch (error) {
       console.error('Error generating meal plan:', error);
-      toast({ title: 'Fehler', description: 'Konnte Wochenplan nicht generieren', variant: 'destructive' });
+      toast({ title: t.error, description: t.couldNotGeneratePlan, variant: 'destructive' });
     } finally {
       setIsGenerating(false);
     }
@@ -235,16 +237,16 @@ const MealPlansPage = () => {
     }));
     
     toast({ 
-      title: 'Gegessen! ✓', 
-      description: `${meal.name} - ${meal.calories} kcal zum Tracker hinzugefügt` 
+      title: `${t.eaten}! ✓`, 
+      description: `${meal.name} - ${meal.calories} kcal ${t.toastProductAdded}` 
     });
   };
 
   const handleTabChange = (value: string) => {
     if ((value === 'meals' || value === 'shopping' || value === 'water' || value === 'progress') && !trackerSetup) {
       toast({ 
-        title: 'Tracker einrichten', 
-        description: 'Bitte richte zuerst deinen Tracker ein', 
+        title: t.setupTracker, 
+        description: t.setupTrackerFirst, 
         variant: 'destructive' 
       });
       return;
@@ -345,7 +347,7 @@ const MealPlansPage = () => {
                     disabled={portalLoading}
                   >
                     <Settings className="mr-2 h-4 w-4" />
-                    Abo verwalten
+                    {t.manageSubscription}
                   </Button>
                   <Button
                     variant="ghost"
@@ -354,7 +356,7 @@ const MealPlansPage = () => {
                     disabled={portalLoading}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
-                    Abo kündigen
+                    {t.cancelSubscription}
                   </Button>
                 </div>
               </PopoverContent>
@@ -368,7 +370,7 @@ const MealPlansPage = () => {
           <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 bg-card/50 border border-primary/20 h-auto p-0.5 sm:p-1 gap-0.5 sm:gap-1">
             <TabsTrigger value="tracker" className="data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2">
               <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Tracker</span>
+              <span className="text-[10px] sm:text-sm truncate">{t.tracker}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="meals" 
@@ -376,7 +378,7 @@ const MealPlansPage = () => {
             >
               {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
               <ChefHat className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Plan</span>
+              <span className="text-[10px] sm:text-sm truncate">{t.weeklyPlan.split(' ')[0]}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="shopping" 
@@ -384,7 +386,7 @@ const MealPlansPage = () => {
             >
               {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
               <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Liste</span>
+              <span className="text-[10px] sm:text-sm truncate">{t.shoppingList.split(' ')[0]}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="water" 
@@ -392,7 +394,7 @@ const MealPlansPage = () => {
             >
               {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
               <Droplets className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Wasser</span>
+              <span className="text-[10px] sm:text-sm truncate">{t.water}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="progress" 
@@ -400,14 +402,14 @@ const MealPlansPage = () => {
             >
               {!canAccessPremiumFeatures && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
               <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Stats</span>
+              <span className="text-[10px] sm:text-sm truncate">{t.stats}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="reminders" 
               className="data-[state=active]:bg-primary/20 flex items-center justify-center gap-0.5 sm:gap-1 py-1.5 sm:py-2 px-1 sm:px-2"
             >
               <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Alarm</span>
+              <span className="text-[10px] sm:text-sm truncate">{t.reminderSettings.split(' ')[0]}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -422,8 +424,8 @@ const MealPlansPage = () => {
           <TabsContent value="reminders">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold neon-text mb-1">Erinnerungen</h2>
-                <p className="text-sm text-muted-foreground">Lass dich an wichtige Aktivitäten erinnern</p>
+                <h2 className="text-2xl font-bold neon-text mb-1">{t.reminderSettings}</h2>
+                <p className="text-sm text-muted-foreground">{t.reminderSettings}</p>
               </div>
               <ReminderSettings />
             </motion.div>
@@ -433,8 +435,8 @@ const MealPlansPage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">Dein Wochenplan</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Tippe auf ein Gericht für Details</p>
+                  <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">{t.weeklyPlan}</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t.tip}</p>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <ExportMealPlan mealPlan={displayPlan} />
@@ -445,9 +447,9 @@ const MealPlansPage = () => {
                     disabled={isGenerating || !trackerSetup}
                   >
                     {isGenerating ? (
-                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span className="hidden sm:inline">Generiere...</span></>
+                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span className="hidden sm:inline">{t.loading}</span></>
                     ) : (
-                      <><Calendar className="mr-1 h-4 w-4" /> <span className="sm:hidden">Neu</span><span className="hidden sm:inline">Neue Woche</span></>
+                      <><Calendar className="mr-1 h-4 w-4" /> <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span><span className="hidden sm:inline">{t.generateNewPlan}</span></>
                     )}
                   </Button>
                 </div>
@@ -487,7 +489,7 @@ const MealPlansPage = () => {
                               onClick={(e) => addMealToTracker(meal, e)}
                             >
                               <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
-                              Gegessen
+                              {t.eaten}
                             </Button>
                           </div>
                         ))}
@@ -505,7 +507,7 @@ const MealPlansPage = () => {
 
           <TabsContent value="water">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <h2 className="text-2xl font-bold neon-text mb-4">Hydrierung</h2>
+              <h2 className="text-2xl font-bold neon-text mb-4">{t.waterTracker}</h2>
               <WaterTracker />
             </motion.div>
           </TabsContent>
