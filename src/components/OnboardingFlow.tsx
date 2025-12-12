@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Camera, Utensils, TrendingDown } from "lucide-react";
+import { ChevronRight, Camera, Utensils, TrendingDown, Globe } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
+
+type Language = "de" | "en" | "fr";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -164,29 +166,72 @@ const FrigLogoImage = ({ size = "normal" }: { size?: "small" | "normal" | "large
   );
 };
 
-const slides = [
-  {
-    type: "visual" as const,
-    title: "Was essen?",
-    subtitle: "Keine Idee beim Kühlschrank?",
+const translations = {
+  de: {
+    slides: [
+      { title: "Was essen?", subtitle: "Keine Idee beim Kühlschrank?" },
+      { title: "Scannen", subtitle: "Foto vom Kühlschrank machen" },
+      { title: "Fertig!", subtitle: "Kalorienarme Rezepte erhalten" },
+    ],
+    skip: "Überspringen",
+    next: "Weiter",
+    start: "Los geht's",
+    recipe: "Rezept",
+    ingredients: "Zutaten",
+    selectLanguage: "Sprache wählen",
   },
-  {
-    type: "scan" as const,
-    title: "Scannen",
-    subtitle: "Foto vom Kühlschrank machen",
+  en: {
+    slides: [
+      { title: "What to eat?", subtitle: "No idea at the fridge?" },
+      { title: "Scan", subtitle: "Take a photo of your fridge" },
+      { title: "Done!", subtitle: "Get low-calorie recipes" },
+    ],
+    skip: "Skip",
+    next: "Next",
+    start: "Let's go",
+    recipe: "Recipe",
+    ingredients: "ingredients",
+    selectLanguage: "Select language",
   },
-  {
-    type: "recipes" as const,
-    title: "Fertig!",
-    subtitle: "Kalorienarme Rezepte erhalten",
+  fr: {
+    slides: [
+      { title: "Quoi manger?", subtitle: "Pas d'idée devant le frigo?" },
+      { title: "Scanner", subtitle: "Prendre une photo du frigo" },
+      { title: "Terminé!", subtitle: "Obtenir des recettes légères" },
+    ],
+    skip: "Passer",
+    next: "Suivant",
+    start: "C'est parti",
+    recipe: "Recette",
+    ingredients: "ingrédients",
+    selectLanguage: "Choisir la langue",
   },
+};
+
+const languages: { code: Language; name: string; flag: string }[] = [
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
 ];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem("app-language");
+    return (saved as Language) || "de";
+  });
+
+  const t = translations[language];
+  const slideTypes = ["visual", "scan", "recipes"] as const;
+
+  const handleSelectLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem("app-language", lang);
+    setCurrentSlide(0); // Move to first slide
+  };
 
   const handleNext = () => {
-    if (currentSlide < slides.length - 1) {
+    if (currentSlide < t.slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
       onComplete();
@@ -197,7 +242,53 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     onComplete();
   };
 
-  const slide = slides[currentSlide];
+  // Language Selection Screen
+  if (currentSlide === -1) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 safe-area-inset"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col items-center gap-8"
+        >
+          <FrigLogoImage size="large" />
+          
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Globe className="w-5 h-5" />
+            <span className="text-lg">{t.selectLanguage}</span>
+          </div>
+
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            {languages.map((lang) => (
+              <motion.button
+                key={lang.code}
+                onClick={() => handleSelectLanguage(lang.code)}
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                  language === lang.code
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-card hover:border-primary/50"
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="text-3xl">{lang.flag}</span>
+                <span className="text-lg font-medium">{lang.name}</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  const currentSlideData = t.slides[currentSlide];
+  const slideType = slideTypes[currentSlide];
 
   return (
     <motion.div
@@ -214,7 +305,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           onClick={handleSkip}
           className="text-muted-foreground hover:text-foreground"
         >
-          Überspringen
+          {t.skip}
         </Button>
       </div>
 
@@ -236,7 +327,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
             >
-              {slide.type === "visual" && (
+              {slideType === "visual" && (
                 <div className="relative">
                   <MiniFridge />
                   <motion.div
@@ -248,7 +339,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </motion.div>
                 </div>
               )}
-              {slide.type === "scan" && (
+              {slideType === "scan" && (
                 <div className="relative">
                   <MiniFridge scanning />
                   <motion.div
@@ -260,7 +351,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </motion.div>
                 </div>
               )}
-              {slide.type === "recipes" && (
+              {slideType === "recipes" && (
                 <div className="flex flex-col gap-3">
                   {[1, 2, 3].map((i) => (
                     <motion.div
@@ -274,11 +365,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         <Utensils className="w-5 h-5 text-primary" />
                       </div>
                       <div className="text-left">
-                        <div className="text-sm font-semibold">Rezept {i}</div>
+                        <div className="text-sm font-semibold">{t.recipe} {i}</div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="text-primary font-bold">{280 + i * 50} kcal</span>
                           <span>•</span>
-                          <span>3 Zutaten</span>
+                          <span>3 {t.ingredients}</span>
                         </div>
                       </div>
                       <TrendingDown className="w-4 h-4 text-primary ml-auto" />
@@ -295,7 +386,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {slide.title}
+              {currentSlideData.title}
             </motion.h1>
 
             {/* Subtitle */}
@@ -305,7 +396,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              {slide.subtitle}
+              {currentSlideData.subtitle}
             </motion.p>
           </motion.div>
         </AnimatePresence>
@@ -315,7 +406,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       <div className="w-full max-w-xs space-y-4 pb-6">
         {/* Progress Dots */}
         <div className="flex justify-center gap-1.5">
-          {slides.map((_, index) => (
+          {t.slides.map((_, index) => (
             <motion.div
               key={index}
               className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -333,18 +424,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           ))}
         </div>
 
-        {/* Next Button - Smaller and cleaner */}
+        {/* Next Button */}
         <Button
           onClick={handleNext}
           className="w-full h-11 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
         >
-          {currentSlide < slides.length - 1 ? (
+          {currentSlide < t.slides.length - 1 ? (
             <>
-              Weiter
+              {t.next}
               <ChevronRight className="ml-1 w-4 h-4" />
             </>
           ) : (
-            "Los geht's"
+            t.start
           )}
         </Button>
       </div>
