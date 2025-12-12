@@ -1,20 +1,23 @@
 import { Calendar, ShoppingCart, Target, Droplets, TrendingDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BottomNavigationProps {
   activeTab?: string;
 }
 
-const navItems = [
-  { id: "meals", label: "Wochenplan", icon: Calendar, href: "/meal-plans?tab=meals", color: "text-orange-400" },
-  { id: "shopping", label: "Einkaufsliste", icon: ShoppingCart, href: "/meal-plans?tab=shopping", color: "text-green-400" },
-  { id: "tracker", label: "Tracker", icon: Target, href: "/meal-plans?tab=tracker", color: "text-primary" },
-  { id: "water", label: "Wasser", icon: Droplets, href: "/meal-plans?tab=water", color: "text-cyan-400" },
-  { id: "progress", label: "Stats", icon: TrendingDown, href: "/meal-plans?tab=progress", color: "text-purple-400" },
-];
-
 export const BottomNavigation = ({ activeTab }: BottomNavigationProps) => {
+  const { t } = useLanguage();
+  
+  const navItems = [
+    { id: "meals", label: t.navMealPlan, icon: Calendar, href: "/meal-plans?tab=meals", color: "text-orange-400" },
+    { id: "shopping", label: t.navShopping, icon: ShoppingCart, href: "/meal-plans?tab=shopping", color: "text-green-400" },
+    { id: "tracker", label: t.navTracker, icon: Target, href: "/meal-plans?tab=tracker", color: "text-primary" },
+    { id: "water", label: t.navWater, icon: Droplets, href: "/meal-plans?tab=water", color: "text-cyan-400" },
+    { id: "progress", label: t.navStats, icon: TrendingDown, href: "/meal-plans?tab=progress", color: "text-purple-400" },
+  ];
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 safe-bottom">
       <div className="flex items-center justify-between px-2 py-2">
