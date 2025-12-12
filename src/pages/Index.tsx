@@ -32,11 +32,22 @@ const Index = () => {
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  // Skip splash/onboarding if coming from subscription success
+  const urlParams = new URLSearchParams(window.location.search);
+  const isFromSubscription = urlParams.get('subscription') === 'success';
+  
+  const [showSplash, setShowSplash] = useState(!isFromSubscription);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(isFromSubscription);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
+  
+  // Redirect to meal-plans if coming from successful subscription
+  useEffect(() => {
+    if (isFromSubscription) {
+      navigate('/meal-plans?subscription=success', { replace: true });
+    }
+  }, [isFromSubscription, navigate]);
 
   useEffect(() => {
     const profile = localStorage.getItem("userProfile");
