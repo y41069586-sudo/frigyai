@@ -324,8 +324,8 @@ const MealPlansPage = () => {
             </Button>
             <NavLink to="/">
               <div className="flex items-center gap-2">
-                <img src={frigLogo} alt="Frig AI" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
-                <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">Frig AI</h1>
+                <img src={frigLogo} alt="FriG AI" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
+                <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">FriG AI</h1>
               </div>
             </NavLink>
           </div>

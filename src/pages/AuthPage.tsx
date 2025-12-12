@@ -64,7 +64,7 @@ const AuthPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
         <div className="text-center">
-          <img src={frigLogo} alt="Frig AI" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="FriG AI" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
           <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
@@ -95,8 +95,8 @@ const AuthPage = () => {
         >
           <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-6 sm:p-8 border border-primary/20">
             <div className="flex items-center justify-center mb-6 sm:mb-8">
-              <img src={frigLogo} alt="Frig AI" className="h-12 w-12 rounded-xl" />
-              <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">Frig AI</h1>
+              <img src={frigLogo} alt="FriG AI" className="h-12 w-12 rounded-xl" />
+              <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">FriG AI</h1>
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">
