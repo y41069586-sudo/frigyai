@@ -119,12 +119,16 @@ const MealPlansPage = () => {
     // Wait for auth to finish loading before redirecting
     if (loading) return;
     
+    // Don't redirect if coming from successful subscription - wait for status to update
+    const subscriptionParam = searchParams.get('subscription');
+    if (subscriptionParam === 'success') return;
+    
     if (!user) {
       navigate('/auth');
     } else if (subscriptionStatus !== null && !subscriptionStatus.subscribed) {
       navigate('/premium');
     }
-  }, [user, subscriptionStatus, loading, navigate]);
+  }, [user, subscriptionStatus, loading, navigate, searchParams]);
 
   // Check tracker setup and load saved meal plan
   useEffect(() => {
