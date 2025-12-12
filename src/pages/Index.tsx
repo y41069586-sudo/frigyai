@@ -27,21 +27,40 @@ interface UserProfile {
 }
 
 const Index = () => {
-  const { user, session, subscriptionStatus, signOut } = useAuth();
+  const { user, session, subscriptionStatus, signOut, loading } = useAuth();
   const { t } = useLanguage();
   const [trackerSetup, setTrackerSetup] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  
   // Skip splash/onboarding if coming from subscription success or if user already completed onboarding
   const urlParams = new URLSearchParams(window.location.search);
   const isFromSubscription = urlParams.get('subscription') === 'success';
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
   
-  const [showSplash, setShowSplash] = useState(!isFromSubscription && !hasCompletedOnboarding);
+  // Only show splash if: not loading, no user logged in, and hasn't completed onboarding
+  const [showSplash, setShowSplash] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(isFromSubscription || hasCompletedOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
+  
+  // Wait for auth to load, then decide if splash should show
+  useEffect(() => {
+    if (!loading && !authChecked) {
+      setAuthChecked(true);
+      // If user is logged in OR has completed onboarding before, skip splash
+      if (user || hasCompletedOnboarding || isFromSubscription) {
+        setShowSplash(false);
+        setOnboardingComplete(true);
+        localStorage.setItem('onboardingComplete', 'true');
+      } else {
+        // First time visitor - show splash
+        setShowSplash(true);
+      }
+    }
+  }, [loading, user, authChecked, hasCompletedOnboarding, isFromSubscription]);
   
   // Redirect to meal-plans if coming from successful subscription
   useEffect(() => {
@@ -142,7 +161,18 @@ const Index = () => {
 
   const scansRemaining = 2 - dailyScansUsed;
 
-  // Show splash screen first (no navigation)
+  // Wait for auth check before showing anything
+  if (loading || !authChecked) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center">
+        <div className="animate-pulse">
+          <img src={frigLogo} alt="FriG AI" className="h-16 w-16 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show splash screen first (only for new users)
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
