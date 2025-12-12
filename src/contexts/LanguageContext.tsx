@@ -80,10 +80,21 @@ interface Translations {
   choosePlan: string;
   freePlan: string;
   freePlanDesc: string;
+  freeFeature1: string;
+  freeFeature2: string;
+  freeFeature3: string;
   premiumPlan: string;
   premiumPlanDesc: string;
+  premiumFeature1: string;
+  premiumFeature2: string;
+  premiumFeature3: string;
+  premiumFeature4: string;
+  premiumFeature5: string;
+  premiumFeature6: string;
+  premiumFeature7: string;
+  freeTrialInfo: string;
   continueWithFree: string;
-  getPremium: string;
+  startFreeTrial: string;
   ingredients: string;
   
   // Auth
@@ -377,11 +388,22 @@ const translations: Record<Language, Translations> = {
     // Plan Selection
     choosePlan: "Wähle deinen Plan",
     freePlan: "Kostenlos",
-    freePlanDesc: "2 Kühlschrank-Scans pro Tag",
+    freePlanDesc: "Perfekt zum Ausprobieren",
+    freeFeature1: "2 Kühlschrank-Scans pro Tag",
+    freeFeature2: "Basis-Rezeptvorschläge",
+    freeFeature3: "Kalorien-Anzeige",
     premiumPlan: "Premium",
-    premiumPlanDesc: "Unbegrenzte Scans, Wochenpläne, Tracker & mehr",
+    premiumPlanDesc: "Alles was du zum Abnehmen brauchst",
+    premiumFeature1: "Unbegrenzte Kühlschrank-Scans",
+    premiumFeature2: "KI-Chatbot für Ernährungsfragen",
+    premiumFeature3: "Personalisierte Wochenpläne",
+    premiumFeature4: "Automatische Einkaufslisten",
+    premiumFeature5: "Makro- & Kalorientracker",
+    premiumFeature6: "Wasser-Tracker mit Erinnerungen",
+    premiumFeature7: "Gewichtsverlauf & Statistiken",
+    freeTrialInfo: "1 Woche kostenlos testen, dann €4,99/Monat",
     continueWithFree: "Kostenlos starten",
-    getPremium: "Premium holen",
+    startFreeTrial: "1 Woche gratis testen",
     
     // Auth
     email: "E-Mail",
@@ -672,11 +694,22 @@ const translations: Record<Language, Translations> = {
     // Plan Selection
     choosePlan: "Choose your plan",
     freePlan: "Free",
-    freePlanDesc: "2 fridge scans per day",
+    freePlanDesc: "Perfect for trying out",
+    freeFeature1: "2 fridge scans per day",
+    freeFeature2: "Basic recipe suggestions",
+    freeFeature3: "Calorie display",
     premiumPlan: "Premium",
-    premiumPlanDesc: "Unlimited scans, meal plans, tracker & more",
+    premiumPlanDesc: "Everything you need to lose weight",
+    premiumFeature1: "Unlimited fridge scans",
+    premiumFeature2: "AI chatbot for nutrition questions",
+    premiumFeature3: "Personalized weekly meal plans",
+    premiumFeature4: "Automatic shopping lists",
+    premiumFeature5: "Macro & calorie tracker",
+    premiumFeature6: "Water tracker with reminders",
+    premiumFeature7: "Weight progress & statistics",
+    freeTrialInfo: "1 week free trial, then €4.99/month",
     continueWithFree: "Start free",
-    getPremium: "Get Premium",
+    startFreeTrial: "Start 1 week free trial",
     
     // Auth
     email: "Email",
@@ -967,11 +1000,22 @@ const translations: Record<Language, Translations> = {
     // Plan Selection
     choosePlan: "Choisissez votre plan",
     freePlan: "Gratuit",
-    freePlanDesc: "2 scans de frigo par jour",
+    freePlanDesc: "Parfait pour essayer",
+    freeFeature1: "2 scans de frigo par jour",
+    freeFeature2: "Suggestions de recettes de base",
+    freeFeature3: "Affichage des calories",
     premiumPlan: "Premium",
-    premiumPlanDesc: "Scans illimités, plans repas, suivi et plus",
+    premiumPlanDesc: "Tout ce dont vous avez besoin pour perdre du poids",
+    premiumFeature1: "Scans de frigo illimités",
+    premiumFeature2: "Chatbot IA pour les questions nutrition",
+    premiumFeature3: "Plans de repas personnalisés",
+    premiumFeature4: "Listes de courses automatiques",
+    premiumFeature5: "Suivi des macros et calories",
+    premiumFeature6: "Suivi de l'eau avec rappels",
+    premiumFeature7: "Progression du poids et statistiques",
+    freeTrialInfo: "1 semaine gratuite, puis €4,99/mois",
     continueWithFree: "Commencer gratuitement",
-    getPremium: "Obtenir Premium",
+    startFreeTrial: "Essayer 1 semaine gratuite",
     
     // Auth
     email: "E-mail",
