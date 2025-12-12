@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Camera, Utensils, TrendingDown, Globe } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
-
-type Language = "de" | "en" | "fr";
+import { useLanguage, Language } from "@/contexts/LanguageContext";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -22,28 +21,24 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
       
       {/* Top Shelf - Milk, Juice, Apple */}
       <div className="absolute top-[3%] left-[8%] w-6 h-10">
-        {/* Milk carton */}
         <div className="w-full h-full bg-white border border-slate-200 rounded-sm shadow-sm">
           <div className="w-full h-2.5 bg-blue-400 rounded-t-sm" />
           <div className="text-[4px] text-center text-blue-600 mt-0.5 font-bold">MILK</div>
         </div>
       </div>
       <div className="absolute top-[4%] left-[38%] w-5 h-9">
-        {/* Orange juice */}
         <div className="w-full h-full bg-orange-400 rounded-sm shadow-sm">
           <div className="w-full h-2 bg-orange-600 rounded-t-sm" />
           <div className="w-3 h-3 bg-orange-200 rounded-full mx-auto mt-1" />
         </div>
       </div>
       <div className="absolute top-[6%] right-[25%] w-5 h-5">
-        {/* Apple */}
         <div className="w-full h-full bg-gradient-to-br from-red-400 to-red-600 rounded-full shadow-sm relative">
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-amber-700 rounded-full" />
           <div className="absolute -top-0.5 right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full" />
         </div>
       </div>
       <div className="absolute top-[4%] right-[6%] w-7 h-5 bg-amber-50 rounded border border-amber-100 shadow-sm flex items-center justify-center gap-0.5">
-        {/* Eggs */}
         <div className="w-1.5 h-2 bg-amber-100 rounded-full" />
         <div className="w-1.5 h-2 bg-amber-100 rounded-full" />
         <div className="w-1.5 h-2 bg-amber-100 rounded-full" />
@@ -51,7 +46,6 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
       
       {/* Second Shelf - Vegetables */}
       <div className="absolute top-[28%] left-[8%]">
-        {/* Carrot */}
         <div className="w-3 h-7 bg-gradient-to-b from-orange-400 to-orange-500 rounded-b-full shadow-sm relative">
           <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex">
             <div className="w-0.5 h-2 bg-green-500 rounded-full transform -rotate-12" />
@@ -61,17 +55,14 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
         </div>
       </div>
       <div className="absolute top-[30%] left-[30%] w-5 h-5">
-        {/* Tomato */}
         <div className="w-full h-full bg-gradient-to-br from-red-400 to-red-600 rounded-full shadow-sm relative">
           <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2 h-1.5 bg-green-500 rounded-b-full" />
         </div>
       </div>
       <div className="absolute top-[28%] right-[25%] w-4 h-6">
-        {/* Avocado */}
         <div className="w-full h-full bg-gradient-to-b from-green-600 to-green-800 rounded-full shadow-sm" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }} />
       </div>
       <div className="absolute top-[30%] right-[6%] w-6 h-4">
-        {/* Cheese */}
         <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-yellow-400 rounded-sm shadow-sm relative">
           <div className="absolute top-0.5 left-1 w-1 h-1 bg-yellow-200 rounded-full" />
           <div className="absolute bottom-0.5 right-1.5 w-0.5 h-0.5 bg-yellow-200 rounded-full" />
@@ -83,13 +74,11 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
         <div className="w-full h-1 bg-primary/30 rounded-t" />
       </div>
       <div className="absolute top-[54%] left-[45%] w-5 h-5">
-        {/* Yogurt */}
         <div className="w-full h-full bg-white rounded-sm border border-slate-200 shadow-sm">
           <div className="w-full h-1.5 bg-pink-400 rounded-t-sm" />
         </div>
       </div>
       <div className="absolute top-[53%] right-[8%] w-6 h-6">
-        {/* Broccoli */}
         <div className="w-full h-full relative">
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-2 bg-green-700 rounded-sm" />
           <div className="absolute top-0 left-0 w-2 h-2 bg-green-500 rounded-full" />
@@ -110,7 +99,6 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
     {/* Scan effect inside fridge */}
     {scanning && (
       <>
-        {/* Glowing border */}
         <motion.div
           className="absolute inset-0 rounded-xl border-2 border-[#90EE90] pointer-events-none"
           style={{ boxShadow: '0 0 20px rgba(144,238,144,0.6), 0 0 40px rgba(144,238,144,0.3)' }}
@@ -124,7 +112,6 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Scan beam - gradient beam effect */}
         <motion.div
           className="absolute left-1 right-1 h-10 pointer-events-none rounded-lg overflow-hidden"
           style={{ 
@@ -134,7 +121,6 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
           animate={{ top: ['5%', '80%', '5%'] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          {/* Bright center line */}
           <div 
             className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 bg-[#90EE90]"
             style={{ boxShadow: '0 0 12px rgba(144,238,144,1), 0 0 24px rgba(144,238,144,0.8)' }}
@@ -154,7 +140,6 @@ const MiniFridge = ({ scanning = false }: { scanning?: boolean }) => (
   </div>
 );
 
-// Frig AI Logo Component using actual image
 const FrigLogoImage = ({ size = "normal" }: { size?: "small" | "normal" | "large" }) => {
   const sizeClass = size === "small" ? "w-16 h-16" : size === "large" ? "w-32 h-32" : "w-24 h-24";
   return (
@@ -166,48 +151,6 @@ const FrigLogoImage = ({ size = "normal" }: { size?: "small" | "normal" | "large
   );
 };
 
-const translations = {
-  de: {
-    slides: [
-      { title: "Was essen?", subtitle: "Keine Idee beim Kühlschrank?" },
-      { title: "Scannen", subtitle: "Foto vom Kühlschrank machen" },
-      { title: "Fertig!", subtitle: "Kalorienarme Rezepte erhalten" },
-    ],
-    skip: "Überspringen",
-    next: "Weiter",
-    start: "Los geht's",
-    recipe: "Rezept",
-    ingredients: "Zutaten",
-    selectLanguage: "Sprache wählen",
-  },
-  en: {
-    slides: [
-      { title: "What to eat?", subtitle: "No idea at the fridge?" },
-      { title: "Scan", subtitle: "Take a photo of your fridge" },
-      { title: "Done!", subtitle: "Get low-calorie recipes" },
-    ],
-    skip: "Skip",
-    next: "Next",
-    start: "Let's go",
-    recipe: "Recipe",
-    ingredients: "ingredients",
-    selectLanguage: "Select language",
-  },
-  fr: {
-    slides: [
-      { title: "Quoi manger?", subtitle: "Pas d'idée devant le frigo?" },
-      { title: "Scanner", subtitle: "Prendre une photo du frigo" },
-      { title: "Terminé!", subtitle: "Obtenir des recettes légères" },
-    ],
-    skip: "Passer",
-    next: "Suivant",
-    start: "C'est parti",
-    recipe: "Recette",
-    ingredients: "ingrédients",
-    selectLanguage: "Choisir la langue",
-  },
-};
-
 const languages: { code: Language; name: string; flag: string }[] = [
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "en", name: "English", flag: "🇬🇧" },
@@ -215,23 +158,26 @@ const languages: { code: Language; name: string; flag: string }[] = [
 ];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
+  const { language, setLanguage, t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
-  const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem("app-language");
-    return (saved as Language) || "de";
-  });
+  const [hasSelectedLanguage, setHasSelectedLanguage] = useState(false);
 
-  const t = translations[language];
+  const slides = [
+    { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle },
+    { title: t.onboardingSlide2Title, subtitle: t.onboardingSlide2Subtitle },
+    { title: t.onboardingSlide3Title, subtitle: t.onboardingSlide3Subtitle },
+  ];
+
   const slideTypes = ["visual", "scan", "recipes"] as const;
 
   const handleSelectLanguage = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem("app-language", lang);
-    setCurrentSlide(0); // Move to first slide
+    setHasSelectedLanguage(true);
+    setCurrentSlide(0);
   };
 
   const handleNext = () => {
-    if (currentSlide < t.slides.length - 1) {
+    if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
       onComplete();
@@ -287,7 +233,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     );
   }
 
-  const currentSlideData = t.slides[currentSlide];
+  const currentSlideData = slides[currentSlide];
   const slideType = slideTypes[currentSlide];
 
   return (
@@ -313,7 +259,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto text-center">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentSlide}
+            key={`${language}-${currentSlide}`}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
@@ -406,7 +352,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       <div className="w-full max-w-xs space-y-4 pb-6">
         {/* Progress Dots */}
         <div className="flex justify-center gap-1.5">
-          {t.slides.map((_, index) => (
+          {slides.map((_, index) => (
             <motion.div
               key={index}
               className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -429,7 +375,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           onClick={handleNext}
           className="w-full h-11 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
         >
-          {currentSlide < t.slides.length - 1 ? (
+          {currentSlide < slides.length - 1 ? (
             <>
               {t.next}
               <ChevronRight className="ml-1 w-4 h-4" />
