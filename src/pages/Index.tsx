@@ -327,29 +327,39 @@ const Index = () => {
           </motion.div>
 
           {/* Premium Upsell for non-subscribed users */}
-          {user && !subscriptionStatus?.subscribed && (
+          {!subscriptionStatus?.subscribed && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <NavLink to="/premium">
-                <div className="p-5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/30 hover:shadow-neon transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/20">
-                      <Crown className="h-7 w-7 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg">{t.unlockPremium}</h3>
-                      <p className="text-xs text-muted-foreground">{t.premiumFeatures}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-primary">4,99€</p>
-                      <p className="text-[10px] text-muted-foreground">{t.perMonth}</p>
-                    </div>
+              <div 
+                onClick={() => {
+                  if (!user) {
+                    // Not logged in - go to auth first, then checkout after
+                    localStorage.setItem('startCheckoutAfterAuth', 'true');
+                    navigate('/auth?from=premium');
+                  } else {
+                    // Logged in - go to premium page
+                    navigate('/premium');
+                  }
+                }}
+                className="p-5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/30 hover:shadow-neon transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-primary/20">
+                    <Crown className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg">{t.unlockPremium}</h3>
+                    <p className="text-xs text-muted-foreground">{t.premiumFeatures}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-primary">4,99€</p>
+                    <p className="text-[10px] text-muted-foreground">{t.perMonth}</p>
                   </div>
                 </div>
-              </NavLink>
+              </div>
             </motion.div>
           )}
 
@@ -372,9 +382,9 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Bottom Navigation - Only for subscribed users after onboarding */}
-      {user && subscriptionStatus?.subscribed && onboardingComplete && (
-        <BottomNavigation />
+      {/* Bottom Navigation - Show for all logged in users */}
+      {user && onboardingComplete && (
+        <BottomNavigation trackerSetup={trackerSetup} />
       )}
 
       {/* AI Chatbot - Only for subscribed users */}

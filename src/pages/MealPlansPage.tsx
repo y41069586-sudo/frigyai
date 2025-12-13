@@ -546,7 +546,7 @@ const MealPlansPage = () => {
       <AIChatbot userProfile={userProfile} onResetTracker={handleResetTracker} />
 
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab={activeTab} />
+      <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} />
     </div>
   );
 };
