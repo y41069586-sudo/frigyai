@@ -492,79 +492,21 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <span className="text-xl text-muted-foreground ml-2">kg/Woche</span>
           </div>
           
-          {/* Animal Track - All 3 animals positioned on track */}
-          <div className="relative h-32 mt-4">
-            {/* Track line */}
-            <div className="absolute bottom-4 left-4 right-4 h-1 bg-foreground/80 rounded-full" />
-            
-            {/* Slider thumb indicator */}
-            <motion.div 
-              className="absolute bottom-2 w-4 h-4 bg-primary rounded-full shadow-lg border-2 border-background z-20"
-              style={{ 
-                left: `calc(${((weeklyLossRate - 0.3) / (1.4 - 0.3)) * 100}% - 8px + 16px)`,
-              }}
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
-            />
-            
-            {/* Sloth - Left (slow) */}
-            <div className="absolute left-0 bottom-6">
+          {/* Icons - All 3 positioned without track */}
+          <div className="relative h-28 mt-4 flex items-end justify-between px-4">
+            {/* Walking Person - Left (slow) */}
+            <div className="flex flex-col items-center">
               <AnimatedSloth isActive={weeklyLossRate <= 0.5} />
             </div>
             
-            {/* Rabbit - Center (medium) */}
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-6">
+            {/* Car - Center (medium) */}
+            <div className="flex flex-col items-center">
               <AnimatedRabbit isActive={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0} />
-              {/* Dust cloud */}
-              {weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 && (
-                <motion.div
-                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-3 bg-muted-foreground/30 rounded-full blur-sm"
-                  animate={{ 
-                    opacity: [0, 0.6, 0],
-                    scale: [0.5, 1.3, 0.5],
-                  }}
-                  transition={{ duration: 0.4, repeat: Infinity }}
-                />
-              )}
             </div>
             
-            {/* Cheetah - Right (fast) */}
-            <div className="absolute right-0 bottom-6">
+            {/* Rocket - Right (fast) */}
+            <div className="flex flex-col items-center">
               <AnimatedCheetah isActive={weeklyLossRate > 1.0} />
-              {/* Speed lines */}
-              {weeklyLossRate > 1.0 && (
-                <>
-                  <div className="absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col gap-1.5">
-                    {[...Array(4)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="h-0.5 bg-orange-400 rounded-full origin-right"
-                        style={{ width: `${14 + i * 5}px` }}
-                        animate={{ 
-                          opacity: [0, 0.9, 0],
-                          x: [0, -20, -40],
-                          scaleX: [1, 1.5, 0.2],
-                        }}
-                        transition={{ 
-                          duration: 0.2,
-                          repeat: Infinity,
-                          delay: i * 0.04
-                        }}
-                      />
-                    ))}
-                  </div>
-                  {/* Ground dust */}
-                  <motion.div
-                    className="absolute -bottom-2 -left-6 w-14 h-4 bg-orange-300/40 rounded-full blur-md"
-                    animate={{ 
-                      opacity: [0, 0.7, 0],
-                      x: [-5, -25, -45],
-                      scale: [0.5, 1.5, 0.2],
-                    }}
-                    transition={{ duration: 0.25, repeat: Infinity }}
-                  />
-                </>
-              )}
             </div>
           </div>
           
