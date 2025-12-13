@@ -20,7 +20,15 @@ const PremiumPage = () => {
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'water' | 'weight'>('overview');
   const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
+  // Check if we're returning from Stripe payment (subscription=success in URL)
+  const urlParams = new URLSearchParams(window.location.search);
+  const isReturningFromStripe = urlParams.get('subscription') === 'success';
   const [isAutoCheckout, setIsAutoCheckout] = useState(() => {
+    // Don't show auto-checkout loading if returning from successful Stripe payment
+    if (isReturningFromStripe) {
+      localStorage.removeItem('startCheckoutAfterAuth');
+      return false;
+    }
     return localStorage.getItem('startCheckoutAfterAuth') === 'true';
   });
 
