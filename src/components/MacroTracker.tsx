@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
@@ -49,9 +50,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { t } = useLanguage();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
-  const [step, setStep] = useState<'onboarding' | 'tracker'>(
-    localStorage.getItem('userProfile') ? 'tracker' : 'onboarding'
-  );
+  const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
+  
+  const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [age, setAge] = useState(25);
   const [weight, setWeight] = useState(80);
@@ -61,10 +62,33 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [weeklyLossRate, setWeeklyLossRate] = useState(0.75); // kg per week
   const [goalMode, setGoalMode] = useState<'lose' | 'gain'>('lose'); // New: lose or gain weight
   const [targetWeight, setTargetWeight] = useState(75);
-  const [profile, setProfile] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('userProfile');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  
+  // Sync with database settings
+  useEffect(() => {
+    if (!settingsLoading) {
+      if (isConfigured && trackerSettings) {
+        setProfile({
+          age: trackerSettings.age,
+          weight: trackerSettings.weight,
+          targetWeight: trackerSettings.targetWeight,
+          dailyCalories: trackerSettings.dailyCalories,
+          dailyProtein: trackerSettings.dailyProtein,
+          dailyCarbs: trackerSettings.dailyCarbs,
+          dailyFat: trackerSettings.dailyFat,
+        });
+        setStep('tracker');
+        setAge(trackerSettings.age);
+        setWeight(trackerSettings.weight);
+        setTargetWeight(trackerSettings.targetWeight);
+        setGoalMode(trackerSettings.goalMode);
+        setWeeklyLossRate(trackerSettings.weeklyGoal);
+      } else {
+        setStep('onboarding');
+        setProfile(null);
+      }
+    }
+  }, [trackerSettings, isConfigured, settingsLoading]);
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>(() => {
     const saved = localStorage.getItem('todayFood');
     if (saved) {
@@ -113,8 +137,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   }, [isAnalyzing, analyzingImage]);
 
   // Expose reset function to parent
-  const resetTracker = () => {
-    localStorage.removeItem('userProfile');
+  const resetTracker = async () => {
+    await resetTrackerSettings();
     localStorage.removeItem('todayFood');
     setProfile(null);
     setFoodEntries([]);
@@ -166,7 +190,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const carbCalories = Math.max(0, targetCalories - proteinCalories - fatCalories);
   const targetCarbs = Math.round(carbCalories / 4);
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     const newProfile = {
       age,
       weight,
@@ -176,7 +200,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       dailyCarbs: targetCarbs,
       dailyFat: targetFat,
     };
-    localStorage.setItem('userProfile', JSON.stringify(newProfile));
+    
+    // Save to database via hook
+    await saveTrackerSettings({
+      age,
+      weight,
+      targetWeight,
+      goalMode,
+      weeklyGoal: weeklyLossRate,
+      dailyCalories: targetCalories,
+      dailyProtein: targetProtein,
+      dailyCarbs: targetCarbs,
+      dailyFat: targetFat,
+    });
+    
     setProfile(newProfile);
     setStep('tracker');
     onSetupComplete?.();

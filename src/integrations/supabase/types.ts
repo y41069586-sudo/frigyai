@@ -113,6 +113,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tracker_settings: {
+        Row: {
+          age: number | null
+          created_at: string
+          daily_calories: number | null
+          daily_carbs: number | null
+          daily_fat: number | null
+          daily_protein: number | null
+          goal_mode: string | null
+          id: string
+          target_weight: number | null
+          updated_at: string
+          user_id: string
+          weekly_goal: number | null
+          weight: number | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          daily_calories?: number | null
+          daily_carbs?: number | null
+          daily_fat?: number | null
+          daily_protein?: number | null
+          goal_mode?: string | null
+          id?: string
+          target_weight?: number | null
+          updated_at?: string
+          user_id: string
+          weekly_goal?: number | null
+          weight?: number | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          daily_calories?: number | null
+          daily_carbs?: number | null
+          daily_fat?: number | null
+          daily_protein?: number | null
+          goal_mode?: string | null
+          id?: string
+          target_weight?: number | null
+          updated_at?: string
+          user_id?: string
+          weekly_goal?: number | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
       water_intake: {
         Row: {
           created_at: string
