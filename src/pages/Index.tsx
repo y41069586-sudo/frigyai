@@ -313,7 +313,7 @@ const Index = () => {
               </p>
             </div>
             
-            {userProfile && (
+            {user && userProfile && (
               <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-1">{t.dailyGoal}</p>
