@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
+import { HealthSync } from "@/components/HealthSync";
 import frigLogo from "@/assets/frig-logo.png";
 
 const ProfilePage = () => {
@@ -187,13 +189,44 @@ const ProfilePage = () => {
           </Card>
         </motion.div>
 
-        {/* Actions */}
+        {/* Quick Links */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="space-y-3"
         >
+          {isPremium && (
+            <>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/community")}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Community
+              </Button>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Activity className="h-4 w-4 mr-2" />
+                    Health Sync
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Health Sync</DialogTitle>
+                  </DialogHeader>
+                  <HealthSync />
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+          
           <Button
             variant="outline"
             className="w-full justify-start"
