@@ -219,6 +219,10 @@ const MealPlansPage = () => {
         dailyProtein = profile.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
         dailyCarbs = profile.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
         dailyFat = profile.dailyFat || Math.round(dailyCalories * 0.3 / 9);
+        
+        console.log('[MEAL-PLAN] Using profile targets:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
+      } else {
+        console.log('[MEAL-PLAN] No profile found, using defaults');
       }
 
       const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
