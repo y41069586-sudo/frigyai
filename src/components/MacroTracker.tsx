@@ -452,19 +452,51 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               animate={{ scale: 1, opacity: 1 }}
               className="text-center"
             >
-              <motion.span 
-                className="text-7xl block"
+              <motion.div 
+                className="text-7xl block relative"
                 animate={{ 
-                  x: weeklyLossRate <= 0.5 ? [0, 5, 0] : weeklyLossRate <= 1.0 ? [0, 15, 0] : [0, 30, 0],
+                  x: weeklyLossRate <= 0.5 ? [0, 8, 0] : weeklyLossRate <= 1.0 ? [0, 20, 0] : [0, 40, 0],
                 }}
                 transition={{ 
-                  duration: weeklyLossRate <= 0.5 ? 2 : weeklyLossRate <= 1.0 ? 0.8 : 0.4,
+                  duration: weeklyLossRate <= 0.5 ? 2.5 : weeklyLossRate <= 1.0 ? 0.6 : 0.3,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: "linear"
                 }}
               >
-                {speedInfo.emoji}
-              </motion.span>
+                {/* Legs/body animation for running effect */}
+                <motion.span
+                  className="inline-block"
+                  animate={{
+                    y: weeklyLossRate <= 0.5 ? [0, -2, 0] : weeklyLossRate <= 1.0 ? [0, -6, 0, -6, 0] : [0, -8, 0, -8, 0, -8, 0],
+                    rotate: weeklyLossRate <= 0.5 ? [0, 2, 0, -2, 0] : weeklyLossRate <= 1.0 ? [0, 5, 0, -5, 0] : [0, 8, 0, -8, 0],
+                    scaleX: weeklyLossRate <= 0.5 ? [1, 1.02, 1] : weeklyLossRate <= 1.0 ? [1, 1.05, 0.95, 1.05, 1] : [1, 1.1, 0.9, 1.1, 0.9, 1],
+                  }}
+                  transition={{ 
+                    duration: weeklyLossRate <= 0.5 ? 1.5 : weeklyLossRate <= 1.0 ? 0.4 : 0.2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  {speedInfo.emoji}
+                </motion.span>
+                {/* Motion blur/dust effect for fast animals */}
+                {weeklyLossRate > 0.75 && (
+                  <motion.span 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl opacity-40"
+                    animate={{ 
+                      opacity: [0, 0.4, 0],
+                      x: [-10, -25, -40],
+                      scale: [1, 0.8, 0.5]
+                    }}
+                    transition={{ 
+                      duration: weeklyLossRate <= 1.0 ? 0.6 : 0.3,
+                      repeat: Infinity,
+                    }}
+                  >
+                    💨
+                  </motion.span>
+                )}
+              </motion.div>
               <p className={`text-lg font-bold mt-2 ${speedInfo.color}`}>{speedInfo.label}</p>
             </motion.div>
           </div>
