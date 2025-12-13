@@ -1,5 +1,5 @@
 import { Calendar, ShoppingCart, Target, Droplets, TrendingDown, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,21 +8,23 @@ import { toast } from "@/hooks/use-toast";
 interface BottomNavigationProps {
   activeTab?: string;
   trackerSetup?: boolean;
+  onTabChange?: (tab: string) => void;
 }
 
-export const BottomNavigation = ({ activeTab, trackerSetup = false }: BottomNavigationProps) => {
+export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange }: BottomNavigationProps) => {
   const { t } = useLanguage();
   const { subscriptionStatus } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const isPremium = subscriptionStatus?.subscribed;
   
   const navItems = [
-    { id: "meals", label: t.navMealPlan, icon: Calendar, href: "/meal-plans?tab=meals", color: "text-orange-400", requiresPremium: true, requiresTracker: true },
-    { id: "shopping", label: t.navShopping, icon: ShoppingCart, href: "/meal-plans?tab=shopping", color: "text-green-400", requiresPremium: true, requiresTracker: true },
-    { id: "tracker", label: t.navTracker, icon: Target, href: "/meal-plans?tab=tracker", color: "text-primary", requiresPremium: false, requiresTracker: false },
-    { id: "water", label: t.navWater, icon: Droplets, href: "/meal-plans?tab=water", color: "text-cyan-400", requiresPremium: true, requiresTracker: true },
-    { id: "progress", label: t.navStats, icon: TrendingDown, href: "/meal-plans?tab=progress", color: "text-purple-400", requiresPremium: true, requiresTracker: true },
+    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: true, requiresTracker: true },
+    { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-green-400", requiresPremium: true, requiresTracker: true },
+    { id: "tracker", label: t.navTracker, icon: Target, color: "text-primary", requiresPremium: false, requiresTracker: false },
+    { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: true, requiresTracker: true },
+    { id: "progress", label: t.navStats, icon: TrendingDown, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
   ];
 
   const handleNavClick = (item: typeof navItems[0]) => {
@@ -39,11 +41,21 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false }: BottomNavi
         title: t.setupTracker || "Tracker einrichten",
         description: t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
       });
-      navigate('/meal-plans?tab=tracker');
+      // Switch to tracker tab directly
+      if (onTabChange) {
+        onTabChange('tracker');
+      }
+      searchParams.set('tab', 'tracker');
+      setSearchParams(searchParams, { replace: true });
       return;
     }
     
-    navigate(item.href);
+    // Update tab via callback and URL params instead of full navigation
+    if (onTabChange) {
+      onTabChange(item.id);
+    }
+    searchParams.set('tab', item.id);
+    setSearchParams(searchParams, { replace: true });
   };
 
   return (
