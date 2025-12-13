@@ -4,13 +4,13 @@ interface IconProps {
   isActive: boolean;
 }
 
-// Walking Person - slow speed (emoji-style yellow person walking left)
+// Walking Person - slow speed (emoji-style yellow person walking right)
 export const AnimatedSloth = ({ isActive }: IconProps) => {
   return (
     <motion.svg 
       viewBox="0 0 60 80" 
-      className={`w-14 h-18 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
-      animate={isActive ? { x: [0, -4, 0] } : {}}
+      className={`w-10 h-14 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
+      animate={isActive ? { x: [0, 3, 0] } : {}}
       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
     >
       {/* Head - emoji yellow */}
@@ -23,11 +23,11 @@ export const AnimatedSloth = ({ isActive }: IconProps) => {
         strokeWidth="1"
       />
       
-      {/* Face */}
-      <circle cx="26" cy="12" r="1.5" fill="#664500" />
-      <circle cx="34" cy="12" r="1.5" fill="#664500" />
+      {/* Face - facing right */}
+      <circle cx="32" cy="12" r="1.5" fill="#664500" />
+      <circle cx="38" cy="12" r="1.5" fill="#664500" />
       <motion.path
-        d="M26 17 Q30 20 34 17"
+        d="M32 17 Q36 20 40 17"
         fill="none"
         stroke="#664500"
         strokeWidth="1.5"
@@ -51,19 +51,19 @@ export const AnimatedSloth = ({ isActive }: IconProps) => {
         strokeWidth="5"
         strokeLinecap="round"
         animate={isActive ? { 
-          d: ["M22 26 L14 40", "M22 26 L18 44", "M22 26 L14 40"]
+          d: ["M22 26 L18 44", "M22 26 L14 40", "M22 26 L18 44"]
         } : {}}
         transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
       />
       
-      {/* Right Arm - swings opposite */}
+      {/* Right Arm - swings opposite (forward when walking right) */}
       <motion.path
         d="M38 26 L46 40"
         stroke="#FFCC4D"
         strokeWidth="5"
         strokeLinecap="round"
         animate={isActive ? { 
-          d: ["M38 26 L46 40", "M38 26 L42 44", "M38 26 L46 40"]
+          d: ["M38 26 L42 44", "M38 26 L46 40", "M38 26 L42 44"]
         } : {}}
         transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
       />
@@ -75,7 +75,7 @@ export const AnimatedSloth = ({ isActive }: IconProps) => {
         strokeWidth="6"
         strokeLinecap="round"
         animate={isActive ? { 
-          d: ["M26 45 L18 68", "M26 45 L30 68", "M26 45 L18 68"]
+          d: ["M26 45 L30 68", "M26 45 L18 68", "M26 45 L30 68"]
         } : {}}
         transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -88,7 +88,7 @@ export const AnimatedSloth = ({ isActive }: IconProps) => {
         ry="3"
         fill="#915B30"
         animate={isActive ? { 
-          cx: [18, 30, 18]
+          cx: [30, 18, 30]
         } : {}}
         transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -100,7 +100,7 @@ export const AnimatedSloth = ({ isActive }: IconProps) => {
         strokeWidth="6"
         strokeLinecap="round"
         animate={isActive ? { 
-          d: ["M34 45 L42 68", "M34 45 L30 68", "M34 45 L42 68"]
+          d: ["M34 45 L30 68", "M34 45 L42 68", "M34 45 L30 68"]
         } : {}}
         transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
       />
@@ -113,7 +113,7 @@ export const AnimatedSloth = ({ isActive }: IconProps) => {
         ry="3"
         fill="#915B30"
         animate={isActive ? { 
-          cx: [42, 30, 42]
+          cx: [30, 42, 30]
         } : {}}
         transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
       />
@@ -150,7 +150,7 @@ export const AnimatedRabbit = ({ isActive }: IconProps) => {
       
       <motion.svg 
         viewBox="0 0 100 55" 
-        className={`w-20 h-12 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
+        className={`w-14 h-9 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
       >
         {/* Car Body */}
         <motion.g
@@ -231,7 +231,7 @@ export const AnimatedCheetah = ({ isActive }: IconProps) => {
     <div className="relative">
       <motion.svg 
         viewBox="0 0 60 90" 
-        className={`w-12 h-18 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
+        className={`w-9 h-14 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
       >
         {/* Rocket Body */}
         <motion.g
