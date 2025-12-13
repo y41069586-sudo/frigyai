@@ -46,7 +46,17 @@ const Index = () => {
   
   // Determine splash/onboarding state after auth loads
   useEffect(() => {
+    // If still loading auth, wait
     if (loading) return;
+    
+    // If user is logged in, always skip onboarding
+    if (user) {
+      setShowSplash(false);
+      setShowOnboarding(false);
+      setOnboardingComplete(true);
+      localStorage.setItem('onboardingComplete', 'true');
+      return;
+    }
     
     // Check if user has selected a plan (completed onboarding)
     const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
@@ -61,7 +71,7 @@ const Index = () => {
       setShowSplash(true);
       setOnboardingComplete(false);
     }
-  }, [loading, isFromSubscription]);
+  }, [loading, isFromSubscription, user]);
   
   // Redirect to meal-plans if coming from successful subscription
   useEffect(() => {
@@ -80,15 +90,7 @@ const Index = () => {
         console.error('Failed to parse user profile');
       }
     }
-    
-    // If user is logged in, skip onboarding automatically and mark as complete
-    if (user) {
-      setOnboardingComplete(true);
-      setShowSplash(false);
-      setShowOnboarding(false);
-      localStorage.setItem('onboardingComplete', 'true');
-    }
-  }, [user]);
+  }, []);
 
   // Fetch daily scan usage for free users
   useEffect(() => {
