@@ -52,6 +52,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [age, setAge] = useState(25);
   const [weight, setWeight] = useState(80);
+  const [userHeight, setUserHeight] = useState(170);
+  const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [activityLevel, setActivityLevel] = useState(1.55); // Moderate
+  const [weeklyLossRate, setWeeklyLossRate] = useState(0.75); // kg per week
   const [targetWeight, setTargetWeight] = useState(75);
   const [profile, setProfile] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('userProfile');
@@ -124,23 +128,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     };
   }, []);
 
+  // Mifflin-St Jeor BMR formula
+  const bmr = gender === 'male' 
+    ? 10 * weight + 6.25 * userHeight - 5 * age + 5 
+    : 10 * weight + 6.25 * userHeight - 5 * age - 161;
+  const tdee = Math.round(bmr * activityLevel);
+  
+  // Calculate based on user-selected weekly loss rate
   const weightDiff = weight - targetWeight;
-  const weeksToGoal = 4;
-  
-  // Mifflin-St Jeor BMR formula (assuming average height 170cm and moderate activity)
-  const height = 170;
-  const bmr = 10 * weight + 6.25 * height - 5 * age + 5; // +5 for male, -161 for female
-  const tdee = Math.round(bmr * 1.55); // Moderate activity multiplier
-  
-  // Calculate EXACT weekly loss based on user's goal - no cap!
-  const weeklyLoss = weightDiff / weeksToGoal;
+  const weeksToGoal = weightDiff > 0 ? Math.ceil(weightDiff / weeklyLossRate) : 0;
   
   // Calculate exact daily deficit: 7700 kcal = 1kg fat
-  const dailyDeficit = (weeklyLoss * 7700) / 7;
+  const dailyDeficit = (weeklyLossRate * 7700) / 7;
   
   // Calculate target calories with minimum floor for safety
   const calculatedCalories = Math.round(tdee - dailyDeficit);
-  const minCalories = age < 25 ? 1200 : age < 40 ? 1100 : 1000; // Lower minimum for aggressive goals
+  const minCalories = age < 25 ? 1200 : age < 40 ? 1100 : 1000;
   const targetCalories = Math.max(minCalories, calculatedCalories);
   const isAtMinimum = calculatedCalories < minCalories;
   
@@ -287,6 +290,15 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const totalCarbs = foodEntries.reduce((sum, e) => sum + e.carbs, 0);
   const totalFat = foodEntries.reduce((sum, e) => sum + e.fat, 0);
 
+  // Get speed label and emoji based on weeklyLossRate
+  const getSpeedInfo = () => {
+    if (weeklyLossRate <= 0.5) return { emoji: '🐢', label: 'Langsam & Nachhaltig', color: 'text-green-400' };
+    if (weeklyLossRate <= 0.75) return { emoji: '🐇', label: 'Moderat', color: 'text-amber-400' };
+    if (weeklyLossRate <= 1.0) return { emoji: '🐇', label: 'Schnell', color: 'text-orange-400' };
+    return { emoji: '🐆', label: 'Sehr Schnell', color: 'text-red-400' };
+  };
+  const speedInfo = getSpeedInfo();
+
   const onboardingSteps = [
     {
       icon: User,
@@ -302,6 +314,50 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             onValueChange={([v]) => setAge(v)}
             min={16}
             max={80}
+            step={1}
+            className="py-4"
+          />
+        </div>
+      ),
+    },
+    {
+      icon: User,
+      title: "Geschlecht",
+      content: (
+        <div className="space-y-6">
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => setGender('male')}
+              className={`p-6 rounded-2xl border-2 transition-all ${gender === 'male' ? 'border-primary bg-primary/20' : 'border-border'}`}
+            >
+              <span className="text-4xl">👨</span>
+              <p className="mt-2 font-medium">Mann</p>
+            </button>
+            <button
+              onClick={() => setGender('female')}
+              className={`p-6 rounded-2xl border-2 transition-all ${gender === 'female' ? 'border-primary bg-primary/20' : 'border-border'}`}
+            >
+              <span className="text-4xl">👩</span>
+              <p className="mt-2 font-medium">Frau</p>
+            </button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      icon: Scale,
+      title: "Wie groß bist du?",
+      content: (
+        <div className="space-y-6">
+          <div className="text-center">
+            <span className="text-6xl font-bold text-primary">{userHeight}</span>
+            <span className="text-2xl text-muted-foreground ml-2">cm</span>
+          </div>
+          <Slider
+            value={[userHeight]}
+            onValueChange={([v]) => setUserHeight(v)}
+            min={140}
+            max={220}
             step={1}
             className="py-4"
           />
@@ -329,8 +385,36 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       ),
     },
     {
+      icon: Flame,
+      title: "Wie aktiv bist du?",
+      content: (
+        <div className="space-y-4">
+          {[
+            { value: 1.2, label: 'Wenig aktiv', desc: 'Bürojob, wenig Bewegung', emoji: '🪑' },
+            { value: 1.375, label: 'Leicht aktiv', desc: '1-2x Sport pro Woche', emoji: '🚶' },
+            { value: 1.55, label: 'Moderat aktiv', desc: '3-5x Sport pro Woche', emoji: '🏃' },
+            { value: 1.725, label: 'Sehr aktiv', desc: '6-7x Sport pro Woche', emoji: '💪' },
+          ].map((level) => (
+            <button
+              key={level.value}
+              onClick={() => setActivityLevel(level.value)}
+              className={`w-full p-4 rounded-xl border-2 text-left transition-all ${activityLevel === level.value ? 'border-primary bg-primary/20' : 'border-border'}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{level.emoji}</span>
+                <div>
+                  <p className="font-medium">{level.label}</p>
+                  <p className="text-sm text-muted-foreground">{level.desc}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      ),
+    },
+    {
       icon: Target,
-      title: t.whatIsYourGoalIn4Weeks,
+      title: "Zielgewicht",
       content: (
         <div className="space-y-6">
           <div className="text-center">
@@ -340,7 +424,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <Slider
             value={[targetWeight]}
             onValueChange={([v]) => setTargetWeight(v)}
-            min={Math.max(40, weight - 10)}
+            min={Math.max(40, weight - 30)}
             max={weight}
             step={1}
             className="py-4"
@@ -349,6 +433,78 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <TrendingDown className="h-5 w-5 text-primary" />
             <span>{weightDiff} {t.kg} {t.loseWeight}</span>
           </div>
+          <p className="text-xs text-center text-muted-foreground bg-muted/50 p-2 rounded-lg">
+            💡 Empfehlung: Max. 10kg alle 10 Wochen für nachhaltiges Abnehmen
+          </p>
+        </div>
+      ),
+    },
+    {
+      icon: TrendingDown,
+      title: "Wie schnell möchtest du abnehmen?",
+      content: (
+        <div className="space-y-6">
+          {/* Animated Animal Display */}
+          <div className="relative h-32 flex items-center justify-center overflow-hidden">
+            <motion.div
+              key={speedInfo.emoji}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-center"
+            >
+              <motion.span 
+                className="text-7xl block"
+                animate={{ 
+                  x: weeklyLossRate <= 0.5 ? [0, 5, 0] : weeklyLossRate <= 1.0 ? [0, 15, 0] : [0, 30, 0],
+                }}
+                transition={{ 
+                  duration: weeklyLossRate <= 0.5 ? 2 : weeklyLossRate <= 1.0 ? 0.8 : 0.4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                {speedInfo.emoji}
+              </motion.span>
+              <p className={`text-lg font-bold mt-2 ${speedInfo.color}`}>{speedInfo.label}</p>
+            </motion.div>
+          </div>
+          
+          {/* Speed Value */}
+          <div className="text-center">
+            <span className="text-4xl font-bold text-primary">{weeklyLossRate.toFixed(2)}</span>
+            <span className="text-xl text-muted-foreground ml-2">kg/Woche</span>
+          </div>
+          
+          {/* Slider with labels */}
+          <div className="space-y-2">
+            <Slider
+              value={[weeklyLossRate * 100]}
+              onValueChange={([v]) => setWeeklyLossRate(v / 100)}
+              min={30}
+              max={140}
+              step={5}
+              className="py-4"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>🐢 0.3kg</span>
+              <span>🐇 0.75kg</span>
+              <span>🐆 1.4kg</span>
+            </div>
+          </div>
+          
+          {/* Info based on speed */}
+          <div className={`text-sm p-3 rounded-lg ${weeklyLossRate > 1.0 ? 'bg-red-500/10 text-red-400' : weeklyLossRate > 0.75 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
+            {weeklyLossRate > 1.0 && "⚠️ Sehr ambitioniert! Kann schwer durchzuhalten sein."}
+            {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Schnell aber machbar mit Disziplin."}
+            {weeklyLossRate <= 0.75 && "✅ Nachhaltig und gesund - empfohlen!"}
+          </div>
+          
+          {/* Estimated time */}
+          {weightDiff > 0 && (
+            <p className="text-center text-muted-foreground">
+              ~{weeksToGoal} Wochen bis zum Ziel
+            </p>
+          )}
         </div>
       ),
     },
@@ -368,7 +524,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <p>{t.withActivity}: ~{tdee} kcal</p>
             <p>{t.deficit}: -{Math.round(dailyDeficit)} kcal/{t.today.toLowerCase()}</p>
             <p className="text-xs">
-              {t.goal}: {weightDiff}{t.kg} {t.inWeeks} ({weeklyLoss.toFixed(2)}{t.kg}{t.weeklyRate})
+              {t.goal}: {weightDiff}{t.kg} in ~{weeksToGoal} Wochen ({weeklyLossRate.toFixed(2)}{t.kg}/Woche)
             </p>
           </div>
           
