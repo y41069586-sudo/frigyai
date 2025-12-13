@@ -180,6 +180,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
+  const [communityJoinedConfirm, setCommunityJoinedConfirm] = useState(false);
   const slides = [
     { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle, type: "welcome" as const },
     { title: t.onboardingSlide2Title, subtitle: t.onboardingSlide2Subtitle, type: "scan" as const },
@@ -488,50 +489,79 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               )}
               {currentSlideData.type === "community-join" && (
                 <div className="space-y-4 w-full max-w-sm">
-                  <motion.div
-                    className="flex items-center justify-center gap-2"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    {[...Array(3)].map((_, i) => (
+                  {communityJoinedConfirm ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center space-y-4"
+                    >
                       <motion.div
-                        key={i}
-                        className="w-14 h-14 bg-primary/20 rounded-full flex items-center justify-center text-2xl"
+                        className="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: i * 0.15 }}
+                        transition={{ type: "spring", stiffness: 200 }}
                       >
-                        {["👩‍🍳", "👨‍🍳", "🧑‍🍳"][i]}
+                        <Users className="w-10 h-10 text-green-500" />
                       </motion.div>
-                    ))}
-                  </motion.div>
-                  <div className="space-y-3 mt-6">
-                    <motion.a
-                      href="https://discord.gg/frig-community"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      onClick={() => {
-                        localStorage.setItem('communityJoined', 'true');
-                        toast({ title: "Willkommen in der Community! 🎉" });
-                      }}
-                      className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-primary bg-primary/10 hover:bg-primary/20 transition-all"
-                    >
-                      <Users className="w-5 h-5 text-primary" />
-                      <span className="font-medium text-primary">{t.joinCommunity}</span>
-                    </motion.a>
-                    <motion.button
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      onClick={handleNext}
-                      className="w-full text-center text-muted-foreground text-sm py-2 hover:text-foreground transition-colors"
-                    >
-                      {t.maybeLater}
-                    </motion.button>
-                  </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-green-500">Community beigetreten! 🎉</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Du findest die Community in den Profileinstellungen
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          (Profil → Community)
+                        </p>
+                      </div>
+                      <Button onClick={handleNext} className="mt-4">
+                        Weiter
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <motion.div
+                        className="flex items-center justify-center gap-2"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      >
+                        {[...Array(3)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="w-14 h-14 bg-primary/20 rounded-full flex items-center justify-center text-2xl"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: i * 0.15 }}
+                          >
+                            {["👩‍🍳", "👨‍🍳", "🧑‍🍳"][i]}
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                      <div className="space-y-3 mt-6">
+                        <motion.button
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          onClick={() => {
+                            localStorage.setItem('communityJoined', 'true');
+                            setCommunityJoinedConfirm(true);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-primary bg-primary/10 hover:bg-primary/20 transition-all"
+                        >
+                          <Users className="w-5 h-5 text-primary" />
+                          <span className="font-medium text-primary">{t.joinCommunity}</span>
+                        </motion.button>
+                        <motion.button
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.4 }}
+                          onClick={handleNext}
+                          className="w-full text-center text-muted-foreground text-sm py-2 hover:text-foreground transition-colors"
+                        >
+                          {t.maybeLater}
+                        </motion.button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               {currentSlideData.type === "community" && (
