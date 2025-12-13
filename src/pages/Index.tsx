@@ -50,7 +50,7 @@ const Index = () => {
     if (loading) return;
     
     // TESTING MODE: Always show onboarding (even when logged in)
-    const testingOnboarding = true;
+    const testingOnboarding = false;
     
     if (testingOnboarding) {
       setShowSplash(true);
@@ -130,7 +130,7 @@ const Index = () => {
     setShowSplash(false);
     
     // TESTING MODE: Always show onboarding
-    const testingOnboarding = true;
+    const testingOnboarding = false;
     
     if (testingOnboarding) {
       setShowOnboarding(true);
