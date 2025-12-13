@@ -65,7 +65,7 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 safe-bottom">
-      <div className="flex items-center justify-between px-2 py-2">
+      <div className="flex items-center justify-between px-1 py-1">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           const isLockedPremium = item.requiresPremium && !isPremium;
@@ -76,11 +76,12 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
             <button
               key={item.id}
               onClick={() => handleNavClick(item)}
-              className="flex-1"
+              type="button"
+              className="flex-1 min-h-[56px] touch-manipulation active:scale-95 transition-transform"
             >
               <div className={cn(
-                "flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all relative",
-                isActive ? "bg-primary/15" : "hover:bg-muted/50",
+                "flex flex-col items-center justify-center gap-0.5 py-3 px-1 rounded-xl transition-colors relative h-full",
+                isActive ? "bg-primary/15" : "hover:bg-muted/50 active:bg-muted/70",
                 isLocked && "opacity-60"
               )}>
                 {isLocked && (
