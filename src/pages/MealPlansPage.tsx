@@ -72,10 +72,13 @@ const MealPlansPage = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
 
-  // Read tab from URL params
-  const urlParams = new URLSearchParams(window.location.search);
-  const initialTab = urlParams.get('tab') || 'tracker';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // Sync activeTab with URL params
+  const activeTab = searchParams.get('tab') || 'tracker';
+
+  const setActiveTab = (tab: string) => {
+    searchParams.set('tab', tab);
+    setSearchParams(searchParams, { replace: true });
+  };
 
   // Initialize reminder system
   useReminders();
@@ -546,7 +549,7 @@ const MealPlansPage = () => {
       <AIChatbot userProfile={userProfile} onResetTracker={handleResetTracker} />
 
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} />
+      <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} onTabChange={setActiveTab} />
     </div>
   );
 };
