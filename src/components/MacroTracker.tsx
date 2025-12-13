@@ -17,10 +17,8 @@ import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-// Import animal images
-import slothIcon from '@/assets/sloth-icon.png';
-import rabbitIcon from '@/assets/rabbit-icon.png';
-import cheetahIcon from '@/assets/cheetah-icon.png';
+// Import animated animal components
+import { AnimatedSloth, AnimatedRabbit, AnimatedCheetah } from './AnimatedAnimals';
 
 export interface FoodEntry {
   id: string;
@@ -497,11 +495,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           {/* Animal Track - All 3 animals positioned on track */}
           <div className="relative h-32 mt-4">
             {/* Track line */}
-            <div className="absolute bottom-6 left-4 right-4 h-1 bg-foreground/80 rounded-full" />
+            <div className="absolute bottom-4 left-4 right-4 h-1 bg-foreground/80 rounded-full" />
             
             {/* Slider thumb indicator */}
             <motion.div 
-              className="absolute bottom-4 w-4 h-4 bg-primary rounded-full shadow-lg border-2 border-background z-20"
+              className="absolute bottom-2 w-4 h-4 bg-primary rounded-full shadow-lg border-2 border-background z-20"
               style={{ 
                 left: `calc(${((weeklyLossRate - 0.3) / (1.4 - 0.3)) * 100}% - 8px + 16px)`,
               }}
@@ -509,116 +507,65 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               transition={{ duration: 0.5, repeat: Infinity }}
             />
             
-            {/* Sloth - Left (slow) - Gentle swaying motion */}
-            <motion.div 
-              className="absolute left-0 bottom-10"
-              animate={weeklyLossRate <= 0.5 ? { 
-                y: [0, -3, 0, -2, 0],
-                rotate: [0, -3, 0, 3, 0],
-              } : {}}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <motion.img 
-                src={slothIcon} 
-                alt="Slow" 
-                className={`w-16 h-16 object-contain transition-opacity duration-300 ${weeklyLossRate <= 0.5 ? 'opacity-100' : 'opacity-30'}`}
-                animate={weeklyLossRate <= 0.5 ? {
-                  scaleY: [1, 0.95, 1, 0.97, 1],
-                  scaleX: [1, 1.02, 1, 1.01, 1],
-                } : {}}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-              />
-            </motion.div>
+            {/* Sloth - Left (slow) */}
+            <div className="absolute left-0 bottom-6">
+              <AnimatedSloth isActive={weeklyLossRate <= 0.5} />
+            </div>
             
-            {/* Rabbit - Center (medium) - Hopping running motion */}
-            <motion.div 
-              className="absolute left-1/2 -translate-x-1/2 bottom-10"
-              animate={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? { 
-                y: [0, -12, 0],
-                x: [-3, 8, -3],
-              } : {}}
-              transition={{ duration: 0.35, repeat: Infinity, ease: "easeOut" }}
-            >
-              <motion.img 
-                src={rabbitIcon} 
-                alt="Medium" 
-                className={`w-16 h-16 object-contain transition-opacity duration-300 ${weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? 'opacity-100' : 'opacity-30'}`}
-                animate={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? {
-                  rotate: [0, -8, 5, -8, 0],
-                  scaleX: [1, 1.15, 0.9, 1.15, 1],
-                  scaleY: [1, 0.85, 1.1, 0.85, 1],
-                } : {}}
-                transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
-              />
-              {/* Rabbit dust */}
+            {/* Rabbit - Center (medium) */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-6">
+              <AnimatedRabbit isActive={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0} />
+              {/* Dust cloud */}
               {weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 && (
                 <motion.div
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-2 bg-muted-foreground/20 rounded-full blur-sm"
+                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-3 bg-muted-foreground/30 rounded-full blur-sm"
                   animate={{ 
-                    opacity: [0, 0.5, 0],
-                    scale: [0.5, 1.2, 0.5],
+                    opacity: [0, 0.6, 0],
+                    scale: [0.5, 1.3, 0.5],
                   }}
-                  transition={{ duration: 0.35, repeat: Infinity }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
                 />
               )}
-            </motion.div>
+            </div>
             
-            {/* Cheetah - Right (fast) - Sprint gallop motion */}
-            <motion.div 
-              className="absolute right-0 bottom-10"
-              animate={weeklyLossRate > 1.0 ? { 
-                y: [0, -10, -2, -10, 0],
-                x: [0, 15, 5, 15, 0],
-              } : {}}
-              transition={{ duration: 0.18, repeat: Infinity, ease: "linear" }}
-            >
-              <motion.img 
-                src={cheetahIcon} 
-                alt="Fast" 
-                className={`w-16 h-16 object-contain transition-opacity duration-300 ${weeklyLossRate > 1.0 ? 'opacity-100' : 'opacity-30'}`}
-                animate={weeklyLossRate > 1.0 ? {
-                  rotate: [-5, 8, -5, 8, -5],
-                  scaleX: [1, 1.25, 0.85, 1.25, 1],
-                  scaleY: [1, 0.8, 1.15, 0.8, 1],
-                  skewX: [0, -5, 5, -5, 0],
-                } : {}}
-                transition={{ duration: 0.18, repeat: Infinity, ease: "linear" }}
-              />
-              {/* Speed lines for cheetah */}
+            {/* Cheetah - Right (fast) */}
+            <div className="absolute right-0 bottom-6">
+              <AnimatedCheetah isActive={weeklyLossRate > 1.0} />
+              {/* Speed lines */}
               {weeklyLossRate > 1.0 && (
                 <>
-                  <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex flex-col gap-1.5">
+                  <div className="absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col gap-1.5">
                     {[...Array(4)].map((_, i) => (
                       <motion.div
                         key={i}
                         className="h-0.5 bg-orange-400 rounded-full origin-right"
-                        style={{ width: `${12 + i * 4}px` }}
+                        style={{ width: `${14 + i * 5}px` }}
                         animate={{ 
                           opacity: [0, 0.9, 0],
-                          x: [0, -15, -30],
-                          scaleX: [1, 1.5, 0.3],
+                          x: [0, -20, -40],
+                          scaleX: [1, 1.5, 0.2],
                         }}
                         transition={{ 
-                          duration: 0.15,
+                          duration: 0.2,
                           repeat: Infinity,
-                          delay: i * 0.03
+                          delay: i * 0.04
                         }}
                       />
                     ))}
                   </div>
-                  {/* Ground dust cloud */}
+                  {/* Ground dust */}
                   <motion.div
-                    className="absolute -bottom-2 -left-4 w-12 h-4 bg-orange-300/30 rounded-full blur-md"
+                    className="absolute -bottom-2 -left-6 w-14 h-4 bg-orange-300/40 rounded-full blur-md"
                     animate={{ 
-                      opacity: [0, 0.6, 0],
-                      x: [-5, -20, -35],
-                      scale: [0.5, 1.5, 0.3],
+                      opacity: [0, 0.7, 0],
+                      x: [-5, -25, -45],
+                      scale: [0.5, 1.5, 0.2],
                     }}
-                    transition={{ duration: 0.2, repeat: Infinity }}
+                    transition={{ duration: 0.25, repeat: Infinity }}
                   />
                 </>
               )}
-            </motion.div>
+            </div>
           </div>
           
           {/* Slider */}
