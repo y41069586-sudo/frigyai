@@ -95,7 +95,7 @@ serve(async (req) => {
       subscription_data: {
         trial_period_days: 7, // 7-day free trial
       },
-      success_url: `${origin}/meal-plans?subscription=success`,
+      success_url: `${origin}/premium?subscription=success`,
       cancel_url: `${origin}/premium?subscription=cancelled`,
     });
 
