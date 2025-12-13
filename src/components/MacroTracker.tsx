@@ -510,15 +510,24 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         {/* Macros */}
         <div className="grid grid-cols-3 gap-2 mt-4">
           <div className="text-center p-2 bg-background/30 rounded-lg">
-            <p className="text-lg font-bold text-red-400">{totalProtein}g</p>
+            <p className="text-lg font-bold">
+              <span className={totalProtein > (profile?.dailyProtein || 0) ? 'text-red-400' : 'text-red-400'}>{totalProtein}</span>
+              <span className="text-muted-foreground text-sm"> / {profile?.dailyProtein}g</span>
+            </p>
             <p className="text-xs text-muted-foreground">{t.protein}</p>
           </div>
           <div className="text-center p-2 bg-background/30 rounded-lg">
-            <p className="text-lg font-bold text-amber-400">{totalCarbs}g</p>
+            <p className="text-lg font-bold">
+              <span className={totalCarbs > (profile?.dailyCarbs || 0) ? 'text-red-400' : 'text-amber-400'}>{totalCarbs}</span>
+              <span className="text-muted-foreground text-sm"> / {profile?.dailyCarbs}g</span>
+            </p>
             <p className="text-xs text-muted-foreground">{t.carbs}</p>
           </div>
           <div className="text-center p-2 bg-background/30 rounded-lg">
-            <p className="text-lg font-bold text-blue-400">{totalFat}g</p>
+            <p className="text-lg font-bold">
+              <span className={totalFat > (profile?.dailyFat || 0) ? 'text-red-400' : 'text-blue-400'}>{totalFat}</span>
+              <span className="text-muted-foreground text-sm"> / {profile?.dailyFat}g</span>
+            </p>
             <p className="text-xs text-muted-foreground">{t.fat}</p>
           </div>
         </div>
