@@ -5,7 +5,7 @@ import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Use
 import frigLogo from "@/assets/frig-logo.png";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { toast } from "@/hooks/use-toast";
-
+import { HealthSync } from "@/components/HealthSync";
 // Social media icons as SVG components
 const TikTokIcon = () => (
   <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
@@ -181,7 +181,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
-
+  const [showHealthSync, setShowHealthSync] = useState(false);
   const slides = [
     { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle, type: "welcome" as const },
     { title: t.onboardingSlide2Title, subtitle: t.onboardingSlide2Subtitle, type: "scan" as const },
@@ -422,56 +422,65 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               )}
               {currentSlideData.type === "health-sync" && (
                 <div className="space-y-4 w-full max-w-sm">
-                  <motion.div
-                    className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center"
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <Activity className="w-10 h-10 text-primary" />
-                  </motion.div>
-                  <div className="space-y-3 mt-6">
-                    <motion.button
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
-                      onClick={() => {
-                        localStorage.setItem('healthSyncSettings', JSON.stringify({ appleHealth: true, googleFit: false, syncWeight: true, syncSteps: true, syncCalories: true, autoSync: true }));
-                        toast({ title: "Apple Health wird beim App-Start verbunden 🍎" });
+                  {showHealthSync ? (
+                    <div className="bg-card rounded-2xl border border-border p-4 max-h-[60vh] overflow-y-auto">
+                      <HealthSync onClose={() => {
+                        setShowHealthSync(false);
                         handleNext();
-                      }}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-red-500/50 transition-all"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                        <Apple className="w-5 h-5 text-red-500" />
+                      }} />
+                    </div>
+                  ) : (
+                    <>
+                      <motion.div
+                        className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Activity className="w-10 h-10 text-primary" />
+                      </motion.div>
+                      <div className="space-y-3 mt-6">
+                        <motion.button
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          onClick={() => {
+                            localStorage.setItem('healthSyncSettings', JSON.stringify({ appleHealth: true, googleFit: false, syncWeight: true, syncSteps: true, syncCalories: true, autoSync: true }));
+                            setShowHealthSync(true);
+                          }}
+                          className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-red-500/50 transition-all"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                            <Apple className="w-5 h-5 text-red-500" />
+                          </div>
+                          <span className="font-medium">{t.connectAppleHealth}</span>
+                        </motion.button>
+                        <motion.button
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 }}
+                          onClick={() => {
+                            localStorage.setItem('healthSyncSettings', JSON.stringify({ appleHealth: false, googleFit: true, syncWeight: true, syncSteps: true, syncCalories: true, autoSync: true }));
+                            setShowHealthSync(true);
+                          }}
+                          className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-green-500/50 transition-all"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                            <Smartphone className="w-5 h-5 text-green-500" />
+                          </div>
+                          <span className="font-medium">{t.connectGoogleFit}</span>
+                        </motion.button>
+                        <motion.button
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.4 }}
+                          onClick={handleNext}
+                          className="w-full text-center text-muted-foreground text-sm py-2 hover:text-foreground transition-colors"
+                        >
+                          {t.skipForNow}
+                        </motion.button>
                       </div>
-                      <span className="font-medium">{t.connectAppleHealth}</span>
-                    </motion.button>
-                    <motion.button
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 }}
-                      onClick={() => {
-                        localStorage.setItem('healthSyncSettings', JSON.stringify({ appleHealth: false, googleFit: true, syncWeight: true, syncSteps: true, syncCalories: true, autoSync: true }));
-                        toast({ title: "Google Fit wird beim App-Start verbunden 🏃" });
-                        handleNext();
-                      }}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-green-500/50 transition-all"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                        <Smartphone className="w-5 h-5 text-green-500" />
-                      </div>
-                      <span className="font-medium">{t.connectGoogleFit}</span>
-                    </motion.button>
-                    <motion.button
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      onClick={handleNext}
-                      className="w-full text-center text-muted-foreground text-sm py-2 hover:text-foreground transition-colors"
-                    >
-                      {t.skipForNow}
-                    </motion.button>
-                  </div>
+                    </>
+                  )}
                 </div>
               )}
               {currentSlideData.type === "community-join" && (
@@ -494,20 +503,22 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     ))}
                   </motion.div>
                   <div className="space-y-3 mt-6">
-                    <motion.button
+                    <motion.a
+                      href="https://discord.gg/frig-community"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                       onClick={() => {
                         localStorage.setItem('communityJoined', 'true');
                         toast({ title: "Willkommen in der Community! 🎉" });
-                        handleNext();
                       }}
                       className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-primary bg-primary/10 hover:bg-primary/20 transition-all"
                     >
                       <Users className="w-5 h-5 text-primary" />
                       <span className="font-medium text-primary">{t.joinCommunity}</span>
-                    </motion.button>
+                    </motion.a>
                     <motion.button
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
