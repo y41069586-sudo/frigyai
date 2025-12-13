@@ -1,36 +1,66 @@
 import { Calendar, ShoppingCart, Target, Droplets, TrendingDown, Lock } from "lucide-react";
-import { NavLink } from "@/components/NavLink";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface BottomNavigationProps {
   activeTab?: string;
+  trackerSetup?: boolean;
 }
 
-export const BottomNavigation = ({ activeTab }: BottomNavigationProps) => {
+export const BottomNavigation = ({ activeTab, trackerSetup = false }: BottomNavigationProps) => {
   const { t } = useLanguage();
   const { subscriptionStatus } = useAuth();
+  const navigate = useNavigate();
   
   const isPremium = subscriptionStatus?.subscribed;
   
   const navItems = [
-    { id: "meals", label: t.navMealPlan, icon: Calendar, href: "/meal-plans?tab=meals", color: "text-orange-400", requiresPremium: true },
-    { id: "shopping", label: t.navShopping, icon: ShoppingCart, href: "/meal-plans?tab=shopping", color: "text-green-400", requiresPremium: true },
-    { id: "tracker", label: t.navTracker, icon: Target, href: "/meal-plans?tab=tracker", color: "text-primary", requiresPremium: false },
-    { id: "water", label: t.navWater, icon: Droplets, href: "/meal-plans?tab=water", color: "text-cyan-400", requiresPremium: true },
-    { id: "progress", label: t.navStats, icon: TrendingDown, href: "/meal-plans?tab=progress", color: "text-purple-400", requiresPremium: true },
+    { id: "meals", label: t.navMealPlan, icon: Calendar, href: "/meal-plans?tab=meals", color: "text-orange-400", requiresPremium: true, requiresTracker: true },
+    { id: "shopping", label: t.navShopping, icon: ShoppingCart, href: "/meal-plans?tab=shopping", color: "text-green-400", requiresPremium: true, requiresTracker: true },
+    { id: "tracker", label: t.navTracker, icon: Target, href: "/meal-plans?tab=tracker", color: "text-primary", requiresPremium: false, requiresTracker: false },
+    { id: "water", label: t.navWater, icon: Droplets, href: "/meal-plans?tab=water", color: "text-cyan-400", requiresPremium: true, requiresTracker: true },
+    { id: "progress", label: t.navStats, icon: TrendingDown, href: "/meal-plans?tab=progress", color: "text-purple-400", requiresPremium: true, requiresTracker: true },
   ];
+
+  const handleNavClick = (item: typeof navItems[0]) => {
+    const isLockedPremium = item.requiresPremium && !isPremium;
+    const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
+    
+    if (isLockedPremium) {
+      navigate('/premium');
+      return;
+    }
+    
+    if (isLockedTracker) {
+      toast({
+        title: t.setupTracker || "Tracker einrichten",
+        description: t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
+      });
+      navigate('/meal-plans?tab=tracker');
+      return;
+    }
+    
+    navigate(item.href);
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 safe-bottom">
       <div className="flex items-center justify-between px-2 py-2">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
-          const isLocked = item.requiresPremium && !isPremium;
+          const isLockedPremium = item.requiresPremium && !isPremium;
+          const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
+          const isLocked = isLockedPremium || isLockedTracker;
           
           return (
-            <NavLink key={item.id} to={isLocked ? "/premium" : item.href} className="flex-1">
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item)}
+              className="flex-1"
+            >
               <div className={cn(
                 "flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all relative",
                 isActive ? "bg-primary/15" : "hover:bg-muted/50",
@@ -52,7 +82,7 @@ export const BottomNavigation = ({ activeTab }: BottomNavigationProps) => {
                   {item.label}
                 </span>
               </div>
-            </NavLink>
+            </button>
           );
         })}
       </div>
