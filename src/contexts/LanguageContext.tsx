@@ -74,14 +74,27 @@ interface Translations {
   onboardingSlide5Subtitle: string;
   onboardingSlide6Title: string;
   onboardingSlide6Subtitle: string;
-  // New onboarding slides 7-12
+  // New onboarding slides 7-14
   onboardingSlide7Title: string;
   onboardingSlide7Subtitle: string;
   onboardingSlide8Title: string;
+  onboardingSlide8Subtitle: string;
   onboardingSlide9Title: string;
   onboardingSlide10Title: string;
   onboardingSlide11Title: string;
   onboardingSlide12Title: string;
+  onboardingSlide13Title: string;
+  onboardingSlide14Title: string;
+  // Health Sync options
+  healthSyncTitle: string;
+  healthSyncSubtitle: string;
+  connectAppleHealth: string;
+  connectGoogleFit: string;
+  skipForNow: string;
+  communityTitle: string;
+  communitySubtitle: string;
+  joinCommunity: string;
+  maybeLater: string;
   // Question options
   howDidYouHear: string;
   optionTikTok: string;
@@ -412,14 +425,27 @@ const translations: Record<Language, Translations> = {
     onboardingSlide5Subtitle: "Behalte deine Kalorien im Blick",
     onboardingSlide6Title: "Leichter abnehmen",
     onboardingSlide6Subtitle: "Erreiche dein Wunschgewicht",
-    // New onboarding slides 7-12
-    onboardingSlide7Title: "Über 10.000 zufriedene Nutzer",
-    onboardingSlide7Subtitle: "Schließe dich unserer Community an",
-    onboardingSlide8Title: "Wie hast du von uns erfahren?",
-    onboardingSlide9Title: "Was ist dein Hauptziel?",
-    onboardingSlide10Title: "Wie oft kochst du?",
-    onboardingSlide11Title: "Was ist deine größte Herausforderung?",
-    onboardingSlide12Title: "Du bist bereit! 🎉",
+    // New onboarding slides 7-14
+    onboardingSlide7Title: "Health Sync",
+    onboardingSlide7Subtitle: "Verbinde deine Gesundheitsdaten",
+    onboardingSlide8Title: "Community",
+    onboardingSlide8Subtitle: "Teile Rezepte & verbinde dich",
+    onboardingSlide9Title: "Über 10.000 zufriedene Nutzer",
+    onboardingSlide10Title: "Wie hast du von uns erfahren?",
+    onboardingSlide11Title: "Was ist dein Hauptziel?",
+    onboardingSlide12Title: "Wie oft kochst du?",
+    onboardingSlide13Title: "Was ist deine größte Herausforderung?",
+    onboardingSlide14Title: "Du bist bereit! 🎉",
+    // Health Sync options
+    healthSyncTitle: "Health Sync aktivieren?",
+    healthSyncSubtitle: "Synchronisiere Gewicht & Aktivitäten automatisch",
+    connectAppleHealth: "Apple Health verbinden",
+    connectGoogleFit: "Google Fit verbinden",
+    skipForNow: "Später einstellen",
+    communityTitle: "Community beitreten?",
+    communitySubtitle: "Teile Rezepte und motiviere andere",
+    joinCommunity: "Community beitreten",
+    maybeLater: "Vielleicht später",
     // Question options
     howDidYouHear: "Wie hast du von uns erfahren?",
     optionTikTok: "TikTok",
@@ -748,14 +774,27 @@ const translations: Record<Language, Translations> = {
     onboardingSlide5Subtitle: "Keep your calories in check",
     onboardingSlide6Title: "Lose weight easier",
     onboardingSlide6Subtitle: "Reach your goal weight",
-    // New onboarding slides 7-12
-    onboardingSlide7Title: "Over 10,000 happy users",
-    onboardingSlide7Subtitle: "Join our community",
-    onboardingSlide8Title: "How did you hear about us?",
-    onboardingSlide9Title: "What is your main goal?",
-    onboardingSlide10Title: "How often do you cook?",
-    onboardingSlide11Title: "What is your biggest challenge?",
-    onboardingSlide12Title: "You're ready! 🎉",
+    // New onboarding slides 7-14
+    onboardingSlide7Title: "Health Sync",
+    onboardingSlide7Subtitle: "Connect your health data",
+    onboardingSlide8Title: "Community",
+    onboardingSlide8Subtitle: "Share recipes & connect",
+    onboardingSlide9Title: "Over 10,000 happy users",
+    onboardingSlide10Title: "How did you hear about us?",
+    onboardingSlide11Title: "What is your main goal?",
+    onboardingSlide12Title: "How often do you cook?",
+    onboardingSlide13Title: "What is your biggest challenge?",
+    onboardingSlide14Title: "You're ready! 🎉",
+    // Health Sync options
+    healthSyncTitle: "Enable Health Sync?",
+    healthSyncSubtitle: "Automatically sync weight & activities",
+    connectAppleHealth: "Connect Apple Health",
+    connectGoogleFit: "Connect Google Fit",
+    skipForNow: "Set up later",
+    communityTitle: "Join Community?",
+    communitySubtitle: "Share recipes and motivate others",
+    joinCommunity: "Join Community",
+    maybeLater: "Maybe later",
     // Question options
     howDidYouHear: "How did you hear about us?",
     optionTikTok: "TikTok",
@@ -1084,14 +1123,27 @@ const translations: Record<Language, Translations> = {
     onboardingSlide5Subtitle: "Gardez un œil sur vos calories",
     onboardingSlide6Title: "Perdre du poids facilement",
     onboardingSlide6Subtitle: "Atteignez votre poids idéal",
-    // New onboarding slides 7-12
-    onboardingSlide7Title: "Plus de 10 000 utilisateurs satisfaits",
-    onboardingSlide7Subtitle: "Rejoignez notre communauté",
-    onboardingSlide8Title: "Comment avez-vous entendu parler de nous?",
-    onboardingSlide9Title: "Quel est votre objectif principal?",
-    onboardingSlide10Title: "À quelle fréquence cuisinez-vous?",
-    onboardingSlide11Title: "Quel est votre plus grand défi?",
-    onboardingSlide12Title: "Vous êtes prêt! 🎉",
+    // New onboarding slides 7-14
+    onboardingSlide7Title: "Health Sync",
+    onboardingSlide7Subtitle: "Connectez vos données de santé",
+    onboardingSlide8Title: "Communauté",
+    onboardingSlide8Subtitle: "Partagez des recettes et connectez-vous",
+    onboardingSlide9Title: "Plus de 10 000 utilisateurs satisfaits",
+    onboardingSlide10Title: "Comment avez-vous entendu parler de nous?",
+    onboardingSlide11Title: "Quel est votre objectif principal?",
+    onboardingSlide12Title: "À quelle fréquence cuisinez-vous?",
+    onboardingSlide13Title: "Quel est votre plus grand défi?",
+    onboardingSlide14Title: "Vous êtes prêt! 🎉",
+    // Health Sync options
+    healthSyncTitle: "Activer Health Sync?",
+    healthSyncSubtitle: "Synchronisez automatiquement poids et activités",
+    connectAppleHealth: "Connecter Apple Health",
+    connectGoogleFit: "Connecter Google Fit",
+    skipForNow: "Configurer plus tard",
+    communityTitle: "Rejoindre la communauté?",
+    communitySubtitle: "Partagez des recettes et motivez les autres",
+    joinCommunity: "Rejoindre la communauté",
+    maybeLater: "Peut-être plus tard",
     // Question options
     howDidYouHear: "Comment avez-vous entendu parler de nous?",
     optionTikTok: "TikTok",

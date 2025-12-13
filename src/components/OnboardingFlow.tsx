@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Users, Sparkles } from "lucide-react";
+import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Users, Sparkles, Activity, Apple, Smartphone } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { toast } from "@/hooks/use-toast";
 
 // Social media icons as SVG components
 const TikTokIcon = () => (
@@ -188,13 +189,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     { title: t.onboardingSlide4Title, subtitle: t.onboardingSlide4Subtitle, type: "recipes" as const },
     { title: t.onboardingSlide5Title, subtitle: t.onboardingSlide5Subtitle, type: "track" as const },
     { title: t.onboardingSlide6Title, subtitle: t.onboardingSlide6Subtitle, type: "goal" as const },
-    // New slides 7-12
-    { title: t.onboardingSlide7Title, subtitle: t.onboardingSlide7Subtitle, type: "community" as const },
-    { title: t.onboardingSlide8Title, subtitle: "", type: "question-source" as const },
-    { title: t.onboardingSlide9Title, subtitle: "", type: "question-goal" as const },
-    { title: t.onboardingSlide10Title, subtitle: "", type: "question-cooking" as const },
-    { title: t.onboardingSlide11Title, subtitle: "", type: "question-challenge" as const },
-    { title: t.onboardingSlide12Title, subtitle: "", type: "ready" as const },
+    // New slides 7-14 with Health Sync and Community
+    { title: t.onboardingSlide7Title, subtitle: t.onboardingSlide7Subtitle, type: "health-sync" as const },
+    { title: t.onboardingSlide8Title, subtitle: t.onboardingSlide8Subtitle, type: "community-join" as const },
+    { title: t.onboardingSlide9Title, subtitle: "", type: "community" as const },
+    { title: t.onboardingSlide10Title, subtitle: "", type: "question-source" as const },
+    { title: t.onboardingSlide11Title, subtitle: "", type: "question-goal" as const },
+    { title: t.onboardingSlide12Title, subtitle: "", type: "question-cooking" as const },
+    { title: t.onboardingSlide13Title, subtitle: "", type: "question-challenge" as const },
+    { title: t.onboardingSlide14Title, subtitle: "", type: "ready" as const },
   ];
 
   const questionOptions = {
@@ -415,6 +418,106 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   >
                     🎯
                   </motion.div>
+                </div>
+              )}
+              {currentSlideData.type === "health-sync" && (
+                <div className="space-y-4 w-full max-w-sm">
+                  <motion.div
+                    className="w-20 h-20 mx-auto bg-primary/20 rounded-full flex items-center justify-center"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Activity className="w-10 h-10 text-primary" />
+                  </motion.div>
+                  <div className="space-y-3 mt-6">
+                    <motion.button
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      onClick={() => {
+                        localStorage.setItem('healthSyncSettings', JSON.stringify({ appleHealth: true, googleFit: false, syncWeight: true, syncSteps: true, syncCalories: true, autoSync: true }));
+                        toast({ title: "Apple Health wird beim App-Start verbunden 🍎" });
+                        handleNext();
+                      }}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-red-500/50 transition-all"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                        <Apple className="w-5 h-5 text-red-500" />
+                      </div>
+                      <span className="font-medium">{t.connectAppleHealth}</span>
+                    </motion.button>
+                    <motion.button
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      onClick={() => {
+                        localStorage.setItem('healthSyncSettings', JSON.stringify({ appleHealth: false, googleFit: true, syncWeight: true, syncSteps: true, syncCalories: true, autoSync: true }));
+                        toast({ title: "Google Fit wird beim App-Start verbunden 🏃" });
+                        handleNext();
+                      }}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-green-500/50 transition-all"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-green-500" />
+                      </div>
+                      <span className="font-medium">{t.connectGoogleFit}</span>
+                    </motion.button>
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                      onClick={handleNext}
+                      className="w-full text-center text-muted-foreground text-sm py-2 hover:text-foreground transition-colors"
+                    >
+                      {t.skipForNow}
+                    </motion.button>
+                  </div>
+                </div>
+              )}
+              {currentSlideData.type === "community-join" && (
+                <div className="space-y-4 w-full max-w-sm">
+                  <motion.div
+                    className="flex items-center justify-center gap-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    {[...Array(3)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="w-14 h-14 bg-primary/20 rounded-full flex items-center justify-center text-2xl"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: i * 0.15 }}
+                      >
+                        {["👩‍🍳", "👨‍🍳", "🧑‍🍳"][i]}
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                  <div className="space-y-3 mt-6">
+                    <motion.button
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      onClick={() => {
+                        localStorage.setItem('communityJoined', 'true');
+                        toast({ title: "Willkommen in der Community! 🎉" });
+                        handleNext();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-primary bg-primary/10 hover:bg-primary/20 transition-all"
+                    >
+                      <Users className="w-5 h-5 text-primary" />
+                      <span className="font-medium text-primary">{t.joinCommunity}</span>
+                    </motion.button>
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                      onClick={handleNext}
+                      className="w-full text-center text-muted-foreground text-sm py-2 hover:text-foreground transition-colors"
+                    >
+                      {t.maybeLater}
+                    </motion.button>
+                  </div>
                 </div>
               )}
               {currentSlideData.type === "community" && (
