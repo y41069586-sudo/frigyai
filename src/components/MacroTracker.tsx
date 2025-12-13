@@ -340,7 +340,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <Slider
             value={[targetWeight]}
             onValueChange={([v]) => setTargetWeight(v)}
-            min={40}
+            min={Math.max(40, weight - 10)}
             max={weight}
             step={1}
             className="py-4"
