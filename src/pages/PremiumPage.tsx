@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,21 +10,25 @@ import { useToast } from '@/hooks/use-toast';
 import { NavLink } from '@/components/NavLink';
 import { WaterTracker } from '@/components/WaterTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
+import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import frigLogo from '@/assets/frig-logo.png';
 
 const PremiumPage = () => {
-  const { user, session, subscriptionStatus } = useAuth();
+  const { user, session, subscriptionStatus, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'water' | 'weight'>('overview');
   const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
-  // Check if we're returning from Stripe payment (subscription=success in URL)
-  const urlParams = new URLSearchParams(window.location.search);
-  const isReturningFromStripe = urlParams.get('subscription') === 'success';
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  
+  // Check if we're returning from Stripe payment
+  const isReturningFromStripe = searchParams.get('subscription') === 'success';
+  
   const [isAutoCheckout, setIsAutoCheckout] = useState(() => {
-    // Don't show auto-checkout loading if returning from successful Stripe payment
     if (isReturningFromStripe) {
       localStorage.removeItem('startCheckoutAfterAuth');
       return false;
@@ -104,6 +108,38 @@ const PremiumPage = () => {
     }
   }, [user, navigate]);
 
+  // Handle returning from Stripe with success
+  useEffect(() => {
+    if (isReturningFromStripe && session) {
+      setIsActivating(true);
+      
+      // Poll for subscription status
+      let attempts = 0;
+      const maxAttempts = 15;
+      
+      const checkStatus = async () => {
+        attempts++;
+        await checkSubscription();
+        
+        if (subscriptionStatus?.subscribed) {
+          setIsActivating(false);
+          setShowSuccessDialog(true);
+          // Clear the URL param
+          setSearchParams({});
+        } else if (attempts < maxAttempts) {
+          setTimeout(checkStatus, 2000);
+        } else {
+          setIsActivating(false);
+          // Still show success - Stripe confirmed, sub might just be delayed
+          setShowSuccessDialog(true);
+          setSearchParams({});
+        }
+      };
+      
+      checkStatus();
+    }
+  }, [isReturningFromStripe, session]);
+
   // Auto-trigger checkout if coming from onboarding
   useEffect(() => {
     const shouldStartCheckout = localStorage.getItem('startCheckoutAfterAuth');
@@ -113,6 +149,23 @@ const PremiumPage = () => {
       startCheckout();
     }
   }, [session, autoCheckoutTriggered, subscriptionStatus]);
+
+  // Show activating screen when returning from Stripe
+  if (isActivating) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-primary safe-area-inset">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <img src={frigLogo} alt="FriG AI" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <h2 className="text-xl font-bold mb-2">{"Premium wird aktiviert..."}</h2>
+          <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   // Show loading screen while auto-checkout is in progress
   if (isAutoCheckout && !subscriptionStatus?.subscribed) {
@@ -407,6 +460,14 @@ const PremiumPage = () => {
           )}
         </motion.div>
       </div>
+      
+      <PremiumSuccessDialog 
+        open={showSuccessDialog} 
+        onClose={() => {
+          setShowSuccessDialog(false);
+          navigate('/');
+        }} 
+      />
     </div>
   );
 };
