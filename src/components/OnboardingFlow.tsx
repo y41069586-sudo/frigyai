@@ -164,7 +164,7 @@ const FrigLogoImage = ({ size = "normal" }: { size?: "small" | "normal" | "large
   return (
     <img 
       src={frigLogo} 
-      alt="FriG AI Logo" 
+      alt="FrigBuddy Logo" 
       className={`${sizeClass} rounded-[22%]`}
     />
   );

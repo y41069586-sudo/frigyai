@@ -78,7 +78,7 @@ export const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex justify-center mb-8"
           >
-            <img src={frigLogo} alt="FriG AI" className="h-16" />
+            <img src={frigLogo} alt="FrigBuddy" className="h-16" />
           </motion.div>
 
           {/* Headline */}
@@ -357,9 +357,9 @@ export const LandingPage = () => {
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-border/50">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <img src={frigLogo} alt="FriG AI" className="h-8" />
+          <img src={frigLogo} alt="FrigBuddy" className="h-8" />
           <p className="text-sm text-muted-foreground">
-            © 2024 FriG AI. Alle Rechte vorbehalten.
+            © 2024 FrigBuddy. Alle Rechte vorbehalten.
           </p>
         </div>
       </footer>

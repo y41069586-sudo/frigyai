@@ -52,7 +52,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         >
           <img 
             src={frigLogo} 
-            alt="FriG AI Logo" 
+            alt="FrigBuddy Logo" 
             className="w-32 h-32 rounded-[22%]"
           />
         </motion.div>
@@ -64,7 +64,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          FriG AI
+          FrigBuddy
         </motion.h1>
 
         {/* Tagline */}

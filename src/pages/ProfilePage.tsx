@@ -253,9 +253,9 @@ const ProfilePage = () => {
           transition={{ delay: 0.4 }}
           className="text-center py-4"
         >
-          <img src={frigLogo} alt="FriG AI" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
-          <p className="text-xs text-muted-foreground">FriG AI v1.0.0</p>
-          <p className="text-xs text-muted-foreground mt-1">© 2024 FriG AI</p>
+          <img src={frigLogo} alt="FrigBuddy" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
+          <p className="text-xs text-muted-foreground">FrigBuddy v1.0.0</p>
+          <p className="text-xs text-muted-foreground mt-1">© 2024 FrigBuddy</p>
         </motion.div>
       </div>
     </div>
