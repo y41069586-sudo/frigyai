@@ -1,5 +1,5 @@
 import { Calendar, ShoppingCart, Target, Droplets, TrendingDown, Lock } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,9 +15,10 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
   const { t } = useLanguage();
   const { subscriptionStatus } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   
   const isPremium = subscriptionStatus?.subscribed;
+  const isOnMealPlansPage = location.pathname === '/meal-plans';
   
   const navItems = [
     { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: true, requiresTracker: true },
@@ -41,21 +42,25 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
         title: t.setupTracker || "Tracker einrichten",
         description: t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
       });
-      // Switch to tracker tab directly
+      // Navigate to meal-plans with tracker tab
+      navigate('/meal-plans?tab=tracker');
       if (onTabChange) {
         onTabChange('tracker');
       }
-      searchParams.set('tab', 'tracker');
-      setSearchParams(searchParams, { replace: true });
       return;
     }
     
-    // Update tab via callback and URL params instead of full navigation
+    // If not on meal-plans page, navigate there with the tab
+    if (!isOnMealPlansPage) {
+      navigate(`/meal-plans?tab=${item.id}`);
+    } else {
+      // On meal-plans page, just update tab via callback and URL
+      navigate(`/meal-plans?tab=${item.id}`, { replace: true });
+    }
+    
     if (onTabChange) {
       onTabChange(item.id);
     }
-    searchParams.set('tab', item.id);
-    setSearchParams(searchParams, { replace: true });
   };
 
   return (
