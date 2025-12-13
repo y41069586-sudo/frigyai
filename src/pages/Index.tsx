@@ -128,11 +128,16 @@ const Index = () => {
     }
   };
   
-  const handleOnboardingComplete = () => {
-    // Close onboarding and mark as complete in localStorage
+  const handleOnboardingComplete = (goToPremium?: boolean) => {
+    // ALWAYS mark onboarding as complete when user selects a plan (free or premium)
+    localStorage.setItem('onboardingComplete', 'true');
     setShowOnboarding(false);
     setOnboardingComplete(true);
-    localStorage.setItem('onboardingComplete', 'true');
+    
+    // If premium was selected, redirect to auth for payment
+    if (goToPremium) {
+      navigate('/auth?redirect=premium');
+    }
   };
 
   const handleManageSubscription = async () => {
