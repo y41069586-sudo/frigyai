@@ -384,7 +384,10 @@ const Index = () => {
 
       {/* Bottom Navigation - Show for all logged in users */}
       {user && onboardingComplete && (
-        <BottomNavigation trackerSetup={trackerSetup} />
+        <BottomNavigation 
+          trackerSetup={trackerSetup} 
+          onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
+        />
       )}
 
       {/* AI Chatbot - Only for subscribed users */}
