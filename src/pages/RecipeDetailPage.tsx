@@ -83,7 +83,7 @@ const RecipeDetailPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
               className="mr-4"
             >
               <ArrowLeft className="h-5 w-5" />

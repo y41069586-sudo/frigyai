@@ -102,7 +102,7 @@ const AuthPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
             className="touch-target h-10 w-10"
           >
             <ArrowLeft className="h-5 w-5" />
