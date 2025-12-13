@@ -236,7 +236,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     setCurrentSlide(0);
   };
 
+  // Slides that require an answer before proceeding
+  const slidesRequiringAnswer = ["question-source", "question-goal", "question-cooking", "question-challenge"];
+  
+  const currentSlideRequiresAnswer = currentSlide >= 0 && slidesRequiringAnswer.includes(slides[currentSlide]?.type);
+  const hasAnsweredCurrentSlide = selectedOptions[currentSlide] !== undefined;
+  const canProceed = !currentSlideRequiresAnswer || hasAnsweredCurrentSlide;
+
   const handleNext = () => {
+    if (!canProceed) return;
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
@@ -246,7 +254,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleSkip = () => {
-    // Skip also goes to auth
+    // Can only skip if no answer required or already answered
+    if (!canProceed) return;
     onComplete();
   };
 
@@ -305,13 +314,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col items-center justify-between bg-background p-6 safe-area-inset"
     >
-      {/* Skip Button */}
+      {/* Skip Button - hidden on slides that require answer */}
       <div className="w-full flex justify-end pt-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={handleSkip}
-          className="text-muted-foreground hover:text-foreground"
+          disabled={!canProceed}
+          className={`text-muted-foreground hover:text-foreground transition-opacity ${
+            !canProceed ? "opacity-30 cursor-not-allowed" : ""
+          }`}
         >
           {t.skip}
         </Button>
@@ -685,11 +697,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {/* Next Button */}
         <Button
           onClick={handleNext}
-          className="w-full h-11 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
+          disabled={!canProceed}
+          className={`w-full h-11 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl transition-opacity ${
+            !canProceed ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {currentSlide < slides.length - 1 ? (
             <>
-              {t.next}
+              {canProceed ? t.next : "Wähle eine Option"}
               <ChevronRight className="ml-1 w-4 h-4" />
             </>
           ) : (
