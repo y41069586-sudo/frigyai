@@ -374,7 +374,7 @@ Der Benutzer hat folgende Ziele:
 Alle Rezeptvorschläge MÜSSEN diese Kalorienziele berücksichtigen!`;
     }
 
-    const systemPrompt = `Du bist Frig AI, ein freundlicher und kompetenter KI-Assistent in einer deutschen Abnehm-App.
+    const systemPrompt = `Du bist FrigBuddy, ein freundlicher und kompetenter KI-Assistent in einer deutschen Abnehm-App.
 
 ${userContext}
 

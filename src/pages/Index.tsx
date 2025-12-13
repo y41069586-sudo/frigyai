@@ -187,7 +187,7 @@ const Index = () => {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="animate-pulse">
-          <img src={frigLogo} alt="FriG AI" className="h-16 w-16 rounded-2xl" />
+          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 rounded-2xl" />
         </div>
       </div>
     );

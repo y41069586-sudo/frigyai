@@ -159,7 +159,7 @@ const PremiumPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <img src={frigLogo} alt="FriG AI" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
           <h2 className="text-xl font-bold mb-2">{"Premium wird aktiviert..."}</h2>
           <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
         </motion.div>
@@ -176,7 +176,7 @@ const PremiumPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <img src={frigLogo} alt="FriG AI" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
           <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
           <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
         </motion.div>
@@ -254,8 +254,8 @@ const PremiumPage = () => {
             </Button>
             <NavLink to="/">
               <div className="flex items-center gap-2">
-                <img src={frigLogo} alt="FriG AI" className="h-8 w-8 rounded-lg" />
-                <h1 className="text-lg sm:text-2xl font-bold neon-text">FriG AI</h1>
+                <img src={frigLogo} alt="FrigBuddy" className="h-8 w-8 rounded-lg" />
+                <h1 className="text-lg sm:text-2xl font-bold neon-text">FrigBuddy</h1>
               </div>
             </NavLink>
           </div>

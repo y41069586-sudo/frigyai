@@ -47,7 +47,7 @@ export const usePushNotifications = () => {
         PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
           console.log("Push notification received:", notification);
           toast({
-            title: notification.title || "FriG AI",
+            title: notification.title || "FrigBuddy",
             description: notification.body,
           });
         });

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.38287fffa52b43ffb7d74ca0ea11b4ff',
-  appName: 'FriG AI',
+  appName: 'FrigBuddy',
   webDir: 'dist',
   plugins: {
     PushNotifications: {

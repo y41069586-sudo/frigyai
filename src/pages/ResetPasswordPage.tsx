@@ -101,8 +101,8 @@ const ResetPasswordPage = () => {
         >
           <div className="bg-card/80 backdrop-blur-lg rounded-2xl shadow-neon p-6 sm:p-8 border border-primary/20">
             <div className="flex items-center justify-center mb-6">
-              <img src={frigLogo} alt="FriG AI" className="h-12 w-12 rounded-xl" />
-              <h1 className="text-2xl font-bold ml-3 neon-text">FriG AI</h1>
+              <img src={frigLogo} alt="FrigBuddy" className="h-12 w-12 rounded-xl" />
+              <h1 className="text-2xl font-bold ml-3 neon-text">FrigBuddy</h1>
             </div>
 
             <h2 className="text-xl font-bold text-center mb-2">{t.forgotPassword}</h2>

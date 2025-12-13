@@ -91,7 +91,7 @@ const PlanSelectionPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse">
-          <img src={frigLogo} alt="FriG AI" className="h-16 w-16 rounded-2xl" />
+          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 rounded-2xl" />
         </div>
       </div>
     );
@@ -108,7 +108,7 @@ const PlanSelectionPage = () => {
         animate={{ scale: 1, opacity: 1 }}
         className="flex flex-col items-center gap-4 w-full max-w-sm py-6"
       >
-        <img src={frigLogo} alt="FriG AI" className="h-16 w-16 rounded-xl" />
+        <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 rounded-xl" />
         
         <div className="text-center mb-2">
           <h2 className="text-2xl font-bold">{t.choosePlan}</h2>
