@@ -48,7 +48,7 @@ const FavoritesPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
             className="mr-2 sm:mr-4 shrink-0 touch-target h-10 w-10"
           >
             <ArrowLeft className="h-5 w-5" />
