@@ -495,7 +495,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           </div>
           
           {/* Animal Track - All 3 animals positioned on track */}
-          <div className="relative h-28 mt-4">
+          <div className="relative h-32 mt-4">
             {/* Track line */}
             <div className="absolute bottom-6 left-4 right-4 h-1 bg-foreground/80 rounded-full" />
             
@@ -509,70 +509,114 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               transition={{ duration: 0.5, repeat: Infinity }}
             />
             
-            {/* Sloth - Left (slow) */}
+            {/* Sloth - Left (slow) - Gentle swaying motion */}
             <motion.div 
-              className="absolute left-0 bottom-8"
-              animate={{ 
-                y: weeklyLossRate <= 0.5 ? [0, -2, 0] : 0,
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute left-0 bottom-10"
+              animate={weeklyLossRate <= 0.5 ? { 
+                y: [0, -3, 0, -2, 0],
+                rotate: [0, -3, 0, 3, 0],
+              } : {}}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
               <motion.img 
                 src={slothIcon} 
                 alt="Slow" 
-                className={`w-14 h-14 object-contain transition-opacity duration-300 ${weeklyLossRate <= 0.5 ? 'opacity-100' : 'opacity-30'}`}
+                className={`w-16 h-16 object-contain transition-opacity duration-300 ${weeklyLossRate <= 0.5 ? 'opacity-100' : 'opacity-30'}`}
+                animate={weeklyLossRate <= 0.5 ? {
+                  scaleY: [1, 0.95, 1, 0.97, 1],
+                  scaleX: [1, 1.02, 1, 1.01, 1],
+                } : {}}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               />
             </motion.div>
             
-            {/* Rabbit - Center (medium) */}
+            {/* Rabbit - Center (medium) - Hopping running motion */}
             <motion.div 
-              className="absolute left-1/2 -translate-x-1/2 bottom-8"
-              animate={{ 
-                y: weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? [0, -6, 0] : 0,
-                x: weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? [0, 5, 0] : 0,
-              }}
-              transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute left-1/2 -translate-x-1/2 bottom-10"
+              animate={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? { 
+                y: [0, -12, 0],
+                x: [-3, 8, -3],
+              } : {}}
+              transition={{ duration: 0.35, repeat: Infinity, ease: "easeOut" }}
             >
               <motion.img 
                 src={rabbitIcon} 
                 alt="Medium" 
-                className={`w-14 h-14 object-contain transition-opacity duration-300 ${weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? 'opacity-100' : 'opacity-30'}`}
+                className={`w-16 h-16 object-contain transition-opacity duration-300 ${weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? 'opacity-100' : 'opacity-30'}`}
+                animate={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? {
+                  rotate: [0, -8, 5, -8, 0],
+                  scaleX: [1, 1.15, 0.9, 1.15, 1],
+                  scaleY: [1, 0.85, 1.1, 0.85, 1],
+                } : {}}
+                transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
               />
+              {/* Rabbit dust */}
+              {weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 && (
+                <motion.div
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-2 bg-muted-foreground/20 rounded-full blur-sm"
+                  animate={{ 
+                    opacity: [0, 0.5, 0],
+                    scale: [0.5, 1.2, 0.5],
+                  }}
+                  transition={{ duration: 0.35, repeat: Infinity }}
+                />
+              )}
             </motion.div>
             
-            {/* Cheetah - Right (fast) */}
+            {/* Cheetah - Right (fast) - Sprint gallop motion */}
             <motion.div 
-              className="absolute right-0 bottom-8"
-              animate={{ 
-                y: weeklyLossRate > 1.0 ? [0, -8, 0] : 0,
-                x: weeklyLossRate > 1.0 ? [0, 10, 0] : 0,
-              }}
-              transition={{ duration: 0.2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute right-0 bottom-10"
+              animate={weeklyLossRate > 1.0 ? { 
+                y: [0, -10, -2, -10, 0],
+                x: [0, 15, 5, 15, 0],
+              } : {}}
+              transition={{ duration: 0.18, repeat: Infinity, ease: "linear" }}
             >
               <motion.img 
                 src={cheetahIcon} 
                 alt="Fast" 
-                className={`w-14 h-14 object-contain transition-opacity duration-300 ${weeklyLossRate > 1.0 ? 'opacity-100' : 'opacity-30'}`}
+                className={`w-16 h-16 object-contain transition-opacity duration-300 ${weeklyLossRate > 1.0 ? 'opacity-100' : 'opacity-30'}`}
+                animate={weeklyLossRate > 1.0 ? {
+                  rotate: [-5, 8, -5, 8, -5],
+                  scaleX: [1, 1.25, 0.85, 1.25, 1],
+                  scaleY: [1, 0.8, 1.15, 0.8, 1],
+                  skewX: [0, -5, 5, -5, 0],
+                } : {}}
+                transition={{ duration: 0.18, repeat: Infinity, ease: "linear" }}
               />
               {/* Speed lines for cheetah */}
               {weeklyLossRate > 1.0 && (
-                <div className="absolute -left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                  {[...Array(3)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="w-4 h-0.5 bg-orange-400 rounded-full"
-                      animate={{ 
-                        opacity: [0, 0.8, 0],
-                        x: [0, -10, -20],
-                      }}
-                      transition={{ 
-                        duration: 0.3,
-                        repeat: Infinity,
-                        delay: i * 0.1
-                      }}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex flex-col gap-1.5">
+                    {[...Array(4)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="h-0.5 bg-orange-400 rounded-full origin-right"
+                        style={{ width: `${12 + i * 4}px` }}
+                        animate={{ 
+                          opacity: [0, 0.9, 0],
+                          x: [0, -15, -30],
+                          scaleX: [1, 1.5, 0.3],
+                        }}
+                        transition={{ 
+                          duration: 0.15,
+                          repeat: Infinity,
+                          delay: i * 0.03
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {/* Ground dust cloud */}
+                  <motion.div
+                    className="absolute -bottom-2 -left-4 w-12 h-4 bg-orange-300/30 rounded-full blur-md"
+                    animate={{ 
+                      opacity: [0, 0.6, 0],
+                      x: [-5, -20, -35],
+                      scale: [0.5, 1.5, 0.3],
+                    }}
+                    transition={{ duration: 0.2, repeat: Infinity }}
+                  />
+                </>
               )}
             </motion.div>
           </div>
