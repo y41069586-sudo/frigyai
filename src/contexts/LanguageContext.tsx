@@ -74,6 +74,36 @@ interface Translations {
   onboardingSlide5Subtitle: string;
   onboardingSlide6Title: string;
   onboardingSlide6Subtitle: string;
+  // New onboarding slides 7-12
+  onboardingSlide7Title: string;
+  onboardingSlide7Subtitle: string;
+  onboardingSlide8Title: string;
+  onboardingSlide9Title: string;
+  onboardingSlide10Title: string;
+  onboardingSlide11Title: string;
+  onboardingSlide12Title: string;
+  // Question options
+  howDidYouHear: string;
+  optionTikTok: string;
+  optionYouTube: string;
+  optionInstagram: string;
+  optionFriends: string;
+  optionOther: string;
+  whatIsYourMainGoal: string;
+  goalLoseWeight: string;
+  goalEatHealthier: string;
+  goalSaveTime: string;
+  goalLearnCooking: string;
+  howOftenCook: string;
+  cookDaily: string;
+  cookFewTimes: string;
+  cookRarely: string;
+  cookNever: string;
+  biggestChallenge: string;
+  challengeNoIdeas: string;
+  challengeNoTime: string;
+  challengeCalories: string;
+  challengeIngredients: string;
   recipe: string;
   
   // Plan Selection
@@ -382,6 +412,36 @@ const translations: Record<Language, Translations> = {
     onboardingSlide5Subtitle: "Behalte deine Kalorien im Blick",
     onboardingSlide6Title: "Leichter abnehmen",
     onboardingSlide6Subtitle: "Erreiche dein Wunschgewicht",
+    // New onboarding slides 7-12
+    onboardingSlide7Title: "Über 10.000 zufriedene Nutzer",
+    onboardingSlide7Subtitle: "Schließe dich unserer Community an",
+    onboardingSlide8Title: "Wie hast du von uns erfahren?",
+    onboardingSlide9Title: "Was ist dein Hauptziel?",
+    onboardingSlide10Title: "Wie oft kochst du?",
+    onboardingSlide11Title: "Was ist deine größte Herausforderung?",
+    onboardingSlide12Title: "Du bist bereit! 🎉",
+    // Question options
+    howDidYouHear: "Wie hast du von uns erfahren?",
+    optionTikTok: "TikTok",
+    optionYouTube: "YouTube",
+    optionInstagram: "Instagram",
+    optionFriends: "Freunde",
+    optionOther: "Andere",
+    whatIsYourMainGoal: "Was ist dein Hauptziel?",
+    goalLoseWeight: "Abnehmen",
+    goalEatHealthier: "Gesünder essen",
+    goalSaveTime: "Zeit sparen",
+    goalLearnCooking: "Kochen lernen",
+    howOftenCook: "Wie oft kochst du?",
+    cookDaily: "Täglich",
+    cookFewTimes: "Ein paar Mal pro Woche",
+    cookRarely: "Selten",
+    cookNever: "Fast nie",
+    biggestChallenge: "Was ist deine größte Herausforderung?",
+    challengeNoIdeas: "Keine Rezeptideen",
+    challengeNoTime: "Keine Zeit zum Kochen",
+    challengeCalories: "Kalorien zählen",
+    challengeIngredients: "Zutaten verschwenden",
     recipe: "Rezept",
     ingredients: "Zutaten",
     
@@ -688,6 +748,36 @@ const translations: Record<Language, Translations> = {
     onboardingSlide5Subtitle: "Keep your calories in check",
     onboardingSlide6Title: "Lose weight easier",
     onboardingSlide6Subtitle: "Reach your goal weight",
+    // New onboarding slides 7-12
+    onboardingSlide7Title: "Over 10,000 happy users",
+    onboardingSlide7Subtitle: "Join our community",
+    onboardingSlide8Title: "How did you hear about us?",
+    onboardingSlide9Title: "What is your main goal?",
+    onboardingSlide10Title: "How often do you cook?",
+    onboardingSlide11Title: "What is your biggest challenge?",
+    onboardingSlide12Title: "You're ready! 🎉",
+    // Question options
+    howDidYouHear: "How did you hear about us?",
+    optionTikTok: "TikTok",
+    optionYouTube: "YouTube",
+    optionInstagram: "Instagram",
+    optionFriends: "Friends",
+    optionOther: "Other",
+    whatIsYourMainGoal: "What is your main goal?",
+    goalLoseWeight: "Lose weight",
+    goalEatHealthier: "Eat healthier",
+    goalSaveTime: "Save time",
+    goalLearnCooking: "Learn cooking",
+    howOftenCook: "How often do you cook?",
+    cookDaily: "Daily",
+    cookFewTimes: "A few times a week",
+    cookRarely: "Rarely",
+    cookNever: "Almost never",
+    biggestChallenge: "What is your biggest challenge?",
+    challengeNoIdeas: "No recipe ideas",
+    challengeNoTime: "No time to cook",
+    challengeCalories: "Counting calories",
+    challengeIngredients: "Wasting ingredients",
     recipe: "Recipe",
     ingredients: "ingredients",
     
@@ -994,6 +1084,36 @@ const translations: Record<Language, Translations> = {
     onboardingSlide5Subtitle: "Gardez un œil sur vos calories",
     onboardingSlide6Title: "Perdre du poids facilement",
     onboardingSlide6Subtitle: "Atteignez votre poids idéal",
+    // New onboarding slides 7-12
+    onboardingSlide7Title: "Plus de 10 000 utilisateurs satisfaits",
+    onboardingSlide7Subtitle: "Rejoignez notre communauté",
+    onboardingSlide8Title: "Comment avez-vous entendu parler de nous?",
+    onboardingSlide9Title: "Quel est votre objectif principal?",
+    onboardingSlide10Title: "À quelle fréquence cuisinez-vous?",
+    onboardingSlide11Title: "Quel est votre plus grand défi?",
+    onboardingSlide12Title: "Vous êtes prêt! 🎉",
+    // Question options
+    howDidYouHear: "Comment avez-vous entendu parler de nous?",
+    optionTikTok: "TikTok",
+    optionYouTube: "YouTube",
+    optionInstagram: "Instagram",
+    optionFriends: "Amis",
+    optionOther: "Autre",
+    whatIsYourMainGoal: "Quel est votre objectif principal?",
+    goalLoseWeight: "Perdre du poids",
+    goalEatHealthier: "Manger plus sainement",
+    goalSaveTime: "Gagner du temps",
+    goalLearnCooking: "Apprendre à cuisiner",
+    howOftenCook: "À quelle fréquence cuisinez-vous?",
+    cookDaily: "Tous les jours",
+    cookFewTimes: "Quelques fois par semaine",
+    cookRarely: "Rarement",
+    cookNever: "Presque jamais",
+    biggestChallenge: "Quel est votre plus grand défi?",
+    challengeNoIdeas: "Pas d'idées de recettes",
+    challengeNoTime: "Pas de temps pour cuisiner",
+    challengeCalories: "Compter les calories",
+    challengeIngredients: "Gaspiller les ingrédients",
     recipe: "Recette",
     ingredients: "ingrédients",
     
