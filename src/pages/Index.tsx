@@ -46,34 +46,22 @@ const Index = () => {
   
   // Determine splash/onboarding state after auth loads
   useEffect(() => {
-    // Wait for auth to finish loading
     if (loading) return;
     
-    // Logged in users NEVER see splash/onboarding
-    if (user) {
-      console.log('[Index] User logged in, skipping splash/onboarding');
+    // Check if user has selected a plan (completed onboarding)
+    const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
+    
+    if (hasSelectedPlan || isFromSubscription) {
+      // User already selected a plan - never show onboarding again
       setShowSplash(false);
       setShowOnboarding(false);
       setOnboardingComplete(true);
-      localStorage.setItem('onboardingComplete', 'true');
-      return;
+    } else {
+      // User hasn't selected a plan yet - show onboarding
+      setShowSplash(true);
+      setOnboardingComplete(false);
     }
-    
-    // Not logged in - check if already completed onboarding
-    const hasCompleted = localStorage.getItem('onboardingComplete') === 'true';
-    if (hasCompleted || isFromSubscription) {
-      console.log('[Index] Onboarding already completed or from subscription');
-      setShowSplash(false);
-      setShowOnboarding(false);
-      setOnboardingComplete(true);
-      return;
-    }
-    
-    // First time visitor - show splash
-    console.log('[Index] First time visitor, showing splash');
-    setShowSplash(true);
-    setOnboardingComplete(false);
-  }, [loading, user, isFromSubscription]);
+  }, [loading, isFromSubscription]);
   
   // Redirect to meal-plans if coming from successful subscription
   useEffect(() => {
