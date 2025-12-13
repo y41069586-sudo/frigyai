@@ -19,18 +19,30 @@ const AuthPage = () => {
   const { signIn, signUp, signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Check if coming from onboarding
+  const searchParams = new URLSearchParams(window.location.search);
+  const isFromOnboarding = searchParams.get('from') === 'onboarding';
+
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      const redirectPath = localStorage.getItem('redirectAfterAuth');
-      if (redirectPath) {
-        localStorage.removeItem('redirectAfterAuth');
-        navigate(redirectPath);
+      // Check if user has already selected a plan
+      const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
+      
+      if (isFromOnboarding && !hasSelectedPlan) {
+        // Coming from onboarding, go to plan selection
+        navigate('/plan-selection', { replace: true });
       } else {
-        navigate('/');
+        const redirectPath = localStorage.getItem('redirectAfterAuth');
+        if (redirectPath) {
+          localStorage.removeItem('redirectAfterAuth');
+          navigate(redirectPath);
+        } else {
+          navigate('/');
+        }
       }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isFromOnboarding]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,18 +52,29 @@ const AuthPage = () => {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (!error) {
-          const redirectPath = localStorage.getItem('redirectAfterAuth');
-          if (redirectPath) {
-            localStorage.removeItem('redirectAfterAuth');
-            navigate(redirectPath);
+          // Check if user needs to select a plan
+          const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
+          if (isFromOnboarding && !hasSelectedPlan) {
+            navigate('/plan-selection', { replace: true });
           } else {
-            navigate('/');
+            const redirectPath = localStorage.getItem('redirectAfterAuth');
+            if (redirectPath) {
+              localStorage.removeItem('redirectAfterAuth');
+              navigate(redirectPath);
+            } else {
+              navigate('/');
+            }
           }
         }
       } else {
         const { error } = await signUp(email, password);
         if (!error) {
-          setIsLogin(true);
+          // After signup, redirect to plan selection if from onboarding
+          if (isFromOnboarding) {
+            navigate('/plan-selection', { replace: true });
+          } else {
+            setIsLogin(true);
+          }
         }
       }
     } finally {

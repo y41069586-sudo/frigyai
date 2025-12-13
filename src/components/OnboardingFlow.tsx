@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale, Sparkles, Check, Calendar, ShoppingCart, BarChart, Droplets, MessageCircle, ArrowLeft } from "lucide-react";
+import { ChevronRight, Camera, Utensils, TrendingDown, Globe, Target, Scale } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 
 interface OnboardingFlowProps {
-  onComplete: (goToPremium?: boolean) => void;
+  onComplete: () => void;
 }
 
 // Mini fridge with visible food items inside
@@ -160,8 +160,6 @@ const languages: { code: Language; name: string; flag: string }[] = [
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(-1); // -1 = language selection
-  const [showPlanSelection, setShowPlanSelection] = useState(false);
-  const [showPremiumDetails, setShowPremiumDetails] = useState(false);
 
   const slides = [
     { title: t.onboardingSlide1Title, subtitle: t.onboardingSlide1Subtitle, type: "welcome" as const },
@@ -170,15 +168,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     { title: t.onboardingSlide4Title, subtitle: t.onboardingSlide4Subtitle, type: "recipes" as const },
     { title: t.onboardingSlide5Title, subtitle: t.onboardingSlide5Subtitle, type: "track" as const },
     { title: t.onboardingSlide6Title, subtitle: t.onboardingSlide6Subtitle, type: "goal" as const },
-  ];
-
-  const premiumFeatures = [
-    { icon: Calendar, text: t.weeklyPersonalizedMealPlans || "Wöchentliche personalisierte Meal Plans" },
-    { icon: ShoppingCart, text: t.automaticShoppingLists || "Automatische Einkaufslisten" },
-    { icon: BarChart, text: t.macroTrackingCalorieAnalysis || "Makro-Tracking & Kalorienanalyse" },
-    { icon: Sparkles, text: t.unlimitedRecipeGeneration || "Unbegrenzte Rezeptgenerierung" },
-    { icon: Droplets, text: t.waterTrackerFeature || "Wasser-Tracker" },
-    { icon: TrendingDown, text: t.weightProgressFeature || "Gewichtsverlauf & Fortschritt" },
   ];
 
   const handleSelectLanguage = (lang: Language) => {
@@ -190,29 +179,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
-      setShowPlanSelection(true);
+      // After slides, go to auth page (user must register/login first)
+      onComplete();
     }
   };
 
   const handleSkip = () => {
-    setShowPlanSelection(true);
-  };
-
-  const handleFreePlan = () => {
-    onComplete(false);
-  };
-
-  const handlePremiumPlan = () => {
-    // Go directly to auth -> Stripe, skip premium details page
-    onComplete(true);
-  };
-
-  const handleStartTrial = () => {
-    onComplete(true);
-  };
-
-  const handleBackToPlanSelection = () => {
-    setShowPremiumDetails(false);
+    // Skip also goes to auth
+    onComplete();
   };
 
   // Language Selection Screen
@@ -260,192 +234,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     );
   }
 
-  // Premium Details Screen (after clicking trial button)
-  if (showPremiumDetails) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset overflow-y-auto"
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50 px-4 py-3">
-          <div className="flex items-center gap-3 max-w-lg mx-auto">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBackToPlanSelection}
-              className="h-10 w-10"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <img src={frigLogo} alt="FriG AI" className="h-8 w-8 rounded-lg" />
-              <span className="text-lg font-bold">FriG AI</span>
-            </div>
-          </div>
-        </div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-col items-center px-4 py-6 max-w-lg mx-auto w-full"
-        >
-          {/* Title & Price */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-2">Healthy3 Premium</h2>
-            <p className="text-4xl font-bold text-primary mb-1">4,99€</p>
-            <p className="text-muted-foreground">{t.perMonth}</p>
-          </div>
-
-          {/* Premium Features List */}
-          <div className="w-full space-y-3 mb-8">
-            {premiumFeatures.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15 + index * 0.05 }}
-                className="flex items-center justify-between p-4 bg-card rounded-xl border border-border"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <feature.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="font-medium">{feature.text}</span>
-                </div>
-                <Check className="h-5 w-5 text-primary" />
-              </motion.div>
-            ))}
-          </div>
-
-          {/* CTA Button */}
-          <Button
-            className="w-full bg-primary hover:bg-primary/90 h-14 text-lg font-semibold"
-            onClick={handleStartTrial}
-          >
-            {t.getPremiumNow || "Jetzt Premium werden"}
-          </Button>
-        </motion.div>
-      </motion.div>
-    );
-  }
-
-  // Plan Selection Screen
-  if (showPlanSelection) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex flex-col items-center bg-background p-4 safe-area-inset overflow-y-auto"
-      >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="flex flex-col items-center gap-4 w-full max-w-sm py-6"
-        >
-          <FrigLogoImage size="small" />
-          
-          <h2 className="text-2xl font-bold text-center">{t.choosePlan}</h2>
-
-          {/* Free Plan */}
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="w-full p-4 rounded-xl border-2 border-border bg-card"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold">{t.freePlan}</h3>
-              <span className="text-xl font-bold">€0</span>
-            </div>
-            <p className="text-muted-foreground text-sm mb-3">{t.freePlanDesc}</p>
-            <div className="flex flex-col gap-1.5 mb-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-muted-foreground" />
-                <span>{t.freeFeature1}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-muted-foreground" />
-                <span>{t.freeFeature2}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-muted-foreground" />
-                <span>{t.freeFeature3}</span>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleFreePlan}
-            >
-              {t.continueWithFree}
-            </Button>
-          </motion.div>
-
-          {/* Premium Plan */}
-          <motion.div
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="w-full p-4 rounded-xl border-2 border-primary bg-primary/5 relative overflow-hidden"
-          >
-            <div className="absolute top-2 right-2">
-              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-            </div>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-lg font-bold text-primary">{t.premiumPlan}</h3>
-              <div className="text-right">
-                <span className="text-xl font-bold">€4,99</span>
-                <span className="text-muted-foreground text-sm">{t.perMonth}</span>
-              </div>
-            </div>
-            <p className="text-xs text-primary font-medium mb-2">{t.freeTrialInfo}</p>
-            <p className="text-muted-foreground text-sm mb-3">{t.premiumPlanDesc}</p>
-            <div className="flex flex-col gap-1.5 mb-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature1}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature2}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature3}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature4}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature5}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature6}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary" />
-                <span>{t.premiumFeature7}</span>
-              </div>
-            </div>
-            <Button
-              className="w-full bg-primary hover:bg-primary/90"
-              onClick={handlePremiumPlan}
-            >
-              {t.startFreeTrial}
-            </Button>
-          </motion.div>
-        </motion.div>
-      </motion.div>
-    );
-  }
 
   const currentSlideData = slides[currentSlide];
 

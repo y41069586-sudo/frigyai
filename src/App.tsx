@@ -1,14 +1,10 @@
-import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { AnimatePresence } from "framer-motion";
-import { SplashScreen } from "@/components/SplashScreen";
-import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Index from "./pages/Index";
 import ScanPage from "./pages/ScanPage";
@@ -23,40 +19,14 @@ import MealPlansPage from "./pages/MealPlansPage";
 import ProfilePage from "./pages/ProfilePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage";
+import PlanSelectionPage from "./pages/PlanSelectionPage";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const navigate = useNavigate();
-  const [showSplash, setShowSplash] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(true);
-
-  const handleSplashComplete = () => {
-    setShowSplash(false);
-  };
-
-  const handleOnboardingComplete = (goToPremium?: boolean) => {
-    localStorage.setItem('hasSeenOnboarding', 'true');
-    setShowOnboarding(false);
-    if (goToPremium) {
-      // Store intent to start checkout after auth
-      localStorage.setItem('redirectAfterAuth', '/premium');
-      localStorage.setItem('startCheckoutAfterAuth', 'true');
-      navigate('/auth');
-    }
-  };
-
   return (
     <>
       <OfflineIndicator />
-      <AnimatePresence mode="wait">
-        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      </AnimatePresence>
-      <AnimatePresence mode="wait">
-        {!showSplash && showOnboarding && (
-          <OnboardingFlow onComplete={handleOnboardingComplete} />
-        )}
-      </AnimatePresence>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/scan" element={<ScanPage />} />
@@ -70,6 +40,7 @@ const AppContent = () => {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/update-password" element={<UpdatePasswordPage />} />
+        <Route path="/plan-selection" element={<PlanSelectionPage />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
