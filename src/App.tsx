@@ -20,6 +20,8 @@ import ProfilePage from "./pages/ProfilePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 import PlanSelectionPage from "./pages/PlanSelectionPage";
+import LandingPage from "./pages/LandingPage";
+import CommunityPage from "./pages/CommunityPage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ const AppContent = () => {
       <OfflineIndicator />
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/community" element={<CommunityPage />} />
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/manual" element={<ManualPage />} />
         <Route path="/recipes" element={<RecipesPage />} />
