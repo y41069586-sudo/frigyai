@@ -49,21 +49,21 @@ const Index = () => {
     // If still loading auth, wait
     if (loading) return;
     
+    // TESTING MODE: Always show onboarding (even when logged in)
+    const testingOnboarding = true;
+    
+    if (testingOnboarding) {
+      setShowSplash(true);
+      setOnboardingComplete(false);
+      return;
+    }
+    
     // If user is logged in, always skip onboarding
     if (user) {
       setShowSplash(false);
       setShowOnboarding(false);
       setOnboardingComplete(true);
       localStorage.setItem('onboardingComplete', 'true');
-      return;
-    }
-    
-    // TESTING MODE: Always show onboarding
-    const testingOnboarding = true;
-    
-    if (testingOnboarding) {
-      setShowSplash(true);
-      setOnboardingComplete(false);
       return;
     }
     
