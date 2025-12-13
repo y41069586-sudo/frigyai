@@ -18,9 +18,9 @@ import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // Import animal images
-import turtleImage from '@/assets/turtle-running.png';
-import rabbitImage from '@/assets/rabbit-running.png';
-import cheetahImage from '@/assets/cheetah-running.png';
+import slothIcon from '@/assets/sloth-icon.png';
+import rabbitIcon from '@/assets/rabbit-icon.png';
+import cheetahIcon from '@/assets/cheetah-icon.png';
 
 export interface FoodEntry {
   id: string;
@@ -61,6 +61,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [activityLevel, setActivityLevel] = useState(1.55); // Moderate
   const [weeklyLossRate, setWeeklyLossRate] = useState(0.75); // kg per week
+  const [goalMode, setGoalMode] = useState<'lose' | 'gain'>('lose'); // New: lose or gain weight
   const [targetWeight, setTargetWeight] = useState(75);
   const [profile, setProfile] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('userProfile');
@@ -139,22 +140,27 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     : 10 * weight + 6.25 * userHeight - 5 * age - 161;
   const tdee = Math.round(bmr * activityLevel);
   
-  // Calculate based on user-selected weekly loss rate
-  const weightDiff = weight - targetWeight;
+  // Calculate based on user-selected weekly rate and goal mode
+  const weightDiff = goalMode === 'lose' ? weight - targetWeight : targetWeight - weight;
   const weeksToGoal = weightDiff > 0 ? Math.ceil(weightDiff / weeklyLossRate) : 0;
   
-  // Calculate exact daily deficit: 7700 kcal = 1kg fat
-  const dailyDeficit = (weeklyLossRate * 7700) / 7;
+  // Calculate daily adjustment: 7700 kcal = 1kg
+  const dailyAdjustment = (weeklyLossRate * 7700) / 7;
   
-  // Calculate target calories with minimum floor for safety
-  const calculatedCalories = Math.round(tdee - dailyDeficit);
+  // Calculate target calories based on goal mode
+  const calculatedCalories = goalMode === 'lose' 
+    ? Math.round(tdee - dailyAdjustment)
+    : Math.round(tdee + dailyAdjustment);
   const minCalories = age < 25 ? 1200 : age < 40 ? 1100 : 1000;
-  const targetCalories = Math.max(minCalories, calculatedCalories);
-  const isAtMinimum = calculatedCalories < minCalories;
+  const maxCalories = tdee + 1500; // Max surplus for gaining
+  const targetCalories = goalMode === 'lose' 
+    ? Math.max(minCalories, calculatedCalories)
+    : Math.min(maxCalories, calculatedCalories);
+  const isAtMinimum = goalMode === 'lose' && calculatedCalories < minCalories;
   
-  // Protein: 2g per kg body weight (important for muscle retention during weight loss)
-  const targetProtein = Math.round(weight * 2);
-  // Fat: 0.8-1g per kg (essential fats)
+  // Protein: Higher for gaining (2.2g/kg), standard for losing (2g/kg)
+  const targetProtein = Math.round(weight * (goalMode === 'gain' ? 2.2 : 2));
+  // Fat: 0.8-1g per kg
   const targetFat = Math.round(weight * 0.9);
   // Carbs: remaining calories
   const proteinCalories = targetProtein * 4;
@@ -419,112 +425,160 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Target,
-      title: "Zielgewicht",
+      title: "Was ist dein Ziel?",
       content: (
         <div className="space-y-6">
-          <div className="text-center">
+          {/* Goal Mode Selection */}
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => {
+                setGoalMode('lose');
+                setTargetWeight(Math.max(40, weight - 10));
+              }}
+              className={`flex-1 p-4 rounded-2xl border-2 transition-all ${goalMode === 'lose' ? 'border-primary bg-primary/20' : 'border-border'}`}
+            >
+              <TrendingDown className="h-8 w-8 mx-auto mb-2 text-green-400" />
+              <p className="font-medium">Abnehmen</p>
+              <p className="text-xs text-muted-foreground">Gewicht verlieren</p>
+            </button>
+            <button
+              onClick={() => {
+                setGoalMode('gain');
+                setTargetWeight(Math.min(200, weight + 10));
+              }}
+              className={`flex-1 p-4 rounded-2xl border-2 transition-all ${goalMode === 'gain' ? 'border-primary bg-primary/20' : 'border-border'}`}
+            >
+              <Scale className="h-8 w-8 mx-auto mb-2 text-blue-400" />
+              <p className="font-medium">Zunehmen</p>
+              <p className="text-xs text-muted-foreground">Masse aufbauen</p>
+            </button>
+          </div>
+          
+          {/* Target Weight */}
+          <div className="text-center mt-6">
             <span className="text-6xl font-bold text-primary">{targetWeight}</span>
             <span className="text-2xl text-muted-foreground ml-2">{t.kg}</span>
           </div>
           <Slider
             value={[targetWeight]}
             onValueChange={([v]) => setTargetWeight(v)}
-            min={Math.max(40, weight - 30)}
-            max={weight}
+            min={goalMode === 'lose' ? Math.max(40, weight - 30) : weight}
+            max={goalMode === 'lose' ? weight : Math.min(200, weight + 30)}
             step={1}
             className="py-4"
           />
           <div className="flex items-center gap-2 justify-center text-muted-foreground">
-            <TrendingDown className="h-5 w-5 text-primary" />
-            <span>{weightDiff} {t.kg} {t.loseWeight}</span>
+            {goalMode === 'lose' ? (
+              <>
+                <TrendingDown className="h-5 w-5 text-green-400" />
+                <span>{weightDiff} {t.kg} abnehmen</span>
+              </>
+            ) : (
+              <>
+                <Scale className="h-5 w-5 text-blue-400" />
+                <span>{weightDiff} {t.kg} zunehmen</span>
+              </>
+            )}
           </div>
-          <p className="text-xs text-center text-muted-foreground bg-muted/50 p-2 rounded-lg">
-            💡 Empfehlung: Max. 10kg alle 10 Wochen für nachhaltiges Abnehmen
-          </p>
         </div>
       ),
     },
     {
       icon: TrendingDown,
-      title: "Wie schnell möchtest du abnehmen?",
+      title: goalMode === 'lose' ? "Wie schnell möchtest du abnehmen?" : "Wie schnell möchtest du zunehmen?",
       content: (
         <div className="space-y-6">
-          {/* Animated Animal Display */}
-          <div className="relative h-40 flex items-center justify-center overflow-hidden">
-            {/* Running track/ground */}
-            <div className="absolute bottom-8 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-muted to-transparent" />
-            
-            <motion.div
-              key={weeklyLossRate <= 0.5 ? 'turtle' : weeklyLossRate <= 1.0 ? 'rabbit' : 'cheetah'}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="text-center relative"
-            >
-              {/* Animal with running animation */}
-              <motion.div 
-                className="relative"
-                animate={{ 
-                  x: weeklyLossRate <= 0.5 ? [0, 15, 0] : weeklyLossRate <= 1.0 ? [0, 35, 0] : [0, 60, 0],
-                }}
-                transition={{ 
-                  duration: weeklyLossRate <= 0.5 ? 3 : weeklyLossRate <= 1.0 ? 0.8 : 0.4,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              >
-                {/* Running bounce animation */}
-                <motion.img
-                  src={weeklyLossRate <= 0.5 ? turtleImage : weeklyLossRate <= 1.0 ? rabbitImage : cheetahImage}
-                  alt="Speed animal"
-                  className="w-24 h-24 object-contain drop-shadow-lg"
-                  animate={{
-                    y: weeklyLossRate <= 0.5 ? [0, -3, 0] : weeklyLossRate <= 1.0 ? [0, -10, 0] : [0, -15, 0],
-                    rotate: weeklyLossRate <= 0.5 ? [0, 1, 0, -1, 0] : weeklyLossRate <= 1.0 ? [0, 3, 0, -3, 0] : [0, 5, 0, -5, 0],
-                    scaleX: weeklyLossRate <= 0.5 ? [1, 1.02, 1] : weeklyLossRate <= 1.0 ? [1, 1.08, 0.95, 1.08, 1] : [1, 1.12, 0.92, 1.12, 1],
-                  }}
-                  transition={{ 
-                    duration: weeklyLossRate <= 0.5 ? 1.2 : weeklyLossRate <= 1.0 ? 0.25 : 0.12,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                />
-                
-                {/* Dust/speed lines for faster speeds */}
-                {weeklyLossRate > 0.6 && (
-                  <>
-                    {[...Array(weeklyLossRate > 1.0 ? 4 : 2)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute top-1/2 -left-2 w-6 h-0.5 bg-gradient-to-l from-muted-foreground/40 to-transparent rounded-full"
-                        style={{ top: `${40 + i * 10}%` }}
-                        animate={{ 
-                          opacity: [0, 0.6, 0],
-                          x: [-5, -25, -45],
-                          scaleX: [1, 1.5, 0.5]
-                        }}
-                        transition={{ 
-                          duration: weeklyLossRate <= 1.0 ? 0.5 : 0.25,
-                          repeat: Infinity,
-                          delay: i * 0.1
-                        }}
-                      />
-                    ))}
-                  </>
-                )}
-              </motion.div>
-              
-              <p className={`text-lg font-bold mt-4 ${speedInfo.color}`}>{speedInfo.label}</p>
-            </motion.div>
-          </div>
-          
-          {/* Speed Value */}
+          {/* Speed Value Display */}
           <div className="text-center">
-            <span className="text-4xl font-bold text-primary">{weeklyLossRate.toFixed(2)}</span>
+            <span className="text-5xl font-bold text-primary">{weeklyLossRate.toFixed(1)}</span>
             <span className="text-xl text-muted-foreground ml-2">kg/Woche</span>
           </div>
           
-          {/* Slider with labels */}
-          <div className="space-y-2">
+          {/* Animal Track - All 3 animals positioned on track */}
+          <div className="relative h-28 mt-4">
+            {/* Track line */}
+            <div className="absolute bottom-6 left-4 right-4 h-1 bg-foreground/80 rounded-full" />
+            
+            {/* Slider thumb indicator */}
+            <motion.div 
+              className="absolute bottom-4 w-4 h-4 bg-primary rounded-full shadow-lg border-2 border-background z-20"
+              style={{ 
+                left: `calc(${((weeklyLossRate - 0.3) / (1.4 - 0.3)) * 100}% - 8px + 16px)`,
+              }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            />
+            
+            {/* Sloth - Left (slow) */}
+            <motion.div 
+              className="absolute left-0 bottom-8"
+              animate={{ 
+                y: weeklyLossRate <= 0.5 ? [0, -2, 0] : 0,
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <motion.img 
+                src={slothIcon} 
+                alt="Slow" 
+                className={`w-14 h-14 object-contain transition-opacity duration-300 ${weeklyLossRate <= 0.5 ? 'opacity-100' : 'opacity-30'}`}
+              />
+            </motion.div>
+            
+            {/* Rabbit - Center (medium) */}
+            <motion.div 
+              className="absolute left-1/2 -translate-x-1/2 bottom-8"
+              animate={{ 
+                y: weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? [0, -6, 0] : 0,
+                x: weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? [0, 5, 0] : 0,
+              }}
+              transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <motion.img 
+                src={rabbitIcon} 
+                alt="Medium" 
+                className={`w-14 h-14 object-contain transition-opacity duration-300 ${weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? 'opacity-100' : 'opacity-30'}`}
+              />
+            </motion.div>
+            
+            {/* Cheetah - Right (fast) */}
+            <motion.div 
+              className="absolute right-0 bottom-8"
+              animate={{ 
+                y: weeklyLossRate > 1.0 ? [0, -8, 0] : 0,
+                x: weeklyLossRate > 1.0 ? [0, 10, 0] : 0,
+              }}
+              transition={{ duration: 0.2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <motion.img 
+                src={cheetahIcon} 
+                alt="Fast" 
+                className={`w-14 h-14 object-contain transition-opacity duration-300 ${weeklyLossRate > 1.0 ? 'opacity-100' : 'opacity-30'}`}
+              />
+              {/* Speed lines for cheetah */}
+              {weeklyLossRate > 1.0 && (
+                <div className="absolute -left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-4 h-0.5 bg-orange-400 rounded-full"
+                      animate={{ 
+                        opacity: [0, 0.8, 0],
+                        x: [0, -10, -20],
+                      }}
+                      transition={{ 
+                        duration: 0.3,
+                        repeat: Infinity,
+                        delay: i * 0.1
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+          
+          {/* Slider */}
+          <div className="space-y-2 px-2">
             <Slider
               value={[weeklyLossRate * 100]}
               onValueChange={([v]) => setWeeklyLossRate(v / 100)}
@@ -534,17 +588,27 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               className="py-4"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>🐢 0.3kg</span>
-              <span>🐇 0.75kg</span>
-              <span>🐆 1.4kg</span>
+              <span>Langsam</span>
+              <span>Moderat</span>
+              <span>Schnell</span>
             </div>
           </div>
           
-          {/* Info based on speed */}
+          {/* Info based on speed and mode */}
           <div className={`text-sm p-3 rounded-lg ${weeklyLossRate > 1.0 ? 'bg-red-500/10 text-red-400' : weeklyLossRate > 0.75 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
-            {weeklyLossRate > 1.0 && "⚠️ Sehr ambitioniert! Kann schwer durchzuhalten sein."}
-            {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Schnell aber machbar mit Disziplin."}
-            {weeklyLossRate <= 0.75 && "✅ Nachhaltig und gesund - empfohlen!"}
+            {goalMode === 'lose' ? (
+              <>
+                {weeklyLossRate > 1.0 && "⚠️ Sehr ambitioniert! Kann schwer durchzuhalten sein."}
+                {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Schnell aber machbar mit Disziplin."}
+                {weeklyLossRate <= 0.75 && "✅ Nachhaltig und gesund - empfohlen!"}
+              </>
+            ) : (
+              <>
+                {weeklyLossRate > 1.0 && "⚠️ Sehr schneller Aufbau - mehr Fett möglich."}
+                {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Guter Aufbau mit moderatem Überschuss."}
+                {weeklyLossRate <= 0.75 && "✅ Lean Bulk - minimaler Fettansatz!"}
+              </>
+            )}
           </div>
           
           {/* Estimated time */}
@@ -570,9 +634,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3 space-y-1">
             <p>{t.baseMetabolism}: ~{bmr.toFixed(0)} kcal</p>
             <p>{t.withActivity}: ~{tdee} kcal</p>
-            <p>{t.deficit}: -{Math.round(dailyDeficit)} kcal/{t.today.toLowerCase()}</p>
+            <p>{goalMode === 'lose' ? t.deficit : 'Überschuss'}: {goalMode === 'lose' ? '-' : '+'}{Math.round(dailyAdjustment)} kcal/{t.today.toLowerCase()}</p>
             <p className="text-xs">
-              {t.goal}: {weightDiff}{t.kg} in ~{weeksToGoal} Wochen ({weeklyLossRate.toFixed(2)}{t.kg}/Woche)
+              {t.goal}: {weightDiff}{t.kg} {goalMode === 'lose' ? 'abnehmen' : 'zunehmen'} in ~{weeksToGoal} Wochen ({weeklyLossRate.toFixed(2)}{t.kg}/Woche)
             </p>
           </div>
           
