@@ -58,6 +58,15 @@ const Index = () => {
       return;
     }
     
+    // TESTING MODE: Always show onboarding
+    const testingOnboarding = true;
+    
+    if (testingOnboarding) {
+      setShowSplash(true);
+      setOnboardingComplete(false);
+      return;
+    }
+    
     // Check if user has selected a plan (completed onboarding)
     const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
     
