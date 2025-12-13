@@ -128,6 +128,16 @@ const Index = () => {
   
   const handleSplashComplete = () => {
     setShowSplash(false);
+    
+    // TESTING MODE: Always show onboarding
+    const testingOnboarding = true;
+    
+    if (testingOnboarding) {
+      setShowOnboarding(true);
+      setOnboardingComplete(false);
+      return;
+    }
+    
     // Only show onboarding if user is NOT logged in
     if (!user) {
       setShowOnboarding(true);
