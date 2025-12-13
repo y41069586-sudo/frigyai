@@ -17,6 +17,11 @@ import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Import animal images
+import turtleImage from '@/assets/turtle-running.png';
+import rabbitImage from '@/assets/rabbit-running.png';
+import cheetahImage from '@/assets/cheetah-running.png';
+
 export interface FoodEntry {
   id: string;
   name: string;
@@ -445,59 +450,70 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       content: (
         <div className="space-y-6">
           {/* Animated Animal Display */}
-          <div className="relative h-32 flex items-center justify-center overflow-hidden">
+          <div className="relative h-40 flex items-center justify-center overflow-hidden">
+            {/* Running track/ground */}
+            <div className="absolute bottom-8 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-muted to-transparent" />
+            
             <motion.div
-              key={speedInfo.emoji}
+              key={weeklyLossRate <= 0.5 ? 'turtle' : weeklyLossRate <= 1.0 ? 'rabbit' : 'cheetah'}
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-center"
+              className="text-center relative"
             >
+              {/* Animal with running animation */}
               <motion.div 
-                className="text-7xl block relative"
+                className="relative"
                 animate={{ 
-                  x: weeklyLossRate <= 0.5 ? [0, 8, 0] : weeklyLossRate <= 1.0 ? [0, 20, 0] : [0, 40, 0],
+                  x: weeklyLossRate <= 0.5 ? [0, 15, 0] : weeklyLossRate <= 1.0 ? [0, 35, 0] : [0, 60, 0],
                 }}
                 transition={{ 
-                  duration: weeklyLossRate <= 0.5 ? 2.5 : weeklyLossRate <= 1.0 ? 0.6 : 0.3,
+                  duration: weeklyLossRate <= 0.5 ? 3 : weeklyLossRate <= 1.0 ? 0.8 : 0.4,
                   repeat: Infinity,
                   ease: "linear"
                 }}
               >
-                {/* Legs/body animation for running effect */}
-                <motion.span
-                  className="inline-block"
+                {/* Running bounce animation */}
+                <motion.img
+                  src={weeklyLossRate <= 0.5 ? turtleImage : weeklyLossRate <= 1.0 ? rabbitImage : cheetahImage}
+                  alt="Speed animal"
+                  className="w-24 h-24 object-contain drop-shadow-lg"
                   animate={{
-                    y: weeklyLossRate <= 0.5 ? [0, -2, 0] : weeklyLossRate <= 1.0 ? [0, -6, 0, -6, 0] : [0, -8, 0, -8, 0, -8, 0],
-                    rotate: weeklyLossRate <= 0.5 ? [0, 2, 0, -2, 0] : weeklyLossRate <= 1.0 ? [0, 5, 0, -5, 0] : [0, 8, 0, -8, 0],
-                    scaleX: weeklyLossRate <= 0.5 ? [1, 1.02, 1] : weeklyLossRate <= 1.0 ? [1, 1.05, 0.95, 1.05, 1] : [1, 1.1, 0.9, 1.1, 0.9, 1],
+                    y: weeklyLossRate <= 0.5 ? [0, -3, 0] : weeklyLossRate <= 1.0 ? [0, -10, 0] : [0, -15, 0],
+                    rotate: weeklyLossRate <= 0.5 ? [0, 1, 0, -1, 0] : weeklyLossRate <= 1.0 ? [0, 3, 0, -3, 0] : [0, 5, 0, -5, 0],
+                    scaleX: weeklyLossRate <= 0.5 ? [1, 1.02, 1] : weeklyLossRate <= 1.0 ? [1, 1.08, 0.95, 1.08, 1] : [1, 1.12, 0.92, 1.12, 1],
                   }}
                   transition={{ 
-                    duration: weeklyLossRate <= 0.5 ? 1.5 : weeklyLossRate <= 1.0 ? 0.4 : 0.2,
+                    duration: weeklyLossRate <= 0.5 ? 1.2 : weeklyLossRate <= 1.0 ? 0.25 : 0.12,
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                >
-                  {speedInfo.emoji}
-                </motion.span>
-                {/* Motion blur/dust effect for fast animals */}
-                {weeklyLossRate > 0.75 && (
-                  <motion.span 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl opacity-40"
-                    animate={{ 
-                      opacity: [0, 0.4, 0],
-                      x: [-10, -25, -40],
-                      scale: [1, 0.8, 0.5]
-                    }}
-                    transition={{ 
-                      duration: weeklyLossRate <= 1.0 ? 0.6 : 0.3,
-                      repeat: Infinity,
-                    }}
-                  >
-                    💨
-                  </motion.span>
+                />
+                
+                {/* Dust/speed lines for faster speeds */}
+                {weeklyLossRate > 0.6 && (
+                  <>
+                    {[...Array(weeklyLossRate > 1.0 ? 4 : 2)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute top-1/2 -left-2 w-6 h-0.5 bg-gradient-to-l from-muted-foreground/40 to-transparent rounded-full"
+                        style={{ top: `${40 + i * 10}%` }}
+                        animate={{ 
+                          opacity: [0, 0.6, 0],
+                          x: [-5, -25, -45],
+                          scaleX: [1, 1.5, 0.5]
+                        }}
+                        transition={{ 
+                          duration: weeklyLossRate <= 1.0 ? 0.5 : 0.25,
+                          repeat: Infinity,
+                          delay: i * 0.1
+                        }}
+                      />
+                    ))}
+                  </>
                 )}
               </motion.div>
-              <p className={`text-lg font-bold mt-2 ${speedInfo.color}`}>{speedInfo.label}</p>
+              
+              <p className={`text-lg font-bold mt-4 ${speedInfo.color}`}>{speedInfo.label}</p>
             </motion.div>
           </div>
           
