@@ -4,119 +4,113 @@ interface IconProps {
   isActive: boolean;
 }
 
-// Walking Person - slow speed (emoji-style yellow person walking right)
+// Cycling Bicycle - slow speed
 export const AnimatedSloth = ({ isActive }: IconProps) => {
   return (
     <motion.svg 
-      viewBox="0 0 60 80" 
-      className={`w-10 h-14 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
-      animate={isActive ? { x: [0, 3, 0] } : {}}
-      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+      viewBox="0 0 80 60" 
+      className={`w-12 h-9 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}
+      animate={isActive ? { x: [0, 2, 0] } : {}}
+      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
     >
-      {/* Head - emoji yellow */}
-      <motion.circle
-        cx="30"
-        cy="14"
-        r="10"
-        fill="#FFCC4D"
-        stroke="#E8A825"
-        strokeWidth="1"
-      />
+      {/* Back Wheel */}
+      <motion.g
+        animate={isActive ? { rotate: 360 } : {}}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        style={{ transformOrigin: '18px 42px' }}
+      >
+        <circle cx="18" cy="42" r="12" fill="none" stroke="#4A5568" strokeWidth="3" />
+        <circle cx="18" cy="42" r="3" fill="#718096" />
+        {/* Spokes */}
+        <line x1="18" y1="30" x2="18" y2="54" stroke="#718096" strokeWidth="1" />
+        <line x1="6" y1="42" x2="30" y2="42" stroke="#718096" strokeWidth="1" />
+        <line x1="9" y1="33" x2="27" y2="51" stroke="#718096" strokeWidth="1" />
+        <line x1="9" y1="51" x2="27" y2="33" stroke="#718096" strokeWidth="1" />
+      </motion.g>
       
-      {/* Face - facing right */}
-      <circle cx="32" cy="12" r="1.5" fill="#664500" />
-      <circle cx="38" cy="12" r="1.5" fill="#664500" />
-      <motion.path
-        d="M32 17 Q36 20 40 17"
+      {/* Front Wheel */}
+      <motion.g
+        animate={isActive ? { rotate: 360 } : {}}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        style={{ transformOrigin: '62px 42px' }}
+      >
+        <circle cx="62" cy="42" r="12" fill="none" stroke="#4A5568" strokeWidth="3" />
+        <circle cx="62" cy="42" r="3" fill="#718096" />
+        {/* Spokes */}
+        <line x1="62" y1="30" x2="62" y2="54" stroke="#718096" strokeWidth="1" />
+        <line x1="50" y1="42" x2="74" y2="42" stroke="#718096" strokeWidth="1" />
+        <line x1="53" y1="33" x2="71" y2="51" stroke="#718096" strokeWidth="1" />
+        <line x1="53" y1="51" x2="71" y2="33" stroke="#718096" strokeWidth="1" />
+      </motion.g>
+      
+      {/* Frame */}
+      <path
+        d="M18 42 L40 28 L62 42 M40 28 L40 42 L18 42 M40 28 L50 18"
         fill="none"
-        stroke="#664500"
-        strokeWidth="1.5"
+        stroke="#48BB78"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      
+      {/* Handlebar */}
+      <path
+        d="M50 18 L56 14 M50 18 L56 22"
+        fill="none"
+        stroke="#2D3748"
+        strokeWidth="2.5"
         strokeLinecap="round"
       />
       
-      {/* Body - blue shirt */}
-      <motion.path
-        d="M22 24 L22 45 L38 45 L38 24 Q30 20 22 24"
-        fill="#5B8DEF"
-        stroke="#4A7BD8"
-        strokeWidth="1"
+      {/* Seat */}
+      <ellipse cx="32" cy="24" rx="6" ry="2.5" fill="#2D3748" />
+      
+      {/* Pedals */}
+      <motion.g
+        animate={isActive ? { rotate: 360 } : {}}
+        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+        style={{ transformOrigin: '40px 42px' }}
+      >
+        <circle cx="40" cy="42" r="4" fill="#718096" />
+        <line x1="40" y1="42" x2="40" y2="50" stroke="#4A5568" strokeWidth="2" />
+        <line x1="40" y1="42" x2="40" y2="34" stroke="#4A5568" strokeWidth="2" />
+        <rect x="37" y="49" width="6" height="3" rx="1" fill="#2D3748" />
+        <rect x="37" y="32" width="6" height="3" rx="1" fill="#2D3748" />
+      </motion.g>
+      
+      {/* Rider - simplified */}
+      <motion.g
         animate={isActive ? { y: [0, -1, 0] } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* Left Arm - swings while walking */}
-      <motion.path
-        d="M22 26 L14 40"
-        stroke="#FFCC4D"
-        strokeWidth="5"
-        strokeLinecap="round"
-        animate={isActive ? { 
-          d: ["M22 26 L18 44", "M22 26 L14 40", "M22 26 L18 44"]
-        } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* Right Arm - swings opposite (forward when walking right) */}
-      <motion.path
-        d="M38 26 L46 40"
-        stroke="#FFCC4D"
-        strokeWidth="5"
-        strokeLinecap="round"
-        animate={isActive ? { 
-          d: ["M38 26 L42 44", "M38 26 L46 40", "M38 26 L42 44"]
-        } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-      />
-      
-      {/* Left Leg - walking motion */}
-      <motion.path
-        d="M26 45 L20 68"
-        stroke="#3B5998"
-        strokeWidth="6"
-        strokeLinecap="round"
-        animate={isActive ? { 
-          d: ["M26 45 L30 68", "M26 45 L18 68", "M26 45 L30 68"]
-        } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* Left Foot */}
-      <motion.ellipse
-        cx="18"
-        cy="70"
-        rx="5"
-        ry="3"
-        fill="#915B30"
-        animate={isActive ? { 
-          cx: [30, 18, 30]
-        } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* Right Leg - walking motion */}
-      <motion.path
-        d="M34 45 L40 68"
-        stroke="#3B5998"
-        strokeWidth="6"
-        strokeLinecap="round"
-        animate={isActive ? { 
-          d: ["M34 45 L30 68", "M34 45 L42 68", "M34 45 L30 68"]
-        } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-      />
-      
-      {/* Right Foot */}
-      <motion.ellipse
-        cx="42"
-        cy="70"
-        rx="5"
-        ry="3"
-        fill="#915B30"
-        animate={isActive ? { 
-          cx: [30, 42, 30]
-        } : {}}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-      />
+        transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {/* Body */}
+        <path
+          d="M32 24 L45 16"
+          stroke="#5B8DEF"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+        {/* Head */}
+        <circle cx="48" cy="12" r="6" fill="#FFCC4D" stroke="#E8A825" strokeWidth="1" />
+        {/* Arms */}
+        <path
+          d="M42 18 L54 16"
+          stroke="#FFCC4D"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        {/* Legs to pedals */}
+        <motion.path
+          d="M34 26 L40 42"
+          stroke="#3B5998"
+          strokeWidth="3"
+          strokeLinecap="round"
+          animate={isActive ? { 
+            d: ["M34 26 L40 50", "M34 26 L40 34", "M34 26 L40 50"]
+          } : {}}
+          transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </motion.g>
     </motion.svg>
   );
 };
