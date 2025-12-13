@@ -28,7 +28,10 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
     { id: "progress", label: t.navStats, icon: TrendingDown, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
   ];
 
-  const handleNavClick = (item: typeof navItems[0]) => {
+  const handleNavClick = (e: React.MouseEvent | React.TouchEvent, item: typeof navItems[0]) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     const isLockedPremium = item.requiresPremium && !isPremium;
     const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
     
@@ -42,25 +45,18 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
         title: t.setupTracker || "Tracker einrichten",
         description: t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
       });
-      // Navigate to meal-plans with tracker tab
-      navigate('/meal-plans?tab=tracker');
       if (onTabChange) {
         onTabChange('tracker');
       }
+      navigate('/meal-plans?tab=tracker', { replace: isOnMealPlansPage });
       return;
     }
     
-    // If not on meal-plans page, navigate there with the tab
-    if (!isOnMealPlansPage) {
-      navigate(`/meal-plans?tab=${item.id}`);
-    } else {
-      // On meal-plans page, just update tab via callback and URL
-      navigate(`/meal-plans?tab=${item.id}`, { replace: true });
-    }
-    
+    // Update state first, then navigate
     if (onTabChange) {
       onTabChange(item.id);
     }
+    navigate(`/meal-plans?tab=${item.id}`, { replace: isOnMealPlansPage });
   };
 
   return (
@@ -75,9 +71,10 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
           return (
             <button
               key={item.id}
-              onClick={() => handleNavClick(item)}
+              onClick={(e) => handleNavClick(e, item)}
+              onTouchEnd={(e) => handleNavClick(e, item)}
               type="button"
-              className="flex-1 min-h-[56px] touch-manipulation active:scale-95 transition-transform"
+              className="flex-1 min-h-[56px] select-none"
             >
               <div className={cn(
                 "flex flex-col items-center justify-center gap-0.5 py-3 px-1 rounded-xl transition-colors relative h-full",
