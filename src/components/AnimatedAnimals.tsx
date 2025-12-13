@@ -1,423 +1,317 @@
 import { motion } from 'framer-motion';
 
-interface AnimalProps {
+interface IconProps {
   isActive: boolean;
 }
 
-// Sloth hanging from branch - exact copy from reference
-export const AnimatedSloth = ({ isActive }: AnimalProps) => {
+// Walking Person - slow speed
+export const AnimatedSloth = ({ isActive }: IconProps) => {
   return (
-    <svg viewBox="0 0 60 70" className={`w-12 h-14 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
-      {/* Branch */}
-      <path
-        d="M5 8 Q20 5 35 12 L40 10 Q50 8 55 12"
-        stroke="#1f2937"
-        strokeWidth="5"
-        fill="none"
-        strokeLinecap="round"
-      />
-      
-      {/* Left arm hanging */}
-      <motion.path
-        d="M18 12 L22 28"
-        stroke="#78716c"
-        strokeWidth="6"
-        strokeLinecap="round"
-        animate={isActive ? { 
-          d: ["M18 12 L22 28", "M18 12 L24 29", "M18 12 L22 28"]
-        } : {}}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* Right arm hanging */}
-      <motion.path
-        d="M38 10 L34 28"
-        stroke="#78716c"
-        strokeWidth="6"
-        strokeLinecap="round"
-        animate={isActive ? { 
-          d: ["M38 10 L34 28", "M38 10 L32 29", "M38 10 L34 28"]
-        } : {}}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+    <svg viewBox="0 0 60 80" className={`w-12 h-16 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
+      {/* Head */}
+      <motion.circle
+        cx="30"
+        cy="12"
+        r="8"
+        fill="#4A5568"
+        animate={isActive ? { y: [0, -2, 0, -2, 0] } : {}}
+        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
       />
       
       {/* Body */}
-      <motion.ellipse
-        cx="28"
-        cy="42"
-        rx="14"
-        ry="16"
-        fill="#a8a29e"
-        animate={isActive ? { 
-          cy: [42, 44, 42],
-        } : {}}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+      <motion.line
+        x1="30"
+        y1="20"
+        x2="30"
+        y2="45"
+        stroke="#4A5568"
+        strokeWidth="4"
+        strokeLinecap="round"
       />
       
-      {/* Face */}
-      <motion.circle
-        cx="28"
-        cy="32"
-        r="11"
-        fill="#d6d3d1"
-        animate={isActive ? { 
-          cy: [32, 34, 32],
-        } : {}}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* Eye patches - dark */}
-      <ellipse cx="23" cy="30" rx="5" ry="6" fill="#1f2937" />
-      <ellipse cx="33" cy="30" rx="5" ry="6" fill="#1f2937" />
-      
-      {/* Eyes - white */}
-      <circle cx="23" cy="30" r="3" fill="white" />
-      <circle cx="33" cy="30" r="3" fill="white" />
-      
-      {/* Pupils */}
-      <circle cx="24" cy="30" r="1.5" fill="#1f2937" />
-      <circle cx="34" cy="30" r="1.5" fill="#1f2937" />
-      
-      {/* Nose */}
-      <ellipse cx="28" cy="36" rx="2.5" ry="2" fill="#1f2937" />
-      
-      {/* Left leg */}
-      <motion.path
-        d="M20 55 L16 65"
-        stroke="#78716c"
-        strokeWidth="5"
+      {/* Left Arm - swings opposite to legs */}
+      <motion.line
+        x1="30"
+        y1="26"
+        x2="20"
+        y2="38"
+        stroke="#4A5568"
+        strokeWidth="3"
         strokeLinecap="round"
         animate={isActive ? { 
-          d: ["M20 55 L16 65", "M20 56 L14 66", "M20 55 L16 65"]
+          rotate: [-20, 20, -20]
         } : {}}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: '30px 26px' }}
       />
       
-      {/* Right leg */}
-      <motion.path
-        d="M36 55 L40 65"
-        stroke="#78716c"
-        strokeWidth="5"
+      {/* Right Arm - swings opposite to legs */}
+      <motion.line
+        x1="30"
+        y1="26"
+        x2="40"
+        y2="38"
+        stroke="#4A5568"
+        strokeWidth="3"
         strokeLinecap="round"
         animate={isActive ? { 
-          d: ["M36 55 L40 65", "M36 56 L42 66", "M36 55 L40 65"]
+          rotate: [20, -20, 20]
         } : {}}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: '30px 26px' }}
+      />
+      
+      {/* Left Leg - walking motion */}
+      <motion.line
+        x1="30"
+        y1="45"
+        x2="22"
+        y2="70"
+        stroke="#4A5568"
+        strokeWidth="4"
+        strokeLinecap="round"
+        animate={isActive ? { 
+          rotate: [20, -20, 20]
+        } : {}}
+        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: '30px 45px' }}
+      />
+      
+      {/* Right Leg - walking motion */}
+      <motion.line
+        x1="30"
+        y1="45"
+        x2="38"
+        y2="70"
+        stroke="#4A5568"
+        strokeWidth="4"
+        strokeLinecap="round"
+        animate={isActive ? { 
+          rotate: [-20, 20, -20]
+        } : {}}
+        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: '30px 45px' }}
       />
     </svg>
   );
 };
 
-// Black rabbit silhouette - running pose like reference
-export const AnimatedRabbit = ({ isActive }: AnimalProps) => {
-  return (
-    <svg viewBox="0 0 70 50" className={`w-14 h-10 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
-      {/* Tail */}
-      <motion.circle
-        cx="8"
-        cy="25"
-        r="4"
-        fill="#1f2937"
-        animate={isActive ? { 
-          cy: [25, 20, 25],
-          cx: [8, 6, 8],
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-      />
-      
-      {/* Back leg */}
-      <motion.path
-        d="M15 28 Q10 38 14 46"
-        stroke="#1f2937"
-        strokeWidth="7"
-        strokeLinecap="round"
-        fill="none"
-        animate={isActive ? { 
-          d: [
-            "M15 28 Q10 38 14 46",
-            "M15 22 Q25 30 35 32",
-            "M15 28 Q10 38 14 46",
-          ]
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-      />
-      
-      {/* Body - elongated oval */}
-      <motion.ellipse
-        cx="30"
-        cy="26"
-        rx="17"
-        ry="10"
-        fill="#1f2937"
-        animate={isActive ? { 
-          cy: [26, 20, 26],
-          rx: [17, 19, 17],
-          ry: [10, 8, 10],
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-      />
-      
-      {/* Front leg */}
-      <motion.path
-        d="M42 32 Q46 40 44 48"
-        stroke="#1f2937"
-        strokeWidth="5"
-        strokeLinecap="round"
-        fill="none"
-        animate={isActive ? { 
-          d: [
-            "M42 32 Q46 40 44 48",
-            "M45 22 Q55 25 62 28",
-            "M42 32 Q46 40 44 48",
-          ]
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-      />
-      
-      {/* Head */}
-      <motion.circle
-        cx="52"
-        cy="22"
-        r="9"
-        fill="#1f2937"
-        animate={isActive ? { 
-          cy: [22, 16, 22],
-          cx: [52, 55, 52],
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-      />
-      
-      {/* Left ear */}
-      <motion.ellipse
-        cx="47"
-        cy="8"
-        rx="3"
-        ry="10"
-        fill="#1f2937"
-        animate={isActive ? { 
-          cy: [8, 3, 8],
-          rotate: [-15, -20, -15],
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-        style={{ transformOrigin: '47px 18px' }}
-      />
-      
-      {/* Right ear */}
-      <motion.ellipse
-        cx="54"
-        cy="6"
-        rx="3"
-        ry="10"
-        fill="#1f2937"
-        animate={isActive ? { 
-          cy: [6, 1, 6],
-          rotate: [10, 15, 10],
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-        style={{ transformOrigin: '54px 16px' }}
-      />
-      
-      {/* Eye */}
-      <motion.circle
-        cx="56"
-        cy="20"
-        r="1.5"
-        fill="white"
-        animate={isActive ? { 
-          cy: [20, 14, 20],
-          cx: [56, 59, 56],
-        } : {}}
-        transition={{ duration: 0.4, repeat: Infinity, ease: "easeOut" }}
-      />
-    </svg>
-  );
-};
-
-// Orange cheetah with speed lines - exact like reference
-export const AnimatedCheetah = ({ isActive }: AnimalProps) => {
+// Driving Car - medium speed
+export const AnimatedRabbit = ({ isActive }: IconProps) => {
   return (
     <div className="relative">
-      {/* Speed lines - only when active */}
+      {/* Speed lines when active */}
       {isActive && (
-        <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="h-0.5 bg-orange-400 rounded-full"
-              style={{ width: `${10 + i * 4}px` }}
+              className="h-0.5 bg-blue-400 rounded-full"
+              style={{ width: `${8 + i * 3}px` }}
               animate={{ 
                 opacity: [0, 0.8, 0],
                 x: [0, -8, -16],
               }}
               transition={{ 
-                duration: 0.25,
+                duration: 0.3,
                 repeat: Infinity,
-                delay: i * 0.05
+                delay: i * 0.08
               }}
             />
           ))}
         </div>
       )}
       
-      <svg viewBox="0 0 80 50" className={`w-14 h-9 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
-        {/* Tail */}
-        <motion.path
-          d="M5 22 Q0 18 3 28 Q6 35 4 40"
-          stroke="#f97316"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-          animate={isActive ? { 
-            d: [
-              "M5 22 Q0 18 3 28 Q6 35 4 40",
-              "M5 20 Q-2 14 2 24 Q5 32 2 38",
-              "M5 24 Q2 22 5 30 Q8 38 6 42",
-              "M5 20 Q-2 14 2 24 Q5 32 2 38",
-              "M5 22 Q0 18 3 28 Q6 35 4 40",
-            ]
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
+      <svg viewBox="0 0 100 55" className={`w-20 h-11 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
+        {/* Car Body */}
+        <motion.g
+          animate={isActive ? { y: [0, -1, 0, -1, 0] } : {}}
+          transition={{ duration: 0.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {/* Main body */}
+          <path
+            d="M15 28 L22 15 L42 10 L72 10 L88 22 L92 28 L92 35 L8 35 L8 28 Z"
+            fill="#3182CE"
+            stroke="#2C5282"
+            strokeWidth="1.5"
+          />
+          
+          {/* Roof */}
+          <path
+            d="M25 15 L40 10 L68 10 L78 20 L25 20 Z"
+            fill="#2C5282"
+          />
+          
+          {/* Front window */}
+          <path
+            d="M27 14 L40 11 L40 19 L27 19 Z"
+            fill="#90CDF4"
+          />
+          
+          {/* Side window */}
+          <path
+            d="M43 11 L66 11 L75 19 L43 19 Z"
+            fill="#90CDF4"
+          />
+          
+          {/* Headlight */}
+          <motion.circle 
+            cx="90" 
+            cy="28" 
+            r="3" 
+            fill="#FBBF24"
+            animate={isActive ? { opacity: [0.7, 1, 0.7] } : {}}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          />
+          
+          {/* Taillight */}
+          <circle cx="10" cy="28" r="2" fill="#EF4444" />
+        </motion.g>
         
-        {/* Back legs */}
-        <motion.path
-          d="M18 30 L14 44"
-          stroke="#f97316"
-          strokeWidth="5"
-          strokeLinecap="round"
-          animate={isActive ? { 
-            d: [
-              "M18 30 L14 44",
-              "M18 26 L28 34",
-              "M18 30 L8 38",
-              "M18 26 L28 34",
-              "M18 30 L14 44",
-            ]
-          } : {}}
+        {/* Front Wheel */}
+        <motion.g
+          animate={isActive ? { rotate: 360 } : {}}
           transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
+          style={{ transformOrigin: '75px 40px' }}
+        >
+          <circle cx="75" cy="40" r="8" fill="#1A202C" />
+          <circle cx="75" cy="40" r="4" fill="#4A5568" />
+          <line x1="75" y1="32" x2="75" y2="48" stroke="#718096" strokeWidth="1.5" />
+          <line x1="67" y1="40" x2="83" y2="40" stroke="#718096" strokeWidth="1.5" />
+        </motion.g>
         
-        <motion.path
-          d="M24 30 L20 44"
-          stroke="#ea580c"
-          strokeWidth="5"
-          strokeLinecap="round"
-          animate={isActive ? { 
-            d: [
-              "M24 30 L20 44",
-              "M24 26 L14 36",
-              "M24 30 L34 38",
-              "M24 26 L14 36",
-              "M24 30 L20 44",
-            ]
-          } : {}}
+        {/* Back Wheel */}
+        <motion.g
+          animate={isActive ? { rotate: 360 } : {}}
           transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
+          style={{ transformOrigin: '25px 40px' }}
+        >
+          <circle cx="25" cy="40" r="8" fill="#1A202C" />
+          <circle cx="25" cy="40" r="4" fill="#4A5568" />
+          <line x1="25" y1="32" x2="25" y2="48" stroke="#718096" strokeWidth="1.5" />
+          <line x1="17" y1="40" x2="33" y2="40" stroke="#718096" strokeWidth="1.5" />
+        </motion.g>
+      </svg>
+    </div>
+  );
+};
+
+// Flying Rocket - fast speed
+export const AnimatedCheetah = ({ isActive }: IconProps) => {
+  return (
+    <div className="relative">
+      <svg viewBox="0 0 60 90" className={`w-12 h-18 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
+        {/* Rocket Body */}
+        <motion.g
+          animate={isActive ? { y: [0, -4, 0, -4, 0] } : {}}
+          transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {/* Main body */}
+          <path
+            d="M30 5 C30 5 45 20 45 42 L45 58 L15 58 L15 42 C15 20 30 5 30 5 Z"
+            fill="#E53E3E"
+            stroke="#C53030"
+            strokeWidth="1.5"
+          />
+          
+          {/* Rocket tip highlight */}
+          <path
+            d="M30 5 L36 18 L30 16 L24 18 Z"
+            fill="#FC8181"
+          />
+          
+          {/* Window */}
+          <circle cx="30" cy="32" r="7" fill="#90CDF4" stroke="#63B3ED" strokeWidth="1.5" />
+          <circle cx="30" cy="32" r="3.5" fill="#BEE3F8" />
+          
+          {/* Left Fin */}
+          <path
+            d="M15 45 L5 62 L15 58 Z"
+            fill="#C53030"
+          />
+          
+          {/* Right Fin */}
+          <path
+            d="M45 45 L55 62 L45 58 Z"
+            fill="#C53030"
+          />
+          
+          {/* Rocket Base */}
+          <rect x="20" y="58" width="20" height="4" fill="#1A202C" rx="1" />
+        </motion.g>
         
-        {/* Body */}
-        <motion.ellipse
-          cx="38"
-          cy="24"
-          rx="20"
-          ry="9"
-          fill="#f97316"
-          animate={isActive ? { 
-            cy: [24, 21, 24, 21, 24],
-            rx: [20, 22, 20, 22, 20],
-            ry: [9, 7, 9, 7, 9],
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {/* Front legs */}
-        <motion.path
-          d="M52 30 L48 44"
-          stroke="#f97316"
-          strokeWidth="4"
-          strokeLinecap="round"
-          animate={isActive ? { 
-            d: [
-              "M52 30 L48 44",
-              "M52 24 L62 30",
-              "M52 30 L42 38",
-              "M52 24 L62 30",
-              "M52 30 L48 44",
-            ]
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
-        
-        <motion.path
-          d="M58 30 L54 44"
-          stroke="#ea580c"
-          strokeWidth="4"
-          strokeLinecap="round"
-          animate={isActive ? { 
-            d: [
-              "M58 30 L54 44",
-              "M58 24 L48 32",
-              "M58 30 L68 36",
-              "M58 24 L48 32",
-              "M58 30 L54 44",
-            ]
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {/* Neck/Head */}
-        <motion.ellipse
-          cx="68"
-          cy="18"
-          rx="9"
-          ry="7"
-          fill="#f97316"
-          animate={isActive ? { 
-            cx: [68, 71, 68, 71, 68],
-            cy: [18, 15, 18, 15, 18],
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {/* Ear */}
-        <motion.path
-          d="M66 12 L68 6 L71 11"
-          fill="#f97316"
-          animate={isActive ? { 
-            d: [
-              "M66 12 L68 6 L71 11",
-              "M69 9 L71 3 L74 8",
-              "M66 12 L68 6 L71 11",
-            ]
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {/* Eye */}
-        <motion.circle
-          cx="72"
-          cy="16"
-          r="1.5"
-          fill="#1f2937"
-          animate={isActive ? { 
-            cx: [72, 75, 72, 75, 72],
-            cy: [16, 13, 16, 13, 16],
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {/* Snout */}
-        <motion.ellipse
-          cx="77"
-          cy="19"
-          rx="3"
-          ry="2"
-          fill="#fb923c"
-          animate={isActive ? { 
-            cx: [77, 80, 77, 80, 77],
-            cy: [19, 16, 19, 16, 19],
-          } : {}}
-          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
-        />
+        {/* Flames - only when active */}
+        {isActive && (
+          <motion.g>
+            {/* Outer Flame */}
+            <motion.path
+              d="M22 62 L30 88 L38 62"
+              fill="#F6AD55"
+              animate={{ 
+                d: [
+                  "M22 62 L30 88 L38 62",
+                  "M20 62 L30 92 L40 62",
+                  "M22 62 L30 88 L38 62"
+                ]
+              }}
+              transition={{ duration: 0.12, repeat: Infinity }}
+            />
+            
+            {/* Middle Flame */}
+            <motion.path
+              d="M25 62 L30 80 L35 62"
+              fill="#FBBF24"
+              animate={{ 
+                d: [
+                  "M25 62 L30 80 L35 62",
+                  "M24 62 L30 85 L36 62",
+                  "M25 62 L30 80 L35 62"
+                ]
+              }}
+              transition={{ duration: 0.1, repeat: Infinity }}
+            />
+            
+            {/* Core Flame */}
+            <motion.path
+              d="M27 62 L30 72 L33 62"
+              fill="#FEF3C7"
+              animate={{ 
+                d: [
+                  "M27 62 L30 72 L33 62",
+                  "M27 62 L30 76 L33 62",
+                  "M27 62 L30 72 L33 62"
+                ]
+              }}
+              transition={{ duration: 0.08, repeat: Infinity }}
+            />
+            
+            {/* Smoke particles */}
+            <motion.circle
+              cx="20"
+              cy="75"
+              r="3"
+              fill="#A0AEC0"
+              animate={{ opacity: [0, 0.5, 0], y: [0, 12, 24], x: [-3, -8, -12] }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+            />
+            <motion.circle
+              cx="40"
+              cy="75"
+              r="3"
+              fill="#A0AEC0"
+              animate={{ opacity: [0, 0.5, 0], y: [0, 12, 24], x: [3, 8, 12] }}
+              transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
+            />
+            <motion.circle
+              cx="30"
+              cy="80"
+              r="2"
+              fill="#CBD5E0"
+              animate={{ opacity: [0, 0.4, 0], y: [0, 15, 30] }}
+              transition={{ duration: 0.5, repeat: Infinity, delay: 0.08 }}
+            />
+          </motion.g>
+        )}
       </svg>
     </div>
   );
