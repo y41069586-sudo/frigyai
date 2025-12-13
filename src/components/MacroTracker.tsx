@@ -544,12 +544,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             )}
           </div>
           
-          {/* Estimated time */}
-          {weightDiff > 0 && (
-            <p className="text-center text-muted-foreground">
-              ~{weeksToGoal} Wochen bis zum Ziel
-            </p>
-          )}
         </div>
       ),
     },
@@ -569,7 +563,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <p>{t.withActivity}: ~{tdee} kcal</p>
             <p>{goalMode === 'lose' ? t.deficit : 'Überschuss'}: {goalMode === 'lose' ? '-' : '+'}{Math.round(dailyAdjustment)} kcal/{t.today.toLowerCase()}</p>
             <p className="text-xs">
-              {t.goal}: {weightDiff}{t.kg} {goalMode === 'lose' ? 'abnehmen' : 'zunehmen'} in ~{weeksToGoal} Wochen ({weeklyLossRate.toFixed(2)}{t.kg}/Woche)
+              {t.goal}: {weightDiff}{t.kg} {goalMode === 'lose' ? 'abnehmen' : 'zunehmen'} ({weeklyLossRate.toFixed(1)}{t.kg}/Woche)
             </p>
           </div>
           
