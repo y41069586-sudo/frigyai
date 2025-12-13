@@ -312,7 +312,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <Slider
             value={[age]}
             onValueChange={([v]) => setAge(v)}
-            min={16}
+            min={13}
             max={80}
             step={1}
             className="py-4"
