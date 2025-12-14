@@ -18,20 +18,21 @@ const triggerHaptic = () => {
 export const WeightPicker = ({
   value,
   onChange,
-  min = 40,
-  max = 200,
+  min = 0,
+  max = 500,
   unit = 'kg'
 }: WeightPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef(value);
+  const isScrollingRef = useRef(false);
   
-  // Each 0.1 kg = one tick
-  const tickWidth = 8; // Width per tick in pixels
-  const totalTicks = (max - min) * 10 + 1; // e.g., 40.0 to 200.0
+  // Each 1 kg = one tick (smoother with fewer ticks)
+  const tickWidth = 12;
+  const totalTicks = max - min + 1;
   
   // Convert value to tick index
-  const valueToTick = (v: number) => Math.round((v - min) * 10);
-  const tickToValue = (tick: number) => min + tick / 10;
+  const valueToTick = (v: number) => Math.round(v - min);
+  const tickToValue = (tick: number) => min + tick;
   
   // Scroll to current value on mount
   useEffect(() => {
@@ -43,54 +44,41 @@ export const WeightPicker = ({
     }
   }, []);
   
-  // Handle scroll
+  // Handle scroll - smooth continuous updates
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     
     const containerWidth = scrollRef.current.clientWidth;
     const scrollLeft = scrollRef.current.scrollLeft;
     const centerPosition = scrollLeft + containerWidth / 2;
-    const tick = Math.round(centerPosition / tickWidth);
-    const clampedTick = Math.max(0, Math.min(totalTicks - 1, tick));
-    const newValue = tickToValue(clampedTick);
     
-    if (Math.abs(newValue - lastValueRef.current) >= 0.1) {
+    // Calculate decimal value for smooth display
+    const exactTick = centerPosition / tickWidth;
+    const clampedTick = Math.max(0, Math.min(totalTicks - 1, exactTick));
+    const newValue = min + clampedTick;
+    const roundedValue = Math.round(newValue * 10) / 10;
+    
+    // Trigger haptic on whole number change
+    const currentWhole = Math.floor(roundedValue);
+    const lastWhole = Math.floor(lastValueRef.current);
+    if (currentWhole !== lastWhole) {
       triggerHaptic();
-      lastValueRef.current = newValue;
-      onChange(parseFloat(newValue.toFixed(1)));
     }
+    
+    lastValueRef.current = roundedValue;
+    onChange(parseFloat(roundedValue.toFixed(1)));
   }, [onChange, min, totalTicks]);
-  
-  // Debounced scroll handler
-  const scrollTimeout = useRef<NodeJS.Timeout>();
   
   const onScroll = useCallback(() => {
     handleScroll();
-    
-    // Snap to nearest value when scrolling stops
-    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-    scrollTimeout.current = setTimeout(() => {
-      if (!scrollRef.current) return;
-      const containerWidth = scrollRef.current.clientWidth;
-      const scrollLeft = scrollRef.current.scrollLeft;
-      const centerPosition = scrollLeft + containerWidth / 2;
-      const tick = Math.round(centerPosition / tickWidth);
-      const clampedTick = Math.max(0, Math.min(totalTicks - 1, tick));
-      const targetScroll = clampedTick * tickWidth - containerWidth / 2;
-      
-      scrollRef.current.scrollTo({
-        left: targetScroll,
-        behavior: 'smooth'
-      });
-    }, 100);
-  }, [handleScroll, totalTicks]);
+  }, [handleScroll]);
   
-  // Generate ticks
+  // Generate ticks - every 1kg
   const ticks = [];
   for (let i = 0; i < totalTicks; i++) {
-    const tickValue = min + i / 10;
-    const isWhole = i % 10 === 0;
-    const isHalf = i % 5 === 0 && !isWhole;
+    const tickValue = min + i;
+    const isMajor = i % 10 === 0; // Every 10kg
+    const isMid = i % 5 === 0 && !isMajor; // Every 5kg
     
     ticks.push(
       <div
@@ -101,17 +89,17 @@ export const WeightPicker = ({
         {/* Tick mark */}
         <div
           className={`w-0.5 rounded-full ${
-            isWhole 
+            isMajor 
               ? 'h-10 bg-foreground' 
-              : isHalf 
-                ? 'h-6 bg-muted-foreground/60' 
+              : isMid 
+                ? 'h-7 bg-muted-foreground/60' 
                 : 'h-4 bg-muted-foreground/30'
           }`}
         />
-        {/* Label for whole numbers */}
-        {isWhole && (
+        {/* Label for major ticks (every 10kg) */}
+        {isMajor && (
           <span className="text-xs text-muted-foreground mt-1 font-medium">
-            {Math.round(tickValue)}
+            {tickValue}
           </span>
         )}
       </div>
