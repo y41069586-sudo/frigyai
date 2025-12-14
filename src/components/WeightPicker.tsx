@@ -8,11 +8,11 @@ interface WeightPickerProps {
   unit?: string;
 }
 
-// Haptic feedback function - more reliable
+// Haptic feedback function - iOS style
 const triggerHaptic = () => {
   try {
     if ('vibrate' in navigator) {
-      navigator.vibrate(10);
+      navigator.vibrate(5);
     }
   } catch (e) {
     // Ignore vibration errors
@@ -30,73 +30,76 @@ export const WeightPicker = ({
   const lastValueRef = useRef(value);
   const hasInitialized = useRef(false);
   
-  const tickWidth = 12;
-  const totalTicks = max - min + 1;
+  const itemHeight = 50; // iOS standard picker item height
+  const visibleItems = 5;
+  const containerHeight = visibleItems * itemHeight;
+  const paddingItems = Math.floor(visibleItems / 2);
+  
+  // Generate items array
+  const items: number[] = [];
+  for (let i = min; i <= max; i++) {
+    items.push(i);
+  }
+  
+  const currentIndex = items.indexOf(value);
   
   // Scroll to current value on mount
   useEffect(() => {
-    if (scrollRef.current && !hasInitialized.current) {
+    if (scrollRef.current && !hasInitialized.current && currentIndex >= 0) {
       hasInitialized.current = true;
-      const tick = Math.round(value - min);
-      const containerWidth = scrollRef.current.clientWidth;
-      const scrollLeft = tick * tickWidth - containerWidth / 2 + tickWidth / 2;
-      scrollRef.current.scrollLeft = scrollLeft;
+      scrollRef.current.scrollTop = currentIndex * itemHeight;
     }
-  }, [value, min]);
+  }, [currentIndex]);
   
-  // Handle scroll
-  const handleScroll = useCallback(() => {
+  // Handle scroll - snap to nearest item
+  const handleScrollEnd = useCallback(() => {
     if (!scrollRef.current) return;
     
-    const containerWidth = scrollRef.current.clientWidth;
-    const scrollLeft = scrollRef.current.scrollLeft;
-    const centerPosition = scrollLeft + containerWidth / 2;
+    const scrollTop = scrollRef.current.scrollTop;
+    const index = Math.round(scrollTop / itemHeight);
+    const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+    const newValue = items[clampedIndex];
     
-    const exactTick = centerPosition / tickWidth;
-    const clampedTick = Math.max(0, Math.min(totalTicks - 1, Math.round(exactTick)));
-    const newValue = min + clampedTick;
+    // Snap to position
+    scrollRef.current.scrollTo({
+      top: clampedIndex * itemHeight,
+      behavior: 'smooth'
+    });
     
-    // Trigger haptic on value change
+    // Trigger haptic feedback when value changes
     if (newValue !== lastValueRef.current) {
       triggerHaptic();
       lastValueRef.current = newValue;
       onChange(newValue);
     }
-  }, [onChange, min, totalTicks]);
+  }, [items, onChange, itemHeight]);
   
-  // Generate all ticks (301 is acceptable for performance)
-  const ticks = [];
-  for (let i = 0; i < totalTicks; i++) {
-    const tickValue = min + i;
-    const isMajor = tickValue % 10 === 0;
-    const isMid = tickValue % 5 === 0 && !isMajor;
+  // Debounced scroll handler for end detection
+  const scrollTimeout = useRef<NodeJS.Timeout>();
+  const onScroll = useCallback(() => {
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
     
-    ticks.push(
-      <div
-        key={i}
-        className="flex flex-col items-center flex-shrink-0"
-        style={{ width: tickWidth }}
-      >
-        <div
-          className={`w-0.5 rounded-full ${
-            isMajor 
-              ? 'h-10 bg-foreground' 
-              : isMid 
-                ? 'h-7 bg-muted-foreground/60' 
-                : 'h-4 bg-muted-foreground/30'
-          }`}
-        />
-        {isMajor && (
-          <span className="text-xs text-muted-foreground mt-1 font-medium">
-            {tickValue}
-          </span>
-        )}
-      </div>
-    );
-  }
+    // Update value during scroll for immediate feedback
+    if (scrollRef.current) {
+      const scrollTop = scrollRef.current.scrollTop;
+      const index = Math.round(scrollTop / itemHeight);
+      const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+      const newValue = items[clampedIndex];
+      
+      if (newValue !== lastValueRef.current) {
+        triggerHaptic();
+        lastValueRef.current = newValue;
+        onChange(newValue);
+      }
+    }
+    
+    scrollTimeout.current = setTimeout(handleScrollEnd, 100);
+  }, [handleScrollEnd, items, onChange, itemHeight]);
   
   return (
-    <div className="relative mx-auto w-full max-w-sm">
+    <div className="relative mx-auto w-full max-w-xs">
       {/* Current value display */}
       <div className="text-center mb-4">
         <span className="text-5xl font-bold text-foreground">
@@ -105,57 +108,93 @@ export const WeightPicker = ({
         <span className="text-2xl text-muted-foreground ml-2">{unit}</span>
       </div>
       
-      {/* Ruler container */}
-      <div className="relative h-24 bg-card rounded-2xl overflow-hidden border border-border/50">
-        {/* Left fade gradient */}
+      {/* iOS-style picker container */}
+      <div 
+        className="relative bg-card rounded-2xl overflow-hidden border border-border/50"
+        style={{ height: containerHeight }}
+      >
+        {/* Top fade gradient */}
         <div 
-          className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          className="absolute inset-x-0 top-0 z-10 pointer-events-none"
           style={{ 
-            background: 'linear-gradient(to right, hsl(var(--card)) 0%, transparent 100%)'
+            height: paddingItems * itemHeight,
+            background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.7) 50%, transparent 100%)'
           }}
         />
         
-        {/* Right fade gradient */}
+        {/* Bottom fade gradient */}
         <div 
-          className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
           style={{ 
-            background: 'linear-gradient(to left, hsl(var(--card)) 0%, transparent 100%)'
+            height: paddingItems * itemHeight,
+            background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.7) 50%, transparent 100%)'
           }}
         />
         
-        {/* Center indicator */}
-        <div className="absolute left-1/2 top-0 z-20 transform -translate-x-1/2">
-          <div 
-            className="w-0 h-0"
-            style={{
-              borderLeft: '8px solid transparent',
-              borderRight: '8px solid transparent',
-              borderTop: '10px solid hsl(var(--primary))'
-            }}
-          />
-        </div>
-        
+        {/* Center selection indicator - iOS style */}
         <div 
-          className="absolute left-1/2 top-2.5 bottom-0 w-0.5 bg-primary z-20 transform -translate-x-1/2"
+          className="absolute inset-x-4 z-0 pointer-events-none bg-primary/10 rounded-xl"
+          style={{ 
+            top: paddingItems * itemHeight,
+            height: itemHeight,
+            borderTop: '1px solid hsl(var(--primary) / 0.3)',
+            borderBottom: '1px solid hsl(var(--primary) / 0.3)'
+          }}
         />
         
-        {/* Scrollable ruler */}
+        {/* Scrollable container */}
         <div
           ref={scrollRef}
-          className="h-full overflow-x-auto scrollbar-hide flex items-end pb-4"
-          style={{
+          className="h-full overflow-y-auto scrollbar-hide"
+          style={{ 
+            scrollSnapType: 'y mandatory',
             WebkitOverflowScrolling: 'touch'
           }}
-          onScroll={handleScroll}
+          onScroll={onScroll}
         >
-          {/* Left padding to center 0 */}
-          <div className="flex-shrink-0" style={{ width: '50%' }} />
+          {/* Top padding */}
+          <div style={{ height: paddingItems * itemHeight }} />
           
-          {/* Tick marks */}
-          {ticks}
+          {/* Items */}
+          {items.map((item) => {
+            const isSelected = item === value;
+            const distance = Math.abs(item - value);
+            const opacity = distance === 0 ? 1 : distance === 1 ? 0.6 : 0.3;
+            const scale = distance === 0 ? 1 : distance === 1 ? 0.9 : 0.85;
+            
+            return (
+              <div
+                key={item}
+                className="flex items-center justify-center select-none"
+                style={{ 
+                  height: itemHeight,
+                  scrollSnapAlign: 'center',
+                  transform: `scale(${scale})`,
+                  opacity,
+                  transition: 'transform 0.15s ease, opacity 0.15s ease'
+                }}
+                onClick={() => {
+                  if (scrollRef.current) {
+                    const index = items.indexOf(item);
+                    scrollRef.current.scrollTo({
+                      top: index * itemHeight,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+              >
+                <span 
+                  className={`font-semibold ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
+                  style={{ fontSize: isSelected ? '2rem' : '1.5rem' }}
+                >
+                  {item}
+                </span>
+              </div>
+            );
+          })}
           
-          {/* Right padding to center max */}
-          <div className="flex-shrink-0" style={{ width: '50%' }} />
+          {/* Bottom padding */}
+          <div style={{ height: paddingItems * itemHeight }} />
         </div>
       </div>
     </div>
