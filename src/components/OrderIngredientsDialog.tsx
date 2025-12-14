@@ -18,36 +18,28 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
   
   const deliveryServices = [
     {
-      id: "rewe",
-      name: "REWE",
-      logo: "🛒",
-      color: "bg-red-500",
-      url: `https://shop.rewe.de/productList?search=${searchQuery}`,
-      description: "Schnelle Lieferung",
-    },
-    {
-      id: "amazon-fresh",
-      name: "Amazon Fresh",
+      id: "amazon",
+      name: "Amazon",
       logo: "📦",
       color: "bg-orange-500",
-      url: `https://www.amazon.de/s?k=${searchQuery}&i=amazonfresh`,
-      description: "Prime Lieferung",
+      url: `https://www.amazon.com/s?k=${searchQuery}`,
+      description: "Worldwide delivery",
     },
     {
-      id: "edeka",
-      name: "EDEKA",
-      logo: "🏪",
-      color: "bg-yellow-500",
-      url: `https://www.edeka24.de/suche/?q=${searchQuery}`,
-      description: "Frische Produkte",
-    },
-    {
-      id: "picnic",
-      name: "Picnic",
+      id: "instacart",
+      name: "Instacart",
       logo: "🥕",
       color: "bg-green-500",
-      url: `https://picnic.app/de/`,
-      description: "Günstige Lieferung",
+      url: `https://www.instacart.com/store/search/${searchQuery}`,
+      description: "Same-day delivery",
+    },
+    {
+      id: "walmart",
+      name: "Walmart",
+      logo: "🛒",
+      color: "bg-blue-500",
+      url: `https://www.walmart.com/search?q=${searchQuery}`,
+      description: "Grocery & more",
     },
   ];
 
