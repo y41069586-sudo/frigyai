@@ -1,7 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ShoppingCart, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, ExternalLink, CheckCircle2, Copy, Check } from "lucide-react";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderIngredientsDialogProps {
   ingredients: string[];
@@ -10,7 +12,8 @@ interface OrderIngredientsDialogProps {
 }
 
 export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: OrderIngredientsDialogProps) => {
-  // Create individual search queries for better results
+  const [copied, setCopied] = useState(false);
+  
   const searchQuery = encodeURIComponent(ingredients.join(", "));
   
   const deliveryServices = [
@@ -19,7 +22,6 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
       name: "REWE",
       logo: "🛒",
       color: "bg-red-500",
-      // REWE allows multiple items in cart via search
       url: `https://shop.rewe.de/productList?search=${searchQuery}`,
       description: "Schnelle Lieferung",
     },
@@ -40,14 +42,6 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
       description: "Frische Produkte",
     },
     {
-      id: "flink",
-      name: "Flink",
-      logo: "⚡",
-      color: "bg-pink-500",
-      url: `https://www.goflink.com/de-DE/`,
-      description: "In 10 Min geliefert",
-    },
-    {
       id: "picnic",
       name: "Picnic",
       logo: "🥕",
@@ -57,9 +51,18 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
     },
   ];
 
+  const handleCopyForBring = async () => {
+    const bringList = ingredients.join("\n");
+    await navigator.clipboard.writeText(bringList);
+    setCopied(true);
+    toast({
+      title: "Für Bring! kopiert",
+      description: "Öffne Bring! und füge die Liste ein",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleOpenService = (url: string) => {
-    // Copy ingredients to clipboard for easy pasting
-    navigator.clipboard.writeText(ingredients.join("\n"));
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -75,24 +78,53 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
 
         <div className="space-y-4">
           {/* Ingredients Preview */}
-          <div className="bg-muted/50 rounded-xl p-4 max-h-40 overflow-y-auto">
-            <p className="text-sm font-medium mb-2">Folgende Zutaten werden gesucht:</p>
+          <div className="bg-muted/50 rounded-xl p-4 max-h-32 overflow-y-auto">
+            <p className="text-sm font-medium mb-2">Folgende Zutaten:</p>
             <div className="flex flex-wrap gap-2">
-              {ingredients.map((ingredient, index) => (
+              {ingredients.slice(0, 8).map((ingredient, index) => (
                 <span
                   key={index}
                   className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
                 >
-                  <CheckCircle2 className="h-3 w-3" />
                   {ingredient}
                 </span>
               ))}
+              {ingredients.length > 8 && (
+                <span className="text-xs text-muted-foreground">
+                  +{ingredients.length - 8} weitere
+                </span>
+              )}
             </div>
+          </div>
+
+          {/* Bring! App Button */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Empfohlen:</p>
+            <Button
+              variant="outline"
+              className="w-full justify-between h-auto py-3 px-4 border-primary/30 bg-primary/5"
+              onClick={handleCopyForBring}
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-green-400 to-green-600 w-10 h-10 rounded-xl flex items-center justify-center text-xl text-white font-bold">
+                  B!
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">Bring! App</p>
+                  <p className="text-xs text-muted-foreground">Liste kopieren & in Bring! einfügen</p>
+                </div>
+              </div>
+              {copied ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
           </div>
 
           {/* Delivery Services */}
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Wähle einen Lieferdienst:</p>
+            <p className="text-sm text-muted-foreground">Oder direkt beim Lieferdienst suchen:</p>
             {deliveryServices.map((service, index) => (
               <motion.div
                 key={service.id}
@@ -119,10 +151,6 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
               </motion.div>
             ))}
           </div>
-
-          <p className="text-xs text-muted-foreground text-center">
-            Zutaten werden in die Zwischenablage kopiert. Füge sie im Shop ein, um alle Produkte zu finden.
-          </p>
         </div>
       </DialogContent>
     </Dialog>
