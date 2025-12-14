@@ -25,22 +25,6 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
       url: `https://www.amazon.com/s?k=${searchQuery}`,
       description: "Worldwide delivery",
     },
-    {
-      id: "instacart",
-      name: "Instacart",
-      logo: "🥕",
-      color: "bg-green-500",
-      url: `https://www.instacart.com/store/search/${searchQuery}`,
-      description: "Same-day delivery",
-    },
-    {
-      id: "walmart",
-      name: "Walmart",
-      logo: "🛒",
-      color: "bg-blue-500",
-      url: `https://www.walmart.com/search?q=${searchQuery}`,
-      description: "Grocery & more",
-    },
   ];
 
   const handleCopyForBring = async () => {
