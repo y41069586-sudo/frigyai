@@ -9,6 +9,13 @@ interface WheelPickerProps {
   unit?: string;
 }
 
+// Haptic feedback function
+const triggerHaptic = () => {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(5); // Very short vibration for subtle feedback
+  }
+};
+
 export const WheelPicker = ({
   value,
   onChange,
@@ -18,6 +25,7 @@ export const WheelPicker = ({
   unit = ''
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastValueRef = useRef(value);
   const itemHeight = 44; // iOS standard height
   const visibleItems = 5;
   const items: number[] = [];
@@ -44,11 +52,15 @@ export const WheelPicker = ({
     const scrollTop = scrollRef.current.scrollTop;
     const index = Math.round(scrollTop / itemHeight);
     const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+    const newValue = items[clampedIndex];
     
-    if (items[clampedIndex] !== value) {
-      onChange(items[clampedIndex]);
+    // Trigger haptic feedback when value changes
+    if (newValue !== lastValueRef.current) {
+      triggerHaptic();
+      lastValueRef.current = newValue;
+      onChange(newValue);
     }
-  }, [items, value, onChange, itemHeight]);
+  }, [items, onChange, itemHeight]);
   
   // Debounced scroll handler
   const scrollTimeout = useRef<NodeJS.Timeout>();
