@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Video, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,12 @@ const ScanPage = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [scanLimitReached, setScanLimitReached] = useState(false);
+  const [mode, setMode] = useState<"photo" | "video">("photo");
+  const [isRecording, setIsRecording] = useState(false);
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   const isPremium = subscriptionStatus?.subscribed;
 
@@ -48,6 +54,177 @@ const ScanPage = () => {
 
     loadScanUsage();
   }, [user, isPremium]);
+
+  // Cleanup video stream on unmount
+  useEffect(() => {
+    return () => {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [videoStream]);
+
+  const startVideoRecording = async () => {
+    if (!user) {
+      toast({
+        title: t.loginRequired,
+        description: t.loginToUseScanner,
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    if (!isPremium && scansRemaining !== null && scansRemaining <= 0) {
+      setScanLimitReached(true);
+      toast({
+        title: t.scanLimitReached,
+        description: t.upgradeToPremium,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      
+      setVideoStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        await extractFrameAndAnalyze(blob);
+        stream.getTracks().forEach(track => track.stop());
+        setVideoStream(null);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
+      toast({
+        title: "🎥 Aufnahme gestartet",
+        description: "Filme deinen Kühlschrank und drücke Stop.",
+      });
+    } catch (error) {
+      console.error("Error accessing camera:", error);
+      toast({
+        title: t.error,
+        description: "Kamera-Zugriff nicht möglich.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopVideoRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const extractFrameAndAnalyze = async (videoBlob: Blob) => {
+    setAnalyzing(true);
+    setUploading(true);
+
+    try {
+      // Create video element to extract frames
+      const video = document.createElement("video");
+      video.src = URL.createObjectURL(videoBlob);
+      video.muted = true;
+
+      await new Promise<void>((resolve) => {
+        video.onloadedmetadata = () => {
+          video.currentTime = video.duration / 2; // Get middle frame
+          resolve();
+        };
+      });
+
+      await new Promise<void>((resolve) => {
+        video.onseeked = () => resolve();
+      });
+
+      // Extract frame to canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(video, 0, 0);
+
+      const base64 = canvas.toDataURL("image/jpeg", 0.8);
+      setImagePreview(base64);
+
+      // Call edge function to analyze image
+      const { data, error } = await supabase.functions.invoke(
+        "analyze-ingredients",
+        {
+          body: { image: base64 },
+        }
+      );
+
+      if (error) {
+        if (error.message?.includes("429") || data?.error === "scan_limit_exceeded") {
+          setScanLimitReached(true);
+          setScansRemaining(0);
+          toast({
+            title: t.scanLimitReached,
+            description: t.usedScansToday,
+            variant: "destructive",
+          });
+          setImagePreview(null);
+          return;
+        }
+        throw error;
+      }
+
+      if (data?.error === "scan_limit_exceeded") {
+        setScanLimitReached(true);
+        setScansRemaining(0);
+        toast({
+          title: t.scanLimitReached,
+          description: data.message || t.upgradeToPremium,
+          variant: "destructive",
+        });
+        setImagePreview(null);
+        return;
+      }
+
+      setIngredients(data.ingredients || []);
+      
+      if (data.scansRemaining !== undefined && data.scansRemaining !== null) {
+        setScansRemaining(data.scansRemaining);
+      }
+
+      toast({
+        title: t.ingredientsRecognized,
+        description: `${data.ingredients?.length || 0} ${t.ingredientsFound}.`,
+      });
+    } catch (error) {
+      console.error("Error analyzing video:", error);
+      toast({
+        title: t.error,
+        description: t.couldNotAnalyze,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      setAnalyzing(false);
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -240,8 +417,65 @@ const ScanPage = () => {
             </motion.div>
           )}
 
+          {/* Mode Toggle */}
+          {!imagePreview && !isRecording && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center gap-2 mb-6"
+            >
+              <Button
+                variant={mode === "photo" ? "default" : "outline"}
+                onClick={() => setMode("photo")}
+                className={mode === "photo" ? "gradient-neon text-black" : ""}
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Foto
+              </Button>
+              <Button
+                variant={mode === "video" ? "default" : "outline"}
+                onClick={() => setMode("video")}
+                className={mode === "video" ? "gradient-neon text-black" : ""}
+              >
+                <Video className="h-4 w-4 mr-2" />
+                Video
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Video Recording View */}
+          {isRecording && videoStream && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4"
+            >
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-auto"
+                />
+                <div className="absolute top-4 left-4 flex items-center gap-2 bg-destructive/90 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  Aufnahme läuft
+                </div>
+              </div>
+              <Button
+                onClick={stopVideoRecording}
+                className="w-full bg-destructive hover:bg-destructive/90 text-white font-semibold"
+                size="lg"
+              >
+                <Square className="h-5 w-5 mr-2" />
+                Aufnahme stoppen
+              </Button>
+            </motion.div>
+          )}
+
           {/* Upload Area */}
-          {!imagePreview ? (
+          {!imagePreview && !isRecording ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -251,24 +485,48 @@ const ScanPage = () => {
                   : 'border-primary/50 hover:border-primary cursor-pointer'
               }`}
               onClick={() => {
-                if (!scanLimitReached || isPremium) {
+                if (scanLimitReached && !isPremium) return;
+                if (mode === "photo") {
                   document.getElementById("imageInput")?.click();
+                } else {
+                  startVideoRecording();
                 }
               }}
             >
-              <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
-              <h2 className="text-xl sm:text-2xl font-semibold mb-2">
-                {t.uploadPhoto}
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
-                {t.takePhotoOrSelect}
-              </p>
-              <Button 
-                className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
-                disabled={scanLimitReached && !isPremium}
-              >
-                {t.selectImage}
-              </Button>
+              {mode === "photo" ? (
+                <>
+                  <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">
+                    {t.uploadPhoto}
+                  </h2>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
+                    {t.takePhotoOrSelect}
+                  </p>
+                  <Button 
+                    className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
+                    disabled={scanLimitReached && !isPremium}
+                  >
+                    {t.selectImage}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Video className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">
+                    Video aufnehmen
+                  </h2>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
+                    Filme deinen Kühlschrank für eine bessere Erkennung
+                  </p>
+                  <Button 
+                    className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
+                    disabled={scanLimitReached && !isPremium}
+                  >
+                    <Video className="h-4 w-4 mr-2" />
+                    Aufnahme starten
+                  </Button>
+                </>
+              )}
               <input
                 id="imageInput"
                 type="file"
@@ -279,7 +537,7 @@ const ScanPage = () => {
                 disabled={scanLimitReached && !isPremium}
               />
             </motion.div>
-          ) : (
+          ) : imagePreview ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -332,7 +590,7 @@ const ScanPage = () => {
                 </>
               )}
             </motion.div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
