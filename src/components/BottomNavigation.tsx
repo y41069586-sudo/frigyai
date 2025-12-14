@@ -8,10 +8,11 @@ import { toast } from "@/hooks/use-toast";
 interface BottomNavigationProps {
   activeTab?: string;
   trackerSetup?: boolean;
+  trackerLoading?: boolean;
   onTabChange?: (tab: string) => void;
 }
 
-export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange }: BottomNavigationProps) => {
+export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoading = false, onTabChange }: BottomNavigationProps) => {
   const { t } = useLanguage();
   const { subscriptionStatus } = useAuth();
   const navigate = useNavigate();
@@ -65,7 +66,8 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, onTabChange 
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           const isLockedPremium = item.requiresPremium && !isPremium;
-          const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
+          // Don't show tracker lock while still loading
+          const isLockedTracker = !trackerLoading && item.requiresTracker && !trackerSetup && isPremium;
           const isLocked = isLockedPremium || isLockedTracker;
           
           return (
