@@ -8,10 +8,14 @@ interface WeightPickerProps {
   unit?: string;
 }
 
-// Haptic feedback function
+// Haptic feedback function - more reliable
 const triggerHaptic = () => {
-  if ('vibrate' in navigator) {
-    navigator.vibrate(3);
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+  } catch (e) {
+    // Ignore vibration errors
   }
 };
 
@@ -19,30 +23,26 @@ export const WeightPicker = ({
   value,
   onChange,
   min = 0,
-  max = 500,
+  max = 300,
   unit = 'kg'
 }: WeightPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef(value);
-  const [displayValue, setDisplayValue] = useState(value);
+  const hasInitialized = useRef(false);
   
-  const tickWidth = 10;
+  const tickWidth = 12;
   const totalTicks = max - min + 1;
-  const visibleRange = 60; // Only render ticks within this range
-  
-  // Calculate visible tick range based on current value
-  const startTick = Math.max(0, Math.floor(displayValue - min) - visibleRange);
-  const endTick = Math.min(totalTicks, Math.floor(displayValue - min) + visibleRange);
   
   // Scroll to current value on mount
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !hasInitialized.current) {
+      hasInitialized.current = true;
       const tick = Math.round(value - min);
       const containerWidth = scrollRef.current.clientWidth;
-      const scrollLeft = tick * tickWidth - containerWidth / 2;
+      const scrollLeft = tick * tickWidth - containerWidth / 2 + tickWidth / 2;
       scrollRef.current.scrollLeft = scrollLeft;
     }
-  }, []);
+  }, [value, min]);
   
   // Handle scroll
   const handleScroll = useCallback(() => {
@@ -53,22 +53,20 @@ export const WeightPicker = ({
     const centerPosition = scrollLeft + containerWidth / 2;
     
     const exactTick = centerPosition / tickWidth;
-    const clampedTick = Math.max(0, Math.min(totalTicks - 1, exactTick));
-    const newValue = min + Math.round(clampedTick);
+    const clampedTick = Math.max(0, Math.min(totalTicks - 1, Math.round(exactTick)));
+    const newValue = min + clampedTick;
     
     // Trigger haptic on value change
-    if (newValue !== Math.round(lastValueRef.current)) {
+    if (newValue !== lastValueRef.current) {
       triggerHaptic();
+      lastValueRef.current = newValue;
+      onChange(newValue);
     }
-    
-    lastValueRef.current = newValue;
-    setDisplayValue(newValue);
-    onChange(newValue);
   }, [onChange, min, totalTicks]);
   
-  // Generate only visible ticks
+  // Generate all ticks (301 is acceptable for performance)
   const ticks = [];
-  for (let i = startTick; i < endTick; i++) {
+  for (let i = 0; i < totalTicks; i++) {
     const tickValue = min + i;
     const isMajor = tickValue % 10 === 0;
     const isMid = tickValue % 5 === 0 && !isMajor;
@@ -102,7 +100,7 @@ export const WeightPicker = ({
       {/* Current value display */}
       <div className="text-center mb-4">
         <span className="text-5xl font-bold text-foreground">
-          {displayValue}
+          {value}
         </span>
         <span className="text-2xl text-muted-foreground ml-2">{unit}</span>
       </div>
@@ -150,14 +148,14 @@ export const WeightPicker = ({
           }}
           onScroll={handleScroll}
         >
-          {/* Left padding */}
-          <div className="flex-shrink-0" style={{ width: `calc(50% + ${startTick * tickWidth}px)` }} />
+          {/* Left padding to center 0 */}
+          <div className="flex-shrink-0" style={{ width: '50%' }} />
           
           {/* Tick marks */}
           {ticks}
           
-          {/* Right padding */}
-          <div className="flex-shrink-0" style={{ width: `calc(50% + ${(totalTicks - endTick) * tickWidth}px)` }} />
+          {/* Right padding to center max */}
+          <div className="flex-shrink-0" style={{ width: '50%' }} />
         </div>
       </div>
     </div>
