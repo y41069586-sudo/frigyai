@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface TrackerSettings {
   age: number;
@@ -21,6 +22,20 @@ export const useTrackerSettings = () => {
   const [settings, setSettings] = useState<TrackerSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  // Parse database row to settings
+  const parseDbSettings = (data: any): TrackerSettings => ({
+    age: data.age || 0,
+    weight: data.weight || 0,
+    targetWeight: data.target_weight || 0,
+    goalMode: (data.goal_mode as 'lose' | 'gain') || 'lose',
+    weeklyGoal: data.weekly_goal || 0.5,
+    dailyCalories: data.daily_calories || 0,
+    dailyProtein: data.daily_protein || 0,
+    dailyCarbs: data.daily_carbs || 0,
+    dailyFat: data.daily_fat || 0,
+  });
 
   // Load settings from database or localStorage
   const loadSettings = useCallback(async () => {
@@ -36,17 +51,7 @@ export const useTrackerSettings = () => {
           .maybeSingle();
 
         if (data && !error) {
-          const dbSettings: TrackerSettings = {
-            age: data.age || 0,
-            weight: data.weight || 0,
-            targetWeight: data.target_weight || 0,
-            goalMode: (data.goal_mode as 'lose' | 'gain') || 'lose',
-            weeklyGoal: data.weekly_goal || 0.5,
-            dailyCalories: data.daily_calories || 0,
-            dailyProtein: data.daily_protein || 0,
-            dailyCarbs: data.daily_carbs || 0,
-            dailyFat: data.daily_fat || 0,
-          };
+          const dbSettings = parseDbSettings(data);
           
           setSettings(dbSettings);
           setIsConfigured(dbSettings.dailyCalories > 0);
@@ -156,6 +161,57 @@ export const useTrackerSettings = () => {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Real-time subscription for cross-device sync
+  useEffect(() => {
+    if (!user) {
+      // Clean up channel if user logs out
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel(`tracker-settings-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_tracker_settings',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[TRACKER-SYNC] Real-time update received:', payload.eventType);
+          
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newSettings = parseDbSettings(payload.new);
+            setSettings(newSettings);
+            setIsConfigured(newSettings.dailyCalories > 0);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newSettings));
+          } else if (payload.eventType === 'DELETE') {
+            setSettings(null);
+            setIsConfigured(false);
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[TRACKER-SYNC] Subscription status:', status);
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user]);
 
   return {
     settings,
