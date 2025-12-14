@@ -18,6 +18,7 @@ const ScanPage = () => {
   const { user, subscriptionStatus } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
@@ -106,6 +107,10 @@ const ScanPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Create video URL for background playback
+    const videoUrl = URL.createObjectURL(file);
+    setVideoPreview(videoUrl);
+    
     // Show video processing state with animations
     setVideoProcessing(true);
     setAnalyzing(true);
@@ -114,7 +119,7 @@ const ScanPage = () => {
     try {
       // Create video element to extract multiple frames
       const video = document.createElement("video");
-      video.src = URL.createObjectURL(file);
+      video.src = videoUrl;
       video.muted = true;
       video.playsInline = true;
 
@@ -123,68 +128,96 @@ const ScanPage = () => {
         video.onerror = () => reject(new Error("Video konnte nicht geladen werden"));
       });
 
-      // Extract frame from middle of video for best quality
       const duration = video.duration;
-      video.currentTime = duration / 2;
-
-      await new Promise<void>((resolve) => {
-        video.onseeked = () => resolve();
-      });
-
-      // Extract frame to canvas
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(video, 0, 0);
 
-      const base64 = canvas.toDataURL("image/jpeg", 0.8);
-      setImagePreview(base64);
+      // Extract multiple frames from video for better ingredient recognition
+      const frameTimestamps = [
+        duration * 0.1,  // 10%
+        duration * 0.25, // 25%
+        duration * 0.4,  // 40%
+        duration * 0.5,  // 50% (middle)
+        duration * 0.6,  // 60%
+        duration * 0.75, // 75%
+        duration * 0.9,  // 90%
+      ];
 
-      // Call edge function to analyze image
-      const { data, error } = await supabase.functions.invoke(
-        "analyze-ingredients",
-        {
-          body: { image: base64 },
+      const allIngredients = new Set<string>();
+
+      for (const timestamp of frameTimestamps) {
+        video.currentTime = timestamp;
+        
+        await new Promise<void>((resolve) => {
+          video.onseeked = () => resolve();
+        });
+
+        ctx?.drawImage(video, 0, 0);
+        const base64 = canvas.toDataURL("image/jpeg", 0.8);
+
+        // Set preview from middle frame
+        if (timestamp === duration * 0.5) {
+          setImagePreview(base64);
         }
-      );
 
-      if (error) {
-        if (error.message?.includes("429") || data?.error === "scan_limit_exceeded") {
+        // Call edge function to analyze this frame
+        const { data, error } = await supabase.functions.invoke(
+          "analyze-ingredients",
+          {
+            body: { image: base64 },
+          }
+        );
+
+        if (error) {
+          if (error.message?.includes("429") || data?.error === "scan_limit_exceeded") {
+            setScanLimitReached(true);
+            setScansRemaining(0);
+            toast({
+              title: t.scanLimitReached,
+              description: t.usedScansToday,
+              variant: "destructive",
+            });
+            setImagePreview(null);
+            setVideoPreview(null);
+            return;
+          }
+          // Continue with other frames even if one fails
+          console.error("Frame analysis error:", error);
+          continue;
+        }
+
+        if (data?.error === "scan_limit_exceeded") {
           setScanLimitReached(true);
           setScansRemaining(0);
           toast({
             title: t.scanLimitReached,
-            description: t.usedScansToday,
+            description: data.message || t.upgradeToPremium,
             variant: "destructive",
           });
           setImagePreview(null);
+          setVideoPreview(null);
           return;
         }
-        throw error;
+
+        // Collect all ingredients from all frames
+        if (data.ingredients) {
+          data.ingredients.forEach((ing: string) => allIngredients.add(ing));
+        }
+        
+        if (data.scansRemaining !== undefined && data.scansRemaining !== null) {
+          setScansRemaining(data.scansRemaining);
+        }
       }
 
-      if (data?.error === "scan_limit_exceeded") {
-        setScanLimitReached(true);
-        setScansRemaining(0);
-        toast({
-          title: t.scanLimitReached,
-          description: data.message || t.upgradeToPremium,
-          variant: "destructive",
-        });
-        setImagePreview(null);
-        return;
-      }
-
-      setIngredients(data.ingredients || []);
-      
-      if (data.scansRemaining !== undefined && data.scansRemaining !== null) {
-        setScansRemaining(data.scansRemaining);
-      }
+      // Set combined ingredients from all frames
+      const combinedIngredients = Array.from(allIngredients);
+      setIngredients(combinedIngredients);
 
       toast({
         title: t.ingredientsRecognized,
-        description: `${data.ingredients?.length || 0} ${t.ingredientsFound}.`,
+        description: `${combinedIngredients.length} ${t.ingredientsFound}.`,
       });
     } catch (error) {
       console.error("Error analyzing video:", error);
@@ -490,52 +523,89 @@ const ScanPage = () => {
                 disabled={scanLimitReached && !isPremium}
               />
             </motion.div>
-          ) : imagePreview ? (
+          ) : (imagePreview || videoPreview) ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="space-y-6"
             >
-              {/* Image Preview */}
-              <div className="rounded-3xl overflow-hidden shadow-2xl">
-                <img
-                  src={imagePreview}
-                  alt={t.scanFridge}
-                  className="w-full h-auto"
-                />
+              {/* Video/Image Preview with dark overlay during analysis */}
+              <div className="rounded-3xl overflow-hidden shadow-2xl relative">
+                {videoPreview && analyzing ? (
+                  <>
+                    {/* Video playing in background */}
+                    <video
+                      src={videoPreview}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-auto"
+                    />
+                    {/* Dark overlay with analyzing UI */}
+                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="relative"
+                      >
+                        <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
+                        <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-primary relative z-10" />
+                      </motion.div>
+                      <motion.p 
+                        key={processingMessage}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xl font-semibold text-white text-center px-4"
+                      >
+                        {processingMessage}
+                      </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="text-sm text-white/70 mt-3 text-center px-4"
+                      >
+                        Alle Zutaten werden erkannt...
+                      </motion.p>
+                    </div>
+                  </>
+                ) : imagePreview && analyzing && !videoPreview ? (
+                  <>
+                    {/* Photo with dark overlay during analysis */}
+                    <img
+                      src={imagePreview}
+                      alt={t.scanFridge}
+                      className="w-full h-auto"
+                    />
+                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="relative"
+                      >
+                        <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
+                        <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-primary relative z-10" />
+                      </motion.div>
+                      <motion.p 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xl font-semibold text-white text-center px-4"
+                      >
+                        {t.aiAnalyzingIngredients}
+                      </motion.p>
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={imagePreview || ""}
+                    alt={t.scanFridge}
+                    className="w-full h-auto"
+                  />
+                )}
               </div>
 
-              {analyzing ? (
-                <div className="text-center py-12">
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="relative"
-                  >
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                    <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary relative z-10" />
-                  </motion.div>
-                  <motion.p 
-                    key={videoProcessing ? processingMessage : "analyzing"}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="text-lg text-muted-foreground"
-                  >
-                    {videoProcessing ? processingMessage : t.aiAnalyzingIngredients}
-                  </motion.p>
-                  {videoProcessing && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                      className="text-sm text-muted-foreground/70 mt-2"
-                    >
-                      Wir analysieren dein Video im Hintergrund...
-                    </motion.p>
-                  )}
-                </div>
-              ) : (
+              {!analyzing && (
                 <>
                   {/* Ingredients List */}
                   <IngredientsList
@@ -548,6 +618,7 @@ const ScanPage = () => {
                     <Button
                       onClick={() => {
                         setImagePreview(null);
+                        setVideoPreview(null);
                         setIngredients([]);
                       }}
                       variant="outline"
