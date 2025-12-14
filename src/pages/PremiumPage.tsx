@@ -247,7 +247,7 @@ const PremiumPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
+              onClick={() => navigate('/')}
               className="mr-2 touch-target h-10 w-10"
             >
               <ArrowLeft className="h-5 w-5" />
