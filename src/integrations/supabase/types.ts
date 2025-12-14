@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      community_recipes: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          created_at: string
+          description: string | null
+          fat: number | null
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          instructions: string[]
+          prep_time: number | null
+          protein: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          description?: string | null
+          fat?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients: string[]
+          instructions: string[]
+          prep_time?: number | null
+          protein?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          description?: string | null
+          fat?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          instructions?: string[]
+          prep_time?: number | null
+          protein?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -31,6 +82,41 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      recipe_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ratings_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "community_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scan_usage: {
         Row: {
