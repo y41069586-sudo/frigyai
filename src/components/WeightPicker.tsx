@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 interface WeightPickerProps {
   value: number;
@@ -8,11 +8,11 @@ interface WeightPickerProps {
   unit?: string;
 }
 
-// Haptic feedback function - iOS style
+// iOS-style haptic feedback
 const triggerHaptic = () => {
   try {
     if ('vibrate' in navigator) {
-      navigator.vibrate(5);
+      navigator.vibrate(3);
     }
   } catch (e) {
     // Ignore vibration errors
@@ -28,154 +28,185 @@ export const WeightPicker = ({
 }: WeightPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef(value);
-  const hasInitialized = useRef(false);
+  const isInitialized = useRef(false);
+  const scrollEndTimeout = useRef<NodeJS.Timeout>();
   
-  const itemHeight = 50; // iOS standard picker item height
-  const visibleItems = 5;
+  const itemHeight = 44; // iOS standard
+  const visibleItems = 7;
   const containerHeight = visibleItems * itemHeight;
-  const paddingItems = Math.floor(visibleItems / 2);
+  const centerOffset = Math.floor(visibleItems / 2);
   
-  // Generate items array
+  // Generate items
   const items: number[] = [];
   for (let i = min; i <= max; i++) {
     items.push(i);
   }
   
-  const currentIndex = items.indexOf(value);
-  
-  // Scroll to current value on mount
+  // Initial scroll to value
   useEffect(() => {
-    if (scrollRef.current && !hasInitialized.current && currentIndex >= 0) {
-      hasInitialized.current = true;
-      scrollRef.current.scrollTop = currentIndex * itemHeight;
+    if (scrollRef.current && !isInitialized.current) {
+      isInitialized.current = true;
+      const index = value - min;
+      scrollRef.current.scrollTop = index * itemHeight;
     }
-  }, [currentIndex]);
+  }, [value, min]);
   
-  // Handle scroll - snap to nearest item
-  const handleScrollEnd = useCallback(() => {
+  // Handle scroll with immediate value update
+  const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     
     const scrollTop = scrollRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+    const rawIndex = scrollTop / itemHeight;
+    const nearestIndex = Math.round(rawIndex);
+    const clampedIndex = Math.max(0, Math.min(items.length - 1, nearestIndex));
     const newValue = items[clampedIndex];
     
-    // Snap to position
-    scrollRef.current.scrollTo({
-      top: clampedIndex * itemHeight,
-      behavior: 'smooth'
-    });
-    
-    // Trigger haptic feedback when value changes
+    // Update value immediately during scroll
     if (newValue !== lastValueRef.current) {
       triggerHaptic();
       lastValueRef.current = newValue;
       onChange(newValue);
     }
+    
+    // Snap to position after scroll ends
+    if (scrollEndTimeout.current) {
+      clearTimeout(scrollEndTimeout.current);
+    }
+    
+    scrollEndTimeout.current = setTimeout(() => {
+      if (scrollRef.current) {
+        const finalScrollTop = scrollRef.current.scrollTop;
+        const finalIndex = Math.round(finalScrollTop / itemHeight);
+        const targetScrollTop = finalIndex * itemHeight;
+        
+        if (Math.abs(finalScrollTop - targetScrollTop) > 1) {
+          scrollRef.current.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }, 80);
   }, [items, onChange, itemHeight]);
   
-  // Debounced scroll handler for end detection
-  const scrollTimeout = useRef<NodeJS.Timeout>();
-  const onScroll = useCallback(() => {
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-    }
+  // Calculate item styles based on distance from center
+  const getItemStyle = (item: number) => {
+    const distance = Math.abs(item - value);
     
-    // Update value during scroll for immediate feedback
-    if (scrollRef.current) {
-      const scrollTop = scrollRef.current.scrollTop;
-      const index = Math.round(scrollTop / itemHeight);
-      const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
-      const newValue = items[clampedIndex];
-      
-      if (newValue !== lastValueRef.current) {
-        triggerHaptic();
-        lastValueRef.current = newValue;
-        onChange(newValue);
-      }
+    if (distance === 0) {
+      return {
+        opacity: 1,
+        transform: 'scale(1) rotateX(0deg)',
+        fontWeight: 600,
+        color: 'hsl(var(--primary))'
+      };
+    } else if (distance === 1) {
+      return {
+        opacity: 0.7,
+        transform: 'scale(0.92) rotateX(15deg)',
+        fontWeight: 500,
+        color: 'hsl(var(--muted-foreground))'
+      };
+    } else if (distance === 2) {
+      return {
+        opacity: 0.4,
+        transform: 'scale(0.85) rotateX(25deg)',
+        fontWeight: 400,
+        color: 'hsl(var(--muted-foreground))'
+      };
+    } else {
+      return {
+        opacity: 0.2,
+        transform: 'scale(0.8) rotateX(35deg)',
+        fontWeight: 400,
+        color: 'hsl(var(--muted-foreground))'
+      };
     }
-    
-    scrollTimeout.current = setTimeout(handleScrollEnd, 100);
-  }, [handleScrollEnd, items, onChange, itemHeight]);
+  };
   
   return (
     <div className="relative mx-auto w-full max-w-xs">
-      {/* Current value display */}
+      {/* Value display */}
       <div className="text-center mb-4">
-        <span className="text-5xl font-bold text-foreground">
+        <span className="text-5xl font-bold text-foreground tabular-nums">
           {value}
         </span>
         <span className="text-2xl text-muted-foreground ml-2">{unit}</span>
       </div>
       
-      {/* iOS-style picker container */}
+      {/* iOS-style picker */}
       <div 
-        className="relative bg-card rounded-2xl overflow-hidden border border-border/50"
-        style={{ height: containerHeight }}
+        className="relative bg-card/80 backdrop-blur-sm rounded-2xl overflow-hidden"
+        style={{ 
+          height: containerHeight,
+          perspective: '1000px'
+        }}
       >
-        {/* Top fade gradient */}
+        {/* Top gradient overlay */}
         <div 
-          className="absolute inset-x-0 top-0 z-10 pointer-events-none"
+          className="absolute inset-x-0 top-0 z-20 pointer-events-none"
           style={{ 
-            height: paddingItems * itemHeight,
-            background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.7) 50%, transparent 100%)'
+            height: centerOffset * itemHeight,
+            background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.9) 30%, hsl(var(--card) / 0.5) 60%, transparent 100%)'
           }}
         />
         
-        {/* Bottom fade gradient */}
+        {/* Bottom gradient overlay */}
         <div 
-          className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
+          className="absolute inset-x-0 bottom-0 z-20 pointer-events-none"
           style={{ 
-            height: paddingItems * itemHeight,
-            background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.7) 50%, transparent 100%)'
+            height: centerOffset * itemHeight,
+            background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.9) 30%, hsl(var(--card) / 0.5) 60%, transparent 100%)'
           }}
         />
         
-        {/* Center selection indicator - iOS style */}
+        {/* Center selection highlight */}
         <div 
-          className="absolute inset-x-4 z-0 pointer-events-none bg-primary/10 rounded-xl"
+          className="absolute inset-x-2 z-10 pointer-events-none rounded-xl"
           style={{ 
-            top: paddingItems * itemHeight,
+            top: centerOffset * itemHeight,
             height: itemHeight,
-            borderTop: '1px solid hsl(var(--primary) / 0.3)',
-            borderBottom: '1px solid hsl(var(--primary) / 0.3)'
+            background: 'hsl(var(--primary) / 0.08)',
+            borderTop: '0.5px solid hsl(var(--primary) / 0.2)',
+            borderBottom: '0.5px solid hsl(var(--primary) / 0.2)'
           }}
         />
         
-        {/* Scrollable container */}
+        {/* Scroll container */}
         <div
           ref={scrollRef}
-          className="h-full overflow-y-auto scrollbar-hide"
+          className="h-full overflow-y-auto scrollbar-hide overscroll-contain"
           style={{ 
             scrollSnapType: 'y mandatory',
-            WebkitOverflowScrolling: 'touch'
+            WebkitOverflowScrolling: 'touch',
+            transformStyle: 'preserve-3d'
           }}
-          onScroll={onScroll}
+          onScroll={handleScroll}
         >
           {/* Top padding */}
-          <div style={{ height: paddingItems * itemHeight }} />
+          <div style={{ height: centerOffset * itemHeight }} />
           
           {/* Items */}
           {items.map((item) => {
-            const isSelected = item === value;
-            const distance = Math.abs(item - value);
-            const opacity = distance === 0 ? 1 : distance === 1 ? 0.6 : 0.3;
-            const scale = distance === 0 ? 1 : distance === 1 ? 0.9 : 0.85;
+            const style = getItemStyle(item);
             
             return (
               <div
                 key={item}
-                className="flex items-center justify-center select-none"
+                className="flex items-center justify-center select-none cursor-pointer"
                 style={{ 
                   height: itemHeight,
                   scrollSnapAlign: 'center',
-                  transform: `scale(${scale})`,
-                  opacity,
-                  transition: 'transform 0.15s ease, opacity 0.15s ease'
+                  transform: style.transform,
+                  opacity: style.opacity,
+                  fontWeight: style.fontWeight,
+                  color: style.color,
+                  transition: 'transform 0.1s ease-out, opacity 0.1s ease-out',
+                  transformOrigin: 'center center'
                 }}
                 onClick={() => {
                   if (scrollRef.current) {
-                    const index = items.indexOf(item);
+                    const index = item - min;
                     scrollRef.current.scrollTo({
                       top: index * itemHeight,
                       behavior: 'smooth'
@@ -184,8 +215,11 @@ export const WeightPicker = ({
                 }}
               >
                 <span 
-                  className={`font-semibold ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-                  style={{ fontSize: isSelected ? '2rem' : '1.5rem' }}
+                  className="tabular-nums"
+                  style={{ 
+                    fontSize: item === value ? '1.75rem' : '1.25rem',
+                    transition: 'font-size 0.1s ease-out'
+                  }}
                 >
                   {item}
                 </span>
@@ -194,7 +228,7 @@ export const WeightPicker = ({
           })}
           
           {/* Bottom padding */}
-          <div style={{ height: paddingItems * itemHeight }} />
+          <div style={{ height: centerOffset * itemHeight }} />
         </div>
       </div>
     </div>
