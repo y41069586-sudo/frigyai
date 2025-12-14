@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { 
   User, Scale, Target, Flame, Camera, Plus, Trash2, 
-  ChevronRight, ChevronLeft, Sparkles, TrendingDown, Pencil, Barcode
+  ChevronRight, Sparkles, TrendingDown, Pencil, Barcode
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import useEmblaCarousel from 'embla-carousel-react';
+import { WheelPicker } from './WheelPicker';
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedRabbit, AnimatedCheetah } from './AnimatedAnimals';
@@ -116,41 +116,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Embla Carousel for swipeable onboarding - MUST be before any conditional returns
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: false,
-    dragFree: false,
-    containScroll: 'trimSnaps'
-  });
-  
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(true);
-  
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-  
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-  
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setOnboardingStep(emblaApi.selectedScrollSnap());
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-  
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-      emblaApi.off('reInit', onSelect);
-    };
-  }, [emblaApi, onSelect]);
 
   // Animated analyzing messages - use translations
   const analyzingMessages = [
@@ -387,18 +352,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       icon: User,
       title: t.howOldAreYou,
       content: (
-        <div className="space-y-6">
-          <div className="text-center">
-            <span className="text-6xl font-bold text-primary">{age}</span>
-            <span className="text-2xl text-muted-foreground ml-2">{t.years}</span>
-          </div>
-          <Slider
-            value={[age]}
-            onValueChange={([v]) => setAge(v)}
+        <div className="py-2">
+          <WheelPicker
+            value={age}
+            onChange={setAge}
             min={13}
             max={80}
             step={1}
-            className="py-4"
+            unit={t.years}
           />
         </div>
       ),
@@ -431,18 +392,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       icon: Scale,
       title: "Wie groß bist du?",
       content: (
-        <div className="space-y-6">
-          <div className="text-center">
-            <span className="text-6xl font-bold text-primary">{userHeight}</span>
-            <span className="text-2xl text-muted-foreground ml-2">cm</span>
-          </div>
-          <Slider
-            value={[userHeight]}
-            onValueChange={([v]) => setUserHeight(v)}
+        <div className="py-2">
+          <WheelPicker
+            value={userHeight}
+            onChange={setUserHeight}
             min={140}
             max={220}
             step={1}
-            className="py-4"
+            unit="cm"
           />
         </div>
       ),
@@ -451,18 +408,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       icon: Scale,
       title: t.howMuchDoYouWeigh,
       content: (
-        <div className="space-y-6">
-          <div className="text-center">
-            <span className="text-6xl font-bold text-primary">{weight}</span>
-            <span className="text-2xl text-muted-foreground ml-2">{t.kg}</span>
-          </div>
-          <Slider
-            value={[weight]}
-            onValueChange={([v]) => setWeight(v)}
+        <div className="py-2">
+          <WheelPicker
+            value={weight}
+            onChange={setWeight}
             min={40}
             max={200}
             step={1}
-            className="py-4"
+            unit={t.kg}
           />
         </div>
       ),
@@ -680,14 +633,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   }
 
   if (step === 'onboarding') {
+    const currentStep = onboardingSteps[onboardingStep];
+    const Icon = currentStep.icon;
+
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Progress dots */}
         <div className="flex justify-center gap-2">
           {onboardingSteps.map((_, idx) => (
-            <button
+            <div
               key={idx}
-              onClick={() => emblaApi?.scrollTo(idx)}
               className={`h-2 rounded-full transition-all duration-300 ${
                 idx === onboardingStep ? 'w-8 bg-primary' : 'w-2 bg-primary/30'
               }`}
@@ -695,58 +650,55 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           ))}
         </div>
 
-        {/* Swipeable Carousel */}
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex">
-            {onboardingSteps.map((stepData, idx) => {
-              const Icon = stepData.icon;
-              return (
-                <div key={idx} className="flex-[0_0_100%] min-w-0 px-1">
-                  <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
-                    <div className="flex justify-center mb-4">
-                      <div className="p-3 rounded-full bg-primary/20">
-                        <Icon className="h-8 w-8 text-primary" />
-                      </div>
-                    </div>
-                    
-                    <h3 className="text-xl font-bold text-center mb-6">{stepData.title}</h3>
-                    
-                    {stepData.content}
-                  </Card>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Navigation Buttons */}
-        <div className="flex gap-3 px-1">
-          {canScrollPrev && (
-            <Button
-              variant="outline"
-              onClick={scrollPrev}
-              className="flex-1"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" /> {t.back}
-            </Button>
-          )}
-          <Button
-            onClick={() => {
-              if (canScrollNext) {
-                scrollNext();
-              } else {
-                saveProfile();
-              }
-            }}
-            className="flex-1 glow-button"
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={onboardingStep}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.3 }}
           >
-            {canScrollNext ? (
-              <>{t.next} <ChevronRight className="h-4 w-4 ml-1" /></>
-            ) : (
-              t.letsGo
-            )}
-          </Button>
-        </div>
+            <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-primary/20">
+                  <Icon className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              
+              <h3 className="text-xl font-bold text-center mb-6">{currentStep.title}</h3>
+              
+              {currentStep.content}
+
+              <div className="flex gap-3 mt-6">
+                {onboardingStep > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setOnboardingStep(prev => prev - 1)}
+                    className="flex-1"
+                  >
+                    {t.back}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    if (onboardingStep < onboardingSteps.length - 1) {
+                      setOnboardingStep(prev => prev + 1);
+                    } else {
+                      saveProfile();
+                    }
+                  }}
+                  className="flex-1 glow-button"
+                >
+                  {onboardingStep < onboardingSteps.length - 1 ? (
+                    <>{t.next} <ChevronRight className="h-4 w-4 ml-1" /></>
+                  ) : (
+                    t.letsGo
+                  )}
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
       </div>
     );
   }
