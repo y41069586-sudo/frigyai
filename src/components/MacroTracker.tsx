@@ -116,6 +116,42 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Embla Carousel for swipeable onboarding - MUST be before any conditional returns
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: false,
+    dragFree: false,
+    containScroll: 'trimSnaps'
+  });
+  
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(true);
+  
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+  
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+  
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setOnboardingStep(emblaApi.selectedScrollSnap());
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+  
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
   // Animated analyzing messages - use translations
   const analyzingMessages = [
     t.analyzingFood,
@@ -642,42 +678,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       </div>
     );
   }
-
-  // Embla Carousel for swipeable onboarding
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: false,
-    dragFree: false,
-    containScroll: 'trimSnaps'
-  });
-  
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(true);
-  
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-  
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-  
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setOnboardingStep(emblaApi.selectedScrollSnap());
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-  
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-      emblaApi.off('reInit', onSelect);
-    };
-  }, [emblaApi, onSelect]);
 
   if (step === 'onboarding') {
     return (
