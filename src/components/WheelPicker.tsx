@@ -1,5 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
-import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
+import { useRef, useEffect, useCallback } from 'react';
 
 interface WheelPickerProps {
   value: number;
@@ -8,8 +7,6 @@ interface WheelPickerProps {
   max: number;
   step?: number;
   unit?: string;
-  itemHeight?: number;
-  visibleItems?: number;
 }
 
 export const WheelPicker = ({
@@ -18,12 +15,12 @@ export const WheelPicker = ({
   min,
   max,
   step = 1,
-  unit = '',
-  itemHeight = 50,
-  visibleItems = 5
+  unit = ''
 }: WheelPickerProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const items = [];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const itemHeight = 44; // iOS standard height
+  const visibleItems = 5;
+  const items: number[] = [];
   
   // Generate items array
   for (let i = min; i <= max; i += step) {
@@ -31,120 +28,116 @@ export const WheelPicker = ({
   }
   
   const currentIndex = items.indexOf(value);
-  const y = useMotionValue(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const paddingItems = Math.floor(visibleItems / 2);
   
-  // Calculate center offset
-  const centerOffset = Math.floor(visibleItems / 2) * itemHeight;
-  
-  // Set initial position
+  // Scroll to current value on mount
   useEffect(() => {
-    if (!isDragging) {
-      const targetY = -currentIndex * itemHeight;
-      animate(y, targetY, { type: 'spring', stiffness: 300, damping: 30 });
+    if (scrollRef.current && currentIndex >= 0) {
+      scrollRef.current.scrollTop = currentIndex * itemHeight;
     }
-  }, [currentIndex, itemHeight, isDragging]);
+  }, []);
   
-  const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setIsDragging(false);
-    const currentY = y.get();
-    const velocity = info.velocity.y;
+  // Handle scroll end - snap to nearest item
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
     
-    // Calculate target index based on position and velocity
-    let targetIndex = Math.round(-currentY / itemHeight);
+    const scrollTop = scrollRef.current.scrollTop;
+    const index = Math.round(scrollTop / itemHeight);
+    const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
     
-    // Add momentum from velocity
-    if (Math.abs(velocity) > 500) {
-      targetIndex += velocity > 0 ? -1 : 1;
+    if (items[clampedIndex] !== value) {
+      onChange(items[clampedIndex]);
     }
-    
-    // Clamp to valid range
-    targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
-    
-    const targetY = -targetIndex * itemHeight;
-    animate(y, targetY, { 
-      type: 'spring', 
-      stiffness: 300, 
-      damping: 30,
-      onComplete: () => {
-        if (items[targetIndex] !== value) {
-          onChange(items[targetIndex]);
-        }
-      }
-    });
-  }, [y, itemHeight, items, value, onChange]);
+  }, [items, value, onChange, itemHeight]);
+  
+  // Debounced scroll handler
+  const scrollTimeout = useRef<NodeJS.Timeout>();
+  const onScroll = useCallback(() => {
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
+    scrollTimeout.current = setTimeout(handleScroll, 50);
+  }, [handleScroll]);
   
   const containerHeight = visibleItems * itemHeight;
   
   return (
-    <div 
-      ref={containerRef}
-      className="relative overflow-hidden mx-auto"
-      style={{ height: containerHeight, width: '100%' }}
-    >
-      {/* Gradient overlays for fade effect */}
-      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
-      
-      {/* Center highlight */}
+    <div className="relative mx-auto" style={{ height: containerHeight }}>
+      {/* Top fade gradient */}
       <div 
-        className="absolute inset-x-4 border-y-2 border-primary/30 bg-primary/5 z-0 pointer-events-none rounded-lg"
+        className="absolute inset-x-0 top-0 z-10 pointer-events-none"
         style={{ 
-          top: centerOffset - itemHeight / 2,
+          height: paddingItems * itemHeight,
+          background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 40%, transparent 100%)'
+        }}
+      />
+      
+      {/* Bottom fade gradient */}
+      <div 
+        className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
+        style={{ 
+          height: paddingItems * itemHeight,
+          background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 40%, transparent 100%)'
+        }}
+      />
+      
+      {/* Center selection indicator */}
+      <div 
+        className="absolute inset-x-4 z-0 pointer-events-none border-y border-primary/40 bg-primary/10 rounded-lg"
+        style={{ 
+          top: paddingItems * itemHeight,
           height: itemHeight 
         }}
       />
       
-      {/* Scrollable items */}
-      <motion.div
-        className="flex flex-col items-center cursor-grab active:cursor-grabbing"
+      {/* Scrollable container */}
+      <div
+        ref={scrollRef}
+        className="h-full overflow-y-auto scrollbar-hide"
         style={{ 
-          y,
-          paddingTop: centerOffset - itemHeight / 2,
-          paddingBottom: centerOffset - itemHeight / 2
+          scrollSnapType: 'y mandatory',
+          WebkitOverflowScrolling: 'touch'
         }}
-        drag="y"
-        dragConstraints={{ 
-          top: -(items.length - 1) * itemHeight - 20,
-          bottom: 20 
-        }}
-        dragElastic={0.1}
-        onDragStart={() => setIsDragging(true)}
-        onDragEnd={handleDragEnd}
+        onScroll={onScroll}
       >
-        {items.map((item, index) => {
+        {/* Top padding */}
+        <div style={{ height: paddingItems * itemHeight }} />
+        
+        {/* Items */}
+        {items.map((item) => {
           const isSelected = item === value;
           return (
-            <motion.div
+            <div
               key={item}
-              className={`flex items-center justify-center select-none transition-colors ${
-                isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
+              className={`flex items-center justify-center select-none transition-all duration-150 ${
+                isSelected ? 'text-primary font-semibold scale-100' : 'text-muted-foreground/60 scale-95'
               }`}
               style={{ 
                 height: itemHeight,
-                fontSize: isSelected ? '2.5rem' : '1.5rem',
-                opacity: isSelected ? 1 : 0.5
+                scrollSnapAlign: 'center',
+                fontSize: isSelected ? '1.75rem' : '1.25rem'
               }}
               onClick={() => {
-                if (!isDragging) {
-                  const targetY = -index * itemHeight;
-                  animate(y, targetY, { 
-                    type: 'spring', 
-                    stiffness: 300, 
-                    damping: 30,
-                    onComplete: () => onChange(item)
+                if (scrollRef.current) {
+                  const index = items.indexOf(item);
+                  scrollRef.current.scrollTo({
+                    top: index * itemHeight,
+                    behavior: 'smooth'
                   });
                 }
               }}
             >
               <span>{item}</span>
               {unit && isSelected && (
-                <span className="text-lg text-muted-foreground ml-2">{unit}</span>
+                <span className="text-base text-muted-foreground ml-2">{unit}</span>
               )}
-            </motion.div>
+            </div>
           );
         })}
-      </motion.div>
+        
+        {/* Bottom padding */}
+        <div style={{ height: paddingItems * itemHeight }} />
+      </div>
     </div>
   );
 };
