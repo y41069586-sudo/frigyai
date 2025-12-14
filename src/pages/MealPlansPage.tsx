@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User } from 'lucide-react';
+import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +16,7 @@ import { ProgressTracker } from '@/components/ProgressTracker';
 import { WaterTracker } from '@/components/WaterTracker';
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
+import { WeeklySummary } from '@/components/WeeklySummary';
 import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -70,6 +71,7 @@ const MealPlansPage = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
+  const [showWeeklySummary, setShowWeeklySummary] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
@@ -413,6 +415,17 @@ const MealPlansPage = () => {
           </TabsContent>
 
           <TabsContent value="progress">
+            <div className="flex justify-end mb-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowWeeklySummary(true)}
+                className="gap-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Wochenübersicht
+              </Button>
+            </div>
             <ProgressTracker />
           </TabsContent>
 
@@ -513,6 +526,12 @@ const MealPlansPage = () => {
         meal={selectedMeal} 
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
+      />
+
+      {/* Weekly Summary Dialog */}
+      <WeeklySummary 
+        open={showWeeklySummary} 
+        onClose={() => setShowWeeklySummary(false)} 
       />
 
       {/* Premium Success Dialog */}
