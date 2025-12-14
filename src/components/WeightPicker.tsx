@@ -22,193 +22,165 @@ export const WeightPicker = ({
   max = 200,
   unit = 'kg'
 }: WeightPickerProps) => {
-  const wholeRef = useRef<HTMLDivElement>(null);
-  const decimalRef = useRef<HTMLDivElement>(null);
-  const lastWholeRef = useRef(Math.floor(value));
-  const lastDecimalRef = useRef(Math.round((value % 1) * 10));
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastValueRef = useRef(value);
   
-  const itemHeight = 44;
-  const visibleItems = 5;
-  const paddingItems = Math.floor(visibleItems / 2);
+  // Each 0.1 kg = one tick
+  const tickWidth = 8; // Width per tick in pixels
+  const totalTicks = (max - min) * 10 + 1; // e.g., 40.0 to 200.0
   
-  // Generate whole numbers (40-200)
-  const wholeNumbers: number[] = [];
-  for (let i = min; i <= max; i++) {
-    wholeNumbers.push(i);
-  }
-  
-  // Generate decimals (0-9)
-  const decimals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-  
-  const currentWhole = Math.floor(value);
-  const currentDecimal = Math.round((value % 1) * 10);
+  // Convert value to tick index
+  const valueToTick = (v: number) => Math.round((v - min) * 10);
+  const tickToValue = (tick: number) => min + tick / 10;
   
   // Scroll to current value on mount
   useEffect(() => {
-    const wholeIndex = wholeNumbers.indexOf(currentWhole);
-    const decimalIndex = decimals.indexOf(currentDecimal);
-    
-    if (wholeRef.current && wholeIndex >= 0) {
-      wholeRef.current.scrollTop = wholeIndex * itemHeight;
-    }
-    if (decimalRef.current && decimalIndex >= 0) {
-      decimalRef.current.scrollTop = decimalIndex * itemHeight;
+    if (scrollRef.current) {
+      const tick = valueToTick(value);
+      const containerWidth = scrollRef.current.clientWidth;
+      const scrollLeft = tick * tickWidth - containerWidth / 2;
+      scrollRef.current.scrollLeft = scrollLeft;
     }
   }, []);
   
-  // Handle whole number scroll
-  const handleWholeScroll = useCallback(() => {
-    if (!wholeRef.current) return;
+  // Handle scroll
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
     
-    const scrollTop = wholeRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const clampedIndex = Math.max(0, Math.min(wholeNumbers.length - 1, index));
-    const newWhole = wholeNumbers[clampedIndex];
+    const containerWidth = scrollRef.current.clientWidth;
+    const scrollLeft = scrollRef.current.scrollLeft;
+    const centerPosition = scrollLeft + containerWidth / 2;
+    const tick = Math.round(centerPosition / tickWidth);
+    const clampedTick = Math.max(0, Math.min(totalTicks - 1, tick));
+    const newValue = tickToValue(clampedTick);
     
-    if (newWhole !== lastWholeRef.current) {
+    if (Math.abs(newValue - lastValueRef.current) >= 0.1) {
       triggerHaptic();
-      lastWholeRef.current = newWhole;
-      const decimal = lastDecimalRef.current / 10;
-      onChange(newWhole + decimal);
+      lastValueRef.current = newValue;
+      onChange(parseFloat(newValue.toFixed(1)));
     }
-  }, [wholeNumbers, onChange]);
+  }, [onChange, min, totalTicks]);
   
-  // Handle decimal scroll
-  const handleDecimalScroll = useCallback(() => {
-    if (!decimalRef.current) return;
+  // Debounced scroll handler
+  const scrollTimeout = useRef<NodeJS.Timeout>();
+  
+  const onScroll = useCallback(() => {
+    handleScroll();
     
-    const scrollTop = decimalRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const clampedIndex = Math.max(0, Math.min(decimals.length - 1, index));
-    const newDecimal = decimals[clampedIndex];
+    // Snap to nearest value when scrolling stops
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      if (!scrollRef.current) return;
+      const containerWidth = scrollRef.current.clientWidth;
+      const scrollLeft = scrollRef.current.scrollLeft;
+      const centerPosition = scrollLeft + containerWidth / 2;
+      const tick = Math.round(centerPosition / tickWidth);
+      const clampedTick = Math.max(0, Math.min(totalTicks - 1, tick));
+      const targetScroll = clampedTick * tickWidth - containerWidth / 2;
+      
+      scrollRef.current.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+    }, 100);
+  }, [handleScroll, totalTicks]);
+  
+  // Generate ticks
+  const ticks = [];
+  for (let i = 0; i < totalTicks; i++) {
+    const tickValue = min + i / 10;
+    const isWhole = i % 10 === 0;
+    const isHalf = i % 5 === 0 && !isWhole;
     
-    if (newDecimal !== lastDecimalRef.current) {
-      triggerHaptic();
-      lastDecimalRef.current = newDecimal;
-      const whole = lastWholeRef.current;
-      onChange(whole + newDecimal / 10);
-    }
-  }, [decimals, onChange]);
-  
-  // Debounced scroll handlers
-  const wholeTimeout = useRef<NodeJS.Timeout>();
-  const decimalTimeout = useRef<NodeJS.Timeout>();
-  
-  const onWholeScroll = useCallback(() => {
-    if (wholeTimeout.current) clearTimeout(wholeTimeout.current);
-    wholeTimeout.current = setTimeout(handleWholeScroll, 50);
-  }, [handleWholeScroll]);
-  
-  const onDecimalScroll = useCallback(() => {
-    if (decimalTimeout.current) clearTimeout(decimalTimeout.current);
-    decimalTimeout.current = setTimeout(handleDecimalScroll, 50);
-  }, [handleDecimalScroll]);
-  
-  const containerHeight = visibleItems * itemHeight;
-  
-  const renderColumn = (
-    ref: React.RefObject<HTMLDivElement>,
-    items: number[],
-    currentValue: number,
-    onScroll: () => void,
-    showLeadingZero = false
-  ) => (
-    <div 
-      ref={ref}
-      className="h-full overflow-y-auto scrollbar-hide flex-1"
-      style={{ 
-        scrollSnapType: 'y mandatory',
-        WebkitOverflowScrolling: 'touch'
-      }}
-      onScroll={onScroll}
-    >
-      {/* Top padding */}
-      <div style={{ height: paddingItems * itemHeight }} />
-      
-      {/* Items */}
-      {items.map((item) => {
-        const isSelected = item === currentValue;
-        return (
-          <div
-            key={item}
-            className={`flex items-center justify-center select-none transition-all duration-150 ${
-              isSelected ? 'text-foreground font-bold' : 'text-muted-foreground/40'
-            }`}
-            style={{ 
-              height: itemHeight,
-              scrollSnapAlign: 'center',
-              fontSize: isSelected ? '2.25rem' : '1.5rem'
-            }}
-            onClick={() => {
-              if (ref.current) {
-                const index = items.indexOf(item);
-                ref.current.scrollTo({
-                  top: index * itemHeight,
-                  behavior: 'smooth'
-                });
-              }
-            }}
-          >
-            {showLeadingZero ? item : item}
-          </div>
-        );
-      })}
-      
-      {/* Bottom padding */}
-      <div style={{ height: paddingItems * itemHeight }} />
-    </div>
-  );
+    ticks.push(
+      <div
+        key={i}
+        className="flex flex-col items-center flex-shrink-0"
+        style={{ width: tickWidth }}
+      >
+        {/* Tick mark */}
+        <div
+          className={`w-0.5 rounded-full ${
+            isWhole 
+              ? 'h-10 bg-foreground' 
+              : isHalf 
+                ? 'h-6 bg-muted-foreground/60' 
+                : 'h-4 bg-muted-foreground/30'
+          }`}
+        />
+        {/* Label for whole numbers */}
+        {isWhole && (
+          <span className="text-xs text-muted-foreground mt-1 font-medium">
+            {Math.round(tickValue)}
+          </span>
+        )}
+      </div>
+    );
+  }
   
   return (
-    <div className="relative mx-auto max-w-xs">
-      {/* Top fade gradient */}
-      <div 
-        className="absolute inset-x-0 top-0 z-10 pointer-events-none"
-        style={{ 
-          height: paddingItems * itemHeight,
-          background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 40%, transparent 100%)'
-        }}
-      />
+    <div className="relative mx-auto w-full max-w-sm">
+      {/* Current value display */}
+      <div className="text-center mb-4">
+        <span className="text-5xl font-bold text-foreground">
+          {value.toFixed(1).replace('.', ',')}
+        </span>
+        <span className="text-2xl text-muted-foreground ml-2">{unit}</span>
+      </div>
       
-      {/* Bottom fade gradient */}
-      <div 
-        className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
-        style={{ 
-          height: paddingItems * itemHeight,
-          background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 40%, transparent 100%)'
-        }}
-      />
-      
-      {/* Center selection indicator */}
-      <div 
-        className="absolute inset-x-2 z-0 pointer-events-none border-y border-primary/30 bg-primary/5 rounded-xl"
-        style={{ 
-          top: paddingItems * itemHeight,
-          height: itemHeight 
-        }}
-      />
-      
-      {/* Picker columns container */}
-      <div 
-        className="flex items-center"
-        style={{ height: containerHeight }}
-      >
-        {/* Whole numbers column */}
-        {renderColumn(wholeRef, wholeNumbers, currentWhole, onWholeScroll)}
+      {/* Ruler container */}
+      <div className="relative h-24 bg-card rounded-2xl overflow-hidden border border-border/50">
+        {/* Left fade gradient */}
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(to right, hsl(var(--card)) 0%, transparent 100%)'
+          }}
+        />
         
-        {/* Decimal separator */}
-        <div className="text-3xl font-bold text-foreground px-1 self-center" style={{ marginTop: -2 }}>
-          ,
+        {/* Right fade gradient */}
+        <div 
+          className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(to left, hsl(var(--card)) 0%, transparent 100%)'
+          }}
+        />
+        
+        {/* Center indicator - triangle pointer */}
+        <div className="absolute left-1/2 top-0 z-20 transform -translate-x-1/2">
+          <div 
+            className="w-0 h-0"
+            style={{
+              borderLeft: '8px solid transparent',
+              borderRight: '8px solid transparent',
+              borderTop: '10px solid hsl(var(--primary))'
+            }}
+          />
         </div>
         
-        {/* Decimal column */}
-        <div className="w-16">
-          {renderColumn(decimalRef, decimals, currentDecimal, onDecimalScroll, true)}
-        </div>
+        {/* Center line */}
+        <div 
+          className="absolute left-1/2 top-2.5 bottom-0 w-0.5 bg-primary z-20 transform -translate-x-1/2"
+        />
         
-        {/* Unit */}
-        <div className="text-xl text-muted-foreground ml-2 self-center">
-          {unit}
+        {/* Scrollable ruler */}
+        <div
+          ref={scrollRef}
+          className="h-full overflow-x-auto scrollbar-hide flex items-end pb-4"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x proximity'
+          }}
+          onScroll={onScroll}
+        >
+          {/* Left padding to center first value */}
+          <div className="flex-shrink-0" style={{ width: '50%' }} />
+          
+          {/* Tick marks */}
+          {ticks}
+          
+          {/* Right padding to center last value */}
+          <div className="flex-shrink-0" style={{ width: '50%' }} />
         </div>
       </div>
     </div>
