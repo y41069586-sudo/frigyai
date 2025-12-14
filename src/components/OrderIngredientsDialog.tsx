@@ -10,14 +10,16 @@ interface OrderIngredientsDialogProps {
 }
 
 export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: OrderIngredientsDialogProps) => {
-  const searchQuery = encodeURIComponent(ingredients.join(" "));
-
+  // Create individual search queries for better results
+  const searchQuery = encodeURIComponent(ingredients.join(", "));
+  
   const deliveryServices = [
     {
       id: "rewe",
       name: "REWE",
       logo: "🛒",
       color: "bg-red-500",
+      // REWE allows multiple items in cart via search
       url: `https://shop.rewe.de/productList?search=${searchQuery}`,
       description: "Schnelle Lieferung",
     },
@@ -34,7 +36,7 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
       name: "EDEKA",
       logo: "🏪",
       color: "bg-yellow-500",
-      url: `https://www.edeka.de/suche.html?query=${searchQuery}`,
+      url: `https://www.edeka24.de/suche/?q=${searchQuery}`,
       description: "Frische Produkte",
     },
     {
@@ -46,16 +48,18 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
       description: "In 10 Min geliefert",
     },
     {
-      id: "gorillas",
-      name: "Getir",
-      logo: "🦍",
-      color: "bg-purple-500",
-      url: `https://getir.com/de/`,
-      description: "Schnelllieferung",
+      id: "picnic",
+      name: "Picnic",
+      logo: "🥕",
+      color: "bg-green-500",
+      url: `https://picnic.app/de/`,
+      description: "Günstige Lieferung",
     },
   ];
 
   const handleOpenService = (url: string) => {
+    // Copy ingredients to clipboard for easy pasting
+    navigator.clipboard.writeText(ingredients.join("\n"));
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -117,7 +121,7 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            Du wirst zum Lieferdienst weitergeleitet, um die Zutaten zu bestellen.
+            Zutaten werden in die Zwischenablage kopiert. Füge sie im Shop ein, um alle Produkte zu finden.
           </p>
         </div>
       </DialogContent>
