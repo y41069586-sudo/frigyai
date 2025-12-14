@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Flame, Heart, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock, Flame, Heart, CheckCircle2, Share2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import ShareRecipeDialog from "@/components/ShareRecipeDialog";
+import OrderIngredientsDialog from "@/components/OrderIngredientsDialog";
 
 interface Recipe {
   id: string;
@@ -24,6 +26,8 @@ const RecipeDetailPage = () => {
   const { id } = useParams();
   const [isFavorite, setIsFavorite] = useState(false);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
   useEffect(() => {
     // Try to get recipe from navigation state first
@@ -90,13 +94,31 @@ const RecipeDetailPage = () => {
             </Button>
             <h1 className="text-3xl font-bold">{recipe.title}</h1>
           </div>
-          <Button
-            size="icon"
-            onClick={toggleFavorite}
-            className={`glow-button ${isFavorite ? "gradient-neon text-black" : "bg-card"}`}
-          >
-            <Heart className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setShareDialogOpen(true)}
+              className="glow-button"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setOrderDialogOpen(true)}
+              className="glow-button"
+            >
+              <ShoppingCart className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              onClick={toggleFavorite}
+              className={`glow-button ${isFavorite ? "gradient-neon text-black" : "bg-card"}`}
+            >
+              <Heart className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
+            </Button>
+          </div>
         </motion.div>
 
         <div className="max-w-4xl mx-auto space-y-8">
@@ -213,6 +235,18 @@ const RecipeDetailPage = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <ShareRecipeDialog
+        recipe={recipe}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
+      <OrderIngredientsDialog
+        ingredients={recipe.ingredients}
+        open={orderDialogOpen}
+        onOpenChange={setOrderDialogOpen}
+      />
     </div>
   );
 };
