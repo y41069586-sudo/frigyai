@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ShoppingCart, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart, Check, Truck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-
+import { OrderIngredientsDialog } from './OrderIngredientsDialog';
 interface Ingredient {
   name: string;
   amount: string;
@@ -23,7 +24,7 @@ interface ShoppingListProps {
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
-
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
   useEffect(() => {
     // Aggregate all ingredients from meal plan
     const ingredientMap = new Map<string, ShoppingItem>();
@@ -58,7 +59,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
   const purchasedPrice = items.filter(i => i.purchased).reduce((sum, item) => sum + item.price, 0);
   const purchasedCount = items.filter(i => i.purchased).length;
-
+  
+  // Get unpurchased items for ordering
+  const unpurchasedItems = items.filter(i => !i.purchased).map(i => i.name);
   return (
     <div className="space-y-4">
       {/* Summary Card */}
@@ -92,6 +95,17 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             transition={{ duration: 0.3 }}
           />
         </div>
+
+        {/* Order Button */}
+        {unpurchasedItems.length > 0 && (
+          <Button 
+            className="w-full mt-4 gap-2"
+            onClick={() => setShowOrderDialog(true)}
+          >
+            <Truck className="h-4 w-4" />
+            Zutaten bestellen ({unpurchasedItems.length})
+          </Button>
+        )}
       </Card>
 
       {/* Items List */}
@@ -143,6 +157,12 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <p className="text-muted-foreground">{t.generateMealPlanForList}</p>
         </Card>
       )}
+
+      <OrderIngredientsDialog
+        ingredients={unpurchasedItems}
+        open={showOrderDialog}
+        onOpenChange={setShowOrderDialog}
+      />
     </div>
   );
 };
