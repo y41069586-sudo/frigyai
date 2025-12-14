@@ -14,23 +14,13 @@ import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { SplashScreen } from "@/components/SplashScreen";
 import { AIChatbot } from "@/components/AIChatbot";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import frigLogo from "@/assets/frig-logo.png";
-
-interface UserProfile {
-  age: number;
-  weight: number;
-  targetWeight: number;
-  dailyCalories: number;
-  dailyProtein: number;
-  dailyCarbs: number;
-  dailyFat: number;
-}
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
   const { t } = useLanguage();
-  const [trackerSetup, setTrackerSetup] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
   const [portalLoading, setPortalLoading] = useState(false);
   
   // Check localStorage once at mount
@@ -89,17 +79,7 @@ const Index = () => {
     }
   }, [isFromSubscription, navigate]);
 
-  useEffect(() => {
-    const profile = localStorage.getItem("userProfile");
-    setTrackerSetup(!!profile);
-    if (profile) {
-      try {
-        setUserProfile(JSON.parse(profile));
-      } catch (e) {
-        console.error('Failed to parse user profile');
-      }
-    }
-  }, []);
+  // Tracker setup is now handled by useTrackerSettings hook
 
   // Fetch daily scan usage for free users
   useEffect(() => {
@@ -332,13 +312,13 @@ const Index = () => {
               </p>
             </div>
             
-            {user && userProfile && (
+            {user && trackerSettings && (
               <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-1">{t.dailyGoal}</p>
-                  <p className="text-2xl font-bold text-primary">{userProfile.dailyCalories} kcal</p>
+                  <p className="text-2xl font-bold text-primary">{trackerSettings.dailyCalories} kcal</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {userProfile.dailyProtein}g {t.protein} • {userProfile.dailyCarbs}g {t.carbs} • {userProfile.dailyFat}g {t.fat}
+                    {trackerSettings.dailyProtein}g {t.protein} • {trackerSettings.dailyCarbs}g {t.carbs} • {trackerSettings.dailyFat}g {t.fat}
                   </p>
                 </div>
               </div>
@@ -404,14 +384,15 @@ const Index = () => {
       {/* Bottom Navigation - Show for all logged in users */}
       {user && onboardingComplete && (
         <BottomNavigation 
-          trackerSetup={trackerSetup} 
+          trackerSetup={trackerSetup}
+          trackerLoading={trackerLoading}
           onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
         />
       )}
 
       {/* AI Chatbot - Only for subscribed users */}
       {user && subscriptionStatus?.subscribed && onboardingComplete && (
-        <AIChatbot userProfile={userProfile} />
+        <AIChatbot userProfile={trackerSettings} />
       )}
     </div>
   );
