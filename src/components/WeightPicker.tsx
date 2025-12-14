@@ -15,7 +15,7 @@ const triggerHaptic = () => {
       navigator.vibrate(3);
     }
   } catch (e) {
-    // Ignore vibration errors
+    // Ignore
   }
 };
 
@@ -31,204 +31,153 @@ export const WeightPicker = ({
   const isInitialized = useRef(false);
   const scrollEndTimeout = useRef<NodeJS.Timeout>();
   
-  const itemHeight = 44; // iOS standard
-  const visibleItems = 7;
-  const containerHeight = visibleItems * itemHeight;
-  const centerOffset = Math.floor(visibleItems / 2);
+  const tickSpacing = 8; // Pixels between each kg
+  const totalTicks = max - min + 1;
   
-  // Generate items
-  const items: number[] = [];
-  for (let i = min; i <= max; i++) {
-    items.push(i);
-  }
-  
-  // Initial scroll to value
+  // Scroll to current value on mount
   useEffect(() => {
     if (scrollRef.current && !isInitialized.current) {
       isInitialized.current = true;
-      const index = value - min;
-      scrollRef.current.scrollTop = index * itemHeight;
+      const containerWidth = scrollRef.current.clientWidth;
+      const scrollLeft = (value - min) * tickSpacing - containerWidth / 2;
+      scrollRef.current.scrollLeft = scrollLeft;
     }
   }, [value, min]);
   
-  // Handle scroll with immediate value update
+  // Handle scroll
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     
-    const scrollTop = scrollRef.current.scrollTop;
-    const rawIndex = scrollTop / itemHeight;
-    const nearestIndex = Math.round(rawIndex);
-    const clampedIndex = Math.max(0, Math.min(items.length - 1, nearestIndex));
-    const newValue = items[clampedIndex];
+    const containerWidth = scrollRef.current.clientWidth;
+    const scrollLeft = scrollRef.current.scrollLeft;
+    const centerPosition = scrollLeft + containerWidth / 2;
     
-    // Update value immediately during scroll
+    const rawValue = centerPosition / tickSpacing + min;
+    const newValue = Math.round(Math.max(min, Math.min(max, rawValue)));
+    
+    // Update value and trigger haptic
     if (newValue !== lastValueRef.current) {
       triggerHaptic();
       lastValueRef.current = newValue;
       onChange(newValue);
     }
     
-    // Snap to position after scroll ends
+    // Snap after scroll ends
     if (scrollEndTimeout.current) {
       clearTimeout(scrollEndTimeout.current);
     }
     
     scrollEndTimeout.current = setTimeout(() => {
       if (scrollRef.current) {
-        const finalScrollTop = scrollRef.current.scrollTop;
-        const finalIndex = Math.round(finalScrollTop / itemHeight);
-        const targetScrollTop = finalIndex * itemHeight;
+        const currentScrollLeft = scrollRef.current.scrollLeft;
+        const currentCenter = currentScrollLeft + containerWidth / 2;
+        const currentValue = Math.round(currentCenter / tickSpacing + min);
+        const targetScrollLeft = (currentValue - min) * tickSpacing - containerWidth / 2;
         
-        if (Math.abs(finalScrollTop - targetScrollTop) > 1) {
+        if (Math.abs(currentScrollLeft - targetScrollLeft) > 1) {
           scrollRef.current.scrollTo({
-            top: targetScrollTop,
+            left: targetScrollLeft,
             behavior: 'smooth'
           });
         }
       }
-    }, 80);
-  }, [items, onChange, itemHeight]);
+    }, 100);
+  }, [min, max, onChange, tickSpacing]);
   
-  // Calculate item styles based on distance from center
-  const getItemStyle = (item: number) => {
-    const distance = Math.abs(item - value);
+  // Generate tick marks
+  const ticks = [];
+  for (let i = 0; i < totalTicks; i++) {
+    const tickValue = min + i;
+    const isMajor = tickValue % 10 === 0;
+    const isMid = tickValue % 5 === 0 && !isMajor;
     
-    if (distance === 0) {
-      return {
-        opacity: 1,
-        transform: 'scale(1) rotateX(0deg)',
-        fontWeight: 600,
-        color: 'hsl(var(--primary))'
-      };
-    } else if (distance === 1) {
-      return {
-        opacity: 0.7,
-        transform: 'scale(0.92) rotateX(15deg)',
-        fontWeight: 500,
-        color: 'hsl(var(--muted-foreground))'
-      };
-    } else if (distance === 2) {
-      return {
-        opacity: 0.4,
-        transform: 'scale(0.85) rotateX(25deg)',
-        fontWeight: 400,
-        color: 'hsl(var(--muted-foreground))'
-      };
-    } else {
-      return {
-        opacity: 0.2,
-        transform: 'scale(0.8) rotateX(35deg)',
-        fontWeight: 400,
-        color: 'hsl(var(--muted-foreground))'
-      };
-    }
-  };
+    ticks.push(
+      <div
+        key={i}
+        className="flex flex-col items-center flex-shrink-0"
+        style={{ width: tickSpacing }}
+      >
+        <div
+          className={`rounded-full ${
+            isMajor 
+              ? 'w-0.5 h-8 bg-foreground' 
+              : isMid 
+                ? 'w-0.5 h-5 bg-muted-foreground/70' 
+                : 'w-px h-3 bg-muted-foreground/40'
+          }`}
+        />
+        {isMajor && (
+          <span className="text-[10px] text-muted-foreground mt-1 font-medium tabular-nums">
+            {tickValue}
+          </span>
+        )}
+      </div>
+    );
+  }
   
   return (
-    <div className="relative mx-auto w-full max-w-xs">
-      {/* Value display */}
-      <div className="text-center mb-4">
+    <div className="relative mx-auto w-full max-w-sm">
+      {/* Current value display */}
+      <div className="text-center mb-3">
         <span className="text-5xl font-bold text-foreground tabular-nums">
           {value}
         </span>
         <span className="text-2xl text-muted-foreground ml-2">{unit}</span>
       </div>
       
-      {/* iOS-style picker */}
-      <div 
-        className="relative bg-card/80 backdrop-blur-sm rounded-2xl overflow-hidden"
-        style={{ 
-          height: containerHeight,
-          perspective: '1000px'
-        }}
-      >
-        {/* Top gradient overlay */}
+      {/* Ruler container */}
+      <div className="relative h-20 bg-card/80 backdrop-blur-sm rounded-2xl overflow-hidden">
+        {/* Left fade */}
         <div 
-          className="absolute inset-x-0 top-0 z-20 pointer-events-none"
+          className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
           style={{ 
-            height: centerOffset * itemHeight,
-            background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.9) 30%, hsl(var(--card) / 0.5) 60%, transparent 100%)'
+            background: 'linear-gradient(to right, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 40%, transparent 100%)'
           }}
         />
         
-        {/* Bottom gradient overlay */}
+        {/* Right fade */}
         <div 
-          className="absolute inset-x-0 bottom-0 z-20 pointer-events-none"
+          className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
           style={{ 
-            height: centerOffset * itemHeight,
-            background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.9) 30%, hsl(var(--card) / 0.5) 60%, transparent 100%)'
+            background: 'linear-gradient(to left, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 40%, transparent 100%)'
           }}
         />
         
-        {/* Center selection highlight */}
+        {/* Center indicator triangle */}
+        <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2">
+          <div 
+            className="w-0 h-0"
+            style={{
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderTop: '8px solid hsl(var(--primary))'
+            }}
+          />
+        </div>
+        
+        {/* Center indicator line */}
         <div 
-          className="absolute inset-x-2 z-10 pointer-events-none rounded-xl"
-          style={{ 
-            top: centerOffset * itemHeight,
-            height: itemHeight,
-            background: 'hsl(var(--primary) / 0.08)',
-            borderTop: '0.5px solid hsl(var(--primary) / 0.2)',
-            borderBottom: '0.5px solid hsl(var(--primary) / 0.2)'
-          }}
+          className="absolute left-1/2 top-2 bottom-3 w-0.5 bg-primary z-20 -translate-x-1/2 rounded-full"
         />
         
-        {/* Scroll container */}
+        {/* Scrollable ruler */}
         <div
           ref={scrollRef}
-          className="h-full overflow-y-auto scrollbar-hide overscroll-contain"
-          style={{ 
-            scrollSnapType: 'y mandatory',
+          className="h-full overflow-x-auto scrollbar-hide flex items-end pb-3 overscroll-x-contain"
+          style={{
             WebkitOverflowScrolling: 'touch',
-            transformStyle: 'preserve-3d'
+            scrollSnapType: 'x proximity'
           }}
           onScroll={handleScroll}
         >
-          {/* Top padding */}
-          <div style={{ height: centerOffset * itemHeight }} />
+          {/* Left padding to center 0 */}
+          <div className="flex-shrink-0" style={{ width: '50%' }} />
           
-          {/* Items */}
-          {items.map((item) => {
-            const style = getItemStyle(item);
-            
-            return (
-              <div
-                key={item}
-                className="flex items-center justify-center select-none cursor-pointer"
-                style={{ 
-                  height: itemHeight,
-                  scrollSnapAlign: 'center',
-                  transform: style.transform,
-                  opacity: style.opacity,
-                  fontWeight: style.fontWeight,
-                  color: style.color,
-                  transition: 'transform 0.1s ease-out, opacity 0.1s ease-out',
-                  transformOrigin: 'center center'
-                }}
-                onClick={() => {
-                  if (scrollRef.current) {
-                    const index = item - min;
-                    scrollRef.current.scrollTo({
-                      top: index * itemHeight,
-                      behavior: 'smooth'
-                    });
-                  }
-                }}
-              >
-                <span 
-                  className="tabular-nums"
-                  style={{ 
-                    fontSize: item === value ? '1.75rem' : '1.25rem',
-                    transition: 'font-size 0.1s ease-out'
-                  }}
-                >
-                  {item}
-                </span>
-              </div>
-            );
-          })}
+          {/* Tick marks */}
+          {ticks}
           
-          {/* Bottom padding */}
-          <div style={{ height: centerOffset * itemHeight }} />
+          {/* Right padding to center max */}
+          <div className="flex-shrink-0" style={{ width: '50%' }} />
         </div>
       </div>
     </div>
