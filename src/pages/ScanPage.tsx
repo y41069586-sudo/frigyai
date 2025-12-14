@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Video, Square } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -23,11 +23,6 @@ const ScanPage = () => {
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [scanLimitReached, setScanLimitReached] = useState(false);
   const [mode, setMode] = useState<"photo" | "video">("photo");
-  const [isRecording, setIsRecording] = useState(false);
-  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
 
   const isPremium = subscriptionStatus?.subscribed;
 
@@ -55,14 +50,6 @@ const ScanPage = () => {
     loadScanUsage();
   }, [user, isPremium]);
 
-  // Cleanup video stream on unmount
-  useEffect(() => {
-    return () => {
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [videoStream]);
 
   const startVideoRecording = async () => {
     if (!user) {
@@ -85,73 +72,30 @@ const ScanPage = () => {
       return;
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
-      
-      setVideoStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
-        await extractFrameAndAnalyze(blob);
-        stream.getTracks().forEach(track => track.stop());
-        setVideoStream(null);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-
-      toast({
-        title: "🎥 Aufnahme gestartet",
-        description: "Filme deinen Kühlschrank und drücke Stop.",
-      });
-    } catch (error) {
-      console.error("Error accessing camera:", error);
-      toast({
-        title: t.error,
-        description: "Kamera-Zugriff nicht möglich.",
-        variant: "destructive",
-      });
-    }
+    // Use native file input for video capture - works better on mobile
+    document.getElementById("videoInput")?.click();
   };
 
-  const stopVideoRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const extractFrameAndAnalyze = async (videoBlob: Blob) => {
     setAnalyzing(true);
     setUploading(true);
 
     try {
       // Create video element to extract frames
       const video = document.createElement("video");
-      video.src = URL.createObjectURL(videoBlob);
+      video.src = URL.createObjectURL(file);
       video.muted = true;
+      video.playsInline = true;
 
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         video.onloadedmetadata = () => {
           video.currentTime = video.duration / 2; // Get middle frame
           resolve();
         };
+        video.onerror = () => reject(new Error("Video konnte nicht geladen werden"));
       });
 
       await new Promise<void>((resolve) => {
@@ -160,8 +104,8 @@ const ScanPage = () => {
 
       // Extract frame to canvas
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(video, 0, 0);
 
@@ -225,6 +169,7 @@ const ScanPage = () => {
       setAnalyzing(false);
     }
   };
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -418,7 +363,7 @@ const ScanPage = () => {
           )}
 
           {/* Mode Toggle */}
-          {!imagePreview && !isRecording && (
+          {!imagePreview && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -443,39 +388,8 @@ const ScanPage = () => {
             </motion.div>
           )}
 
-          {/* Video Recording View */}
-          {isRecording && videoStream && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-4"
-            >
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-auto"
-                />
-                <div className="absolute top-4 left-4 flex items-center gap-2 bg-destructive/90 text-white px-3 py-1.5 rounded-full text-sm font-medium">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  Aufnahme läuft
-                </div>
-              </div>
-              <Button
-                onClick={stopVideoRecording}
-                className="w-full bg-destructive hover:bg-destructive/90 text-white font-semibold"
-                size="lg"
-              >
-                <Square className="h-5 w-5 mr-2" />
-                Aufnahme stoppen
-              </Button>
-            </motion.div>
-          )}
-
           {/* Upload Area */}
-          {!imagePreview && !isRecording ? (
+          {!imagePreview ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -533,6 +447,15 @@ const ScanPage = () => {
                 accept="image/*"
                 capture="environment"
                 onChange={handleImageUpload}
+                className="hidden"
+                disabled={scanLimitReached && !isPremium}
+              />
+              <input
+                id="videoInput"
+                type="file"
+                accept="video/*"
+                capture="environment"
+                onChange={handleVideoUpload}
                 className="hidden"
                 disabled={scanLimitReached && !isPremium}
               />
