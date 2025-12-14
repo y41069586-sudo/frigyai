@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { 
   User, Scale, Target, Flame, Camera, Plus, Trash2, 
-  ChevronRight, Sparkles, TrendingDown, Pencil, Barcode
+  ChevronRight, ChevronLeft, Sparkles, TrendingDown, Pencil, Barcode
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import useEmblaCarousel from 'embla-carousel-react';
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedRabbit, AnimatedCheetah } from './AnimatedAnimals';
@@ -642,17 +643,51 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     );
   }
 
-  if (step === 'onboarding') {
-    const currentStep = onboardingSteps[onboardingStep];
-    const Icon = currentStep.icon;
+  // Embla Carousel for swipeable onboarding
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: false,
+    dragFree: false,
+    containScroll: 'trimSnaps'
+  });
+  
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(true);
+  
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+  
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+  
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setOnboardingStep(emblaApi.selectedScrollSnap());
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+  
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
+    };
+  }, [emblaApi, onSelect]);
 
+  if (step === 'onboarding') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Progress dots */}
         <div className="flex justify-center gap-2">
           {onboardingSteps.map((_, idx) => (
-            <div
+            <button
               key={idx}
+              onClick={() => emblaApi?.scrollTo(idx)}
               className={`h-2 rounded-full transition-all duration-300 ${
                 idx === onboardingStep ? 'w-8 bg-primary' : 'w-2 bg-primary/30'
               }`}
@@ -660,55 +695,58 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={onboardingStep}
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 rounded-full bg-primary/20">
-                  <Icon className="h-8 w-8 text-primary" />
+        {/* Swipeable Carousel */}
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex">
+            {onboardingSteps.map((stepData, idx) => {
+              const Icon = stepData.icon;
+              return (
+                <div key={idx} className="flex-[0_0_100%] min-w-0 px-1">
+                  <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
+                    <div className="flex justify-center mb-4">
+                      <div className="p-3 rounded-full bg-primary/20">
+                        <Icon className="h-8 w-8 text-primary" />
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-center mb-6">{stepData.title}</h3>
+                    
+                    {stepData.content}
+                  </Card>
                 </div>
-              </div>
-              
-              <h3 className="text-xl font-bold text-center mb-6">{currentStep.title}</h3>
-              
-              {currentStep.content}
+              );
+            })}
+          </div>
+        </div>
 
-              <div className="flex gap-3 mt-6">
-                {onboardingStep > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setOnboardingStep(prev => prev - 1)}
-                    className="flex-1"
-                  >
-                    {t.back}
-                  </Button>
-                )}
-                <Button
-                  onClick={() => {
-                    if (onboardingStep < onboardingSteps.length - 1) {
-                      setOnboardingStep(prev => prev + 1);
-                    } else {
-                      saveProfile();
-                    }
-                  }}
-                  className="flex-1 glow-button"
-                >
-                  {onboardingStep < onboardingSteps.length - 1 ? (
-                    <>{t.next} <ChevronRight className="h-4 w-4 ml-1" /></>
-                  ) : (
-                    t.letsGo
-                  )}
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        </AnimatePresence>
+        {/* Navigation Buttons */}
+        <div className="flex gap-3 px-1">
+          {canScrollPrev && (
+            <Button
+              variant="outline"
+              onClick={scrollPrev}
+              className="flex-1"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> {t.back}
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              if (canScrollNext) {
+                scrollNext();
+              } else {
+                saveProfile();
+              }
+            }}
+            className="flex-1 glow-button"
+          >
+            {canScrollNext ? (
+              <>{t.next} <ChevronRight className="h-4 w-4 ml-1" /></>
+            ) : (
+              t.letsGo
+            )}
+          </Button>
+        </div>
       </div>
     );
   }
