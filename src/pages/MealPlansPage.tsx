@@ -24,6 +24,7 @@ import StreakBadge from '@/components/StreakBadge';
 import { AIChatbot } from '@/components/AIChatbot';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 
 interface UserProfile {
   age: number;
@@ -66,11 +67,12 @@ const MealPlansPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [trackerSetup, setTrackerSetup] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
+  
+  // Use centralized tracker settings hook for consistent data
+  const { settings: trackerSettings, isConfigured: trackerSetup, reloadSettings } = useTrackerSettings();
 
   // Sync activeTab with URL params
   const activeTab = searchParams.get('tab') || 'tracker';
@@ -151,18 +153,8 @@ const MealPlansPage = () => {
     }
   }, [user, subscriptionStatus, loading, navigate, searchParams]);
 
-  // Check tracker setup and load saved meal plan
+  // Load saved meal plan on mount
   useEffect(() => {
-    const profile = localStorage.getItem('userProfile');
-    setTrackerSetup(!!profile);
-    if (profile) {
-      try {
-        setUserProfile(JSON.parse(profile));
-      } catch (e) {
-        console.error('Failed to parse user profile');
-      }
-    }
-    
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
       try {
@@ -173,28 +165,19 @@ const MealPlansPage = () => {
     }
   }, []);
 
-  // Listen for tracker setup changes
+  // Listen for tracker setup changes - reload settings from DB
   const handleTrackerSetup = () => {
-    const profile = localStorage.getItem('userProfile');
-    setTrackerSetup(!!profile);
-    if (profile) {
-      try {
-        setUserProfile(JSON.parse(profile));
-      } catch (e) {
-        console.error('Failed to parse user profile');
-      }
-    }
+    reloadSettings();
   };
 
   // Handle tracker reset from chatbot
   const handleResetTracker = () => {
-    setTrackerSetup(false);
-    setUserProfile(null);
+    reloadSettings();
     setActiveTab('tracker');
   };
 
   const generateMealPlan = async () => {
-    if (!trackerSetup) {
+    if (!trackerSetup || !trackerSettings) {
       toast({ 
         title: t.setupTracker, 
         description: t.setupTrackerFirst, 
@@ -206,24 +189,13 @@ const MealPlansPage = () => {
 
     setIsGenerating(true);
     try {
-      // Get user's full macro profile from tracker
-      const profileData = localStorage.getItem('userProfile');
-      let dailyCalories = 1600;
-      let dailyProtein = 120;
-      let dailyCarbs = 160;
-      let dailyFat = 53;
+      // Use tracker settings from database/hook (single source of truth)
+      const dailyCalories = trackerSettings.dailyCalories || 1600;
+      const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
+      const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
+      const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
       
-      if (profileData) {
-        const profile = JSON.parse(profileData);
-        dailyCalories = profile.dailyCalories || 1600;
-        dailyProtein = profile.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
-        dailyCarbs = profile.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
-        dailyFat = profile.dailyFat || Math.round(dailyCalories * 0.3 / 9);
-        
-        console.log('[MEAL-PLAN] Using profile targets:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
-      } else {
-        console.log('[MEAL-PLAN] No profile found, using defaults');
-      }
+      console.log('[MEAL-PLAN] Using tracker settings:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
 
       const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
         body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
@@ -550,7 +522,7 @@ const MealPlansPage = () => {
       />
 
       {/* AI Chatbot */}
-      <AIChatbot userProfile={userProfile} onResetTracker={handleResetTracker} />
+      <AIChatbot userProfile={trackerSettings} onResetTracker={handleResetTracker} />
 
       {/* Bottom Navigation */}
       <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} onTabChange={setActiveTab} />
