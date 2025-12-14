@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 
 interface WeightPickerProps {
   value: number;
@@ -24,27 +24,27 @@ export const WeightPicker = ({
 }: WeightPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef(value);
-  const isScrollingRef = useRef(false);
+  const [displayValue, setDisplayValue] = useState(value);
   
-  // Each 1 kg = one tick (smoother with fewer ticks)
-  const tickWidth = 12;
+  const tickWidth = 10;
   const totalTicks = max - min + 1;
+  const visibleRange = 60; // Only render ticks within this range
   
-  // Convert value to tick index
-  const valueToTick = (v: number) => Math.round(v - min);
-  const tickToValue = (tick: number) => min + tick;
+  // Calculate visible tick range based on current value
+  const startTick = Math.max(0, Math.floor(displayValue - min) - visibleRange);
+  const endTick = Math.min(totalTicks, Math.floor(displayValue - min) + visibleRange);
   
   // Scroll to current value on mount
   useEffect(() => {
     if (scrollRef.current) {
-      const tick = valueToTick(value);
+      const tick = Math.round(value - min);
       const containerWidth = scrollRef.current.clientWidth;
       const scrollLeft = tick * tickWidth - containerWidth / 2;
       scrollRef.current.scrollLeft = scrollLeft;
     }
   }, []);
   
-  // Handle scroll - smooth continuous updates
+  // Handle scroll
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     
@@ -52,33 +52,26 @@ export const WeightPicker = ({
     const scrollLeft = scrollRef.current.scrollLeft;
     const centerPosition = scrollLeft + containerWidth / 2;
     
-    // Calculate decimal value for smooth display
     const exactTick = centerPosition / tickWidth;
     const clampedTick = Math.max(0, Math.min(totalTicks - 1, exactTick));
-    const newValue = min + clampedTick;
-    const roundedValue = Math.round(newValue * 10) / 10;
+    const newValue = min + Math.round(clampedTick);
     
-    // Trigger haptic on whole number change
-    const currentWhole = Math.floor(roundedValue);
-    const lastWhole = Math.floor(lastValueRef.current);
-    if (currentWhole !== lastWhole) {
+    // Trigger haptic on value change
+    if (newValue !== Math.round(lastValueRef.current)) {
       triggerHaptic();
     }
     
-    lastValueRef.current = roundedValue;
-    onChange(parseFloat(roundedValue.toFixed(1)));
+    lastValueRef.current = newValue;
+    setDisplayValue(newValue);
+    onChange(newValue);
   }, [onChange, min, totalTicks]);
   
-  const onScroll = useCallback(() => {
-    handleScroll();
-  }, [handleScroll]);
-  
-  // Generate ticks - every 1kg
+  // Generate only visible ticks
   const ticks = [];
-  for (let i = 0; i < totalTicks; i++) {
+  for (let i = startTick; i < endTick; i++) {
     const tickValue = min + i;
-    const isMajor = i % 10 === 0; // Every 10kg
-    const isMid = i % 5 === 0 && !isMajor; // Every 5kg
+    const isMajor = tickValue % 10 === 0;
+    const isMid = tickValue % 5 === 0 && !isMajor;
     
     ticks.push(
       <div
@@ -86,7 +79,6 @@ export const WeightPicker = ({
         className="flex flex-col items-center flex-shrink-0"
         style={{ width: tickWidth }}
       >
-        {/* Tick mark */}
         <div
           className={`w-0.5 rounded-full ${
             isMajor 
@@ -96,7 +88,6 @@ export const WeightPicker = ({
                 : 'h-4 bg-muted-foreground/30'
           }`}
         />
-        {/* Label for major ticks (every 10kg) */}
         {isMajor && (
           <span className="text-xs text-muted-foreground mt-1 font-medium">
             {tickValue}
@@ -111,7 +102,7 @@ export const WeightPicker = ({
       {/* Current value display */}
       <div className="text-center mb-4">
         <span className="text-5xl font-bold text-foreground">
-          {value.toFixed(1).replace('.', ',')}
+          {displayValue}
         </span>
         <span className="text-2xl text-muted-foreground ml-2">{unit}</span>
       </div>
@@ -134,7 +125,7 @@ export const WeightPicker = ({
           }}
         />
         
-        {/* Center indicator - triangle pointer */}
+        {/* Center indicator */}
         <div className="absolute left-1/2 top-0 z-20 transform -translate-x-1/2">
           <div 
             className="w-0 h-0"
@@ -146,7 +137,6 @@ export const WeightPicker = ({
           />
         </div>
         
-        {/* Center line */}
         <div 
           className="absolute left-1/2 top-2.5 bottom-0 w-0.5 bg-primary z-20 transform -translate-x-1/2"
         />
@@ -156,19 +146,18 @@ export const WeightPicker = ({
           ref={scrollRef}
           className="h-full overflow-x-auto scrollbar-hide flex items-end pb-4"
           style={{
-            WebkitOverflowScrolling: 'touch',
-            scrollSnapType: 'x proximity'
+            WebkitOverflowScrolling: 'touch'
           }}
-          onScroll={onScroll}
+          onScroll={handleScroll}
         >
-          {/* Left padding to center first value */}
-          <div className="flex-shrink-0" style={{ width: '50%' }} />
+          {/* Left padding */}
+          <div className="flex-shrink-0" style={{ width: `calc(50% + ${startTick * tickWidth}px)` }} />
           
           {/* Tick marks */}
           {ticks}
           
-          {/* Right padding to center last value */}
-          <div className="flex-shrink-0" style={{ width: '50%' }} />
+          {/* Right padding */}
+          <div className="flex-shrink-0" style={{ width: `calc(50% + ${(totalTicks - endTick) * tickWidth}px)` }} />
         </div>
       </div>
     </div>
