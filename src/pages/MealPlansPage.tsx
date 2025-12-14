@@ -72,7 +72,7 @@ const MealPlansPage = () => {
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
-  const { settings: trackerSettings, isConfigured: trackerSetup, reloadSettings } = useTrackerSettings();
+  const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
 
   // Sync activeTab with URL params
   const activeTab = searchParams.get('tab') || 'tracker';
@@ -525,7 +525,7 @@ const MealPlansPage = () => {
       <AIChatbot userProfile={trackerSettings} onResetTracker={handleResetTracker} />
 
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} onTabChange={setActiveTab} />
+      <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} trackerLoading={trackerLoading} onTabChange={setActiveTab} />
     </div>
   );
 };
