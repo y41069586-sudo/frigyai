@@ -18,6 +18,7 @@ import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
+import { WeightPicker } from './WeightPicker';
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedRabbit, AnimatedCheetah } from './AnimatedAnimals';
@@ -409,12 +410,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       title: t.howMuchDoYouWeigh,
       content: (
         <div className="py-2">
-          <WheelPicker
+          <WeightPicker
             value={weight}
-            onChange={setWeight}
+            onChange={(v) => setWeight(Math.round(v * 10) / 10)}
             min={40}
             max={200}
-            step={1}
             unit={t.kg}
           />
         </div>
