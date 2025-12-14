@@ -69,12 +69,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, currentSession) => {
         if (!mounted) return;
         
+        console.log('[Auth] State change:', event);
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
         
+        // Handle session errors - sign out if session is invalid
+        if (event === 'TOKEN_REFRESHED' && !currentSession) {
+          console.log('[Auth] Token refresh failed, signing out');
+          setSubscriptionStatus(null);
+          return;
+        }
+        
         // Check subscription on sign in
-        if (currentSession?.user && event === 'SIGNED_IN') {
+        if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           setTimeout(() => {
             if (mounted && currentSession) {
               supabase.functions.invoke('check-subscription', {
@@ -95,8 +104,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
       if (!mounted) return;
+      
+      // If there's a session error, clear everything
+      if (error) {
+        console.log('[Auth] Session error:', error.message);
+        setSession(null);
+        setUser(null);
+        setSubscriptionStatus(null);
+        setLoading(false);
+        return;
+      }
       
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
@@ -123,14 +142,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleVisibilityChange = () => {
       const currentSession = sessionRef.current;
       if (document.visibilityState === 'visible' && currentSession?.user) {
-        supabase.functions.invoke('check-subscription', {
-          headers: {
-            Authorization: `Bearer ${currentSession.access_token}`,
-          },
-        }).then(({ data, error }) => {
-          if (!error && mounted) {
-            setSubscriptionStatus(data);
+        // First refresh the session to ensure it's valid
+        supabase.auth.refreshSession().then(({ data: { session: refreshedSession }, error }) => {
+          if (error || !refreshedSession) {
+            console.log('[Auth] Session refresh failed on visibility change');
+            return;
           }
+          
+          supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${refreshedSession.access_token}`,
+            },
+          }).then(({ data, error }) => {
+            if (!error && mounted) {
+              setSubscriptionStatus(data);
+            }
+          });
         });
       }
     };
