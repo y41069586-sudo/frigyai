@@ -107,12 +107,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
       if (!mounted) return;
       
-      // If there's a session error, clear everything
+      // If there's a session error or invalid session, clear everything
       if (error) {
         console.log('[Auth] Session error:', error.message);
         setSession(null);
         setUser(null);
         setSubscriptionStatus(null);
+        // Clear potentially stale auth token
+        localStorage.removeItem('sb-zbvrhyyjlnmeqtjbvtwt-auth-token');
         setLoading(false);
         return;
       }
@@ -236,8 +238,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setSubscriptionStatus(null);
+    try {
+      // Clear local state first to ensure UI updates
+      setSession(null);
+      setUser(null);
+      setSubscriptionStatus(null);
+      
+      // Then attempt server-side signout (may fail if session already invalid)
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.log('[Auth] Sign out error (session may already be invalid):', error);
+    }
+    
+    // Clear any cached auth data from localStorage
+    localStorage.removeItem('sb-zbvrhyyjlnmeqtjbvtwt-auth-token');
+    
     toast({
       title: "Erfolgreich abgemeldet",
     });
