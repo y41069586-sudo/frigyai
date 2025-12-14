@@ -76,27 +76,56 @@ const ScanPage = () => {
     document.getElementById("videoInput")?.click();
   };
 
+  const [videoProcessing, setVideoProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
+
+  const processingMessages = [
+    "Video wird verarbeitet...",
+    "Frames werden analysiert...",
+    "Zutaten werden erkannt...",
+    "Bitte haben Sie Geduld...",
+    "Fast fertig...",
+  ];
+
+  // Cycle through processing messages
+  useEffect(() => {
+    if (!videoProcessing) return;
+    
+    let messageIndex = 0;
+    setProcessingMessage(processingMessages[0]);
+    
+    const interval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % processingMessages.length;
+      setProcessingMessage(processingMessages[messageIndex]);
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [videoProcessing]);
+
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Show video processing state with animations
+    setVideoProcessing(true);
     setAnalyzing(true);
     setUploading(true);
 
     try {
-      // Create video element to extract frames
+      // Create video element to extract multiple frames
       const video = document.createElement("video");
       video.src = URL.createObjectURL(file);
       video.muted = true;
       video.playsInline = true;
 
       await new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => {
-          video.currentTime = video.duration / 2; // Get middle frame
-          resolve();
-        };
+        video.onloadedmetadata = () => resolve();
         video.onerror = () => reject(new Error("Video konnte nicht geladen werden"));
       });
+
+      // Extract frame from middle of video for best quality
+      const duration = video.duration;
+      video.currentTime = duration / 2;
 
       await new Promise<void>((resolve) => {
         video.onseeked = () => resolve();
@@ -167,6 +196,7 @@ const ScanPage = () => {
     } finally {
       setUploading(false);
       setAnalyzing(false);
+      setVideoProcessing(false);
     }
   };
 
@@ -477,10 +507,33 @@ const ScanPage = () => {
 
               {analyzing ? (
                 <div className="text-center py-12">
-                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-lg text-muted-foreground">
-                    {t.aiAnalyzingIngredients}
-                  </p>
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="relative"
+                  >
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                    <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary relative z-10" />
+                  </motion.div>
+                  <motion.p 
+                    key={videoProcessing ? processingMessage : "analyzing"}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-lg text-muted-foreground"
+                  >
+                    {videoProcessing ? processingMessage : t.aiAnalyzingIngredients}
+                  </motion.p>
+                  {videoProcessing && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                      className="text-sm text-muted-foreground/70 mt-2"
+                    >
+                      Wir analysieren dein Video im Hintergrund...
+                    </motion.p>
+                  )}
                 </div>
               ) : (
                 <>
