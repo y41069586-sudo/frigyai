@@ -598,9 +598,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3 space-y-1">
             <p>{t.baseMetabolism}: ~{bmr.toFixed(0)} kcal</p>
             <p>{t.withActivity}: ~{tdee} kcal</p>
-            <p>{goalMode === 'lose' ? t.deficit : 'Überschuss'}: {goalMode === 'lose' ? '-' : '+'}{Math.round(dailyAdjustment)} kcal/{t.today.toLowerCase()}</p>
-            <p className="text-xs">
-              {t.goal}: {weightDiff}{t.kg} {goalMode === 'lose' ? 'abnehmen' : 'zunehmen'} ({weeklyLossRate.toFixed(1)}{t.kg}/Woche)
+            <p>{goalMode === 'lose' ? t.deficit : 'Überschuss'}: {goalMode === 'lose' ? '-' : '+'}{Math.round(dailyAdjustment)} kcal/Tag</p>
+            <p className="text-xs font-medium text-primary">
+              {weeklyLossRate.toFixed(1)} {t.kg}/Woche {goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}
             </p>
           </div>
           
@@ -631,6 +631,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       ),
     },
   ];
+
+  // Show loading state while fetching settings from database
+  if (settingsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">{t.loading || 'Wird geladen...'}</p>
+      </div>
+    );
+  }
 
   if (step === 'onboarding') {
     const currentStep = onboardingSteps[onboardingStep];
