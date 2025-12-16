@@ -493,7 +493,7 @@ const MealPlansPage = () => {
                     disabled={isGenerating || !trackerSetup}
                   >
                     {isGenerating ? (
-                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span>{generationSeconds}s...</span></>
+                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span>Noch {Math.max(0, 90 - generationSeconds)}s</span></>
                     ) : (
                       <><Calendar className="mr-1 h-4 w-4" /> <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span><span className="hidden sm:inline">{t.generateNewPlan}</span></>
                     )}
