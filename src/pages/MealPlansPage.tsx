@@ -199,11 +199,34 @@ const MealPlansPage = () => {
       
       console.log('[MEAL-PLAN] Using tracker settings:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
 
-      const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-        body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No session');
+      }
+
+      // Use direct fetch with longer timeout (90 seconds) for meal plan generation
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-meal-plan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat }),
+        signal: controller.signal,
       });
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       if (data?.mealPlan) {
         setMealPlan(data.mealPlan);
