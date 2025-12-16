@@ -201,6 +201,15 @@ Antworte NUR mit einem JSON-Array auf Deutsch:
     });
 
     const requestId = response.headers.get("x-request-id");
+    const openaiOrg = response.headers.get("openai-organization");
+    const openaiProject = response.headers.get("openai-project");
+    const openaiProcessingMs = response.headers.get("openai-processing-ms");
+    console.log("OpenAI response headers:", {
+      requestId,
+      openaiOrg,
+      openaiProject,
+      openaiProcessingMs,
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
