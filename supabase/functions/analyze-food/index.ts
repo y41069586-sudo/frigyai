@@ -134,7 +134,7 @@ Antworte NUR mit validem JSON in diesem Format:
     }
 
     console.log('[ANALYZE-FOOD] Calling OpenAI Vision API...');
-
+ 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -148,13 +148,17 @@ Antworte NUR mit validem JSON in diesem Format:
       }),
     });
 
+    const requestId = response.headers.get('x-request-id');
+ 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[ANALYZE-FOOD] OpenAI API error:', response.status, errorText);
+      console.error('[ANALYZE-FOOD] OpenAI API error:', response.status, { requestId, errorText });
       throw new Error(`OpenAI API error: ${response.status}`);
     }
-
+ 
     const data = await response.json();
+    console.log('[ANALYZE-FOOD] OpenAI usage:', { requestId, usage: data?.usage });
+
     const content = data.choices?.[0]?.message?.content || '';
     
     console.log('[ANALYZE-FOOD] Raw response:', content);

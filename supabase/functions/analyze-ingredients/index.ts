@@ -200,13 +200,17 @@ Antworte NUR mit einem JSON-Array auf Deutsch:
       }),
     });
 
+    const requestId = response.headers.get("x-request-id");
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("OpenAI API error:", response.status, { requestId, errorText });
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log("OpenAI usage:", { requestId, usage: data?.usage });
+
     const content = data.choices?.[0]?.message?.content || "[]";
     
     console.log("OpenAI response:", content);
