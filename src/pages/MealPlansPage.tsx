@@ -66,6 +66,7 @@ const MealPlansPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationSeconds, setGenerationSeconds] = useState(0);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -166,6 +167,20 @@ const MealPlansPage = () => {
       }
     }
   }, []);
+
+  // Track elapsed time during meal plan generation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isGenerating) {
+      setGenerationSeconds(0);
+      interval = setInterval(() => {
+        setGenerationSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGenerating]);
 
   // Listen for tracker setup changes - reload settings from DB
   const handleTrackerSetup = () => {
@@ -478,7 +493,7 @@ const MealPlansPage = () => {
                     disabled={isGenerating || !trackerSetup}
                   >
                     {isGenerating ? (
-                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span className="hidden sm:inline">{t.loading}</span></>
+                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span>{generationSeconds}s...</span></>
                     ) : (
                       <><Calendar className="mr-1 h-4 w-4" /> <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span><span className="hidden sm:inline">{t.generateNewPlan}</span></>
                     )}
