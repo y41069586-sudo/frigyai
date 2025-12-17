@@ -89,9 +89,14 @@ Generiere einen Wochenplan mit Frühstück, Snack (vormittags), Mittagessen, Sna
 
 WICHTIG - Tägliche Ziele:
 - Kalorien: ${targetCalories} kcal
-- Protein: ${targetProtein}g (high priority!)
+- Protein: ${targetProtein}g
 - Kohlenhydrate: ${targetCarbs}g
 - Fett: ${targetFat}g
+
+Makro-Regeln (sehr wichtig):
+- Protein: zwischen ${Math.round(targetProtein * 0.95)}g und ${targetProtein}g (nicht darüber!)
+- Kohlenhydrate: zwischen ${Math.round(targetCarbs * 0.95)}g und ${Math.round(targetCarbs * 1.05)}g (möglichst genau treffen)
+- Fett: zwischen ${Math.round(targetFat * 0.90)}g und ${targetFat}g (nicht darüber!)
 
 Kalorienverteilung pro Mahlzeit:
 - Frühstück: ca. ${breakfastCal} kcal (20%)
@@ -102,9 +107,9 @@ Kalorienverteilung pro Mahlzeit:
 
 Regeln:
 - Die Summe aller 5 Mahlzeiten pro Tag MUSS ungefähr ${targetCalories} kcal ergeben!
-- Tägliches Protein MUSS ungefähr ${targetProtein}g erreichen!
-- Hoher Proteingehalt bei jeder Mahlzeit
-- Snacks: proteinreich und sättigend (z.B. Griechischer Joghurt, Nüsse, Proteinriegel, Quark, Eier)
+- Makros pro Tag müssen die Makro-Regeln einhalten (insb. Protein/Fett NICHT über Ziel)!
+- Jede Mahlzeit sollte ausgewogen sein und die Tagesziele unterstützen
+- Snacks: proteinreich und sättigend (z.B. Griechischer Joghurt, Quark, Eier, Skyr)
 - Einfache Zubereitung (unter 20 Minuten)
 - Realistische deutsche Gerichte
 - Genaue Zutaten mit Mengenangaben und realistischen Preisen
