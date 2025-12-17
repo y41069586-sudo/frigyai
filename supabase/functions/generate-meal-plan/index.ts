@@ -115,11 +115,21 @@ WICHTIG:
 - Summiere pro Tag Kalorien/Protein/Kohlenhydrate/Fett aller 5 Mahlzeiten.
 - Überschreite NIE diese Werte.`;
 
-    const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen abwechslungsreichen, alltagstauglichen Wochenplan.
+    const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen abwechslungsreichen, alltagstauglichen Wochenplan mit ECHTEN ALLTAGS-REZEPTEN.
+
+REZEPT-STIL (sehr wichtig):
+- Erstelle ECHTE ALLTAGSGERICHTE wie: Spaghetti Bolognese, Rührei mit Toast, Haferbrei mit Früchten, Hähnchen-Gemüse-Pfanne, Lachs mit Reis, Kartoffelpüree mit Schnitzel, etc.
+- KEINE abstrakten oder ungewöhnlichen Kombinationen.
+- Jedes Gericht muss ein echter, bekannter Rezeptname sein.
+
+DETAILLIERTE ANLEITUNGEN:
+- Schreibe 3-5 konkrete Zubereitungsschritte pro Gericht.
+- Beschreibe WIE man kocht (anbraten, köcheln, würzen, servieren).
+- Gib genaue Mengenangaben für alle Zutaten.
 
 WICHTIG (Abwechslung):
 - Keine identischen Gerichte (Name + Hauptzutaten dürfen sich nicht wiederholen).
-- Variiere Proteinquellen (z.B. Hähnchen, Fisch, Rind, Eier, Tofu, Hülsenfrüchte) und Beilagen (Reis, Kartoffeln, Pasta, Brot, Hafer).
+- Variiere Proteinquellen (Hähnchen, Fisch, Rind, Eier, Tofu, Hülsenfrüchte) und Beilagen (Reis, Kartoffeln, Pasta, Brot, Hafer).
 
 ${targetsBlock}
 
@@ -132,13 +142,14 @@ Kalorienverteilung pro Tag (Richtwerte, du darfst intern anpassen – die Tages-
 
 Output-Regeln:
 - NUR valides JSON (kein Markdown).
-- 7 Tage in dieser Reihenfolge: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag.
-- Pro Tag genau 5 Mahlzeiten in dieser Reihenfolge: Frühstück, Snack, Mittagessen, Snack, Abendessen.
-- Pro Mahlzeit max 3 Zutaten, max 2 kurze Steps.
+- 7 Tage: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag.
+- Pro Tag genau 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen.
+- Pro Mahlzeit 4-6 Zutaten mit genauen Mengen.
+- Pro Mahlzeit 3-5 detaillierte Zubereitungsschritte.
 - Preise als Zahl (EUR).
 
 JSON-Schema:
-{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"...","calories":123,"protein":12,"carbs":12,"fat":12,"prepTime":10,"ingredients":[{"name":"...","amount":"100g","price":1.2}],"instructions":["Schritt 1"]}]}]}`;
+{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"Rührei mit Toast","calories":350,"protein":20,"carbs":30,"fat":15,"prepTime":10,"ingredients":[{"name":"Eier","amount":"3 Stück","price":0.9},{"name":"Butter","amount":"10g","price":0.2},{"name":"Vollkorntoast","amount":"2 Scheiben","price":0.3},{"name":"Salz & Pfeffer","amount":"nach Geschmack","price":0.1}],"instructions":["Eier in einer Schüssel verquirlen und würzen.","Butter in einer Pfanne erhitzen.","Eier hineingeben und bei mittlerer Hitze rühren bis cremig.","Toast toasten und mit Rührei servieren."]}]}]}`;
 
     class HttpError extends Error {
       status: number;

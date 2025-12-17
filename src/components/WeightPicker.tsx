@@ -31,7 +31,7 @@ export const WeightPicker = ({
   const isInitialized = useRef(false);
   const scrollEndTimeout = useRef<NodeJS.Timeout>();
   
-  const tickSpacing = 8; // Pixels between each kg
+  const tickSpacing = 12; // Pixels between each kg - larger for better touch accuracy
   const totalTicks = max - min + 1;
   
   // Scroll to current value on mount
