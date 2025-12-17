@@ -50,18 +50,30 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     setItems(Array.from(ingredientMap.values()));
   }, [mealPlan]);
 
+  const setPurchased = (id: string, purchased: boolean) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, purchased } : item))
+    );
+  };
+
   const toggleItem = (id: string) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, purchased: !item.purchased } : item
-    ));
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, purchased: !item.purchased } : item
+      )
+    );
   };
 
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
-  const purchasedPrice = items.filter(i => i.purchased).reduce((sum, item) => sum + item.price, 0);
-  const purchasedCount = items.filter(i => i.purchased).length;
-  
+  const purchasedPrice = items
+    .filter((i) => i.purchased)
+    .reduce((sum, item) => sum + item.price, 0);
+  const purchasedCount = items.filter((i) => i.purchased).length;
+  const progressPct = items.length ? (purchasedCount / items.length) * 100 : 0;
+
   // Get unpurchased items for ordering
-  const unpurchasedItems = items.filter(i => !i.purchased).map(i => i.name);
+  const unpurchasedItems = items.filter((i) => !i.purchased).map((i) => i.name);
+
   return (
     <div className="space-y-4">
       {/* Summary Card */}
@@ -91,7 +103,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <motion.div 
             className="h-full bg-primary"
             initial={{ width: 0 }}
-            animate={{ width: `${(purchasedCount / items.length) * 100}%` }}
+            animate={{ width: `${progressPct}%` }}
             transition={{ duration: 0.3 }}
           />
         </div>
@@ -118,17 +130,19 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             transition={{ delay: index * 0.03 }}
           >
             <Card 
-              className={`p-3 cursor-pointer transition-all duration-200 ${
+              className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
                 item.purchased 
                   ? 'bg-primary/10 border-primary/30' 
                   : 'bg-card/60 border-primary/10 hover:border-primary/30'
               }`}
-              onClick={() => toggleItem(item.id)}
+              onPointerUp={() => toggleItem(item.id)}
             >
               <div className="flex items-center gap-3">
                 <Checkbox 
                   checked={item.purchased}
-                  onCheckedChange={() => toggleItem(item.id)}
+                  onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                   className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
                 <div className="flex-1">
