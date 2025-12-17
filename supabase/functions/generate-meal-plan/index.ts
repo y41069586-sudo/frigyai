@@ -84,6 +84,25 @@ serve(async (req) => {
     const lunchCal = Math.round(targetCalories * 0.35);
     const dinnerCal = Math.round(targetCalories * 0.25);
 
+    // Validation ranges (never exceed max; must reach at least min)
+    const ranges = {
+      calories: { min: Math.round(targetCalories * 0.97), max: targetCalories },
+      protein: { min: Math.round(targetProtein * 0.92), max: targetProtein },
+      carbs: { min: Math.round(targetCarbs * 0.92), max: targetCarbs },
+      fat: { min: Math.round(targetFat * 0.92), max: targetFat },
+    };
+
+    const targetsBlock = `ZIELE PRO TAG (müssen pro Tag durch die SUMME der 5 Mahlzeiten erreicht werden, NICHT überschreiten):
+- Kalorien: ${targetCalories} kcal (Zielbereich ${ranges.calories.min}–${ranges.calories.max} kcal)
+- Protein: ${targetProtein} g (Zielbereich ${ranges.protein.min}–${ranges.protein.max} g)
+- Kohlenhydrate: ${targetCarbs} g (Zielbereich ${ranges.carbs.min}–${ranges.carbs.max} g)
+- Fett: ${targetFat} g (Zielbereich ${ranges.fat.min}–${ranges.fat.max} g)
+
+WICHTIG:
+- Summiere pro Tag Kalorien/Protein/Kohlenhydrate/Fett aller 5 Mahlzeiten.
+- Passe Portionen/Grammangaben so an, dass die Tagesziele passen.
+- Überschreite NIE die Max-Werte. Wenn du schwankst: lieber knapp UNTER dem Max bleiben, aber NICHT unter das Minimum.`;
+
     const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen ABWECHSLUNGSREICHEN Wochenplan.
 
 WICHTIG - MAXIMALE ABWECHSLUNG:
@@ -96,16 +115,7 @@ WICHTIG - MAXIMALE ABWECHSLUNG:
 - Nutze verschiedene Beilagen: Reis, Pasta, Kartoffeln, Quinoa, Couscous, Brot
 - Nutze verschiedene Zubereitungsarten: gebraten, gekocht, gegrillt, gebacken, roh
 
-ZIELE PRO TAG (müssen pro Tag durch die SUMME der 5 Mahlzeiten erreicht werden):
-- Kalorien: ${targetCalories} kcal (Zielbereich ${Math.round(targetCalories * 0.98)}–${targetCalories} kcal, NICHT darüber)
-- Protein: ${targetProtein} g (Zielbereich ${Math.round(targetProtein * 0.90)}–${targetProtein} g, NICHT darüber)
-- Kohlenhydrate: ${targetCarbs} g (Zielbereich ${Math.round(targetCarbs * 0.90)}–${Math.round(targetCarbs * 1.05)} g)
-- Fett: ${targetFat} g (Zielbereich ${Math.round(targetFat * 0.90)}–${targetFat} g, NICHT darüber)
-
-WICHTIG:
-- Summiere pro Tag Kalorien/Protein/Kohlenhydrate/Fett aller 5 Mahlzeiten.
-- Passe Portionen/Grammangaben so an, dass die Tagesziele passen.
-- Wenn du schwankst: lieber minimal UNTER den Max-Limits (Kalorien/Protein/Fett) bleiben.
+${targetsBlock}
 
 Kalorienverteilung pro Tag:
 - Frühstück: ${breakfastCal} kcal
@@ -124,82 +134,163 @@ Output-Regeln:
 JSON-Schema:
 {"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"...","calories":123,"protein":12,"carbs":12,"fat":12,"prepTime":10,"ingredients":[{"name":"...","amount":"100g","price":1.2}],"instructions":["Schritt 1"]}]}]}`;
 
-    console.log('[GENERATE-MEAL-PLAN] Calling OpenAI with targets:', { targetCalories, targetProtein, targetCarbs, targetFat });
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        response_format: { type: 'json_object' },
-        max_tokens: 4096,
-        temperature: 0.7,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: `Erstelle einen kreativen, abwechslungsreichen Wochenplan. Stelle sicher, dass JEDER TAG die Tagesziele trifft, ohne Protein/Fett/Kalorien zu überschreiten. ${preferences ? `Präferenzen: ${preferences}` : ''}`,
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      let errorMessage = `OpenAI API Fehler: ${response.status}`;
-      try {
-        const parsed = JSON.parse(errorText);
-        const apiMsg = parsed?.error?.message;
-        if (apiMsg) errorMessage = `OpenAI API Fehler: ${apiMsg}`;
-      } catch {
-        // keep fallback message
+    class HttpError extends Error {
+      status: number;
+      constructor(status: number, message: string) {
+        super(message);
+        this.status = status;
       }
-
-      console.error('[GENERATE-MEAL-PLAN] OpenAI error:', response.status, errorText);
-
-      return new Response(JSON.stringify({ error: errorMessage }), {
-        status: response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
-    const data = await response.json();
-    const choice = data.choices?.[0];
-    const finishReason = choice?.finish_reason;
-    const content = choice?.message?.content || '';
+    const parsePlanFromOpenAI = (data: any) => {
+      const choice = data?.choices?.[0];
+      const finishReason = choice?.finish_reason;
+      const content = choice?.message?.content || '';
 
-    console.log('[GENERATE-MEAL-PLAN] OpenAI finish_reason:', finishReason, 'content_length:', content.length);
-    console.log('[GENERATE-MEAL-PLAN] Raw response:', content.substring(0, 500));
+      console.log('[GENERATE-MEAL-PLAN] OpenAI finish_reason:', finishReason, 'content_length:', content.length);
+      console.log('[GENERATE-MEAL-PLAN] Raw response (first 500 chars):', content.substring(0, 500));
 
-    if (!content.trim()) {
-      throw new Error('Leere Antwort von OpenAI');
-    }
-    if (finishReason === 'length') {
-      throw new Error('OpenAI Antwort wurde abgeschnitten (zu lang)');
-    }
+      if (!content.trim()) throw new Error('Leere Antwort von OpenAI');
+      if (finishReason === 'length') throw new Error('OpenAI Antwort wurde abgeschnitten (zu lang)');
 
-    // Parse JSON from response (response_format guarantees JSON, keep fallback for safety)
-    let mealPlan;
-    try {
-      mealPlan = JSON.parse(content);
-    } catch (_e) {
       try {
+        return JSON.parse(content);
+      } catch (_e) {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('No JSON found in response');
-        mealPlan = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('[GENERATE-MEAL-PLAN] Parse error:', parseError);
-        throw new Error('Failed to parse meal plan');
+        return JSON.parse(jsonMatch[0]);
       }
+    };
+
+    const validateMealPlan = (plan: any) => {
+      const issues: string[] = [];
+
+      if (!Array.isArray(plan?.mealPlan) || plan.mealPlan.length !== 7) {
+        issues.push('mealPlan muss ein Array mit 7 Tagen sein');
+        return { ok: false, issues };
+      }
+
+      for (const day of plan.mealPlan) {
+        const dayName = String(day?.day ?? 'Unbekannt');
+        const meals = Array.isArray(day?.meals) ? day.meals : [];
+        if (meals.length !== 5) {
+          issues.push(`${dayName}: muss genau 5 Mahlzeiten haben`);
+          continue;
+        }
+
+        const totals = meals.reduce(
+          (acc: any, m: any) => {
+            acc.calories += Number(m?.calories) || 0;
+            acc.protein += Number(m?.protein) || 0;
+            acc.carbs += Number(m?.carbs) || 0;
+            acc.fat += Number(m?.fat) || 0;
+            return acc;
+          },
+          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        );
+
+        const checks: Array<[keyof typeof ranges, number]> = [
+          ['calories', totals.calories],
+          ['protein', totals.protein],
+          ['carbs', totals.carbs],
+          ['fat', totals.fat],
+        ];
+
+        for (const [k, v] of checks) {
+          const r = ranges[k];
+          if (v < r.min || v > r.max) {
+            issues.push(`${dayName}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
+          }
+        }
+      }
+
+      return { ok: issues.length === 0, issues };
+    };
+
+    const callOpenAI = async (userInstruction: string) => {
+      console.log('[GENERATE-MEAL-PLAN] Calling OpenAI with targets:', { targetCalories, targetProtein, targetCarbs, targetFat });
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
+          max_tokens: 4096,
+          temperature: 0.7,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userInstruction },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        let errorMessage = `OpenAI API Fehler: ${response.status}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          const apiMsg = parsed?.error?.message;
+          if (apiMsg) errorMessage = `OpenAI API Fehler: ${apiMsg}`;
+        } catch {
+          // keep fallback
+        }
+
+        console.error('[GENERATE-MEAL-PLAN] OpenAI error:', response.status, errorText);
+        throw new HttpError(response.status, errorMessage);
+      }
+
+      const data = await response.json();
+      return parsePlanFromOpenAI(data);
+    };
+
+    const generateWithValidation = async () => {
+      const baseInstruction = `Erstelle einen kreativen, abwechslungsreichen Wochenplan. ${targetsBlock}\n\nStelle sicher, dass JEDER TAG die Tagesziele trifft (innerhalb des Zielbereichs) und NIEMALS überschreitet. ${preferences ? `Präferenzen: ${preferences}` : ''}`;
+
+      // Attempt 1
+      const first = await callOpenAI(baseInstruction);
+      const firstValidation = validateMealPlan(first);
+      if (firstValidation.ok) {
+        console.log('[GENERATE-MEAL-PLAN] Validation OK (attempt 1)');
+        return first;
+      }
+
+      console.warn('[GENERATE-MEAL-PLAN] Validation failed (attempt 1):', firstValidation.issues);
+
+      // Attempt 2 with explicit correction feedback
+      const correction = `KORREKTUR (du MUSST korrigieren):\nDie folgenden Tage verfehlen/überschreiten die Bereiche. Passe nur PORTIONEN/GRAMMANGABEN und falls nötig die Mahlzeiten so an, dass jeder Tag innerhalb der Bereiche liegt (nie überschreiten, nicht unter Minimum).\n- ${firstValidation.issues.slice(0, 25).join('\n- ')}`;
+
+      const second = await callOpenAI(`${baseInstruction}\n\n${correction}`);
+      const secondValidation = validateMealPlan(second);
+      if (secondValidation.ok) {
+        console.log('[GENERATE-MEAL-PLAN] Validation OK (attempt 2)');
+        return second;
+      }
+
+      console.warn('[GENERATE-MEAL-PLAN] Validation failed (attempt 2):', secondValidation.issues);
+      throw new Error(`Plan erfüllt die Makro-Zielbereiche nicht: ${secondValidation.issues.slice(0, 6).join(' | ')}`);
+    };
+
+    let finalPlan: any;
+    try {
+      finalPlan = await generateWithValidation();
+    } catch (e) {
+      if (e instanceof HttpError) {
+        return new Response(JSON.stringify({ error: e.message }), {
+          status: e.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw e;
     }
 
-    console.log('[GENERATE-MEAL-PLAN] Successfully generated meal plan');
+    console.log('[GENERATE-MEAL-PLAN] Successfully generated & validated meal plan');
 
-    return new Response(JSON.stringify(mealPlan), {
+    return new Response(JSON.stringify(finalPlan), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
