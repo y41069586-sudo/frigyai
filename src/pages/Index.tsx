@@ -28,6 +28,18 @@ const Index = () => {
   // Check localStorage once at mount
   const urlParams = new URLSearchParams(window.location.search);
   const isFromSubscription = urlParams.get('subscription') === 'success';
+  const resetOnboarding = urlParams.get('resetOnboarding') === 'true';
+  
+  // Handle reset onboarding from URL parameter (for testing on iPad etc.)
+  useEffect(() => {
+    if (resetOnboarding) {
+      localStorage.removeItem('onboardingComplete');
+      localStorage.removeItem('onboardingUserData');
+      // Clear URL parameter and reload
+      window.history.replaceState({}, '', '/');
+      window.location.reload();
+    }
+  }, [resetOnboarding]);
   
   // Initialize states based on localStorage - user is logged in = skip everything
   const [showSplash, setShowSplash] = useState(false);
