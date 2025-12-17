@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,25 +6,22 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
-import { PageLoader } from "@/components/PageLoader";
-
-// Lazy load all pages for better performance
-const Index = lazy(() => import("./pages/Index"));
-const ScanPage = lazy(() => import("./pages/ScanPage"));
-const ManualPage = lazy(() => import("./pages/ManualPage"));
-const RecipesPage = lazy(() => import("./pages/RecipesPage"));
-const RecipeDetailPage = lazy(() => import("./pages/RecipeDetailPage"));
-const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const AuthPage = lazy(() => import("./pages/AuthPage"));
-const PremiumPage = lazy(() => import("./pages/PremiumPage"));
-const MealPlansPage = lazy(() => import("./pages/MealPlansPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
-const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
-const PlanSelectionPage = lazy(() => import("./pages/PlanSelectionPage"));
-const LandingPage = lazy(() => import("./pages/LandingPage"));
-const CommunityPage = lazy(() => import("./pages/CommunityPage"));
+import Index from "./pages/Index";
+import ScanPage from "./pages/ScanPage";
+import ManualPage from "./pages/ManualPage";
+import RecipesPage from "./pages/RecipesPage";
+import RecipeDetailPage from "./pages/RecipeDetailPage";
+import FavoritesPage from "./pages/FavoritesPage";
+import NotFound from "./pages/NotFound";
+import AuthPage from "./pages/AuthPage";
+import PremiumPage from "./pages/PremiumPage";
+import MealPlansPage from "./pages/MealPlansPage";
+import ProfilePage from "./pages/ProfilePage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import UpdatePasswordPage from "./pages/UpdatePasswordPage";
+import PlanSelectionPage from "./pages/PlanSelectionPage";
+import LandingPage from "./pages/LandingPage";
+import CommunityPage from "./pages/CommunityPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,8 +38,7 @@ const AppContent = () => {
   return (
     <>
       <OfflineIndicator />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
+      <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/community" element={<CommunityPage />} />
@@ -62,7 +57,6 @@ const AppContent = () => {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Suspense>
     </>
   );
 };
