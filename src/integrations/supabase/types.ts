@@ -145,6 +145,39 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_cache: {
+        Row: {
+          created_at: string
+          id: string
+          is_trial: boolean | null
+          product_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_trial?: boolean | null
+          product_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_trial?: boolean | null
+          product_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_name: string
