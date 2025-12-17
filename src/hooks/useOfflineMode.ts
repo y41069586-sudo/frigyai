@@ -6,14 +6,22 @@ interface CachedData {
   mealPlan: any;
   foodLog: any[];
   waterIntake: any;
+  trackerSettings: any;
   lastSync: string;
 }
 
 const CACHE_KEY = "frigai_offline_cache";
+const PENDING_SYNC_KEY = "frigai_pending_sync";
 
 export const useOfflineMode = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingSync, setPendingSync] = useState<any[]>([]);
+  const [pendingSync, setPendingSync] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const handleOnline = () => {
@@ -67,35 +75,58 @@ export const useOfflineMode = () => {
   }, [getCachedData]);
 
   const addPendingAction = useCallback((action: any) => {
-    const pending = JSON.parse(localStorage.getItem("frigai_pending_sync") || "[]");
-    pending.push({ ...action, timestamp: new Date().toISOString() });
-    localStorage.setItem("frigai_pending_sync", JSON.stringify(pending));
+    const pending = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+    const newAction = { ...action, timestamp: new Date().toISOString(), id: Date.now() };
+    pending.push(newAction);
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending));
     setPendingSync(pending);
   }, []);
 
   const syncPendingData = useCallback(async () => {
-    const pending = JSON.parse(localStorage.getItem("frigai_pending_sync") || "[]");
+    const pending = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
     if (pending.length === 0) return;
+
+    let syncedCount = 0;
+    const failedActions: any[] = [];
 
     // Process pending actions
     for (const action of pending) {
       try {
         // Here you would sync each action to the server
         console.log("Syncing action:", action);
+        syncedCount++;
       } catch (e) {
         console.error("Failed to sync action:", e);
+        failedActions.push(action);
       }
     }
 
-    // Clear pending after sync
-    localStorage.removeItem("frigai_pending_sync");
-    setPendingSync([]);
+    // Keep only failed actions for retry
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(failedActions));
+    setPendingSync(failedActions);
 
-    toast({
-      title: "✅ Synchronisiert!",
-      description: `${pending.length} Änderungen wurden gespeichert.`,
-    });
+    if (syncedCount > 0) {
+      toast({
+        title: "✅ Synchronisiert!",
+        description: `${syncedCount} Änderungen wurden gespeichert.`,
+      });
+    }
+
+    if (failedActions.length > 0) {
+      toast({
+        title: "⚠️ Einige Änderungen konnten nicht synchronisiert werden",
+        description: `${failedActions.length} Änderungen werden beim nächsten Versuch erneut synchronisiert.`,
+        variant: "destructive",
+      });
+    }
   }, []);
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && pendingSync.length > 0) {
+      syncPendingData();
+    }
+  }, [isOnline, pendingSync.length, syncPendingData]);
 
   return {
     isOnline,

@@ -45,7 +45,9 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}"],
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
@@ -53,8 +55,23 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: "supabase-api-cache",
               expiration: {
-                maxEntries: 100,
+                maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              },
+              networkTimeoutSeconds: 5,
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "supabase-functions-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 // 1 hour
               },
               networkTimeoutSeconds: 10,
               cacheableResponse: {
@@ -68,19 +85,52 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: "supabase-storage-cache",
               expiration: {
-                maxEntries: 50,
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              }
+            }
+          },
+          {
+            urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "image-cache",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              }
+            }
+          },
+          {
+            urlPattern: /\.(woff|woff2|ttf|eot)$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "font-cache",
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "google-fonts-stylesheets",
+              expiration: {
+                maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
               }
             }
           },
           {
-            urlPattern: /\.(png|jpg|jpeg|svg|gif|webp)$/i,
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "image-cache",
+              cacheName: "google-fonts-webfonts",
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
               }
             }
           }
