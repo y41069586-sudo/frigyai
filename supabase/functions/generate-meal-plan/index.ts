@@ -84,37 +84,40 @@ serve(async (req) => {
     const lunchCal = Math.round(targetCalories * 0.35);
     const dinnerCal = Math.round(targetCalories * 0.25);
 
-    const systemPrompt = `Du bist ein erfahrener Ernährungsberater für gesunde, kalorienarme Mahlzeiten zum Abnehmen.
+    const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen ABWECHSLUNGSREICHEN Wochenplan.
+
+WICHTIG - MAXIMALE ABWECHSLUNG:
+- JEDES Gericht muss EINZIGARTIG sein! KEINE Wiederholungen!
+- Alle 7 Frühstücke müssen KOMPLETT UNTERSCHIEDLICH sein (verschiedene Gerichte)
+- Alle 14 Snacks müssen KOMPLETT UNTERSCHIEDLICH sein
+- Alle 7 Mittagessen müssen KOMPLETT UNTERSCHIEDLICH sein
+- Alle 7 Abendessen müssen KOMPLETT UNTERSCHIEDLICH sein
+- Nutze verschiedene Proteinquellen: Hähnchen, Fisch, Rind, Schwein, Tofu, Eier, Hülsenfrüchte
+- Nutze verschiedene Beilagen: Reis, Pasta, Kartoffeln, Quinoa, Couscous, Brot
+- Nutze verschiedene Zubereitungsarten: gebraten, gekocht, gegrillt, gebacken, roh
 
 Ziele pro Tag:
 - Kalorien: ${targetCalories} kcal
-- Protein: ${targetProtein}g (NICHT darüber)
-- Kohlenhydrate: ${targetCarbs}g (möglichst genau treffen)
-- Fett: ${targetFat}g (NICHT darüber)
+- Protein: max ${targetProtein}g
+- Kohlenhydrate: ca. ${targetCarbs}g
+- Fett: max ${targetFat}g
 
-Makro-Regeln:
-- Protein: ${Math.round(targetProtein * 0.95)}g bis ${targetProtein}g
-- Kohlenhydrate: ${Math.round(targetCarbs * 0.95)}g bis ${Math.round(targetCarbs * 1.05)}g
-- Fett: ${Math.round(targetFat * 0.90)}g bis ${targetFat}g
+Kalorienverteilung:
+- Frühstück: ${breakfastCal} kcal
+- Snack: ${snackCal} kcal
+- Mittagessen: ${lunchCal} kcal
+- Snack: ${snackCal} kcal
+- Abendessen: ${dinnerCal} kcal
 
-Kalorienverteilung (Richtwerte):
-- Frühstück: ca. ${breakfastCal} kcal
-- Snack (vormittags): ca. ${snackCal} kcal
-- Mittagessen: ca. ${lunchCal} kcal
-- Snack (nachmittags): ca. ${snackCal} kcal
-- Abendessen: ca. ${dinnerCal} kcal
+Output-Regeln:
+- NUR valides JSON (kein Markdown).
+- 7 Tage: Montag bis Sonntag.
+- Pro Tag 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen.
+- Pro Mahlzeit max 3 Zutaten, max 2 kurze Steps.
+- Preise als Zahl (EUR).
 
-Output-Regeln (sehr wichtig):
-- Antworte NUR als validem JSON (kein Markdown, keine Erklärungen).
-- Genau 7 Tage: Montag bis Sonntag.
-- Pro Tag genau 5 Mahlzeiten in dieser Reihenfolge: Frühstück, Snack, Mittagessen, Snack, Abendessen.
-- Pro Mahlzeit maximal 3 Zutaten.
-- Pro Mahlzeit maximal 2 sehr kurze Zubereitungsschritte.
-- prepTime in Minuten.
-- Preise realistisch (EUR), als Zahl.
-
-JSON-Schema (Beispiel – muss valides JSON bleiben):
-{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"...","calories":123,"protein":12,"carbs":12,"fat":12,"prepTime":10,"ingredients":[{"name":"...","amount":"100g","price":1.2}],"instructions":["Schritt 1","Schritt 2"]}]}]}`;
+JSON-Schema:
+{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"...","calories":123,"protein":12,"carbs":12,"fat":12,"prepTime":10,"ingredients":[{"name":"...","amount":"100g","price":1.2}],"instructions":["Schritt 1"]}]}]}`;
 
     console.log('[GENERATE-MEAL-PLAN] Calling OpenAI with targets:', { targetCalories, targetProtein, targetCarbs, targetFat });
 
@@ -126,16 +129,14 @@ JSON-Schema (Beispiel – muss valides JSON bleiben):
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        // Force valid JSON output
         response_format: { type: 'json_object' },
-        // Keep within model output limits; prompt enforces compact output
         max_tokens: 4096,
-        temperature: 0.2,
+        temperature: 0.8, // Higher temperature for more variety
         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: `Erstelle jetzt den Wochenplan. Nutze kurze Namen/Steps. ${preferences ? `Präferenzen: ${preferences}` : ''}`,
+            content: `Erstelle einen kreativen, abwechslungsreichen Wochenplan. JEDES Gericht muss anders sein! ${preferences ? `Präferenzen: ${preferences}` : ''}`,
           },
         ],
       }),
