@@ -183,13 +183,13 @@ Antworte NUR mit validem JSON in diesem Format:
         model: 'gpt-4o-mini',
         // Force valid JSON output
         response_format: { type: 'json_object' },
-        max_tokens: 4500,
+        max_tokens: 16000,
         temperature: 0.2,
         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: `Erstelle einen abwechslungsreichen Wochenplan. Gib NUR JSON zurück (ohne Markdown). Jeder Tag muss ALLE 5 Mahlzeiten haben: Frühstück, Snack (vormittags), Mittagessen, Snack (nachmittags), Abendessen. ${preferences ? `Präferenzen: ${preferences}` : ''}`,
+            content: `Erstelle einen abwechslungsreichen Wochenplan für 7 Tage (Mo-So). Gib NUR JSON zurück. Jeder Tag muss ALLE 5 Mahlzeiten haben: Frühstück, Snack, Mittagessen, Snack, Abendessen. Halte Zutaten und Instruktionen kurz! ${preferences ? `Präferenzen: ${preferences}` : ''}`,
           },
         ],
       }),
