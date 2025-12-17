@@ -211,42 +211,24 @@ const MealPlansPage = () => {
       const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
       const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
       const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
-      
+
       console.log('[MEAL-PLAN] Using tracker settings:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
 
-      // Get current session for auth header
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No session');
-      }
-
-      // Use direct fetch with longer timeout (90 seconds) for meal plan generation
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-meal-plan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat }),
-        signal: controller.signal,
+      // Prefer invoke (handles auth + base URL). No artificial countdown/timeout.
+      const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
+        body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      if (error) {
+        throw error;
       }
 
-      const data = await response.json();
-
-      if (data?.mealPlan) {
-        setMealPlan(data.mealPlan);
-        localStorage.setItem('weeklyMealPlan', JSON.stringify(data.mealPlan));
+      if ((data as any)?.mealPlan) {
+        setMealPlan((data as any).mealPlan);
+        localStorage.setItem('weeklyMealPlan', JSON.stringify((data as any).mealPlan));
         toast({ title: t.newPlanGenerated, description: t.planWithKcal.replace('{kcal}', String(dailyCalories)) });
+      } else {
+        throw new Error('Invalid response');
       }
     } catch (error) {
       console.error('Error generating meal plan:', error);
@@ -492,10 +474,25 @@ const MealPlansPage = () => {
                     onClick={generateMealPlan}
                     disabled={isGenerating || !trackerSetup}
                   >
-                    {isGenerating ? (
-                      <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> <span>Noch {Math.max(0, 90 - generationSeconds)}s</span></>
-                    ) : (
-                      <><Calendar className="mr-1 h-4 w-4" /> <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span><span className="hidden sm:inline">{t.generateNewPlan}</span></>
+                    {isGenerating ? (() => {
+                      const expectedSeconds = 40;
+                      const remaining = Math.max(5, expectedSeconds - generationSeconds);
+                      const label = generationSeconds < expectedSeconds
+                        ? `Wird generiert… ca. ${remaining}s`
+                        : t.almostDone;
+
+                      return (
+                        <>
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          <span>{label}</span>
+                        </>
+                      );
+                    })() : (
+                      <>
+                        <Calendar className="mr-1 h-4 w-4" />
+                        <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span>
+                        <span className="hidden sm:inline">{t.generateNewPlan}</span>
+                      </>
                     )}
                   </Button>
                 </div>

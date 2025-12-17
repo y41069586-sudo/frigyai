@@ -175,9 +175,16 @@ Antworte NUR mit validem JSON in diesem Format:
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
+        // Force valid JSON output
+        response_format: { type: 'json_object' },
+        max_tokens: 8000,
+        temperature: 0.4,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Erstelle einen abwechslungsreichen Wochenplan für gesunde Mahlzeiten mit ${targetCalories} kcal und ${targetProtein}g Protein pro Tag. Jeder Tag muss ALLE 5 Mahlzeiten haben: Frühstück, Snack, Mittagessen, Snack, Abendessen. ${preferences ? `Präferenzen: ${preferences}` : ''}` }
+          {
+            role: 'user',
+            content: `Erstelle einen abwechslungsreichen Wochenplan. Gib NUR JSON zurück (ohne Markdown). Jeder Tag muss ALLE 5 Mahlzeiten haben: Frühstück, Snack (vormittags), Mittagessen, Snack (nachmittags), Abendessen. ${preferences ? `Präferenzen: ${preferences}` : ''}`,
+          },
         ],
       }),
     });
@@ -190,21 +197,22 @@ Antworte NUR mit validem JSON in diesem Format:
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
-    
+
     console.log('[GENERATE-MEAL-PLAN] Raw response:', content.substring(0, 500));
 
-    // Parse JSON from response
+    // Parse JSON from response (response_format guarantees JSON, keep fallback for safety)
     let mealPlan;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
+      mealPlan = JSON.parse(content);
+    } catch (_e) {
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON found in response');
         mealPlan = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+      } catch (parseError) {
+        console.error('[GENERATE-MEAL-PLAN] Parse error:', parseError);
+        throw new Error('Failed to parse meal plan');
       }
-    } catch (parseError) {
-      console.error('[GENERATE-MEAL-PLAN] Parse error:', parseError);
-      throw new Error('Failed to parse meal plan');
     }
 
     console.log('[GENERATE-MEAL-PLAN] Successfully generated meal plan');
