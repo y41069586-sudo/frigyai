@@ -219,7 +219,8 @@ JSON-Schema:
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           response_format: { type: 'json_object' },
-          max_tokens: 4096,
+          // Needs to be large enough for 7 days x 5 meals output
+          max_tokens: 12000,
           temperature: 0.7,
           messages: [
             { role: 'system', content: systemPrompt },
@@ -249,7 +250,14 @@ JSON-Schema:
     };
 
     const generateWithValidation = async () => {
-      const baseInstruction = `Erstelle einen kreativen, abwechslungsreichen Wochenplan. ${targetsBlock}\n\nStelle sicher, dass JEDER TAG die Tagesziele trifft (innerhalb des Zielbereichs) und NIEMALS überschreitet. ${preferences ? `Präferenzen: ${preferences}` : ''}`;
+      const baseInstruction = `Erstelle einen kreativen, abwechslungsreichen Wochenplan (Montag bis Sonntag) als EIN einziges JSON-Objekt. ${targetsBlock}
+
+WICHTIG:
+- Gib IMMER genau 7 Tage aus (Montag–Sonntag) und pro Tag genau 5 Mahlzeiten.
+- Keine Abkürzungen, keine Platzhalter, keine Erklärtexte – nur JSON.
+- Stelle sicher, dass JEDER TAG die Tagesziele innerhalb des Zielbereichs trifft und NIEMALS überschreitet.
+${preferences ? `
+Präferenzen: ${preferences}` : ''}`;
 
       // Attempt 1
       const first = await callOpenAI(baseInstruction);
@@ -261,8 +269,15 @@ JSON-Schema:
 
       console.warn('[GENERATE-MEAL-PLAN] Validation failed (attempt 1):', firstValidation.issues);
 
+      const missingDaysHint = firstValidation.issues.includes('mealPlan muss ein Array mit 7 Tagen sein')
+        ? 'Du hast NICHT alle 7 Tage geliefert. Liefere den kompletten Wochenplan Montag–Sonntag mit 5 Mahlzeiten pro Tag.'
+        : '';
+
       // Attempt 2 with explicit correction feedback
-      const correction = `KORREKTUR (du MUSST korrigieren):\nDie folgenden Tage verfehlen/überschreiten die Bereiche. Passe nur PORTIONEN/GRAMMANGABEN und falls nötig die Mahlzeiten so an, dass jeder Tag innerhalb der Bereiche liegt (nie überschreiten, nicht unter Minimum).\n- ${firstValidation.issues.slice(0, 25).join('\n- ')}`;
+      const correction = `KORREKTUR (du MUSST korrigieren):
+${missingDaysHint}
+Passe PORTIONEN/GRAMMANGABEN (und nur wenn nötig die Mahlzeiten) so an, dass jeder Tag innerhalb der Bereiche liegt (nie überschreiten, nicht unter Minimum).
+- ${firstValidation.issues.slice(0, 25).join('\n- ')}`;
 
       const second = await callOpenAI(`${baseInstruction}\n\n${correction}`);
       const secondValidation = validateMealPlan(second);
