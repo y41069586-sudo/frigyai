@@ -555,11 +555,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "premium-hint":
-        const premiumFeatures = [
-          "Unlimited fridge scans",
-          "AI nutrition chatbot",
-          "Weekly personalized meal plans",
-          "Auto shopping lists",
+        const premiumBenefits = [
+          { icon: "✨", text: "Unlimited fridge scans" },
+          { icon: "📅", text: "Weekly meal plans" },
+          { icon: "🛒", text: "Smart shopping lists" },
         ];
         return (
           <motion.div
@@ -569,43 +568,50 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             className="flex flex-col items-center text-center px-6 w-full"
           >
             <motion.div
-              className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
             >
-              <Sparkles className="w-8 h-8 text-white" />
+              <Sparkles className="w-7 h-7 text-primary" />
             </motion.div>
-            <h1 className="text-2xl font-bold mb-2">Unlock Premium</h1>
-            <p className="text-muted-foreground text-sm mb-6">Get the most out of FrigBuddy</p>
             
-            <div className="flex flex-col gap-2 w-full max-w-xs mb-6">
-              {premiumFeatures.map((feature, i) => (
-                <motion.div
-                  key={feature}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="flex items-center gap-2 text-left"
-                >
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span className="text-sm">{feature}</span>
-                </motion.div>
-              ))}
+            <h1 className="text-2xl font-bold mb-1">Want even more?</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              Premium unlocks the full experience
+            </p>
+            
+            <div className="w-full max-w-xs p-4 rounded-2xl border border-border bg-card/50 mb-6">
+              <div className="flex flex-col gap-3">
+                {premiumBenefits.map((benefit, i) => (
+                  <motion.div
+                    key={benefit.text}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-center gap-3 text-left"
+                  >
+                    <span className="text-lg">{benefit.icon}</span>
+                    <span className="text-sm">{benefit.text}</span>
+                  </motion.div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                7 days free, then €4.99/month
+              </p>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-4">
-              1 week free trial, then €4.99/month
-            </p>
-
             <div className="flex flex-col gap-3 w-full max-w-xs">
-              <Button onClick={goNext} className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
-                Start free trial
+              <Button 
+                onClick={goNext} 
+                className="w-full h-12 rounded-xl"
+              >
+                Continue with Free
               </Button>
               <button
                 onClick={goNext}
-                className="text-muted-foreground text-sm hover:text-foreground transition-colors"
+                className="text-primary text-sm font-medium hover:underline transition-all"
               >
-                Continue with Free
+                Try Premium free →
               </button>
             </div>
           </motion.div>
