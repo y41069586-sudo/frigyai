@@ -85,91 +85,36 @@ serve(async (req) => {
     const dinnerCal = Math.round(targetCalories * 0.25);
 
     const systemPrompt = `Du bist ein erfahrener Ernährungsberater für gesunde, kalorienarme Mahlzeiten zum Abnehmen.
-Generiere einen Wochenplan mit Frühstück, Snack (vormittags), Mittagessen, Snack (nachmittags) und Abendessen für jeden Tag (Montag bis Sonntag).
 
-WICHTIG - Tägliche Ziele:
+Ziele pro Tag:
 - Kalorien: ${targetCalories} kcal
-- Protein: ${targetProtein}g
-- Kohlenhydrate: ${targetCarbs}g
-- Fett: ${targetFat}g
+- Protein: ${targetProtein}g (NICHT darüber)
+- Kohlenhydrate: ${targetCarbs}g (möglichst genau treffen)
+- Fett: ${targetFat}g (NICHT darüber)
 
-Makro-Regeln (sehr wichtig):
-- Protein: zwischen ${Math.round(targetProtein * 0.95)}g und ${targetProtein}g (nicht darüber!)
-- Kohlenhydrate: zwischen ${Math.round(targetCarbs * 0.95)}g und ${Math.round(targetCarbs * 1.05)}g (möglichst genau treffen)
-- Fett: zwischen ${Math.round(targetFat * 0.90)}g und ${targetFat}g (nicht darüber!)
+Makro-Regeln:
+- Protein: ${Math.round(targetProtein * 0.95)}g bis ${targetProtein}g
+- Kohlenhydrate: ${Math.round(targetCarbs * 0.95)}g bis ${Math.round(targetCarbs * 1.05)}g
+- Fett: ${Math.round(targetFat * 0.90)}g bis ${targetFat}g
 
-Kalorienverteilung pro Mahlzeit:
-- Frühstück: ca. ${breakfastCal} kcal (20%)
-- Snack (vormittags): ca. ${snackCal} kcal (10%)
-- Mittagessen: ca. ${lunchCal} kcal (35%)
-- Snack (nachmittags): ca. ${snackCal} kcal (10%)
-- Abendessen: ca. ${dinnerCal} kcal (25%)
+Kalorienverteilung (Richtwerte):
+- Frühstück: ca. ${breakfastCal} kcal
+- Snack (vormittags): ca. ${snackCal} kcal
+- Mittagessen: ca. ${lunchCal} kcal
+- Snack (nachmittags): ca. ${snackCal} kcal
+- Abendessen: ca. ${dinnerCal} kcal
 
-Regeln:
-- Die Summe aller 5 Mahlzeiten pro Tag MUSS ungefähr ${targetCalories} kcal ergeben!
-- Makros pro Tag müssen die Makro-Regeln einhalten (insb. Protein/Fett NICHT über Ziel)!
-- Pro Mahlzeit: maximal 4 Zutaten, maximal 3 kurze Zubereitungsschritte (kompakt halten)
-- Jede Mahlzeit sollte ausgewogen sein und die Tagesziele unterstützen
-- Snacks: proteinreich und sättigend (z.B. Griechischer Joghurt, Quark, Eier, Skyr)
-- Einfache Zubereitung (unter 20 Minuten)
-- Realistische deutsche Gerichte
-- Genaue Zutaten mit Mengenangaben und realistischen Preisen
+Output-Regeln (sehr wichtig):
+- Antworte NUR als validem JSON (kein Markdown, keine Erklärungen).
+- Genau 7 Tage: Montag bis Sonntag.
+- Pro Tag genau 5 Mahlzeiten in dieser Reihenfolge: Frühstück, Snack, Mittagessen, Snack, Abendessen.
+- Pro Mahlzeit maximal 3 Zutaten.
+- Pro Mahlzeit maximal 2 sehr kurze Zubereitungsschritte.
+- prepTime in Minuten.
+- Preise realistisch (EUR), als Zahl.
 
-Antworte NUR mit validem JSON in diesem Format:
-{
-  "mealPlan": [
-    {
-      "day": "Montag",
-      "meals": [
-        {
-          "type": "Frühstück",
-          "name": "Name des Gerichts",
-          "calories": ${breakfastCal},
-          "protein": 25,
-          "carbs": 30,
-          "fat": 12,
-          "prepTime": 10,
-          "ingredients": [
-            {"name": "Zutat 1", "amount": "100g", "price": 1.50},
-            {"name": "Zutat 2", "amount": "50g", "price": 0.80}
-          ],
-          "instructions": ["Schritt 1", "Schritt 2", "Schritt 3"]
-        },
-        {
-          "type": "Snack",
-          "name": "Griechischer Joghurt mit Nüssen",
-          "calories": ${snackCal},
-          "protein": 15,
-          "carbs": 10,
-          "fat": 8,
-          "prepTime": 2,
-          "ingredients": [
-            {"name": "Griechischer Joghurt 0%", "amount": "150g", "price": 0.90}
-          ],
-          "instructions": ["Joghurt in Schüssel geben", "Mit Nüssen toppen"]
-        },
-        {
-          "type": "Mittagessen",
-          "name": "...",
-          "calories": ${lunchCal},
-          ...
-        },
-        {
-          "type": "Snack",
-          "name": "...",
-          "calories": ${snackCal},
-          ...
-        },
-        {
-          "type": "Abendessen",
-          "name": "...",
-          "calories": ${dinnerCal},
-          ...
-        }
-      ]
-    }
-  ]
-}`;
+JSON-Schema (Beispiel – muss valides JSON bleiben):
+{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"...","calories":123,"protein":12,"carbs":12,"fat":12,"prepTime":10,"ingredients":[{"name":"...","amount":"100g","price":1.2}],"instructions":["Schritt 1","Schritt 2"]}]}]}`;
 
     console.log('[GENERATE-MEAL-PLAN] Calling OpenAI with targets:', { targetCalories, targetProtein, targetCarbs, targetFat });
 
@@ -183,13 +128,14 @@ Antworte NUR mit validem JSON in diesem Format:
         model: 'gpt-4o-mini',
         // Force valid JSON output
         response_format: { type: 'json_object' },
-        max_tokens: 16000,
+        // Keep within model output limits; prompt enforces compact output
+        max_tokens: 4096,
         temperature: 0.2,
         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: `Erstelle einen abwechslungsreichen Wochenplan für 7 Tage (Mo-So). Gib NUR JSON zurück. Jeder Tag muss ALLE 5 Mahlzeiten haben: Frühstück, Snack, Mittagessen, Snack, Abendessen. Halte Zutaten und Instruktionen kurz! ${preferences ? `Präferenzen: ${preferences}` : ''}`,
+            content: `Erstelle jetzt den Wochenplan. Nutze kurze Namen/Steps. ${preferences ? `Präferenzen: ${preferences}` : ''}`,
           },
         ],
       }),
@@ -216,9 +162,19 @@ Antworte NUR mit validem JSON in diesem Format:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
+    const choice = data.choices?.[0];
+    const finishReason = choice?.finish_reason;
+    const content = choice?.message?.content || '';
 
+    console.log('[GENERATE-MEAL-PLAN] OpenAI finish_reason:', finishReason, 'content_length:', content.length);
     console.log('[GENERATE-MEAL-PLAN] Raw response:', content.substring(0, 500));
+
+    if (!content.trim()) {
+      throw new Error('Leere Antwort von OpenAI');
+    }
+    if (finishReason === 'length') {
+      throw new Error('OpenAI Antwort wurde abgeschnitten (zu lang)');
+    }
 
     // Parse JSON from response (response_format guarantees JSON, keep fallback for safety)
     let mealPlan;
