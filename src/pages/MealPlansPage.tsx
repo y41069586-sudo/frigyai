@@ -220,13 +220,34 @@ const MealPlansPage = () => {
 
       console.log('[MEAL-PLAN] Using tracker settings:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
 
-      // Prefer invoke (handles auth + base URL). No artificial countdown/timeout.
+      // Prefer invoke (handles base URL). We also pass the session token explicitly for reliability.
       const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
         body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
       });
 
       if (error) {
-        throw error;
+        // Try to extract the function's JSON error for a helpful message
+        let details = (error as any)?.message ? String((error as any).message) : String(error);
+
+        const resp: Response | undefined = (error as any)?.context;
+        if (resp && typeof (resp as any).text === 'function') {
+          try {
+            const text = await resp.text();
+            if (text) {
+              try {
+                const parsed = JSON.parse(text);
+                details = parsed?.error || parsed?.message || details;
+              } catch {
+                details = text;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        throw new Error(details);
       }
 
       if ((data as any)?.mealPlan) {
