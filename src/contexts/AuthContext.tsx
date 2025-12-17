@@ -23,12 +23,45 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Cache key for subscription status
+const SUBSCRIPTION_CACHE_KEY = 'frig_subscription_status';
+
+const getCachedSubscription = (): SubscriptionStatus | null => {
+  try {
+    const cached = localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Cache valid for 1 hour
+      if (parsed.timestamp && Date.now() - parsed.timestamp < 3600000) {
+        return parsed.data;
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setCachedSubscription = (data: SubscriptionStatus | null) => {
+  try {
+    if (data) {
+      localStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+    } else {
+      localStorage.removeItem(SUBSCRIPTION_CACHE_KEY);
+    }
+  } catch (e) {}
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  // Load cached subscription immediately for instant UI
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(getCachedSubscription);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const updateSubscriptionStatus = (data: SubscriptionStatus | null) => {
+    setSubscriptionStatus(data);
+    setCachedSubscription(data);
+  };
 
   const checkSubscription = async () => {
     if (!session) return;
@@ -41,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) throw error;
-      setSubscriptionStatus(data);
+      updateSubscriptionStatus(data);
     } catch (error) {
       console.error('Error checking subscription:', error);
     }
@@ -82,23 +115,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Check subscription on sign in
+        // Check subscription immediately on sign in (no delay)
         if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          setTimeout(() => {
-            if (mounted && currentSession) {
-              supabase.functions.invoke('check-subscription', {
-                headers: {
-                  Authorization: `Bearer ${currentSession.access_token}`,
-                },
-              }).then(({ data, error }) => {
-                if (!error && mounted) {
-                  setSubscriptionStatus(data);
-                }
-              });
+          supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${currentSession.access_token}`,
+            },
+          }).then(({ data, error }) => {
+            if (!error && mounted) {
+              updateSubscriptionStatus(data);
             }
-          }, 100);
+          });
         } else if (!currentSession) {
-          setSubscriptionStatus(null);
+          updateSubscriptionStatus(null);
         }
       }
     );
@@ -112,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('[Auth] Session error:', error.message);
         setSession(null);
         setUser(null);
-        setSubscriptionStatus(null);
+        updateSubscriptionStatus(null);
         // Clear potentially stale auth token
         localStorage.removeItem('sb-zbvrhyyjlnmeqtjbvtwt-auth-token');
         setLoading(false);
@@ -123,20 +152,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(initialSession?.user ?? null);
       setLoading(false);
       
+      // Check subscription immediately (no delay)
       if (initialSession?.user) {
-        setTimeout(() => {
-          if (mounted && initialSession) {
-            supabase.functions.invoke('check-subscription', {
-              headers: {
-                Authorization: `Bearer ${initialSession.access_token}`,
-              },
-            }).then(({ data, error }) => {
-              if (!error && mounted) {
-                setSubscriptionStatus(data);
-              }
-            });
+        supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${initialSession.access_token}`,
+          },
+        }).then(({ data, error }) => {
+          if (!error && mounted) {
+            updateSubscriptionStatus(data);
           }
-        }, 100);
+        });
       }
     });
 
@@ -157,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
           }).then(({ data, error }) => {
             if (!error && mounted) {
-              setSubscriptionStatus(data);
+              updateSubscriptionStatus(data);
             }
           });
         });
@@ -242,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Clear local state first to ensure UI updates
       setSession(null);
       setUser(null);
-      setSubscriptionStatus(null);
+      updateSubscriptionStatus(null); // Also clears cache
       
       // Then attempt server-side signout (may fail if session already invalid)
       await supabase.auth.signOut();
