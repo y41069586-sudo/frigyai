@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import frigLogo from "@/assets/frig-logo.png";
 
 const PlanSelectionPage = () => {
@@ -14,22 +15,23 @@ const PlanSelectionPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { saveProgress, isComplete } = useOnboardingProgress();
 
   // Check if user already has a plan selected or subscription
   useEffect(() => {
-    // If user already completed plan selection, go to home
-    const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
-    if (hasSelectedPlan) {
+    // If user already completed plan selection (in DB or localStorage), go to home
+    if (isComplete) {
       navigate('/', { replace: true });
       return;
     }
     
     // If already subscribed, mark complete and go home
     if (subscriptionStatus?.subscribed) {
+      saveProgress({ onboarding_complete: true });
       localStorage.setItem('onboardingComplete', 'true');
       navigate('/', { replace: true });
     }
-  }, [subscriptionStatus, navigate]);
+  }, [subscriptionStatus, navigate, isComplete, saveProgress]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -47,7 +49,9 @@ const PlanSelectionPage = () => {
     { icon: TrendingDown, text: t.weightProgressFeature || "Gewichtsverlauf & Fortschritt" },
   ];
 
-  const handleFreePlan = () => {
+  const handleFreePlan = async () => {
+    // Save to database AND localStorage
+    await saveProgress({ onboarding_complete: true });
     localStorage.setItem('onboardingComplete', 'true');
     navigate('/', { replace: true });
     toast({
@@ -72,6 +76,7 @@ const PlanSelectionPage = () => {
 
       if (data?.url) {
         // Mark as complete before redirect (will be confirmed after payment)
+        await saveProgress({ onboarding_complete: true });
         localStorage.setItem('onboardingComplete', 'true');
         window.open(data.url, '_blank');
       }
