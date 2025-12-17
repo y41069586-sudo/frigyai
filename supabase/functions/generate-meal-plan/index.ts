@@ -191,8 +191,22 @@ Antworte NUR mit validem JSON in diesem Format:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[GENERATE-MEAL-PLAN] AI gateway error:', response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+
+      let errorMessage = `OpenAI API Fehler: ${response.status}`;
+      try {
+        const parsed = JSON.parse(errorText);
+        const apiMsg = parsed?.error?.message;
+        if (apiMsg) errorMessage = `OpenAI API Fehler: ${apiMsg}`;
+      } catch {
+        // keep fallback message
+      }
+
+      console.error('[GENERATE-MEAL-PLAN] OpenAI error:', response.status, errorText);
+
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();
@@ -221,10 +235,15 @@ Antworte NUR mit validem JSON in diesem Format:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
-    console.error('[GENERATE-MEAL-PLAN] Error:', error);
-    return new Response(JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es erneut." }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[GENERATE-MEAL-PLAN] Error:', errorMessage);
+
+    return new Response(
+      JSON.stringify({ error: `Wochenplan konnte nicht erstellt werden: ${errorMessage}` }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
