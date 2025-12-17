@@ -37,6 +37,57 @@
 
   <body>
     <div id="root"></div>
+
+    <script>
+      (function () {
+        const FLAG = "fb_sw_recovered";
+
+        async function recover() {
+          try {
+            if (sessionStorage.getItem(FLAG)) return;
+            sessionStorage.setItem(FLAG, "1");
+
+            if ("serviceWorker" in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map((r) => r.unregister()));
+            }
+
+            if ("caches" in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+            }
+          } catch {
+            // ignore
+          } finally {
+            const url = new URL(window.location.href);
+            url.searchParams.set("recovered", String(Date.now()));
+            window.location.replace(url.toString());
+          }
+        }
+
+        function shouldRecover(message) {
+          return (
+            message.includes("Importing a module script failed") ||
+            message.includes("Failed to fetch dynamically imported module")
+          );
+        }
+
+        window.addEventListener(
+          "error",
+          (e) => {
+            const msg = String(e?.message || e?.error?.message || "");
+            if (shouldRecover(msg)) recover();
+          },
+          true
+        );
+
+        window.addEventListener("unhandledrejection", (e) => {
+          const msg = String(e?.reason?.message || e?.reason || "");
+          if (shouldRecover(msg)) recover();
+        });
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
