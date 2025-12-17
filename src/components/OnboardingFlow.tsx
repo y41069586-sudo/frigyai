@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
   ChevronRight, 
@@ -15,9 +15,11 @@ import {
   ShoppingCart,
   Heart,
   Users,
-  Sparkles
+  Sparkles,
+  Star
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
+import confetti from "canvas-confetti";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -49,11 +51,44 @@ interface UserData {
   healthSync: string | null;
 }
 
-// Animated Fridge Component
-const AnimatedFridge = ({ isOpen }: { isOpen: boolean }) => (
-  <div className="relative w-32 h-44">
+// Counter component that animates numbers
+const AnimatedCounter = ({ value, suffix = "" }: { value: number; suffix?: string }) => {
+  const [displayValue, setDisplayValue] = useState(value);
+  
+  useEffect(() => {
+    let start = displayValue;
+    const duration = 300;
+    const startTime = Date.now();
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + (value - start) * eased);
+      setDisplayValue(current);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [value]);
+  
+  return <span>{displayValue}{suffix}</span>;
+};
+
+// Animated Fridge Component with enhanced animations
+const AnimatedFridge = ({ isOpen, showScan }: { isOpen: boolean; showScan: boolean }) => (
+  <motion.div 
+    className="relative w-36 h-48"
+    animate={{ rotate: showScan ? [0, -2, 2, -1, 1, 0] : 0 }}
+    transition={{ duration: 0.5, delay: 0.2 }}
+  >
     <motion.div 
       className="absolute inset-0 bg-gradient-to-b from-slate-100 to-slate-200 rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden"
+      animate={{ boxShadow: showScan ? "0 0 30px rgba(34, 197, 94, 0.4)" : "0 10px 30px rgba(0,0,0,0.1)" }}
+      transition={{ duration: 0.5 }}
     >
       {/* Fridge handle */}
       <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-slate-400 rounded-full" />
@@ -111,7 +146,7 @@ const AnimatedFridge = ({ isOpen }: { isOpen: boolean }) => (
     </motion.div>
     
     {/* Scan lines */}
-    {isOpen && (
+    {showScan && (
       <motion.div 
         className="absolute inset-0 pointer-events-none"
         initial={{ opacity: 0 }}
@@ -119,16 +154,17 @@ const AnimatedFridge = ({ isOpen }: { isOpen: boolean }) => (
         transition={{ delay: 0.3 }}
       >
         <motion.div
-          className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent"
+          className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
           animate={{ top: ["10%", "90%", "10%"] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          style={{ boxShadow: "0 0 15px hsl(var(--primary))" }}
         />
       </motion.div>
     )}
-  </div>
+  </motion.div>
 );
 
-// Donut Chart Component for Macros
+// Enhanced Donut Chart Component with pulsing segments
 const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: number; fat: number; animate: boolean }) => {
   const total = protein + carbs + fat;
   const proteinPct = (protein / total) * 100;
@@ -142,24 +178,33 @@ const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: 
   const proteinOffset = 0;
   const carbsOffset = -proteinDash;
   const fatOffset = -(proteinDash + carbsDash);
+  
+  const [activeSegment, setActiveSegment] = useState<string | null>(null);
 
   return (
-    <div className="relative w-48 h-48">
+    <div className="relative w-52 h-52">
       <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
         {/* Background circle */}
-        <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
+        <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" strokeWidth="10" />
         
-        {/* Protein segment (green) */}
+        {/* Protein segment (green) - animated clockwise */}
         <motion.circle
           cx="50" cy="50" r="40"
           fill="none"
           stroke="hsl(160, 100%, 50%)"
-          strokeWidth="12"
+          strokeWidth={activeSegment === "protein" ? "14" : "11"}
           strokeDasharray={animate ? `${proteinDash} 251.2` : "0 251.2"}
           strokeDashoffset={proteinOffset}
+          strokeLinecap="round"
           initial={{ strokeDasharray: "0 251.2" }}
-          animate={{ strokeDasharray: animate ? `${proteinDash} 251.2` : "0 251.2" }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          animate={{ 
+            strokeDasharray: animate ? `${proteinDash} 251.2` : "0 251.2",
+            strokeWidth: activeSegment === "protein" ? 14 : 11
+          }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+          style={{ filter: activeSegment === "protein" ? "drop-shadow(0 0 8px hsl(160, 100%, 50%))" : "none" }}
+          onMouseEnter={() => setActiveSegment("protein")}
+          onMouseLeave={() => setActiveSegment(null)}
         />
         
         {/* Carbs segment (blue) */}
@@ -167,12 +212,19 @@ const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: 
           cx="50" cy="50" r="40"
           fill="none"
           stroke="hsl(220, 90%, 60%)"
-          strokeWidth="12"
+          strokeWidth={activeSegment === "carbs" ? "14" : "11"}
           strokeDasharray={animate ? `${carbsDash} 251.2` : "0 251.2"}
           strokeDashoffset={carbsOffset}
+          strokeLinecap="round"
           initial={{ strokeDasharray: "0 251.2" }}
-          animate={{ strokeDasharray: animate ? `${carbsDash} 251.2` : "0 251.2" }}
-          transition={{ duration: 0.8, delay: 0.5 }}
+          animate={{ 
+            strokeDasharray: animate ? `${carbsDash} 251.2` : "0 251.2",
+            strokeWidth: activeSegment === "carbs" ? 14 : 11
+          }}
+          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+          style={{ filter: activeSegment === "carbs" ? "drop-shadow(0 0 8px hsl(220, 90%, 60%))" : "none" }}
+          onMouseEnter={() => setActiveSegment("carbs")}
+          onMouseLeave={() => setActiveSegment(null)}
         />
         
         {/* Fat segment (yellow) */}
@@ -180,12 +232,19 @@ const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: 
           cx="50" cy="50" r="40"
           fill="none"
           stroke="hsl(45, 100%, 55%)"
-          strokeWidth="12"
+          strokeWidth={activeSegment === "fat" ? "14" : "11"}
           strokeDasharray={animate ? `${fatDash} 251.2` : "0 251.2"}
           strokeDashoffset={fatOffset}
+          strokeLinecap="round"
           initial={{ strokeDasharray: "0 251.2" }}
-          animate={{ strokeDasharray: animate ? `${fatDash} 251.2` : "0 251.2" }}
-          transition={{ duration: 0.8, delay: 0.8 }}
+          animate={{ 
+            strokeDasharray: animate ? `${fatDash} 251.2` : "0 251.2",
+            strokeWidth: activeSegment === "fat" ? 14 : 11
+          }}
+          transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}
+          style={{ filter: activeSegment === "fat" ? "drop-shadow(0 0 8px hsl(45, 100%, 55%))" : "none" }}
+          onMouseEnter={() => setActiveSegment("fat")}
+          onMouseLeave={() => setActiveSegment(null)}
         />
       </svg>
       
@@ -194,57 +253,88 @@ const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: 
         className="absolute inset-0 flex flex-col items-center justify-center"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: animate ? 1 : 0, scale: animate ? 1 : 0.8 }}
-        transition={{ delay: 1.2 }}
+        transition={{ delay: 1.2, type: "spring" }}
       >
-        <span className="text-2xl font-bold">1,800</span>
-        <span className="text-xs text-muted-foreground">kcal/day</span>
+        <span className="text-3xl font-bold">1,800</span>
+        <span className="text-xs text-muted-foreground/60">kcal/day</span>
       </motion.div>
+      
+      {/* Tooltip */}
+      <AnimatePresence>
+        {activeSegment && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-card px-3 py-1.5 rounded-lg shadow-lg border border-border text-xs whitespace-nowrap"
+          >
+            This adjusts automatically.
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// Line Chart for Comparison
+// Line Chart that draws instead of fades
 const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
-  const withoutData = [50, 55, 45, 60, 40, 55, 48, 62, 42, 58];
-  const withData = [50, 52, 54, 56, 59, 62, 66, 70, 75, 80];
+  const withoutData = [50, 55, 45, 60, 40, 55, 48];
+  const withData = [50, 52, 55, 58, 63, 68, 75];
 
   return (
-    <div className="relative w-full h-40 bg-card rounded-2xl p-4 border border-border">
-      <svg viewBox="0 0 200 80" className="w-full h-full" preserveAspectRatio="none">
+    <div className="relative w-full h-48 bg-card rounded-2xl p-4 border border-border overflow-hidden">
+      {/* Soft gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
+      
+      <svg viewBox="0 0 200 100" className="w-full h-full" preserveAspectRatio="none">
         {/* Grid lines */}
-        {[0, 1, 2, 3].map((i) => (
-          <line key={i} x1="0" y1={i * 20 + 10} x2="200" y2={i * 20 + 10} stroke="hsl(var(--border))" strokeWidth="0.5" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <line key={i} x1="0" y1={i * 25} x2="200" y2={i * 25} stroke="hsl(var(--border))" strokeWidth="0.3" strokeDasharray="4 4" />
         ))}
         
-        {/* Without Frigy - jagged gray line */}
+        {/* Without Frigy - jagged gray line (draws, stops early) */}
         <motion.path
-          d={`M ${withoutData.map((v, i) => `${i * 22},${80 - v}`).join(' L ')}`}
+          d={`M ${withoutData.map((v, i) => `${i * 28 + 10},${100 - v}`).join(' L ')}`}
           fill="none"
           stroke="hsl(var(--muted-foreground))"
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
+          strokeLinejoin="round"
           initial={{ pathLength: 0 }}
-          animate={{ pathLength: animate ? 1 : 0 }}
-          transition={{ duration: 1.5, delay: 0.2 }}
+          animate={{ pathLength: animate ? 0.7 : 0 }}
+          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
         />
         
-        {/* With Frigy - smooth green line with glow */}
+        {/* With Frigy - smooth rising line with glow (draws all the way) */}
         <motion.path
-          d={`M ${withData.map((v, i) => `${i * 22},${80 - v}`).join(' L ')}`}
+          d={`M ${withData.map((v, i) => `${i * 28 + 10},${100 - v}`).join(' L ')}`}
           fill="none"
           stroke="hsl(var(--primary))"
           strokeWidth="3"
           strokeLinecap="round"
-          filter="url(#glow)"
+          strokeLinejoin="round"
+          filter="url(#lineGlow)"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: animate ? 1 : 0 }}
-          transition={{ duration: 1.5, delay: 0.5 }}
+          transition={{ duration: 1.8, delay: 0.6, ease: "easeOut" }}
+        />
+        
+        {/* End dot for "With Frigy" */}
+        <motion.circle
+          cx={6 * 28 + 10}
+          cy={100 - withData[6]}
+          r="5"
+          fill="hsl(var(--primary))"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: animate ? 1 : 0, opacity: animate ? 1 : 0 }}
+          transition={{ duration: 0.3, delay: 2 }}
+          filter="url(#lineGlow)"
         />
         
         {/* Glow filter */}
         <defs>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+          <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -253,20 +343,54 @@ const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
         </defs>
       </svg>
       
-      {/* Legend */}
-      <div className="absolute bottom-2 left-4 right-4 flex justify-between text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-muted-foreground rounded" />
-          <span className="text-muted-foreground">Without Frigy</span>
+      {/* Legend at bottom */}
+      <div className="absolute bottom-3 left-4 right-4 flex justify-between text-xs">
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0.5 bg-muted-foreground rounded" />
+          <span className="text-muted-foreground/60">Without Frigy</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-primary rounded" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0.5 bg-primary rounded" style={{ boxShadow: "0 0 8px hsl(var(--primary))" }} />
           <span className="text-primary font-medium">With Frigy</span>
         </div>
       </div>
     </div>
   );
 };
+
+// Progress Dots Component
+const ProgressDots = ({ current, total }: { current: number; total: number }) => (
+  <div className="flex gap-1.5 justify-center">
+    {Array.from({ length: total }).map((_, i) => (
+      <motion.div
+        key={i}
+        className={`h-1.5 rounded-full transition-all duration-300 ${
+          i === current 
+            ? "w-6 bg-primary" 
+            : i < current 
+              ? "w-1.5 bg-primary/40" 
+              : "w-1.5 bg-muted"
+        }`}
+        animate={{ scale: i === current ? [1, 1.1, 1] : 1 }}
+        transition={{ duration: 0.3 }}
+      />
+    ))}
+  </div>
+);
+
+// Card wrapper for consistent card-based animation
+const StepCard = ({ children, step }: { children: React.ReactNode; step: string }) => (
+  <motion.div
+    key={step}
+    initial={{ opacity: 0, y: 60, scale: 0.95 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+    className="w-full"
+  >
+    {children}
+  </motion.div>
+);
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("hero");
@@ -281,6 +405,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     healthSync: null,
   });
   const [fridgeOpen, setFridgeOpen] = useState(false);
+  const [fridgeScan, setFridgeScan] = useState(false);
   const [macroAnimate, setMacroAnimate] = useState(false);
   const [chartAnimate, setChartAnimate] = useState(false);
 
@@ -301,18 +426,29 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   ];
 
   const currentIndex = steps.indexOf(currentStep);
-  const progress = ((currentIndex + 1) / steps.length) * 100;
 
   // Trigger animations when entering certain steps
   useEffect(() => {
     if (currentStep === "fridge-intro") {
-      setTimeout(() => setFridgeOpen(true), 500);
+      setTimeout(() => setFridgeOpen(true), 300);
+      setTimeout(() => setFridgeScan(true), 800);
     }
     if (currentStep === "macro-visual") {
       setTimeout(() => setMacroAnimate(true), 300);
     }
     if (currentStep === "comparison") {
-      setTimeout(() => setChartAnimate(true), 300);
+      setTimeout(() => setChartAnimate(true), 400);
+    }
+    if (currentStep === "done") {
+      // Trigger confetti
+      setTimeout(() => {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["hsl(142, 76%, 36%)", "hsl(142, 69%, 58%)", "hsl(43, 96%, 56%)"]
+        });
+      }, 400);
     }
   }, [currentStep]);
 
@@ -353,218 +489,230 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     switch (currentStep) {
       case "hero":
         return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6"
-          >
-            <motion.img
-              src={frigLogo}
-              alt="Frigy"
-              className="w-20 h-20 rounded-[22%] mb-6"
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1, type: "spring" }}
-            />
-            
-            <motion.h1
-              className="text-3xl font-bold mb-2"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              Eat smarter. Not harder.
-            </motion.h1>
-            
-            <motion.p
-              className="text-muted-foreground mb-8"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              Fridge-based meal planning that fits your macros.
-            </motion.p>
-            
-            {/* Comparison cards */}
-            <div className="flex gap-3 w-full max-w-sm mb-6">
-              {/* Without Frigy */}
-              <motion.div
-                className="flex-1 p-4 rounded-2xl bg-muted/50 border border-border"
-                initial={{ x: -30, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <X className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Without Frigy</span>
-                </div>
-                <ul className="space-y-2 text-left text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2">
-                    <span className="text-xs">•</span> Random meals
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-xs">•</span> Missed macros
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-xs">•</span> Food waste
-                  </li>
-                </ul>
-              </motion.div>
+          <StepCard step="hero">
+            <div className="flex flex-col items-center text-center px-6">
+              <motion.img
+                src={frigLogo}
+                alt="Frigy"
+                className="w-20 h-20 rounded-[22%] mb-6 shadow-lg"
+                initial={{ scale: 0.5, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, type: "spring", damping: 15 }}
+              />
               
-              {/* With Frigy */}
-              <motion.div
-                className="flex-1 p-4 rounded-2xl bg-primary/10 border-2 border-primary/30"
-                initial={{ x: 30, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.5 }}
+              <motion.h1
+                className="text-3xl font-bold mb-2"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <Check className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">With Frigy</span>
-                </div>
-                <ul className="space-y-2 text-left text-sm">
-                  <li className="flex items-center gap-2">
-                    <span className="text-primary text-xs">✓</span> Meals from your fridge
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-primary text-xs">✓</span> Macro-matched plans
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-primary text-xs">✓</span> Smart shopping list
-                  </li>
-                </ul>
-              </motion.div>
+                Eat smarter. Not harder.
+              </motion.h1>
+              
+              <motion.p
+                className="text-muted-foreground/60 text-sm mb-8"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                Fridge-based meal planning that fits your macros.
+              </motion.p>
+              
+              {/* Comparison cards */}
+              <div className="flex gap-3 w-full max-w-sm mb-4">
+                {/* Without Frigy */}
+                <motion.div
+                  className="flex-1 p-4 rounded-2xl bg-muted/30 border border-border"
+                  initial={{ x: -30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, type: "spring" }}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <X className="w-4 h-4 text-muted-foreground/60" />
+                    <span className="text-xs font-medium text-muted-foreground/60">Without Frigy</span>
+                  </div>
+                  <ul className="space-y-2 text-left text-xs text-muted-foreground/60">
+                    <li>• Random meals</li>
+                    <li>• Missed macros</li>
+                    <li>• Food waste</li>
+                  </ul>
+                </motion.div>
+                
+                {/* With Frigy */}
+                <motion.div
+                  className="flex-1 p-4 rounded-2xl bg-primary/10 border-2 border-primary/30"
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.5, type: "spring" }}
+                  whileHover={{ scale: 1.02, borderColor: "hsl(var(--primary))" }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Check className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-medium text-primary">With Frigy</span>
+                  </div>
+                  <ul className="space-y-2 text-left text-xs">
+                    <li className="flex items-center gap-1">
+                      <span className="text-primary">✓</span> Meals from your fridge
+                    </li>
+                    <li className="flex items-center gap-1">
+                      <span className="text-primary">✓</span> Macro-matched plans
+                    </li>
+                    <li className="flex items-center gap-1">
+                      <span className="text-primary">✓</span> Smart shopping list
+                    </li>
+                  </ul>
+                </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </StepCard>
         );
 
       case "goal":
         const goalOptions = [
-          { id: "lose", label: "Lose weight", icon: <Scale className="w-6 h-6" />, emoji: "🔥" },
-          { id: "maintain", label: "Maintain weight", icon: <Target className="w-6 h-6" />, emoji: "⚖️" },
-          { id: "gain", label: "Gain muscle", icon: <Dumbbell className="w-6 h-6" />, emoji: "💪" },
-          { id: "healthier", label: "Eat healthier", icon: <Leaf className="w-6 h-6" />, emoji: "🥗" },
+          { id: "lose", label: "Lose weight", emoji: "🔥" },
+          { id: "maintain", label: "Maintain weight", emoji: "⚖️" },
+          { id: "gain", label: "Gain muscle", emoji: "💪" },
+          { id: "healthier", label: "Eat healthier", emoji: "🥗" },
         ];
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">What's your goal?</h1>
-            <p className="text-muted-foreground text-sm mb-6">Select one to personalize your experience</p>
-            
-            <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-              {goalOptions.map((option, i) => (
-                <motion.button
-                  key={option.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setUserData({ ...userData, goal: option.id })}
-                  className={`flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all ${
-                    userData.goal === option.id
-                      ? "border-primary bg-primary/10 shadow-lg"
-                      : "border-border bg-card hover:border-primary/50"
-                  }`}
-                >
-                  <span className="text-3xl">{option.emoji}</span>
-                  <span className="text-sm font-medium">{option.label}</span>
-                  {userData.goal === option.id && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-2 right-2"
+          <StepCard step="goal">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">What's your goal?</h1>
+              <p className="text-muted-foreground/60 text-xs mb-6">Select one to personalize your experience</p>
+              
+              <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                {goalOptions.map((option, i) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => setUserData({ ...userData, goal: option.id })}
+                    className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all ${
+                      userData.goal === option.id
+                        ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+                        : "border-border bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    <motion.span 
+                      className="text-3xl"
+                      animate={{ 
+                        scale: userData.goal === option.id ? [1, 1.2, 1] : 1,
+                        rotate: userData.goal === option.id ? [0, 10, -10, 0] : 0
+                      }}
+                      transition={{ duration: 0.4 }}
                     >
-                      <Check className="w-4 h-4 text-primary" />
-                    </motion.div>
-                  )}
-                </motion.button>
-              ))}
+                      {option.emoji}
+                    </motion.span>
+                    <span className="text-sm font-medium">{option.label}</span>
+                    {userData.goal === option.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-3 h-3 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             </div>
-          </motion.div>
+          </StepCard>
         );
 
       case "body-basics":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Just the basics</h1>
-            <p className="text-muted-foreground text-sm mb-8">Used only to calculate your macros</p>
-            
-            <div className="w-full max-w-sm space-y-6">
-              {/* Height */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Height</span>
-                  <span className="text-lg font-bold text-primary">{userData.height} cm</span>
+          <StepCard step="body-basics">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Just the basics</h1>
+              <p className="text-muted-foreground/40 text-xs mb-8">Used only to calculate your macros</p>
+              
+              <div className="w-full max-w-sm space-y-8">
+                {/* Height */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-muted-foreground/60">Height</span>
+                    <motion.span 
+                      className="text-xl font-bold text-primary"
+                      key={userData.height}
+                    >
+                      <AnimatedCounter value={userData.height} suffix=" cm" />
+                    </motion.span>
+                  </div>
+                  <input
+                    type="range"
+                    min="140"
+                    max="220"
+                    value={userData.height}
+                    onChange={(e) => setUserData({ ...userData, height: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="140"
-                  max="220"
-                  value={userData.height}
-                  onChange={(e) => setUserData({ ...userData, height: parseInt(e.target.value) })}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
+                
+                {/* Weight */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-muted-foreground/60">Weight</span>
+                    <motion.span 
+                      className="text-xl font-bold text-primary"
+                      key={userData.weight}
+                    >
+                      <AnimatedCounter value={userData.weight} suffix=" kg" />
+                    </motion.span>
+                  </div>
+                  <input
+                    type="range"
+                    min="40"
+                    max="150"
+                    value={userData.weight}
+                    onChange={(e) => setUserData({ ...userData, weight: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
+                
+                {/* Age */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-muted-foreground/60">Age</span>
+                    <motion.span 
+                      className="text-xl font-bold text-primary"
+                      key={userData.age}
+                    >
+                      <AnimatedCounter value={userData.age} suffix=" years" />
+                    </motion.span>
+                  </div>
+                  <input
+                    type="range"
+                    min="13"
+                    max="80"
+                    value={userData.age}
+                    onChange={(e) => setUserData({ ...userData, age: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
               </div>
               
-              {/* Weight */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Weight</span>
-                  <span className="text-lg font-bold text-primary">{userData.weight} kg</span>
-                </div>
-                <input
-                  type="range"
-                  min="40"
-                  max="150"
-                  value={userData.weight}
-                  onChange={(e) => setUserData({ ...userData, weight: parseInt(e.target.value) })}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
-              
-              {/* Age */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Age</span>
-                  <span className="text-lg font-bold text-primary">{userData.age} years</span>
-                </div>
-                <input
-                  type="range"
-                  min="13"
-                  max="80"
-                  value={userData.age}
-                  onChange={(e) => setUserData({ ...userData, age: parseInt(e.target.value) })}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
+              <motion.p
+                className="text-xs text-muted-foreground/40 mt-8 flex items-center gap-1"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <span>🔒</span> Your data stays private
+              </motion.p>
             </div>
-            
-            <motion.p
-              className="text-xs text-muted-foreground mt-6 flex items-center gap-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <span>🔒</span> Your data stays private
-            </motion.p>
-          </motion.div>
+          </StepCard>
         );
 
       case "planning-setup":
         const activityLevels = [
-          { id: "low", label: "Low", desc: "Desk job, little exercise", emoji: "🪑" },
-          { id: "medium", label: "Medium", desc: "Exercise 2-3x/week", emoji: "🚶" },
-          { id: "high", label: "High", desc: "Daily exercise", emoji: "🏃" },
+          { id: "low", label: "Low", emoji: "🪑" },
+          { id: "medium", label: "Medium", emoji: "🚶" },
+          { id: "high", label: "High", emoji: "🏃" },
         ];
         const macroOptions = [
           { id: "balanced", label: "Balanced", emoji: "⚖️" },
@@ -573,63 +721,72 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           { id: "custom", label: "Custom", emoji: "⚙️" },
         ];
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">How should we plan?</h1>
-            <p className="text-muted-foreground text-sm mb-6">Set your activity and macro preference</p>
-            
-            {/* Activity Level */}
-            <div className="w-full max-w-sm mb-6">
-              <span className="text-sm font-medium block text-left mb-3">Activity Level</span>
-              <div className="flex gap-2">
-                {activityLevels.map((level) => (
-                  <motion.button
-                    key={level.id}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setUserData({ ...userData, activityLevel: level.id })}
-                    className={`flex-1 p-3 rounded-xl border-2 transition-all ${
-                      userData.activityLevel === level.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card"
-                    }`}
-                  >
-                    <span className="text-2xl block mb-1">{level.emoji}</span>
-                    <span className="text-xs font-medium">{level.label}</span>
-                  </motion.button>
-                ))}
+          <StepCard step="planning-setup">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">How should we plan?</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Set your activity and macro preference</p>
+              
+              {/* Activity Level */}
+              <div className="w-full max-w-sm mb-6">
+                <span className="text-xs font-medium block text-left mb-3 text-muted-foreground/60">Activity Level</span>
+                <div className="flex gap-2">
+                  {activityLevels.map((level, i) => (
+                    <motion.button
+                      key={level.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setUserData({ ...userData, activityLevel: level.id })}
+                      className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                        userData.activityLevel === level.id
+                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <motion.span 
+                        className="text-2xl block mb-1"
+                        animate={{ 
+                          scale: userData.activityLevel === level.id ? [1, 1.2, 1] : 1 
+                        }}
+                      >
+                        {level.emoji}
+                      </motion.span>
+                      <span className="text-xs font-medium">{level.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Macro Focus */}
+              <div className="w-full max-w-sm">
+                <span className="text-xs font-medium block text-left mb-3 text-muted-foreground/60">Macro Focus</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {macroOptions.map((option, i) => (
+                    <motion.button
+                      key={option.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + i * 0.08 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setUserData({ ...userData, macroFocus: option.id })}
+                      className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        userData.macroFocus === option.id
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <span className="text-xl">{option.emoji}</span>
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             </div>
-            
-            {/* Macro Focus */}
-            <div className="w-full max-w-sm">
-              <span className="text-sm font-medium block text-left mb-3">Macro Focus</span>
-              <div className="grid grid-cols-2 gap-2">
-                {macroOptions.map((option) => (
-                  <motion.button
-                    key={option.id}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setUserData({ ...userData, macroFocus: option.id })}
-                    className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      userData.macroFocus === option.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card"
-                    }`}
-                  >
-                    <span className="text-xl">{option.emoji}</span>
-                    <span className="text-sm font-medium">{option.label}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
+          </StepCard>
         );
 
       case "macro-visual":
-        // Calculate macros based on preference
         const getMacros = () => {
           switch (userData.macroFocus) {
             case "high-protein": return { protein: 40, carbs: 30, fat: 30 };
@@ -640,209 +797,231 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         const macros = getMacros();
         
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Your macros, visualized</h1>
-            <p className="text-muted-foreground text-sm mb-6">Based on your profile</p>
-            
-            <MacroDonut protein={macros.protein} carbs={macros.carbs} fat={macros.fat} animate={macroAnimate} />
-            
-            {/* Legend */}
-            <div className="flex gap-6 mt-6">
-              <motion.div 
-                className="flex items-center gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
-                transition={{ delay: 1 }}
+          <StepCard step="macro-visual">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Your macros, visualized</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Based on your profile</p>
+              
+              <MacroDonut protein={macros.protein} carbs={macros.carbs} fat={macros.fat} animate={macroAnimate} />
+              
+              {/* Legend */}
+              <div className="flex gap-5 mt-8">
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
+                  transition={{ delay: 1 }}
+                >
+                  <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160, 100%, 50%)' }} />
+                  <span className="text-xs text-muted-foreground/60">Protein {macros.protein}%</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
+                  transition={{ delay: 1.1 }}
+                >
+                  <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(220, 90%, 60%)' }} />
+                  <span className="text-xs text-muted-foreground/60">Carbs {macros.carbs}%</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
+                  transition={{ delay: 1.2 }}
+                >
+                  <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(45, 100%, 55%)' }} />
+                  <span className="text-xs text-muted-foreground/60">Fat {macros.fat}%</span>
+                </motion.div>
+              </div>
+              
+              <motion.p
+                className="text-xs text-muted-foreground/40 mt-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: macroAnimate ? 1 : 0 }}
+                transition={{ delay: 1.5 }}
               >
-                <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160, 100%, 50%)' }} />
-                <span className="text-sm">Protein {macros.protein}%</span>
-              </motion.div>
-              <motion.div 
-                className="flex items-center gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
-                transition={{ delay: 1.1 }}
-              >
-                <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(220, 90%, 60%)' }} />
-                <span className="text-sm">Carbs {macros.carbs}%</span>
-              </motion.div>
-              <motion.div 
-                className="flex items-center gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
-                transition={{ delay: 1.2 }}
-              >
-                <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(45, 100%, 55%)' }} />
-                <span className="text-sm">Fat {macros.fat}%</span>
-              </motion.div>
+                Frigy adjusts this automatically with your weekly plans.
+              </motion.p>
             </div>
-            
-            <motion.p
-              className="text-xs text-muted-foreground mt-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: macroAnimate ? 1 : 0 }}
-              transition={{ delay: 1.5 }}
-            >
-              Frigy adjusts this automatically with your weekly plans.
-            </motion.p>
-          </motion.div>
+          </StepCard>
         );
 
       case "fridge-intro":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Let your fridge decide.</h1>
-            <p className="text-muted-foreground text-sm mb-8">
-              We build meals from what you already have.
-            </p>
-            
-            <AnimatedFridge isOpen={fridgeOpen} />
-            
-            <div className="flex flex-col gap-3 w-full max-w-xs mt-8">
-              <Button onClick={goNext} className="w-full h-12 rounded-xl">
-                <Camera className="w-5 h-5 mr-2" />
-                Scan fridge now
-              </Button>
-              <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground">
-                Skip for now
-              </Button>
+          <StepCard step="fridge-intro">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Let your fridge decide.</h1>
+              <p className="text-muted-foreground/60 text-xs mb-8">
+                We build meals from what you already have.
+              </p>
+              
+              <AnimatedFridge isOpen={fridgeOpen} showScan={fridgeScan} />
+              
+              <motion.p
+                className="text-xs text-muted-foreground/40 mt-6 mb-4 italic"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+              >
+                "I'll handle the planning. You just eat."
+              </motion.p>
+              
+              <motion.p
+                className="text-[10px] text-muted-foreground/30 mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+              >
+                Optional. Your plan works without this.
+              </motion.p>
+              
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <Button onClick={goNext} className="w-full h-12 rounded-xl">
+                  <Camera className="w-5 h-5 mr-2" />
+                  Scan fridge now
+                </Button>
+                <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground/60 text-sm">
+                  Skip for now
+                </Button>
+              </div>
             </div>
-          </motion.div>
+          </StepCard>
         );
 
       case "permissions":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <motion.div
-              className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Camera className="w-8 h-8 text-primary" />
-            </motion.div>
-            
-            <h1 className="text-2xl font-bold mb-2">Enable camera</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              Required for scanning your fridge
-            </p>
-            
-            <div className="w-full max-w-sm space-y-3">
-              {/* Camera permission */}
-              <div className="flex items-center justify-between p-4 rounded-2xl border-2 border-border bg-card">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Camera className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <span className="font-medium block text-sm">Camera access</span>
-                    <span className="text-xs text-muted-foreground">For fridge scanning</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setUserData({ ...userData, cameraPermission: !userData.cameraPermission })}
-                  className={`w-12 h-7 rounded-full transition-colors ${
-                    userData.cameraPermission ? "bg-primary" : "bg-muted"
-                  }`}
-                >
-                  <motion.div
-                    className="w-5 h-5 bg-card rounded-full shadow-sm"
-                    animate={{ x: userData.cameraPermission ? 22 : 2 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                </button>
-              </div>
+          <StepCard step="permissions">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Camera className="w-8 h-8 text-primary" />
+              </motion.div>
               
-              {/* Optional health sync */}
-              <div className="pt-4">
-                <p className="text-xs text-muted-foreground mb-3">Optional: Sync your health data</p>
-                <div className="flex gap-2">
+              <h1 className="text-2xl font-bold mb-1">Enable camera</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                Required for scanning your fridge
+              </p>
+              
+              <div className="w-full max-w-sm space-y-3">
+                {/* Camera permission */}
+                <motion.div 
+                  className="flex items-center justify-between p-4 rounded-2xl border-2 border-border bg-card"
+                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <Camera className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <span className="font-medium block text-sm">Camera access</span>
+                      <span className="text-[10px] text-muted-foreground/40">For fridge scanning</span>
+                    </div>
+                  </div>
                   <button
-                    onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "apple" ? null : "apple" })}
-                    className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      userData.healthSync === "apple" ? "border-red-400 bg-red-50" : "border-border bg-card"
+                    onClick={() => setUserData({ ...userData, cameraPermission: !userData.cameraPermission })}
+                    className={`w-12 h-7 rounded-full transition-all ${
+                      userData.cameraPermission ? "bg-primary shadow-lg shadow-primary/30" : "bg-muted"
                     }`}
                   >
-                    <Apple className="w-5 h-5 text-red-500" />
-                    <span className="text-sm">Apple Health</span>
+                    <motion.div
+                      className="w-5 h-5 bg-card rounded-full shadow-sm"
+                      animate={{ x: userData.cameraPermission ? 22 : 2 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
                   </button>
-                  <button
-                    onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "google" ? null : "google" })}
-                    className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      userData.healthSync === "google" ? "border-green-400 bg-green-50" : "border-border bg-card"
-                    }`}
-                  >
-                    <Smartphone className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Google Fit</span>
-                  </button>
+                </motion.div>
+                
+                {/* Optional health sync */}
+                <div className="pt-4">
+                  <p className="text-[10px] text-muted-foreground/40 mb-3">Optional: Sync your health data</p>
+                  <div className="flex gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "apple" ? null : "apple" })}
+                      className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        userData.healthSync === "apple" ? "border-red-400 bg-red-50 dark:bg-red-900/20" : "border-border bg-card"
+                      }`}
+                    >
+                      <Apple className="w-5 h-5 text-red-500" />
+                      <span className="text-sm">Apple Health</span>
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "google" ? null : "google" })}
+                      className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        userData.healthSync === "google" ? "border-green-400 bg-green-50 dark:bg-green-900/20" : "border-border bg-card"
+                      }`}
+                    >
+                      <Smartphone className="w-5 h-5 text-green-500" />
+                      <span className="text-sm">Google Fit</span>
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </StepCard>
         );
 
       case "weekly-plan":
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Your week, done.</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              2-3 balanced meals per day
-            </p>
-            
-            <div className="w-full max-w-sm space-y-2 overflow-hidden">
-              {days.map((day, i) => (
-                <motion.div
-                  key={day}
-                  initial={{ x: 100, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
-                >
-                  <span className="w-10 text-sm font-semibold text-primary">{day}</span>
-                  <div className="flex-1 flex gap-1">
-                    <div className="flex-1 h-2 bg-primary/30 rounded-full overflow-hidden">
+          <StepCard step="weekly-plan">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Your week, built on macros</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                We adapt meals — macros stay fixed.
+              </p>
+              
+              <div className="w-full max-w-sm space-y-2 overflow-hidden">
+                {days.map((day, i) => (
+                  <motion.div
+                    key={day}
+                    initial={{ x: 100, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.08, type: "spring", stiffness: 100 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
+                  >
+                    <span className="w-10 text-sm font-semibold text-primary">{day}</span>
+                    {/* Macro bars - visually dominant */}
+                    <div className="flex-1 flex gap-1">
                       <motion.div 
-                        className="h-full bg-primary rounded-full"
+                        className="h-3 bg-[hsl(160,100%,50%)] rounded-full"
                         initial={{ width: 0 }}
-                        animate={{ width: `${60 + Math.random() * 30}%` }}
-                        transition={{ delay: i * 0.1 + 0.3 }}
+                        animate={{ width: `${25 + Math.random() * 10}%` }}
+                        transition={{ delay: i * 0.08 + 0.3 }}
+                      />
+                      <motion.div 
+                        className="h-3 bg-[hsl(220,90%,60%)] rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${35 + Math.random() * 10}%` }}
+                        transition={{ delay: i * 0.08 + 0.4 }}
+                      />
+                      <motion.div 
+                        className="h-3 bg-[hsl(45,100%,55%)] rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${20 + Math.random() * 10}%` }}
+                        transition={{ delay: i * 0.08 + 0.5 }}
                       />
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <span className="text-xs">🍳</span>
-                    <span className="text-xs">🥗</span>
-                    <span className="text-xs">🍝</span>
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="flex gap-0.5 text-[10px] opacity-50">
+                      <span>🍳</span>
+                      <span>🥗</span>
+                      <span>🍝</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl mt-6">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Generate my plan
+              </Button>
             </div>
-            
-            <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl mt-6">
-              <Sparkles className="w-5 h-5 mr-2" />
-              Generate my plan
-            </Button>
-          </motion.div>
+          </StepCard>
         );
 
       case "shopping-preview":
@@ -855,129 +1034,139 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           { name: "Yogurt", have: false },
         ];
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Only buy what's missing</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              Smart shopping list based on your fridge
-            </p>
-            
-            <div className="w-full max-w-sm bg-card rounded-2xl border border-border p-4">
-              {shoppingItems.map((item, i) => (
-                <motion.div
-                  key={item.name}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: i * 0.08 }}
-                  className={`flex items-center gap-3 py-2 ${i < shoppingItems.length - 1 ? 'border-b border-border' : ''}`}
-                >
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    item.have ? 'bg-primary/20' : 'bg-muted'
-                  }`}>
-                    {item.have ? (
-                      <Check className="w-3 h-3 text-primary" />
-                    ) : (
-                      <ShoppingCart className="w-3 h-3 text-muted-foreground" />
+          <StepCard step="shopping-preview">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Only buy what's missing</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                Smart shopping list based on your fridge
+              </p>
+              
+              <div className="w-full max-w-sm bg-card rounded-2xl border border-border p-4">
+                {shoppingItems.map((item, i) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.08 }}
+                    className={`flex items-center gap-3 py-2.5 ${i < shoppingItems.length - 1 ? 'border-b border-border/50' : ''}`}
+                  >
+                    <motion.div 
+                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        item.have ? 'bg-primary/20' : 'bg-muted'
+                      }`}
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      {item.have ? (
+                        <Check className="w-3 h-3 text-primary" />
+                      ) : (
+                        <ShoppingCart className="w-3 h-3 text-muted-foreground/60" />
+                      )}
+                    </motion.div>
+                    <span className={`text-sm ${item.have ? 'text-muted-foreground/40 line-through' : 'font-medium'}`}>
+                      {item.name}
+                    </span>
+                    {item.have && (
+                      <span className="ml-auto text-[10px] text-primary/60">In fridge</span>
                     )}
-                  </div>
-                  <span className={`text-sm ${item.have ? 'text-muted-foreground line-through' : 'font-medium'}`}>
-                    {item.name}
-                  </span>
-                  {item.have && (
-                    <span className="ml-auto text-xs text-primary">In fridge</span>
-                  )}
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
+              
+              <motion.p
+                className="text-xs text-muted-foreground/40 mt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                No overbuying. No waste.
+              </motion.p>
             </div>
-            
-            <motion.p
-              className="text-xs text-muted-foreground mt-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              No overbuying. No waste.
-            </motion.p>
-          </motion.div>
+          </StepCard>
         );
 
       case "comparison":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Planning without vs with Frigy</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              Your progress over time
-            </p>
-            
-            <div className="w-full max-w-sm">
-              <ComparisonLineChart animate={chartAnimate} />
+          <StepCard step="comparison">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Planning without vs with Frigy</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                Your progress over time
+              </p>
+              
+              <div className="w-full max-w-sm">
+                <ComparisonLineChart animate={chartAnimate} />
+              </div>
+              
+              <motion.p
+                className="text-sm text-muted-foreground/60 mt-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: chartAnimate ? 1 : 0 }}
+                transition={{ delay: 2.2 }}
+              >
+                Less thinking. Better results.
+              </motion.p>
             </div>
-            
-            <motion.p
-              className="text-sm text-muted-foreground mt-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: chartAnimate ? 1 : 0 }}
-              transition={{ delay: 2 }}
-            >
-              Less thinking. Better results.
-            </motion.p>
-          </motion.div>
+          </StepCard>
         );
 
       case "premium-hint":
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Want full control?</h1>
-            <p className="text-muted-foreground text-sm mb-6">Compare plans</p>
-            
-            <div className="w-full max-w-sm grid grid-cols-2 gap-3 mb-6">
-              {/* Free */}
-              <div className="p-4 rounded-2xl bg-muted/30 border border-border">
-                <span className="text-sm font-semibold block mb-3">Free</span>
-                <ul className="space-y-2 text-left text-xs text-muted-foreground">
-                  <li>• 1 scan/week</li>
-                  <li>• 1 plan/week</li>
-                  <li>• Read-only list</li>
-                </ul>
+          <StepCard step="premium-hint">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Want full control?</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Compare plans</p>
+              
+              <div className="w-full max-w-sm grid grid-cols-2 gap-3 mb-6">
+                {/* Free */}
+                <motion.div 
+                  className="p-4 rounded-2xl bg-muted/20 border border-border"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <span className="text-sm font-semibold block mb-3 text-muted-foreground/60">Free</span>
+                  <ul className="space-y-2 text-left text-xs text-muted-foreground/40">
+                    <li>• 1 scan/week</li>
+                    <li>• 1 plan/week</li>
+                    <li>• Read-only list</li>
+                  </ul>
+                </motion.div>
+                
+                {/* Premium */}
+                <motion.div 
+                  className="p-4 rounded-2xl bg-primary/5 border-2 border-primary/20 relative overflow-hidden"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ borderColor: "hsl(var(--primary) / 0.4)" }}
+                >
+                  {/* Premium badge */}
+                  <motion.div
+                    className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] px-2 py-0.5 rounded-bl-lg rounded-tr-xl font-medium flex items-center gap-0.5"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                  >
+                    <Star className="w-2.5 h-2.5" fill="currentColor" />
+                    Popular
+                  </motion.div>
+                  
+                  <span className="text-sm font-semibold block mb-3 text-primary">Premium</span>
+                  <ul className="space-y-2 text-left text-xs">
+                    <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Unlimited scans</li>
+                    <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Unlimited plans</li>
+                    <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Smart shopping</li>
+                  </ul>
+                  
+                  <p className="text-[9px] text-primary/60 mt-3">Available with Premium</p>
+                </motion.div>
               </div>
               
-              {/* Premium */}
-              <div className="p-4 rounded-2xl bg-primary/10 border-2 border-primary/30 relative">
-                <motion.div
-                  className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-medium"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring" }}
-                >
-                  Popular
-                </motion.div>
-                <span className="text-sm font-semibold block mb-3 text-primary">Premium</span>
-                <ul className="space-y-2 text-left text-xs">
-                  <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> Unlimited scans</li>
-                  <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> Unlimited plans</li>
-                  <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" /> Smart shopping</li>
-                </ul>
-              </div>
+              <Button onClick={goNext} variant="outline" className="w-full max-w-xs h-12 rounded-xl">
+                Continue with Free
+              </Button>
             </div>
-            
-            <Button onClick={goNext} variant="outline" className="w-full max-w-xs h-12 rounded-xl">
-              Continue with Free
-            </Button>
-          </motion.div>
+          </StepCard>
         );
 
       case "community":
@@ -987,79 +1176,94 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           { user: "Sarah", name: "Green Smoothie 🥬", likes: 156 },
         ];
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <h1 className="text-2xl font-bold mb-2">Cook with others</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              Discover recipes from the community
-            </p>
-            
-            <div className="w-full max-w-sm space-y-3">
-              {recipes.map((recipe, i) => (
-                <motion.div
-                  key={recipe.name}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: i * 0.12 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-medium block">{recipe.name}</span>
-                    <span className="text-xs text-muted-foreground">by {recipe.user}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Heart className="w-4 h-4" />
-                    <span className="text-xs">{recipe.likes}</span>
-                  </div>
-                </motion.div>
-              ))}
+          <StepCard step="community">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <h1 className="text-2xl font-bold mb-1">Cook with others</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                Discover recipes from the community
+              </p>
+              
+              <div className="w-full max-w-sm space-y-3">
+                {recipes.map((recipe, i) => (
+                  <motion.div
+                    key={recipe.name}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.12 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-sm font-medium block">{recipe.name}</span>
+                      <span className="text-[10px] text-muted-foreground/40">by {recipe.user}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground/60">
+                      <Heart className="w-4 h-4" />
+                      <span className="text-xs">{recipe.likes}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <Button onClick={goNext} variant="outline" className="w-full max-w-xs h-12 rounded-xl mt-6">
+                Explore later
+              </Button>
             </div>
-            
-            <Button onClick={goNext} variant="outline" className="w-full max-w-xs h-12 rounded-xl mt-6">
-              Explore later
-            </Button>
-          </motion.div>
+          </StepCard>
         );
 
       case "done":
         return (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center text-center px-6 w-full"
-          >
-            <motion.div
-              className="w-24 h-24 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center mb-6"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <motion.span
-                className="text-5xl"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 1, repeat: Infinity }}
+          <StepCard step="done">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                className="w-24 h-24 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center mb-6"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 10, stiffness: 100 }}
               >
-                🎉
-              </motion.span>
-            </motion.div>
-            
-            <h1 className="text-3xl font-bold mb-2">You're all set.</h1>
-            <p className="text-muted-foreground mb-8">
-              Your fridge just got smarter.
-            </p>
-            
-            <Button onClick={handleComplete} className="w-full max-w-xs h-12 rounded-xl">
-              Go to dashboard
-              <ChevronRight className="w-5 h-5 ml-1" />
-            </Button>
-          </motion.div>
+                <motion.span
+                  className="text-5xl"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  ✨
+                </motion.span>
+              </motion.div>
+              
+              <motion.h1 
+                className="text-3xl font-bold mb-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                Your system is ready.
+              </motion.h1>
+              
+              <motion.p 
+                className="text-muted-foreground/40 text-sm mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                Macros. Structure. Less thinking.
+              </motion.p>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Button onClick={handleComplete} className="w-full max-w-xs h-12 rounded-xl">
+                  Go to dashboard
+                  <ChevronRight className="w-5 h-5 ml-1" />
+                </Button>
+              </motion.div>
+            </div>
+          </StepCard>
         );
 
       default:
@@ -1077,31 +1281,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         {currentIndex > 0 ? (
-          <button
+          <motion.button
             onClick={goBack}
+            whileTap={{ scale: 0.9 }}
             className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
           >
-            <ChevronRight className="w-5 h-5 rotate-180" />
-          </button>
+            <ChevronRight className="w-5 h-5 rotate-180 text-muted-foreground" />
+          </motion.button>
         ) : (
           <div className="w-10" />
         )}
         
-        {/* Progress bar */}
-        <div className="flex-1 mx-4 h-1 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
+        {/* Progress dots */}
+        <ProgressDots current={currentIndex} total={steps.length} />
 
         {/* Skip button */}
         {["permissions", "community"].includes(currentStep) ? (
           <button
             onClick={goNext}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
           >
             Skip
           </button>
@@ -1121,16 +1319,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       {/* Bottom button */}
       {!["fridge-intro", "weekly-plan", "premium-hint", "community", "done"].includes(currentStep) && (
-        <div className="p-6 pb-8">
+        <motion.div 
+          className="p-6 pb-8"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
           <Button
             onClick={goNext}
             disabled={!canProceed()}
-            className={`w-full h-12 rounded-xl transition-opacity ${!canProceed() ? "opacity-50" : ""}`}
+            className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : "shadow-lg shadow-primary/20"}`}
           >
             {currentStep === "hero" ? "Get started" : "Continue"}
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );
