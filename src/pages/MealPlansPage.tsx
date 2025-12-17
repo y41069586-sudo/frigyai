@@ -226,6 +226,11 @@ const MealPlansPage = () => {
         body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
       });
 
+      console.log('[MEAL-PLAN] Function response:', {
+        hasMealPlan: Boolean((data as any)?.mealPlan),
+        days: Array.isArray((data as any)?.mealPlan) ? (data as any).mealPlan.length : null,
+      });
+
       if (error) {
         // Try to extract the function's JSON error for a helpful message
         let details = (error as any)?.message ? String((error as any).message) : String(error);
@@ -250,12 +255,12 @@ const MealPlansPage = () => {
         throw new Error(details);
       }
 
-      if ((data as any)?.mealPlan) {
+      if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
         setMealPlan((data as any).mealPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify((data as any).mealPlan));
         toast({ title: t.newPlanGenerated, description: t.planWithKcal.replace('{kcal}', String(dailyCalories)) });
       } else {
-        throw new Error('Invalid response');
+        throw new Error('Leerer Wochenplan erhalten');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -325,8 +330,10 @@ const MealPlansPage = () => {
 
   const canAccessPremiumFeatures = trackerSetup;
 
+  const hasGeneratedPlan = mealPlan.length > 0;
+
   // Default mock data if no plan generated yet
-  const displayPlan = mealPlan.length > 0 ? mealPlan : [
+  const displayPlan = hasGeneratedPlan ? mealPlan : [
     { day: 'Montag', meals: [
       { type: 'Frühstück', name: 'Griechischer Joghurt Bowl', calories: 320, protein: 25, carbs: 35, fat: 8, prepTime: 5, ingredients: [{ name: 'Griechischer Joghurt 0%', amount: '200g', price: 1.20 }, { name: 'Beeren', amount: '100g', price: 1.50 }], instructions: ['Joghurt in eine Schüssel geben', 'Mit Beeren toppen'] },
       { type: 'Snack', name: 'Mandeln & Apfel', calories: 160, protein: 5, carbs: 15, fat: 10, prepTime: 1, ingredients: [{ name: 'Mandeln', amount: '20g', price: 0.50 }, { name: 'Apfel', amount: '1', price: 0.40 }], instructions: ['Mandeln portionieren', 'Apfel waschen'] },
@@ -497,6 +504,11 @@ const MealPlansPage = () => {
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">{t.weeklyPlan}</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">{t.tip}</p>
+                  {!hasGeneratedPlan && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Hinweis: Du siehst gerade einen Demo-Plan. Klicke auf „{t.generateNewPlan}", um deinen echten Plan zu laden.
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <ExportMealPlan mealPlan={displayPlan} />
