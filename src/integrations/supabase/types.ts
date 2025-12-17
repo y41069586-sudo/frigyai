@@ -169,6 +169,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_onboarding: {
+        Row: {
+          community_joined: boolean | null
+          created_at: string
+          health_sync_choice: string | null
+          id: string
+          onboarding_complete: boolean
+          selected_challenge: string | null
+          selected_cooking: string | null
+          selected_goal: string | null
+          selected_source: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          community_joined?: boolean | null
+          created_at?: string
+          health_sync_choice?: string | null
+          id?: string
+          onboarding_complete?: boolean
+          selected_challenge?: string | null
+          selected_cooking?: string | null
+          selected_goal?: string | null
+          selected_source?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          community_joined?: boolean | null
+          created_at?: string
+          health_sync_choice?: string | null
+          id?: string
+          onboarding_complete?: boolean
+          selected_challenge?: string | null
+          selected_cooking?: string | null
+          selected_goal?: string | null
+          selected_source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_streaks: {
         Row: {
           created_at: string

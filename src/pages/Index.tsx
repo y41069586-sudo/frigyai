@@ -15,12 +15,14 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { AIChatbot } from "@/components/AIChatbot";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
+import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
   const { t } = useLanguage();
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
+  const { isComplete: dbOnboardingComplete, loading: onboardingLoading, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
   
   // Check localStorage once at mount
@@ -34,10 +36,10 @@ const Index = () => {
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
   
-  // Determine splash/onboarding state after auth loads
+  // Determine splash/onboarding state after auth and onboarding progress loads
   useEffect(() => {
-    // If still loading auth, wait
-    if (loading) return;
+    // If still loading auth or onboarding progress, wait
+    if (loading || onboardingLoading) return;
     
     // TESTING MODE: Always show onboarding (even when logged in)
     const testingOnboarding = false;
@@ -48,16 +50,35 @@ const Index = () => {
       return;
     }
     
-    // If user is logged in, always skip onboarding
+    // If user is logged in, check database for onboarding status
     if (user) {
-      setShowSplash(false);
-      setShowOnboarding(false);
-      setOnboardingComplete(true);
-      localStorage.setItem('onboardingComplete', 'true');
+      if (dbOnboardingComplete) {
+        // User has completed onboarding (stored in DB)
+        setShowSplash(false);
+        setShowOnboarding(false);
+        setOnboardingComplete(true);
+        localStorage.setItem('onboardingComplete', 'true');
+      } else {
+        // Check localStorage as fallback
+        const localComplete = localStorage.getItem('onboardingComplete') === 'true';
+        if (localComplete) {
+          // Sync localStorage to database
+          saveProgress({ onboarding_complete: true });
+          setShowSplash(false);
+          setShowOnboarding(false);
+          setOnboardingComplete(true);
+        } else {
+          // User logged in but hasn't completed onboarding - go to plan selection
+          // Skip splash/onboarding slides since they're already logged in
+          setShowSplash(false);
+          setShowOnboarding(false);
+          setOnboardingComplete(false);
+        }
+      }
       return;
     }
     
-    // Check if user has selected a plan (completed onboarding)
+    // Not logged in - check localStorage for plan selection
     const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
     
     if (hasSelectedPlan || isFromSubscription) {
@@ -70,7 +91,7 @@ const Index = () => {
       setShowSplash(true);
       setOnboardingComplete(false);
     }
-  }, [loading, isFromSubscription, user]);
+  }, [loading, onboardingLoading, isFromSubscription, user, dbOnboardingComplete, saveProgress]);
   
   // Redirect to meal-plans if coming from successful subscription
   useEffect(() => {
@@ -162,8 +183,8 @@ const Index = () => {
 
   const scansRemaining = 2 - dailyScansUsed;
 
-  // Wait for auth check before showing anything
-  if (loading) {
+  // Wait for auth and onboarding check before showing anything
+  if (loading || onboardingLoading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="animate-pulse">
