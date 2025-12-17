@@ -42,10 +42,12 @@
       (function () {
         const FLAG = "fb_sw_recovered";
 
-        async function recover() {
+        async function recover(reason) {
           try {
             if (sessionStorage.getItem(FLAG)) return;
             sessionStorage.setItem(FLAG, "1");
+
+            console.warn("[FrigBuddy] Cache-Recovery gestartet:", reason);
 
             if ("serviceWorker" in navigator) {
               const regs = await navigator.serviceWorker.getRegistrations();
@@ -56,8 +58,8 @@
               const keys = await caches.keys();
               await Promise.all(keys.map((k) => caches.delete(k)));
             }
-          } catch {
-            // ignore
+          } catch (e) {
+            console.warn("[FrigBuddy] Cache-Recovery Fehler (ignoriert):", e);
           } finally {
             const url = new URL(window.location.href);
             url.searchParams.set("recovered", String(Date.now()));
@@ -65,26 +67,47 @@
           }
         }
 
-        function shouldRecover(message) {
-          return (
-            message.includes("Importing a module script failed") ||
-            message.includes("Failed to fetch dynamically imported module")
-          );
+        function shouldRecover(msg, source) {
+          const m = String(msg || "");
+          const s = String(source || "");
+
+          // Common PWA/chunk mismatch messages across browsers
+          const patterns = [
+            /Importing a module script failed/i,
+            /Failed to fetch dynamically imported module/i,
+            /Failed to load module script/i,
+            /Loading module from/i,
+            /disallowed MIME type/i,
+            /MIME type/i,
+          ];
+
+          if (patterns.some((p) => p.test(m))) return true;
+
+          // Often indicates an old index.html pointing to a non-existent chunk
+          if (/Unexpected token\s*'</i.test(m) && /\/assets\//i.test(s)) return true;
+
+          return false;
         }
 
         window.addEventListener(
           "error",
           (e) => {
             const msg = String(e?.message || e?.error?.message || "");
-            if (shouldRecover(msg)) recover();
+            const source = String(e?.filename || e?.error?.stack || "");
+            if (shouldRecover(msg, source)) recover({ type: "error", msg, source });
           },
           true
         );
 
-        window.addEventListener("unhandledrejection", (e) => {
-          const msg = String(e?.reason?.message || e?.reason || "");
-          if (shouldRecover(msg)) recover();
-        });
+        window.addEventListener(
+          "unhandledrejection",
+          (e) => {
+            const msg = String(e?.reason?.message || e?.reason || "");
+            const source = String(e?.reason?.stack || "");
+            if (shouldRecover(msg, source)) recover({ type: "unhandledrejection", msg, source });
+          },
+          true
+        );
       })();
     </script>
 

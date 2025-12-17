@@ -195,12 +195,18 @@ const MealPlansPage = () => {
 
   const generateMealPlan = async () => {
     if (!trackerSetup || !trackerSettings) {
-      toast({ 
-        title: t.setupTracker, 
-        description: t.setupTrackerFirst, 
-        variant: 'destructive' 
+      toast({
+        title: t.setupTracker,
+        description: t.setupTrackerFirst,
+        variant: 'destructive',
       });
       setActiveTab('tracker');
+      return;
+    }
+
+    if (!session) {
+      toast({ title: t.notLoggedIn, variant: 'destructive' });
+      navigate('/auth');
       return;
     }
 
@@ -231,8 +237,13 @@ const MealPlansPage = () => {
         throw new Error('Invalid response');
       }
     } catch (error) {
-      console.error('Error generating meal plan:', error);
-      toast({ title: t.error, description: t.couldNotGeneratePlan, variant: 'destructive' });
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Error generating meal plan:', message);
+      toast({
+        title: t.error,
+        description: message ? `${t.couldNotGeneratePlan} (${message})` : t.couldNotGeneratePlan,
+        variant: 'destructive',
+      });
     } finally {
       setIsGenerating(false);
     }
