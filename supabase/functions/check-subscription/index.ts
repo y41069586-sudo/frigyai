@@ -28,44 +28,34 @@ serve(async (req) => {
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      logStep("No authorization header, returning unsubscribed");
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
-    logStep("Authorization header found");
 
     const token = authHeader.replace("Bearer ", "");
-    logStep("Authenticating user with token");
-    
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) {
-      logStep("Auth error, returning unsubscribed", { error: userError.message });
+    
+    if (userError || !userData.user?.email) {
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
+    
     const user = userData.user;
-    if (!user?.email) {
-      logStep("No user email, returning unsubscribed");
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { userId: user.id });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, returning unsubscribed state");
+      // Update cache: not subscribed
+      await updateCache(supabaseClient, user.id, { subscribed: false, product_id: null, subscription_end: null, is_trial: false });
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -73,20 +63,12 @@ serve(async (req) => {
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
 
-    // Check for active OR trialing subscriptions (trial period counts as premium)
-    const activeSubscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-
-    const trialingSubscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "trialing",
-      limit: 1,
-    });
+    // Check for active OR trialing subscriptions
+    const [activeSubscriptions, trialingSubscriptions] = await Promise.all([
+      stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 }),
+      stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 1 })
+    ]);
     
     const subscription = activeSubscriptions.data[0] || trialingSubscriptions.data[0];
     
@@ -97,64 +79,72 @@ serve(async (req) => {
       const productId = subscription.items.data[0]?.price?.product || null;
       const isTrial = subscription.status === "trialing";
       
-      logStep("Subscription found", { 
-        subscriptionId: subscription.id, 
-        status: subscription.status,
-        isTrial,
-        endDate: subscriptionEnd, 
-        productId 
-      });
-      
-      return new Response(JSON.stringify({
+      const result = {
         subscribed: true,
         product_id: productId,
         subscription_end: subscriptionEnd,
         is_trial: isTrial
-      }), {
+      };
+      
+      // Update cache
+      await updateCache(supabaseClient, user.id, result);
+      
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
-    
-    logStep("No active subscription, checking for successful payments");
 
-    // If no subscription, check for successful one-time payments (from payment links)
-    const paymentIntents = await stripe.paymentIntents.list({
-      customer: customerId,
-      limit: 10,
-    });
-    
+    // Check for successful one-time payments
+    const paymentIntents = await stripe.paymentIntents.list({ customer: customerId, limit: 10 });
     const successfulPayment = paymentIntents.data.find((pi: { status: string }) => pi.status === "succeeded");
     
     if (successfulPayment) {
-      logStep("Successful payment found", { paymentId: successfulPayment.id, amount: successfulPayment.amount });
-      
-      return new Response(JSON.stringify({
+      const result = {
         subscribed: true,
         product_id: "premium_one_time",
-        subscription_end: null // One-time payment, no end date
-      }), {
+        subscription_end: null,
+        is_trial: false
+      };
+      
+      // Update cache
+      await updateCache(supabaseClient, user.id, result);
+      
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    logStep("No active subscription or successful payment found");
+    // Not subscribed
+    const result = { subscribed: false, product_id: null, subscription_end: null, is_trial: false };
+    await updateCache(supabaseClient, user.id, result);
     
-    return new Response(JSON.stringify({
-      subscribed: false,
-      product_id: null,
-      subscription_end: null
-    }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in check-subscription", { message: errorMessage });
+    logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
 });
+
+async function updateCache(supabase: any, userId: string, data: { subscribed: boolean; product_id: string | null; subscription_end: string | null; is_trial?: boolean }) {
+  try {
+    await supabase.from('subscription_cache').upsert({
+      user_id: userId,
+      subscribed: data.subscribed,
+      product_id: data.product_id,
+      subscription_end: data.subscription_end,
+      is_trial: data.is_trial || false,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch (e) {
+    console.log('[CHECK-SUBSCRIPTION] Cache update failed', e);
+  }
+}

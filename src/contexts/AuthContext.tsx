@@ -50,6 +50,26 @@ const setCachedSubscription = (data: SubscriptionStatus | null) => {
   } catch (e) {}
 };
 
+// Fast DB cache load (much faster than Stripe API)
+const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | null> => {
+  try {
+    const { data } = await supabase
+      .from('subscription_cache')
+      .select('subscribed, product_id, subscription_end, is_trial')
+      .eq('user_id', userId)
+      .single();
+    
+    if (data) {
+      return {
+        subscribed: data.subscribed,
+        product_id: data.product_id,
+        subscription_end: data.subscription_end
+      };
+    }
+  } catch (e) {}
+  return null;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -61,6 +81,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateSubscriptionStatus = (data: SubscriptionStatus | null) => {
     setSubscriptionStatus(data);
     setCachedSubscription(data);
+  };
+
+  // Fast load from DB, then background refresh from Stripe
+  const loadSubscriptionFast = async (userId: string, accessToken: string) => {
+    // Step 1: Load from DB cache instantly (~50ms)
+    const dbCache = await loadFromDbCache(userId);
+    if (dbCache) {
+      updateSubscriptionStatus(dbCache);
+    }
+    
+    // Step 2: Background refresh from Stripe (don't await)
+    supabase.functions.invoke('check-subscription', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).then(({ data, error }) => {
+      if (!error && data) {
+        updateSubscriptionStatus(data);
+      }
+    });
   };
 
   const checkSubscription = async () => {
@@ -115,17 +153,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Check subscription immediately on sign in (no delay)
+        // Load subscription fast: DB cache first, then Stripe in background
         if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${currentSession.access_token}`,
-            },
-          }).then(({ data, error }) => {
-            if (!error && mounted) {
-              updateSubscriptionStatus(data);
-            }
-          });
+          loadSubscriptionFast(currentSession.user.id, currentSession.access_token);
         } else if (!currentSession) {
           updateSubscriptionStatus(null);
         }
@@ -152,17 +182,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(initialSession?.user ?? null);
       setLoading(false);
       
-      // Check subscription immediately (no delay)
+      // Load subscription fast: DB cache first, then Stripe in background
       if (initialSession?.user) {
-        supabase.functions.invoke('check-subscription', {
-          headers: {
-            Authorization: `Bearer ${initialSession.access_token}`,
-          },
-        }).then(({ data, error }) => {
-          if (!error && mounted) {
-            updateSubscriptionStatus(data);
-          }
-        });
+        loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
       }
     });
 
