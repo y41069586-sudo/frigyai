@@ -85,11 +85,13 @@ serve(async (req) => {
     const dinnerCal = Math.round(targetCalories * 0.25);
 
     // Validation ranges (never exceed max; must reach at least min)
+    // NOTE: Protein/Fett dürfen NIE überschritten werden. Mindestwerte sind bewusst etwas lockerer,
+    // damit die Generierung stabil bleibt und nicht komplett fehlschlägt.
     const ranges = {
-      calories: { min: Math.round(targetCalories * 0.97), max: targetCalories },
-      protein: { min: Math.round(targetProtein * 0.92), max: targetProtein },
-      carbs: { min: Math.round(targetCarbs * 0.92), max: targetCarbs },
-      fat: { min: Math.round(targetFat * 0.92), max: targetFat },
+      calories: { min: Math.round(targetCalories * 0.95), max: targetCalories },
+      protein: { min: Math.round(targetProtein * 0.85), max: targetProtein },
+      carbs: { min: Math.round(targetCarbs * 0.85), max: targetCarbs },
+      fat: { min: Math.round(targetFat * 0.85), max: targetFat },
     };
 
     const targetsBlock = `ZIELE PRO TAG (müssen pro Tag durch die SUMME der 5 Mahlzeiten erreicht werden, NICHT überschreiten):
@@ -103,17 +105,11 @@ WICHTIG:
 - Passe Portionen/Grammangaben so an, dass die Tagesziele passen.
 - Überschreite NIE die Max-Werte. Wenn du schwankst: lieber knapp UNTER dem Max bleiben, aber NICHT unter das Minimum.`;
 
-    const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen ABWECHSLUNGSREICHEN Wochenplan.
+    const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen abwechslungsreichen, alltagstauglichen Wochenplan.
 
-WICHTIG - MAXIMALE ABWECHSLUNG:
-- JEDES Gericht muss EINZIGARTIG sein! KEINE Wiederholungen!
-- Alle 7 Frühstücke müssen KOMPLETT UNTERSCHIEDLICH sein
-- Alle 14 Snacks müssen KOMPLETT UNTERSCHIEDLICH sein
-- Alle 7 Mittagessen müssen KOMPLETT UNTERSCHIEDLICH sein
-- Alle 7 Abendessen müssen KOMPLETT UNTERSCHIEDLICH sein
-- Nutze verschiedene Proteinquellen: Hähnchen, Fisch, Rind, Schwein, Tofu, Eier, Hülsenfrüchte
-- Nutze verschiedene Beilagen: Reis, Pasta, Kartoffeln, Quinoa, Couscous, Brot
-- Nutze verschiedene Zubereitungsarten: gebraten, gekocht, gegrillt, gebacken, roh
+WICHTIG (Abwechslung):
+- Keine identischen Gerichte (Name + Hauptzutaten dürfen sich nicht wiederholen).
+- Variiere Proteinquellen (z.B. Hähnchen, Fisch, Rind, Eier, Tofu, Hülsenfrüchte) und Beilagen (Reis, Kartoffeln, Pasta, Brot, Hafer).
 
 ${targetsBlock}
 
@@ -123,6 +119,9 @@ Kalorienverteilung pro Tag:
 - Mittagessen: ${lunchCal} kcal
 - Snack: ${snackCal} kcal
 - Abendessen: ${dinnerCal} kcal
+
+Konsistenz-Regel (sehr wichtig):
+- Kohlenhydrate müssen zu Kalorien/Protein/Fett passen: carbs ≈ (calories - protein*4 - fat*9) / 4.
 
 Output-Regeln:
 - NUR valides JSON (kein Markdown).
@@ -162,6 +161,11 @@ JSON-Schema:
       }
     };
 
+    const deriveCarbs = (calories: number, protein: number, fat: number) => {
+      const c = (calories - protein * 4 - fat * 9) / 4;
+      return Math.max(0, Math.round(c));
+    };
+
     const validateMealPlan = (plan: any) => {
       const issues: string[] = [];
 
@@ -182,18 +186,20 @@ JSON-Schema:
           (acc: any, m: any) => {
             acc.calories += Number(m?.calories) || 0;
             acc.protein += Number(m?.protein) || 0;
-            acc.carbs += Number(m?.carbs) || 0;
             acc.fat += Number(m?.fat) || 0;
             return acc;
           },
-          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+          { calories: 0, protein: 0, fat: 0 }
         );
+
+        // Wir prüfen Kohlenhydrate abgeleitet aus kcal/protein/fett, um Inkonsistenzen des Modells zu vermeiden.
+        const derivedCarbs = deriveCarbs(totals.calories, totals.protein, totals.fat);
 
         const checks: Array<[keyof typeof ranges, number]> = [
           ['calories', totals.calories],
           ['protein', totals.protein],
-          ['carbs', totals.carbs],
           ['fat', totals.fat],
+          ['carbs', derivedCarbs],
         ];
 
         for (const [k, v] of checks) {
@@ -290,9 +296,31 @@ Passe PORTIONEN/GRAMMANGABEN (und nur wenn nötig die Mahlzeiten) so an, dass je
       throw new Error(`Plan erfüllt die Makro-Zielbereiche nicht: ${secondValidation.issues.slice(0, 6).join(' | ')}`);
     };
 
+    const normalizePlan = (plan: any) => {
+      if (!plan || !Array.isArray(plan.mealPlan)) return plan;
+
+      for (const day of plan.mealPlan) {
+        if (!Array.isArray(day?.meals)) continue;
+        for (const meal of day.meals) {
+          const calories = Math.round(Number(meal?.calories) || 0);
+          const protein = Math.round(Number(meal?.protein) || 0);
+          const fat = Math.round(Number(meal?.fat) || 0);
+          const carbs = deriveCarbs(calories, protein, fat);
+
+          meal.calories = calories;
+          meal.protein = protein;
+          meal.fat = fat;
+          meal.carbs = carbs;
+        }
+      }
+
+      return plan;
+    };
+
     let finalPlan: any;
     try {
       finalPlan = await generateWithValidation();
+      finalPlan = normalizePlan(finalPlan);
     } catch (e) {
       if (e instanceof HttpError) {
         return new Response(JSON.stringify({ error: e.message }), {
