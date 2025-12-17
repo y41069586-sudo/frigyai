@@ -34,6 +34,12 @@ type OnboardingStep =
   | "dietary"
   | "fridge-intro"
   | "permissions"
+  | "problem-pain"
+  | "transformation"
+  | "social-proof"
+  | "feature-scan"
+  | "feature-plans"
+  | "feature-tracking"
   | "premium-hint"
   | "community"
   | "done";
@@ -99,6 +105,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     "dietary",
     "fridge-intro",
     "permissions",
+    "problem-pain",
+    "transformation",
+    "social-proof",
+    "feature-scan",
+    "feature-plans",
+    "feature-tracking",
     "premium-hint",
     "community",
     "done"
@@ -554,11 +566,313 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </motion.div>
         );
 
+      case "problem-pain":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center text-center px-6 w-full"
+          >
+            <motion.div
+              className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <span className="text-3xl">😩</span>
+            </motion.div>
+            <h1 className="text-2xl font-bold mb-2">Sound familiar?</h1>
+            <div className="flex flex-col gap-3 w-full max-w-sm mb-6">
+              {[
+                { emoji: "🤔", text: "No idea what to cook tonight" },
+                { emoji: "🗑️", text: "Food going bad in the fridge" },
+                { emoji: "📊", text: "Losing track of calories" },
+                { emoji: "💸", text: "Wasting money on groceries" },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.text}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.15 }}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/20"
+                >
+                  <span className="text-xl">{item.emoji}</span>
+                  <span className="text-sm text-left">{item.text}</span>
+                </motion.div>
+              ))}
+            </div>
+            <p className="text-muted-foreground text-sm">
+              You're not alone. <span className="font-medium text-foreground">We've got you.</span>
+            </p>
+          </motion.div>
+        );
+
+      case "transformation":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center text-center px-6 w-full"
+          >
+            <h1 className="text-2xl font-bold mb-6">Before → After</h1>
+            <div className="flex gap-4 w-full max-w-sm mb-6">
+              {/* Before */}
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex-1 p-4 rounded-2xl bg-red-500/5 border border-red-500/20"
+              >
+                <span className="text-3xl mb-2 block">😫</span>
+                <span className="text-xs text-muted-foreground block mb-2">WITHOUT</span>
+                <div className="text-left text-xs space-y-1">
+                  <p>❌ Guessing calories</p>
+                  <p>❌ Food waste</p>
+                  <p>❌ No meal plan</p>
+                </div>
+              </motion.div>
+              {/* Arrow */}
+              <div className="flex items-center">
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <ChevronRight className="w-6 h-6 text-primary" />
+                </motion.div>
+              </div>
+              {/* After */}
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex-1 p-4 rounded-2xl bg-primary/10 border border-primary/20"
+              >
+                <span className="text-3xl mb-2 block">🤩</span>
+                <span className="text-xs text-primary block mb-2">WITH FRIGBUDDY</span>
+                <div className="text-left text-xs space-y-1">
+                  <p className="text-primary">✓ Hit your macros</p>
+                  <p className="text-primary">✓ Zero waste</p>
+                  <p className="text-primary">✓ Weekly plans</p>
+                </div>
+              </motion.div>
+            </div>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-sm font-medium"
+            >
+              Join <span className="text-primary">50,000+</span> users who transformed their eating
+            </motion.p>
+          </motion.div>
+        );
+
+      case "social-proof":
+        const testimonials = [
+          { name: "Lisa M.", text: "Lost 8kg in 2 months! The meal plans are 🔥", avatar: "👩" },
+          { name: "Tom K.", text: "Finally hitting my protein goals daily", avatar: "👨" },
+          { name: "Sarah", text: "No more food waste. Saving €50/month!", avatar: "👩‍🦰" },
+        ];
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center text-center px-6 w-full"
+          >
+            <div className="flex items-center gap-1 mb-2">
+              {[1,2,3,4,5].map((_, i) => (
+                <motion.span 
+                  key={i} 
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="text-yellow-500 text-xl"
+                >
+                  ⭐
+                </motion.span>
+              ))}
+            </div>
+            <h1 className="text-2xl font-bold mb-1">4.9 out of 5</h1>
+            <p className="text-muted-foreground text-sm mb-6">From 12,000+ reviews</p>
+            
+            <div className="flex flex-col gap-3 w-full max-w-sm">
+              {testimonials.map((t, i) => (
+                <motion.div
+                  key={t.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.15 }}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border text-left"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl flex-shrink-0">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <span className="font-medium text-sm block">{t.name}</span>
+                    <span className="text-muted-foreground text-xs">{t.text}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        );
+
+      case "feature-scan":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center text-center px-6 w-full"
+          >
+            <motion.div
+              className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-4"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Camera className="w-10 h-10 text-primary" />
+            </motion.div>
+            <h1 className="text-2xl font-bold mb-2">Magic Fridge Scan</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              Just point your camera. AI does the rest.
+            </p>
+            <div className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 mb-4">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-16 h-20 bg-slate-200 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">🧊</span>
+                  </div>
+                  <motion.div
+                    className="absolute inset-0 border-2 border-primary rounded-lg"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="text-2xl mb-1"
+                  >
+                    →
+                  </motion.div>
+                </div>
+                <div className="text-left">
+                  <div className="text-xs space-y-1">
+                    <p>🥛 Milk</p>
+                    <p>🥕 Carrots</p>
+                    <p>🧀 Cheese</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-primary">2 seconds</span> to scan · Instant recipes
+            </p>
+          </motion.div>
+        );
+
+      case "feature-plans":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center text-center px-6 w-full"
+          >
+            <motion.div
+              className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-4"
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <Utensils className="w-10 h-10 text-primary" />
+            </motion.div>
+            <h1 className="text-2xl font-bold mb-2">Weekly Meal Plans</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              Perfectly matched to YOUR macros
+            </p>
+            <div className="w-full max-w-xs space-y-2 mb-4">
+              {["Mon", "Tue", "Wed"].map((day, i) => (
+                <motion.div
+                  key={day}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-center gap-3 p-2 rounded-xl bg-card border border-border"
+                >
+                  <span className="w-10 text-xs font-medium text-muted-foreground">{day}</span>
+                  <div className="flex gap-2 flex-1">
+                    <span className="text-sm">🥣</span>
+                    <span className="text-sm">🥗</span>
+                    <span className="text-sm">🍝</span>
+                  </div>
+                  <span className="text-xs text-primary font-medium">1,850 kcal</span>
+                </motion.div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Auto-generated <span className="font-medium text-foreground">shopping list</span> included
+            </p>
+          </motion.div>
+        );
+
+      case "feature-tracking":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center text-center px-6 w-full"
+          >
+            <motion.div
+              className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-4"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Target className="w-10 h-10 text-primary" />
+            </motion.div>
+            <h1 className="text-2xl font-bold mb-2">Hit Your Goals</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              Track everything in one place
+            </p>
+            <div className="w-full max-w-xs p-4 rounded-2xl bg-card border border-border mb-4">
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Calories", value: "1,650", target: "2,000", color: "bg-blue-500" },
+                  { label: "Protein", value: "98g", target: "120g", color: "bg-red-500" },
+                  { label: "Water", value: "1.5L", target: "2L", color: "bg-cyan-500" },
+                  { label: "Streak", value: "7 days", target: "", color: "bg-orange-500" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="text-left"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                      <span className="text-xs text-muted-foreground">{item.label}</span>
+                    </div>
+                    <span className="text-lg font-bold">{item.value}</span>
+                    {item.target && <span className="text-xs text-muted-foreground">/{item.target}</span>}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <span className="text-primary font-medium">Gamified</span> progress keeps you motivated
+            </p>
+          </motion.div>
+        );
+
       case "premium-hint":
         const premiumBenefits = [
-          { icon: "✨", text: "Unlimited fridge scans" },
-          { icon: "📅", text: "Weekly meal plans" },
-          { icon: "🛒", text: "Smart shopping lists" },
+          { icon: "♾️", text: "Unlimited fridge scans", desc: "Scan as much as you want" },
+          { icon: "📅", text: "Weekly meal plans", desc: "Personalized to your macros" },
+          { icon: "🛒", text: "Smart shopping lists", desc: "Auto-generated, never forget" },
+          { icon: "🤖", text: "AI nutrition coach", desc: "24/7 help & tips" },
         ];
         return (
           <motion.div
@@ -568,19 +882,19 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             className="flex flex-col items-center text-center px-6 w-full"
           >
             <motion.div
-              className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
+              className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
+              animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
             >
-              <Sparkles className="w-7 h-7 text-primary" />
+              <Sparkles className="w-8 h-8 text-white" />
             </motion.div>
             
-            <h1 className="text-2xl font-bold mb-1">Want even more?</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              Premium unlocks the full experience
+            <h1 className="text-2xl font-bold mb-1">Unlock everything</h1>
+            <p className="text-muted-foreground text-sm mb-4">
+              Join 50,000+ members hitting their goals
             </p>
             
-            <div className="w-full max-w-xs p-4 rounded-2xl border border-border bg-card/50 mb-6">
+            <div className="w-full max-w-xs p-4 rounded-2xl border-2 border-primary bg-primary/5 mb-4">
               <div className="flex flex-col gap-3">
                 {premiumBenefits.map((benefit, i) => (
                   <motion.div
@@ -590,28 +904,37 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: i * 0.1 }}
                     className="flex items-center gap-3 text-left"
                   >
-                    <span className="text-lg">{benefit.icon}</span>
-                    <span className="text-sm">{benefit.text}</span>
+                    <span className="text-xl">{benefit.icon}</span>
+                    <div>
+                      <span className="text-sm font-medium block">{benefit.text}</span>
+                      <span className="text-xs text-muted-foreground">{benefit.desc}</span>
+                    </div>
                   </motion.div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                7 days free, then €4.99/month
-              </p>
+              <div className="mt-4 pt-3 border-t border-primary/20">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-2xl font-bold">€4.99</span>
+                  <span className="text-sm text-muted-foreground">/month</span>
+                </div>
+                <p className="text-xs text-primary font-medium mt-1">
+                  First 7 days FREE · Cancel anytime
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3 w-full max-w-xs">
               <Button 
                 onClick={goNext} 
-                className="w-full h-12 rounded-xl"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold"
               >
-                Continue with Free
+                Start 7-Day Free Trial
               </Button>
               <button
                 onClick={goNext}
-                className="text-primary text-sm font-medium hover:underline transition-all"
+                className="text-muted-foreground text-sm hover:text-foreground transition-colors"
               >
-                Try Premium free →
+                Continue with Free (2 scans/day)
               </button>
             </div>
           </motion.div>
