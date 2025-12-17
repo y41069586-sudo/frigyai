@@ -458,7 +458,7 @@ const MealPlansPage = () => {
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <ExportMealPlan mealPlan={displayPlan} />
+                  <ExportMealPlan mealPlan={mealPlan} />
                   <Button 
                     className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
                     size="sm"
@@ -490,7 +490,7 @@ const MealPlansPage = () => {
               </div>
 
               <div className="space-y-3 sm:space-y-4">
-                {displayPlan.map((day, index) => (
+                {mealPlan.map((day, index) => (
                   <motion.div
                     key={day.day}
                     initial={{ opacity: 0, x: -20 }}
@@ -536,7 +536,7 @@ const MealPlansPage = () => {
           </TabsContent>
 
           <TabsContent value="shopping">
-            <ShoppingList mealPlan={displayPlan} />
+            <ShoppingList mealPlan={mealPlan} />
           </TabsContent>
 
           <TabsContent value="water">
