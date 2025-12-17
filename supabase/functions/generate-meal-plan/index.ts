@@ -108,6 +108,7 @@ Kalorienverteilung pro Mahlzeit:
 Regeln:
 - Die Summe aller 5 Mahlzeiten pro Tag MUSS ungefähr ${targetCalories} kcal ergeben!
 - Makros pro Tag müssen die Makro-Regeln einhalten (insb. Protein/Fett NICHT über Ziel)!
+- Pro Mahlzeit: maximal 4 Zutaten, maximal 3 kurze Zubereitungsschritte (kompakt halten)
 - Jede Mahlzeit sollte ausgewogen sein und die Tagesziele unterstützen
 - Snacks: proteinreich und sättigend (z.B. Griechischer Joghurt, Quark, Eier, Skyr)
 - Einfache Zubereitung (unter 20 Minuten)
@@ -182,8 +183,8 @@ Antworte NUR mit validem JSON in diesem Format:
         model: 'gpt-4o-mini',
         // Force valid JSON output
         response_format: { type: 'json_object' },
-        max_tokens: 8000,
-        temperature: 0.4,
+        max_tokens: 4500,
+        temperature: 0.2,
         messages: [
           { role: 'system', content: systemPrompt },
           {
