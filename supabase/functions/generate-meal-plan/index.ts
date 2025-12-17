@@ -73,37 +73,47 @@ serve(async (req) => {
     
     const { preferences, dailyCalories, dailyProtein, dailyCarbs, dailyFat } = parseResult.data;
 
-    const targetCalories = dailyCalories || 1600;
-    const targetProtein = dailyProtein || Math.round(targetCalories * 0.3 / 4);
-    const targetCarbs = dailyCarbs || Math.round(targetCalories * 0.4 / 4);
-    const targetFat = dailyFat || Math.round(targetCalories * 0.3 / 9);
+    const targetCaloriesRequested = dailyCalories || 1600;
+    const targetProtein = dailyProtein || Math.round(targetCaloriesRequested * 0.3 / 4);
+    const targetFat = dailyFat || Math.round(targetCaloriesRequested * 0.3 / 9);
+
+    // IMPORTANT: Calories/Protein/Fat/Carbs can be mathematically inconsistent due to integer rounding.
+    // To keep the plan "perfekt" and internally consistent, we derive carbs from kcal/protein/fat
+    // and floor to never exceed the calorie target.
+    const requestedCarbs = dailyCarbs ?? Math.round(targetCaloriesRequested * 0.4 / 4);
+    const carbsFloat = (targetCaloriesRequested - targetProtein * 4 - targetFat * 9) / 4;
+    let targetCarbs = Number.isFinite(carbsFloat) ? Math.max(0, Math.floor(carbsFloat)) : requestedCarbs;
+
+    // Effective calories that can actually be represented by integer macros
+    let targetCalories = targetProtein * 4 + targetFat * 9 + targetCarbs * 4;
+    if (targetCalories > targetCaloriesRequested) {
+      targetCarbs = Math.max(0, Math.floor((targetCaloriesRequested - targetProtein * 4 - targetFat * 9) / 4));
+      targetCalories = targetProtein * 4 + targetFat * 9 + targetCarbs * 4;
+    }
 
     // Distribution: Breakfast 20%, Snack 10%, Lunch 35%, Snack 10%, Dinner 25%
-    const breakfastCal = Math.round(targetCalories * 0.20);
-    const snackCal = Math.round(targetCalories * 0.10);
-    const lunchCal = Math.round(targetCalories * 0.35);
-    const dinnerCal = Math.round(targetCalories * 0.25);
+    const breakfastCal = Math.round(targetCaloriesRequested * 0.20);
+    const snackCal = Math.round(targetCaloriesRequested * 0.10);
+    const lunchCal = Math.round(targetCaloriesRequested * 0.35);
+    const dinnerCal = Math.round(targetCaloriesRequested * 0.25);
 
-    // Validation ranges (never exceed max; must reach at least min)
-    // NOTE: Protein/Fett dürfen NIE überschritten werden. Mindestwerte sind bewusst etwas lockerer,
-    // damit die Generierung stabil bleibt und nicht komplett fehlschlägt.
+    // "Perfekt" targets: we enforce exact daily totals (within what integer macros can represent).
     const ranges = {
-      calories: { min: Math.round(targetCalories * 0.95), max: targetCalories },
-      protein: { min: Math.round(targetProtein * 0.85), max: targetProtein },
-      carbs: { min: Math.round(targetCarbs * 0.85), max: targetCarbs },
-      fat: { min: Math.round(targetFat * 0.85), max: targetFat },
+      calories: { min: targetCalories, max: targetCalories },
+      protein: { min: targetProtein, max: targetProtein },
+      carbs: { min: targetCarbs, max: targetCarbs },
+      fat: { min: targetFat, max: targetFat },
     };
 
     const targetsBlock = `ZIELE PRO TAG (müssen pro Tag durch die SUMME der 5 Mahlzeiten erreicht werden, NICHT überschreiten):
-- Kalorien: ${targetCalories} kcal (Zielbereich ${ranges.calories.min}–${ranges.calories.max} kcal)
-- Protein: ${targetProtein} g (Zielbereich ${ranges.protein.min}–${ranges.protein.max} g)
-- Kohlenhydrate: ${targetCarbs} g (Zielbereich ${ranges.carbs.min}–${ranges.carbs.max} g)
-- Fett: ${targetFat} g (Zielbereich ${ranges.fat.min}–${ranges.fat.max} g)
+- Kalorien: ${targetCalories} kcal (exakt)
+- Protein: ${targetProtein} g (exakt)
+- Kohlenhydrate: ${targetCarbs} g (exakt)
+- Fett: ${targetFat} g (exakt)
 
 WICHTIG:
 - Summiere pro Tag Kalorien/Protein/Kohlenhydrate/Fett aller 5 Mahlzeiten.
-- Passe Portionen/Grammangaben so an, dass die Tagesziele passen.
-- Überschreite NIE die Max-Werte. Wenn du schwankst: lieber knapp UNTER dem Max bleiben, aber NICHT unter das Minimum.`;
+- Überschreite NIE diese Werte.`;
 
     const systemPrompt = `Du bist ein kreativer Ernährungsberater. Erstelle einen abwechslungsreichen, alltagstauglichen Wochenplan.
 
@@ -113,20 +123,17 @@ WICHTIG (Abwechslung):
 
 ${targetsBlock}
 
-Kalorienverteilung pro Tag:
+Kalorienverteilung pro Tag (Richtwerte, du darfst intern anpassen – die Tages-SUMME muss passen):
 - Frühstück: ${breakfastCal} kcal
 - Snack: ${snackCal} kcal
 - Mittagessen: ${lunchCal} kcal
 - Snack: ${snackCal} kcal
 - Abendessen: ${dinnerCal} kcal
 
-Konsistenz-Regel (sehr wichtig):
-- Kohlenhydrate müssen zu Kalorien/Protein/Fett passen: carbs ≈ (calories - protein*4 - fat*9) / 4.
-
 Output-Regeln:
 - NUR valides JSON (kein Markdown).
-- 7 Tage: Montag bis Sonntag.
-- Pro Tag genau 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen.
+- 7 Tage in dieser Reihenfolge: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag.
+- Pro Tag genau 5 Mahlzeiten in dieser Reihenfolge: Frühstück, Snack, Mittagessen, Snack, Abendessen.
 - Pro Mahlzeit max 3 Zutaten, max 2 kurze Steps.
 - Preise als Zahl (EUR).
 
@@ -161,12 +168,29 @@ JSON-Schema:
       }
     };
 
-    const deriveCarbs = (calories: number, protein: number, fat: number) => {
-      const c = (calories - protein * 4 - fat * 9) / 4;
-      return Math.max(0, Math.round(c));
+    const MEAL_TYPES = ['Frühstück', 'Snack', 'Mittagessen', 'Snack', 'Abendessen'] as const;
+    const MEAL_SHARES = [0.20, 0.10, 0.35, 0.10, 0.25] as const;
+
+    const allocateByShares = (total: number, shares: readonly number[]) => {
+      const raw = shares.map((s) => total * s);
+      const base = raw.map((v) => Math.floor(v));
+      let remaining = total - base.reduce((a, b) => a + b, 0);
+
+      // distribute remainder to largest fractional parts
+      const order = raw
+        .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+        .sort((a, b) => b.frac - a.frac)
+        .map((x) => x.i);
+
+      for (let k = 0; k < order.length && remaining > 0; k++) {
+        base[order[k]] += 1;
+        remaining -= 1;
+      }
+
+      return base;
     };
 
-    const validateMealPlan = (plan: any) => {
+    const validatePlanStructure = (plan: any) => {
       const issues: string[] = [];
 
       if (!Array.isArray(plan?.mealPlan) || plan.mealPlan.length !== 7) {
@@ -182,35 +206,48 @@ JSON-Schema:
           continue;
         }
 
-        const totals = meals.reduce(
-          (acc: any, m: any) => {
-            acc.calories += Number(m?.calories) || 0;
-            acc.protein += Number(m?.protein) || 0;
-            acc.fat += Number(m?.fat) || 0;
-            return acc;
-          },
-          { calories: 0, protein: 0, fat: 0 }
-        );
-
-        // Wir prüfen Kohlenhydrate abgeleitet aus kcal/protein/fett, um Inkonsistenzen des Modells zu vermeiden.
-        const derivedCarbs = deriveCarbs(totals.calories, totals.protein, totals.fat);
-
-        const checks: Array<[keyof typeof ranges, number]> = [
-          ['calories', totals.calories],
-          ['protein', totals.protein],
-          ['fat', totals.fat],
-          ['carbs', derivedCarbs],
-        ];
-
-        for (const [k, v] of checks) {
-          const r = ranges[k];
-          if (v < r.min || v > r.max) {
-            issues.push(`${dayName}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
+        for (let i = 0; i < meals.length; i++) {
+          const m = meals[i];
+          if (!m?.name) issues.push(`${dayName}: Mahlzeit ${i + 1} hat keinen Namen`);
+          if (!Array.isArray(m?.ingredients) || m.ingredients.length === 0) {
+            issues.push(`${dayName}: ${m?.name ?? `Mahlzeit ${i + 1}`}: keine Zutaten`);
+          }
+          if (!Array.isArray(m?.instructions) || m.instructions.length === 0) {
+            issues.push(`${dayName}: ${m?.name ?? `Mahlzeit ${i + 1}`}: keine Steps`);
           }
         }
       }
 
       return { ok: issues.length === 0, issues };
+    };
+
+    // Enforce "perfect" daily macro totals deterministically (names/ingredients remain as generated)
+    const enforceMacroTargets = (plan: any) => {
+      if (!plan || !Array.isArray(plan.mealPlan)) return plan;
+
+      const proteinAlloc = allocateByShares(targetProtein, MEAL_SHARES);
+      const fatAlloc = allocateByShares(targetFat, MEAL_SHARES);
+      const carbsAlloc = allocateByShares(targetCarbs, MEAL_SHARES);
+
+      for (const day of plan.mealPlan) {
+        if (!Array.isArray(day?.meals) || day.meals.length !== 5) continue;
+
+        for (let i = 0; i < 5; i++) {
+          const meal = day.meals[i];
+          const protein = Math.max(0, Math.round(proteinAlloc[i] || 0));
+          const fat = Math.max(0, Math.round(fatAlloc[i] || 0));
+          const carbs = Math.max(0, Math.round(carbsAlloc[i] || 0));
+          const calories = protein * 4 + fat * 9 + carbs * 4;
+
+          meal.type = MEAL_TYPES[i];
+          meal.protein = protein;
+          meal.fat = fat;
+          meal.carbs = carbs;
+          meal.calories = calories;
+        }
+      }
+
+      return plan;
     };
 
     const callOpenAI = async (userInstruction: string) => {
@@ -256,71 +293,83 @@ JSON-Schema:
     };
 
     const generateWithValidation = async () => {
-      const baseInstruction = `Erstelle einen kreativen, abwechslungsreichen Wochenplan (Montag bis Sonntag) als EIN einziges JSON-Objekt. ${targetsBlock}
+      const baseInstruction = `Erstelle einen kreativen, abwechslungsreichen Wochenplan (Montag bis Sonntag) als EIN einziges JSON-Objekt.
+
+Tage (exakt in dieser Reihenfolge): Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag.
+Mahlzeiten pro Tag (exakt in dieser Reihenfolge): Frühstück, Snack, Mittagessen, Snack, Abendessen.
+
+${targetsBlock}
 
 WICHTIG:
-- Gib IMMER genau 7 Tage aus (Montag–Sonntag) und pro Tag genau 5 Mahlzeiten.
+- Gib IMMER genau 7 Tage aus und pro Tag genau 5 Mahlzeiten.
 - Keine Abkürzungen, keine Platzhalter, keine Erklärtexte – nur JSON.
-- Stelle sicher, dass JEDER TAG die Tagesziele innerhalb des Zielbereichs trifft und NIEMALS überschreitet.
 ${preferences ? `
 Präferenzen: ${preferences}` : ''}`;
 
       // Attempt 1
       const first = await callOpenAI(baseInstruction);
-      const firstValidation = validateMealPlan(first);
+      const firstValidation = validatePlanStructure(first);
       if (firstValidation.ok) {
-        console.log('[GENERATE-MEAL-PLAN] Validation OK (attempt 1)');
+        console.log('[GENERATE-MEAL-PLAN] Structure OK (attempt 1)');
         return first;
       }
 
-      console.warn('[GENERATE-MEAL-PLAN] Validation failed (attempt 1):', firstValidation.issues);
-
-      const missingDaysHint = firstValidation.issues.includes('mealPlan muss ein Array mit 7 Tagen sein')
-        ? 'Du hast NICHT alle 7 Tage geliefert. Liefere den kompletten Wochenplan Montag–Sonntag mit 5 Mahlzeiten pro Tag.'
-        : '';
+      console.warn('[GENERATE-MEAL-PLAN] Structure failed (attempt 1):', firstValidation.issues);
 
       // Attempt 2 with explicit correction feedback
       const correction = `KORREKTUR (du MUSST korrigieren):
-${missingDaysHint}
-Passe PORTIONEN/GRAMMANGABEN (und nur wenn nötig die Mahlzeiten) so an, dass jeder Tag innerhalb der Bereiche liegt (nie überschreiten, nicht unter Minimum).
 - ${firstValidation.issues.slice(0, 25).join('\n- ')}`;
 
       const second = await callOpenAI(`${baseInstruction}\n\n${correction}`);
-      const secondValidation = validateMealPlan(second);
+      const secondValidation = validatePlanStructure(second);
       if (secondValidation.ok) {
-        console.log('[GENERATE-MEAL-PLAN] Validation OK (attempt 2)');
+        console.log('[GENERATE-MEAL-PLAN] Structure OK (attempt 2)');
         return second;
       }
 
-      console.warn('[GENERATE-MEAL-PLAN] Validation failed (attempt 2):', secondValidation.issues);
-      throw new Error(`Plan erfüllt die Makro-Zielbereiche nicht: ${secondValidation.issues.slice(0, 6).join(' | ')}`);
+      console.warn('[GENERATE-MEAL-PLAN] Structure failed (attempt 2):', secondValidation.issues);
+      throw new Error(`Planstruktur ungültig: ${secondValidation.issues.slice(0, 6).join(' | ')}`);
     };
 
-    const normalizePlan = (plan: any) => {
-      if (!plan || !Array.isArray(plan.mealPlan)) return plan;
+    const finalizePlan = (plan: any) => {
+      const normalized = enforceMacroTargets(plan);
 
-      for (const day of plan.mealPlan) {
-        if (!Array.isArray(day?.meals)) continue;
-        for (const meal of day.meals) {
-          const calories = Math.round(Number(meal?.calories) || 0);
-          const protein = Math.round(Number(meal?.protein) || 0);
-          const fat = Math.round(Number(meal?.fat) || 0);
-          const carbs = deriveCarbs(calories, protein, fat);
+      // Final strict validation (must match exact targets)
+      for (const day of normalized?.mealPlan ?? []) {
+        const meals = Array.isArray(day?.meals) ? day.meals : [];
+        const totals = meals.reduce(
+          (acc: any, m: any) => {
+            acc.calories += Number(m?.calories) || 0;
+            acc.protein += Number(m?.protein) || 0;
+            acc.carbs += Number(m?.carbs) || 0;
+            acc.fat += Number(m?.fat) || 0;
+            return acc;
+          },
+          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        );
 
-          meal.calories = calories;
-          meal.protein = protein;
-          meal.fat = fat;
-          meal.carbs = carbs;
+        const checks: Array<[keyof typeof ranges, number]> = [
+          ['calories', totals.calories],
+          ['protein', totals.protein],
+          ['carbs', totals.carbs],
+          ['fat', totals.fat],
+        ];
+
+        for (const [k, v] of checks) {
+          const r = ranges[k];
+          if (v < r.min || v > r.max) {
+            throw new Error(`${String(day?.day ?? 'Tag')}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
+          }
         }
       }
 
-      return plan;
+      return normalized;
     };
 
     let finalPlan: any;
     try {
       finalPlan = await generateWithValidation();
-      finalPlan = normalizePlan(finalPlan);
+      finalPlan = finalizePlan(finalPlan);
     } catch (e) {
       if (e instanceof HttpError) {
         return new Response(JSON.stringify({ error: e.message }), {
