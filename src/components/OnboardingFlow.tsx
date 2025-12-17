@@ -567,6 +567,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "problem-pain":
+        const painPoints = [
+          { emoji: "🤔", text: "No idea what to cook", stat: "67%", statDesc: "give up on healthy eating" },
+          { emoji: "🗑️", text: "Food going bad", stat: "40%", statDesc: "of groceries wasted" },
+          { emoji: "📊", text: "Losing track", stat: "82%", statDesc: "underestimate calories" },
+          { emoji: "💸", text: "Overspending", stat: "€120", statDesc: "wasted monthly" },
+        ];
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -582,32 +588,60 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <span className="text-3xl">😩</span>
             </motion.div>
             <h1 className="text-2xl font-bold mb-2">Sound familiar?</h1>
-            <div className="flex flex-col gap-3 w-full max-w-sm mb-6">
-              {[
-                { emoji: "🤔", text: "No idea what to cook tonight" },
-                { emoji: "🗑️", text: "Food going bad in the fridge" },
-                { emoji: "📊", text: "Losing track of calories" },
-                { emoji: "💸", text: "Wasting money on groceries" },
-              ].map((item, i) => (
+            <p className="text-muted-foreground text-sm mb-6">You're not alone</p>
+            
+            <div className="grid grid-cols-2 gap-3 w-full max-w-sm mb-4">
+              {painPoints.map((item, i) => (
                 <motion.div
                   key={item.text}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.15 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/20"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.12 }}
+                  className="relative p-3 rounded-xl bg-red-500/5 border border-red-500/20 overflow-hidden"
                 >
-                  <span className="text-xl">{item.emoji}</span>
-                  <span className="text-sm text-left">{item.text}</span>
+                  {/* Animated background bar */}
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-red-500/20 to-transparent"
+                    initial={{ height: 0 }}
+                    animate={{ height: "60%" }}
+                    transition={{ delay: i * 0.12 + 0.3, duration: 0.6 }}
+                  />
+                  <div className="relative z-10">
+                    <span className="text-2xl block mb-1">{item.emoji}</span>
+                    <motion.span
+                      className="text-xl font-bold text-red-500 block"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.12 + 0.4 }}
+                    >
+                      {item.stat}
+                    </motion.span>
+                    <span className="text-[10px] text-muted-foreground leading-tight block">
+                      {item.statDesc}
+                    </span>
+                  </div>
                 </motion.div>
               ))}
             </div>
-            <p className="text-muted-foreground text-sm">
-              You're not alone. <span className="font-medium text-foreground">We've got you.</span>
-            </p>
+            
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-muted-foreground text-sm"
+            >
+              We've got the solution. <span className="font-medium text-foreground">→</span>
+            </motion.p>
           </motion.div>
         );
 
       case "transformation":
+        // Animated comparison data
+        const comparisonStats = [
+          { label: "Food Waste", without: 85, withApp: 15, unit: "%", goodIsLow: true },
+          { label: "Macro Goals Hit", without: 25, withApp: 92, unit: "%", goodIsLow: false },
+          { label: "Money Saved", without: 0, withApp: 75, unit: "€/mo", goodIsLow: false },
+        ];
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -615,55 +649,130 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             exit={{ opacity: 0, y: -20 }}
             className="flex flex-col items-center text-center px-6 w-full"
           >
-            <h1 className="text-2xl font-bold mb-6">Before → After</h1>
-            <div className="flex gap-4 w-full max-w-sm mb-6">
-              {/* Before */}
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex-1 p-4 rounded-2xl bg-red-500/5 border border-red-500/20"
-              >
-                <span className="text-3xl mb-2 block">😫</span>
-                <span className="text-xs text-muted-foreground block mb-2">WITHOUT</span>
-                <div className="text-left text-xs space-y-1">
-                  <p>❌ Guessing calories</p>
-                  <p>❌ Food waste</p>
-                  <p>❌ No meal plan</p>
-                </div>
-              </motion.div>
-              {/* Arrow */}
-              <div className="flex items-center">
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  <ChevronRight className="w-6 h-6 text-primary" />
-                </motion.div>
-              </div>
-              {/* After */}
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex-1 p-4 rounded-2xl bg-primary/10 border border-primary/20"
-              >
-                <span className="text-3xl mb-2 block">🤩</span>
-                <span className="text-xs text-primary block mb-2">WITH FRIGBUDDY</span>
-                <div className="text-left text-xs space-y-1">
-                  <p className="text-primary">✓ Hit your macros</p>
-                  <p className="text-primary">✓ Zero waste</p>
-                  <p className="text-primary">✓ Weekly plans</p>
-                </div>
-              </motion.div>
-            </div>
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-sm font-medium"
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mb-4"
             >
-              Join <span className="text-primary">50,000+</span> users who transformed their eating
-            </motion.p>
+              <Sparkles className="w-10 h-10 text-primary" />
+            </motion.div>
+            <h1 className="text-2xl font-bold mb-2">The FrigBuddy Effect</h1>
+            <p className="text-muted-foreground text-sm mb-6">Real results from real users</p>
+            
+            {/* Animated Bar Charts */}
+            <div className="w-full max-w-sm space-y-5 mb-6">
+              {comparisonStats.map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.2 }}
+                  className="relative"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">{stat.label}</span>
+                  </div>
+                  
+                  {/* Comparison bars container */}
+                  <div className="flex gap-3 items-end h-16">
+                    {/* Without bar */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <motion.div
+                        className="w-full rounded-t-lg bg-red-500/20 relative overflow-hidden"
+                        initial={{ height: 0 }}
+                        animate={{ height: `${(stat.goodIsLow ? stat.without : stat.without) * 0.6}px` }}
+                        transition={{ delay: index * 0.2 + 0.3, duration: 0.8, ease: "easeOut" }}
+                      >
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-t from-red-500/40 to-red-500/10"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: index * 0.2 + 0.5 }}
+                        />
+                      </motion.div>
+                      <motion.span
+                        className="text-xs text-red-500 font-bold mt-1"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.2 + 0.6 }}
+                      >
+                        {stat.without}{stat.unit === "€/mo" ? "€" : stat.unit}
+                      </motion.span>
+                      <span className="text-[10px] text-muted-foreground">Without</span>
+                    </div>
+                    
+                    {/* With FrigBuddy bar */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <motion.div
+                        className="w-full rounded-t-lg bg-primary/20 relative overflow-hidden"
+                        initial={{ height: 0 }}
+                        animate={{ height: `${stat.withApp * 0.6}px` }}
+                        transition={{ delay: index * 0.2 + 0.5, duration: 0.8, ease: "easeOut" }}
+                      >
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-t from-primary/60 to-primary/20"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: index * 0.2 + 0.7 }}
+                        />
+                        {/* Shine effect */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          initial={{ x: "-100%" }}
+                          animate={{ x: "100%" }}
+                          transition={{ delay: index * 0.2 + 1, duration: 0.6 }}
+                        />
+                      </motion.div>
+                      <motion.span
+                        className="text-xs text-primary font-bold mt-1"
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.2 + 0.8, type: "spring" }}
+                      >
+                        {stat.withApp}{stat.unit === "€/mo" ? "€" : stat.unit}
+                      </motion.span>
+                      <span className="text-[10px] text-primary font-medium">FrigBuddy</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Animated percentage progress summary */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="w-full max-w-sm p-4 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/15 border border-primary/20"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium">Average User Success</span>
+                <motion.span
+                  className="text-lg font-bold text-primary"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.4 }}
+                >
+                  94%
+                </motion.span>
+              </div>
+              <div className="h-3 bg-background/50 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: "94%" }}
+                  transition={{ delay: 1.5, duration: 1, ease: "easeOut" }}
+                />
+              </div>
+              <motion.p
+                className="text-xs text-muted-foreground mt-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.8 }}
+              >
+                hit their nutrition goals within 4 weeks
+              </motion.p>
+            </motion.div>
           </motion.div>
         );
 
