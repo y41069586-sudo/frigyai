@@ -88,7 +88,7 @@ serve(async (req) => {
 
 WICHTIG - MAXIMALE ABWECHSLUNG:
 - JEDES Gericht muss EINZIGARTIG sein! KEINE Wiederholungen!
-- Alle 7 Frühstücke müssen KOMPLETT UNTERSCHIEDLICH sein (verschiedene Gerichte)
+- Alle 7 Frühstücke müssen KOMPLETT UNTERSCHIEDLICH sein
 - Alle 14 Snacks müssen KOMPLETT UNTERSCHIEDLICH sein
 - Alle 7 Mittagessen müssen KOMPLETT UNTERSCHIEDLICH sein
 - Alle 7 Abendessen müssen KOMPLETT UNTERSCHIEDLICH sein
@@ -96,13 +96,18 @@ WICHTIG - MAXIMALE ABWECHSLUNG:
 - Nutze verschiedene Beilagen: Reis, Pasta, Kartoffeln, Quinoa, Couscous, Brot
 - Nutze verschiedene Zubereitungsarten: gebraten, gekocht, gegrillt, gebacken, roh
 
-Ziele pro Tag:
-- Kalorien: ${targetCalories} kcal
-- Protein: max ${targetProtein}g
-- Kohlenhydrate: ca. ${targetCarbs}g
-- Fett: max ${targetFat}g
+ZIELE PRO TAG (müssen pro Tag durch die SUMME der 5 Mahlzeiten erreicht werden):
+- Kalorien: ${targetCalories} kcal (Zielbereich ${Math.round(targetCalories * 0.98)}–${targetCalories} kcal, NICHT darüber)
+- Protein: ${targetProtein} g (Zielbereich ${Math.round(targetProtein * 0.90)}–${targetProtein} g, NICHT darüber)
+- Kohlenhydrate: ${targetCarbs} g (Zielbereich ${Math.round(targetCarbs * 0.90)}–${Math.round(targetCarbs * 1.05)} g)
+- Fett: ${targetFat} g (Zielbereich ${Math.round(targetFat * 0.90)}–${targetFat} g, NICHT darüber)
 
-Kalorienverteilung:
+WICHTIG:
+- Summiere pro Tag Kalorien/Protein/Kohlenhydrate/Fett aller 5 Mahlzeiten.
+- Passe Portionen/Grammangaben so an, dass die Tagesziele passen.
+- Wenn du schwankst: lieber minimal UNTER den Max-Limits (Kalorien/Protein/Fett) bleiben.
+
+Kalorienverteilung pro Tag:
 - Frühstück: ${breakfastCal} kcal
 - Snack: ${snackCal} kcal
 - Mittagessen: ${lunchCal} kcal
@@ -112,7 +117,7 @@ Kalorienverteilung:
 Output-Regeln:
 - NUR valides JSON (kein Markdown).
 - 7 Tage: Montag bis Sonntag.
-- Pro Tag 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen.
+- Pro Tag genau 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen.
 - Pro Mahlzeit max 3 Zutaten, max 2 kurze Steps.
 - Preise als Zahl (EUR).
 
@@ -131,12 +136,12 @@ JSON-Schema:
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
         max_tokens: 4096,
-        temperature: 0.8, // Higher temperature for more variety
+        temperature: 0.7,
         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: `Erstelle einen kreativen, abwechslungsreichen Wochenplan. JEDES Gericht muss anders sein! ${preferences ? `Präferenzen: ${preferences}` : ''}`,
+            content: `Erstelle einen kreativen, abwechslungsreichen Wochenplan. Stelle sicher, dass JEDER TAG die Tagesziele trifft, ohne Protein/Fett/Kalorien zu überschreiten. ${preferences ? `Präferenzen: ${preferences}` : ''}`,
           },
         ],
       }),
