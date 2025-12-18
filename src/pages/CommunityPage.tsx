@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Heart, MessageCircle, Share2, Plus, ArrowLeft, 
-  Flame, Users, TrendingUp, Star, Clock, ChefHat, Loader2
+  Flame, Users, TrendingUp, Star, Clock, ChefHat, Loader2, Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -159,24 +159,8 @@ export const CommunityPage = () => {
     return `vor ${Math.floor(hours / 24)} Tagen`;
   };
 
-  // Check premium access
-  if (!subscriptionStatus?.subscribed) {
-    return (
-      <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
-        <Users className="h-16 w-16 text-muted-foreground mb-4" />
-        <h1 className="text-xl font-bold mb-2">Community</h1>
-        <p className="text-muted-foreground text-center mb-6">
-          Die Community ist nur für Premium-Mitglieder verfügbar.
-        </p>
-        <Button onClick={() => navigate('/premium')}>
-          Premium werden
-        </Button>
-        <Button variant="ghost" className="mt-4" onClick={() => navigate('/meal-plans')}>
-          Zurück
-        </Button>
-      </div>
-    );
-  }
+  // Free users can view community but not post
+  const isPremium = subscriptionStatus?.subscribed === true;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -193,10 +177,28 @@ export const CommunityPage = () => {
             </div>
           </div>
           
-          <Button size="sm" className="gap-2 gradient-neon text-black" onClick={() => setUploadDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Rezept teilen
-          </Button>
+          {isPremium ? (
+            <Button size="sm" className="gap-2 gradient-neon text-black" onClick={() => setUploadDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Rezept teilen
+            </Button>
+          ) : (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-2 opacity-70"
+              onClick={() => {
+                toast({
+                  title: 'Premium Feature',
+                  description: 'Upgrade auf Premium, um Rezepte zu teilen.',
+                });
+                navigate('/premium');
+              }}
+            >
+              <Lock className="h-4 w-4" />
+              Rezept teilen
+            </Button>
+          )}
         </div>
       </div>
 
