@@ -1409,6 +1409,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "planning-setup":
         const activityLevels = [
           { id: "low", label: "Chill", emoji: "🧘", desc: "Desk job, light walks" },
           { id: "medium", label: "Active", emoji: "🚴", desc: "Regular workouts" },
