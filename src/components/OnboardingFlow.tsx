@@ -28,14 +28,15 @@ interface OnboardingFlowProps {
 type OnboardingStep = 
   | "hero"
   | "goal"
-  | "body-basics"
-  | "planning-setup"
-  | "macro-visual"
   | "fridge-intro"
   | "permissions"
   | "weekly-plan"
   | "shopping-preview"
   | "comparison"
+  | "tracker-intro"
+  | "body-basics"
+  | "planning-setup"
+  | "macro-visual"
   | "premium-hint"
   | "community"
   | "done";
@@ -409,17 +410,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [macroAnimate, setMacroAnimate] = useState(false);
   const [chartAnimate, setChartAnimate] = useState(false);
 
+  const [trackerIntroAnimate, setTrackerIntroAnimate] = useState(false);
+
   const steps: OnboardingStep[] = [
     "hero",
     "goal",
-    "body-basics",
-    "planning-setup",
-    "macro-visual",
     "fridge-intro",
     "permissions",
     "weekly-plan",
     "shopping-preview",
     "comparison",
+    "tracker-intro",
+    "body-basics",
+    "planning-setup",
+    "macro-visual",
     "premium-hint",
     "community",
     "done"
@@ -432,6 +436,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (currentStep === "fridge-intro") {
       setTimeout(() => setFridgeOpen(true), 300);
       setTimeout(() => setFridgeScan(true), 800);
+    }
+    if (currentStep === "tracker-intro") {
+      setTimeout(() => setTrackerIntroAnimate(true), 300);
     }
     if (currentStep === "macro-visual") {
       setTimeout(() => setMacroAnimate(true), 300);
@@ -628,20 +635,40 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="body-basics">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Just the basics</h1>
-              <p className="text-muted-foreground/40 text-xs mb-8">Used only to calculate your macros</p>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                className="text-4xl mb-4"
+              >
+                📏
+              </motion.div>
               
-              <div className="w-full max-w-sm space-y-8">
-                {/* Height */}
-                <div>
+              <h1 className="text-2xl font-bold mb-1">Your body stats</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Slide to set your values</p>
+              
+              <div className="w-full max-w-sm space-y-6">
+                {/* Height - Interactive Card */}
+                <motion.div 
+                  className="p-4 rounded-2xl bg-card border-2 border-border"
+                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-muted-foreground/60">Height</span>
-                    <motion.span 
-                      className="text-xl font-bold text-primary"
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">📐</span>
+                      <span className="text-sm font-medium">Height</span>
+                    </div>
+                    <motion.div 
+                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
                       key={userData.height}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.2 }}
                     >
                       <AnimatedCounter value={userData.height} suffix=" cm" />
-                    </motion.span>
+                    </motion.div>
                   </div>
                   <input
                     type="range"
@@ -649,20 +676,31 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     max="220"
                     value={userData.height}
                     onChange={(e) => setUserData({ ...userData, height: parseInt(e.target.value) })}
-                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
-                </div>
+                </motion.div>
                 
-                {/* Weight */}
-                <div>
+                {/* Weight - Interactive Card */}
+                <motion.div 
+                  className="p-4 rounded-2xl bg-card border-2 border-border"
+                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-muted-foreground/60">Weight</span>
-                    <motion.span 
-                      className="text-xl font-bold text-primary"
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">⚖️</span>
+                      <span className="text-sm font-medium">Weight</span>
+                    </div>
+                    <motion.div 
+                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
                       key={userData.weight}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.2 }}
                     >
                       <AnimatedCounter value={userData.weight} suffix=" kg" />
-                    </motion.span>
+                    </motion.div>
                   </div>
                   <input
                     type="range"
@@ -670,20 +708,31 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     max="150"
                     value={userData.weight}
                     onChange={(e) => setUserData({ ...userData, weight: parseInt(e.target.value) })}
-                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
-                </div>
+                </motion.div>
                 
-                {/* Age */}
-                <div>
+                {/* Age - Interactive Card */}
+                <motion.div 
+                  className="p-4 rounded-2xl bg-card border-2 border-border"
+                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-muted-foreground/60">Age</span>
-                    <motion.span 
-                      className="text-xl font-bold text-primary"
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🎂</span>
+                      <span className="text-sm font-medium">Age</span>
+                    </div>
+                    <motion.div 
+                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
                       key={userData.age}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <AnimatedCounter value={userData.age} suffix=" years" />
-                    </motion.span>
+                      <AnimatedCounter value={userData.age} suffix=" yrs" />
+                    </motion.div>
                   </div>
                   <input
                     type="range"
@@ -691,97 +740,134 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     max="80"
                     value={userData.age}
                     onChange={(e) => setUserData({ ...userData, age: parseInt(e.target.value) })}
-                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
-                </div>
+                </motion.div>
               </div>
               
-              <motion.p
-                className="text-xs text-muted-foreground/40 mt-8 flex items-center gap-1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+              <motion.div
+                className="flex items-center gap-2 mt-6 px-4 py-2 rounded-full bg-primary/5 border border-primary/20"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <span>🔒</span> Your data stays private
-              </motion.p>
+                <span className="text-sm">🔒</span>
+                <span className="text-xs text-muted-foreground/60">100% private - stays on your device</span>
+              </motion.div>
             </div>
           </StepCard>
         );
 
       case "planning-setup":
         const activityLevels = [
-          { id: "low", label: "Low", emoji: "🪑" },
-          { id: "medium", label: "Medium", emoji: "🚶" },
-          { id: "high", label: "High", emoji: "🏃" },
+          { id: "low", label: "Chill", emoji: "🧘", desc: "Desk job, light walks" },
+          { id: "medium", label: "Active", emoji: "🚴", desc: "Regular workouts" },
+          { id: "high", label: "Beast", emoji: "🔥", desc: "Intense training" },
         ];
         const macroOptions = [
-          { id: "balanced", label: "Balanced", emoji: "⚖️" },
-          { id: "high-protein", label: "High protein", emoji: "💪" },
-          { id: "low-carb", label: "Low carb", emoji: "🥑" },
-          { id: "custom", label: "Custom", emoji: "⚙️" },
+          { id: "balanced", label: "Balanced", emoji: "⚖️", color: "from-blue-500/20 to-green-500/20" },
+          { id: "high-protein", label: "High Protein", emoji: "💪", color: "from-red-500/20 to-orange-500/20" },
+          { id: "low-carb", label: "Low Carb", emoji: "🥑", color: "from-green-500/20 to-emerald-500/20" },
+          { id: "custom", label: "Custom", emoji: "✨", color: "from-purple-500/20 to-pink-500/20" },
         ];
         return (
           <StepCard step="planning-setup">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">How should we plan?</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Set your activity and macro preference</p>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                className="text-4xl mb-4"
+              >
+                🏃
+              </motion.div>
               
-              {/* Activity Level */}
-              <div className="w-full max-w-sm mb-6">
-                <span className="text-xs font-medium block text-left mb-3 text-muted-foreground/60">Activity Level</span>
-                <div className="flex gap-2">
-                  {activityLevels.map((level, i) => (
-                    <motion.button
-                      key={level.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setUserData({ ...userData, activityLevel: level.id })}
-                      className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                        userData.activityLevel === level.id
-                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-                          : "border-border bg-card"
-                      }`}
+              <h1 className="text-2xl font-bold mb-1">How active are you?</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Pick your vibe</p>
+              
+              {/* Activity Level - Fun cards */}
+              <div className="w-full max-w-sm grid grid-cols-3 gap-2 mb-8">
+                {activityLevels.map((level, i) => (
+                  <motion.button
+                    key={level.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1, type: "spring" }}
+                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ y: -4 }}
+                    onClick={() => setUserData({ ...userData, activityLevel: level.id })}
+                    className={`relative p-4 rounded-2xl border-2 transition-all ${
+                      userData.activityLevel === level.id
+                        ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
+                        : "border-border bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    <motion.span 
+                      className="text-3xl block mb-2"
+                      animate={{ 
+                        scale: userData.activityLevel === level.id ? [1, 1.3, 1] : 1,
+                        rotate: userData.activityLevel === level.id ? [0, -10, 10, 0] : 0
+                      }}
+                      transition={{ duration: 0.4 }}
                     >
-                      <motion.span 
-                        className="text-2xl block mb-1"
-                        animate={{ 
-                          scale: userData.activityLevel === level.id ? [1, 1.2, 1] : 1 
-                        }}
+                      {level.emoji}
+                    </motion.span>
+                    <span className="text-sm font-bold block">{level.label}</span>
+                    <span className="text-[9px] text-muted-foreground/40 block mt-1">{level.desc}</span>
+                    
+                    {userData.activityLevel === level.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
                       >
-                        {level.emoji}
-                      </motion.span>
-                      <span className="text-xs font-medium">{level.label}</span>
-                    </motion.button>
-                  ))}
-                </div>
+                        <Check className="w-3 h-3 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
               </div>
               
-              {/* Macro Focus */}
-              <div className="w-full max-w-sm">
-                <span className="text-xs font-medium block text-left mb-3 text-muted-foreground/60">Macro Focus</span>
+              {/* Macro Focus - Colorful cards */}
+              <motion.div 
+                className="w-full max-w-sm"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <span className="text-xs font-semibold block text-center mb-3 text-muted-foreground/60">Choose your macro style</span>
                 <div className="grid grid-cols-2 gap-2">
                   {macroOptions.map((option, i) => (
                     <motion.button
                       key={option.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + i * 0.08 }}
+                      transition={{ delay: 0.5 + i * 0.08 }}
                       whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.02 }}
                       onClick={() => setUserData({ ...userData, macroFocus: option.id })}
-                      className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      className={`relative flex items-center gap-2 p-3 rounded-xl border-2 transition-all overflow-hidden ${
                         userData.macroFocus === option.id
-                          ? "border-primary bg-primary/10"
+                          ? "border-primary shadow-lg"
                           : "border-border bg-card"
                       }`}
                     >
-                      <span className="text-xl">{option.emoji}</span>
-                      <span className="text-sm font-medium">{option.label}</span>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${option.color} ${userData.macroFocus === option.id ? "opacity-100" : "opacity-0"} transition-opacity`} />
+                      <span className="text-xl relative z-10">{option.emoji}</span>
+                      <span className="text-sm font-medium relative z-10">{option.label}</span>
+                      {userData.macroFocus === option.id && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
+                        >
+                          <Check className="w-2 h-2 text-primary-foreground" />
+                        </motion.div>
+                      )}
                     </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             </div>
           </StepCard>
         );
@@ -1109,6 +1195,83 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "tracker-intro":
+        return (
+          <StepCard step="tracker-intro">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+              >
+                <motion.span
+                  className="text-5xl"
+                  animate={{ 
+                    scale: trackerIntroAnimate ? [1, 1.2, 1] : 1,
+                    rotate: trackerIntroAnimate ? [0, 10, -10, 0] : 0
+                  }}
+                  transition={{ delay: 0.5, duration: 0.6 }}
+                >
+                  🎯
+                </motion.span>
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-2"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                Time to personalize!
+              </motion.h1>
+              
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-8"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                3 quick steps to unlock your perfect macros
+              </motion.p>
+              
+              {/* Progress indicators */}
+              <div className="flex gap-4 mb-8">
+                {[
+                  { emoji: "📏", label: "Body", done: false },
+                  { emoji: "🏃", label: "Activity", done: false },
+                  { emoji: "📊", label: "Macros", done: false },
+                ].map((step, i) => (
+                  <motion.div
+                    key={step.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    className="flex flex-col items-center gap-2"
+                  >
+                    <motion.div 
+                      className="w-14 h-14 rounded-2xl bg-card border-2 border-border flex items-center justify-center"
+                      whileHover={{ scale: 1.05, borderColor: "hsl(var(--primary))" }}
+                    >
+                      <span className="text-2xl">{step.emoji}</span>
+                    </motion.div>
+                    <span className="text-[10px] text-muted-foreground/40">{step.label}</span>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <motion.p
+                className="text-xs text-muted-foreground/40 italic"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+              >
+                Takes less than 30 seconds ⚡
+              </motion.p>
+            </div>
+          </StepCard>
+        );
+
       case "premium-hint":
         return (
           <StepCard step="premium-hint">
@@ -1330,7 +1493,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             disabled={!canProceed()}
             className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : "shadow-lg shadow-primary/20"}`}
           >
-            {currentStep === "hero" ? "Get started" : "Continue"}
+            {currentStep === "hero" ? "Get started" : currentStep === "tracker-intro" ? "Let's go! 🚀" : "Continue"}
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
         </motion.div>
