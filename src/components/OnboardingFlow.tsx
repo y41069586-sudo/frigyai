@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { 
   ChevronRight, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
   Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe,
-  Zap, Clock, Rocket, TrendingUp
+  Zap, Clock, Rocket, TrendingUp, Flame, BarChart3, Activity, User,
+  Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
+  Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding, Bike
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import confetti from "canvas-confetti";
@@ -325,11 +327,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "goal":
-        const goalOptions = [
-          { id: "lose", label: "Lose weight", emoji: "🔥" },
-          { id: "maintain", label: "Maintain weight", emoji: "⚖️" },
-          { id: "gain", label: "Gain muscle", emoji: "💪" },
-          { id: "healthier", label: "Eat healthier", emoji: "🥗" },
+        const goalOptionsData = [
+          { id: "lose", label: "Lose weight", Icon: Flame },
+          { id: "maintain", label: "Maintain weight", Icon: Scale },
+          { id: "gain", label: "Gain muscle", Icon: Dumbbell },
+          { id: "healthier", label: "Eat healthier", Icon: Salad },
         ];
         return (
           <StepCard step="goal">
@@ -338,7 +340,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <p className="text-muted-foreground/60 text-xs mb-6">Select one to personalize your experience</p>
               
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                {goalOptions.map((option, i) => (
+                {goalOptionsData.map((option, i) => (
                   <SelectionCard
                     key={option.id}
                     selected={userData.goal === option.id}
@@ -346,7 +348,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     delay={i * 0.05}
                     className="flex flex-col items-center gap-2 p-5"
                   >
-                    <span className="text-3xl">{option.emoji}</span>
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <option.Icon className="w-6 h-6 text-primary" />
+                    </div>
                     <span className="text-sm font-medium">{option.label}</span>
                   </SelectionCard>
                 ))}
@@ -360,9 +364,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "social-proof":
         const testimonials = [
-          { name: "Sarah M.", text: "Lost 8kg in 2 months!", avatar: "👩‍🦰", rating: 5 },
-          { name: "Thomas K.", text: "Finally hitting my macros!", avatar: "👨", rating: 5 },
-          { name: "Lisa R.", text: "Best meal planning app ever", avatar: "👩", rating: 5 },
+          { name: "Sarah M.", text: "Lost 8kg in 2 months!", color: "from-pink-500/20 to-rose-500/20", rating: 5 },
+          { name: "Thomas K.", text: "Finally hitting my macros!", color: "from-blue-500/20 to-cyan-500/20", rating: 5 },
+          { name: "Lisa R.", text: "Best meal planning app ever", color: "from-purple-500/20 to-pink-500/20", rating: 5 },
         ];
         return (
           <StepCard step="social-proof">
@@ -374,8 +378,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
               >
                 <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span key={star} className="text-yellow-500">⭐</span>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                   ))}
                 </div>
                 <span className="font-bold text-lg">4.9</span>
@@ -397,12 +401,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.3 + i * 0.1, duration: 0.3 }}
                     className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border"
                   >
-                    <span className="text-3xl">{testimonial.avatar}</span>
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${testimonial.color} flex items-center justify-center`}>
+                      <User className="w-5 h-5 text-muted-foreground" />
+                    </div>
                     <div className="flex-1 text-left">
                       <p className="font-semibold text-sm">{testimonial.name}</p>
                       <p className="text-xs text-muted-foreground/60">&quot;{testimonial.text}&quot;</p>
                     </div>
-                    <div className="flex text-yellow-500 text-xs">{"⭐".repeat(testimonial.rating)}</div>
+                    <div className="flex text-yellow-500">
+                      {Array.from({ length: testimonial.rating }).map((_, idx) => (
+                        <Star key={idx} className="w-3 h-3 fill-yellow-500" />
+                      ))}
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -465,9 +475,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                <motion.span className="text-5xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.3 }}>
-                  🎯
-                </motion.span>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.3 }}>
+                  <Target className="w-12 h-12 text-primary" />
+                </motion.div>
               </motion.div>
               
               <motion.h1 className="text-2xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
@@ -478,7 +488,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.p>
               
               <div className="flex gap-4 mb-8">
-                {[{ emoji: "📏", label: "Body" }, { emoji: "🏃", label: "Activity" }, { emoji: "📊", label: "Macros" }].map((step, i) => (
+                {[
+                  { Icon: Ruler, label: "Body" },
+                  { Icon: Activity, label: "Activity" },
+                  { Icon: BarChart3, label: "Macros" }
+                ].map((step, i) => (
                   <motion.div
                     key={step.label}
                     initial={{ opacity: 0, y: 15 }}
@@ -487,15 +501,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     className="flex flex-col items-center gap-2"
                   >
                     <div className="w-14 h-14 rounded-2xl bg-card border-2 border-border flex items-center justify-center">
-                      <span className="text-2xl">{step.emoji}</span>
+                      <step.Icon className="w-6 h-6 text-primary" />
                     </div>
                     <span className="text-[10px] text-muted-foreground/40">{step.label}</span>
                   </motion.div>
                 ))}
               </div>
               
-              <motion.p className="text-xs text-muted-foreground/40 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
-                Takes less than 30 seconds ⚡
+              <motion.p className="text-xs text-muted-foreground/40 italic flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
+                Takes less than 30 seconds <Zap className="w-3 h-3 text-primary" />
               </motion.p>
             </div>
           </StepCard>
@@ -505,8 +519,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="body-basics">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
-                📏
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
+                <Ruler className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Your body basics</h1>
@@ -545,7 +559,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">⚖️</span>
+                      <Scale className="w-5 h-5 text-primary" />
                       <span className="text-sm font-medium">Weight</span>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
@@ -568,7 +582,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">🎂</span>
+                      <Calendar className="w-5 h-5 text-primary" />
                       <span className="text-sm font-medium">Age</span>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
@@ -600,8 +614,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="gender">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-6">
-                👤
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-6 shadow-lg">
+                <User className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Dein Geschlecht</h1>
@@ -609,8 +623,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               
               <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
                 {[
-                  { id: 'male' as const, label: 'Männlich', emoji: '👨', color: 'from-blue-500/20 to-cyan-500/20' },
-                  { id: 'female' as const, label: 'Weiblich', emoji: '👩', color: 'from-pink-500/20 to-rose-500/20' },
+                  { id: 'male' as const, label: 'Männlich', color: 'from-blue-500/20 to-cyan-500/20' },
+                  { id: 'female' as const, label: 'Weiblich', color: 'from-pink-500/20 to-rose-500/20' },
                 ].map((option, index) => (
                   <motion.button
                     key={option.id}
@@ -627,7 +641,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-50`} />
                     <div className="relative z-10 flex flex-col items-center gap-3">
-                      <span className="text-4xl">{option.emoji}</span>
+                      <div className="w-12 h-12 rounded-full bg-card/80 flex items-center justify-center">
+                        <User className="w-6 h-6 text-primary" />
+                      </div>
                       <span className="font-medium">{option.label}</span>
                     </div>
                     {userData.gender === option.id && (
@@ -655,8 +671,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="goal-mode">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
-                🎯
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
+                <Target className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Dein Ziel</h1>
@@ -673,7 +689,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     userData.goalMode === 'lose' ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
                   }`}
                 >
-                  <span className="text-5xl block mb-3">📉</span>
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-500/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-red-500 rotate-180" />
+                  </div>
                   <span className="text-lg font-bold block">Abnehmen</span>
                   <span className="text-xs text-muted-foreground/40">Kaloriendefizit</span>
                   {userData.goalMode === 'lose' && (
@@ -693,7 +711,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     userData.goalMode === 'gain' ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
                   }`}
                 >
-                  <span className="text-5xl block mb-3">📈</span>
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-green-500/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-green-500" />
+                  </div>
                   <span className="text-lg font-bold block">Zunehmen</span>
                   <span className="text-xs text-muted-foreground/40">Kalorienüberschuss</span>
                   {userData.goalMode === 'gain' && (
@@ -715,8 +735,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="target-weight">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
-                ⚖️
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
+                <Scale className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Dein Zielgewicht</h1>
@@ -789,8 +809,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                 </motion.div>
                 
-                <motion.p className="text-xs text-muted-foreground/40 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
-                  💡 Max. 10kg {userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse
+                <motion.p className="text-xs text-muted-foreground/40 text-center flex items-center justify-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
+                  <Sparkles className="w-3 h-3 text-primary" /> Max. 10kg {userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse
                 </motion.p>
               </div>
             </div>
@@ -854,32 +874,32 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </div>
               
-              <motion.p className="text-xs text-muted-foreground/40 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
-                ⚠️ Schnelleres Tempo = mehr Disziplin erforderlich
+              <motion.p className="text-xs text-muted-foreground/40 mt-6 flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
+                <AlertTriangle className="w-3 h-3 text-yellow-500" /> Schnelleres Tempo = mehr Disziplin erforderlich
               </motion.p>
             </div>
           </StepCard>
         );
 
       case "dietary-preferences":
-        const dietOptions = [
-          { id: 'vegetarian', label: 'Vegetarisch', emoji: '🥗', desc: 'Kein Fleisch oder Fisch' },
-          { id: 'vegan', label: 'Vegan', emoji: '🌱', desc: 'Keine tierischen Produkte' },
-          { id: 'pescatarian', label: 'Pescetarisch', emoji: '🐟', desc: 'Fisch, kein Fleisch' },
-          { id: 'none', label: 'Keine', emoji: '🍽️', desc: 'Alles erlaubt' },
+        const dietOptionsData = [
+          { id: 'vegetarian', label: 'Vegetarisch', Icon: Salad, desc: 'Kein Fleisch oder Fisch' },
+          { id: 'vegan', label: 'Vegan', Icon: Leaf, desc: 'Keine tierischen Produkte' },
+          { id: 'pescatarian', label: 'Pescetarisch', Icon: Fish, desc: 'Fisch, kein Fleisch' },
+          { id: 'none', label: 'Keine', Icon: Utensils, desc: 'Alles erlaubt' },
         ];
         return (
           <StepCard step="dietary-preferences">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-4xl mb-4">
-                🥬
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
+                <Leaf className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Ernährungsweise</h1>
               <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezepte</p>
               
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                {dietOptions.map((option, index) => {
+                {dietOptionsData.map((option, index) => {
                   const isSelected = option.id === 'none' 
                     ? userData.dietaryPreferences.length === 0 
                     : userData.dietaryPreferences.includes(option.id);
@@ -906,7 +926,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{option.emoji}</span>
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <option.Icon className="w-5 h-5 text-primary" />
+                        </div>
                         <div>
                           <p className="font-medium text-sm">{option.label}</p>
                           <p className="text-[10px] text-muted-foreground/50">{option.desc}</p>
@@ -926,26 +948,26 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "allergies":
-        const allergyOptions = [
-          { id: 'gluten', label: 'Gluten', emoji: '🌾' },
-          { id: 'lactose', label: 'Laktose', emoji: '🥛' },
-          { id: 'nuts', label: 'Nüsse', emoji: '🥜' },
-          { id: 'soy', label: 'Soja', emoji: '🫘' },
-          { id: 'eggs', label: 'Eier', emoji: '🥚' },
-          { id: 'none', label: 'Keine', emoji: '✅' },
+        const allergyOptionsData = [
+          { id: 'gluten', label: 'Gluten', Icon: Wheat },
+          { id: 'lactose', label: 'Laktose', Icon: Milk },
+          { id: 'nuts', label: 'Nüsse', Icon: Apple },
+          { id: 'soy', label: 'Soja', Icon: Bean },
+          { id: 'eggs', label: 'Eier', Icon: Egg },
+          { id: 'none', label: 'Keine', Icon: CircleCheck },
         ];
         return (
           <StepCard step="allergies">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-4xl mb-4">
-                ⚠️
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-4 shadow-lg">
+                <AlertTriangle className="w-8 h-8 text-white" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Allergien & Unverträglichkeiten</h1>
               <p className="text-muted-foreground/40 text-xs mb-6">Mehrfachauswahl möglich</p>
               
               <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                {allergyOptions.map((option, index) => {
+                {allergyOptionsData.map((option, index) => {
                   const isSelected = option.id === 'none' 
                     ? userData.allergies.length === 0 
                     : userData.allergies.includes(option.id);
@@ -971,7 +993,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         isSelected ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
                       }`}
                     >
-                      <span className="text-2xl">{option.emoji}</span>
+                      <option.Icon className="w-6 h-6 text-primary" />
                       <span className="text-xs font-medium">{option.label}</span>
                       {isSelected && (
                         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
