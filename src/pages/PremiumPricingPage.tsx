@@ -11,7 +11,7 @@ import frigLogo from "@/assets/frig-logo.png";
 
 const PremiumPricingPage = () => {
   const { t } = useLanguage();
-  const { user, session } = useAuth();
+  const { user, session, subscriptionStatus } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === '1' || searchParams.get('preview') === 'true';
@@ -25,6 +25,17 @@ const PremiumPricingPage = () => {
       navigate('/auth?from=premium-pricing', { replace: true });
     }
   }, [user, navigate, isPreview]);
+
+  // If user already has premium, redirect to home or show message
+  useEffect(() => {
+    if (subscriptionStatus?.subscribed && !isPreview) {
+      toast({
+        title: "Du bist bereits Premium!",
+        description: "Du hast bereits ein aktives Abonnement.",
+      });
+      navigate('/', { replace: true });
+    }
+  }, [subscriptionStatus, navigate, isPreview]);
 
   const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
     if (!session) {
