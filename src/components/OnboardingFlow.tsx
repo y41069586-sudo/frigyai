@@ -605,36 +605,66 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
 
 // Line Chart that draws instead of fades
 const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
-  const withoutData = [50, 55, 45, 60, 40, 55, 48];
-  const withData = [50, 52, 55, 58, 63, 68, 75];
+  const withoutData = [50, 55, 45, 60, 40, 55, 48, 42, 50, 45];
+  const withData = [50, 52, 55, 58, 63, 68, 75, 80, 85, 90];
 
   return (
-    <div className="relative w-full h-48 bg-card rounded-2xl p-4 border border-border overflow-hidden">
+    <div className="relative w-full h-52 bg-card rounded-2xl p-4 border border-border overflow-hidden">
       {/* Soft gradient background */}
       <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
       
-      <svg viewBox="0 0 200 100" className="w-full h-full" preserveAspectRatio="none">
-        {/* Grid lines */}
-        {[0, 1, 2, 3, 4].map((i) => (
-          <line key={i} x1="0" y1={i * 25} x2="200" y2={i * 25} stroke="hsl(var(--border))" strokeWidth="0.3" strokeDasharray="4 4" />
+      <svg viewBox="0 0 240 110" className="w-full h-full" preserveAspectRatio="none">
+        {/* Extended grid lines - go further */}
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <motion.line 
+            key={i} 
+            x1="-20" 
+            y1={i * 20} 
+            x2="260" 
+            y2={i * 20} 
+            stroke="hsl(var(--muted-foreground))" 
+            strokeWidth="0.5" 
+            strokeOpacity="0.2"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: animate ? 1 : 0 }}
+            transition={{ duration: 0.8, delay: i * 0.05 }}
+          />
         ))}
         
-        {/* Without Frigy - jagged gray line (draws, stops early) */}
+        {/* Vertical grid lines */}
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+          <motion.line 
+            key={`v-${i}`} 
+            x1={i * 25 + 10} 
+            y1="-10" 
+            x2={i * 25 + 10} 
+            y2="120" 
+            stroke="hsl(var(--muted-foreground))" 
+            strokeWidth="0.5" 
+            strokeOpacity="0.1"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: animate ? 1 : 0 }}
+            transition={{ duration: 0.5, delay: i * 0.03 }}
+          />
+        ))}
+        
+        {/* Without Frigy - jagged gray line that flatlines */}
         <motion.path
-          d={`M ${withoutData.map((v, i) => `${i * 28 + 10},${100 - v}`).join(' L ')}`}
+          d={`M ${withoutData.map((v, i) => `${i * 25 + 10},${100 - v}`).join(' L ')}`}
           fill="none"
           stroke="hsl(var(--muted-foreground))"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
+          strokeOpacity="0.6"
           initial={{ pathLength: 0 }}
-          animate={{ pathLength: animate ? 0.7 : 0 }}
-          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+          animate={{ pathLength: animate ? 1 : 0 }}
+          transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
         />
         
-        {/* With Frigy - smooth rising line with glow (draws all the way) */}
+        {/* With Frigy - smooth rising line with glow */}
         <motion.path
-          d={`M ${withData.map((v, i) => `${i * 28 + 10},${100 - v}`).join(' L ')}`}
+          d={`M ${withData.map((v, i) => `${i * 25 + 10},${100 - v}`).join(' L ')}`}
           fill="none"
           stroke="hsl(var(--primary))"
           strokeWidth="3"
@@ -643,22 +673,44 @@ const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
           filter="url(#lineGlow)"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: animate ? 1 : 0 }}
-          transition={{ duration: 1.8, delay: 0.6, ease: "easeOut" }}
+          transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
+        />
+        
+        {/* Area fill under the primary line */}
+        <motion.path
+          d={`M 10,100 L ${withData.map((v, i) => `${i * 25 + 10},${100 - v}`).join(' L ')} L ${9 * 25 + 10},100 Z`}
+          fill="url(#areaGradient)"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: animate ? 0.3 : 0 }}
+          transition={{ duration: 1, delay: 1.5 }}
         />
         
         {/* End dot for "With Frigy" */}
         <motion.circle
-          cx={6 * 28 + 10}
-          cy={100 - withData[6]}
-          r="5"
+          cx={9 * 25 + 10}
+          cy={100 - withData[9]}
+          r="6"
           fill="hsl(var(--primary))"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: animate ? 1 : 0, opacity: animate ? 1 : 0 }}
-          transition={{ duration: 0.3, delay: 2 }}
+          transition={{ duration: 0.4, delay: 2.2, type: "spring" }}
           filter="url(#lineGlow)"
         />
         
-        {/* Glow filter */}
+        {/* Pulse ring around end dot */}
+        <motion.circle
+          cx={9 * 25 + 10}
+          cy={100 - withData[9]}
+          r="6"
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth="2"
+          initial={{ scale: 1, opacity: 0 }}
+          animate={animate ? { scale: [1, 2, 2.5], opacity: [0.8, 0.3, 0] } : {}}
+          transition={{ duration: 1.5, delay: 2.5, repeat: Infinity }}
+        />
+        
+        {/* Filters and gradients */}
         <defs>
           <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -667,17 +719,28 @@ const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+          </linearGradient>
         </defs>
       </svg>
+      
+      {/* Week labels */}
+      <div className="absolute bottom-10 left-4 right-4 flex justify-between text-[10px] text-muted-foreground/40">
+        <span>Week 1</span>
+        <span>Week 5</span>
+        <span>Week 10</span>
+      </div>
       
       {/* Legend at bottom */}
       <div className="absolute bottom-3 left-4 right-4 flex justify-between text-xs">
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0.5 bg-muted-foreground rounded" />
+          <div className="w-5 h-0.5 bg-muted-foreground/60 rounded" />
           <span className="text-muted-foreground/60">Without Frigy</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0.5 bg-primary rounded" style={{ boxShadow: "0 0 8px hsl(var(--primary))" }} />
+          <div className="w-5 h-0.5 bg-primary rounded" style={{ boxShadow: "0 0 8px hsl(var(--primary))" }} />
           <span className="text-primary font-medium">With Frigy</span>
         </div>
       </div>
@@ -980,97 +1043,141 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {t.welcomeSubtitle}
               </motion.p>
               
-              {/* Animated Fridge */}
+              {/* Animated Open Fridge - Interior View */}
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.4, type: "spring" }}
                 className="relative mb-8"
               >
-                {/* Fridge Body */}
+                {/* Fridge Interior */}
                 <motion.div 
-                  className="relative w-40 h-56 bg-gradient-to-b from-slate-100 to-slate-200 rounded-3xl border-2 border-slate-300 shadow-2xl overflow-hidden"
+                  className="relative w-44 h-56 bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-2xl shadow-[inset_0_2px_20px_rgba(0,0,0,0.1)] overflow-hidden"
                   animate={{ 
                     boxShadow: [
-                      "0 10px 40px rgba(0,0,0,0.1)",
-                      "0 10px 60px rgba(34, 197, 94, 0.3)",
-                      "0 10px 40px rgba(0,0,0,0.1)"
+                      "inset 0 2px 20px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.1)",
+                      "inset 0 2px 20px rgba(0,0,0,0.1), 0 10px 60px rgba(34, 197, 94, 0.25)",
+                      "inset 0 2px 20px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.1)"
                     ]
                   }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
                 >
-                  {/* Fridge handle */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-14 bg-slate-400 rounded-full" />
-                  
-                  {/* Fridge divider line */}
-                  <div className="absolute left-0 right-0 top-[35%] h-[3px] bg-slate-300" />
-                  
-                  {/* Food items inside with stagger animation */}
+                  {/* Fridge light glow from top */}
                   <motion.div 
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.7 }}
-                    className="absolute top-4 left-3 text-2xl"
+                    className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-yellow-100/40 to-transparent"
+                    animate={{ opacity: [0.4, 0.7, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  
+                  {/* Shelf lines */}
+                  <div className="absolute left-2 right-2 top-[28%] h-[2px] bg-slate-200/80 rounded-full" />
+                  <div className="absolute left-2 right-2 top-[52%] h-[2px] bg-slate-200/80 rounded-full" />
+                  <div className="absolute left-2 right-2 top-[76%] h-[2px] bg-slate-200/80 rounded-full" />
+                  
+                  {/* Food items on shelves with stagger animation */}
+                  {/* Top shelf */}
+                  <motion.div 
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.7, type: "spring" }}
+                    className="absolute top-3 left-3 text-2xl"
                   >
                     🥛
                   </motion.div>
                   <motion.div 
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.8 }}
-                    className="absolute top-4 right-5 text-2xl"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.8, type: "spring" }}
+                    className="absolute top-3 left-1/2 -translate-x-1/2 text-2xl"
+                  >
+                    🧃
+                  </motion.div>
+                  <motion.div 
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.9, type: "spring" }}
+                    className="absolute top-3 right-3 text-2xl"
                   >
                     🍎
                   </motion.div>
+                  
+                  {/* Middle shelf */}
                   <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.9 }}
-                    className="absolute top-[42%] left-3 text-2xl"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.0, type: "spring" }}
+                    className="absolute top-[32%] left-3 text-2xl"
                   >
                     🥕
                   </motion.div>
                   <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 1.0 }}
-                    className="absolute top-[42%] right-5 text-2xl"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.1, type: "spring" }}
+                    className="absolute top-[32%] left-1/2 -translate-x-1/2 text-2xl"
                   >
                     🧀
                   </motion.div>
                   <motion.div 
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 1.1 }}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 text-2xl"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.2, type: "spring" }}
+                    className="absolute top-[32%] right-3 text-2xl"
+                  >
+                    🥚
+                  </motion.div>
+                  
+                  {/* Bottom shelf */}
+                  <motion.div 
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.3, type: "spring" }}
+                    className="absolute top-[56%] left-3 text-2xl"
                   >
                     🥬
                   </motion.div>
+                  <motion.div 
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.4, type: "spring" }}
+                    className="absolute top-[56%] right-3 text-2xl"
+                  >
+                    🍗
+                  </motion.div>
                   
-                  {/* Scan line animation */}
+                  {/* Drawer at bottom */}
+                  <motion.div 
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.5, type: "spring" }}
+                    className="absolute bottom-2 left-2 right-2 h-10 bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg border border-slate-200 flex items-center justify-center gap-2"
+                  >
+                    <span className="text-lg">🥦</span>
+                    <span className="text-lg">🍅</span>
+                    <span className="text-lg">🥒</span>
+                  </motion.div>
+                  
+                  {/* Modern scan overlay effect */}
                   <motion.div
-                    className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
-                    animate={{ top: ["10%", "90%", "10%"] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
-                    style={{ boxShadow: "0 0 20px hsl(var(--primary))" }}
-                  />
-                </motion.div>
-                
-                {/* Scan corners */}
-                <motion.div
-                  className="absolute -inset-3 pointer-events-none"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.2 }}
-                >
-                  {/* Top left corner */}
-                  <div className="absolute top-0 left-0 w-6 h-6 border-l-3 border-t-3 border-primary rounded-tl-lg" style={{ borderWidth: '3px' }} />
-                  {/* Top right corner */}
-                  <div className="absolute top-0 right-0 w-6 h-6 border-r-3 border-t-3 border-primary rounded-tr-lg" style={{ borderWidth: '3px' }} />
-                  {/* Bottom left corner */}
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-l-3 border-b-3 border-primary rounded-bl-lg" style={{ borderWidth: '3px' }} />
-                  {/* Bottom right corner */}
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-r-3 border-b-3 border-primary rounded-br-lg" style={{ borderWidth: '3px' }} />
+                    className="absolute inset-0 pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.6 }}
+                  >
+                    {/* Horizontal scan beam */}
+                    <motion.div
+                      className="absolute left-0 right-0 h-12 bg-gradient-to-b from-transparent via-primary/30 to-transparent"
+                      animate={{ top: ["-10%", "100%"] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 1.8 }}
+                    />
+                    {/* Scan line */}
+                    <motion.div
+                      className="absolute left-2 right-2 h-0.5 bg-primary rounded-full"
+                      animate={{ top: ["-2%", "98%"] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 1.8 }}
+                      style={{ boxShadow: "0 0 12px hsl(var(--primary)), 0 0 24px hsl(var(--primary))" }}
+                    />
+                  </motion.div>
                 </motion.div>
               </motion.div>
               
