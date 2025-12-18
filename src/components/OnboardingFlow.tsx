@@ -1,579 +1,36 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
-  ChevronRight, 
-  Camera, 
-  Scale, 
-  Target, 
-  Dumbbell, 
-  Leaf, 
-  Check, 
-  X,
-  Apple,
-  Smartphone,
-  ShoppingCart,
-  Heart,
-  Users,
-  Sparkles,
-  Star,
-  Globe
+  ChevronRight, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
+  Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import confetti from "canvas-confetti";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 
+import { 
+  OnboardingStep, UserData, defaultUserData, onboardingSteps 
+} from "./onboarding/types";
+import { calculateMacros, calculateWeeksToGoal, saveOnboardingData } from "./onboarding/utils";
+import { 
+  StepCard, ProgressDots, AnimatedCounter, SelectionCard,
+  AnimatedBicycle, AnimatedCar, AnimatedRocket
+} from "./onboarding/components";
+import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
+
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-type OnboardingStep = 
-  | "language-select"
-  | "welcome"
-  | "goal"
-  | "social-proof"
-  | "success-stats"
-  | "fridge-intro"
-  | "permissions"
-  | "weekly-plan"
-  | "comparison"
-  | "transformation"
-  | "tracker-intro"
-  | "body-basics"
-  | "gender"
-  | "goal-mode"
-  | "target-weight"
-  | "speed-select"
-  | "dietary-preferences"
-  | "allergies"
-  | "cooking-experience"
-  | "planning-setup"
-  | "analyzing"
-  | "macro-preview"
-  | "premium-hint"
-  | "community"
-  | "done";
-
-interface UserData {
-  goal: string | null;
-  height: number;
-  weight: number;
-  age: number;
-  gender: 'male' | 'female' | null;
-  goalMode: 'lose' | 'gain';
-  targetWeight: number;
-  weeklyGoal: number; // kg per week
-  activityLevel: string | null;
-  macroFocus: string | null;
-  cameraPermission: boolean;
-  healthSync: string | null;
-  dietaryPreferences: string[];
-  allergies: string[];
-  cookingExperience: 'beginner' | 'intermediate' | 'advanced' | null;
-  // Calculated values
-  dailyCalories: number;
-  dailyProtein: number;
-  dailyCarbs: number;
-  dailyFat: number;
-}
-
-// Counter component that animates numbers
-const AnimatedCounter = ({ value, suffix = "" }: { value: number; suffix?: string }) => {
-  const [displayValue, setDisplayValue] = useState(value);
-  
-  useEffect(() => {
-    let start = displayValue;
-    const duration = 300;
-    const startTime = Date.now();
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(start + (value - start) * eased);
-      setDisplayValue(current);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  }, [value]);
-  
-  return <span>{displayValue}{suffix}</span>;
-};
-
-// Count up animation for stats
-const CountUpAnimation = ({ value, delay = 0 }: { value: number; delay?: number }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => setHasStarted(true), delay * 1000);
-    return () => clearTimeout(timer);
-  }, [delay]);
-  
-  useEffect(() => {
-    if (!hasStarted) return;
-    
-    const duration = 1200;
-    const startTime = Date.now();
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Number.isInteger(value) 
-        ? Math.round(value * eased)
-        : Math.round(value * eased * 10) / 10;
-      setDisplayValue(current);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  }, [hasStarted, value]);
-  
-  return <span>{displayValue}</span>;
-};
-
-// Animated Fridge Component with enhanced animations
-const AnimatedFridge = ({ isOpen, showScan }: { isOpen: boolean; showScan: boolean }) => (
-  <motion.div 
-    className="relative w-36 h-48"
-    animate={{ rotate: showScan ? [0, -2, 2, -1, 1, 0] : 0 }}
-    transition={{ duration: 0.5, delay: 0.2 }}
-  >
-    <motion.div 
-      className="absolute inset-0 bg-gradient-to-b from-slate-100 to-slate-200 rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden"
-      animate={{ boxShadow: showScan ? "0 0 30px rgba(34, 197, 94, 0.4)" : "0 10px 30px rgba(0,0,0,0.1)" }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Fridge handle */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-slate-400 rounded-full" />
-      
-      {/* Fridge divider line */}
-      <div className="absolute left-0 right-0 top-[35%] h-[2px] bg-slate-300" />
-      
-      {/* Food items inside */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div 
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="absolute top-3 left-2 text-xl"
-            >
-              🥛
-            </motion.div>
-            <motion.div 
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="absolute top-3 right-4 text-xl"
-            >
-              🍎
-            </motion.div>
-            <motion.div 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="absolute top-[40%] left-2 text-xl"
-            >
-              🥕
-            </motion.div>
-            <motion.div 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="absolute top-[40%] right-4 text-xl"
-            >
-              🧀
-            </motion.div>
-            <motion.div 
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xl"
-            >
-              🥬
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </motion.div>
-    
-    {/* Scan lines */}
-    {showScan && (
-      <motion.div 
-        className="absolute inset-0 pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <motion.div
-          className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
-          animate={{ top: ["10%", "90%", "10%"] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          style={{ boxShadow: "0 0 15px hsl(var(--primary))" }}
-        />
-      </motion.div>
-    )}
-  </motion.div>
-);
-
-// Enhanced Donut Chart Component with pulsing segments
-const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: number; fat: number; animate: boolean }) => {
-  const total = protein + carbs + fat;
-  const proteinPct = (protein / total) * 100;
-  const carbsPct = (carbs / total) * 100;
-  const fatPct = (fat / total) * 100;
-  
-  const proteinDash = (proteinPct / 100) * 251.2;
-  const carbsDash = (carbsPct / 100) * 251.2;
-  const fatDash = (fatPct / 100) * 251.2;
-  
-  const proteinOffset = 0;
-  const carbsOffset = -proteinDash;
-  const fatOffset = -(proteinDash + carbsDash);
-  
-  const [activeSegment, setActiveSegment] = useState<string | null>(null);
-
-  return (
-    <div className="relative w-52 h-52">
-      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-        {/* Background circle */}
-        <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" strokeWidth="10" />
-        
-        {/* Protein segment (green) - animated clockwise */}
-        <motion.circle
-          cx="50" cy="50" r="40"
-          fill="none"
-          stroke="hsl(160, 100%, 50%)"
-          strokeWidth={activeSegment === "protein" ? "14" : "11"}
-          strokeDasharray={animate ? `${proteinDash} 251.2` : "0 251.2"}
-          strokeDashoffset={proteinOffset}
-          strokeLinecap="round"
-          initial={{ strokeDasharray: "0 251.2" }}
-          animate={{ 
-            strokeDasharray: animate ? `${proteinDash} 251.2` : "0 251.2",
-            strokeWidth: activeSegment === "protein" ? 14 : 11
-          }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          style={{ filter: activeSegment === "protein" ? "drop-shadow(0 0 8px hsl(160, 100%, 50%))" : "none" }}
-          onMouseEnter={() => setActiveSegment("protein")}
-          onMouseLeave={() => setActiveSegment(null)}
-        />
-        
-        {/* Carbs segment (blue) */}
-        <motion.circle
-          cx="50" cy="50" r="40"
-          fill="none"
-          stroke="hsl(220, 90%, 60%)"
-          strokeWidth={activeSegment === "carbs" ? "14" : "11"}
-          strokeDasharray={animate ? `${carbsDash} 251.2` : "0 251.2"}
-          strokeDashoffset={carbsOffset}
-          strokeLinecap="round"
-          initial={{ strokeDasharray: "0 251.2" }}
-          animate={{ 
-            strokeDasharray: animate ? `${carbsDash} 251.2` : "0 251.2",
-            strokeWidth: activeSegment === "carbs" ? 14 : 11
-          }}
-          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
-          style={{ filter: activeSegment === "carbs" ? "drop-shadow(0 0 8px hsl(220, 90%, 60%))" : "none" }}
-          onMouseEnter={() => setActiveSegment("carbs")}
-          onMouseLeave={() => setActiveSegment(null)}
-        />
-        
-        {/* Fat segment (yellow) */}
-        <motion.circle
-          cx="50" cy="50" r="40"
-          fill="none"
-          stroke="hsl(45, 100%, 55%)"
-          strokeWidth={activeSegment === "fat" ? "14" : "11"}
-          strokeDasharray={animate ? `${fatDash} 251.2` : "0 251.2"}
-          strokeDashoffset={fatOffset}
-          strokeLinecap="round"
-          initial={{ strokeDasharray: "0 251.2" }}
-          animate={{ 
-            strokeDasharray: animate ? `${fatDash} 251.2` : "0 251.2",
-            strokeWidth: activeSegment === "fat" ? 14 : 11
-          }}
-          transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}
-          style={{ filter: activeSegment === "fat" ? "drop-shadow(0 0 8px hsl(45, 100%, 55%))" : "none" }}
-          onMouseEnter={() => setActiveSegment("fat")}
-          onMouseLeave={() => setActiveSegment(null)}
-        />
-      </svg>
-      
-      {/* Center text */}
-      <motion.div 
-        className="absolute inset-0 flex flex-col items-center justify-center"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: animate ? 1 : 0, scale: animate ? 1 : 0.8 }}
-        transition={{ delay: 1.2, type: "spring" }}
-      >
-        <span className="text-3xl font-bold">1,800</span>
-        <span className="text-xs text-muted-foreground/60">kcal/day</span>
-      </motion.div>
-      
-      {/* Tooltip */}
-      <AnimatePresence>
-        {activeSegment && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-card px-3 py-1.5 rounded-lg shadow-lg border border-border text-xs whitespace-nowrap"
-          >
-            This adjusts automatically.
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// Animated Speed Selector Components
-const AnimatedBicycle = ({ selected }: { selected: boolean }) => (
-  <motion.svg viewBox="0 0 80 60" className="w-16 h-12">
-    {/* Back wheel */}
-    <motion.circle
-      cx="18" cy="42" r="12"
-      fill="none" stroke="currentColor" strokeWidth="2"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "18px 42px" }}
-    />
-    {/* Front wheel */}
-    <motion.circle
-      cx="62" cy="42" r="12"
-      fill="none" stroke="currentColor" strokeWidth="2"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "62px 42px" }}
-    />
-    {/* Frame */}
-    <path d="M18 42 L35 25 L50 25 L62 42 M35 25 L35 42 L50 42 M50 25 L45 15" 
-          stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-    {/* Handlebars */}
-    <path d="M45 15 L42 12 M45 15 L50 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    {/* Pedals */}
-    <motion.g
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.6, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "35px 42px" }}
-    >
-      <circle cx="35" cy="42" r="4" fill="currentColor" />
-      <line x1="35" y1="38" x2="35" y2="46" stroke="currentColor" strokeWidth="2" />
-    </motion.g>
-    {/* Rider */}
-    <motion.g animate={{ y: selected ? [0, -2, 0] : 0 }} transition={{ duration: 0.4, repeat: selected ? Infinity : 0 }}>
-      <circle cx="40" cy="8" r="5" fill="currentColor" /> {/* Head */}
-      <path d="M40 13 L40 22 M40 16 L35 25 M40 16 L48 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </motion.g>
-  </motion.svg>
-);
-
-const AnimatedCar = ({ selected }: { selected: boolean }) => (
-  <motion.svg viewBox="0 0 80 50" className="w-16 h-12">
-    {/* Car body */}
-    <motion.g animate={{ x: selected ? [0, 2, 0] : 0 }} transition={{ duration: 0.3, repeat: selected ? Infinity : 0 }}>
-      <path d="M10 35 L10 25 L20 25 L28 15 L55 15 L65 25 L75 25 L75 35 Z" 
-            fill="currentColor" opacity="0.9" />
-      {/* Windows */}
-      <path d="M30 16 L25 24 L40 24 L40 16 Z" fill="hsl(var(--background))" opacity="0.5" />
-      <path d="M42 16 L42 24 L58 24 L52 16 Z" fill="hsl(var(--background))" opacity="0.5" />
-    </motion.g>
-    {/* Back wheel */}
-    <motion.circle
-      cx="22" cy="38" r="7"
-      fill="hsl(var(--background))" stroke="currentColor" strokeWidth="3"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.3, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "22px 38px" }}
-    />
-    {/* Front wheel */}
-    <motion.circle
-      cx="60" cy="38" r="7"
-      fill="hsl(var(--background))" stroke="currentColor" strokeWidth="3"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.3, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "60px 38px" }}
-    />
-    {/* Speed lines */}
-    {selected && (
-      <>
-        <motion.line x1="0" y1="22" x2="8" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          initial={{ opacity: 0, x: 10 }} animate={{ opacity: [0, 1, 0], x: [10, -5, -15] }}
-          transition={{ duration: 0.5, repeat: Infinity, delay: 0 }} />
-        <motion.line x1="0" y1="28" x2="10" y2="28" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          initial={{ opacity: 0, x: 10 }} animate={{ opacity: [0, 1, 0], x: [10, -5, -15] }}
-          transition={{ duration: 0.5, repeat: Infinity, delay: 0.15 }} />
-        <motion.line x1="0" y1="34" x2="6" y2="34" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          initial={{ opacity: 0, x: 10 }} animate={{ opacity: [0, 1, 0], x: [10, -5, -15] }}
-          transition={{ duration: 0.5, repeat: Infinity, delay: 0.3 }} />
-      </>
-    )}
-  </motion.svg>
-);
-
-const AnimatedRocket = ({ selected }: { selected: boolean }) => (
-  <motion.svg viewBox="0 0 60 80" className="w-12 h-16">
-    <motion.g 
-      animate={{ y: selected ? [0, -3, 0] : 0, rotate: selected ? [0, 2, -2, 0] : 0 }} 
-      transition={{ duration: 0.5, repeat: selected ? Infinity : 0 }}
-    >
-      {/* Rocket body */}
-      <path d="M30 5 C30 5 45 25 45 45 L45 55 L15 55 L15 45 C15 25 30 5 30 5" 
-            fill="currentColor" />
-      {/* Window */}
-      <circle cx="30" cy="30" r="7" fill="hsl(var(--primary))" opacity="0.5" />
-      <circle cx="30" cy="30" r="4" fill="hsl(var(--background))" />
-      {/* Fins */}
-      <path d="M15 45 L5 60 L15 55 Z" fill="currentColor" opacity="0.8" />
-      <path d="M45 45 L55 60 L45 55 Z" fill="currentColor" opacity="0.8" />
-    </motion.g>
-    {/* Flames */}
-    {selected && (
-      <motion.g>
-        <motion.path d="M22 56 L25 75 L30 65 L35 75 L38 56" 
-          fill="hsl(45, 100%, 55%)"
-          animate={{ d: ["M22 56 L25 75 L30 65 L35 75 L38 56", "M22 56 L25 70 L30 78 L35 70 L38 56", "M22 56 L25 75 L30 65 L35 75 L38 56"] }}
-          transition={{ duration: 0.2, repeat: Infinity }} />
-        <motion.path d="M25 56 L28 68 L30 60 L32 68 L35 56" 
-          fill="hsl(25, 100%, 55%)"
-          animate={{ d: ["M25 56 L28 68 L30 60 L32 68 L35 56", "M25 56 L28 62 L30 70 L32 62 L35 56", "M25 56 L28 68 L30 60 L32 68 L35 56"] }}
-          transition={{ duration: 0.15, repeat: Infinity }} />
-      </motion.g>
-    )}
-  </motion.svg>
-);
-
-// Macro calculation function using Mifflin-St Jeor BMR formula
-const calculateMacros = (userData: UserData) => {
-  const { weight, height, age, gender, activityLevel, goalMode, weeklyGoal } = userData;
-  
-  // Mifflin-St Jeor BMR formula with gender-specific constants
-  const genderConstant = gender === 'female' ? -161 : 5;
-  const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
-  
-  // Activity multipliers
-  const activityMultipliers: Record<string, number> = {
-    low: 1.2,
-    medium: 1.55,
-    high: 1.9
-  };
-  
-  const tdee = bmr * (activityMultipliers[activityLevel || 'medium'] || 1.55);
-  
-  // Calculate exact calorie change based on weekly goal
-  // 1kg of body weight = ~7700 kcal
-  // Daily calorie change = weeklyGoal * 7700 / 7 = weeklyGoal * 1100 kcal/day
-  const dailyCalorieChange = weeklyGoal * 1100;
-  
-  let dailyCalories: number;
-  if (goalMode === 'lose') {
-    dailyCalories = tdee - dailyCalorieChange;
-  } else {
-    dailyCalories = tdee + dailyCalorieChange;
-  }
-  
-  // Apply minimum calorie floors based on age (safety limit)
-  const minCalories = age < 25 ? 1500 : age < 40 ? 1400 : 1300;
-  dailyCalories = Math.max(dailyCalories, minCalories);
-  dailyCalories = Math.round(dailyCalories);
-  
-  // Calculate macros
-  const dailyProtein = Math.round(weight * 2);
-  const dailyFat = Math.round(weight * 0.9);
-  const proteinCalories = dailyProtein * 4;
-  const fatCalories = dailyFat * 9;
-  const remainingCalories = dailyCalories - proteinCalories - fatCalories;
-  const dailyCarbs = Math.max(50, Math.round(remainingCalories / 4));
-  
-  return { dailyCalories, dailyProtein, dailyCarbs, dailyFat };
-};
-
-// Analysis Progress Counter - synced with checkmark timing
-const AnalysisProgress = () => {
-  const [progress, setProgress] = useState(0);
-  
-  useEffect(() => {
-    // Checkmark timings: done at 600, 1400, 2200, 3000, 3800ms
-    // Progress targets: 20% at 600ms, 40% at 1400ms, 60% at 2200ms, 80% at 3000ms, 95% at 3800ms, 100% at 4200ms
-    const milestones = [
-      { time: 1200, target: 20 },
-      { time: 2800, target: 40 },
-      { time: 4400, target: 60 },
-      { time: 6000, target: 80 },
-      { time: 7600, target: 95 },
-      { time: 8400, target: 100 },
-    ];
-    
-    const startTime = Date.now();
-    
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      
-      // Find current milestone
-      let targetProgress = 0;
-      for (let i = 0; i < milestones.length; i++) {
-        const milestone = milestones[i];
-        const prevMilestone = milestones[i - 1] || { time: 0, target: 0 };
-        
-        if (elapsed <= milestone.time) {
-          // Interpolate between previous and current milestone
-          const timeInSegment = elapsed - prevMilestone.time;
-          const segmentDuration = milestone.time - prevMilestone.time;
-          const segmentProgress = milestone.target - prevMilestone.target;
-          const fraction = timeInSegment / segmentDuration;
-          // Eased interpolation
-          const eased = fraction * fraction * (3 - 2 * fraction);
-          targetProgress = prevMilestone.target + (segmentProgress * eased);
-          break;
-        }
-        targetProgress = milestone.target;
-      }
-      
-      setProgress(Math.round(targetProgress));
-      
-      if (elapsed >= 8400) {
-        clearInterval(interval);
-      }
-    }, 50);
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  return (
-    <motion.span
-      key={progress}
-      initial={{ scale: 1 }}
-      animate={{ scale: progress % 20 === 0 && progress > 0 ? [1, 1.1, 1] : 1 }}
-      transition={{ duration: 0.2 }}
-    >
-      {progress}%
-    </motion.span>
-  );
-};
-
-// Analysis Step with checkmark animation
+// Analysis Step component
 const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
   const [status, setStatus] = useState<'waiting' | 'loading' | 'done'>('waiting');
   
   useEffect(() => {
     const loadTimer = setTimeout(() => setStatus('loading'), delay);
     const doneTimer = setTimeout(() => setStatus('done'), delay + 600);
-    
-    return () => {
-      clearTimeout(loadTimer);
-      clearTimeout(doneTimer);
-    };
+    return () => { clearTimeout(loadTimer); clearTimeout(doneTimer); };
   }, [delay]);
   
   return (
@@ -587,15 +44,10 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
       }`}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay / 1000 }}
+      transition={{ delay: delay / 1000, duration: 0.3 }}
     >
-      {/* Status indicator */}
       <div className="w-6 h-6 flex items-center justify-center">
-        {status === 'waiting' && (
-          <motion.div 
-            className="w-2 h-2 rounded-full bg-muted-foreground/30"
-          />
-        )}
+        {status === 'waiting' && <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
         {status === 'loading' && (
           <motion.div
             className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent"
@@ -607,282 +59,80 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", damping: 10 }}
+            transition={{ duration: 0.2 }}
             className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
           >
             <Check className="w-4 h-4 text-primary-foreground" />
           </motion.div>
         )}
       </div>
-      
-      {/* Text */}
-      <span className={`text-sm transition-colors ${
-        status === 'done' ? 'text-primary font-medium' : 'text-muted-foreground/60'
-      }`}>
+      <span className={`text-sm transition-colors ${status === 'done' ? 'text-primary font-medium' : 'text-muted-foreground/60'}`}>
         {text}
       </span>
-      
-      {/* Done checkmark text */}
       {status === 'done' && (
-        <motion.span
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="ml-auto text-xs text-primary"
-        >
-          ✓
-        </motion.span>
+        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-auto text-xs text-primary">✓</motion.span>
       )}
     </motion.div>
   );
 };
 
-// Line Chart that draws instead of fades
-const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
-  const withoutData = [50, 55, 45, 60, 40, 55, 48, 42, 50, 45];
-  const withData = [50, 52, 55, 58, 63, 68, 75, 80, 85, 90];
-
-  return (
-    <div className="relative w-full h-52 bg-card rounded-2xl p-4 border border-border overflow-hidden">
-      {/* Soft gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
+// Analysis Progress Counter
+const AnalysisProgress = () => {
+  const [progress, setProgress] = useState(0);
+  
+  useEffect(() => {
+    const milestones = [
+      { time: 1200, target: 20 }, { time: 2800, target: 40 },
+      { time: 4400, target: 60 }, { time: 6000, target: 80 },
+      { time: 7600, target: 95 }, { time: 8400, target: 100 },
+    ];
+    
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      let targetProgress = 0;
       
-      <svg viewBox="0 0 240 110" className="w-full h-full" preserveAspectRatio="none">
-        {/* Extended grid lines - go further */}
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <motion.line 
-            key={i} 
-            x1="-20" 
-            y1={i * 20} 
-            x2="260" 
-            y2={i * 20} 
-            stroke="hsl(var(--muted-foreground))" 
-            strokeWidth="0.5" 
-            strokeOpacity="0.2"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: animate ? 1 : 0 }}
-            transition={{ duration: 0.8, delay: i * 0.05 }}
-          />
-        ))}
-        
-        {/* Vertical grid lines */}
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-          <motion.line 
-            key={`v-${i}`} 
-            x1={i * 25 + 10} 
-            y1="-10" 
-            x2={i * 25 + 10} 
-            y2="120" 
-            stroke="hsl(var(--muted-foreground))" 
-            strokeWidth="0.5" 
-            strokeOpacity="0.1"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: animate ? 1 : 0 }}
-            transition={{ duration: 0.5, delay: i * 0.03 }}
-          />
-        ))}
-        
-        {/* Without Frigy - jagged gray line that flatlines */}
-        <motion.path
-          d={`M ${withoutData.map((v, i) => `${i * 25 + 10},${100 - v}`).join(' L ')}`}
-          fill="none"
-          stroke="hsl(var(--muted-foreground))"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeOpacity="0.6"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: animate ? 1 : 0 }}
-          transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-        />
-        
-        {/* With Frigy - smooth rising line with glow */}
-        <motion.path
-          d={`M ${withData.map((v, i) => `${i * 25 + 10},${100 - v}`).join(' L ')}`}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          filter="url(#lineGlow)"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: animate ? 1 : 0 }}
-          transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
-        />
-        
-        {/* Area fill under the primary line */}
-        <motion.path
-          d={`M 10,100 L ${withData.map((v, i) => `${i * 25 + 10},${100 - v}`).join(' L ')} L ${9 * 25 + 10},100 Z`}
-          fill="url(#areaGradient)"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: animate ? 0.3 : 0 }}
-          transition={{ duration: 1, delay: 1.5 }}
-        />
-        
-        {/* End dot for "With Frigy" */}
-        <motion.circle
-          cx={9 * 25 + 10}
-          cy={100 - withData[9]}
-          r="6"
-          fill="hsl(var(--primary))"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: animate ? 1 : 0, opacity: animate ? 1 : 0 }}
-          transition={{ duration: 0.4, delay: 2.2, type: "spring" }}
-          filter="url(#lineGlow)"
-        />
-        
-        {/* Pulse ring around end dot */}
-        <motion.circle
-          cx={9 * 25 + 10}
-          cy={100 - withData[9]}
-          r="6"
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
-          initial={{ scale: 1, opacity: 0 }}
-          animate={animate ? { scale: [1, 2, 2.5], opacity: [0.8, 0.3, 0] } : {}}
-          transition={{ duration: 1.5, delay: 2.5, repeat: Infinity }}
-        />
-        
-        {/* Filters and gradients */}
-        <defs>
-          <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
+      for (let i = 0; i < milestones.length; i++) {
+        const milestone = milestones[i];
+        const prevMilestone = milestones[i - 1] || { time: 0, target: 0 };
+        if (elapsed <= milestone.time) {
+          const timeInSegment = elapsed - prevMilestone.time;
+          const segmentDuration = milestone.time - prevMilestone.time;
+          const segmentProgress = milestone.target - prevMilestone.target;
+          const fraction = timeInSegment / segmentDuration;
+          const eased = fraction * fraction * (3 - 2 * fraction);
+          targetProgress = prevMilestone.target + (segmentProgress * eased);
+          break;
+        }
+        targetProgress = milestone.target;
+      }
       
-      {/* Week labels */}
-      <div className="absolute bottom-10 left-4 right-4 flex justify-between text-[10px] text-muted-foreground/40">
-        <span>Week 1</span>
-        <span>Week 5</span>
-        <span>Week 10</span>
-      </div>
-      
-      {/* Legend at bottom */}
-      <div className="absolute bottom-3 left-4 right-4 flex justify-between text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0.5 bg-muted-foreground/60 rounded" />
-          <span className="text-muted-foreground/60">Without Frigy</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0.5 bg-primary rounded" style={{ boxShadow: "0 0 8px hsl(var(--primary))" }} />
-          <span className="text-primary font-medium">With Frigy</span>
-        </div>
-      </div>
-    </div>
-  );
+      setProgress(Math.round(targetProgress));
+      if (elapsed >= 8400) clearInterval(interval);
+    }, 50);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return <span>{progress}%</span>;
 };
-
-// Progress Dots Component
-// Clean progress dots - no animation jitter
-const ProgressDots = ({ current, total }: { current: number; total: number }) => (
-  <div className="flex gap-1.5 justify-center">
-    {Array.from({ length: total }).map((_, i) => (
-      <div
-        key={i}
-        className={`h-1.5 rounded-full transition-all duration-300 ${
-          i === current 
-            ? "w-6 bg-primary" 
-            : i < current 
-              ? "w-1.5 bg-primary/40" 
-              : "w-1.5 bg-muted"
-        }`}
-      />
-    ))}
-  </div>
-);
-
-// Clean, smooth step card animation
-const StepCard = ({ children, step }: { children: React.ReactNode; step: string }) => (
-  <motion.div
-    key={step}
-    initial={{ opacity: 0, y: 30 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-    className="w-full"
-  >
-    {children}
-  </motion.div>
-);
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
-  const [userData, setUserData] = useState<UserData>({
-    goal: null,
-    height: 170,
-    weight: 70,
-    age: 25,
-    gender: null,
-    goalMode: 'lose',
-    targetWeight: 65,
-    weeklyGoal: 0.5,
-    activityLevel: null,
-    macroFocus: "balanced",
-    cameraPermission: false,
-    healthSync: null,
-    dietaryPreferences: [],
-    allergies: [],
-    cookingExperience: null,
-    dailyCalories: 0,
-    dailyProtein: 0,
-    dailyCarbs: 0,
-    dailyFat: 0,
-  });
+  const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
   const [macroAnimate, setMacroAnimate] = useState(false);
   const [chartAnimate, setChartAnimate] = useState(false);
 
-  const [trackerIntroAnimate, setTrackerIntroAnimate] = useState(false);
+  const currentIndex = onboardingSteps.indexOf(currentStep);
 
-  const steps: OnboardingStep[] = [
-    "language-select",
-    "welcome",
-    "goal",
-    "social-proof",
-    "success-stats",
-    "fridge-intro",
-    "permissions",
-    "weekly-plan",
-    "comparison",
-    "transformation",
-    "tracker-intro",
-    "body-basics",
-    "gender",
-    "goal-mode",
-    "target-weight",
-    "speed-select",
-    "dietary-preferences",
-    "allergies",
-    "cooking-experience",
-    "planning-setup",
-    "analyzing",
-    "macro-preview",
-    "premium-hint",
-    "community",
-    "done"
-  ];
-
-  const currentIndex = steps.indexOf(currentStep);
-
-  // Trigger animations when entering certain steps
+  // Step-specific effects
   useEffect(() => {
     if (currentStep === "fridge-intro") {
       setTimeout(() => setFridgeOpen(true), 300);
       setTimeout(() => setFridgeScan(true), 800);
-    }
-    if (currentStep === "tracker-intro") {
-      setTimeout(() => setTrackerIntroAnimate(true), 300);
     }
     if (currentStep === "macro-preview") {
       setTimeout(() => setMacroAnimate(true), 300);
@@ -891,13 +141,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       setTimeout(() => setChartAnimate(true), 400);
     }
     if (currentStep === "analyzing") {
-      // Auto-advance after analysis animation completes
-      setTimeout(() => {
-        setCurrentStep("macro-preview");
-      }, 9000);
+      setTimeout(() => setCurrentStep("macro-preview"), 9000);
     }
     if (currentStep === "done") {
-      // Trigger confetti
       setTimeout(() => {
         confetti({
           particleCount: 80,
@@ -911,8 +157,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const goNext = () => {
     const nextIndex = currentIndex + 1;
-    if (nextIndex < steps.length) {
-      setCurrentStep(steps[nextIndex]);
+    if (nextIndex < onboardingSteps.length) {
+      setCurrentStep(onboardingSteps[nextIndex]);
     } else {
       handleComplete();
     }
@@ -920,58 +166,31 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const goBack = () => {
     const prevIndex = currentIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentStep(steps[prevIndex]);
-    }
+    if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
 
   const handleComplete = () => {
-    // Save onboarding data
-    localStorage.setItem('onboardingUserData', JSON.stringify(userData));
-    localStorage.setItem('onboardingComplete', 'true');
-    
-    // Also save as tracker settings (userProfile) for MacroTracker and recipe generation
-    const trackerSettings = {
-      age: userData.age,
-      height: userData.height,
-      weight: userData.weight,
-      gender: userData.gender,
-      targetWeight: userData.targetWeight,
-      goalMode: userData.goalMode,
-      weeklyGoal: userData.weeklyGoal,
-      dailyCalories: userData.dailyCalories,
-      dailyProtein: userData.dailyProtein,
-      dailyCarbs: userData.dailyCarbs,
-      dailyFat: userData.dailyFat,
-      // New fields for recipe generation
-      dietaryPreferences: userData.dietaryPreferences,
-      allergies: userData.allergies,
-      cookingExperience: userData.cookingExperience,
-    };
-    localStorage.setItem('userProfile', JSON.stringify(trackerSettings));
-    
+    saveOnboardingData(userData);
     onComplete();
   };
 
   const canProceed = (): boolean => {
     switch (currentStep) {
-      case "goal":
-        return userData.goal !== null;
-      case "gender":
-        return userData.gender !== null;
-      case "planning-setup":
-        return userData.activityLevel !== null;
-      default:
-        return true;
+      case "goal": return userData.goal !== null;
+      case "gender": return userData.gender !== null;
+      case "planning-setup": return userData.activityLevel !== null;
+      default: return true;
     }
   };
 
+  const languages: { code: Language; label: string; flag: string }[] = [
+    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+    { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  ];
+
   const renderStepContent = () => {
-    const languages: { code: Language; label: string; flag: string }[] = [
-      { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-      { code: 'en', label: 'English', flag: '🇬🇧' },
-      { code: 'fr', label: 'Français', flag: '🇫🇷' },
-    ];
+    const stepProps = { userData, setUserData, goNext, goBack };
 
     switch (currentStep) {
       case "language-select":
@@ -979,29 +198,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <StepCard step="language-select">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div
-                initial={{ scale: 0, rotate: -20 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 12 }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6"
               >
                 <Globe className="w-8 h-8 text-primary" />
               </motion.div>
               
-              <motion.h1
-                className="text-2xl font-bold mb-2"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
+              <motion.h1 className="text-2xl font-bold mb-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 {t.chooseLanguage}
               </motion.h1>
-              
-              <motion.p
-                className="text-muted-foreground/50 text-sm mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.15 }}
-              >
+              <motion.p className="text-muted-foreground/50 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.3 }}>
                 Select your preferred language
               </motion.p>
               
@@ -1009,30 +217,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {languages.map((lang, index) => (
                   <motion.button
                     key={lang.code}
-                    initial={{ x: -30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 + index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + index * 0.08, duration: 0.3 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setLanguage(lang.code);
-                      goNext();
-                    }}
-                    className={`relative p-4 rounded-xl border-2 transition-all ${
-                      language === lang.code
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/30'
+                    onClick={() => { setLanguage(lang.code); goNext(); }}
+                    className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${
+                      language === lang.code ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
                     }`}
                   >
                     <div className="flex items-center gap-4">
                       <span className="text-3xl">{lang.flag}</span>
                       <span className="font-semibold text-lg">{lang.label}</span>
                       {language === lang.code && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center"
-                        >
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                           <Check className="w-4 h-4 text-primary-foreground" />
                         </motion.div>
                       )}
@@ -1048,156 +246,76 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="welcome">
             <div className="flex flex-col items-center text-center px-6">
-              {/* Logo */}
               <motion.img
                 src={frigLogo}
                 alt="Frigy"
                 className="w-24 h-24 rounded-[22%] mb-6 shadow-xl"
-                initial={{ scale: 0.5, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, type: "spring", damping: 15 }}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               />
               
-              {/* Welcome Text */}
-              <motion.h1
-                className="text-3xl font-bold mb-2"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
+              <motion.h1 className="text-3xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.3 }}>
                 {t.welcomeToFrigy}
               </motion.h1>
-              
-              <motion.p
-                className="text-muted-foreground/60 text-sm mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
+              <motion.p className="text-muted-foreground/60 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.3 }}>
                 {t.welcomeSubtitle}
               </motion.p>
               
-              {/* Animated Open Fridge - Interior View - Simplified */}
+              {/* Simplified Fridge Animation */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
                 className="relative mb-8"
               >
-                {/* Fridge Interior */}
                 <div className="relative w-44 h-56 bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-2xl shadow-[inset_0_2px_20px_rgba(0,0,0,0.1),0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                  {/* Fridge light glow from top */}
                   <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-yellow-100/30 to-transparent" />
-                  
-                  {/* Shelf lines */}
                   <div className="absolute left-2 right-2 top-[28%] h-[2px] bg-slate-200/80 rounded-full" />
                   <div className="absolute left-2 right-2 top-[52%] h-[2px] bg-slate-200/80 rounded-full" />
                   <div className="absolute left-2 right-2 top-[76%] h-[2px] bg-slate-200/80 rounded-full" />
                   
-                  {/* Food items - simple fade in */}
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.4 }}
-                    className="absolute top-3 left-3 text-2xl"
-                  >
-                    🥛
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7, duration: 0.4 }}
-                    className="absolute top-3 left-1/2 -translate-x-1/2 text-2xl"
-                  >
-                    🧃
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8, duration: 0.4 }}
-                    className="absolute top-3 right-3 text-2xl"
-                  >
-                    🍎
-                  </motion.div>
+                  {/* Food items */}
+                  {['🥛', '🧃', '🍎', '🥕', '🧀', '🥚', '🥬', '🍗'].map((emoji, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 + i * 0.08, duration: 0.3 }}
+                      className={`absolute text-2xl ${
+                        i < 3 ? `top-3 ${i === 0 ? 'left-3' : i === 1 ? 'left-1/2 -translate-x-1/2' : 'right-3'}` :
+                        i < 6 ? `top-[32%] ${i === 3 ? 'left-3' : i === 4 ? 'left-1/2 -translate-x-1/2' : 'right-3'}` :
+                        `top-[56%] ${i === 6 ? 'left-3' : 'right-3'}`
+                      }`}
+                    >
+                      {emoji}
+                    </motion.div>
+                  ))}
                   
                   <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.9, duration: 0.4 }}
-                    className="absolute top-[32%] left-3 text-2xl"
-                  >
-                    🥕
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.0, duration: 0.4 }}
-                    className="absolute top-[32%] left-1/2 -translate-x-1/2 text-2xl"
-                  >
-                    🧀
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.1, duration: 0.4 }}
-                    className="absolute top-[32%] right-3 text-2xl"
-                  >
-                    🥚
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.2, duration: 0.4 }}
-                    className="absolute top-[56%] left-3 text-2xl"
-                  >
-                    🥬
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.3, duration: 0.4 }}
-                    className="absolute top-[56%] right-3 text-2xl"
-                  >
-                    🍗
-                  </motion.div>
-                  
-                  {/* Drawer at bottom */}
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.4, duration: 0.4 }}
                     className="absolute bottom-2 left-2 right-2 h-10 bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg border border-slate-200 flex items-center justify-center gap-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.1, duration: 0.3 }}
                   >
                     <span className="text-lg">🥦</span>
                     <span className="text-lg">🍅</span>
                     <span className="text-lg">🥒</span>
                   </motion.div>
                   
-                  {/* Scan line - clean animation */}
                   <motion.div
                     className="absolute left-2 right-2 h-0.5 bg-primary rounded-full"
                     initial={{ top: "0%", opacity: 0 }}
                     animate={{ top: ["0%", "95%", "0%"], opacity: 1 }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1.3 }}
                     style={{ boxShadow: "0 0 8px hsl(var(--primary))" }}
                   />
                 </div>
               </motion.div>
               
-              {/* "And much more" text */}
-              <motion.div
-                className="text-center"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.4 }}
-              >
-                <p className="text-lg font-medium text-muted-foreground/80 mb-1">
-                  {t.andMuchMore}
-                </p>
-                <p className="text-sm text-primary font-semibold">
-                  {t.getReady} ✨
-                </p>
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.3 }}>
+                <p className="text-lg font-medium text-muted-foreground/80 mb-1">{t.andMuchMore}</p>
+                <p className="text-sm text-primary font-semibold">{t.getReady} ✨</p>
               </motion.div>
             </div>
           </StepCard>
@@ -1213,42 +331,29 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="goal">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">What's your goal?</h1>
+              <h1 className="text-2xl font-bold mb-1">What&apos;s your goal?</h1>
               <p className="text-muted-foreground/60 text-xs mb-6">Select one to personalize your experience</p>
               
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
                 {goalOptions.map((option, i) => (
-                  <motion.button
+                  <SelectionCard
                     key={option.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05, duration: 0.3 }}
-                    whileTap={{ scale: 0.97 }}
+                    selected={userData.goal === option.id}
                     onClick={() => setUserData({ ...userData, goal: option.id })}
-                    className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 ${
-                      userData.goal === option.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card hover:border-primary/30"
-                    }`}
+                    delay={i * 0.05}
+                    className="flex flex-col items-center gap-2 p-5"
                   >
                     <span className="text-3xl">{option.emoji}</span>
                     <span className="text-sm font-medium">{option.label}</span>
-                    {userData.goal === option.id && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-                      >
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      </motion.div>
-                    )}
-                  </motion.button>
+                  </SelectionCard>
                 ))}
               </div>
             </div>
           </StepCard>
         );
+
+      case "motivation":
+        return <MotivationStep {...stepProps} />;
 
       case "social-proof":
         const testimonials = [
@@ -1259,11 +364,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="social-proof">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              {/* Rating badge */}
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                transition={{ duration: 0.3 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
               >
                 <div className="flex">
@@ -1274,69 +378,31 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <span className="font-bold text-lg">4.9</span>
               </motion.div>
               
-              <motion.h1
-                className="text-2xl font-bold mb-1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-              >
+              <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 Loved by thousands
               </motion.h1>
-              <motion.p
-                className="text-muted-foreground/50 text-xs mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
-              >
+              <motion.p className="text-muted-foreground/50 text-xs mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.3 }}>
                 Join 50,000+ happy users
               </motion.p>
               
-              {/* Testimonial cards */}
               <div className="w-full max-w-sm space-y-3">
                 {testimonials.map((testimonial, i) => (
                   <motion.div
                     key={testimonial.name}
-                    initial={{ x: i % 2 === 0 ? -30 : 30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 + i * 0.15, type: "spring" }}
-                    whileHover={{ scale: 1.02, x: 5 }}
+                    initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.1, duration: 0.3 }}
                     className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border"
                   >
-                    <motion.span 
-                      className="text-3xl"
-                      animate={{ rotate: [0, 5, -5, 0] }}
-                      transition={{ delay: 1 + i * 0.2, duration: 0.5 }}
-                    >
-                      {testimonial.avatar}
-                    </motion.span>
+                    <span className="text-3xl">{testimonial.avatar}</span>
                     <div className="flex-1 text-left">
                       <p className="font-semibold text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground/60">"{testimonial.text}"</p>
+                      <p className="text-xs text-muted-foreground/60">&quot;{testimonial.text}&quot;</p>
                     </div>
-                    <div className="flex text-yellow-500 text-xs">
-                      {"⭐".repeat(testimonial.rating)}
-                    </div>
+                    <div className="flex text-yellow-500 text-xs">{"⭐".repeat(testimonial.rating)}</div>
                   </motion.div>
                 ))}
               </div>
-              
-              {/* App store badges hint */}
-              <motion.div
-                className="flex items-center gap-4 mt-6"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
-              >
-                <div className="flex items-center gap-1 text-xs text-muted-foreground/40">
-                  <span>🍎</span>
-                  <span>App Store</span>
-                </div>
-                <div className="w-1 h-1 rounded-full bg-muted-foreground/20" />
-                <div className="flex items-center gap-1 text-xs text-muted-foreground/40">
-                  <span>🤖</span>
-                  <span>Play Store</span>
-                </div>
-              </motion.div>
             </div>
           </StepCard>
         );
@@ -1350,29 +416,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="success-stats">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-5xl mb-4"
-              >
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
                 📊
               </motion.div>
               
-              <motion.h1
-                className="text-2xl font-bold mb-1"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
+              <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 Real results
               </motion.h1>
-              <motion.p
-                className="text-muted-foreground/50 text-xs mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
+              <motion.p className="text-muted-foreground/50 text-xs mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
                 Based on user data from the last 6 months
               </motion.p>
               
@@ -1380,53 +431,68 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {stats.map((stat, i) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ x: -40, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 + i * 0.15, type: "spring" }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.1, duration: 0.3 }}
                     className="relative p-4 rounded-2xl bg-card border border-border overflow-hidden"
                   >
-                    {/* Background gradient */}
                     <motion.div 
                       className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0`}
-                      animate={{ opacity: [0, 0.1, 0.05] }}
-                      transition={{ delay: 0.5 + i * 0.15, duration: 1 }}
+                      animate={{ opacity: 0.08 }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 0.5 }}
                     />
-                    
-                    <div className="relative z-10 flex items-center justify-between">
-                      <div className="text-left">
-                        <motion.p
-                          className="text-3xl font-bold"
-                          initial={{ scale: 0.5 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.5 + i * 0.15, type: "spring" }}
-                        >
-                          <CountUpAnimation value={stat.value} delay={0.5 + i * 0.15} />
-                          <span className="text-primary">{stat.suffix}</span>
-                        </motion.p>
-                        <p className="text-xs text-muted-foreground/60">{stat.label}</p>
-                      </div>
-                      
-                      {/* Progress bar */}
-                      <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-                        <motion.div
-                          className={`h-full bg-gradient-to-r ${stat.color} rounded-full`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(stat.value, 100)}%` }}
-                          transition={{ delay: 0.6 + i * 0.15, duration: 1, ease: "easeOut" }}
-                        />
-                      </div>
+                    <div className="relative flex items-center gap-4">
+                      <span className="text-3xl font-bold text-primary">{stat.value}{stat.suffix}</span>
+                      <span className="text-sm text-muted-foreground/60">{stat.label}</span>
                     </div>
                   </motion.div>
                 ))}
               </div>
-              
-              <motion.p
-                className="text-xs text-muted-foreground/40 mt-6 italic"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
+            </div>
+          </StepCard>
+        );
+
+      case "tracker-intro":
+        return (
+          <StepCard step="tracker-intro">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                * Results may vary based on individual commitment
+                <motion.span className="text-5xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.3 }}>
+                  🎯
+                </motion.span>
+              </motion.div>
+              
+              <motion.h1 className="text-2xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
+                Time to personalize!
+              </motion.h1>
+              <motion.p className="text-muted-foreground/60 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.3 }}>
+                3 quick steps to unlock your perfect macros
+              </motion.p>
+              
+              <div className="flex gap-4 mb-8">
+                {[{ emoji: "📏", label: "Body" }, { emoji: "🏃", label: "Activity" }, { emoji: "📊", label: "Macros" }].map((step, i) => (
+                  <motion.div
+                    key={step.label}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1, duration: 0.3 }}
+                    className="flex flex-col items-center gap-2"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-card border-2 border-border flex items-center justify-center">
+                      <span className="text-2xl">{step.emoji}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/40">{step.label}</span>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <motion.p className="text-xs text-muted-foreground/40 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
+                Takes less than 30 seconds ⚡
               </motion.p>
             </div>
           </StepCard>
@@ -1436,110 +502,78 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="body-basics">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 15 }}
-                className="text-4xl mb-4"
-              >
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
                 📏
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Your body stats</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Slide to set your values</p>
+              <h1 className="text-2xl font-bold mb-1">Your body basics</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Used to calculate your ideal macros</p>
               
-              <div className="w-full max-w-sm space-y-6">
-                {/* Height - Interactive Card */}
+              <div className="w-full max-w-sm space-y-4">
+                {/* Height */}
                 <motion.div 
                   className="p-4 rounded-2xl bg-card border-2 border-border"
-                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">📐</span>
                       <span className="text-sm font-medium">Height</span>
                     </div>
-                    <motion.div 
-                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
-                      key={userData.height}
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 0.2 }}
-                    >
+                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       <AnimatedCounter value={userData.height} suffix=" cm" />
-                    </motion.div>
+                    </div>
                   </div>
                   <input
-                    type="range"
-                    min="140"
-                    max="220"
-                    value={userData.height}
+                    type="range" min="140" max="220" value={userData.height}
                     onChange={(e) => setUserData({ ...userData, height: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
                 </motion.div>
                 
-                {/* Weight - Interactive Card */}
+                {/* Weight */}
                 <motion.div 
                   className="p-4 rounded-2xl bg-card border-2 border-border"
-                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">⚖️</span>
                       <span className="text-sm font-medium">Weight</span>
                     </div>
-                    <motion.div 
-                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
-                      key={userData.weight}
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 0.2 }}
-                    >
+                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       <AnimatedCounter value={userData.weight} suffix=" kg" />
-                    </motion.div>
+                    </div>
                   </div>
                   <input
-                    type="range"
-                    min="40"
-                    max="150"
-                    value={userData.weight}
+                    type="range" min="40" max="150" value={userData.weight}
                     onChange={(e) => setUserData({ ...userData, weight: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
                 </motion.div>
                 
-                {/* Age - Interactive Card */}
+                {/* Age */}
                 <motion.div 
                   className="p-4 rounded-2xl bg-card border-2 border-border"
-                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">🎂</span>
                       <span className="text-sm font-medium">Age</span>
                     </div>
-                    <motion.div 
-                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
-                      key={userData.age}
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 0.2 }}
-                    >
+                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       <AnimatedCounter value={userData.age} suffix=" yrs" />
-                    </motion.div>
+                    </div>
                   </div>
                   <input
-                    type="range"
-                    min="13"
-                    max="80"
-                    value={userData.age}
+                    type="range" min="13" max="80" value={userData.age}
                     onChange={(e) => setUserData({ ...userData, age: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
@@ -1550,7 +584,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="flex items-center gap-2 mt-6 px-4 py-2 rounded-full bg-primary/5 border border-primary/20"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.5, duration: 0.3 }}
               >
                 <span className="text-sm">🔒</span>
                 <span className="text-xs text-muted-foreground/60">100% private - stays on your device</span>
@@ -1563,12 +597,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="gender">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-5xl mb-6"
-              >
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-6">
                 👤
               </motion.div>
               
@@ -1582,33 +611,27 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ].map((option, index) => (
                   <motion.button
                     key={option.id}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 + index * 0.1 }}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setUserData({ ...userData, gender: option.id })}
                     className={`relative p-6 rounded-2xl border-2 transition-all overflow-hidden ${
                       userData.gender === option.id
-                        ? 'border-primary bg-primary/10 shadow-lg'
+                        ? 'border-primary bg-primary/10 shadow-md'
                         : 'border-border bg-card hover:border-primary/30'
                     }`}
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-50`} />
                     <div className="relative z-10 flex flex-col items-center gap-3">
-                      <motion.span 
-                        className="text-4xl"
-                        animate={userData.gender === option.id ? { scale: [1, 1.2, 1] } : {}}
-                        transition={{ duration: 0.3 }}
-                      >
-                        {option.emoji}
-                      </motion.span>
+                      <span className="text-4xl">{option.emoji}</span>
                       <span className="font-medium">{option.label}</span>
                     </div>
                     {userData.gender === option.id && (
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
+                        transition={{ duration: 0.2 }}
                         className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
                       >
                         <Check className="w-4 h-4 text-primary-foreground" />
@@ -1618,336 +641,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </div>
               
-              <motion.p
-                className="text-xs text-muted-foreground/40 mt-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
+              <motion.p className="text-xs text-muted-foreground/40 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
                 ~166 kcal Unterschied zwischen Männern & Frauen
               </motion.p>
-            </div>
-          </StepCard>
-        );
-
-      case "dietary-preferences":
-        const dietOptions = [
-          { id: 'vegetarian', label: 'Vegetarisch', emoji: '🥗', desc: 'Kein Fleisch oder Fisch' },
-          { id: 'vegan', label: 'Vegan', emoji: '🌱', desc: 'Keine tierischen Produkte' },
-          { id: 'pescatarian', label: 'Pescetarisch', emoji: '🐟', desc: 'Fisch, kein Fleisch' },
-          { id: 'none', label: 'Keine', emoji: '🍽️', desc: 'Alles erlaubt' },
-        ];
-        return (
-          <StepCard step="dietary-preferences">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-4xl mb-4"
-              >
-                🥬
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">Ernährungsweise</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezepte</p>
-              
-              <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                {dietOptions.map((option, index) => (
-                  <motion.button
-                    key={option.id}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.05 + index * 0.05 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (option.id === 'none') {
-                        setUserData({ ...userData, dietaryPreferences: [] });
-                      } else {
-                        const newPrefs = userData.dietaryPreferences.includes(option.id)
-                          ? userData.dietaryPreferences.filter(p => p !== option.id)
-                          : [...userData.dietaryPreferences.filter(p => p !== 'none'), option.id];
-                        setUserData({ ...userData, dietaryPreferences: newPrefs });
-                      }
-                    }}
-                    className={`relative p-4 rounded-xl border-2 transition-all text-left ${
-                      (option.id === 'none' && userData.dietaryPreferences.length === 0) ||
-                      userData.dietaryPreferences.includes(option.id)
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{option.emoji}</span>
-                      <div>
-                        <p className="font-medium text-sm">{option.label}</p>
-                        <p className="text-[10px] text-muted-foreground/50">{option.desc}</p>
-                      </div>
-                    </div>
-                    {((option.id === 'none' && userData.dietaryPreferences.length === 0) ||
-                      userData.dietaryPreferences.includes(option.id)) && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-                      >
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </StepCard>
-        );
-
-      case "allergies":
-        const allergyOptions = [
-          { id: 'gluten', label: 'Gluten', emoji: '🌾' },
-          { id: 'lactose', label: 'Laktose', emoji: '🥛' },
-          { id: 'nuts', label: 'Nüsse', emoji: '🥜' },
-          { id: 'soy', label: 'Soja', emoji: '🫘' },
-          { id: 'eggs', label: 'Eier', emoji: '🥚' },
-          { id: 'none', label: 'Keine', emoji: '✅' },
-        ];
-        return (
-          <StepCard step="allergies">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-4xl mb-4"
-              >
-                ⚠️
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">Allergien & Unverträglichkeiten</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Mehrfachauswahl möglich</p>
-              
-              <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                {allergyOptions.map((option, index) => (
-                  <motion.button
-                    key={option.id}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.03 + index * 0.03, type: "spring" }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      if (option.id === 'none') {
-                        setUserData({ ...userData, allergies: [] });
-                      } else {
-                        const newAllergies = userData.allergies.includes(option.id)
-                          ? userData.allergies.filter(a => a !== option.id)
-                          : [...userData.allergies.filter(a => a !== 'none'), option.id];
-                        setUserData({ ...userData, allergies: newAllergies });
-                      }
-                    }}
-                    className={`relative p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
-                      (option.id === 'none' && userData.allergies.length === 0) ||
-                      userData.allergies.includes(option.id)
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/30'
-                    }`}
-                  >
-                    <span className="text-2xl">{option.emoji}</span>
-                    <span className="text-xs font-medium">{option.label}</span>
-                    {((option.id === 'none' && userData.allergies.length === 0) ||
-                      userData.allergies.includes(option.id)) && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
-                      >
-                        <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </StepCard>
-        );
-
-      case "cooking-experience":
-        const experienceOptions = [
-          { id: 'beginner' as const, label: 'Anfänger', emoji: '🔰', desc: 'Einfache Rezepte', color: 'from-green-500/20 to-emerald-500/20' },
-          { id: 'intermediate' as const, label: 'Fortgeschritten', emoji: '👨‍🍳', desc: 'Mittelschwere Gerichte', color: 'from-yellow-500/20 to-orange-500/20' },
-          { id: 'advanced' as const, label: 'Profi', emoji: '⭐', desc: 'Anspruchsvolle Küche', color: 'from-purple-500/20 to-pink-500/20' },
-        ];
-        return (
-          <StepCard step="cooking-experience">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0, rotate: -20 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-5xl mb-4"
-              >
-                🍳
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">Kocherfahrung</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezept-Schwierigkeit</p>
-              
-              <div className="flex flex-col gap-3 w-full max-w-sm">
-                {experienceOptions.map((option, index) => (
-                  <motion.button
-                    key={option.id}
-                    initial={{ x: index % 2 === 0 ? -30 : 30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 + index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserData({ ...userData, cookingExperience: option.id })}
-                    className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden ${
-                      userData.cookingExperience === option.id
-                        ? 'border-primary bg-primary/10 shadow-md'
-                        : 'border-border bg-card hover:border-primary/30'
-                    }`}
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-r ${option.color} opacity-50`} />
-                    <div className="relative z-10 flex items-center gap-4">
-                      <motion.span 
-                        className="text-3xl"
-                        animate={userData.cookingExperience === option.id ? { rotate: [0, 10, -10, 0] } : {}}
-                        transition={{ duration: 0.4 }}
-                      >
-                        {option.emoji}
-                      </motion.span>
-                      <div className="text-left">
-                        <p className="font-semibold">{option.label}</p>
-                        <p className="text-xs text-muted-foreground/60">{option.desc}</p>
-                      </div>
-                      {userData.cookingExperience === option.id && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center"
-                        >
-                          <Check className="w-4 h-4 text-primary-foreground" />
-                        </motion.div>
-                      )}
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </StepCard>
-        );
-
-      case "planning-setup":
-        const activityLevels = [
-          { id: "low", label: "Chill", emoji: "🧘", desc: "Desk job, light walks" },
-          { id: "medium", label: "Active", emoji: "🚴", desc: "Regular workouts" },
-          { id: "high", label: "Beast", emoji: "🔥", desc: "Intense training" },
-        ];
-        const macroOptions = [
-          { id: "balanced", label: "Balanced", emoji: "⚖️", color: "from-blue-500/20 to-green-500/20" },
-          { id: "high-protein", label: "High Protein", emoji: "💪", color: "from-red-500/20 to-orange-500/20" },
-          { id: "low-carb", label: "Low Carb", emoji: "🥑", color: "from-green-500/20 to-emerald-500/20" },
-          { id: "custom", label: "Custom", emoji: "✨", color: "from-purple-500/20 to-pink-500/20" },
-        ];
-        return (
-          <StepCard step="planning-setup">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 15 }}
-                className="text-4xl mb-4"
-              >
-                🏃
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">How active are you?</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Pick your vibe</p>
-              
-              {/* Activity Level - Fun cards */}
-              <div className="w-full max-w-sm grid grid-cols-3 gap-2 mb-8">
-                {activityLevels.map((level, i) => (
-                  <motion.button
-                    key={level.id}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.1, type: "spring" }}
-                    whileTap={{ scale: 0.9 }}
-                    whileHover={{ y: -4 }}
-                    onClick={() => setUserData({ ...userData, activityLevel: level.id })}
-                    className={`relative p-4 rounded-2xl border-2 transition-all ${
-                      userData.activityLevel === level.id
-                        ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
-                        : "border-border bg-card hover:border-primary/30"
-                    }`}
-                  >
-                    <motion.span 
-                      className="text-3xl block mb-2"
-                      animate={{ 
-                        scale: userData.activityLevel === level.id ? [1, 1.3, 1] : 1,
-                        rotate: userData.activityLevel === level.id ? [0, -10, 10, 0] : 0
-                      }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      {level.emoji}
-                    </motion.span>
-                    <span className="text-sm font-bold block">{level.label}</span>
-                    <span className="text-[9px] text-muted-foreground/40 block mt-1">{level.desc}</span>
-                    
-                    {userData.activityLevel === level.id && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
-                      >
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))}
-              </div>
-              
-              {/* Macro Focus - Colorful cards */}
-              <motion.div 
-                className="w-full max-w-sm"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <span className="text-xs font-semibold block text-center mb-3 text-muted-foreground/60">Choose your macro style</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {macroOptions.map((option, i) => (
-                    <motion.button
-                      key={option.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + i * 0.08 }}
-                      whileTap={{ scale: 0.95 }}
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => setUserData({ ...userData, macroFocus: option.id })}
-                      className={`relative flex items-center gap-2 p-3 rounded-xl border-2 transition-all overflow-hidden ${
-                        userData.macroFocus === option.id
-                          ? "border-primary shadow-lg"
-                          : "border-border bg-card"
-                      }`}
-                    >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${option.color} ${userData.macroFocus === option.id ? "opacity-100" : "opacity-0"} transition-opacity`} />
-                      <span className="text-xl relative z-10">{option.emoji}</span>
-                      <span className="text-sm font-medium relative z-10">{option.label}</span>
-                      {userData.macroFocus === option.id && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
-                        >
-                          <Check className="w-2 h-2 text-primary-foreground" />
-                        </motion.div>
-                      )}
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
             </div>
           </StepCard>
         );
@@ -1956,88 +652,49 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="goal-mode">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 15 }}
-                className="text-5xl mb-4"
-              >
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
                 🎯
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">What's your goal?</h1>
-              <p className="text-muted-foreground/40 text-xs mb-8">This affects your daily calorie target</p>
+              <h1 className="text-2xl font-bold mb-1">Dein Ziel</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Abnehmen oder Zunehmen?</p>
               
-              <div className="w-full max-w-sm grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
                 <motion.button
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ y: -4 }}
-                  onClick={() => setUserData({ ...userData, goalMode: 'lose', targetWeight: Math.max(40, userData.weight - 5) })}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setUserData({ ...userData, goalMode: 'lose', targetWeight: userData.weight - 5 })}
                   className={`relative p-6 rounded-2xl border-2 transition-all ${
-                    userData.goalMode === 'lose'
-                      ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
-                      : "border-border bg-card hover:border-primary/30"
+                    userData.goalMode === 'lose' ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
                   }`}
                 >
-                  <motion.span 
-                    className="text-5xl block mb-3"
-                    animate={{ 
-                      scale: userData.goalMode === 'lose' ? [1, 1.2, 1] : 1,
-                      y: userData.goalMode === 'lose' ? [0, -5, 0] : 0
-                    }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    📉
-                  </motion.span>
+                  <span className="text-5xl block mb-3">📉</span>
                   <span className="text-lg font-bold block">Abnehmen</span>
                   <span className="text-xs text-muted-foreground/40">Kaloriendefizit</span>
-                  
                   {userData.goalMode === 'lose' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center"
-                    >
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-4 h-4 text-primary-foreground" />
                     </motion.div>
                   )}
                 </motion.button>
                 
                 <motion.button
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ y: -4 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setUserData({ ...userData, goalMode: 'gain', targetWeight: userData.weight + 5 })}
                   className={`relative p-6 rounded-2xl border-2 transition-all ${
-                    userData.goalMode === 'gain'
-                      ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
-                      : "border-border bg-card hover:border-primary/30"
+                    userData.goalMode === 'gain' ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
                   }`}
                 >
-                  <motion.span 
-                    className="text-5xl block mb-3"
-                    animate={{ 
-                      scale: userData.goalMode === 'gain' ? [1, 1.2, 1] : 1,
-                      y: userData.goalMode === 'gain' ? [0, -5, 0] : 0
-                    }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    📈
-                  </motion.span>
+                  <span className="text-5xl block mb-3">📈</span>
                   <span className="text-lg font-bold block">Zunehmen</span>
                   <span className="text-xs text-muted-foreground/40">Kalorienüberschuss</span>
-                  
                   {userData.goalMode === 'gain' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center"
-                    >
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-4 h-4 text-primary-foreground" />
                     </motion.div>
                   )}
@@ -2055,12 +712,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="target-weight">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-5xl mb-4"
-              >
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
                 ⚖️
               </motion.div>
               
@@ -2070,79 +722,61 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </p>
               
               <div className="w-full max-w-sm space-y-6">
-                {/* Current vs Target visualization */}
                 <motion.div 
                   className="relative h-32 flex items-end justify-center gap-8"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
                 >
-                  {/* Current weight bar */}
                   <div className="flex flex-col items-center">
                     <motion.div 
                       className="w-16 bg-muted rounded-t-xl"
                       initial={{ height: 0 }}
                       animate={{ height: 80 }}
-                      transition={{ delay: 0.3, duration: 0.5 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
                     />
                     <span className="text-xs text-muted-foreground/60 mt-2">Aktuell</span>
                     <span className="text-lg font-bold">{userData.weight}kg</span>
                   </div>
                   
-                  {/* Arrow */}
                   <motion.div 
                     className="flex items-center gap-1 mb-12"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.3 }}
                   >
-                    <span className="text-2xl">{userData.goalMode === 'lose' ? '→' : '→'}</span>
+                    <span className="text-2xl">→</span>
                   </motion.div>
                   
-                  {/* Target weight bar */}
                   <div className="flex flex-col items-center">
                     <motion.div 
-                      className={`w-16 rounded-t-xl ${userData.goalMode === 'lose' ? 'bg-primary' : 'bg-primary'}`}
+                      className="w-16 bg-primary rounded-t-xl"
                       initial={{ height: 0 }}
                       animate={{ height: userData.goalMode === 'lose' ? 80 - weightDiff * 4 : 80 + weightDiff * 2 }}
-                      transition={{ delay: 0.4, duration: 0.5 }}
+                      transition={{ delay: 0.4, duration: 0.4 }}
                       style={{ minHeight: 30, maxHeight: 100 }}
                     />
                     <span className="text-xs text-primary mt-2">Ziel</span>
-                    <motion.span 
-                      className="text-lg font-bold text-primary"
-                      key={userData.targetWeight}
-                      animate={{ scale: [1, 1.1, 1] }}
-                    >
-                      {userData.targetWeight}kg
-                    </motion.span>
+                    <span className="text-lg font-bold text-primary">{userData.targetWeight}kg</span>
                   </div>
                 </motion.div>
                 
-                {/* Slider */}
                 <motion.div 
                   className="p-4 rounded-2xl bg-card border-2 border-border"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.3 }}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-sm font-medium">
                       {userData.goalMode === 'lose' ? 'Gewichtsverlust' : 'Gewichtszunahme'}
                     </span>
-                    <motion.div 
-                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
-                      key={weightDiff}
-                      animate={{ scale: [1, 1.1, 1] }}
-                    >
+                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       {userData.goalMode === 'lose' ? '-' : '+'}{weightDiff}kg
-                    </motion.div>
+                    </div>
                   </div>
                   <input
-                    type="range"
-                    min={minTarget}
-                    max={maxTarget}
-                    value={userData.targetWeight}
+                    type="range" min={minTarget} max={maxTarget} value={userData.targetWeight}
                     onChange={(e) => setUserData({ ...userData, targetWeight: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
@@ -2152,12 +786,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                 </motion.div>
                 
-                <motion.p
-                  className="text-xs text-muted-foreground/40 text-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                >
+                <motion.p className="text-xs text-muted-foreground/40 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
                   💡 Max. 10kg {userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse
                 </motion.p>
               </div>
@@ -2175,12 +804,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="speed-select">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 15 }}
-                className="text-5xl mb-4"
-              >
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
                 ⚡
               </motion.div>
               
@@ -2193,15 +817,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {speedOptions.map((option, i) => (
                   <motion.button
                     key={option.id}
-                    initial={{ x: -30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileTap={{ scale: 0.97 }}
-                    whileHover={{ x: 5 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.3 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setUserData({ ...userData, weeklyGoal: option.id })}
                     className={`relative w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
                       userData.weeklyGoal === option.id
-                        ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
+                        ? "border-primary bg-primary/10 shadow-md"
                         : "border-border bg-card hover:border-primary/30"
                     }`}
                   >
@@ -2214,20 +837,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <div className="flex-1 text-left">
                       <span className="font-bold block">{option.label}</span>
                       <span className="text-xs text-muted-foreground/60">{option.desc}</span>
-                      <motion.span 
-                        className="text-xs text-primary font-semibold block mt-1"
-                        animate={{ opacity: userData.weeklyGoal === option.id ? 1 : 0.5 }}
-                      >
+                      <span className={`text-xs font-semibold block mt-1 ${userData.weeklyGoal === option.id ? 'text-primary' : 'text-muted-foreground/50'}`}>
                         ~{option.id}kg / Woche
-                      </motion.span>
+                      </span>
                     </div>
                     
                     {userData.weeklyGoal === option.id && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="w-7 h-7 rounded-full bg-primary flex items-center justify-center"
-                      >
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }} className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                         <Check className="w-4 h-4 text-primary-foreground" />
                       </motion.div>
                     )}
@@ -2235,14 +851,236 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </div>
               
-              <motion.p
-                className="text-xs text-muted-foreground/40 mt-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
+              <motion.p className="text-xs text-muted-foreground/40 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
                 ⚠️ Schnelleres Tempo = mehr Disziplin erforderlich
               </motion.p>
+            </div>
+          </StepCard>
+        );
+
+      case "dietary-preferences":
+        const dietOptions = [
+          { id: 'vegetarian', label: 'Vegetarisch', emoji: '🥗', desc: 'Kein Fleisch oder Fisch' },
+          { id: 'vegan', label: 'Vegan', emoji: '🌱', desc: 'Keine tierischen Produkte' },
+          { id: 'pescatarian', label: 'Pescetarisch', emoji: '🐟', desc: 'Fisch, kein Fleisch' },
+          { id: 'none', label: 'Keine', emoji: '🍽️', desc: 'Alles erlaubt' },
+        ];
+        return (
+          <StepCard step="dietary-preferences">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-4xl mb-4">
+                🥬
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Ernährungsweise</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezepte</p>
+              
+              <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                {dietOptions.map((option, index) => {
+                  const isSelected = option.id === 'none' 
+                    ? userData.dietaryPreferences.length === 0 
+                    : userData.dietaryPreferences.includes(option.id);
+                  
+                  return (
+                    <motion.button
+                      key={option.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 + index * 0.05, duration: 0.3 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        if (option.id === 'none') {
+                          setUserData({ ...userData, dietaryPreferences: [] });
+                        } else {
+                          const newPrefs = userData.dietaryPreferences.includes(option.id)
+                            ? userData.dietaryPreferences.filter(p => p !== option.id)
+                            : [...userData.dietaryPreferences.filter(p => p !== 'none'), option.id];
+                          setUserData({ ...userData, dietaryPreferences: newPrefs });
+                        }
+                      }}
+                      className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                        isSelected ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{option.emoji}</span>
+                        <div>
+                          <p className="font-medium text-sm">{option.label}</p>
+                          <p className="text-[10px] text-muted-foreground/50">{option.desc}</p>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        </motion.div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "allergies":
+        const allergyOptions = [
+          { id: 'gluten', label: 'Gluten', emoji: '🌾' },
+          { id: 'lactose', label: 'Laktose', emoji: '🥛' },
+          { id: 'nuts', label: 'Nüsse', emoji: '🥜' },
+          { id: 'soy', label: 'Soja', emoji: '🫘' },
+          { id: 'eggs', label: 'Eier', emoji: '🥚' },
+          { id: 'none', label: 'Keine', emoji: '✅' },
+        ];
+        return (
+          <StepCard step="allergies">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-4xl mb-4">
+                ⚠️
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Allergien & Unverträglichkeiten</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Mehrfachauswahl möglich</p>
+              
+              <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                {allergyOptions.map((option, index) => {
+                  const isSelected = option.id === 'none' 
+                    ? userData.allergies.length === 0 
+                    : userData.allergies.includes(option.id);
+                  
+                  return (
+                    <motion.button
+                      key={option.id}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.03 + index * 0.03, duration: 0.3 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        if (option.id === 'none') {
+                          setUserData({ ...userData, allergies: [] });
+                        } else {
+                          const newAllergies = userData.allergies.includes(option.id)
+                            ? userData.allergies.filter(a => a !== option.id)
+                            : [...userData.allergies.filter(a => a !== 'none'), option.id];
+                          setUserData({ ...userData, allergies: newAllergies });
+                        }
+                      }}
+                      className={`relative p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                        isSelected ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
+                      }`}
+                    >
+                      <span className="text-2xl">{option.emoji}</span>
+                      <span className="text-xs font-medium">{option.label}</span>
+                      {isSelected && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                        </motion.div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "cooking-time":
+        return <CookingTimeStep {...stepProps} />;
+
+      case "cooking-experience":
+        const experienceOptions = [
+          { id: 'beginner' as const, label: 'Anfänger', emoji: '🔰', desc: 'Einfache Rezepte', color: 'from-green-500/20 to-emerald-500/20' },
+          { id: 'intermediate' as const, label: 'Fortgeschritten', emoji: '👨‍🍳', desc: 'Mittelschwere Gerichte', color: 'from-yellow-500/20 to-orange-500/20' },
+          { id: 'advanced' as const, label: 'Profi', emoji: '⭐', desc: 'Anspruchsvolle Küche', color: 'from-purple-500/20 to-pink-500/20' },
+        ];
+        return (
+          <StepCard step="cooking-experience">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
+                🍳
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Kocherfahrung</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezept-Schwierigkeit</p>
+              
+              <div className="flex flex-col gap-3 w-full max-w-sm">
+                {experienceOptions.map((option, index) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + index * 0.08, duration: 0.3 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setUserData({ ...userData, cookingExperience: option.id })}
+                    className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden ${
+                      userData.cookingExperience === option.id
+                        ? 'border-primary bg-primary/10 shadow-md'
+                        : 'border-border bg-card hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${option.color} opacity-50`} />
+                    <div className="relative z-10 flex items-center gap-4">
+                      <span className="text-3xl">{option.emoji}</span>
+                      <div className="text-left">
+                        <p className="font-semibold">{option.label}</p>
+                        <p className="text-xs text-muted-foreground/60">{option.desc}</p>
+                      </div>
+                      {userData.cookingExperience === option.id && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-4 h-4 text-primary-foreground" />
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "planning-setup":
+        const activityLevels = [
+          { id: "low", label: "Chill", emoji: "🧘", desc: "Desk job, light walks" },
+          { id: "medium", label: "Active", emoji: "🚴", desc: "Regular workouts" },
+          { id: "high", label: "Beast", emoji: "🔥", desc: "Intense training" },
+        ];
+        return (
+          <StepCard step="planning-setup">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
+                🏃
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Aktivitätslevel</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Wie aktiv bist du?</p>
+              
+              <div className="flex flex-col gap-3 w-full max-w-sm">
+                {activityLevels.map((level, i) => (
+                  <motion.button
+                    key={level.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.3 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setUserData({ ...userData, activityLevel: level.id })}
+                    className={`relative w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
+                      userData.activityLevel === level.id
+                        ? "border-primary bg-primary/10 shadow-md"
+                        : "border-border bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    <span className="text-3xl">{level.emoji}</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold block">{level.label}</span>
+                      <span className="text-xs text-muted-foreground/60">{level.desc}</span>
+                    </div>
+                    {userData.activityLevel === level.id && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }} className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-4 h-4 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             </div>
           </StepCard>
         );
@@ -2259,75 +1097,45 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="analyzing">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              {/* Animated brain/calculation icon */}
               <motion.div
                 className="relative w-28 h-28 mb-8"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                {/* Outer rotating ring */}
                 <motion.div
                   className="absolute inset-0 rounded-full border-4 border-primary/20"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                 />
-                {/* Inner pulsing ring */}
                 <motion.div
                   className="absolute inset-2 rounded-full border-2 border-primary/40"
                   animate={{ scale: [1, 1.05, 1], opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
-                {/* Spinning dots */}
-                <motion.div
-                  className="absolute inset-0"
-                  animate={{ rotate: -360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  {[0, 72, 144, 216, 288].map((deg, i) => (
-                    <motion.div
-                      key={deg}
-                      className="absolute w-3 h-3 rounded-full bg-primary"
-                      style={{
-                        top: '50%',
-                        left: '50%',
-                        transform: `rotate(${deg}deg) translateY(-48px) translateX(-6px)`,
-                      }}
-                      animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
-                    />
-                  ))}
-                </motion.div>
-                {/* Center icon */}
-                <motion.div 
-                  className="absolute inset-0 flex items-center justify-center"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
+                <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-4xl">🧠</span>
-                </motion.div>
+                </div>
               </motion.div>
               
               <motion.h1 
                 className="text-2xl font-bold mb-2"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
               >
                 Analysiere dein Profil...
               </motion.h1>
               
-              {/* Progress percentage */}
               <motion.div
                 className="text-5xl font-bold text-primary mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
               >
                 <AnalysisProgress />
               </motion.div>
               
-              {/* Analysis steps with checkmarks */}
               <div className="w-full max-w-sm space-y-3">
                 {analysisSteps.map((step) => (
                   <AnalysisStep key={step.id} text={step.text} delay={step.delay} />
@@ -2338,296 +1146,100 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "macro-preview":
-        // Calculate macros when entering this step
         const calculatedMacros = calculateMacros(userData);
-        const proteinPct = Math.round((calculatedMacros.dailyProtein * 4 / calculatedMacros.dailyCalories) * 100);
-        const carbsPct = Math.round((calculatedMacros.dailyCarbs * 4 / calculatedMacros.dailyCalories) * 100);
-        const fatPct = Math.round((calculatedMacros.dailyFat * 9 / calculatedMacros.dailyCalories) * 100);
+        const weeksToGoal = calculateWeeksToGoal(userData);
         
-        // Update userData with calculated values when rendering
         if (userData.dailyCalories !== calculatedMacros.dailyCalories) {
-          setTimeout(() => {
-            setUserData(prev => ({
-              ...prev,
-              ...calculatedMacros
-            }));
-          }, 0);
+          setTimeout(() => setUserData(prev => ({ ...prev, ...calculatedMacros })), 0);
         }
 
-        // Circular progress component for macros - clean animations
-        const MacroCircle = ({ 
-          value, 
-          max, 
-          color, 
-          label, 
-          unit = "g",
-          delay = 0,
-          size = 80
-        }: { 
-          value: number; 
-          max: number; 
-          color: string; 
-          label: string; 
-          unit?: string;
-          delay?: number;
-          size?: number;
-        }) => {
-          const radius = (size - 12) / 2;
-          const circumference = 2 * Math.PI * radius;
-          const progress = Math.min(value / max, 1);
-          const strokeDashoffset = circumference * (1 - progress);
-
-          return (
-            <motion.div 
-              className="flex flex-col items-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay, duration: 0.4 }}
-            >
-              <div className="relative" style={{ width: size, height: size }}>
-                <svg width={size} height={size} className="-rotate-90">
-                  <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke="hsl(var(--muted))"
-                    strokeWidth="5"
-                  />
+        return (
+          <StepCard step="macro-preview">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-4"
+              >
+                <span className="text-3xl">✨</span>
+              </motion.div>
+              
+              <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
+                Dein optimaler Plan
+              </motion.h1>
+              <motion.p className="text-muted-foreground/50 text-xs mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
+                Basierend auf deinen Daten berechnet
+              </motion.p>
+              
+              {/* Main calorie display */}
+              <motion.div
+                className="relative w-36 h-36 mb-6"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
+                <svg viewBox="0 0 144 144" className="w-full h-full">
+                  <circle cx="72" cy="72" r="60" fill="none" stroke="hsl(var(--muted))" strokeWidth="8" />
                   <motion.circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset }}
-                    transition={{ duration: 0.6, delay: delay + 0.2, ease: "easeOut" }}
+                    cx="72" cy="72" r="60"
+                    fill="none" stroke="hsl(var(--primary))" strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray="377"
+                    initial={{ strokeDashoffset: 377 }}
+                    animate={{ strokeDashoffset: 0 }}
+                    transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                    style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-base font-bold leading-none">{value}</span>
-                  <span className="text-[9px] text-muted-foreground/50">{unit}</span>
-                </div>
-              </div>
-              <span className="text-[10px] text-muted-foreground/70 mt-1.5 font-medium">{label}</span>
-            </motion.div>
-          );
-        };
-        
-        // Calculate weeks to reach goal
-        const goalWeightDiff = Math.abs(userData.weight - userData.targetWeight);
-        const weeksToGoal = Math.ceil(goalWeightDiff / userData.weeklyGoal);
-        
-        // Average comparison values
-        const avgCalories = 2000;
-        const avgProtein = 50;
-        
-        // Personalized tips based on macros
-        const tips = [
-          calculatedMacros.dailyProtein > 100 
-            ? "🥩 Hoher Proteinbedarf - achte auf proteinreiche Snacks"
-            : "🥗 Moderate Proteinziele - gut mit normaler Ernährung erreichbar",
-          userData.goalMode === 'lose' 
-            ? "💧 Trinke viel Wasser um den Stoffwechsel anzukurbeln"
-            : "🍌 Gesunde Snacks zwischen Mahlzeiten helfen beim Zunehmen",
-          calculatedMacros.dailyCarbs < 150
-            ? "🥬 Low-Carb Fokus - setze auf Gemüse statt Brot"
-            : "🍚 Komplexe Kohlenhydrate wie Reis und Haferflocken bevorzugen"
-        ];
-        
-        return (
-          <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-4 w-full overflow-y-auto max-h-[calc(100vh-180px)]">
-              {/* Motivation Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="mb-4"
-              >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30">
-                  <span className="text-lg">🏆</span>
-                  <span className="text-sm font-medium text-primary">Dein optimaler Plan wurde erstellt!</span>
+                  <span className="text-3xl font-bold">{calculatedMacros.dailyCalories}</span>
+                  <span className="text-[10px] text-muted-foreground/50">kcal / Tag</span>
                 </div>
               </motion.div>
               
-              {/* Header */}
-              <motion.div
+              {/* Macro breakdown */}
+              <motion.div 
+                className="flex justify-center gap-6 mb-6 w-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="mb-4"
+                transition={{ delay: 0.6, duration: 0.3 }}
               >
-                <h1 className="text-2xl font-bold mb-1">Dein Plan steht</h1>
-                <p className="text-muted-foreground/50 text-xs">Personalisiert für dich</p>
-              </motion.div>
-              
-              {/* Main calorie circle - smaller */}
-              <motion.div 
-                className="relative mb-4"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <div className="relative w-36 h-36">
-                  {/* Static glow - no infinite rotation */}
-                  <div
-                    className="absolute inset-0 rounded-full opacity-30"
-                    style={{ 
-                      background: `conic-gradient(from 0deg, hsl(160, 100%, 50%) 0%, hsl(160, 100%, 50%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) 100%)`,
-                      filter: 'blur(6px)'
-                    }}
-                  />
-                  
-                  <svg width="144" height="144" className="-rotate-90 relative z-10">
-                    <circle cx="72" cy="72" r="64" fill="hsl(var(--card))" />
-                    <circle cx="72" cy="72" r="64" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
-                    
-                    <motion.circle
-                      cx="72" cy="72" r="54"
-                      fill="none" stroke="hsl(160, 100%, 50%)" strokeWidth="10" strokeLinecap="round"
-                      strokeDasharray={`${(proteinPct / 100) * 339} 339`}
-                      initial={{ strokeDasharray: "0 339" }}
-                      animate={{ strokeDasharray: `${(proteinPct / 100) * 339} 339` }}
-                      transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                    />
-                    <motion.circle
-                      cx="72" cy="72" r="54"
-                      fill="none" stroke="hsl(220, 90%, 60%)" strokeWidth="10" strokeLinecap="round"
-                      strokeDasharray={`${(carbsPct / 100) * 339} 339`}
-                      strokeDashoffset={`${-(proteinPct / 100) * 339}`}
-                      initial={{ strokeDasharray: "0 339" }}
-                      animate={{ strokeDasharray: `${(carbsPct / 100) * 339} 339` }}
-                      transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
-                    />
-                    <motion.circle
-                      cx="72" cy="72" r="54"
-                      fill="none" stroke="hsl(45, 100%, 55%)" strokeWidth="10" strokeLinecap="round"
-                      strokeDasharray={`${(fatPct / 100) * 339} 339`}
-                      strokeDashoffset={`${-((proteinPct + carbsPct) / 100) * 339}`}
-                      initial={{ strokeDasharray: "0 339" }}
-                      animate={{ strokeDasharray: `${(fatPct / 100) * 339} 339` }}
-                      transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
-                    />
-                  </svg>
-                  
+                {[
+                  { label: "Protein", value: calculatedMacros.dailyProtein, color: "hsl(160, 100%, 50%)" },
+                  { label: "Carbs", value: calculatedMacros.dailyCarbs, color: "hsl(220, 90%, 60%)" },
+                  { label: "Fett", value: calculatedMacros.dailyFat, color: "hsl(45, 100%, 55%)" },
+                ].map((macro, i) => (
                   <motion.div 
-                    className="absolute inset-0 flex flex-col items-center justify-center z-20"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8, duration: 0.3 }}
+                    key={macro.label}
+                    className="text-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + i * 0.1, duration: 0.3 }}
                   >
-                    <span className="text-3xl font-bold">{calculatedMacros.dailyCalories}</span>
-                    <span className="text-[10px] text-muted-foreground/50">kcal / Tag</span>
+                    <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: macro.color }} />
+                    <span className="text-lg font-bold block">{macro.value}g</span>
+                    <span className="text-[10px] text-muted-foreground/50">{macro.label}</span>
                   </motion.div>
-                </div>
+                ))}
               </motion.div>
               
-              {/* Macro circles row - compact */}
+              {/* Goal timeline */}
               <motion.div 
-                className="flex justify-center gap-4 mb-4 w-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
-              >
-                <MacroCircle value={calculatedMacros.dailyProtein} max={200} color="hsl(160, 100%, 50%)" label="Protein" delay={0.3} size={60} />
-                <MacroCircle value={calculatedMacros.dailyCarbs} max={300} color="hsl(220, 90%, 60%)" label="Carbs" delay={0.4} size={60} />
-                <MacroCircle value={calculatedMacros.dailyFat} max={100} color="hsl(45, 100%, 55%)" label="Fett" delay={0.5} size={60} />
-              </motion.div>
-              
-              {/* Comparison with Average */}
-              <motion.div 
-                className="w-full max-w-xs p-3 rounded-xl bg-muted/30 border border-border/50 mb-3"
+                className="w-full max-w-xs p-4 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.4 }}
-              >
-                <p className="text-[10px] text-muted-foreground/50 mb-2 uppercase tracking-wider">vs. Durchschnitt</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold">{calculatedMacros.dailyCalories}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${calculatedMacros.dailyCalories < avgCalories ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
-                        {calculatedMacros.dailyCalories < avgCalories ? `-${avgCalories - calculatedMacros.dailyCalories}` : `+${calculatedMacros.dailyCalories - avgCalories}`}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground/50">Kalorien</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold">{calculatedMacros.dailyProtein}g</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500">
-                        +{calculatedMacros.dailyProtein - avgProtein}g
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground/50">Protein</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              {/* Goal Timeline */}
-              <motion.div 
-                className="w-full max-w-xs p-3 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 mb-3"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7, duration: 0.4 }}
+                transition={{ delay: 0.9, duration: 0.3 }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                     <Target className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 text-left">
-                    <span className="text-sm font-medium block">
-                      Ziel: {userData.targetWeight}kg
-                    </span>
-                    <span className="text-xs text-muted-foreground/50">
-                      ~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)
-                    </span>
+                    <span className="text-sm font-medium block">Ziel: {userData.targetWeight}kg</span>
+                    <span className="text-xs text-muted-foreground/50">~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)</span>
                   </div>
                   <span className="text-xl">🎯</span>
                 </div>
-                
-                {/* Timeline visualization */}
-                <div className="mt-3 relative">
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: '100%' }}
-                      transition={{ duration: 1.2, delay: 0.9, ease: "easeOut" }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1 text-[9px] text-muted-foreground/40">
-                    <span>{userData.weight}kg</span>
-                    <span>Woche {Math.ceil(weeksToGoal / 2)}</span>
-                    <span>{userData.targetWeight}kg</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              {/* Personalized Tips */}
-              <motion.div 
-                className="w-full max-w-xs space-y-2 mb-4"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.4 }}
-              >
-                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider text-left">Tipps für dich</p>
-                {tips.map((tip, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.9 + i * 0.1, duration: 0.3 }}
-                    className="p-2.5 rounded-lg bg-card border border-border/50 text-left"
-                  >
-                    <span className="text-xs">{tip}</span>
-                  </motion.div>
-                ))}
               </motion.div>
             </div>
           </StepCard>
@@ -2638,28 +1250,57 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <StepCard step="fridge-intro">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <h1 className="text-2xl font-bold mb-1">Let your fridge decide.</h1>
-              <p className="text-muted-foreground/60 text-xs mb-8">
-                We build meals from what you already have.
-              </p>
+              <p className="text-muted-foreground/60 text-xs mb-8">We build meals from what you already have.</p>
               
-              <AnimatedFridge isOpen={fridgeOpen} showScan={fridgeScan} />
-              
-              <motion.p
-                className="text-xs text-muted-foreground/40 mt-6 mb-4 italic"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
+              {/* Animated Fridge */}
+              <motion.div 
+                className="relative w-36 h-48"
+                animate={{ rotate: fridgeScan ? [0, -2, 2, -1, 1, 0] : 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
-                "I'll handle the planning. You just eat."
-              </motion.p>
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-b from-slate-100 to-slate-200 rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden"
+                  animate={{ boxShadow: fridgeScan ? "0 0 30px rgba(34, 197, 94, 0.4)" : "0 10px 30px rgba(0,0,0,0.1)" }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-slate-400 rounded-full" />
+                  <div className="absolute left-0 right-0 top-[35%] h-[2px] bg-slate-300" />
+                  
+                  {fridgeOpen && (
+                    <>
+                      {['🥛', '🍎', '🥕', '🧀', '🥬'].map((emoji, i) => (
+                        <motion.div 
+                          key={i}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.2 + i * 0.1, duration: 0.3 }}
+                          className={`absolute text-xl ${
+                            i < 2 ? `top-3 ${i === 0 ? 'left-2' : 'right-4'}` :
+                            i < 4 ? `top-[40%] ${i === 2 ? 'left-2' : 'right-4'}` :
+                            'bottom-3 left-1/2 -translate-x-1/2'
+                          }`}
+                        >
+                          {emoji}
+                        </motion.div>
+                      ))}
+                    </>
+                  )}
+                </motion.div>
+                
+                {fridgeScan && (
+                  <motion.div className="absolute inset-0 pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                    <motion.div
+                      className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
+                      animate={{ top: ["10%", "90%", "10%"] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      style={{ boxShadow: "0 0 15px hsl(var(--primary))" }}
+                    />
+                  </motion.div>
+                )}
+              </motion.div>
               
-              <motion.p
-                className="text-[10px] text-muted-foreground/30 mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.5 }}
-              >
-                Optional. Your plan works without this.
+              <motion.p className="text-xs text-muted-foreground/40 mt-6 mb-4 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.3 }}>
+                &quot;I&apos;ll handle the planning. You just eat.&quot;
               </motion.p>
               
               <div className="flex flex-col gap-3 w-full max-w-xs">
@@ -2681,22 +1322,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div
                 className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"
-                animate={{ scale: [1, 1.05, 1] }}
+                animate={{ scale: [1, 1.03, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <Camera className="w-8 h-8 text-primary" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Enable camera</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                Required for scanning your fridge
-              </p>
+              <p className="text-muted-foreground/40 text-xs mb-6">Required for scanning your fridge</p>
               
               <div className="w-full max-w-sm space-y-3">
-                {/* Camera permission */}
                 <motion.div 
                   className="flex items-center justify-between p-4 rounded-2xl border-2 border-border bg-card"
-                  whileHover={{ borderColor: "hsl(var(--primary) / 0.3)" }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3 }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -2709,24 +1349,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                   <button
                     onClick={() => setUserData({ ...userData, cameraPermission: !userData.cameraPermission })}
-                    className={`w-12 h-7 rounded-full transition-all ${
-                      userData.cameraPermission ? "bg-primary shadow-lg shadow-primary/30" : "bg-muted"
-                    }`}
+                    className={`w-12 h-7 rounded-full transition-all ${userData.cameraPermission ? "bg-primary" : "bg-muted"}`}
                   >
                     <motion.div
-                      className="w-5 h-5 bg-card rounded-full shadow-sm"
+                      className="w-5 h-5 bg-white rounded-full shadow-sm"
                       animate={{ x: userData.cameraPermission ? 22 : 2 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                     />
                   </button>
                 </motion.div>
                 
-                {/* Optional health sync */}
                 <div className="pt-4">
                   <p className="text-[10px] text-muted-foreground/40 mb-3">Optional: Sync your health data</p>
                   <div className="flex gap-2">
                     <motion.button
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "apple" ? null : "apple" })}
                       className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
                         userData.healthSync === "apple" ? "border-red-400 bg-red-50 dark:bg-red-900/20" : "border-border bg-card"
@@ -2736,7 +1373,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <span className="text-sm">Apple Health</span>
                     </motion.button>
                     <motion.button
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "google" ? null : "google" })}
                       className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
                         userData.healthSync === "google" ? "border-green-400 bg-green-50 dark:bg-green-900/20" : "border-border bg-card"
@@ -2752,33 +1389,30 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "notification-prefs":
+        return <NotificationPrefsStep {...stepProps} />;
+
       case "weekly-plan":
-        // Sample meal plan preview data (read-only)
         const sampleMealPlan = [
           { day: "Mo", breakfast: "Rührei mit Spinat", lunch: "Hähnchen-Salat", dinner: "Lachs mit Brokkoli", kcal: 1650 },
           { day: "Di", breakfast: "Haferflocken mit Beeren", lunch: "Thunfisch-Wrap", dinner: "Putenbrust mit Reis", kcal: 1700 },
           { day: "Mi", breakfast: "Griechischer Joghurt", lunch: "Quinoa-Bowl", dinner: "Rinderfilet mit Gemüse", kcal: 1680 },
           { day: "Do", breakfast: "Vollkornbrot mit Avocado", lunch: "Garnelen-Salat", dinner: "Hähnchen-Curry", kcal: 1720 },
           { day: "Fr", breakfast: "Protein-Smoothie", lunch: "Linsensalat", dinner: "Lachs-Pasta", kcal: 1690 },
-          { day: "Sa", breakfast: "Omelett mit Pilzen", lunch: "Buddha Bowl", dinner: "Steak mit Süßkartoffeln", kcal: 1750 },
-          { day: "So", breakfast: "Pancakes (gesund)", lunch: "Wrap mit Hähnchen", dinner: "Gemüse-Lasagne", kcal: 1640 },
         ];
         
         return (
           <StepCard step="weekly-plan">
             <div className="flex flex-col items-center text-center px-4 w-full">
               <h1 className="text-2xl font-bold mb-1">Dein Wochenplan</h1>
-              <p className="text-muted-foreground/40 text-xs mb-4">
-                Automatisch auf deine Makros abgestimmt
-              </p>
+              <p className="text-muted-foreground/40 text-xs mb-4">Automatisch auf deine Makros abgestimmt</p>
               
-              {/* Scrollable meal plan preview */}
-              <div className="w-full max-w-sm space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
+              <div className="w-full max-w-sm space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
                 {sampleMealPlan.map((day, i) => (
                   <motion.div
                     key={day.day}
-                    initial={{ x: 50, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.06, duration: 0.3 }}
                     className="p-3 rounded-xl bg-card border border-border"
                   >
@@ -2788,34 +1422,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-[10px]">
                       <div className="text-left">
-                        <span className="block text-muted-foreground/40 mb-0.5">🍳 Frühstück</span>
+                        <span className="block text-muted-foreground/40 mb-0.5">🍳</span>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.breakfast}</span>
                       </div>
                       <div className="text-left">
-                        <span className="block text-muted-foreground/40 mb-0.5">🥗 Mittag</span>
+                        <span className="block text-muted-foreground/40 mb-0.5">🥗</span>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.lunch}</span>
                       </div>
                       <div className="text-left">
-                        <span className="block text-muted-foreground/40 mb-0.5">🍝 Abend</span>
+                        <span className="block text-muted-foreground/40 mb-0.5">🍝</span>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.dinner}</span>
                       </div>
-                    </div>
-                    {/* Mini macro bars */}
-                    <div className="flex gap-0.5 mt-2">
-                      <div className="h-1.5 flex-1 bg-[hsl(160,100%,50%)] rounded-full opacity-80" />
-                      <div className="h-1.5 flex-[1.5] bg-[hsl(220,90%,60%)] rounded-full opacity-80" />
-                      <div className="h-1.5 flex-[0.8] bg-[hsl(45,100%,55%)] rounded-full opacity-80" />
                     </div>
                   </motion.div>
                 ))}
               </div>
               
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-[10px] text-muted-foreground/40 mt-3 mb-4"
-              >
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }} className="text-[10px] text-muted-foreground/40 mt-3 mb-4">
                 ✨ Premium: Persönliche Rezepte basierend auf deinem Kühlschrank
               </motion.p>
               
@@ -2832,22 +1455,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <StepCard step="comparison">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <h1 className="text-2xl font-bold mb-1">Planning without vs with Frigy</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                Your progress over time
-              </p>
+              <p className="text-muted-foreground/40 text-xs mb-6">Your progress over time</p>
               
-              <div className="w-full max-w-sm">
-                <ComparisonLineChart animate={chartAnimate} />
+              {/* Simple comparison chart */}
+              <div className="w-full max-w-sm h-48 bg-card rounded-2xl p-4 border border-border mb-6">
+                <div className="h-full flex items-end justify-around gap-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <motion.div 
+                      className="w-16 bg-muted rounded-t-lg"
+                      initial={{ height: 0 }}
+                      animate={{ height: chartAnimate ? 60 : 0 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                    />
+                    <span className="text-xs text-muted-foreground/60">Without</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <motion.div 
+                      className="w-16 bg-primary rounded-t-lg"
+                      initial={{ height: 0 }}
+                      animate={{ height: chartAnimate ? 140 : 0 }}
+                      transition={{ duration: 0.8, delay: 0.4 }}
+                    />
+                    <span className="text-xs text-primary font-medium">With Frigy</span>
+                  </div>
+                </div>
               </div>
               
-              <motion.p
-                className="text-sm text-muted-foreground/60 mt-6"
+              <motion.div 
+                className="flex items-center gap-4 text-sm"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: chartAnimate ? 1 : 0 }}
-                transition={{ delay: 2.2 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1, duration: 0.3 }}
               >
-                Less thinking. Better results.
-              </motion.p>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-500">↑</span>
+                  <span className="text-muted-foreground/60">94% hit their goals</span>
+                </div>
+              </motion.div>
             </div>
           </StepCard>
         );
@@ -2856,218 +1500,32 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="transformation">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-5xl mb-4"
-              >
-                ✨
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
+                🚀
               </motion.div>
               
-              <motion.h1
-                className="text-2xl font-bold mb-1"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                Your transformation
-              </motion.h1>
-              <motion.p
-                className="text-muted-foreground/50 text-xs mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                See what's possible with Frigy
-              </motion.p>
+              <h1 className="text-2xl font-bold mb-1">Your Transformation</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">What to expect with Frigy</p>
               
-              {/* Before/After comparison */}
-              <div className="w-full max-w-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Before */}
-                  <motion.div
-                    initial={{ x: -30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-4 rounded-2xl bg-muted/30 border border-border"
-                  >
-                    <p className="text-xs text-muted-foreground/40 mb-3 uppercase tracking-wider">Before</p>
-                    <div className="space-y-3">
-                      {[
-                        { icon: "😕", text: "Confused about what to eat" },
-                        { icon: "⏰", text: "Hours wasted planning" },
-                        { icon: "📉", text: "Inconsistent results" },
-                      ].map((item, i) => (
-                        <motion.div
-                          key={item.text}
-                          initial={{ x: -20, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.5 + i * 0.1 }}
-                          className="flex items-center gap-2 text-xs text-muted-foreground/60"
-                        >
-                          <span>{item.icon}</span>
-                          <span>{item.text}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                  
-                  {/* After */}
-                  <motion.div
-                    initial={{ x: 30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="p-4 rounded-2xl bg-primary/5 border-2 border-primary/20"
-                  >
-                    <p className="text-xs text-primary mb-3 uppercase tracking-wider font-medium">After</p>
-                    <div className="space-y-3">
-                      {[
-                        { icon: "🎯", text: "Clear daily targets" },
-                        { icon: "⚡", text: "Instant meal plans" },
-                        { icon: "📈", text: "Visible progress" },
-                      ].map((item, i) => (
-                        <motion.div
-                          key={item.text}
-                          initial={{ x: 20, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.6 + i * 0.1 }}
-                          className="flex items-center gap-2 text-xs"
-                        >
-                          <motion.span
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ delay: 1 + i * 0.2, duration: 0.4 }}
-                          >
-                            {item.icon}
-                          </motion.span>
-                          <span>{item.text}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </div>
-                
-                {/* Arrow animation */}
-                <motion.div
-                  className="flex justify-center my-4"
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1, type: "spring" }}
-                >
-                  <motion.div
-                    className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"
-                    animate={{ 
-                      boxShadow: [
-                        "0 0 0 0 hsl(var(--primary) / 0.2)",
-                        "0 0 0 10px hsl(var(--primary) / 0)",
-                      ]
-                    }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <motion.span
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                      className="text-2xl"
-                    >
-                      →
-                    </motion.span>
-                  </motion.div>
-                </motion.div>
-                
-                {/* Result badge */}
-                <motion.div
-                  initial={{ y: 20, opacity: 0, scale: 0.9 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.2, type: "spring" }}
-                  className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-center"
-                >
-                  <motion.p 
-                    className="text-lg font-bold text-primary"
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ delay: 1.5, duration: 0.5 }}
-                  >
-                    Reach your goals 3x faster
-                  </motion.p>
-                  <p className="text-xs text-muted-foreground/60">With structured meal planning</p>
-                </motion.div>
-              </div>
-            </div>
-          </StepCard>
-        );
-
-      case "tracker-intro":
-        return (
-          <StepCard step="tracker-intro">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6"
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 12 }}
-              >
-                <motion.span
-                  className="text-5xl"
-                  animate={{ 
-                    scale: trackerIntroAnimate ? [1, 1.2, 1] : 1,
-                    rotate: trackerIntroAnimate ? [0, 10, -10, 0] : 0
-                  }}
-                  transition={{ delay: 0.5, duration: 0.6 }}
-                >
-                  🎯
-                </motion.span>
-              </motion.div>
-              
-              <motion.h1 
-                className="text-2xl font-bold mb-2"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                Time to personalize!
-              </motion.h1>
-              
-              <motion.p 
-                className="text-muted-foreground/60 text-sm mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                3 quick steps to unlock your perfect macros
-              </motion.p>
-              
-              {/* Progress indicators */}
-              <div className="flex gap-4 mb-8">
+              <div className="w-full max-w-sm space-y-4">
                 {[
-                  { emoji: "📏", label: "Body", done: false },
-                  { emoji: "🏃", label: "Activity", done: false },
-                  { emoji: "📊", label: "Macros", done: false },
-                ].map((step, i) => (
+                  { label: "More Energy", emoji: "⚡", value: "+40%" },
+                  { label: "Time Saved", emoji: "⏰", value: "15 min/day" },
+                  { label: "Goal Success", emoji: "🎯", value: "94%" },
+                ].map((item, i) => (
                   <motion.div
-                    key={step.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + i * 0.1 }}
-                    className="flex flex-col items-center gap-2"
+                    key={item.label}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.1, duration: 0.3 }}
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border"
                   >
-                    <motion.div 
-                      className="w-14 h-14 rounded-2xl bg-card border-2 border-border flex items-center justify-center"
-                      whileHover={{ scale: 1.05, borderColor: "hsl(var(--primary))" }}
-                    >
-                      <span className="text-2xl">{step.emoji}</span>
-                    </motion.div>
-                    <span className="text-[10px] text-muted-foreground/40">{step.label}</span>
+                    <span className="text-2xl">{item.emoji}</span>
+                    <span className="flex-1 text-left font-medium">{item.label}</span>
+                    <span className="text-primary font-bold">{item.value}</span>
                   </motion.div>
                 ))}
               </div>
-              
-              <motion.p
-                className="text-xs text-muted-foreground/40 italic"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-              >
-                Takes less than 30 seconds ⚡
-              </motion.p>
             </div>
           </StepCard>
         );
@@ -3080,12 +1538,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <p className="text-muted-foreground/40 text-xs mb-6">Compare plans</p>
               
               <div className="w-full max-w-sm grid grid-cols-2 gap-3 mb-6">
-                {/* Free */}
                 <motion.div 
                   className="p-4 rounded-2xl bg-muted/20 border border-border"
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  initial={{ opacity: 0, x: -15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
                 >
                   <span className="text-sm font-semibold block mb-3 text-muted-foreground/60">Free</span>
                   <ul className="space-y-2 text-left text-xs text-muted-foreground/40">
@@ -3095,20 +1552,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </ul>
                 </motion.div>
                 
-                {/* Premium */}
                 <motion.div 
                   className="p-4 rounded-2xl bg-primary/5 border-2 border-primary/20 relative overflow-hidden"
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ borderColor: "hsl(var(--primary) / 0.4)" }}
+                  initial={{ opacity: 0, x: 15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
                 >
-                  {/* Premium badge */}
                   <motion.div
                     className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] px-2 py-0.5 rounded-bl-lg rounded-tr-xl font-medium flex items-center gap-0.5"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: 0.5, type: "spring" }}
+                    transition={{ delay: 0.5, duration: 0.3 }}
                   >
                     <Star className="w-2.5 h-2.5" fill="currentColor" />
                     Popular
@@ -3120,8 +1574,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Unlimited plans</li>
                     <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Smart shopping</li>
                   </ul>
-                  
-                  <p className="text-[9px] text-primary/60 mt-3">Available with Premium</p>
                 </motion.div>
               </div>
               
@@ -3142,19 +1594,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <StepCard step="community">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <h1 className="text-2xl font-bold mb-1">Cook with others</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                Discover recipes from the community
-              </p>
+              <p className="text-muted-foreground/40 text-xs mb-6">Discover recipes from the community</p>
               
               <div className="w-full max-w-sm space-y-3">
                 {recipes.map((recipe, i) => (
                   <motion.div
                     key={recipe.name}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: i * 0.12 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border cursor-pointer"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1, duration: 0.3 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Users className="w-5 h-5 text-primary" />
@@ -3186,7 +1635,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="w-24 h-24 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center mb-6"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 10, stiffness: 100 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 <motion.span
                   className="text-5xl"
@@ -3199,26 +1648,26 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               
               <motion.h1 
                 className="text-3xl font-bold mb-2"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
               >
                 Your system is ready.
               </motion.h1>
               
               <motion.p 
                 className="text-muted-foreground/40 text-sm mb-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.3 }}
               >
                 Macros. Structure. Less thinking.
               </motion.p>
               
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.5, duration: 0.3 }}
               >
                 <Button onClick={handleComplete} className="w-full max-w-xs h-12 rounded-xl">
                   Go to dashboard
@@ -3241,12 +1690,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
-      {/* Header - hide back button during analyzing */}
+      {/* Header */}
       <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
         {currentIndex > 0 ? (
           <motion.button
             onClick={goBack}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.95 }}
             className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
           >
             <ChevronRight className="w-5 h-5 rotate-180 text-muted-foreground" />
@@ -3255,15 +1704,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="w-10" />
         )}
         
-        {/* Progress dots */}
-        <ProgressDots current={currentIndex} total={steps.length} />
+        <ProgressDots current={currentIndex} total={onboardingSteps.length} />
 
-        {/* Skip button */}
-        {["permissions", "community"].includes(currentStep) ? (
-          <button
-            onClick={goNext}
-            className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
-          >
+        {["permissions", "community", "notification-prefs"].includes(currentStep) ? (
+          <button onClick={goNext} className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
             Skip
           </button>
         ) : (
@@ -3284,19 +1728,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       {!["language-select", "fridge-intro", "weekly-plan", "premium-hint", "community", "done", "analyzing"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
         >
           <Button
             onClick={goNext}
             disabled={!canProceed()}
-            className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : "shadow-lg shadow-primary/20"}`}
+            className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
           >
             {currentStep === "welcome" ? t.start : 
              currentStep === "tracker-intro" ? "Let's go! 🚀" : 
              currentStep === "macro-preview" ? "Perfekt! 🎯" :
-             currentStep === "speed-select" ? t.next :
              t.next}
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
