@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -57,6 +57,19 @@ const ProfilePage = () => {
       description: "Diese Funktion wird bald verfügbar sein.",
       variant: "destructive"
     });
+  };
+
+  const handleResetOnboarding = () => {
+    localStorage.removeItem('onboardingComplete');
+    localStorage.removeItem('onboardingUserData');
+    toast({ 
+      title: "Onboarding zurückgesetzt", 
+      description: "Beim nächsten Öffnen startet das Onboarding neu."
+    });
+    // Reload to start onboarding
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1000);
   };
 
   if (!user) {
@@ -243,6 +256,16 @@ const ProfilePage = () => {
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Konto löschen
+          </Button>
+
+          {/* Dev/Test: Reset Onboarding */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
+            onClick={handleResetOnboarding}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Onboarding zurücksetzen
           </Button>
         </motion.div>
 
