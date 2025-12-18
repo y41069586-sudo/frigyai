@@ -16,7 +16,16 @@ const requestSchema = z.object({
   image: z.string().min(1).max(MAX_IMAGE_SIZE),
 });
 
-const FREE_SCAN_LIMIT = 2;
+const FREE_SCAN_LIMIT = 1; // 1 scan per week for free users
+
+// Helper to get the start of the current week (Monday)
+const getWeekStart = (): string => {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  const monday = new Date(now.setDate(diff));
+  return monday.toISOString().split('T')[0];
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -98,26 +107,26 @@ serve(async (req) => {
       }
     }
 
-    // Check scan limits for non-premium users
+    // Check scan limits for non-premium users (1 scan per WEEK)
     if (!isPremium) {
-      const today = new Date().toISOString().split('T')[0];
+      const weekStart = getWeekStart();
       
-      // Get today's scan count
+      // Get this week's scan count
       const { data: usageData } = await supabaseClient
         .from('scan_usage')
         .select('scan_count')
         .eq('user_id', userId)
-        .eq('scan_date', today)
+        .eq('week_start', weekStart)
         .single();
 
       const currentCount = usageData?.scan_count || 0;
 
       if (currentCount >= FREE_SCAN_LIMIT) {
-        console.log(`User ${userId} exceeded free scan limit (${currentCount}/${FREE_SCAN_LIMIT})`);
+        console.log(`User ${userId} exceeded free weekly scan limit (${currentCount}/${FREE_SCAN_LIMIT})`);
         return new Response(
           JSON.stringify({ 
             error: "scan_limit_exceeded",
-            message: "Du hast dein tägliches Scan-Limit erreicht. Upgrade auf Premium für unbegrenzte Scans!",
+            message: "Du hast deinen wöchentlichen Scan erreicht. Upgrade auf Premium für unbegrenzte Scans!",
             scansUsed: currentCount,
             scansLimit: FREE_SCAN_LIMIT
           }),
@@ -128,20 +137,20 @@ serve(async (req) => {
         );
       }
 
-      // Increment scan count
+      // Increment scan count for this week
       if (usageData) {
         await supabaseClient
           .from('scan_usage')
-          .update({ scan_count: currentCount + 1 })
+          .update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() })
           .eq('user_id', userId)
-          .eq('scan_date', today);
+          .eq('week_start', weekStart);
       } else {
         await supabaseClient
           .from('scan_usage')
-          .insert({ user_id: userId, scan_date: today, scan_count: 1 });
+          .insert({ user_id: userId, scan_date: new Date().toISOString().split('T')[0], week_start: weekStart, scan_count: 1 });
       }
 
-      console.log(`User ${userId} scan count: ${currentCount + 1}/${FREE_SCAN_LIMIT}`);
+      console.log(`User ${userId} weekly scan count: ${currentCount + 1}/${FREE_SCAN_LIMIT}`);
     }
 
     console.log("Analyzing image for ingredients using OpenAI Vision...");
@@ -242,15 +251,15 @@ Antworte NUR mit einem JSON-Array auf Deutsch:
         .filter((item: string) => item.length > 0);
     }
 
-    // Return remaining scans info for free users
+    // Return remaining scans info for free users (weekly)
     let scansRemaining = null;
     if (userId && !isPremium) {
-      const today = new Date().toISOString().split('T')[0];
+      const weekStart = getWeekStart();
       const { data: usageData } = await supabaseClient
         .from('scan_usage')
         .select('scan_count')
         .eq('user_id', userId)
-        .eq('scan_date', today)
+        .eq('week_start', weekStart)
         .single();
       
       scansRemaining = FREE_SCAN_LIMIT - (usageData?.scan_count || 0);

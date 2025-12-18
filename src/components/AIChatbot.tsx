@@ -28,13 +28,21 @@ interface AIChatbotProps {
 }
 
 export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
-  const { session } = useAuth();
+  const { session, subscriptionStatus } = useAuth();
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Chatbot is Premium-only feature
+  const isPremium = subscriptionStatus?.subscribed === true;
+
+  // Don't render anything for free users
+  if (!isPremium) {
+    return null;
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

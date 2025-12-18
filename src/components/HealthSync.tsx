@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { 
   Activity, Apple, Smartphone, Check, RefreshCw, 
-  Scale, Footprints, Heart, Flame, AlertCircle
+  Scale, Footprints, Heart, Flame, AlertCircle, Lock, Crown
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface HealthSyncProps {
   onClose?: () => void;
@@ -23,6 +25,10 @@ interface SyncSettings {
 }
 
 export const HealthSync = ({ onClose }: HealthSyncProps) => {
+  const { subscriptionStatus } = useAuth();
+  const navigate = useNavigate();
+  const isPremium = subscriptionStatus?.subscribed === true;
+
   const [settings, setSettings] = useState<SyncSettings>(() => {
     const saved = localStorage.getItem('healthSyncSettings');
     return saved ? JSON.parse(saved) : {
@@ -40,6 +46,42 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
     return saved ? new Date(saved) : null;
   });
   const [isNativeApp, setIsNativeApp] = useState(false);
+
+  // Health Sync is Premium-only
+  if (!isPremium) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4 relative">
+            <Activity className="h-8 w-8 text-muted-foreground" />
+            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+              <Lock className="h-3 w-3 text-primary-foreground" />
+            </div>
+          </div>
+          <h2 className="text-xl font-bold">Health Sync</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Premium-Feature
+          </p>
+        </div>
+        
+        <Card className="p-4 bg-primary/10 border-primary/30">
+          <div className="flex gap-3">
+            <Crown className="h-5 w-5 text-primary flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Upgrade auf Premium</p>
+              <p className="text-xs text-muted-foreground">
+                Synchronisiere mit Apple Health & Google Fit, um deine Gesundheitsdaten automatisch zu tracken.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Button className="w-full" onClick={() => navigate('/premium')}>
+          Premium werden
+        </Button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     // Check if running as native app (Capacitor)

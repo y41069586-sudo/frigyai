@@ -54,6 +54,91 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
+    // Check premium status via Stripe
+    let isPremium = false;
+    const userEmail = user.email;
+    if (userEmail) {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (stripeKey) {
+        try {
+          const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
+          const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+          const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+          if (customers.data.length > 0) {
+            const subscriptions = await stripe.subscriptions.list({
+              customer: customers.data[0].id,
+              status: "active",
+              limit: 1,
+            });
+            isPremium = subscriptions.data.length > 0;
+          }
+        } catch (stripeError) {
+          console.error("Stripe check error:", stripeError);
+        }
+      }
+    }
+
+    // Helper to get start of current week (Monday)
+    const getWeekStart = (): string => {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diff));
+      return monday.toISOString().split('T')[0];
+    };
+
+    // Check meal plan generation limit for free users (1 per week)
+    const FREE_PLAN_LIMIT = 1;
+    if (!isPremium) {
+      const supabaseService = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        { auth: { persistSession: false } }
+      );
+      
+      const weekStart = getWeekStart();
+      
+      const { data: usageData } = await supabaseService
+        .from('meal_plan_usage')
+        .select('generation_count')
+        .eq('user_id', user.id)
+        .eq('week_start', weekStart)
+        .single();
+
+      const currentCount = usageData?.generation_count || 0;
+
+      if (currentCount >= FREE_PLAN_LIMIT) {
+        console.log(`User ${user.id} exceeded free weekly meal plan limit (${currentCount}/${FREE_PLAN_LIMIT})`);
+        return new Response(
+          JSON.stringify({ 
+            error: "plan_limit_exceeded",
+            message: "Du hast deinen wöchentlichen Wochenplan erreicht. Upgrade auf Premium für unbegrenzte Pläne!",
+            plansUsed: currentCount,
+            plansLimit: FREE_PLAN_LIMIT
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Increment meal plan count for this week
+      if (usageData) {
+        await supabaseService
+          .from('meal_plan_usage')
+          .update({ generation_count: currentCount + 1, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('week_start', weekStart);
+      } else {
+        await supabaseService
+          .from('meal_plan_usage')
+          .insert({ user_id: user.id, week_start: weekStart, generation_count: 1 });
+      }
+
+      console.log(`User ${user.id} weekly meal plan count: ${currentCount + 1}/${FREE_PLAN_LIMIT}`);
+    }
+
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not configured');
