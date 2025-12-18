@@ -41,10 +41,11 @@ const Index = () => {
     }
   }, [resetOnboarding]);
   
-  // Initialize states - always start with splash/onboarding every session
-  const [showSplash, setShowSplash] = useState(true);
+  // Initialize states - check if user already completed onboarding
+  const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
+  const [showSplash, setShowSplash] = useState(!hasCompletedOnboarding);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(hasCompletedOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
   
