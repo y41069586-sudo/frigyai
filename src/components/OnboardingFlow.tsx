@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
   ChevronRight, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
-  Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe
+  Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe,
+  Zap, Clock, Rocket, TrendingUp
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import confetti from "canvas-confetti";
@@ -1589,7 +1590,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.3, duration: 0.3 }}
                 >
-                  <span className="text-lg">🎯</span>
+                  <Target className="w-5 h-5 text-primary" />
                   <span className="text-sm font-medium text-primary">
                     Nutzer erreichen ihre Ziele 2.4x schneller
                   </span>
@@ -1600,22 +1601,28 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "transformation":
+        const transformationItems = [
+          { label: "More Energy", Icon: Zap, value: "+40%" },
+          { label: "Time Saved", Icon: Clock, value: "15 min/day" },
+          { label: "Goal Success", Icon: Target, value: "94%" },
+        ];
         return (
           <StepCard step="transformation">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
-                🚀
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4 }} 
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg"
+              >
+                <Rocket className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Your Transformation</h1>
               <p className="text-muted-foreground/40 text-xs mb-6">What to expect with Frigy</p>
               
               <div className="w-full max-w-sm space-y-4">
-                {[
-                  { label: "More Energy", emoji: "⚡", value: "+40%" },
-                  { label: "Time Saved", emoji: "⏰", value: "15 min/day" },
-                  { label: "Goal Success", emoji: "🎯", value: "94%" },
-                ].map((item, i) => (
+                {transformationItems.map((item, i) => (
                   <motion.div
                     key={item.label}
                     initial={{ opacity: 0, x: -20 }}
@@ -1623,7 +1630,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.2 + i * 0.1, duration: 0.3 }}
                     className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border"
                   >
-                    <span className="text-2xl">{item.emoji}</span>
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <item.Icon className="w-5 h-5 text-primary" />
+                    </div>
                     <span className="flex-1 text-left font-medium">{item.label}</span>
                     <span className="text-primary font-bold">{item.value}</span>
                   </motion.div>
