@@ -16,17 +16,20 @@ import {
   Heart,
   Users,
   Sparkles,
-  Star
+  Star,
+  Globe
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import confetti from "canvas-confetti";
+import { useLanguage, Language } from "@/contexts/LanguageContext";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
 type OnboardingStep = 
-  | "hero"
+  | "language-select"
+  | "welcome"
   | "goal"
   | "fridge-intro"
   | "permissions"
@@ -717,7 +720,8 @@ const StepCard = ({ children, step }: { children: React.ReactNode; step: string 
 );
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("hero");
+  const { language, setLanguage, t } = useLanguage();
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
   const [userData, setUserData] = useState<UserData>({
     goal: null,
     height: 170,
@@ -747,7 +751,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [trackerIntroAnimate, setTrackerIntroAnimate] = useState(false);
 
   const steps: OnboardingStep[] = [
-    "hero",
+    "language-select",
+    "welcome",
     "goal",
     "fridge-intro",
     "permissions",
@@ -865,27 +870,105 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const renderStepContent = () => {
+    const languages: { code: Language; label: string; flag: string }[] = [
+      { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+      { code: 'en', label: 'English', flag: '🇬🇧' },
+      { code: 'fr', label: 'Français', flag: '🇫🇷' },
+    ];
+
     switch (currentStep) {
-      case "hero":
+      case "language-select":
         return (
-          <StepCard step="hero">
+          <StepCard step="language-select">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6"
+              >
+                <Globe className="w-8 h-8 text-primary" />
+              </motion.div>
+              
+              <motion.h1
+                className="text-2xl font-bold mb-2"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.chooseLanguage}
+              </motion.h1>
+              
+              <motion.p
+                className="text-muted-foreground/50 text-sm mb-8"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                Select your preferred language
+              </motion.p>
+              
+              <div className="flex flex-col gap-3 w-full max-w-sm">
+                {languages.map((lang, index) => (
+                  <motion.button
+                    key={lang.code}
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 + index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setLanguage(lang.code);
+                      goNext();
+                    }}
+                    className={`relative p-4 rounded-xl border-2 transition-all ${
+                      language === lang.code
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-primary/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">{lang.flag}</span>
+                      <span className="font-semibold text-lg">{lang.label}</span>
+                      {language === lang.code && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                        >
+                          <Check className="w-4 h-4 text-primary-foreground" />
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "welcome":
+        return (
+          <StepCard step="welcome">
             <div className="flex flex-col items-center text-center px-6">
+              {/* Logo */}
               <motion.img
                 src={frigLogo}
                 alt="Frigy"
-                className="w-20 h-20 rounded-[22%] mb-6 shadow-lg"
+                className="w-24 h-24 rounded-[22%] mb-6 shadow-xl"
                 initial={{ scale: 0.5, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, type: "spring", damping: 15 }}
               />
               
+              {/* Welcome Text */}
               <motion.h1
                 className="text-3xl font-bold mb-2"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                Eat smarter. Not harder.
+                {t.welcomeToFrigy}
               </motion.h1>
               
               <motion.p
@@ -894,55 +977,117 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Fridge-based meal planning that fits your macros.
+                {t.welcomeSubtitle}
               </motion.p>
               
-              {/* Comparison cards */}
-              <div className="flex gap-3 w-full max-w-sm mb-4">
-                {/* Without Frigy */}
-                <motion.div
-                  className="flex-1 p-4 rounded-2xl bg-muted/30 border border-border"
-                  initial={{ x: -30, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, type: "spring" }}
-                  whileHover={{ scale: 1.02 }}
+              {/* Animated Fridge */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4, type: "spring" }}
+                className="relative mb-8"
+              >
+                {/* Fridge Body */}
+                <motion.div 
+                  className="relative w-40 h-56 bg-gradient-to-b from-slate-100 to-slate-200 rounded-3xl border-2 border-slate-300 shadow-2xl overflow-hidden"
+                  animate={{ 
+                    boxShadow: [
+                      "0 10px 40px rgba(0,0,0,0.1)",
+                      "0 10px 60px rgba(34, 197, 94, 0.3)",
+                      "0 10px 40px rgba(0,0,0,0.1)"
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <div className="flex items-center gap-2 mb-3">
-                    <X className="w-4 h-4 text-muted-foreground/60" />
-                    <span className="text-xs font-medium text-muted-foreground/60">Without Frigy</span>
-                  </div>
-                  <ul className="space-y-2 text-left text-xs text-muted-foreground/60">
-                    <li>• Random meals</li>
-                    <li>• Missed macros</li>
-                    <li>• Food waste</li>
-                  </ul>
+                  {/* Fridge handle */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-14 bg-slate-400 rounded-full" />
+                  
+                  {/* Fridge divider line */}
+                  <div className="absolute left-0 right-0 top-[35%] h-[3px] bg-slate-300" />
+                  
+                  {/* Food items inside with stagger animation */}
+                  <motion.div 
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.7 }}
+                    className="absolute top-4 left-3 text-2xl"
+                  >
+                    🥛
+                  </motion.div>
+                  <motion.div 
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="absolute top-4 right-5 text-2xl"
+                  >
+                    🍎
+                  </motion.div>
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.9 }}
+                    className="absolute top-[42%] left-3 text-2xl"
+                  >
+                    🥕
+                  </motion.div>
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.0 }}
+                    className="absolute top-[42%] right-5 text-2xl"
+                  >
+                    🧀
+                  </motion.div>
+                  <motion.div 
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.1 }}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 text-2xl"
+                  >
+                    🥬
+                  </motion.div>
+                  
+                  {/* Scan line animation */}
+                  <motion.div
+                    className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
+                    animate={{ top: ["10%", "90%", "10%"] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+                    style={{ boxShadow: "0 0 20px hsl(var(--primary))" }}
+                  />
                 </motion.div>
                 
-                {/* With Frigy */}
+                {/* Scan corners */}
                 <motion.div
-                  className="flex-1 p-4 rounded-2xl bg-primary/10 border-2 border-primary/30"
-                  initial={{ x: 30, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.5, type: "spring" }}
-                  whileHover={{ scale: 1.02, borderColor: "hsl(var(--primary))" }}
+                  className="absolute -inset-3 pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2 }}
                 >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Check className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-medium text-primary">With Frigy</span>
-                  </div>
-                  <ul className="space-y-2 text-left text-xs">
-                    <li className="flex items-center gap-1">
-                      <span className="text-primary">✓</span> Meals from your fridge
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <span className="text-primary">✓</span> Macro-matched plans
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <span className="text-primary">✓</span> Smart shopping list
-                    </li>
-                  </ul>
+                  {/* Top left corner */}
+                  <div className="absolute top-0 left-0 w-6 h-6 border-l-3 border-t-3 border-primary rounded-tl-lg" style={{ borderWidth: '3px' }} />
+                  {/* Top right corner */}
+                  <div className="absolute top-0 right-0 w-6 h-6 border-r-3 border-t-3 border-primary rounded-tr-lg" style={{ borderWidth: '3px' }} />
+                  {/* Bottom left corner */}
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-l-3 border-b-3 border-primary rounded-bl-lg" style={{ borderWidth: '3px' }} />
+                  {/* Bottom right corner */}
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-r-3 border-b-3 border-primary rounded-br-lg" style={{ borderWidth: '3px' }} />
                 </motion.div>
-              </div>
+              </motion.div>
+              
+              {/* "And much more" text */}
+              <motion.div
+                className="text-center"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.4 }}
+              >
+                <p className="text-lg font-medium text-muted-foreground/80 mb-1">
+                  {t.andMuchMore}
+                </p>
+                <p className="text-sm text-primary font-semibold">
+                  {t.getReady} ✨
+                </p>
+              </motion.div>
             </div>
           </StepCard>
         );
@@ -2532,7 +2677,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
       {/* Header - hide back button during analyzing */}
-      <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
+      <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
         {currentIndex > 0 ? (
           <motion.button
             onClick={goBack}
@@ -2571,7 +2716,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Bottom button */}
-      {!["fridge-intro", "weekly-plan", "premium-hint", "community", "done", "analyzing"].includes(currentStep) && (
+      {!["language-select", "fridge-intro", "weekly-plan", "premium-hint", "community", "done", "analyzing"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ y: 20, opacity: 0 }}
@@ -2583,11 +2728,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             disabled={!canProceed()}
             className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : "shadow-lg shadow-primary/20"}`}
           >
-            {currentStep === "hero" ? "Get started" : 
+            {currentStep === "welcome" ? t.start : 
              currentStep === "tracker-intro" ? "Let's go! 🚀" : 
              currentStep === "macro-preview" ? "Perfekt! 🎯" :
-             currentStep === "speed-select" ? "Weiter" :
-             "Continue"}
+             currentStep === "speed-select" ? t.next :
+             t.next}
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
         </motion.div>

@@ -350,6 +350,14 @@ interface Translations {
   redirectingToStripe: string;
   noCheckoutUrl: string;
   noPortalUrl: string;
+  
+  // New Welcome Screen
+  welcomeToFrigy: string;
+  welcomeSubtitle: string;
+  scanYourFridge: string;
+  andMuchMore: string;
+  getReady: string;
+  chooseLanguage: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -701,6 +709,14 @@ const translations: Record<Language, Translations> = {
     german: "Deutsch",
     english: "Englisch",
     french: "Französisch",
+    
+    // New Welcome Screen
+    welcomeToFrigy: "Willkommen bei Frigy",
+    welcomeSubtitle: "Die App, die deinen Kühlschrank scannt",
+    scanYourFridge: "Kühlschrank scannen",
+    andMuchMore: "...und vieles mehr",
+    getReady: "Mach dich gefasst!",
+    chooseLanguage: "Wähle deine Sprache",
   },
   en: {
     // Navigation & Common
@@ -1050,6 +1066,14 @@ const translations: Record<Language, Translations> = {
     german: "German",
     english: "English",
     french: "French",
+    
+    // New Welcome Screen
+    welcomeToFrigy: "Welcome to Frigy",
+    welcomeSubtitle: "The app that scans your fridge",
+    scanYourFridge: "Scan your fridge",
+    andMuchMore: "...and much more",
+    getReady: "Get ready!",
+    chooseLanguage: "Choose your language",
   },
   fr: {
     // Navigation & Common
@@ -1399,6 +1423,14 @@ const translations: Record<Language, Translations> = {
     german: "Allemand",
     english: "Anglais",
     french: "Français",
+    
+    // New Welcome Screen
+    welcomeToFrigy: "Bienvenue sur Frigy",
+    welcomeSubtitle: "L'app qui scanne votre frigo",
+    scanYourFridge: "Scanner votre frigo",
+    andMuchMore: "...et bien plus encore",
+    getReady: "Préparez-vous!",
+    chooseLanguage: "Choisissez votre langue",
   },
 };
 
