@@ -35,9 +35,13 @@ type OnboardingStep =
   | "comparison"
   | "tracker-intro"
   | "body-basics"
+  | "gender"
   | "goal-mode"
   | "target-weight"
   | "speed-select"
+  | "dietary-preferences"
+  | "allergies"
+  | "cooking-experience"
   | "planning-setup"
   | "analyzing"
   | "macro-preview"
@@ -50,6 +54,7 @@ interface UserData {
   height: number;
   weight: number;
   age: number;
+  gender: 'male' | 'female' | null;
   goalMode: 'lose' | 'gain';
   targetWeight: number;
   weeklyGoal: number; // kg per week
@@ -57,6 +62,9 @@ interface UserData {
   macroFocus: string | null;
   cameraPermission: boolean;
   healthSync: string | null;
+  dietaryPreferences: string[];
+  allergies: string[];
+  cookingExperience: 'beginner' | 'intermediate' | 'advanced' | null;
   // Calculated values
   dailyCalories: number;
   dailyProtein: number;
@@ -407,10 +415,13 @@ const AnimatedRocket = ({ selected }: { selected: boolean }) => (
 
 // Macro calculation function using Mifflin-St Jeor BMR formula
 const calculateMacros = (userData: UserData) => {
-  const { weight, height, age, activityLevel, goalMode, targetWeight, weeklyGoal } = userData;
+  const { weight, height, age, gender, activityLevel, goalMode, weeklyGoal } = userData;
   
-  // Mifflin-St Jeor BMR formula (assuming average between male/female)
-  const bmr = 10 * weight + 6.25 * height - 5 * age + 5; // Slight male bias, adjust if needed
+  // Mifflin-St Jeor BMR formula with gender-specific constants
+  // Men: BMR = 10 × weight + 6.25 × height − 5 × age + 5
+  // Women: BMR = 10 × weight + 6.25 × height − 5 × age − 161
+  const genderConstant = gender === 'female' ? -161 : 5; // Default to male if not set
+  const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
   
   // Activity multipliers
   const activityMultipliers: Record<string, number> = {
@@ -712,6 +723,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     height: 170,
     weight: 70,
     age: 25,
+    gender: null,
     goalMode: 'lose',
     targetWeight: 65,
     weeklyGoal: 0.5,
@@ -719,6 +731,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     macroFocus: "balanced",
     cameraPermission: false,
     healthSync: null,
+    dietaryPreferences: [],
+    allergies: [],
+    cookingExperience: null,
     dailyCalories: 0,
     dailyProtein: 0,
     dailyCarbs: 0,
@@ -741,9 +756,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     "comparison",
     "tracker-intro",
     "body-basics",
+    "gender",
     "goal-mode",
     "target-weight",
     "speed-select",
+    "dietary-preferences",
+    "allergies",
+    "cooking-experience",
     "planning-setup",
     "analyzing",
     "macro-preview",
@@ -830,6 +849,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     switch (currentStep) {
       case "goal":
         return userData.goal !== null;
+      case "gender":
+        return userData.gender !== null;
       case "planning-setup":
         return userData.activityLevel !== null;
       default:
@@ -1103,7 +1124,285 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "planning-setup":
+      case "gender":
+        return (
+          <StepCard step="gender">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-6"
+              >
+                👤
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Dein Geschlecht</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Wichtig für genaue Kalorien-Berechnung</p>
+              
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                {[
+                  { id: 'male' as const, label: 'Männlich', emoji: '👨', color: 'from-blue-500/20 to-cyan-500/20' },
+                  { id: 'female' as const, label: 'Weiblich', emoji: '👩', color: 'from-pink-500/20 to-rose-500/20' },
+                ].map((option, index) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 + index * 0.1 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setUserData({ ...userData, gender: option.id })}
+                    className={`relative p-6 rounded-2xl border-2 transition-all overflow-hidden ${
+                      userData.gender === option.id
+                        ? 'border-primary bg-primary/10 shadow-lg'
+                        : 'border-border bg-card hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-50`} />
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <motion.span 
+                        className="text-4xl"
+                        animate={userData.gender === option.id ? { scale: [1, 1.2, 1] } : {}}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {option.emoji}
+                      </motion.span>
+                      <span className="font-medium">{option.label}</span>
+                    </div>
+                    {userData.gender === option.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-4 h-4 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
+              
+              <motion.p
+                className="text-xs text-muted-foreground/40 mt-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                ~166 kcal Unterschied zwischen Männern & Frauen
+              </motion.p>
+            </div>
+          </StepCard>
+        );
+
+      case "dietary-preferences":
+        const dietOptions = [
+          { id: 'vegetarian', label: 'Vegetarisch', emoji: '🥗', desc: 'Kein Fleisch oder Fisch' },
+          { id: 'vegan', label: 'Vegan', emoji: '🌱', desc: 'Keine tierischen Produkte' },
+          { id: 'pescatarian', label: 'Pescetarisch', emoji: '🐟', desc: 'Fisch, kein Fleisch' },
+          { id: 'none', label: 'Keine', emoji: '🍽️', desc: 'Alles erlaubt' },
+        ];
+        return (
+          <StepCard step="dietary-preferences">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-4xl mb-4"
+              >
+                🥬
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Ernährungsweise</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezepte</p>
+              
+              <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                {dietOptions.map((option, index) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.05 + index * 0.05 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (option.id === 'none') {
+                        setUserData({ ...userData, dietaryPreferences: [] });
+                      } else {
+                        const newPrefs = userData.dietaryPreferences.includes(option.id)
+                          ? userData.dietaryPreferences.filter(p => p !== option.id)
+                          : [...userData.dietaryPreferences.filter(p => p !== 'none'), option.id];
+                        setUserData({ ...userData, dietaryPreferences: newPrefs });
+                      }
+                    }}
+                    className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                      (option.id === 'none' && userData.dietaryPreferences.length === 0) ||
+                      userData.dietaryPreferences.includes(option.id)
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-primary/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{option.emoji}</span>
+                      <div>
+                        <p className="font-medium text-sm">{option.label}</p>
+                        <p className="text-[10px] text-muted-foreground/50">{option.desc}</p>
+                      </div>
+                    </div>
+                    {((option.id === 'none' && userData.dietaryPreferences.length === 0) ||
+                      userData.dietaryPreferences.includes(option.id)) && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-3 h-3 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "allergies":
+        const allergyOptions = [
+          { id: 'gluten', label: 'Gluten', emoji: '🌾' },
+          { id: 'lactose', label: 'Laktose', emoji: '🥛' },
+          { id: 'nuts', label: 'Nüsse', emoji: '🥜' },
+          { id: 'soy', label: 'Soja', emoji: '🫘' },
+          { id: 'eggs', label: 'Eier', emoji: '🥚' },
+          { id: 'none', label: 'Keine', emoji: '✅' },
+        ];
+        return (
+          <StepCard step="allergies">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-4xl mb-4"
+              >
+                ⚠️
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Allergien & Unverträglichkeiten</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Mehrfachauswahl möglich</p>
+              
+              <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                {allergyOptions.map((option, index) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.03 + index * 0.03, type: "spring" }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (option.id === 'none') {
+                        setUserData({ ...userData, allergies: [] });
+                      } else {
+                        const newAllergies = userData.allergies.includes(option.id)
+                          ? userData.allergies.filter(a => a !== option.id)
+                          : [...userData.allergies.filter(a => a !== 'none'), option.id];
+                        setUserData({ ...userData, allergies: newAllergies });
+                      }
+                    }}
+                    className={`relative p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                      (option.id === 'none' && userData.allergies.length === 0) ||
+                      userData.allergies.includes(option.id)
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-primary/30'
+                    }`}
+                  >
+                    <span className="text-2xl">{option.emoji}</span>
+                    <span className="text-xs font-medium">{option.label}</span>
+                    {((option.id === 'none' && userData.allergies.length === 0) ||
+                      userData.allergies.includes(option.id)) && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "cooking-experience":
+        const experienceOptions = [
+          { id: 'beginner' as const, label: 'Anfänger', emoji: '🔰', desc: 'Einfache Rezepte', color: 'from-green-500/20 to-emerald-500/20' },
+          { id: 'intermediate' as const, label: 'Fortgeschritten', emoji: '👨‍🍳', desc: 'Mittelschwere Gerichte', color: 'from-yellow-500/20 to-orange-500/20' },
+          { id: 'advanced' as const, label: 'Profi', emoji: '⭐', desc: 'Anspruchsvolle Küche', color: 'from-purple-500/20 to-pink-500/20' },
+        ];
+        return (
+          <StepCard step="cooking-experience">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                🍳
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Kocherfahrung</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezept-Schwierigkeit</p>
+              
+              <div className="flex flex-col gap-3 w-full max-w-sm">
+                {experienceOptions.map((option, index) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ x: index % 2 === 0 ? -30 : 30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 + index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setUserData({ ...userData, cookingExperience: option.id })}
+                    className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden ${
+                      userData.cookingExperience === option.id
+                        ? 'border-primary bg-primary/10 shadow-md'
+                        : 'border-border bg-card hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${option.color} opacity-50`} />
+                    <div className="relative z-10 flex items-center gap-4">
+                      <motion.span 
+                        className="text-3xl"
+                        animate={userData.cookingExperience === option.id ? { rotate: [0, 10, -10, 0] } : {}}
+                        transition={{ duration: 0.4 }}
+                      >
+                        {option.emoji}
+                      </motion.span>
+                      <div className="text-left">
+                        <p className="font-semibold">{option.label}</p>
+                        <p className="text-xs text-muted-foreground/60">{option.desc}</p>
+                      </div>
+                      {userData.cookingExperience === option.id && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                        >
+                          <Check className="w-4 h-4 text-primary-foreground" />
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </StepCard>
+        );
+
         const activityLevels = [
           { id: "low", label: "Chill", emoji: "🧘", desc: "Desk job, light walks" },
           { id: "medium", label: "Active", emoji: "🚴", desc: "Regular workouts" },
