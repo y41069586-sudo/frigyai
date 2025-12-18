@@ -31,11 +31,14 @@ type OnboardingStep =
   | "language-select"
   | "welcome"
   | "goal"
+  | "social-proof"
+  | "success-stats"
   | "fridge-intro"
   | "permissions"
   | "weekly-plan"
   | "shopping-preview"
   | "comparison"
+  | "transformation"
   | "tracker-intro"
   | "body-basics"
   | "gender"
@@ -100,6 +103,42 @@ const AnimatedCounter = ({ value, suffix = "" }: { value: number; suffix?: strin
   }, [value]);
   
   return <span>{displayValue}{suffix}</span>;
+};
+
+// Count up animation for stats
+const CountUpAnimation = ({ value, delay = 0 }: { value: number; delay?: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setHasStarted(true), delay * 1000);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  
+  useEffect(() => {
+    if (!hasStarted) return;
+    
+    const duration = 1200;
+    const startTime = Date.now();
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Number.isInteger(value) 
+        ? Math.round(value * eased)
+        : Math.round(value * eased * 10) / 10;
+      setDisplayValue(current);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [hasStarted, value]);
+  
+  return <span>{displayValue}</span>;
 };
 
 // Animated Fridge Component with enhanced animations
@@ -817,11 +856,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     "language-select",
     "welcome",
     "goal",
+    "social-proof",
+    "success-stats",
     "fridge-intro",
     "permissions",
     "weekly-plan",
     "shopping-preview",
     "comparison",
+    "transformation",
     "tracker-intro",
     "body-basics",
     "gender",
@@ -1251,6 +1293,203 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </motion.button>
                 ))}
               </div>
+            </div>
+          </StepCard>
+        );
+
+      case "social-proof":
+        const testimonials = [
+          { name: "Sarah M.", text: "Lost 8kg in 2 months!", avatar: "👩‍🦰", rating: 5 },
+          { name: "Thomas K.", text: "Finally hitting my macros!", avatar: "👨", rating: 5 },
+          { name: "Lisa R.", text: "Best meal planning app ever", avatar: "👩", rating: 5 },
+        ];
+        return (
+          <StepCard step="social-proof">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Rating badge */}
+              <motion.div
+                initial={{ scale: 0, y: -20 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
+              >
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <motion.span
+                      key={star}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 + star * 0.1, type: "spring" }}
+                      className="text-yellow-500"
+                    >
+                      ⭐
+                    </motion.span>
+                  ))}
+                </div>
+                <motion.span 
+                  className="font-bold text-lg"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  4.9
+                </motion.span>
+              </motion.div>
+              
+              <motion.h1
+                className="text-2xl font-bold mb-1"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                Loved by thousands
+              </motion.h1>
+              <motion.p
+                className="text-muted-foreground/50 text-xs mb-6"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                Join 50,000+ happy users
+              </motion.p>
+              
+              {/* Testimonial cards */}
+              <div className="w-full max-w-sm space-y-3">
+                {testimonials.map((testimonial, i) => (
+                  <motion.div
+                    key={testimonial.name}
+                    initial={{ x: i % 2 === 0 ? -30 : 30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 + i * 0.15, type: "spring" }}
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border"
+                  >
+                    <motion.span 
+                      className="text-3xl"
+                      animate={{ rotate: [0, 5, -5, 0] }}
+                      transition={{ delay: 1 + i * 0.2, duration: 0.5 }}
+                    >
+                      {testimonial.avatar}
+                    </motion.span>
+                    <div className="flex-1 text-left">
+                      <p className="font-semibold text-sm">{testimonial.name}</p>
+                      <p className="text-xs text-muted-foreground/60">"{testimonial.text}"</p>
+                    </div>
+                    <div className="flex text-yellow-500 text-xs">
+                      {"⭐".repeat(testimonial.rating)}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              
+              {/* App store badges hint */}
+              <motion.div
+                className="flex items-center gap-4 mt-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+              >
+                <div className="flex items-center gap-1 text-xs text-muted-foreground/40">
+                  <span>🍎</span>
+                  <span>App Store</span>
+                </div>
+                <div className="w-1 h-1 rounded-full bg-muted-foreground/20" />
+                <div className="flex items-center gap-1 text-xs text-muted-foreground/40">
+                  <span>🤖</span>
+                  <span>Play Store</span>
+                </div>
+              </motion.div>
+            </div>
+          </StepCard>
+        );
+
+      case "success-stats":
+        const stats = [
+          { value: 94, suffix: "%", label: "reach their goals", color: "from-green-500 to-emerald-500" },
+          { value: 2.5, suffix: "kg", label: "avg. weight loss/month", color: "from-blue-500 to-cyan-500" },
+          { value: 15, suffix: "min", label: "saved daily on meal planning", color: "from-purple-500 to-pink-500" },
+        ];
+        return (
+          <StepCard step="success-stats">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                📊
+              </motion.div>
+              
+              <motion.h1
+                className="text-2xl font-bold mb-1"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                Real results
+              </motion.h1>
+              <motion.p
+                className="text-muted-foreground/50 text-xs mb-8"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                Based on user data from the last 6 months
+              </motion.p>
+              
+              <div className="w-full max-w-sm space-y-4">
+                {stats.map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ x: -40, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 + i * 0.15, type: "spring" }}
+                    className="relative p-4 rounded-2xl bg-card border border-border overflow-hidden"
+                  >
+                    {/* Background gradient */}
+                    <motion.div 
+                      className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0`}
+                      animate={{ opacity: [0, 0.1, 0.05] }}
+                      transition={{ delay: 0.5 + i * 0.15, duration: 1 }}
+                    />
+                    
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="text-left">
+                        <motion.p
+                          className="text-3xl font-bold"
+                          initial={{ scale: 0.5 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.5 + i * 0.15, type: "spring" }}
+                        >
+                          <CountUpAnimation value={stat.value} delay={0.5 + i * 0.15} />
+                          <span className="text-primary">{stat.suffix}</span>
+                        </motion.p>
+                        <p className="text-xs text-muted-foreground/60">{stat.label}</p>
+                      </div>
+                      
+                      {/* Progress bar */}
+                      <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full bg-gradient-to-r ${stat.color} rounded-full`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(stat.value, 100)}%` }}
+                          transition={{ delay: 0.6 + i * 0.15, duration: 1, ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <motion.p
+                className="text-xs text-muted-foreground/40 mt-6 italic"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+              >
+                * Results may vary based on individual commitment
+              </motion.p>
             </div>
           </StepCard>
         );
@@ -2533,6 +2772,149 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               >
                 Less thinking. Better results.
               </motion.p>
+            </div>
+          </StepCard>
+        );
+
+      case "transformation":
+        return (
+          <StepCard step="transformation">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                ✨
+              </motion.div>
+              
+              <motion.h1
+                className="text-2xl font-bold mb-1"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                Your transformation
+              </motion.h1>
+              <motion.p
+                className="text-muted-foreground/50 text-xs mb-8"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                See what's possible with Frigy
+              </motion.p>
+              
+              {/* Before/After comparison */}
+              <div className="w-full max-w-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Before */}
+                  <motion.div
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="p-4 rounded-2xl bg-muted/30 border border-border"
+                  >
+                    <p className="text-xs text-muted-foreground/40 mb-3 uppercase tracking-wider">Before</p>
+                    <div className="space-y-3">
+                      {[
+                        { icon: "😕", text: "Confused about what to eat" },
+                        { icon: "⏰", text: "Hours wasted planning" },
+                        { icon: "📉", text: "Inconsistent results" },
+                      ].map((item, i) => (
+                        <motion.div
+                          key={item.text}
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.5 + i * 0.1 }}
+                          className="flex items-center gap-2 text-xs text-muted-foreground/60"
+                        >
+                          <span>{item.icon}</span>
+                          <span>{item.text}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  
+                  {/* After */}
+                  <motion.div
+                    initial={{ x: 30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="p-4 rounded-2xl bg-primary/5 border-2 border-primary/20"
+                  >
+                    <p className="text-xs text-primary mb-3 uppercase tracking-wider font-medium">After</p>
+                    <div className="space-y-3">
+                      {[
+                        { icon: "🎯", text: "Clear daily targets" },
+                        { icon: "⚡", text: "Instant meal plans" },
+                        { icon: "📈", text: "Visible progress" },
+                      ].map((item, i) => (
+                        <motion.div
+                          key={item.text}
+                          initial={{ x: 20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.6 + i * 0.1 }}
+                          className="flex items-center gap-2 text-xs"
+                        >
+                          <motion.span
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ delay: 1 + i * 0.2, duration: 0.4 }}
+                          >
+                            {item.icon}
+                          </motion.span>
+                          <span>{item.text}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </div>
+                
+                {/* Arrow animation */}
+                <motion.div
+                  className="flex justify-center my-4"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1, type: "spring" }}
+                >
+                  <motion.div
+                    className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"
+                    animate={{ 
+                      boxShadow: [
+                        "0 0 0 0 hsl(var(--primary) / 0.2)",
+                        "0 0 0 10px hsl(var(--primary) / 0)",
+                      ]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="text-2xl"
+                    >
+                      →
+                    </motion.span>
+                  </motion.div>
+                </motion.div>
+                
+                {/* Result badge */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0, scale: 0.9 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.2, type: "spring" }}
+                  className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-center"
+                >
+                  <motion.p 
+                    className="text-lg font-bold text-primary"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ delay: 1.5, duration: 0.5 }}
+                  >
+                    Reach your goals 3x faster
+                  </motion.p>
+                  <p className="text-xs text-muted-foreground/60">With structured meal planning</p>
+                </motion.div>
+              </div>
             </div>
           </StepCard>
         );
