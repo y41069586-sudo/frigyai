@@ -471,12 +471,12 @@ const AnalysisProgress = () => {
     // Checkmark timings: done at 600, 1400, 2200, 3000, 3800ms
     // Progress targets: 20% at 600ms, 40% at 1400ms, 60% at 2200ms, 80% at 3000ms, 95% at 3800ms, 100% at 4200ms
     const milestones = [
-      { time: 600, target: 20 },
-      { time: 1400, target: 40 },
-      { time: 2200, target: 60 },
-      { time: 3000, target: 80 },
-      { time: 3800, target: 95 },
-      { time: 4200, target: 100 },
+      { time: 1200, target: 20 },
+      { time: 2800, target: 40 },
+      { time: 4400, target: 60 },
+      { time: 6000, target: 80 },
+      { time: 7600, target: 95 },
+      { time: 8400, target: 100 },
     ];
     
     const startTime = Date.now();
@@ -506,7 +506,7 @@ const AnalysisProgress = () => {
       
       setProgress(Math.round(targetProgress));
       
-      if (elapsed >= 4200) {
+      if (elapsed >= 8400) {
         clearInterval(interval);
       }
     }, 50);
@@ -792,7 +792,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       // Auto-advance after analysis animation completes
       setTimeout(() => {
         setCurrentStep("macro-preview");
-      }, 4500);
+      }, 9000);
     }
     if (currentStep === "done") {
       // Trigger confetti
@@ -1821,10 +1821,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "analyzing":
         const analysisSteps = [
           { id: 1, text: "Ziele werden analysiert", delay: 0 },
-          { id: 2, text: "Körperdaten verarbeiten", delay: 800 },
-          { id: 3, text: "Zielgewicht berechnen", delay: 1600 },
-          { id: 4, text: "Optimale Makros ermitteln", delay: 2400 },
-          { id: 5, text: "Plan wird erstellt", delay: 3200 },
+          { id: 2, text: "Körperdaten verarbeiten", delay: 1600 },
+          { id: 3, text: "Zielgewicht berechnen", delay: 3200 },
+          { id: 4, text: "Optimale Makros ermitteln", delay: 4800 },
+          { id: 5, text: "Plan wird erstellt", delay: 6400 },
         ];
         
         return (
