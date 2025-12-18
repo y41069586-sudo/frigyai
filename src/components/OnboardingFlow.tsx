@@ -459,9 +459,7 @@ const calculateMacros = (userData: UserData) => {
   const { weight, height, age, gender, activityLevel, goalMode, weeklyGoal } = userData;
   
   // Mifflin-St Jeor BMR formula with gender-specific constants
-  // Men: BMR = 10 × weight + 6.25 × height − 5 × age + 5
-  // Women: BMR = 10 × weight + 6.25 × height − 5 × age − 161
-  const genderConstant = gender === 'female' ? -161 : 5; // Default to male if not set
+  const genderConstant = gender === 'female' ? -161 : 5;
   const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
   
   // Activity multipliers
@@ -473,10 +471,13 @@ const calculateMacros = (userData: UserData) => {
   
   const tdee = bmr * (activityMultipliers[activityLevel || 'medium'] || 1.55);
   
-  // Calculate deficit/surplus based on weekly goal
-  // 1kg of fat ≈ 7700 calories
+  // Sustainable calorie change: max 500 kcal deficit/surplus per day
+  // This allows ~0.5kg/week which is healthy and sustainable
   const weeklyCalorieChange = weeklyGoal * 7700;
-  const dailyCalorieChange = weeklyCalorieChange / 7;
+  let dailyCalorieChange = weeklyCalorieChange / 7;
+  
+  // Cap at 500 kcal for sustainable progress
+  dailyCalorieChange = Math.min(dailyCalorieChange, 500);
   
   let dailyCalories: number;
   if (goalMode === 'lose') {
@@ -491,15 +492,12 @@ const calculateMacros = (userData: UserData) => {
   dailyCalories = Math.round(dailyCalories);
   
   // Calculate macros
-  // Protein: 2g per kg body weight
   const dailyProtein = Math.round(weight * 2);
-  // Fat: 0.9g per kg body weight
   const dailyFat = Math.round(weight * 0.9);
-  // Carbs: remaining calories (protein = 4cal/g, fat = 9cal/g, carbs = 4cal/g)
   const proteinCalories = dailyProtein * 4;
   const fatCalories = dailyFat * 9;
   const remainingCalories = dailyCalories - proteinCalories - fatCalories;
-  const dailyCarbs = Math.max(50, Math.round(remainingCalories / 4)); // Minimum 50g carbs
+  const dailyCarbs = Math.max(50, Math.round(remainingCalories / 4));
   
   return { dailyCalories, dailyProtein, dailyCarbs, dailyFat };
 };
@@ -787,10 +785,11 @@ const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
 };
 
 // Progress Dots Component
+// Clean progress dots - no animation jitter
 const ProgressDots = ({ current, total }: { current: number; total: number }) => (
   <div className="flex gap-1.5 justify-center">
     {Array.from({ length: total }).map((_, i) => (
-      <motion.div
+      <div
         key={i}
         className={`h-1.5 rounded-full transition-all duration-300 ${
           i === current 
@@ -799,21 +798,19 @@ const ProgressDots = ({ current, total }: { current: number; total: number }) =>
               ? "w-1.5 bg-primary/40" 
               : "w-1.5 bg-muted"
         }`}
-        animate={{ scale: i === current ? [1, 1.1, 1] : 1 }}
-        transition={{ duration: 0.3 }}
       />
     ))}
   </div>
 );
 
-// Card wrapper for consistent card-based animation
+// Clean, smooth step card animation
 const StepCard = ({ children, step }: { children: React.ReactNode; step: string }) => (
   <motion.div
     key={step}
-    initial={{ opacity: 0, y: 60, scale: 0.95 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
-    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+    initial={{ opacity: 0, y: 30 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
     className="w-full"
   >
     {children}
@@ -1083,103 +1080,86 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {t.welcomeSubtitle}
               </motion.p>
               
-              {/* Animated Open Fridge - Interior View */}
+              {/* Animated Open Fridge - Interior View - Simplified */}
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.4, type: "spring" }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
                 className="relative mb-8"
               >
                 {/* Fridge Interior */}
-                <motion.div 
-                  className="relative w-44 h-56 bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-2xl shadow-[inset_0_2px_20px_rgba(0,0,0,0.1)] overflow-hidden"
-                  animate={{ 
-                    boxShadow: [
-                      "inset 0 2px 20px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.1)",
-                      "inset 0 2px 20px rgba(0,0,0,0.1), 0 10px 60px rgba(34, 197, 94, 0.25)",
-                      "inset 0 2px 20px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.1)"
-                    ]
-                  }}
-                  transition={{ duration: 2.5, repeat: Infinity }}
-                >
+                <div className="relative w-44 h-56 bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-2xl shadow-[inset_0_2px_20px_rgba(0,0,0,0.1),0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden">
                   {/* Fridge light glow from top */}
-                  <motion.div 
-                    className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-yellow-100/40 to-transparent"
-                    animate={{ opacity: [0.4, 0.7, 0.4] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
+                  <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-yellow-100/30 to-transparent" />
                   
                   {/* Shelf lines */}
                   <div className="absolute left-2 right-2 top-[28%] h-[2px] bg-slate-200/80 rounded-full" />
                   <div className="absolute left-2 right-2 top-[52%] h-[2px] bg-slate-200/80 rounded-full" />
                   <div className="absolute left-2 right-2 top-[76%] h-[2px] bg-slate-200/80 rounded-full" />
                   
-                  {/* Food items on shelves with stagger animation */}
-                  {/* Top shelf */}
+                  {/* Food items - simple fade in */}
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.7, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.4 }}
                     className="absolute top-3 left-3 text-2xl"
                   >
                     🥛
                   </motion.div>
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.8, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.4 }}
                     className="absolute top-3 left-1/2 -translate-x-1/2 text-2xl"
                   >
                     🧃
                   </motion.div>
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.9, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.4 }}
                     className="absolute top-3 right-3 text-2xl"
                   >
                     🍎
                   </motion.div>
                   
-                  {/* Middle shelf */}
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 1.0, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.9, duration: 0.4 }}
                     className="absolute top-[32%] left-3 text-2xl"
                   >
                     🥕
                   </motion.div>
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 1.1, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.0, duration: 0.4 }}
                     className="absolute top-[32%] left-1/2 -translate-x-1/2 text-2xl"
                   >
                     🧀
                   </motion.div>
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 1.2, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.1, duration: 0.4 }}
                     className="absolute top-[32%] right-3 text-2xl"
                   >
                     🥚
                   </motion.div>
                   
-                  {/* Bottom shelf */}
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 1.3, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.2, duration: 0.4 }}
                     className="absolute top-[56%] left-3 text-2xl"
                   >
                     🥬
                   </motion.div>
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 1.4, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.3, duration: 0.4 }}
                     className="absolute top-[56%] right-3 text-2xl"
                   >
                     🍗
@@ -1187,9 +1167,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   
                   {/* Drawer at bottom */}
                   <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 1.5, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.4, duration: 0.4 }}
                     className="absolute bottom-2 left-2 right-2 h-10 bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg border border-slate-200 flex items-center justify-center gap-2"
                   >
                     <span className="text-lg">🥦</span>
@@ -1197,28 +1177,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <span className="text-lg">🥒</span>
                   </motion.div>
                   
-                  {/* Modern scan overlay effect */}
+                  {/* Scan line - clean animation */}
                   <motion.div
-                    className="absolute inset-0 pointer-events-none"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.6 }}
-                  >
-                    {/* Horizontal scan beam */}
-                    <motion.div
-                      className="absolute left-0 right-0 h-12 bg-gradient-to-b from-transparent via-primary/30 to-transparent"
-                      animate={{ top: ["-10%", "100%"] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 1.8 }}
-                    />
-                    {/* Scan line */}
-                    <motion.div
-                      className="absolute left-2 right-2 h-0.5 bg-primary rounded-full"
-                      animate={{ top: ["-2%", "98%"] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 1.8 }}
-                      style={{ boxShadow: "0 0 12px hsl(var(--primary)), 0 0 24px hsl(var(--primary))" }}
-                    />
-                  </motion.div>
-                </motion.div>
+                    className="absolute left-2 right-2 h-0.5 bg-primary rounded-full"
+                    initial={{ top: "0%", opacity: 0 }}
+                    animate={{ top: ["0%", "95%", "0%"], opacity: 1 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                    style={{ boxShadow: "0 0 8px hsl(var(--primary))" }}
+                  />
+                </div>
               </motion.div>
               
               {/* "And much more" text */}
@@ -1256,33 +1223,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {goalOptions.map((option, i) => (
                   <motion.button
                     key={option.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    whileTap={{ scale: 0.95 }}
-                    whileHover={{ scale: 1.02 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.05, duration: 0.3 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => setUserData({ ...userData, goal: option.id })}
-                    className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all ${
+                    className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 ${
                       userData.goal === option.id
-                        ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+                        ? "border-primary bg-primary/10"
                         : "border-border bg-card hover:border-primary/30"
                     }`}
                   >
-                    <motion.span 
-                      className="text-3xl"
-                      animate={{ 
-                        scale: userData.goal === option.id ? [1, 1.2, 1] : 1,
-                        rotate: userData.goal === option.id ? [0, 10, -10, 0] : 0
-                      }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      {option.emoji}
-                    </motion.span>
+                    <span className="text-3xl">{option.emoji}</span>
                     <span className="text-sm font-medium">{option.label}</span>
                     {userData.goal === option.id && (
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
+                        transition={{ duration: 0.2 }}
                         className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
                       >
                         <Check className="w-3 h-3 text-primary-foreground" />
@@ -1306,47 +1264,32 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div className="flex flex-col items-center text-center px-6 w-full">
               {/* Rating badge */}
               <motion.div
-                initial={{ scale: 0, y: -20 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: "spring", damping: 12 }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
               >
                 <div className="flex">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <motion.span
-                      key={star}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.1 + star * 0.1, type: "spring" }}
-                      className="text-yellow-500"
-                    >
-                      ⭐
-                    </motion.span>
+                    <span key={star} className="text-yellow-500">⭐</span>
                   ))}
                 </div>
-                <motion.span 
-                  className="font-bold text-lg"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  4.9
-                </motion.span>
+                <span className="font-bold text-lg">4.9</span>
               </motion.div>
               
               <motion.h1
                 className="text-2xl font-bold mb-1"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
               >
                 Loved by thousands
               </motion.h1>
               <motion.p
                 className="text-muted-foreground/50 text-xs mb-6"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
               >
                 Join 50,000+ happy users
               </motion.p>
@@ -2414,7 +2357,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           }, 0);
         }
 
-        // Circular progress component for macros
+        // Circular progress component for macros - clean animations
         const MacroCircle = ({ 
           value, 
           max, 
@@ -2440,51 +2383,40 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           return (
             <motion.div 
               className="flex flex-col items-center"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay, type: "spring", damping: 15 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay, duration: 0.4 }}
             >
               <div className="relative" style={{ width: size, height: size }}>
                 <svg width={size} height={size} className="-rotate-90">
-                  {/* Background circle */}
                   <circle
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
                     fill="none"
                     stroke="hsl(var(--muted))"
-                    strokeWidth="6"
+                    strokeWidth="5"
                   />
-                  {/* Progress circle */}
                   <motion.circle
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
                     fill="none"
                     stroke={color}
-                    strokeWidth="6"
+                    strokeWidth="5"
                     strokeLinecap="round"
                     strokeDasharray={circumference}
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset }}
-                    transition={{ duration: 1, delay: delay + 0.3, ease: "easeOut" }}
-                    style={{ filter: `drop-shadow(0 0 8px ${color})` }}
+                    transition={{ duration: 0.6, delay: delay + 0.2, ease: "easeOut" }}
                   />
                 </svg>
-                {/* Center text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <motion.span 
-                    className="text-lg font-bold leading-none"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: delay + 0.5 }}
-                  >
-                    {value}
-                  </motion.span>
-                  <span className="text-[10px] text-muted-foreground/50">{unit}</span>
+                  <span className="text-base font-bold leading-none">{value}</span>
+                  <span className="text-[9px] text-muted-foreground/50">{unit}</span>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground/70 mt-2 font-medium">{label}</span>
+              <span className="text-[10px] text-muted-foreground/70 mt-1.5 font-medium">{label}</span>
             </motion.div>
           );
         };
@@ -2515,28 +2447,22 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div className="flex flex-col items-center text-center px-4 w-full overflow-y-auto max-h-[calc(100vh-180px)]">
               {/* Motivation Badge */}
               <motion.div
-                initial={{ scale: 0, y: -20 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: "spring", damping: 12 }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
                 className="mb-4"
               >
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30">
-                  <motion.span
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    className="text-lg"
-                  >
-                    🏆
-                  </motion.span>
+                  <span className="text-lg">🏆</span>
                   <span className="text-sm font-medium text-primary">Dein optimaler Plan wurde erstellt!</span>
                 </div>
               </motion.div>
               
               {/* Header */}
               <motion.div
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
                 className="mb-4"
               >
                 <h1 className="text-2xl font-bold mb-1">Dein Plan steht</h1>
@@ -2546,20 +2472,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {/* Main calorie circle - smaller */}
               <motion.div 
                 className="relative mb-4"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12, delay: 0.2 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <div className="relative w-36 h-36">
-                  <motion.div
-                    className="absolute inset-0 rounded-full"
+                  {/* Static glow - no infinite rotation */}
+                  <div
+                    className="absolute inset-0 rounded-full opacity-30"
                     style={{ 
                       background: `conic-gradient(from 0deg, hsl(160, 100%, 50%) 0%, hsl(160, 100%, 50%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) 100%)`,
-                      filter: 'blur(6px)',
-                      opacity: 0.3
+                      filter: 'blur(6px)'
                     }}
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                   />
                   
                   <svg width="144" height="144" className="-rotate-90 relative z-10">
@@ -2572,7 +2496,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       strokeDasharray={`${(proteinPct / 100) * 339} 339`}
                       initial={{ strokeDasharray: "0 339" }}
                       animate={{ strokeDasharray: `${(proteinPct / 100) * 339} 339` }}
-                      transition={{ duration: 1, delay: 0.4 }}
+                      transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
                     />
                     <motion.circle
                       cx="72" cy="72" r="54"
@@ -2581,7 +2505,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       strokeDashoffset={`${-(proteinPct / 100) * 339}`}
                       initial={{ strokeDasharray: "0 339" }}
                       animate={{ strokeDasharray: `${(carbsPct / 100) * 339} 339` }}
-                      transition={{ duration: 1, delay: 0.6 }}
+                      transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
                     />
                     <motion.circle
                       cx="72" cy="72" r="54"
@@ -2590,7 +2514,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       strokeDashoffset={`${-((proteinPct + carbsPct) / 100) * 339}`}
                       initial={{ strokeDasharray: "0 339" }}
                       animate={{ strokeDasharray: `${(fatPct / 100) * 339} 339` }}
-                      transition={{ duration: 1, delay: 0.8 }}
+                      transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
                     />
                   </svg>
                   
@@ -2598,7 +2522,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     className="absolute inset-0 flex flex-col items-center justify-center z-20"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
+                    transition={{ delay: 0.8, duration: 0.3 }}
                   >
                     <span className="text-3xl font-bold">{calculatedMacros.dailyCalories}</span>
                     <span className="text-[10px] text-muted-foreground/50">kcal / Tag</span>
@@ -2607,18 +2531,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.div>
               
               {/* Macro circles row - compact */}
-              <div className="flex justify-center gap-4 mb-4 w-full">
-                <MacroCircle value={calculatedMacros.dailyProtein} max={200} color="hsl(160, 100%, 50%)" label="Protein" delay={0.4} size={60} />
-                <MacroCircle value={calculatedMacros.dailyCarbs} max={300} color="hsl(220, 90%, 60%)" label="Carbs" delay={0.6} size={60} />
-                <MacroCircle value={calculatedMacros.dailyFat} max={100} color="hsl(45, 100%, 55%)" label="Fett" delay={0.8} size={60} />
-              </div>
+              <motion.div 
+                className="flex justify-center gap-4 mb-4 w-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                <MacroCircle value={calculatedMacros.dailyProtein} max={200} color="hsl(160, 100%, 50%)" label="Protein" delay={0.3} size={60} />
+                <MacroCircle value={calculatedMacros.dailyCarbs} max={300} color="hsl(220, 90%, 60%)" label="Carbs" delay={0.4} size={60} />
+                <MacroCircle value={calculatedMacros.dailyFat} max={100} color="hsl(45, 100%, 55%)" label="Fett" delay={0.5} size={60} />
+              </motion.div>
               
               {/* Comparison with Average */}
               <motion.div 
                 className="w-full max-w-xs p-3 rounded-xl bg-muted/30 border border-border/50 mb-3"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.1 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.4 }}
               >
                 <p className="text-[10px] text-muted-foreground/50 mb-2 uppercase tracking-wider">vs. Durchschnitt</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -2646,9 +2575,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {/* Goal Timeline */}
               <motion.div 
                 className="w-full max-w-xs p-3 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 mb-3"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.2 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.4 }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -2662,14 +2591,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       ~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)
                     </span>
                   </div>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 1.5, type: "spring" }}
-                    className="text-xl"
-                  >
-                    🎯
-                  </motion.div>
+                  <span className="text-xl">🎯</span>
                 </div>
                 
                 {/* Timeline visualization */}
@@ -2679,7 +2601,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: '100%' }}
-                      transition={{ duration: 2, delay: 1.3, ease: "easeOut" }}
+                      transition={{ duration: 1.2, delay: 0.9, ease: "easeOut" }}
                     />
                   </div>
                   <div className="flex justify-between mt-1 text-[9px] text-muted-foreground/40">
@@ -2693,17 +2615,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {/* Personalized Tips */}
               <motion.div 
                 className="w-full max-w-xs space-y-2 mb-4"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.4 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.4 }}
               >
                 <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider text-left">Tipps für dich</p>
                 {tips.map((tip, i) => (
                   <motion.div
                     key={i}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 1.5 + i * 0.1 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.9 + i * 0.1, duration: 0.3 }}
                     className="p-2.5 rounded-lg bg-card border border-border/50 text-left"
                   >
                     <span className="text-xs">{tip}</span>
