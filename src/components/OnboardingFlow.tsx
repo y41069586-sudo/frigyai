@@ -471,13 +471,10 @@ const calculateMacros = (userData: UserData) => {
   
   const tdee = bmr * (activityMultipliers[activityLevel || 'medium'] || 1.55);
   
-  // Sustainable calorie change: max 500 kcal deficit/surplus per day
-  // This allows ~0.5kg/week which is healthy and sustainable
-  const weeklyCalorieChange = weeklyGoal * 7700;
-  let dailyCalorieChange = weeklyCalorieChange / 7;
-  
-  // Cap at 500 kcal for sustainable progress
-  dailyCalorieChange = Math.min(dailyCalorieChange, 500);
+  // Calculate exact calorie change based on weekly goal
+  // 1kg of body weight = ~7700 kcal
+  // Daily calorie change = weeklyGoal * 7700 / 7 = weeklyGoal * 1100 kcal/day
+  const dailyCalorieChange = weeklyGoal * 1100;
   
   let dailyCalories: number;
   if (goalMode === 'lose') {
@@ -486,7 +483,7 @@ const calculateMacros = (userData: UserData) => {
     dailyCalories = tdee + dailyCalorieChange;
   }
   
-  // Apply minimum calorie floors based on age
+  // Apply minimum calorie floors based on age (safety limit)
   const minCalories = age < 25 ? 1500 : age < 40 ? 1400 : 1300;
   dailyCalories = Math.max(dailyCalories, minCalories);
   dailyCalories = Math.round(dailyCalories);
@@ -2756,58 +2753,75 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "weekly-plan":
-        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        // Sample meal plan preview data (read-only)
+        const sampleMealPlan = [
+          { day: "Mo", breakfast: "Rührei mit Spinat", lunch: "Hähnchen-Salat", dinner: "Lachs mit Brokkoli", kcal: 1650 },
+          { day: "Di", breakfast: "Haferflocken mit Beeren", lunch: "Thunfisch-Wrap", dinner: "Putenbrust mit Reis", kcal: 1700 },
+          { day: "Mi", breakfast: "Griechischer Joghurt", lunch: "Quinoa-Bowl", dinner: "Rinderfilet mit Gemüse", kcal: 1680 },
+          { day: "Do", breakfast: "Vollkornbrot mit Avocado", lunch: "Garnelen-Salat", dinner: "Hähnchen-Curry", kcal: 1720 },
+          { day: "Fr", breakfast: "Protein-Smoothie", lunch: "Linsensalat", dinner: "Lachs-Pasta", kcal: 1690 },
+          { day: "Sa", breakfast: "Omelett mit Pilzen", lunch: "Buddha Bowl", dinner: "Steak mit Süßkartoffeln", kcal: 1750 },
+          { day: "So", breakfast: "Pancakes (gesund)", lunch: "Wrap mit Hähnchen", dinner: "Gemüse-Lasagne", kcal: 1640 },
+        ];
+        
         return (
           <StepCard step="weekly-plan">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Your week, built on macros</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                We adapt meals — macros stay fixed.
+            <div className="flex flex-col items-center text-center px-4 w-full">
+              <h1 className="text-2xl font-bold mb-1">Dein Wochenplan</h1>
+              <p className="text-muted-foreground/40 text-xs mb-4">
+                Automatisch auf deine Makros abgestimmt
               </p>
               
-              <div className="w-full max-w-sm space-y-2 overflow-hidden">
-                {days.map((day, i) => (
+              {/* Scrollable meal plan preview */}
+              <div className="w-full max-w-sm space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
+                {sampleMealPlan.map((day, i) => (
                   <motion.div
-                    key={day}
-                    initial={{ x: 100, opacity: 0 }}
+                    key={day.day}
+                    initial={{ x: 50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: i * 0.08, type: "spring", stiffness: 100 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
+                    transition={{ delay: i * 0.06, duration: 0.3 }}
+                    className="p-3 rounded-xl bg-card border border-border"
                   >
-                    <span className="w-10 text-sm font-semibold text-primary">{day}</span>
-                    {/* Macro bars - visually dominant */}
-                    <div className="flex-1 flex gap-1">
-                      <motion.div 
-                        className="h-3 bg-[hsl(160,100%,50%)] rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${25 + Math.random() * 10}%` }}
-                        transition={{ delay: i * 0.08 + 0.3 }}
-                      />
-                      <motion.div 
-                        className="h-3 bg-[hsl(220,90%,60%)] rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${35 + Math.random() * 10}%` }}
-                        transition={{ delay: i * 0.08 + 0.4 }}
-                      />
-                      <motion.div 
-                        className="h-3 bg-[hsl(45,100%,55%)] rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${20 + Math.random() * 10}%` }}
-                        transition={{ delay: i * 0.08 + 0.5 }}
-                      />
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-primary">{day.day}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{day.kcal} kcal</span>
                     </div>
-                    <div className="flex gap-0.5 text-[10px] opacity-50">
-                      <span>🍳</span>
-                      <span>🥗</span>
-                      <span>🍝</span>
+                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                      <div className="text-left">
+                        <span className="block text-muted-foreground/40 mb-0.5">🍳 Frühstück</span>
+                        <span className="text-muted-foreground/80 line-clamp-1">{day.breakfast}</span>
+                      </div>
+                      <div className="text-left">
+                        <span className="block text-muted-foreground/40 mb-0.5">🥗 Mittag</span>
+                        <span className="text-muted-foreground/80 line-clamp-1">{day.lunch}</span>
+                      </div>
+                      <div className="text-left">
+                        <span className="block text-muted-foreground/40 mb-0.5">🍝 Abend</span>
+                        <span className="text-muted-foreground/80 line-clamp-1">{day.dinner}</span>
+                      </div>
+                    </div>
+                    {/* Mini macro bars */}
+                    <div className="flex gap-0.5 mt-2">
+                      <div className="h-1.5 flex-1 bg-[hsl(160,100%,50%)] rounded-full opacity-80" />
+                      <div className="h-1.5 flex-[1.5] bg-[hsl(220,90%,60%)] rounded-full opacity-80" />
+                      <div className="h-1.5 flex-[0.8] bg-[hsl(45,100%,55%)] rounded-full opacity-80" />
                     </div>
                   </motion.div>
                 ))}
               </div>
               
-              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl mt-6">
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-[10px] text-muted-foreground/40 mt-3 mb-4"
+              >
+                ✨ Premium: Persönliche Rezepte basierend auf deinem Kühlschrank
+              </motion.p>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
                 <Sparkles className="w-5 h-5 mr-2" />
-                Generate my plan
+                Weiter
               </Button>
             </div>
           </StepCard>
