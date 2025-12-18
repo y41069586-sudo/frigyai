@@ -39,6 +39,7 @@ type OnboardingStep =
   | "target-weight"
   | "speed-select"
   | "planning-setup"
+  | "analyzing"
   | "macro-preview"
   | "premium-hint"
   | "community"
@@ -451,6 +452,112 @@ const calculateMacros = (userData: UserData) => {
   return { dailyCalories, dailyProtein, dailyCarbs, dailyFat };
 };
 
+// Analysis Progress Counter
+const AnalysisProgress = () => {
+  const [progress, setProgress] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        // Easing - slower at start and end
+        const increment = prev < 30 ? 2 : prev < 70 ? 3 : prev < 90 ? 2 : 1;
+        return Math.min(prev + increment, 100);
+      });
+    }, 40);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <motion.span
+      key={progress}
+      initial={{ scale: 1 }}
+      animate={{ scale: progress % 10 === 0 ? [1, 1.1, 1] : 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      {progress}%
+    </motion.span>
+  );
+};
+
+// Analysis Step with checkmark animation
+const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
+  const [status, setStatus] = useState<'waiting' | 'loading' | 'done'>('waiting');
+  
+  useEffect(() => {
+    const loadTimer = setTimeout(() => setStatus('loading'), delay);
+    const doneTimer = setTimeout(() => setStatus('done'), delay + 600);
+    
+    return () => {
+      clearTimeout(loadTimer);
+      clearTimeout(doneTimer);
+    };
+  }, [delay]);
+  
+  return (
+    <motion.div
+      className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
+        status === 'done' 
+          ? 'bg-primary/10 border border-primary/30' 
+          : status === 'loading'
+            ? 'bg-muted/50 border border-border'
+            : 'bg-transparent border border-transparent'
+      }`}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: delay / 1000 }}
+    >
+      {/* Status indicator */}
+      <div className="w-6 h-6 flex items-center justify-center">
+        {status === 'waiting' && (
+          <motion.div 
+            className="w-2 h-2 rounded-full bg-muted-foreground/30"
+          />
+        )}
+        {status === 'loading' && (
+          <motion.div
+            className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
+          />
+        )}
+        {status === 'done' && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", damping: 10 }}
+            className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+          >
+            <Check className="w-4 h-4 text-primary-foreground" />
+          </motion.div>
+        )}
+      </div>
+      
+      {/* Text */}
+      <span className={`text-sm transition-colors ${
+        status === 'done' ? 'text-primary font-medium' : 'text-muted-foreground/60'
+      }`}>
+        {text}
+      </span>
+      
+      {/* Done checkmark text */}
+      {status === 'done' && (
+        <motion.span
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="ml-auto text-xs text-primary"
+        >
+          ✓
+        </motion.span>
+      )}
+    </motion.div>
+  );
+};
+
 // Line Chart that draws instead of fades
 const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
   const withoutData = [50, 55, 45, 60, 40, 55, 48];
@@ -607,6 +714,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     "target-weight",
     "speed-select",
     "planning-setup",
+    "analyzing",
     "macro-preview",
     "premium-hint",
     "community",
@@ -629,6 +737,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
     if (currentStep === "comparison") {
       setTimeout(() => setChartAnimate(true), 400);
+    }
+    if (currentStep === "analyzing") {
+      // Auto-advance after analysis animation completes
+      setTimeout(() => {
+        setCurrentStep("macro-preview");
+      }, 4500);
     }
     if (currentStep === "done") {
       // Trigger confetti
@@ -1367,6 +1481,96 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "analyzing":
+        const analysisSteps = [
+          { id: 1, text: "Ziele werden analysiert", delay: 0 },
+          { id: 2, text: "Körperdaten verarbeiten", delay: 800 },
+          { id: 3, text: "Zielgewicht berechnen", delay: 1600 },
+          { id: 4, text: "Optimale Makros ermitteln", delay: 2400 },
+          { id: 5, text: "Plan wird erstellt", delay: 3200 },
+        ];
+        
+        return (
+          <StepCard step="analyzing">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Animated brain/calculation icon */}
+              <motion.div
+                className="relative w-28 h-28 mb-8"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+              >
+                {/* Outer rotating ring */}
+                <motion.div
+                  className="absolute inset-0 rounded-full border-4 border-primary/20"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                />
+                {/* Inner pulsing ring */}
+                <motion.div
+                  className="absolute inset-2 rounded-full border-2 border-primary/40"
+                  animate={{ scale: [1, 1.05, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+                {/* Spinning dots */}
+                <motion.div
+                  className="absolute inset-0"
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  {[0, 72, 144, 216, 288].map((deg, i) => (
+                    <motion.div
+                      key={deg}
+                      className="absolute w-3 h-3 rounded-full bg-primary"
+                      style={{
+                        top: '50%',
+                        left: '50%',
+                        transform: `rotate(${deg}deg) translateY(-48px) translateX(-6px)`,
+                      }}
+                      animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                    />
+                  ))}
+                </motion.div>
+                {/* Center icon */}
+                <motion.div 
+                  className="absolute inset-0 flex items-center justify-center"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <span className="text-4xl">🧠</span>
+                </motion.div>
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                Analysiere dein Profil...
+              </motion.h1>
+              
+              {/* Progress percentage */}
+              <motion.div
+                className="text-5xl font-bold text-primary mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <AnalysisProgress />
+              </motion.div>
+              
+              {/* Analysis steps with checkmarks */}
+              <div className="w-full max-w-sm space-y-3">
+                {analysisSteps.map((step) => (
+                  <AnalysisStep key={step.id} text={step.text} delay={step.delay} />
+                ))}
+              </div>
+            </div>
+          </StepCard>
+        );
+
       case "macro-preview":
         // Calculate macros when entering this step
         const calculatedMacros = calculateMacros(userData);
@@ -1990,8 +2194,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-4">
+      {/* Header - hide back button during analyzing */}
+      <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
         {currentIndex > 0 ? (
           <motion.button
             onClick={goBack}
@@ -2030,7 +2234,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Bottom button */}
-      {!["fridge-intro", "weekly-plan", "premium-hint", "community", "done"].includes(currentStep) && (
+      {!["fridge-intro", "weekly-plan", "premium-hint", "community", "done", "analyzing"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ y: 20, opacity: 0 }}
