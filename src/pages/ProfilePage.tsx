@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
 import { HealthSync } from "@/components/HealthSync";
+import ThemeToggle from "@/components/ThemeToggle";
+import ProgressCharts from "@/components/ProgressCharts";
 import frigLogo from "@/assets/frig-logo.png";
 
 const ProfilePage = () => {
@@ -190,16 +192,36 @@ const ProfilePage = () => {
           </Card>
         </motion.div>
 
-        {/* Language Settings */}
+        {/* Theme & Language Settings */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <h3 className="font-semibold mb-3">{t.languageSettings}</h3>
-            <LanguageSettings />
+          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20 space-y-4">
+            <h3 className="font-semibold">Einstellungen</h3>
+            <ThemeToggle variant="switch" />
+            <div className="border-t border-border pt-4">
+              <h4 className="text-sm font-medium mb-2">{t.languageSettings}</h4>
+              <LanguageSettings />
+            </div>
           </Card>
+        </motion.div>
+
+        {/* Progress Charts */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <ProgressCharts />
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.26 }}
+        >
         </motion.div>
 
         {/* Quick Links */}

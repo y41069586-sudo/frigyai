@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      challenges: {
+        Row: {
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          start_date: string
+          target_value: number
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          end_date: string
+          id?: string
+          start_date: string
+          target_value: number
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          end_date?: string
+          id?: string
+          start_date?: string
+          target_value?: number
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       community_recipes: {
         Row: {
           calories: number | null
@@ -65,6 +98,42 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_favorites: {
+        Row: {
+          calories: number
+          carbs: number
+          created_at: string
+          fat: number
+          id: string
+          name: string
+          portion: string | null
+          protein: number
+          user_id: string
+        }
+        Insert: {
+          calories: number
+          carbs: number
+          created_at?: string
+          fat: number
+          id?: string
+          name: string
+          portion?: string | null
+          protein: number
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          fat?: number
+          id?: string
+          name?: string
+          portion?: string | null
+          protein?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       meal_plan_usage: {
         Row: {
           created_at: string
@@ -109,6 +178,41 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      recipe_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          recipe_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          recipe_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_comments_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "community_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipe_ratings: {
         Row: {
@@ -231,6 +335,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_challenges: {
+        Row: {
+          challenge_id: string
+          completed: boolean
+          completed_at: string | null
+          current_progress: number
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed?: boolean
+          completed_at?: string | null
+          current_progress?: number
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          current_progress?: number
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenges_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_onboarding: {
         Row: {
