@@ -96,8 +96,8 @@ serve(async (req) => {
     // Select price based on billing interval
     // Monthly: €11.99/month, Yearly: €59.88/year (€4.99/month)
     const priceId = billingInterval === 'yearly' 
-      ? "price_yearly_premium" // Replace with actual yearly price ID
-      : "price_1SZrRBGj66h7dQy6o8nlG6wJ"; // Monthly price
+      ? "price_1SfkFAGj66h7dQy6P5peqTIA" // Yearly price €59.88/year
+      : "price_1SfkDXGj66h7dQy6Yp5Strwk"; // Monthly price €11.99/month
     
     logStep("Selected price", { priceId, billingInterval });
     
