@@ -174,31 +174,71 @@ const PremiumPricingPage = () => {
           </motion.div>
         </div>
 
-        {/* Features List */}
+        {/* Dynamic Content based on selection */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
+          key={selectedPlan}
+          initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="w-full max-w-md mt-6 p-4 rounded-xl bg-card/50 border border-border"
+          transition={{ duration: 0.2 }}
+          className="w-full max-w-md mt-6"
         >
-          <h4 className="font-semibold mb-3 text-sm">Premium beinhaltet:</h4>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              "Unbegrenzte Scans",
-              "KI-Chatbot",
-              "Wöchentliche Meal Plans",
-              "Einkaufslisten",
-              "Makro-Tracking",
-              "Wasser-Tracker",
-              "Gewichtsverlauf",
-              "Export-Funktionen"
-            ].map((feature, index) => (
-              <div key={index} className="flex items-center gap-2 text-xs">
-                <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">{feature}</span>
+          {selectedPlan === 'monthly' ? (
+            /* Premium Benefits for Monthly */
+            <div className="p-4 rounded-xl bg-card/50 border border-border">
+              <h4 className="font-semibold mb-3 text-sm">Premium beinhaltet:</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  "Unbegrenzte Scans",
+                  "KI-Chatbot",
+                  "Wöchentliche Meal Plans",
+                  "Einkaufslisten",
+                  "Makro-Tracking",
+                  "Wasser-Tracker",
+                  "Gewichtsverlauf",
+                  "Export-Funktionen"
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-xs">
+                    <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <span className="text-muted-foreground">{feature}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            /* Trial Steps for Yearly */
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <h4 className="font-semibold mb-4 text-sm text-center">So funktioniert deine Testphase:</h4>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                    1
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Erste 7 Tage kostenlos</p>
+                    <p className="text-xs text-muted-foreground">Teste alle Premium-Funktionen gratis</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                    2
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Erinnerung 3 Tage vorher</p>
+                    <p className="text-xs text-muted-foreground">Du wirst benachrichtigt, bevor die Testphase endet</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                    3
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Automatische Verlängerung</p>
+                    <p className="text-xs text-muted-foreground">Nach der Testphase: €59,88/Jahr – jederzeit kündbar</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* CTA Button */}
@@ -218,12 +258,14 @@ const PremiumPricingPage = () => {
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                7 Tage kostenlos starten
+                {selectedPlan === 'yearly' ? '7 Tage kostenlos starten' : 'Premium abonnieren'}
               </>
             )}
           </Button>
           <p className="text-center text-[10px] text-muted-foreground mt-2">
-            Nach der Testphase {selectedPlan === 'yearly' ? '€59,88/Jahr' : '€11,99/Monat'}. Jederzeit kündbar.
+            {selectedPlan === 'yearly' 
+              ? 'Nach der Testphase €59,88/Jahr. Jederzeit kündbar.' 
+              : '€11,99 wird sofort abgerechnet. Jederzeit kündbar.'}
           </p>
         </motion.div>
       </div>
