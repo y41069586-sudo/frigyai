@@ -36,7 +36,6 @@ type OnboardingStep =
   | "fridge-intro"
   | "permissions"
   | "weekly-plan"
-  | "shopping-preview"
   | "comparison"
   | "transformation"
   | "tracker-intro"
@@ -861,7 +860,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     "fridge-intro",
     "permissions",
     "weekly-plan",
-    "shopping-preview",
     "comparison",
     "transformation",
     "tracker-intro",
@@ -2491,156 +2489,226 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           );
         };
         
+        // Calculate weeks to reach goal
+        const goalWeightDiff = Math.abs(userData.weight - userData.targetWeight);
+        const weeksToGoal = Math.ceil(goalWeightDiff / userData.weeklyGoal);
+        
+        // Average comparison values
+        const avgCalories = 2000;
+        const avgProtein = 50;
+        
+        // Personalized tips based on macros
+        const tips = [
+          calculatedMacros.dailyProtein > 100 
+            ? "🥩 Hoher Proteinbedarf - achte auf proteinreiche Snacks"
+            : "🥗 Moderate Proteinziele - gut mit normaler Ernährung erreichbar",
+          userData.goalMode === 'lose' 
+            ? "💧 Trinke viel Wasser um den Stoffwechsel anzukurbeln"
+            : "🍌 Gesunde Snacks zwischen Mahlzeiten helfen beim Zunehmen",
+          calculatedMacros.dailyCarbs < 150
+            ? "🥬 Low-Carb Fokus - setze auf Gemüse statt Brot"
+            : "🍚 Komplexe Kohlenhydrate wie Reis und Haferflocken bevorzugen"
+        ];
+        
         return (
           <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-4 w-full">
+            <div className="flex flex-col items-center text-center px-4 w-full overflow-y-auto max-h-[calc(100vh-180px)]">
+              {/* Motivation Badge */}
+              <motion.div
+                initial={{ scale: 0, y: -20 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="mb-4"
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30">
+                  <motion.span
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                    className="text-lg"
+                  >
+                    🏆
+                  </motion.span>
+                  <span className="text-sm font-medium text-primary">Dein optimaler Plan wurde erstellt!</span>
+                </div>
+              </motion.div>
+              
               {/* Header */}
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                className="mb-6"
+                className="mb-4"
               >
                 <h1 className="text-2xl font-bold mb-1">Dein Plan steht</h1>
                 <p className="text-muted-foreground/50 text-xs">Personalisiert für dich</p>
               </motion.div>
               
-              {/* Main calorie circle */}
+              {/* Main calorie circle - smaller */}
               <motion.div 
-                className="relative mb-8"
+                className="relative mb-4"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", damping: 12, delay: 0.2 }}
               >
-                <div className="relative w-44 h-44">
-                  {/* Outer glow ring */}
+                <div className="relative w-36 h-36">
                   <motion.div
                     className="absolute inset-0 rounded-full"
                     style={{ 
                       background: `conic-gradient(from 0deg, hsl(160, 100%, 50%) 0%, hsl(160, 100%, 50%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) 100%)`,
-                      filter: 'blur(8px)',
-                      opacity: 0.4
+                      filter: 'blur(6px)',
+                      opacity: 0.3
                     }}
                     animate={{ rotate: 360 }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                   />
                   
-                  <svg width="176" height="176" className="-rotate-90 relative z-10">
-                    {/* Background */}
-                    <circle cx="88" cy="88" r="78" fill="hsl(var(--card))" />
-                    <circle cx="88" cy="88" r="78" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
+                  <svg width="144" height="144" className="-rotate-90 relative z-10">
+                    <circle cx="72" cy="72" r="64" fill="hsl(var(--card))" />
+                    <circle cx="72" cy="72" r="64" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
                     
-                    {/* Protein segment */}
                     <motion.circle
-                      cx="88" cy="88" r="68"
-                      fill="none"
-                      stroke="hsl(160, 100%, 50%)"
-                      strokeWidth="12"
-                      strokeLinecap="round"
-                      strokeDasharray={`${(proteinPct / 100) * 427} 427`}
-                      strokeDashoffset="0"
-                      initial={{ strokeDasharray: "0 427" }}
-                      animate={{ strokeDasharray: `${(proteinPct / 100) * 427} 427` }}
-                      transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
+                      cx="72" cy="72" r="54"
+                      fill="none" stroke="hsl(160, 100%, 50%)" strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={`${(proteinPct / 100) * 339} 339`}
+                      initial={{ strokeDasharray: "0 339" }}
+                      animate={{ strokeDasharray: `${(proteinPct / 100) * 339} 339` }}
+                      transition={{ duration: 1, delay: 0.4 }}
                     />
-                    
-                    {/* Carbs segment */}
                     <motion.circle
-                      cx="88" cy="88" r="68"
-                      fill="none"
-                      stroke="hsl(220, 90%, 60%)"
-                      strokeWidth="12"
-                      strokeLinecap="round"
-                      strokeDasharray={`${(carbsPct / 100) * 427} 427`}
-                      strokeDashoffset={`${-(proteinPct / 100) * 427}`}
-                      initial={{ strokeDasharray: "0 427" }}
-                      animate={{ strokeDasharray: `${(carbsPct / 100) * 427} 427` }}
-                      transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
+                      cx="72" cy="72" r="54"
+                      fill="none" stroke="hsl(220, 90%, 60%)" strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={`${(carbsPct / 100) * 339} 339`}
+                      strokeDashoffset={`${-(proteinPct / 100) * 339}`}
+                      initial={{ strokeDasharray: "0 339" }}
+                      animate={{ strokeDasharray: `${(carbsPct / 100) * 339} 339` }}
+                      transition={{ duration: 1, delay: 0.6 }}
                     />
-                    
-                    {/* Fat segment */}
                     <motion.circle
-                      cx="88" cy="88" r="68"
-                      fill="none"
-                      stroke="hsl(45, 100%, 55%)"
-                      strokeWidth="12"
-                      strokeLinecap="round"
-                      strokeDasharray={`${(fatPct / 100) * 427} 427`}
-                      strokeDashoffset={`${-((proteinPct + carbsPct) / 100) * 427}`}
-                      initial={{ strokeDasharray: "0 427" }}
-                      animate={{ strokeDasharray: `${(fatPct / 100) * 427} 427` }}
-                      transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+                      cx="72" cy="72" r="54"
+                      fill="none" stroke="hsl(45, 100%, 55%)" strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={`${(fatPct / 100) * 339} 339`}
+                      strokeDashoffset={`${-((proteinPct + carbsPct) / 100) * 339}`}
+                      initial={{ strokeDasharray: "0 339" }}
+                      animate={{ strokeDasharray: `${(fatPct / 100) * 339} 339` }}
+                      transition={{ duration: 1, delay: 0.8 }}
                     />
                   </svg>
                   
-                  {/* Center content */}
                   <motion.div 
                     className="absolute inset-0 flex flex-col items-center justify-center z-20"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.2, type: "spring" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
                   >
-                    <span className="text-4xl font-bold">{calculatedMacros.dailyCalories}</span>
-                    <span className="text-xs text-muted-foreground/50">kcal / Tag</span>
+                    <span className="text-3xl font-bold">{calculatedMacros.dailyCalories}</span>
+                    <span className="text-[10px] text-muted-foreground/50">kcal / Tag</span>
                   </motion.div>
                 </div>
               </motion.div>
               
-              {/* Macro circles row */}
-              <div className="flex justify-center gap-6 mb-6 w-full">
-                <MacroCircle 
-                  value={calculatedMacros.dailyProtein} 
-                  max={200} 
-                  color="hsl(160, 100%, 50%)" 
-                  label="Protein"
-                  delay={0.4}
-                />
-                <MacroCircle 
-                  value={calculatedMacros.dailyCarbs} 
-                  max={300} 
-                  color="hsl(220, 90%, 60%)" 
-                  label="Carbs"
-                  delay={0.6}
-                />
-                <MacroCircle 
-                  value={calculatedMacros.dailyFat} 
-                  max={100} 
-                  color="hsl(45, 100%, 55%)" 
-                  label="Fett"
-                  delay={0.8}
-                />
+              {/* Macro circles row - compact */}
+              <div className="flex justify-center gap-4 mb-4 w-full">
+                <MacroCircle value={calculatedMacros.dailyProtein} max={200} color="hsl(160, 100%, 50%)" label="Protein" delay={0.4} size={60} />
+                <MacroCircle value={calculatedMacros.dailyCarbs} max={300} color="hsl(220, 90%, 60%)" label="Carbs" delay={0.6} size={60} />
+                <MacroCircle value={calculatedMacros.dailyFat} max={100} color="hsl(45, 100%, 55%)" label="Fett" delay={0.8} size={60} />
               </div>
               
-              {/* Goal indicator */}
+              {/* Comparison with Average */}
               <motion.div 
-                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-transparent border border-border/50 backdrop-blur-sm"
+                className="w-full max-w-xs p-3 rounded-xl bg-muted/30 border border-border/50 mb-3"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1 }}
+                transition={{ delay: 1.1 }}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                      <Target className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-sm font-medium block">
-                        {userData.goalMode === 'lose' ? 'Abnehmen' : 'Zunehmen'}
-                      </span>
-                      <span className="text-xs text-muted-foreground/50">
-                        ~{userData.weeklyGoal}kg / Woche
+                <p className="text-[10px] text-muted-foreground/50 mb-2 uppercase tracking-wider">vs. Durchschnitt</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold">{calculatedMacros.dailyCalories}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${calculatedMacros.dailyCalories < avgCalories ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                        {calculatedMacros.dailyCalories < avgCalories ? `-${avgCalories - calculatedMacros.dailyCalories}` : `+${calculatedMacros.dailyCalories - avgCalories}`}
                       </span>
                     </div>
+                    <span className="text-[10px] text-muted-foreground/50">Kalorien</span>
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold">{calculatedMacros.dailyProtein}g</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500">
+                        +{calculatedMacros.dailyProtein - avgProtein}g
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/50">Protein</span>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Goal Timeline */}
+              <motion.div 
+                className="w-full max-w-xs p-3 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 mb-3"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.2 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-sm font-medium block">
+                      Ziel: {userData.targetWeight}kg
+                    </span>
+                    <span className="text-xs text-muted-foreground/50">
+                      ~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)
+                    </span>
                   </div>
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: 1.3, type: "spring" }}
-                    className="text-2xl"
+                    transition={{ delay: 1.5, type: "spring" }}
+                    className="text-xl"
                   >
-                    ✓
+                    🎯
                   </motion.div>
                 </div>
+                
+                {/* Timeline visualization */}
+                <div className="mt-3 relative">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 2, delay: 1.3, ease: "easeOut" }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1 text-[9px] text-muted-foreground/40">
+                    <span>{userData.weight}kg</span>
+                    <span>Woche {Math.ceil(weeksToGoal / 2)}</span>
+                    <span>{userData.targetWeight}kg</span>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Personalized Tips */}
+              <motion.div 
+                className="w-full max-w-xs space-y-2 mb-4"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.4 }}
+              >
+                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider text-left">Tipps für dich</p>
+                {tips.map((tip, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 1.5 + i * 0.1 }}
+                    className="p-2.5 rounded-lg bg-card border border-border/50 text-left"
+                  >
+                    <span className="text-xs">{tip}</span>
+                  </motion.div>
+                ))}
               </motion.div>
             </div>
           </StepCard>
@@ -2819,66 +2887,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Sparkles className="w-5 h-5 mr-2" />
                 Generate my plan
               </Button>
-            </div>
-          </StepCard>
-        );
-
-      case "shopping-preview":
-        const shoppingItems = [
-          { name: "Chicken breast", have: true },
-          { name: "Broccoli", have: true },
-          { name: "Rice", have: true },
-          { name: "Eggs", have: false },
-          { name: "Olive oil", have: false },
-          { name: "Yogurt", have: false },
-        ];
-        return (
-          <StepCard step="shopping-preview">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Only buy what's missing</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                Smart shopping list based on your fridge
-              </p>
-              
-              <div className="w-full max-w-sm bg-card rounded-2xl border border-border p-4">
-                {shoppingItems.map((item, i) => (
-                  <motion.div
-                    key={item.name}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: i * 0.08 }}
-                    className={`flex items-center gap-3 py-2.5 ${i < shoppingItems.length - 1 ? 'border-b border-border/50' : ''}`}
-                  >
-                    <motion.div 
-                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                        item.have ? 'bg-primary/20' : 'bg-muted'
-                      }`}
-                      whileHover={{ scale: 1.1 }}
-                    >
-                      {item.have ? (
-                        <Check className="w-3 h-3 text-primary" />
-                      ) : (
-                        <ShoppingCart className="w-3 h-3 text-muted-foreground/60" />
-                      )}
-                    </motion.div>
-                    <span className={`text-sm ${item.have ? 'text-muted-foreground/40 line-through' : 'font-medium'}`}>
-                      {item.name}
-                    </span>
-                    {item.have && (
-                      <span className="ml-auto text-[10px] text-primary/60">In fridge</span>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-              
-              <motion.p
-                className="text-xs text-muted-foreground/40 mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                No overbuying. No waste.
-              </motion.p>
             </div>
           </StepCard>
         );
