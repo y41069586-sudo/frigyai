@@ -452,22 +452,53 @@ const calculateMacros = (userData: UserData) => {
   return { dailyCalories, dailyProtein, dailyCarbs, dailyFat };
 };
 
-// Analysis Progress Counter
+// Analysis Progress Counter - synced with checkmark timing
 const AnalysisProgress = () => {
   const [progress, setProgress] = useState(0);
   
   useEffect(() => {
+    // Checkmark timings: done at 600, 1400, 2200, 3000, 3800ms
+    // Progress targets: 20% at 600ms, 40% at 1400ms, 60% at 2200ms, 80% at 3000ms, 95% at 3800ms, 100% at 4200ms
+    const milestones = [
+      { time: 600, target: 20 },
+      { time: 1400, target: 40 },
+      { time: 2200, target: 60 },
+      { time: 3000, target: 80 },
+      { time: 3800, target: 95 },
+      { time: 4200, target: 100 },
+    ];
+    
+    const startTime = Date.now();
+    
     const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+      const elapsed = Date.now() - startTime;
+      
+      // Find current milestone
+      let targetProgress = 0;
+      for (let i = 0; i < milestones.length; i++) {
+        const milestone = milestones[i];
+        const prevMilestone = milestones[i - 1] || { time: 0, target: 0 };
+        
+        if (elapsed <= milestone.time) {
+          // Interpolate between previous and current milestone
+          const timeInSegment = elapsed - prevMilestone.time;
+          const segmentDuration = milestone.time - prevMilestone.time;
+          const segmentProgress = milestone.target - prevMilestone.target;
+          const fraction = timeInSegment / segmentDuration;
+          // Eased interpolation
+          const eased = fraction * fraction * (3 - 2 * fraction);
+          targetProgress = prevMilestone.target + (segmentProgress * eased);
+          break;
         }
-        // Easing - slower at start and end
-        const increment = prev < 30 ? 2 : prev < 70 ? 3 : prev < 90 ? 2 : 1;
-        return Math.min(prev + increment, 100);
-      });
-    }, 40);
+        targetProgress = milestone.target;
+      }
+      
+      setProgress(Math.round(targetProgress));
+      
+      if (elapsed >= 4200) {
+        clearInterval(interval);
+      }
+    }, 50);
     
     return () => clearInterval(interval);
   }, []);
@@ -476,7 +507,7 @@ const AnalysisProgress = () => {
     <motion.span
       key={progress}
       initial={{ scale: 1 }}
-      animate={{ scale: progress % 10 === 0 ? [1, 1.1, 1] : 1 }}
+      animate={{ scale: progress % 20 === 0 && progress > 0 ? [1, 1.1, 1] : 1 }}
       transition={{ duration: 0.2 }}
     >
       {progress}%
