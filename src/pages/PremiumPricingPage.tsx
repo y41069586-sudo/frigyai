@@ -20,6 +20,8 @@ const PremiumPricingPage = () => {
 
   useEffect(() => {
     if (!user && !isPreview) {
+      // After successful auth, come back here (avoid bouncing back to onboarding/home)
+      localStorage.setItem('redirectAfterAuth', '/premium-pricing');
       navigate('/auth?from=premium-pricing', { replace: true });
     }
   }, [user, navigate, isPreview]);
