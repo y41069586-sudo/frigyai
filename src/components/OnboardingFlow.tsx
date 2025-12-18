@@ -828,10 +828,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     localStorage.setItem('onboardingUserData', JSON.stringify(userData));
     localStorage.setItem('onboardingComplete', 'true');
     
-    // Also save as tracker settings (userProfile) for MacroTracker
+    // Also save as tracker settings (userProfile) for MacroTracker and recipe generation
     const trackerSettings = {
       age: userData.age,
+      height: userData.height,
       weight: userData.weight,
+      gender: userData.gender,
       targetWeight: userData.targetWeight,
       goalMode: userData.goalMode,
       weeklyGoal: userData.weeklyGoal,
@@ -839,6 +841,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       dailyProtein: userData.dailyProtein,
       dailyCarbs: userData.dailyCarbs,
       dailyFat: userData.dailyFat,
+      // New fields for recipe generation
+      dietaryPreferences: userData.dietaryPreferences,
+      allergies: userData.allergies,
+      cookingExperience: userData.cookingExperience,
     };
     localStorage.setItem('userProfile', JSON.stringify(trackerSettings));
     
