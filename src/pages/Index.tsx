@@ -41,69 +41,21 @@ const Index = () => {
     }
   }, [resetOnboarding]);
   
-  // Initialize states based on localStorage - user is logged in = skip everything
-  const [showSplash, setShowSplash] = useState(false);
+  // Initialize states - always start with splash/onboarding every session
+  const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState(true); // Default to true, we'll check
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
   
-  // Determine splash/onboarding state after auth and onboarding progress loads
+  // Skip splash/onboarding only if coming from subscription success
   useEffect(() => {
-    // If still loading auth or onboarding progress, wait
-    if (loading || onboardingLoading) return;
-    
-    // TESTING MODE: Always show onboarding (even when logged in)
-    const testingOnboarding = false;
-    
-    if (testingOnboarding) {
-      setShowSplash(true);
-      setOnboardingComplete(false);
-      return;
-    }
-    
-    // If user is logged in, check database for onboarding status
-    if (user) {
-      if (dbOnboardingComplete) {
-        // User has completed onboarding (stored in DB)
-        setShowSplash(false);
-        setShowOnboarding(false);
-        setOnboardingComplete(true);
-        localStorage.setItem('onboardingComplete', 'true');
-      } else {
-        // Check localStorage as fallback
-        const localComplete = localStorage.getItem('onboardingComplete') === 'true';
-        if (localComplete) {
-          // Sync localStorage to database
-          saveProgress({ onboarding_complete: true });
-          setShowSplash(false);
-          setShowOnboarding(false);
-          setOnboardingComplete(true);
-        } else {
-          // User logged in but hasn't completed onboarding - go to plan selection
-          // Skip splash/onboarding slides since they're already logged in
-          setShowSplash(false);
-          setShowOnboarding(false);
-          setOnboardingComplete(false);
-        }
-      }
-      return;
-    }
-    
-    // Not logged in - check localStorage for plan selection
-    const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
-    
-    if (hasSelectedPlan || isFromSubscription) {
-      // User already selected a plan - never show onboarding again
+    if (isFromSubscription) {
       setShowSplash(false);
       setShowOnboarding(false);
       setOnboardingComplete(true);
-    } else {
-      // User hasn't selected a plan yet - show onboarding
-      setShowSplash(true);
-      setOnboardingComplete(false);
     }
-  }, [loading, onboardingLoading, isFromSubscription, user, dbOnboardingComplete, saveProgress]);
+  }, [isFromSubscription]);
   
   // Redirect to meal-plans if coming from successful subscription
   useEffect(() => {
@@ -141,30 +93,13 @@ const Index = () => {
   
   const handleSplashComplete = () => {
     setShowSplash(false);
-    
-    // TESTING MODE: Always show onboarding
-    const testingOnboarding = false;
-    
-    if (testingOnboarding) {
-      setShowOnboarding(true);
-      setOnboardingComplete(false);
-      return;
-    }
-    
-    // Only show onboarding if user is NOT logged in
-    if (!user) {
-      setShowOnboarding(true);
-      setOnboardingComplete(false);
-    } else {
-      // User is logged in - skip onboarding
-      setOnboardingComplete(true);
-      setShowOnboarding(false);
-    }
+    setShowOnboarding(true);
   };
   
   const handleOnboardingComplete = () => {
-    // After onboarding slides, go to auth page
+    // After onboarding slides, mark complete and go to auth page
     setShowOnboarding(false);
+    setOnboardingComplete(true);
     navigate('/auth?from=onboarding');
   };
 
@@ -195,8 +130,8 @@ const Index = () => {
 
   const scansRemaining = 2 - dailyScansUsed;
 
-  // Wait for auth and onboarding check before showing anything
-  if (loading || onboardingLoading) {
+  // Wait for auth before showing anything
+  if (loading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="animate-pulse">
