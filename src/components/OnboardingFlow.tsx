@@ -35,8 +35,11 @@ type OnboardingStep =
   | "comparison"
   | "tracker-intro"
   | "body-basics"
+  | "goal-mode"
+  | "target-weight"
+  | "speed-select"
   | "planning-setup"
-  | "macro-visual"
+  | "macro-preview"
   | "premium-hint"
   | "community"
   | "done";
@@ -46,10 +49,18 @@ interface UserData {
   height: number;
   weight: number;
   age: number;
+  goalMode: 'lose' | 'gain';
+  targetWeight: number;
+  weeklyGoal: number; // kg per week
   activityLevel: string | null;
   macroFocus: string | null;
   cameraPermission: boolean;
   healthSync: string | null;
+  // Calculated values
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
 }
 
 // Counter component that animates numbers
@@ -277,6 +288,169 @@ const MacroDonut = ({ protein, carbs, fat, animate }: { protein: number; carbs: 
   );
 };
 
+// Animated Speed Selector Components
+const AnimatedBicycle = ({ selected }: { selected: boolean }) => (
+  <motion.svg viewBox="0 0 80 60" className="w-16 h-12">
+    {/* Back wheel */}
+    <motion.circle
+      cx="18" cy="42" r="12"
+      fill="none" stroke="currentColor" strokeWidth="2"
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "18px 42px" }}
+    />
+    {/* Front wheel */}
+    <motion.circle
+      cx="62" cy="42" r="12"
+      fill="none" stroke="currentColor" strokeWidth="2"
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "62px 42px" }}
+    />
+    {/* Frame */}
+    <path d="M18 42 L35 25 L50 25 L62 42 M35 25 L35 42 L50 42 M50 25 L45 15" 
+          stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+    {/* Handlebars */}
+    <path d="M45 15 L42 12 M45 15 L50 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    {/* Pedals */}
+    <motion.g
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.6, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "35px 42px" }}
+    >
+      <circle cx="35" cy="42" r="4" fill="currentColor" />
+      <line x1="35" y1="38" x2="35" y2="46" stroke="currentColor" strokeWidth="2" />
+    </motion.g>
+    {/* Rider */}
+    <motion.g animate={{ y: selected ? [0, -2, 0] : 0 }} transition={{ duration: 0.4, repeat: selected ? Infinity : 0 }}>
+      <circle cx="40" cy="8" r="5" fill="currentColor" /> {/* Head */}
+      <path d="M40 13 L40 22 M40 16 L35 25 M40 16 L48 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </motion.g>
+  </motion.svg>
+);
+
+const AnimatedCar = ({ selected }: { selected: boolean }) => (
+  <motion.svg viewBox="0 0 80 50" className="w-16 h-12">
+    {/* Car body */}
+    <motion.g animate={{ x: selected ? [0, 2, 0] : 0 }} transition={{ duration: 0.3, repeat: selected ? Infinity : 0 }}>
+      <path d="M10 35 L10 25 L20 25 L28 15 L55 15 L65 25 L75 25 L75 35 Z" 
+            fill="currentColor" opacity="0.9" />
+      {/* Windows */}
+      <path d="M30 16 L25 24 L40 24 L40 16 Z" fill="hsl(var(--background))" opacity="0.5" />
+      <path d="M42 16 L42 24 L58 24 L52 16 Z" fill="hsl(var(--background))" opacity="0.5" />
+    </motion.g>
+    {/* Back wheel */}
+    <motion.circle
+      cx="22" cy="38" r="7"
+      fill="hsl(var(--background))" stroke="currentColor" strokeWidth="3"
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.3, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "22px 38px" }}
+    />
+    {/* Front wheel */}
+    <motion.circle
+      cx="60" cy="38" r="7"
+      fill="hsl(var(--background))" stroke="currentColor" strokeWidth="3"
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.3, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "60px 38px" }}
+    />
+    {/* Speed lines */}
+    {selected && (
+      <>
+        <motion.line x1="0" y1="22" x2="8" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+          initial={{ opacity: 0, x: 10 }} animate={{ opacity: [0, 1, 0], x: [10, -5, -15] }}
+          transition={{ duration: 0.5, repeat: Infinity, delay: 0 }} />
+        <motion.line x1="0" y1="28" x2="10" y2="28" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+          initial={{ opacity: 0, x: 10 }} animate={{ opacity: [0, 1, 0], x: [10, -5, -15] }}
+          transition={{ duration: 0.5, repeat: Infinity, delay: 0.15 }} />
+        <motion.line x1="0" y1="34" x2="6" y2="34" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+          initial={{ opacity: 0, x: 10 }} animate={{ opacity: [0, 1, 0], x: [10, -5, -15] }}
+          transition={{ duration: 0.5, repeat: Infinity, delay: 0.3 }} />
+      </>
+    )}
+  </motion.svg>
+);
+
+const AnimatedRocket = ({ selected }: { selected: boolean }) => (
+  <motion.svg viewBox="0 0 60 80" className="w-12 h-16">
+    <motion.g 
+      animate={{ y: selected ? [0, -3, 0] : 0, rotate: selected ? [0, 2, -2, 0] : 0 }} 
+      transition={{ duration: 0.5, repeat: selected ? Infinity : 0 }}
+    >
+      {/* Rocket body */}
+      <path d="M30 5 C30 5 45 25 45 45 L45 55 L15 55 L15 45 C15 25 30 5 30 5" 
+            fill="currentColor" />
+      {/* Window */}
+      <circle cx="30" cy="30" r="7" fill="hsl(var(--primary))" opacity="0.5" />
+      <circle cx="30" cy="30" r="4" fill="hsl(var(--background))" />
+      {/* Fins */}
+      <path d="M15 45 L5 60 L15 55 Z" fill="currentColor" opacity="0.8" />
+      <path d="M45 45 L55 60 L45 55 Z" fill="currentColor" opacity="0.8" />
+    </motion.g>
+    {/* Flames */}
+    {selected && (
+      <motion.g>
+        <motion.path d="M22 56 L25 75 L30 65 L35 75 L38 56" 
+          fill="hsl(45, 100%, 55%)"
+          animate={{ d: ["M22 56 L25 75 L30 65 L35 75 L38 56", "M22 56 L25 70 L30 78 L35 70 L38 56", "M22 56 L25 75 L30 65 L35 75 L38 56"] }}
+          transition={{ duration: 0.2, repeat: Infinity }} />
+        <motion.path d="M25 56 L28 68 L30 60 L32 68 L35 56" 
+          fill="hsl(25, 100%, 55%)"
+          animate={{ d: ["M25 56 L28 68 L30 60 L32 68 L35 56", "M25 56 L28 62 L30 70 L32 62 L35 56", "M25 56 L28 68 L30 60 L32 68 L35 56"] }}
+          transition={{ duration: 0.15, repeat: Infinity }} />
+      </motion.g>
+    )}
+  </motion.svg>
+);
+
+// Macro calculation function using Mifflin-St Jeor BMR formula
+const calculateMacros = (userData: UserData) => {
+  const { weight, height, age, activityLevel, goalMode, targetWeight, weeklyGoal } = userData;
+  
+  // Mifflin-St Jeor BMR formula (assuming average between male/female)
+  const bmr = 10 * weight + 6.25 * height - 5 * age + 5; // Slight male bias, adjust if needed
+  
+  // Activity multipliers
+  const activityMultipliers: Record<string, number> = {
+    low: 1.2,
+    medium: 1.55,
+    high: 1.9
+  };
+  
+  const tdee = bmr * (activityMultipliers[activityLevel || 'medium'] || 1.55);
+  
+  // Calculate deficit/surplus based on weekly goal
+  // 1kg of fat ≈ 7700 calories
+  const weeklyCalorieChange = weeklyGoal * 7700;
+  const dailyCalorieChange = weeklyCalorieChange / 7;
+  
+  let dailyCalories: number;
+  if (goalMode === 'lose') {
+    dailyCalories = tdee - dailyCalorieChange;
+  } else {
+    dailyCalories = tdee + dailyCalorieChange;
+  }
+  
+  // Apply minimum calorie floors based on age
+  const minCalories = age < 25 ? 1500 : age < 40 ? 1400 : 1300;
+  dailyCalories = Math.max(dailyCalories, minCalories);
+  dailyCalories = Math.round(dailyCalories);
+  
+  // Calculate macros
+  // Protein: 2g per kg body weight
+  const dailyProtein = Math.round(weight * 2);
+  // Fat: 0.9g per kg body weight
+  const dailyFat = Math.round(weight * 0.9);
+  // Carbs: remaining calories (protein = 4cal/g, fat = 9cal/g, carbs = 4cal/g)
+  const proteinCalories = dailyProtein * 4;
+  const fatCalories = dailyFat * 9;
+  const remainingCalories = dailyCalories - proteinCalories - fatCalories;
+  const dailyCarbs = Math.max(50, Math.round(remainingCalories / 4)); // Minimum 50g carbs
+  
+  return { dailyCalories, dailyProtein, dailyCarbs, dailyFat };
+};
+
 // Line Chart that draws instead of fades
 const ComparisonLineChart = ({ animate }: { animate: boolean }) => {
   const withoutData = [50, 55, 45, 60, 40, 55, 48];
@@ -400,10 +574,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     height: 170,
     weight: 70,
     age: 25,
+    goalMode: 'lose',
+    targetWeight: 65,
+    weeklyGoal: 0.5,
     activityLevel: null,
     macroFocus: "balanced",
     cameraPermission: false,
     healthSync: null,
+    dailyCalories: 0,
+    dailyProtein: 0,
+    dailyCarbs: 0,
+    dailyFat: 0,
   });
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -422,8 +603,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     "comparison",
     "tracker-intro",
     "body-basics",
+    "goal-mode",
+    "target-weight",
+    "speed-select",
     "planning-setup",
-    "macro-visual",
+    "macro-preview",
     "premium-hint",
     "community",
     "done"
@@ -440,7 +624,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (currentStep === "tracker-intro") {
       setTimeout(() => setTrackerIntroAnimate(true), 300);
     }
-    if (currentStep === "macro-visual") {
+    if (currentStep === "macro-preview") {
       setTimeout(() => setMacroAnimate(true), 300);
     }
     if (currentStep === "comparison") {
@@ -476,8 +660,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleComplete = () => {
+    // Save onboarding data
     localStorage.setItem('onboardingUserData', JSON.stringify(userData));
     localStorage.setItem('onboardingComplete', 'true');
+    
+    // Also save as tracker settings (userProfile) for MacroTracker
+    const trackerSettings = {
+      age: userData.age,
+      weight: userData.weight,
+      targetWeight: userData.targetWeight,
+      goalMode: userData.goalMode,
+      weeklyGoal: userData.weeklyGoal,
+      dailyCalories: userData.dailyCalories,
+      dailyProtein: userData.dailyProtein,
+      dailyCarbs: userData.dailyCarbs,
+      dailyFat: userData.dailyFat,
+    };
+    localStorage.setItem('userProfile', JSON.stringify(trackerSettings));
+    
     onComplete();
   };
 
@@ -872,63 +1072,412 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "macro-visual":
-        const getMacros = () => {
-          switch (userData.macroFocus) {
-            case "high-protein": return { protein: 40, carbs: 30, fat: 30 };
-            case "low-carb": return { protein: 35, carbs: 20, fat: 45 };
-            default: return { protein: 30, carbs: 40, fat: 30 };
-          }
-        };
-        const macros = getMacros();
+      case "goal-mode":
+        return (
+          <StepCard step="goal-mode">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                className="text-5xl mb-4"
+              >
+                🎯
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">What's your goal?</h1>
+              <p className="text-muted-foreground/40 text-xs mb-8">This affects your daily calorie target</p>
+              
+              <div className="w-full max-w-sm grid grid-cols-2 gap-4">
+                <motion.button
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ y: -4 }}
+                  onClick={() => setUserData({ ...userData, goalMode: 'lose', targetWeight: Math.max(40, userData.weight - 5) })}
+                  className={`relative p-6 rounded-2xl border-2 transition-all ${
+                    userData.goalMode === 'lose'
+                      ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
+                      : "border-border bg-card hover:border-primary/30"
+                  }`}
+                >
+                  <motion.span 
+                    className="text-5xl block mb-3"
+                    animate={{ 
+                      scale: userData.goalMode === 'lose' ? [1, 1.2, 1] : 1,
+                      y: userData.goalMode === 'lose' ? [0, -5, 0] : 0
+                    }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    📉
+                  </motion.span>
+                  <span className="text-lg font-bold block">Abnehmen</span>
+                  <span className="text-xs text-muted-foreground/40">Kaloriendefizit</span>
+                  
+                  {userData.goalMode === 'lose' && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center"
+                    >
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </motion.div>
+                  )}
+                </motion.button>
+                
+                <motion.button
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ y: -4 }}
+                  onClick={() => setUserData({ ...userData, goalMode: 'gain', targetWeight: userData.weight + 5 })}
+                  className={`relative p-6 rounded-2xl border-2 transition-all ${
+                    userData.goalMode === 'gain'
+                      ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
+                      : "border-border bg-card hover:border-primary/30"
+                  }`}
+                >
+                  <motion.span 
+                    className="text-5xl block mb-3"
+                    animate={{ 
+                      scale: userData.goalMode === 'gain' ? [1, 1.2, 1] : 1,
+                      y: userData.goalMode === 'gain' ? [0, -5, 0] : 0
+                    }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    📈
+                  </motion.span>
+                  <span className="text-lg font-bold block">Zunehmen</span>
+                  <span className="text-xs text-muted-foreground/40">Kalorienüberschuss</span>
+                  
+                  {userData.goalMode === 'gain' && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center"
+                    >
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </motion.div>
+                  )}
+                </motion.button>
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "target-weight":
+        const minTarget = userData.goalMode === 'lose' ? Math.max(40, userData.weight - 10) : userData.weight;
+        const maxTarget = userData.goalMode === 'lose' ? userData.weight - 1 : userData.weight + 20;
+        const weightDiff = Math.abs(userData.targetWeight - userData.weight);
         
         return (
-          <StepCard step="macro-visual">
+          <StepCard step="target-weight">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Your macros, visualized</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Based on your profile</p>
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                ⚖️
+              </motion.div>
               
-              <MacroDonut protein={macros.protein} carbs={macros.carbs} fat={macros.fat} animate={macroAnimate} />
+              <h1 className="text-2xl font-bold mb-1">Dein Zielgewicht</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                {userData.goalMode === 'lose' ? 'Wie viel möchtest du verlieren?' : 'Wie viel möchtest du zunehmen?'}
+              </p>
               
-              {/* Legend */}
-              <div className="flex gap-5 mt-8">
+              <div className="w-full max-w-sm space-y-6">
+                {/* Current vs Target visualization */}
                 <motion.div 
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
-                  transition={{ delay: 1 }}
+                  className="relative h-32 flex items-end justify-center gap-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
                 >
-                  <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160, 100%, 50%)' }} />
-                  <span className="text-xs text-muted-foreground/60">Protein {macros.protein}%</span>
+                  {/* Current weight bar */}
+                  <div className="flex flex-col items-center">
+                    <motion.div 
+                      className="w-16 bg-muted rounded-t-xl"
+                      initial={{ height: 0 }}
+                      animate={{ height: 80 }}
+                      transition={{ delay: 0.3, duration: 0.5 }}
+                    />
+                    <span className="text-xs text-muted-foreground/60 mt-2">Aktuell</span>
+                    <span className="text-lg font-bold">{userData.weight}kg</span>
+                  </div>
+                  
+                  {/* Arrow */}
+                  <motion.div 
+                    className="flex items-center gap-1 mb-12"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <span className="text-2xl">{userData.goalMode === 'lose' ? '→' : '→'}</span>
+                  </motion.div>
+                  
+                  {/* Target weight bar */}
+                  <div className="flex flex-col items-center">
+                    <motion.div 
+                      className={`w-16 rounded-t-xl ${userData.goalMode === 'lose' ? 'bg-primary' : 'bg-primary'}`}
+                      initial={{ height: 0 }}
+                      animate={{ height: userData.goalMode === 'lose' ? 80 - weightDiff * 4 : 80 + weightDiff * 2 }}
+                      transition={{ delay: 0.4, duration: 0.5 }}
+                      style={{ minHeight: 30, maxHeight: 100 }}
+                    />
+                    <span className="text-xs text-primary mt-2">Ziel</span>
+                    <motion.span 
+                      className="text-lg font-bold text-primary"
+                      key={userData.targetWeight}
+                      animate={{ scale: [1, 1.1, 1] }}
+                    >
+                      {userData.targetWeight}kg
+                    </motion.span>
+                  </div>
                 </motion.div>
+                
+                {/* Slider */}
                 <motion.div 
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
-                  transition={{ delay: 1.1 }}
+                  className="p-4 rounded-2xl bg-card border-2 border-border"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
                 >
-                  <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(220, 90%, 60%)' }} />
-                  <span className="text-xs text-muted-foreground/60">Carbs {macros.carbs}%</span>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium">
+                      {userData.goalMode === 'lose' ? 'Gewichtsverlust' : 'Gewichtszunahme'}
+                    </span>
+                    <motion.div 
+                      className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold"
+                      key={weightDiff}
+                      animate={{ scale: [1, 1.1, 1] }}
+                    >
+                      {userData.goalMode === 'lose' ? '-' : '+'}{weightDiff}kg
+                    </motion.div>
+                  </div>
+                  <input
+                    type="range"
+                    min={minTarget}
+                    max={maxTarget}
+                    value={userData.targetWeight}
+                    onChange={(e) => setUserData({ ...userData, targetWeight: parseInt(e.target.value) })}
+                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground/40 mt-1">
+                    <span>{minTarget}kg</span>
+                    <span>{maxTarget}kg</span>
+                  </div>
                 </motion.div>
-                <motion.div 
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: macroAnimate ? 1 : 0, y: macroAnimate ? 0 : 10 }}
-                  transition={{ delay: 1.2 }}
+                
+                <motion.p
+                  className="text-xs text-muted-foreground/40 text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
                 >
-                  <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(45, 100%, 55%)' }} />
-                  <span className="text-xs text-muted-foreground/60">Fat {macros.fat}%</span>
-                </motion.div>
+                  💡 Max. 10kg {userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse
+                </motion.p>
+              </div>
+            </div>
+          </StepCard>
+        );
+
+      case "speed-select":
+        const speedOptions = [
+          { id: 0.3, label: "Langsam", desc: "Entspannt & nachhaltig", Component: AnimatedBicycle },
+          { id: 0.8, label: "Normal", desc: "Gute Balance", Component: AnimatedCar },
+          { id: 1.4, label: "Schnell", desc: "Intensiv & fokussiert", Component: AnimatedRocket },
+        ];
+        
+        return (
+          <StepCard step="speed-select">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                className="text-5xl mb-4"
+              >
+                ⚡
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Dein Tempo</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">
+                Wie schnell möchtest du {userData.goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}?
+              </p>
+              
+              <div className="w-full max-w-sm space-y-3">
+                {speedOptions.map((option, i) => (
+                  <motion.button
+                    key={option.id}
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    whileTap={{ scale: 0.97 }}
+                    whileHover={{ x: 5 }}
+                    onClick={() => setUserData({ ...userData, weeklyGoal: option.id })}
+                    className={`relative w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
+                      userData.weeklyGoal === option.id
+                        ? "border-primary bg-primary/10 shadow-xl shadow-primary/30"
+                        : "border-border bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    <div className={`w-20 h-16 flex items-center justify-center rounded-xl transition-colors ${
+                      userData.weeklyGoal === option.id ? 'text-primary' : 'text-muted-foreground'
+                    }`}>
+                      <option.Component selected={userData.weeklyGoal === option.id} />
+                    </div>
+                    
+                    <div className="flex-1 text-left">
+                      <span className="font-bold block">{option.label}</span>
+                      <span className="text-xs text-muted-foreground/60">{option.desc}</span>
+                      <motion.span 
+                        className="text-xs text-primary font-semibold block mt-1"
+                        animate={{ opacity: userData.weeklyGoal === option.id ? 1 : 0.5 }}
+                      >
+                        ~{option.id}kg / Woche
+                      </motion.span>
+                    </div>
+                    
+                    {userData.weeklyGoal === option.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-7 h-7 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-4 h-4 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                ))}
               </div>
               
               <motion.p
                 className="text-xs text-muted-foreground/40 mt-6"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: macroAnimate ? 1 : 0 }}
-                transition={{ delay: 1.5 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
               >
-                Frigy adjusts this automatically with your weekly plans.
+                ⚠️ Schnelleres Tempo = mehr Disziplin erforderlich
               </motion.p>
+            </div>
+          </StepCard>
+        );
+
+      case "macro-preview":
+        // Calculate macros when entering this step
+        const calculatedMacros = calculateMacros(userData);
+        const proteinPct = Math.round((calculatedMacros.dailyProtein * 4 / calculatedMacros.dailyCalories) * 100);
+        const carbsPct = Math.round((calculatedMacros.dailyCarbs * 4 / calculatedMacros.dailyCalories) * 100);
+        const fatPct = Math.round((calculatedMacros.dailyFat * 9 / calculatedMacros.dailyCalories) * 100);
+        
+        // Update userData with calculated values when rendering
+        if (userData.dailyCalories !== calculatedMacros.dailyCalories) {
+          setTimeout(() => {
+            setUserData(prev => ({
+              ...prev,
+              ...calculatedMacros
+            }));
+          }, 0);
+        }
+        
+        return (
+          <StepCard step="macro-preview">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                🎉
+              </motion.div>
+              
+              <h1 className="text-2xl font-bold mb-1">Deine persönlichen Makros</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Berechnet basierend auf deinem Profil</p>
+              
+              {/* Calorie target highlight */}
+              <motion.div 
+                className="w-full max-w-sm p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 mb-6"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <span className="text-sm text-primary/60 block mb-1">Tägliches Kalorienziel</span>
+                <motion.span 
+                  className="text-5xl font-bold text-primary"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring" }}
+                >
+                  {calculatedMacros.dailyCalories}
+                </motion.span>
+                <span className="text-lg text-primary/60 ml-1">kcal</span>
+                
+                <div className="flex justify-center gap-1 mt-3">
+                  <span className="text-xs text-muted-foreground/60">
+                    {userData.goalMode === 'lose' ? 'Defizit' : 'Überschuss'} für ~{userData.weeklyGoal}kg/Woche
+                  </span>
+                </div>
+              </motion.div>
+              
+              {/* Macro breakdown */}
+              <div className="w-full max-w-sm grid grid-cols-3 gap-3 mb-6">
+                <motion.div 
+                  className="p-4 rounded-xl bg-card border border-border"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'hsl(160, 100%, 50%)' }} />
+                  <span className="text-2xl font-bold block">{calculatedMacros.dailyProtein}g</span>
+                  <span className="text-xs text-muted-foreground/60">Protein</span>
+                  <span className="text-[10px] text-primary block">{proteinPct}%</span>
+                </motion.div>
+                
+                <motion.div 
+                  className="p-4 rounded-xl bg-card border border-border"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'hsl(220, 90%, 60%)' }} />
+                  <span className="text-2xl font-bold block">{calculatedMacros.dailyCarbs}g</span>
+                  <span className="text-xs text-muted-foreground/60">Carbs</span>
+                  <span className="text-[10px] text-primary block">{carbsPct}%</span>
+                </motion.div>
+                
+                <motion.div 
+                  className="p-4 rounded-xl bg-card border border-border"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'hsl(45, 100%, 55%)' }} />
+                  <span className="text-2xl font-bold block">{calculatedMacros.dailyFat}g</span>
+                  <span className="text-xs text-muted-foreground/60">Fett</span>
+                  <span className="text-[10px] text-primary block">{fatPct}%</span>
+                </motion.div>
+              </div>
+              
+              {/* Calculation explanation */}
+              <motion.div
+                className="w-full max-w-sm p-3 rounded-xl bg-muted/30 border border-border text-left"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                <span className="text-xs font-semibold block mb-2">📊 So wurde es berechnet:</span>
+                <ul className="text-[10px] text-muted-foreground/60 space-y-1">
+                  <li>• BMR (Grundumsatz) basierend auf {userData.weight}kg, {userData.height}cm, {userData.age} Jahre</li>
+                  <li>• Aktivitätslevel: {userData.activityLevel === 'high' ? 'Hoch' : userData.activityLevel === 'medium' ? 'Mittel' : 'Niedrig'}</li>
+                  <li>• {userData.goalMode === 'lose' ? 'Defizit' : 'Überschuss'}: ~{Math.round(userData.weeklyGoal * 1100)} kcal/Tag für {userData.weeklyGoal}kg/Woche</li>
+                  <li>• Protein: 2g pro kg Körpergewicht</li>
+                </ul>
+              </motion.div>
             </div>
           </StepCard>
         );
@@ -1493,7 +2042,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             disabled={!canProceed()}
             className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : "shadow-lg shadow-primary/20"}`}
           >
-            {currentStep === "hero" ? "Get started" : currentStep === "tracker-intro" ? "Let's go! 🚀" : "Continue"}
+            {currentStep === "hero" ? "Get started" : 
+             currentStep === "tracker-intro" ? "Let's go! 🚀" : 
+             currentStep === "macro-preview" ? "Perfekt! 🎯" :
+             currentStep === "speed-select" ? "Weiter" :
+             "Continue"}
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
         </motion.div>
