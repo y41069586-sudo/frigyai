@@ -2415,100 +2415,232 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             }));
           }, 0);
         }
+
+        // Circular progress component for macros
+        const MacroCircle = ({ 
+          value, 
+          max, 
+          color, 
+          label, 
+          unit = "g",
+          delay = 0,
+          size = 80
+        }: { 
+          value: number; 
+          max: number; 
+          color: string; 
+          label: string; 
+          unit?: string;
+          delay?: number;
+          size?: number;
+        }) => {
+          const radius = (size - 12) / 2;
+          const circumference = 2 * Math.PI * radius;
+          const progress = Math.min(value / max, 1);
+          const strokeDashoffset = circumference * (1 - progress);
+
+          return (
+            <motion.div 
+              className="flex flex-col items-center"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay, type: "spring", damping: 15 }}
+            >
+              <div className="relative" style={{ width: size, height: size }}>
+                <svg width={size} height={size} className="-rotate-90">
+                  {/* Background circle */}
+                  <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="hsl(var(--muted))"
+                    strokeWidth="6"
+                  />
+                  {/* Progress circle */}
+                  <motion.circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    initial={{ strokeDashoffset: circumference }}
+                    animate={{ strokeDashoffset }}
+                    transition={{ duration: 1, delay: delay + 0.3, ease: "easeOut" }}
+                    style={{ filter: `drop-shadow(0 0 8px ${color})` }}
+                  />
+                </svg>
+                {/* Center text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span 
+                    className="text-lg font-bold leading-none"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: delay + 0.5 }}
+                  >
+                    {value}
+                  </motion.span>
+                  <span className="text-[10px] text-muted-foreground/50">{unit}</span>
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground/70 mt-2 font-medium">{label}</span>
+            </motion.div>
+          );
+        };
         
         return (
           <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-6 w-full">
+            <div className="flex flex-col items-center text-center px-4 w-full">
+              {/* Header */}
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 12 }}
-                className="text-5xl mb-4"
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="mb-6"
               >
-                🎉
+                <h1 className="text-2xl font-bold mb-1">Dein Plan steht</h1>
+                <p className="text-muted-foreground/50 text-xs">Personalisiert für dich</p>
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Deine persönlichen Makros</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Berechnet basierend auf deinem Profil</p>
-              
-              {/* Calorie target highlight */}
+              {/* Main calorie circle */}
               <motion.div 
-                className="w-full max-w-sm p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 mb-6"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                className="relative mb-8"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12, delay: 0.2 }}
               >
-                <span className="text-sm text-primary/60 block mb-1">Tägliches Kalorienziel</span>
-                <motion.span 
-                  className="text-5xl font-bold text-primary"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring" }}
-                >
-                  {calculatedMacros.dailyCalories}
-                </motion.span>
-                <span className="text-lg text-primary/60 ml-1">kcal</span>
-                
-                <div className="flex justify-center gap-1 mt-3">
-                  <span className="text-xs text-muted-foreground/60">
-                    {userData.goalMode === 'lose' ? 'Defizit' : 'Überschuss'} für ~{userData.weeklyGoal}kg/Woche
-                  </span>
+                <div className="relative w-44 h-44">
+                  {/* Outer glow ring */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full"
+                    style={{ 
+                      background: `conic-gradient(from 0deg, hsl(160, 100%, 50%) 0%, hsl(160, 100%, 50%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct}%, hsl(220, 90%, 60%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) ${proteinPct + carbsPct}%, hsl(45, 100%, 55%) 100%)`,
+                      filter: 'blur(8px)',
+                      opacity: 0.4
+                    }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  />
+                  
+                  <svg width="176" height="176" className="-rotate-90 relative z-10">
+                    {/* Background */}
+                    <circle cx="88" cy="88" r="78" fill="hsl(var(--card))" />
+                    <circle cx="88" cy="88" r="78" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
+                    
+                    {/* Protein segment */}
+                    <motion.circle
+                      cx="88" cy="88" r="68"
+                      fill="none"
+                      stroke="hsl(160, 100%, 50%)"
+                      strokeWidth="12"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(proteinPct / 100) * 427} 427`}
+                      strokeDashoffset="0"
+                      initial={{ strokeDasharray: "0 427" }}
+                      animate={{ strokeDasharray: `${(proteinPct / 100) * 427} 427` }}
+                      transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
+                    />
+                    
+                    {/* Carbs segment */}
+                    <motion.circle
+                      cx="88" cy="88" r="68"
+                      fill="none"
+                      stroke="hsl(220, 90%, 60%)"
+                      strokeWidth="12"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(carbsPct / 100) * 427} 427`}
+                      strokeDashoffset={`${-(proteinPct / 100) * 427}`}
+                      initial={{ strokeDasharray: "0 427" }}
+                      animate={{ strokeDasharray: `${(carbsPct / 100) * 427} 427` }}
+                      transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
+                    />
+                    
+                    {/* Fat segment */}
+                    <motion.circle
+                      cx="88" cy="88" r="68"
+                      fill="none"
+                      stroke="hsl(45, 100%, 55%)"
+                      strokeWidth="12"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(fatPct / 100) * 427} 427`}
+                      strokeDashoffset={`${-((proteinPct + carbsPct) / 100) * 427}`}
+                      initial={{ strokeDasharray: "0 427" }}
+                      animate={{ strokeDasharray: `${(fatPct / 100) * 427} 427` }}
+                      transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+                    />
+                  </svg>
+                  
+                  {/* Center content */}
+                  <motion.div 
+                    className="absolute inset-0 flex flex-col items-center justify-center z-20"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.2, type: "spring" }}
+                  >
+                    <span className="text-4xl font-bold">{calculatedMacros.dailyCalories}</span>
+                    <span className="text-xs text-muted-foreground/50">kcal / Tag</span>
+                  </motion.div>
                 </div>
               </motion.div>
               
-              {/* Macro breakdown */}
-              <div className="w-full max-w-sm grid grid-cols-3 gap-3 mb-6">
-                <motion.div 
-                  className="p-4 rounded-xl bg-card border border-border"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'hsl(160, 100%, 50%)' }} />
-                  <span className="text-2xl font-bold block">{calculatedMacros.dailyProtein}g</span>
-                  <span className="text-xs text-muted-foreground/60">Protein</span>
-                  <span className="text-[10px] text-primary block">{proteinPct}%</span>
-                </motion.div>
-                
-                <motion.div 
-                  className="p-4 rounded-xl bg-card border border-border"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'hsl(220, 90%, 60%)' }} />
-                  <span className="text-2xl font-bold block">{calculatedMacros.dailyCarbs}g</span>
-                  <span className="text-xs text-muted-foreground/60">Carbs</span>
-                  <span className="text-[10px] text-primary block">{carbsPct}%</span>
-                </motion.div>
-                
-                <motion.div 
-                  className="p-4 rounded-xl bg-card border border-border"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'hsl(45, 100%, 55%)' }} />
-                  <span className="text-2xl font-bold block">{calculatedMacros.dailyFat}g</span>
-                  <span className="text-xs text-muted-foreground/60">Fett</span>
-                  <span className="text-[10px] text-primary block">{fatPct}%</span>
-                </motion.div>
+              {/* Macro circles row */}
+              <div className="flex justify-center gap-6 mb-6 w-full">
+                <MacroCircle 
+                  value={calculatedMacros.dailyProtein} 
+                  max={200} 
+                  color="hsl(160, 100%, 50%)" 
+                  label="Protein"
+                  delay={0.4}
+                />
+                <MacroCircle 
+                  value={calculatedMacros.dailyCarbs} 
+                  max={300} 
+                  color="hsl(220, 90%, 60%)" 
+                  label="Carbs"
+                  delay={0.6}
+                />
+                <MacroCircle 
+                  value={calculatedMacros.dailyFat} 
+                  max={100} 
+                  color="hsl(45, 100%, 55%)" 
+                  label="Fett"
+                  delay={0.8}
+                />
               </div>
               
-              {/* Calculation explanation */}
-              <motion.div
-                className="w-full max-w-sm p-3 rounded-xl bg-muted/30 border border-border text-left"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
+              {/* Goal indicator */}
+              <motion.div 
+                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-transparent border border-border/50 backdrop-blur-sm"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1 }}
               >
-                <span className="text-xs font-semibold block mb-2">📊 So wurde es berechnet:</span>
-                <ul className="text-[10px] text-muted-foreground/60 space-y-1">
-                  <li>• BMR (Grundumsatz) basierend auf {userData.weight}kg, {userData.height}cm, {userData.age} Jahre</li>
-                  <li>• Aktivitätslevel: {userData.activityLevel === 'high' ? 'Hoch' : userData.activityLevel === 'medium' ? 'Mittel' : 'Niedrig'}</li>
-                  <li>• {userData.goalMode === 'lose' ? 'Defizit' : 'Überschuss'}: ~{Math.round(userData.weeklyGoal * 1100)} kcal/Tag für {userData.weeklyGoal}kg/Woche</li>
-                  <li>• Protein: 2g pro kg Körpergewicht</li>
-                </ul>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <Target className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-sm font-medium block">
+                        {userData.goalMode === 'lose' ? 'Abnehmen' : 'Zunehmen'}
+                      </span>
+                      <span className="text-xs text-muted-foreground/50">
+                        ~{userData.weeklyGoal}kg / Woche
+                      </span>
+                    </div>
+                  </div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1.3, type: "spring" }}
+                    className="text-2xl"
+                  >
+                    ✓
+                  </motion.div>
+                </div>
               </motion.div>
             </div>
           </StepCard>
