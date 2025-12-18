@@ -25,6 +25,18 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
+    // Parse request body for billing interval
+    let billingInterval = 'monthly';
+    try {
+      const body = await req.json();
+      if (body?.billing_interval) {
+        billingInterval = body.billing_interval;
+      }
+    } catch {
+      // No body or invalid JSON, use default
+    }
+    logStep("Billing interval", { billingInterval });
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No auth header - user needs to login");
@@ -81,13 +93,21 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://frig-ai.lovable.app";
     
+    // Select price based on billing interval
+    // Monthly: €11.99/month, Yearly: €59.88/year (€4.99/month)
+    const priceId = billingInterval === 'yearly' 
+      ? "price_yearly_premium" // Replace with actual yearly price ID
+      : "price_1SZrRBGj66h7dQy6o8nlG6wJ"; // Monthly price
+    
+    logStep("Selected price", { priceId, billingInterval });
+    
     // Create checkout session with 7-day trial
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1SZrRBGj66h7dQy6o8nlG6wJ", // Healthy3 Premium monthly price
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -96,7 +116,7 @@ serve(async (req) => {
         trial_period_days: 7, // 7-day free trial
       },
       success_url: `${origin}/premium?subscription=success`,
-      cancel_url: `${origin}/premium?subscription=cancelled`,
+      cancel_url: `${origin}/premium-pricing?subscription=cancelled`,
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

@@ -20,6 +20,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 import PlanSelectionPage from "./pages/PlanSelectionPage";
+import PremiumPricingPage from "./pages/PremiumPricingPage";
 import LandingPage from "./pages/LandingPage";
 import CommunityPage from "./pages/CommunityPage";
 
@@ -54,6 +55,7 @@ const AppContent = () => {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="/plan-selection" element={<PlanSelectionPage />} />
+        <Route path="/premium-pricing" element={<PremiumPricingPage />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
