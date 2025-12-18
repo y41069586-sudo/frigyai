@@ -1437,7 +1437,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </div>
               
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }} className="text-[10px] text-muted-foreground/40 mt-3 mb-4">
-                ✨ Premium: Persönliche Rezepte basierend auf deinem Kühlschrank
+                ✨ Automatisch auf deine Ziele abgestimmt
               </motion.p>
               
               <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
@@ -1452,8 +1452,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="comparison">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Planning without vs with Frigy</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Your progress over time</p>
+              <h1 className="text-2xl font-bold mb-1">Planning with Frigy</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Dein Fortschritt im Vergleich</p>
               
               {/* Simple comparison chart */}
               <div className="w-full max-w-sm h-48 bg-card rounded-2xl p-4 border border-border mb-6">
