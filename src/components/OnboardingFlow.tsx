@@ -1452,43 +1452,148 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="comparison">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Planning with Frigy</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Dein Fortschritt im Vergleich</p>
+              {/* Header with icon */}
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg"
+              >
+                <Sparkles className="w-8 h-8 text-primary-foreground" />
+              </motion.div>
               
-              {/* Simple comparison chart */}
-              <div className="w-full max-w-sm h-48 bg-card rounded-2xl p-4 border border-border mb-6">
-                <div className="h-full flex items-end justify-around gap-4">
-                  <div className="flex flex-col items-center gap-2">
-                    <motion.div 
-                      className="w-16 bg-muted rounded-t-lg"
-                      initial={{ height: 0 }}
-                      animate={{ height: chartAnimate ? 60 : 0 }}
-                      transition={{ duration: 0.6, delay: 0.2 }}
-                    />
-                    <span className="text-xs text-muted-foreground/60">Without</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <motion.div 
-                      className="w-16 bg-primary rounded-t-lg"
-                      initial={{ height: 0 }}
-                      animate={{ height: chartAnimate ? 140 : 0 }}
-                      transition={{ duration: 0.8, delay: 0.4 }}
-                    />
-                    <span className="text-xs text-primary font-medium">With Frigy</span>
-                  </div>
-                </div>
-              </div>
-              
-              <motion.div 
-                className="flex items-center gap-4 text-sm"
+              <motion.h1 
+                className="text-2xl font-bold mb-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                Planning with Frigy
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1, duration: 0.3 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-green-500">↑</span>
-                  <span className="text-muted-foreground/60">94% hit their goals</span>
+                Dein Weg zum Erfolg
+              </motion.p>
+              
+              {/* Comparison visualization */}
+              <motion.div 
+                className="w-full max-w-sm relative"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
+                {/* Progress comparison cards */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Without Frigy */}
+                  <motion.div 
+                    className="relative p-4 rounded-2xl bg-muted/30 border border-border overflow-hidden"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, duration: 0.4 }}
+                  >
+                    <div className="relative z-10">
+                      <div className="text-xs text-muted-foreground/60 mb-2">Ohne Frigy</div>
+                      <div className="h-24 flex items-end justify-center">
+                        <motion.div 
+                          className="w-full max-w-[60px] bg-muted/60 rounded-t-xl"
+                          initial={{ height: 0 }}
+                          animate={{ height: chartAnimate ? 40 : 0 }}
+                          transition={{ duration: 0.8, delay: 0.5 }}
+                        />
+                      </div>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+                          <X className="w-3 h-3" />
+                          <span>Keine Struktur</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+                          <X className="w-3 h-3" />
+                          <span>Ziele verfehlt</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  {/* With Frigy */}
+                  <motion.div 
+                    className="relative p-4 rounded-2xl bg-primary/5 border-2 border-primary/30 overflow-hidden"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5, duration: 0.4 }}
+                  >
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <div className="text-xs text-primary font-medium mb-2 flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-primary" />
+                        Mit Frigy
+                      </div>
+                      <div className="h-24 flex items-end justify-center">
+                        <motion.div 
+                          className="w-full max-w-[60px] bg-gradient-to-t from-primary to-primary/70 rounded-t-xl shadow-lg"
+                          initial={{ height: 0 }}
+                          animate={{ height: chartAnimate ? 96 : 0 }}
+                          transition={{ duration: 1, delay: 0.6 }}
+                          style={{ boxShadow: '0 -4px 20px hsla(var(--primary) / 0.3)' }}
+                        />
+                      </div>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-primary">
+                          <Check className="w-3 h-3" />
+                          <span>Klarer Plan</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-primary">
+                          <Check className="w-3 h-3" />
+                          <span>94% Erfolg</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
+                
+                {/* Stats row */}
+                <motion.div 
+                  className="grid grid-cols-3 gap-2 mb-6"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.3 }}
+                >
+                  {[
+                    { value: "94%", label: "Zielerreichung", icon: Target },
+                    { value: "2.4x", label: "Schneller", icon: Sparkles },
+                    { value: "15min", label: "Gespart/Tag", icon: Heart },
+                  ].map((stat, i) => (
+                    <motion.div
+                      key={stat.label}
+                      className="p-3 rounded-xl bg-card border border-border text-center"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 1 + i * 0.1, duration: 0.3 }}
+                    >
+                      <stat.icon className="w-4 h-4 mx-auto mb-1 text-primary" />
+                      <div className="text-sm font-bold text-foreground">{stat.value}</div>
+                      <div className="text-[9px] text-muted-foreground/60">{stat.label}</div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+                
+                {/* Success message */}
+                <motion.div 
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.3, duration: 0.3 }}
+                >
+                  <span className="text-lg">🎯</span>
+                  <span className="text-sm font-medium text-primary">
+                    Nutzer erreichen ihre Ziele 2.4x schneller
+                  </span>
+                </motion.div>
               </motion.div>
             </div>
           </StepCard>
