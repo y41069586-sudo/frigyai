@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, ArrowLeft, Crown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import frigLogo from "@/assets/frig-logo.png";
@@ -13,8 +13,16 @@ const PremiumPricingPage = () => {
   const { t } = useLanguage();
   const { user, session } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === '1' || searchParams.get('preview') === 'true';
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+
+  useEffect(() => {
+    if (!user && !isPreview) {
+      navigate('/auth?from=premium-pricing', { replace: true });
+    }
+  }, [user, navigate, isPreview]);
 
   const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
     if (!session) {
@@ -45,11 +53,6 @@ const PremiumPricingPage = () => {
       setIsLoading(false);
     }
   };
-
-  if (!user) {
-    navigate('/auth?from=premium-pricing');
-    return null;
-  }
 
   return (
     <motion.div
@@ -151,7 +154,7 @@ const PremiumPricingPage = () => {
               <p className="text-xs text-muted-foreground mb-1">
                 €59,88/Jahr
               </p>
-              <div className="inline-block bg-green-500/20 text-green-600 dark:text-green-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              <div className="inline-block bg-primary/15 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full">
                 58% SPAREN
               </div>
             </div>

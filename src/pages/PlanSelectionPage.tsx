@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Crown, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import frigLogo from "@/assets/frig-logo.png";
@@ -13,22 +13,26 @@ const PlanSelectionPage = () => {
   const { t } = useLanguage();
   const { user, subscriptionStatus } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === '1' || searchParams.get('preview') === 'true';
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium' | null>(null);
   const { saveProgress, isComplete } = useOnboardingProgress();
 
   // Check if user already has a plan selected or subscription
   useEffect(() => {
+    if (isPreview) return;
+
     if (isComplete) {
       navigate('/', { replace: true });
       return;
     }
-    
+
     if (subscriptionStatus?.subscribed) {
       saveProgress({ onboarding_complete: true });
       localStorage.setItem('onboardingComplete', 'true');
       navigate('/', { replace: true });
     }
-  }, [subscriptionStatus, navigate, isComplete, saveProgress]);
+  }, [subscriptionStatus, navigate, isComplete, saveProgress, isPreview]);
 
   // Redirect if not logged in
   useEffect(() => {
