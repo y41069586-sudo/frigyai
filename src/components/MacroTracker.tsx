@@ -14,6 +14,7 @@ import { useGamification } from '@/hooks/useGamification';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { EditFoodEntryDialog } from './EditFoodEntryDialog';
+import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -705,65 +706,28 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   return (
     <div className="space-y-4">
-      {/* Daily Summary */}
-      <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm text-muted-foreground">{t.today}</p>
-            <p className="text-2xl font-bold">
-              <span className={totalCalories > (profile?.dailyCalories || 0) ? 'text-red-500' : 'text-primary'}>
-                {totalCalories}
-              </span>
-              <span className="text-muted-foreground text-lg"> / {profile?.dailyCalories} kcal</span>
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              localStorage.removeItem('userProfile');
-              setStep('onboarding');
-              setOnboardingStep(0);
-            }}
-          >
-            {t.changeGoal}
-          </Button>
-        </div>
-
-        {/* Progress bar */}
-        <div className="h-3 bg-background/50 rounded-full overflow-hidden">
-          <motion.div
-            className={`h-full ${totalCalories > (profile?.dailyCalories || 0) ? 'bg-red-500' : 'bg-primary'}`}
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min((totalCalories / (profile?.dailyCalories || 1)) * 100, 100)}%` }}
-          />
-        </div>
-
-        {/* Macros */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="text-center p-2 bg-background/30 rounded-lg">
-            <p className="text-lg font-bold">
-              <span className={totalProtein > (profile?.dailyProtein || 0) ? 'text-red-400' : 'text-red-400'}>{totalProtein}</span>
-              <span className="text-muted-foreground text-sm"> / {profile?.dailyProtein}g</span>
-            </p>
-            <p className="text-xs text-muted-foreground">{t.protein}</p>
-          </div>
-          <div className="text-center p-2 bg-background/30 rounded-lg">
-            <p className="text-lg font-bold">
-              <span className={totalCarbs > (profile?.dailyCarbs || 0) ? 'text-red-400' : 'text-amber-400'}>{totalCarbs}</span>
-              <span className="text-muted-foreground text-sm"> / {profile?.dailyCarbs}g</span>
-            </p>
-            <p className="text-xs text-muted-foreground">{t.carbs}</p>
-          </div>
-          <div className="text-center p-2 bg-background/30 rounded-lg">
-            <p className="text-lg font-bold">
-              <span className={totalFat > (profile?.dailyFat || 0) ? 'text-red-400' : 'text-blue-400'}>{totalFat}</span>
-              <span className="text-muted-foreground text-sm"> / {profile?.dailyFat}g</span>
-            </p>
-            <p className="text-xs text-muted-foreground">{t.fat}</p>
-          </div>
-        </div>
-      </Card>
+      {/* Modern Macro Display */}
+      <div className="relative">
+        <MacroDisplay
+          calories={{ current: totalCalories, target: profile?.dailyCalories || 0 }}
+          protein={{ current: totalProtein, target: profile?.dailyProtein || 0 }}
+          carbs={{ current: totalCarbs, target: profile?.dailyCarbs || 0 }}
+          fat={{ current: totalFat, target: profile?.dailyFat || 0 }}
+          variant="full"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-4 right-4"
+          onClick={() => {
+            localStorage.removeItem('userProfile');
+            setStep('onboarding');
+            setOnboardingStep(0);
+          }}
+        >
+          {t.changeGoal}
+        </Button>
+      </div>
 
       {/* Add Food */}
       <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">

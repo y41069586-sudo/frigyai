@@ -18,6 +18,7 @@ import {
   AnimatedBicycle, AnimatedCar, AnimatedRocket
 } from "./onboarding/components";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
+import { MacroRing } from "./MacroRing";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -1155,90 +1156,86 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         return (
           <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-6 w-full">
+            <div className="flex flex-col items-center text-center px-4 w-full">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-4"
+                className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-3"
               >
-                <span className="text-3xl">✨</span>
+                <span className="text-2xl">✨</span>
               </motion.div>
               
-              <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
+              <motion.h1 className="text-xl font-bold mb-1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 Dein optimaler Plan
               </motion.h1>
-              <motion.p className="text-muted-foreground/50 text-xs mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
+              <motion.p className="text-muted-foreground/50 text-xs mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
                 Basierend auf deinen Daten berechnet
               </motion.p>
               
-              {/* Main calorie display */}
+              {/* Modern Calorie Ring */}
               <motion.div
-                className="relative w-36 h-36 mb-6"
+                className="mb-5"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
               >
-                <svg viewBox="0 0 144 144" className="w-full h-full">
-                  <circle cx="72" cy="72" r="60" fill="none" stroke="hsl(var(--muted))" strokeWidth="8" />
-                  <motion.circle
-                    cx="72" cy="72" r="60"
-                    fill="none" stroke="hsl(var(--primary))" strokeWidth="8" strokeLinecap="round"
-                    strokeDasharray="377"
-                    initial={{ strokeDashoffset: 377 }}
-                    animate={{ strokeDashoffset: 0 }}
-                    transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                    style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold">{calculatedMacros.dailyCalories}</span>
-                  <span className="text-[10px] text-muted-foreground/50">kcal / Tag</span>
-                </div>
+                <MacroRing
+                  value={calculatedMacros.dailyCalories}
+                  max={calculatedMacros.dailyCalories}
+                  label="Tägliches Ziel"
+                  unit=" kcal"
+                  color="calories"
+                  size="lg"
+                />
               </motion.div>
               
-              {/* Macro breakdown */}
+              {/* Modern Macro Rings */}
               <motion.div 
-                className="flex justify-center gap-6 mb-6 w-full"
+                className="flex justify-center gap-6 mb-5 w-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.3 }}
+                transition={{ delay: 0.5, duration: 0.3 }}
               >
-                {[
-                  { label: "Protein", value: calculatedMacros.dailyProtein, color: "hsl(160, 100%, 50%)" },
-                  { label: "Carbs", value: calculatedMacros.dailyCarbs, color: "hsl(220, 90%, 60%)" },
-                  { label: "Fett", value: calculatedMacros.dailyFat, color: "hsl(45, 100%, 55%)" },
-                ].map((macro, i) => (
-                  <motion.div 
-                    key={macro.label}
-                    className="text-center"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 + i * 0.1, duration: 0.3 }}
-                  >
-                    <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: macro.color }} />
-                    <span className="text-lg font-bold block">{macro.value}g</span>
-                    <span className="text-[10px] text-muted-foreground/50">{macro.label}</span>
-                  </motion.div>
-                ))}
+                <MacroRing
+                  value={calculatedMacros.dailyProtein}
+                  max={calculatedMacros.dailyProtein}
+                  label="Protein"
+                  color="protein"
+                  size="sm"
+                />
+                <MacroRing
+                  value={calculatedMacros.dailyCarbs}
+                  max={calculatedMacros.dailyCarbs}
+                  label="Carbs"
+                  color="carbs"
+                  size="sm"
+                />
+                <MacroRing
+                  value={calculatedMacros.dailyFat}
+                  max={calculatedMacros.dailyFat}
+                  label="Fett"
+                  color="fat"
+                  size="sm"
+                />
               </motion.div>
               
               {/* Goal timeline */}
               <motion.div 
-                className="w-full max-w-xs p-4 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20"
+                className="w-full max-w-xs p-3 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9, duration: 0.3 }}
+                transition={{ delay: 0.7, duration: 0.3 }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Target className="w-5 h-5 text-primary" />
+                  <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 text-left">
                     <span className="text-sm font-medium block">Ziel: {userData.targetWeight}kg</span>
                     <span className="text-xs text-muted-foreground/50">~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)</span>
                   </div>
-                  <span className="text-xl">🎯</span>
+                  <span className="text-lg">🎯</span>
                 </div>
               </motion.div>
             </div>
