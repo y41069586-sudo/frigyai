@@ -126,6 +126,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [fridgeScan, setFridgeScan] = useState(false);
   const [macroAnimate, setMacroAnimate] = useState(false);
   const [chartAnimate, setChartAnimate] = useState(false);
+  const [selectedPlanOption, setSelectedPlanOption] = useState<'free' | 'premium' | null>(null);
 
   const currentIndex = onboardingSteps.indexOf(currentStep);
 
@@ -1528,55 +1529,168 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "premium-hint":
+        const freeFeatures = [
+          "2 Kühlschrank-Scans/Tag",
+          "Basis-Rezeptvorschläge",
+          "Kalorien-Anzeige"
+        ];
+        
+        const premiumFeaturesOnboarding = [
+          "Unbegrenzte Scans",
+          "KI-Chatbot",
+          "Wöchentliche Meal Plans",
+          "Einkaufslisten",
+          "Makro-Tracking",
+          "Wasser-Tracker"
+        ];
+        
+        const handlePlanContinue = () => {
+          if (selectedPlanOption === 'free') {
+            goNext();
+          } else if (selectedPlanOption === 'premium') {
+            // Save onboarding data and go to premium pricing
+            saveOnboardingData(userData);
+            onComplete();
+            // Small delay to ensure navigation happens after onComplete
+            setTimeout(() => {
+              window.location.href = '/premium-pricing';
+            }, 100);
+          }
+        };
+        
         return (
           <StepCard step="premium-hint">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Want full control?</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Compare plans</p>
+            <div className="flex flex-col items-center text-center px-4 w-full">
+              <h1 className="text-2xl font-bold mb-1">Wähle deinen Plan</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Starte mit Free oder teste Premium 7 Tage gratis</p>
               
               <div className="w-full max-w-sm grid grid-cols-2 gap-3 mb-6">
-                <motion.div 
-                  className="p-4 rounded-2xl bg-muted/20 border border-border"
+                {/* Free Plan */}
+                <motion.div
                   initial={{ opacity: 0, x: -15 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                  onClick={() => setSelectedPlanOption('free')}
+                  className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
+                    selectedPlanOption === 'free'
+                      ? 'border-primary bg-primary/5 shadow-lg'
+                      : 'border-border bg-card hover:border-primary/50'
+                  }`}
                 >
-                  <span className="text-sm font-semibold block mb-3 text-muted-foreground/60">Free</span>
-                  <ul className="space-y-2 text-left text-xs text-muted-foreground/40">
-                    <li>• 1 scan/week</li>
-                    <li>• 1 plan/week</li>
-                    <li>• Read-only list</li>
-                  </ul>
+                  <div className="text-center mb-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted mb-2">
+                      <Check className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-bold">Free</h3>
+                    <div className="mt-1">
+                      <span className="text-2xl font-bold">€0</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    {freeFeatures.map((feature, index) => (
+                      <div key={index} className="flex items-start gap-1.5 text-[10px]">
+                        <Check className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <span className="text-muted-foreground text-left">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Selection indicator */}
+                  <div className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    selectedPlanOption === 'free' 
+                      ? 'border-primary bg-primary' 
+                      : 'border-muted-foreground/30'
+                  }`}>
+                    {selectedPlanOption === 'free' && (
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    )}
+                  </div>
                 </motion.div>
-                
-                <motion.div 
-                  className="p-4 rounded-2xl bg-primary/5 border-2 border-primary/20 relative overflow-hidden"
+
+                {/* Premium Plan */}
+                <motion.div
                   initial={{ opacity: 0, x: 15 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  onClick={() => setSelectedPlanOption('premium')}
+                  className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
+                    selectedPlanOption === 'premium'
+                      ? 'border-primary bg-primary/5 shadow-lg'
+                      : 'border-border bg-card hover:border-primary/50'
+                  }`}
                 >
-                  <motion.div
-                    className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] px-2 py-0.5 rounded-bl-lg rounded-tr-xl font-medium flex items-center gap-0.5"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5, duration: 0.3 }}
-                  >
-                    <Star className="w-2.5 h-2.5" fill="currentColor" />
-                    Popular
-                  </motion.div>
+                  {/* Recommended badge */}
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    <span className="bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      EMPFOHLEN
+                    </span>
+                  </div>
                   
-                  <span className="text-sm font-semibold block mb-3 text-primary">Premium</span>
-                  <ul className="space-y-2 text-left text-xs">
-                    <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Unlimited scans</li>
-                    <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Unlimited plans</li>
-                    <li className="flex items-center gap-1 text-foreground/80"><Check className="w-3 h-3 text-primary" /> Smart shopping</li>
-                  </ul>
+                  <div className="text-center mb-3 mt-1">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 mb-2">
+                      <Star className="h-5 w-5 text-primary" fill="currentColor" />
+                    </div>
+                    <h3 className="text-lg font-bold text-primary">Premium</h3>
+                    <div className="mt-1">
+                      <span className="text-2xl font-bold text-primary">€4,99</span>
+                      <span className="text-muted-foreground text-[10px]">/Mo</span>
+                    </div>
+                    <p className="text-[9px] text-primary mt-0.5">7 Tage gratis</p>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    {premiumFeaturesOnboarding.map((feature, index) => (
+                      <div key={index} className="flex items-start gap-1.5 text-[10px]">
+                        <Check className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-left">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Selection indicator */}
+                  <div className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    selectedPlanOption === 'premium' 
+                      ? 'border-primary bg-primary' 
+                      : 'border-muted-foreground/30'
+                  }`}>
+                    {selectedPlanOption === 'premium' && (
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    )}
+                  </div>
                 </motion.div>
               </div>
               
-              <Button onClick={goNext} variant="outline" className="w-full max-w-xs h-12 rounded-xl">
-                Continue with Free
+              <Button 
+                onClick={handlePlanContinue} 
+                disabled={!selectedPlanOption}
+                className="w-full max-w-sm h-12 rounded-xl"
+              >
+                {selectedPlanOption === 'free' && (
+                  <>
+                    Mit Free starten
+                    <ChevronRight className="w-5 h-5 ml-1" />
+                  </>
+                )}
+                {selectedPlanOption === 'premium' && (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Weiter zu Premium
+                  </>
+                )}
+                {!selectedPlanOption && "Wähle einen Plan"}
               </Button>
+              
+              {selectedPlanOption === 'free' && (
+                <motion.p 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  className="text-[10px] text-muted-foreground/40 mt-3"
+                >
+                  Du hast den kostenlosen Plan ausgewählt. Drücke den Button um zu starten!
+                </motion.p>
+              )}
             </div>
           </StepCard>
         );
