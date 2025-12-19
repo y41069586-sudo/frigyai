@@ -1,30 +1,36 @@
 import { motion } from "framer-motion";
-import { StepCard, SelectionCard } from "../components";
+import { StepCard } from "../components";
 import { StepProps } from "../types";
-import { Clock } from "lucide-react";
+import { Clock, Zap, Utensils, ChefHat, Check } from "lucide-react";
 
 export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
   const timeOptions = [
     { 
       id: 'quick' as const, 
       label: '15 Minuten', 
-      emoji: '⚡', 
+      icon: Zap,
       desc: 'Schnelle Gerichte',
-      color: 'from-green-500/20 to-emerald-500/20'
+      color: 'from-green-500/20 to-emerald-500/20',
+      iconColor: 'text-green-500',
+      bgColor: 'bg-green-500/20'
     },
     { 
       id: 'medium' as const, 
       label: '30 Minuten', 
-      emoji: '🍳', 
+      icon: Utensils,
       desc: 'Normale Rezepte',
-      color: 'from-yellow-500/20 to-orange-500/20'
+      color: 'from-yellow-500/20 to-orange-500/20',
+      iconColor: 'text-yellow-500',
+      bgColor: 'bg-yellow-500/20'
     },
     { 
       id: 'long' as const, 
       label: '45+ Minuten', 
-      emoji: '👨‍🍳', 
+      icon: ChefHat,
       desc: 'Aufwendige Küche',
-      color: 'from-purple-500/20 to-pink-500/20'
+      color: 'from-purple-500/20 to-pink-500/20',
+      iconColor: 'text-purple-500',
+      bgColor: 'bg-purple-500/20'
     },
   ];
 
@@ -35,7 +41,7 @@ export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4"
+          className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4"
         >
           <Clock className="w-8 h-8 text-primary" />
         </motion.div>
@@ -58,42 +64,45 @@ export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
         </motion.p>
         
         <div className="flex flex-col gap-3 w-full max-w-sm">
-          {timeOptions.map((option, index) => (
-            <motion.button
-              key={option.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 + index * 0.08, duration: 0.3, ease: "easeOut" }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setUserData({ ...userData, cookingTime: option.id })}
-              className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden ${
-                userData.cookingTime === option.id
-                  ? 'border-primary bg-primary/10 shadow-md'
-                  : 'border-border bg-card hover:border-primary/30'
-              }`}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-r ${option.color} opacity-50`} />
-              <div className="relative z-10 flex items-center gap-4">
-                <span className="text-3xl">{option.emoji}</span>
-                <div className="text-left flex-1">
-                  <p className="font-semibold">{option.label}</p>
-                  <p className="text-xs text-muted-foreground/60">{option.desc}</p>
+          {timeOptions.map((option, index) => {
+            const IconComponent = option.icon;
+            return (
+              <motion.button
+                key={option.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + index * 0.08, duration: 0.3, ease: "easeOut" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setUserData({ ...userData, cookingTime: option.id })}
+                className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden ${
+                  userData.cookingTime === option.id
+                    ? 'border-primary bg-primary/10 shadow-md'
+                    : 'border-border bg-card hover:border-primary/30'
+                }`}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-r ${option.color} opacity-50`} />
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl ${option.bgColor} flex items-center justify-center ${option.iconColor}`}>
+                    <IconComponent className="w-5 h-5" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <p className="font-semibold">{option.label}</p>
+                    <p className="text-xs text-muted-foreground/60">{option.desc}</p>
+                  </div>
+                  {userData.cookingTime === option.id && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                    >
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </motion.div>
+                  )}
                 </div>
-                {userData.cookingTime === option.id && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
-                  >
-                    <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </motion.div>
-                )}
-              </div>
-            </motion.button>
-          ))}
+              </motion.button>
+            );
+          })}
         </div>
         
         <motion.p
