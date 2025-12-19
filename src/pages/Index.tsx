@@ -206,15 +206,15 @@ const Index = () => {
             </div>
           </motion.div>
           
-          {/* Macro Circle - Main Feature */}
+          {/* Macro Circle - Compact & Round */}
           {user && trackerSettings && (
             <motion.div
-              className="w-full"
-              initial={{ opacity: 0, scale: 0.9 }}
+              className="flex justify-center w-full"
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
             >
-              <div className="p-6 bg-card rounded-3xl border border-border/50 shadow-sm">
+              <div className="px-5 py-4 bg-card/80 backdrop-blur-sm rounded-[2rem] border border-border/30 shadow-sm">
                 <DashboardMacroCircle
                   calories={0}
                   targetCalories={trackerSettings.dailyCalories || 2000}
