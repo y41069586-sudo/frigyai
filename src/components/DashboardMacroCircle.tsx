@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 
 interface DashboardMacroCircleProps {
   calories: number;
@@ -21,131 +25,225 @@ export const DashboardMacroCircle = ({
   fat = 0,
   targetFat = 65,
 }: DashboardMacroCircleProps) => {
-  const caloriePercent = Math.min((calories / targetCalories) * 100, 100);
-  const proteinPercent = Math.min((protein / targetProtein) * 100, 100);
-  const carbsPercent = Math.min((carbs / targetCarbs) * 100, 100);
-  const fatPercent = Math.min((fat / targetFat) * 100, 100);
-  
-  const remaining = targetCalories - calories;
-  const isOverLimit = calories > targetCalories;
+  const navigate = useNavigate();
+  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
-  // SVG calculations - smaller size
-  const size = 140;
-  const strokeWidth = 10;
-  const outerRadius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * outerRadius;
-  const calorieOffset = circumference - (caloriePercent / 100) * circumference;
+  // Calculate calorie values for each macro
+  const proteinCalories = targetProtein * 4;
+  const carbsCalories = targetCarbs * 4;
+  const fatCalories = targetFat * 9;
+  const totalMacroCalories = proteinCalories + carbsCalories + fatCalories;
 
-  // Inner rings for macros
-  const innerSize = 100;
-  const innerStroke = 4;
-  const innerRadius = (innerSize - innerStroke) / 2;
-  const innerCircumference = 2 * Math.PI * innerRadius;
+  // Calculate percentages
+  const proteinPercent = (proteinCalories / totalMacroCalories) * 100;
+  const carbsPercent = (carbsCalories / totalMacroCalories) * 100;
+  const fatPercent = (fatCalories / totalMacroCalories) * 100;
 
-  const macros = [
-    { label: 'P', value: protein, target: targetProtein, percent: proteinPercent, color: '#f43f5e', offset: 0 },
-    { label: 'C', value: carbs, target: targetCarbs, percent: carbsPercent, color: '#f59e0b', offset: 120 },
-    { label: 'F', value: fat, target: targetFat, percent: fatPercent, color: '#3b82f6', offset: 240 },
+  // SVG settings
+  const size = 200;
+  const strokeWidth = 32;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const center = size / 2;
+
+  // Calculate segment offsets
+  const proteinOffset = 0;
+  const carbsOffset = (proteinPercent / 100) * circumference;
+  const fatOffset = ((proteinPercent + carbsPercent) / 100) * circumference;
+
+  const segments = [
+    {
+      id: 'protein',
+      label: 'Protein',
+      calories: proteinCalories,
+      grams: targetProtein,
+      percent: proteinPercent,
+      color: '#3b82f6',
+      glowColor: 'rgba(59, 130, 246, 0.4)',
+      offset: proteinOffset,
+    },
+    {
+      id: 'carbs',
+      label: 'Kohlenhydrate',
+      calories: carbsCalories,
+      grams: targetCarbs,
+      percent: carbsPercent,
+      color: '#f97316',
+      glowColor: 'rgba(249, 115, 22, 0.4)',
+      offset: carbsOffset,
+    },
+    {
+      id: 'fat',
+      label: 'Fette',
+      calories: fatCalories,
+      grams: targetFat,
+      percent: fatPercent,
+      color: '#22c55e',
+      glowColor: 'rgba(34, 197, 94, 0.4)',
+      offset: fatOffset,
+    },
   ];
 
   return (
-    <div className="flex items-center gap-6">
-      {/* Main Circle */}
+    <div className="flex flex-col items-center gap-4">
+      {/* Interactive Donut Chart */}
       <div className="relative" style={{ width: size, height: size }}>
-        {/* Background ring */}
-        <svg className="absolute inset-0 -rotate-90" viewBox={`0 0 ${size} ${size}`}>
+        {/* Background Circle */}
+        <svg className="absolute inset-0" viewBox={`0 0 ${size} ${size}`}>
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={outerRadius}
+            cx={center}
+            cy={center}
+            r={radius}
             fill="none"
-            stroke="currentColor"
+            stroke="hsl(var(--muted))"
             strokeWidth={strokeWidth}
-            className="text-muted/20"
+            opacity={0.2}
           />
         </svg>
-        
-        {/* Progress ring */}
-        <svg className="absolute inset-0 -rotate-90" viewBox={`0 0 ${size} ${size}`}>
+
+        {/* Segment Circles */}
+        <svg 
+          className="absolute inset-0 -rotate-90" 
+          viewBox={`0 0 ${size} ${size}`}
+          style={{ filter: hoveredSegment ? 'none' : 'none' }}
+        >
           <defs>
-            <linearGradient id="calorie-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={isOverLimit ? '#ef4444' : 'hsl(var(--primary))'} />
-              <stop offset="100%" stopColor={isOverLimit ? '#dc2626' : 'hsl(142 76% 46%)'} />
-            </linearGradient>
+            {segments.map((seg) => (
+              <filter key={`glow-${seg.id}`} id={`glow-${seg.id}`}>
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            ))}
           </defs>
-          <motion.circle
-            cx={size / 2}
-            cy={size / 2}
-            r={outerRadius}
-            fill="none"
-            stroke="url(#calorie-grad)"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: calorieOffset }}
-            transition={{ duration: 1, ease: "easeOut" }}
-          />
+          
+          {segments.map((seg, index) => {
+            const segmentLength = (seg.percent / 100) * circumference;
+            const dashArray = `${segmentLength - 2} ${circumference - segmentLength + 2}`;
+            const isHovered = hoveredSegment === seg.id;
+            
+            return (
+              <motion.circle
+                key={seg.id}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
+                strokeDasharray={dashArray}
+                strokeDashoffset={-seg.offset}
+                strokeLinecap="butt"
+                className="cursor-pointer transition-all duration-200"
+                filter={isHovered ? `url(#glow-${seg.id})` : 'none'}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset: -seg.offset }}
+                transition={{ duration: 0.8, delay: index * 0.15, ease: "easeOut" }}
+                onMouseEnter={() => setHoveredSegment(seg.id)}
+                onMouseLeave={() => setHoveredSegment(null)}
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+                style={{
+                  opacity: hoveredSegment && hoveredSegment !== seg.id ? 0.5 : 1,
+                }}
+              />
+            );
+          })}
         </svg>
-        
-        {/* Center content */}
+
+        {/* Separating Lines */}
+        <svg className="absolute inset-0 -rotate-90 pointer-events-none" viewBox={`0 0 ${size} ${size}`}>
+          {segments.map((seg, index) => {
+            const angle = (seg.offset / circumference) * 360;
+            const angleRad = (angle * Math.PI) / 180;
+            const innerR = radius - strokeWidth / 2 - 2;
+            const outerR = radius + strokeWidth / 2 + 2;
+            
+            const x1 = center + innerR * Math.cos(angleRad);
+            const y1 = center + innerR * Math.sin(angleRad);
+            const x2 = center + outerR * Math.cos(angleRad);
+            const y2 = center + outerR * Math.sin(angleRad);
+            
+            return (
+              <line
+                key={`line-${index}`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="hsl(var(--background))"
+                strokeWidth="2"
+              />
+            );
+          })}
+        </svg>
+
+        {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span 
-            className={`text-2xl font-bold ${isOverLimit ? 'text-destructive' : 'text-foreground'}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
           >
-            {remaining >= 0 ? remaining : `+${Math.abs(remaining)}`}
-          </motion.span>
-          <span className="text-[10px] text-muted-foreground">kcal übrig</span>
+            <span className="text-3xl font-bold text-foreground">{targetCalories}</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">kcal Ziel</span>
+          </motion.div>
         </div>
       </div>
-      
-      {/* Macro Stats - Vertical */}
-      <div className="flex flex-col gap-2">
-        {macros.map((macro, i) => (
+
+      {/* Macro Legend with Calories */}
+      <div className="flex gap-4 justify-center flex-wrap">
+        {segments.map((seg, index) => (
           <motion.div
-            key={macro.label}
-            className="flex items-center gap-2"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + i * 0.1 }}
+            key={seg.id}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 cursor-pointer ${
+              hoveredSegment === seg.id 
+                ? 'bg-card shadow-md scale-105' 
+                : 'hover:bg-card/50'
+            }`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 + index * 0.1 }}
+            onMouseEnter={() => setHoveredSegment(seg.id)}
+            onMouseLeave={() => setHoveredSegment(null)}
+            onClick={() => navigate('/meal-plans?tab=tracker')}
           >
-            {/* Mini ring */}
-            <div className="relative w-8 h-8">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 32 32">
-                <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted/20" />
-                <motion.circle
-                  cx="16"
-                  cy="16"
-                  r="12"
-                  fill="none"
-                  stroke={macro.color}
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 12}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 12 }}
-                  animate={{ strokeDashoffset: (2 * Math.PI * 12) * (1 - macro.percent / 100) }}
-                  transition={{ duration: 0.8, delay: 0.4 + i * 0.1 }}
-                />
-              </svg>
-              <span 
-                className="absolute inset-0 flex items-center justify-center text-[9px] font-bold"
-                style={{ color: macro.color }}
-              >
-                {macro.label}
-              </span>
-            </div>
-            
-            {/* Value */}
-            <div className="text-xs">
-              <span className="font-semibold">{macro.value}</span>
-              <span className="text-muted-foreground">/{macro.target}g</span>
+            <div 
+              className="w-3 h-3 rounded-full"
+              style={{ 
+                backgroundColor: seg.color,
+                boxShadow: hoveredSegment === seg.id ? `0 0 10px ${seg.glowColor}` : 'none'
+              }}
+            />
+            <div className="text-left">
+              <p className="text-xs font-medium text-foreground">{seg.label}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {seg.calories} kcal • {seg.grams}g
+              </p>
             </div>
           </motion.div>
         ))}
       </div>
+
+      {/* CTA Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+        className="w-full"
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full rounded-xl gap-2 text-sm font-medium border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
+          onClick={() => navigate('/meal-plans?tab=tracker')}
+        >
+          Zu meinem MacroTracker-Plan
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      </motion.div>
     </div>
   );
 };
