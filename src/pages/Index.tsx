@@ -247,7 +247,7 @@ const Index = () => {
             </motion.div>
           )}
           
-          {/* Main CTA - Notebook/Tracker Button */}
+          {/* Main CTA - Scan Button */}
           <motion.div
             className="w-full mt-6"
             initial={{ opacity: 0, y: 20 }}
@@ -255,13 +255,22 @@ const Index = () => {
             transition={{ delay: 0.4, duration: 0.4 }}
           >
             <Button 
-              onClick={() => navigate("/meal-plans?tab=tracker")}
-              className="w-full h-14 text-lg font-semibold rounded-2xl gap-3 shadow-lg bg-gradient-to-r from-primary to-primary/80"
+              onClick={() => navigate("/scan")}
+              className="w-full h-14 text-lg font-semibold rounded-2xl gap-3 shadow-lg"
               size="lg"
             >
-              <Utensils className="w-5 h-5" />
-              Mahlzeit eintragen
+              <Camera className="w-5 h-5" />
+              {t.scanFridge}
             </Button>
+            
+            {/* Scan limit for free users */}
+            {user && !subscriptionStatus?.subscribed && (
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                <span className={scansRemaining > 0 ? "text-primary" : "text-destructive"}>
+                  {scansRemaining}/2 {t.scansRemaining}
+                </span>
+              </p>
+            )}
           </motion.div>
           
           {/* Quick Actions */}
