@@ -1367,6 +1367,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "permissions":
+        const requestCameraPermission = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            // Permission granted - stop the stream immediately (we just wanted permission)
+            stream.getTracks().forEach(track => track.stop());
+            setUserData({ ...userData, cameraPermission: true });
+            // Go to next step after permission is granted
+            goNext();
+          } catch (error) {
+            console.log("Camera permission denied or error:", error);
+            // Still allow user to proceed, they can grant permission later
+            setUserData({ ...userData, cameraPermission: false });
+          }
+        };
+
         return (
           <StepCard step="permissions">
             <div className="flex flex-col items-center text-center px-6 w-full">
@@ -1381,7 +1396,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <h1 className="text-2xl font-bold mb-1">Enable camera</h1>
               <p className="text-muted-foreground/40 text-xs mb-6">Required for scanning your fridge</p>
               
-              <div className="w-full max-w-sm space-y-3">
+              <div className="w-full max-w-sm space-y-4">
                 <motion.div 
                   className="flex items-center justify-between p-4 rounded-2xl border-2 border-border bg-card"
                   initial={{ opacity: 0, x: -20 }}
@@ -1397,16 +1412,19 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <span className="text-[10px] text-muted-foreground/40">For fridge scanning</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setUserData({ ...userData, cameraPermission: !userData.cameraPermission })}
-                    className={`w-12 h-7 rounded-full transition-all ${userData.cameraPermission ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <motion.div
-                      className="w-5 h-5 bg-white rounded-full shadow-sm"
-                      animate={{ x: userData.cameraPermission ? 22 : 2 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                    />
-                  </button>
+                  {userData.cameraPermission ? (
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      onClick={requestCameraPermission}
+                      className="h-8 px-4 text-sm"
+                    >
+                      Allow
+                    </Button>
+                  )}
                 </motion.div>
                 
                 <div className="pt-4">
@@ -1434,6 +1452,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     </motion.button>
                   </div>
                 </div>
+
+                {/* Skip button for users who don't want to grant permission now */}
+                <Button 
+                  variant="ghost" 
+                  onClick={goNext}
+                  className="w-full h-10 text-muted-foreground/60 text-sm mt-4"
+                >
+                  Skip for now
+                </Button>
               </div>
             </div>
           </StepCard>
