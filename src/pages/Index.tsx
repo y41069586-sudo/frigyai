@@ -43,16 +43,15 @@ const Index = () => {
   
   // Initialize states - check if user already completed onboarding
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
-  const [showSplash, setShowSplash] = useState(!hasCompletedOnboarding);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Skip splash, go directly to onboarding with mascot intro
+  const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
   const [onboardingComplete, setOnboardingComplete] = useState(hasCompletedOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
   
-  // Skip splash/onboarding only if coming from subscription success
+  // Skip onboarding only if coming from subscription success
   useEffect(() => {
     if (isFromSubscription) {
-      setShowSplash(false);
       setShowOnboarding(false);
       setOnboardingComplete(true);
     }
@@ -92,10 +91,7 @@ const Index = () => {
     fetchScanUsage();
   }, [user, subscriptionStatus]);
   
-  const handleSplashComplete = () => {
-    setShowSplash(false);
-    setShowOnboarding(true);
-  };
+  // Removed splash screen - onboarding now starts directly with mascot intro
   
   const handleOnboardingComplete = () => {
     // After onboarding slides, mark complete and go to auth page
@@ -142,10 +138,7 @@ const Index = () => {
     );
   }
 
-  // Show splash screen first (only for new users)
-  if (showSplash) {
-    return <SplashScreen onComplete={handleSplashComplete} />;
-  }
+  // Show onboarding with mascot intro (no separate splash screen)
   
   // Show onboarding after splash (no navigation)
   if (showOnboarding) {
