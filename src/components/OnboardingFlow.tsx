@@ -1224,25 +1224,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         goalDate.setDate(goalDate.getDate() + (weeksToGoal * 7));
         const goalDateFormatted = goalDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
         
-        if (userData.dailyCalories !== calculatedMacros.dailyCalories) {
+        if (userData.dailyCalories !== calculatedMacros.dailyCalories && userData.dailyCalories === 0) {
           setTimeout(() => setUserData(prev => ({ ...prev, ...calculatedMacros })), 0);
         }
 
+        const handleMacroEdit = (field: string, currentValue: number) => {
+          const newValue = prompt(`${field} anpassen:`, currentValue.toString());
+          if (newValue !== null) {
+            const num = parseInt(newValue);
+            if (!isNaN(num) && num > 0) {
+              setUserData(prev => ({ ...prev, [field]: num }));
+            }
+          }
+        };
+
         return (
           <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-4 w-full relative">
-              {/* Edit Button - Top Right */}
-              <motion.button
-                onClick={() => setCurrentStep("target-weight")}
-                className="absolute top-0 right-0 w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center hover:bg-muted transition-colors"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.8, duration: 0.3 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Ruler className="w-4 h-4 text-muted-foreground" />
-              </motion.button>
-              
+            <div className="flex flex-col items-center text-center px-4 w-full">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -1256,54 +1254,97 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 Dein optimaler Plan
               </motion.h1>
               <motion.p className="text-muted-foreground/50 text-xs mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                Basierend auf deinen Daten berechnet
+                Tippe auf ✏️ um Werte anzupassen
               </motion.p>
               
-              {/* Modern Calorie Ring */}
+              {/* Calorie Ring with Edit */}
               <motion.div
-                className="mb-5"
+                className="mb-5 relative"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
               >
                 <MacroRing
-                  value={calculatedMacros.dailyCalories}
-                  max={calculatedMacros.dailyCalories}
+                  value={userData.dailyCalories || calculatedMacros.dailyCalories}
+                  max={userData.dailyCalories || calculatedMacros.dailyCalories}
                   label="Tägliches Ziel"
                   unit=" kcal"
                   color="calories"
                   size="lg"
                 />
+                <button
+                  onClick={() => handleMacroEdit('dailyCalories', userData.dailyCalories || calculatedMacros.dailyCalories)}
+                  className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                >
+                  <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
               </motion.div>
               
-              {/* Modern Macro Rings */}
+              {/* Macro Rings with Edit Buttons */}
               <motion.div 
-                className="flex justify-center gap-6 mb-5 w-full"
+                className="flex justify-center gap-8 mb-5 w-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
-                <MacroRing
-                  value={calculatedMacros.dailyProtein}
-                  max={calculatedMacros.dailyProtein}
-                  label="Protein"
-                  color="protein"
-                  size="sm"
-                />
-                <MacroRing
-                  value={calculatedMacros.dailyCarbs}
-                  max={calculatedMacros.dailyCarbs}
-                  label="Carbs"
-                  color="carbs"
-                  size="sm"
-                />
-                <MacroRing
-                  value={calculatedMacros.dailyFat}
-                  max={calculatedMacros.dailyFat}
-                  label="Fett"
-                  color="fat"
-                  size="sm"
-                />
+                {/* Protein */}
+                <div className="relative">
+                  <MacroRing
+                    value={userData.dailyProtein || calculatedMacros.dailyProtein}
+                    max={userData.dailyProtein || calculatedMacros.dailyProtein}
+                    label="Protein"
+                    color="protein"
+                    size="sm"
+                  />
+                  <button
+                    onClick={() => handleMacroEdit('dailyProtein', userData.dailyProtein || calculatedMacros.dailyProtein)}
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                  >
+                    <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Carbs */}
+                <div className="relative">
+                  <MacroRing
+                    value={userData.dailyCarbs || calculatedMacros.dailyCarbs}
+                    max={userData.dailyCarbs || calculatedMacros.dailyCarbs}
+                    label="Carbs"
+                    color="carbs"
+                    size="sm"
+                  />
+                  <button
+                    onClick={() => handleMacroEdit('dailyCarbs', userData.dailyCarbs || calculatedMacros.dailyCarbs)}
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                  >
+                    <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Fat */}
+                <div className="relative">
+                  <MacroRing
+                    value={userData.dailyFat || calculatedMacros.dailyFat}
+                    max={userData.dailyFat || calculatedMacros.dailyFat}
+                    label="Fett"
+                    color="fat"
+                    size="sm"
+                  />
+                  <button
+                    onClick={() => handleMacroEdit('dailyFat', userData.dailyFat || calculatedMacros.dailyFat)}
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                  >
+                    <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
               </motion.div>
               
               {/* Goal Date Banner */}
