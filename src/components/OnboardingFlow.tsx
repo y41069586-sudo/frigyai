@@ -1280,7 +1280,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <span className="text-sm font-medium block">Ziel: {userData.targetWeight}kg</span>
                     <span className="text-xs text-muted-foreground/50">~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)</span>
                   </div>
-                  <span className="text-lg">🎯</span>
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-primary" />
+                  </div>
                 </div>
               </motion.div>
             </div>

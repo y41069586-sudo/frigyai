@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { 
   User, Scale, Target, Flame, Camera, Plus, Trash2, 
-  ChevronRight, Sparkles, TrendingDown, Pencil, Barcode
+  ChevronRight, Sparkles, TrendingDown, Pencil, Barcode,
+  Armchair, Footprints, PersonStanding, Dumbbell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -427,25 +428,30 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       content: (
         <div className="space-y-4">
           {[
-            { value: 1.2, label: 'Wenig aktiv', desc: 'Bürojob, wenig Bewegung', emoji: '🪑' },
-            { value: 1.375, label: 'Leicht aktiv', desc: '1-2x Sport pro Woche', emoji: '🚶' },
-            { value: 1.55, label: 'Moderat aktiv', desc: '3-5x Sport pro Woche', emoji: '🏃' },
-            { value: 1.725, label: 'Sehr aktiv', desc: '6-7x Sport pro Woche', emoji: '💪' },
-          ].map((level) => (
-            <button
-              key={level.value}
-              onClick={() => setActivityLevel(level.value)}
-              className={`w-full p-4 rounded-xl border-2 text-left transition-all ${activityLevel === level.value ? 'border-primary bg-primary/20' : 'border-border'}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{level.emoji}</span>
-                <div>
-                  <p className="font-medium">{level.label}</p>
-                  <p className="text-sm text-muted-foreground">{level.desc}</p>
+            { value: 1.2, label: 'Wenig aktiv', desc: 'Bürojob, wenig Bewegung', icon: Armchair, color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
+            { value: 1.375, label: 'Leicht aktiv', desc: '1-2x Sport pro Woche', icon: Footprints, color: 'text-green-500', bgColor: 'bg-green-500/20' },
+            { value: 1.55, label: 'Moderat aktiv', desc: '3-5x Sport pro Woche', icon: PersonStanding, color: 'text-yellow-500', bgColor: 'bg-yellow-500/20' },
+            { value: 1.725, label: 'Sehr aktiv', desc: '6-7x Sport pro Woche', icon: Dumbbell, color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
+          ].map((level) => {
+            const IconComponent = level.icon;
+            return (
+              <button
+                key={level.value}
+                onClick={() => setActivityLevel(level.value)}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${activityLevel === level.value ? 'border-primary bg-primary/20' : 'border-border'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${level.bgColor} flex items-center justify-center ${level.color}`}>
+                    <IconComponent className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{level.label}</p>
+                    <p className="text-sm text-muted-foreground">{level.desc}</p>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       ),
     },
