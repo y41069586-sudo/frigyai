@@ -332,71 +332,112 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "welcome":
         return (
           <StepCard step="welcome">
-            <div className="flex flex-col items-center text-center px-6">
-              {/* Frigy Mascot as main icon with bubble animation */}
-              <FrigyMascotInline size="xl" className="mb-6" variant="bubble" />
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Header with mascot */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+                className="mb-4"
+              >
+                <AnimatedFrigyMascot size={100} animate={false} />
+              </motion.div>
               
-              <motion.h1 className="text-3xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.3 }}>
+              {/* Title */}
+              <motion.h1 
+                className="text-3xl font-bold text-foreground"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
                 {t.welcomeToFrigy}
               </motion.h1>
-              <motion.p className="text-muted-foreground/60 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.3 }}>
+              
+              <motion.p 
+                className="text-muted-foreground text-sm mt-2 mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
                 {t.welcomeSubtitle}
               </motion.p>
               
-              {/* Simplified Fridge Animation */}
+              {/* Modern Fridge Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="relative mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="relative w-full max-w-[280px] aspect-[4/5] bg-card rounded-3xl border border-border shadow-lg overflow-hidden"
               >
-                <div className="relative w-44 h-56 bg-gradient-to-b from-slate-50 via-white to-slate-100 rounded-2xl shadow-[inset_0_2px_20px_rgba(0,0,0,0.1),0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-yellow-100/30 to-transparent" />
-                  <div className="absolute left-2 right-2 top-[28%] h-[2px] bg-slate-200/80 rounded-full" />
-                  <div className="absolute left-2 right-2 top-[52%] h-[2px] bg-slate-200/80 rounded-full" />
-                  <div className="absolute left-2 right-2 top-[76%] h-[2px] bg-slate-200/80 rounded-full" />
-                  
-                  {/* Food items */}
-                  {['🥛', '🧃', '🍎', '🥕', '🧀', '🥚', '🥬', '🍗'].map((emoji, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 + i * 0.08, duration: 0.3 }}
-                      className={`absolute text-2xl ${
-                        i < 3 ? `top-3 ${i === 0 ? 'left-3' : i === 1 ? 'left-1/2 -translate-x-1/2' : 'right-3'}` :
-                        i < 6 ? `top-[32%] ${i === 3 ? 'left-3' : i === 4 ? 'left-1/2 -translate-x-1/2' : 'right-3'}` :
-                        `top-[56%] ${i === 6 ? 'left-3' : 'right-3'}`
-                      }`}
-                    >
-                      {emoji}
-                    </motion.div>
-                  ))}
-                  
+                {/* Fridge shelves with food */}
+                <div className="absolute inset-3 flex flex-col">
+                  {/* Shelf 1 */}
                   <motion.div 
-                    className="absolute bottom-2 left-2 right-2 h-10 bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg border border-slate-200 flex items-center justify-center gap-2"
+                    className="flex-1 flex items-center justify-around px-2 border-b border-border/50"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 1.1, duration: 0.3 }}
+                    transition={{ delay: 0.6, duration: 0.3 }}
                   >
-                    <span className="text-lg">🥦</span>
-                    <span className="text-lg">🍅</span>
-                    <span className="text-lg">🥒</span>
+                    <span className="text-3xl">🥛</span>
+                    <span className="text-3xl">🧃</span>
+                    <span className="text-3xl">🍎</span>
                   </motion.div>
                   
-                  <motion.div
-                    className="absolute left-2 right-2 h-0.5 bg-primary rounded-full"
-                    initial={{ top: "0%", opacity: 0 }}
-                    animate={{ top: ["0%", "95%", "0%"], opacity: 1 }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1.3 }}
-                    style={{ boxShadow: "0 0 8px hsl(var(--primary))" }}
-                  />
+                  {/* Shelf 2 */}
+                  <motion.div 
+                    className="flex-1 flex items-center justify-around px-2 border-b border-border/50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.3 }}
+                  >
+                    <span className="text-3xl">🥕</span>
+                    <span className="text-3xl">🧀</span>
+                    <span className="text-3xl">🥚</span>
+                  </motion.div>
+                  
+                  {/* Shelf 3 */}
+                  <motion.div 
+                    className="flex-1 flex items-center justify-around px-2 border-b border-border/50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.3 }}
+                  >
+                    <span className="text-3xl">🥬</span>
+                    <span className="text-3xl">🍗</span>
+                  </motion.div>
+                  
+                  {/* Drawer */}
+                  <motion.div 
+                    className="h-14 bg-muted/50 rounded-xl flex items-center justify-center gap-3 mt-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.9, duration: 0.3 }}
+                  >
+                    <span className="text-2xl">🥦</span>
+                    <span className="text-2xl">🍅</span>
+                    <span className="text-2xl">🥒</span>
+                  </motion.div>
                 </div>
+                
+                {/* Scanning line */}
+                <motion.div
+                  className="absolute left-3 right-3 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
+                  initial={{ top: "5%", opacity: 0 }}
+                  animate={{ top: ["5%", "90%", "5%"], opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+                  style={{ boxShadow: "0 0 12px hsl(var(--primary)), 0 0 24px hsl(var(--primary) / 0.5)" }}
+                />
               </motion.div>
               
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.3 }}>
-                <p className="text-lg font-medium text-muted-foreground/80 mb-1">{t.andMuchMore}</p>
-                <p className="text-sm text-primary font-semibold">{t.getReady} ✨</p>
+              {/* Bottom text */}
+              <motion.div 
+                className="mt-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1, duration: 0.4 }}
+              >
+                <p className="text-muted-foreground text-sm">{t.andMuchMore}</p>
+                <p className="text-primary font-medium text-sm mt-1">{t.getReady} ✨</p>
               </motion.div>
             </div>
           </StepCard>
