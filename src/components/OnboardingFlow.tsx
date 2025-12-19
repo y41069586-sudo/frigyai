@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import frigyMascotSrc from "@/assets/frigy-mascot.png";
+import frigyPeekSrc from "@/assets/frigy-peek.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
@@ -215,135 +216,117 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     switch (currentStep) {
       case "intro":
         return (
-          <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-background to-primary/10 flex flex-col items-center justify-center overflow-hidden">
-            {/* Background glow effect */}
+          <div className="fixed inset-0 bg-gradient-to-b from-emerald-50 via-green-50/50 to-background flex flex-col items-center justify-end overflow-hidden">
+            {/* Soft background gradient */}
             <motion.div
-              className="absolute inset-0 bg-gradient-radial from-primary/20 via-transparent to-transparent"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: introPhase !== 'rising' ? 0.6 : 0, scale: 1.5 }}
-              transition={{ duration: 1.2 }}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
               style={{ 
-                background: 'radial-gradient(circle at 50% 40%, hsl(var(--primary) / 0.15) 0%, transparent 60%)'
+                background: 'radial-gradient(ellipse at 50% 100%, hsl(142 76% 90% / 0.5) 0%, transparent 50%)'
               }}
             />
             
-            {/* Frigy - Very close up, filling most of the screen like Yazio */}
+            {/* Welcome text at top */}
             <motion.div
-              className="relative z-10"
-              initial={{ y: "120vh", scale: 0.3, rotate: -15 }}
+              className="absolute top-1/4 text-center px-8 z-10"
+              initial={{ opacity: 0, y: -20 }}
               animate={{
-                y: introPhase === 'rising' ? 0 : introPhase === 'settling' || introPhase === 'done' ? 60 : 0,
-                scale: introPhase === 'rising' ? 1 : introPhase === 'greeting' ? 1.05 : 0.85,
-                rotate: 0,
+                opacity: introPhase !== 'rising' ? 1 : 0,
+                y: introPhase !== 'rising' ? 0 : -20,
               }}
-              transition={{
-                y: { type: "spring", stiffness: 80, damping: 12 },
-                scale: { type: "spring", stiffness: 150, damping: 12 },
-                rotate: { type: "spring", stiffness: 100, damping: 10 }
-              }}
-            >
-              {/* Main mascot - VERY LARGE and close */}
-              <motion.img
-                src={frigyMascotSrc}
-                alt="Frigy"
-                className="w-72 h-72 sm:w-80 sm:h-80 object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
-                animate={{
-                  rotate: introPhase === 'greeting' ? [0, -8, 8, -5, 5, -2, 2, 0] : 0,
-                }}
-                transition={{
-                  rotate: { duration: 0.8, ease: "easeInOut" }
-                }}
-              />
-              
-              {/* Blinking eyes effect overlay */}
-              {introPhase === 'greeting' && (
-                <motion.div
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0, 1, 0, 0, 1, 0] }}
-                  transition={{ duration: 2, times: [0, 0.3, 0.32, 0.34, 0.7, 0.72, 0.74] }}
-                >
-                  {/* This creates a subtle blink effect */}
-                </motion.div>
-              )}
-              
-              {/* Floating hearts and sparkles around mascot */}
-              {introPhase === 'greeting' && (
-                <>
-                  {['✨', '💚', '✨', '🌟', '💚'].map((emoji, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute text-3xl"
-                      style={{
-                        left: `${-30 + i * 35}%`,
-                        top: `${-10 + (i % 2) * 20}%`,
-                      }}
-                      initial={{ opacity: 0, scale: 0, y: 20 }}
-                      animate={{ 
-                        opacity: [0, 1, 1, 0],
-                        scale: [0, 1.2, 1, 0.5],
-                        y: [20, -20, -40, -60],
-                        rotate: [0, 10, -10, 0],
-                      }}
-                      transition={{ 
-                        duration: 1.5,
-                        delay: 0.15 * i,
-                        ease: "easeOut"
-                      }}
-                    >
-                      {emoji}
-                    </motion.div>
-                  ))}
-                </>
-              )}
-              
-              {/* Subtle bounce shadow */}
-              <motion.div
-                className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-48 h-8 bg-black/10 rounded-full blur-xl"
-                animate={{
-                  scale: introPhase === 'greeting' ? [1, 1.1, 1] : introPhase === 'settling' ? 0.7 : 1,
-                  opacity: introPhase === 'settling' ? 0.5 : 0.3,
-                }}
-                transition={{ duration: 0.5 }}
-              />
-            </motion.div>
-            
-            {/* Welcome text - appears after mascot */}
-            <motion.div
-              className="text-center mt-6 z-10 px-6"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{
-                opacity: introPhase === 'rising' ? 0 : 1,
-                y: introPhase === 'rising' ? 40 : 0,
-              }}
-              transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+              transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
             >
               <motion.h1 
-                className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight"
+                className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight leading-tight"
+                animate={{
+                  scale: introPhase === 'greeting' ? [1, 1.05, 1] : 1,
+                }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                Willkommen zu
+              </motion.h1>
+              <motion.h1 
+                className="text-5xl sm:text-6xl font-bold text-primary tracking-tight mt-1"
                 animate={{
                   scale: introPhase === 'greeting' ? [1, 1.08, 1] : 1,
                 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                Willkommen zu{' '}
-                <span className="text-primary">Frigy</span>!
+                Frigy!
               </motion.h1>
               <motion.p
-                className="text-lg text-muted-foreground mt-3 font-medium"
-                initial={{ opacity: 0, y: 10 }}
+                className="text-lg text-muted-foreground mt-4 font-medium"
+                initial={{ opacity: 0 }}
                 animate={{ 
                   opacity: introPhase === 'greeting' || introPhase === 'settling' ? 1 : 0,
-                  y: introPhase === 'greeting' || introPhase === 'settling' ? 0 : 10
                 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
+                transition={{ delay: 0.6, duration: 0.4 }}
               >
                 Dein smarter Ernährungsbegleiter 🍎
               </motion.p>
             </motion.div>
             
-            {/* Loading dots at bottom */}
+            {/* Floating sparkles */}
+            {introPhase === 'greeting' && (
+              <div className="absolute inset-0 pointer-events-none z-20">
+                {['💚', '✨', '🌿', '✨', '💚'].map((emoji, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute text-2xl sm:text-3xl"
+                    style={{
+                      left: `${15 + i * 18}%`,
+                      top: `${35 + (i % 2) * 10}%`,
+                    }}
+                    initial={{ opacity: 0, scale: 0, y: 0 }}
+                    animate={{ 
+                      opacity: [0, 1, 1, 0],
+                      scale: [0, 1.2, 1, 0.5],
+                      y: [0, -30, -50, -80],
+                    }}
+                    transition={{ 
+                      duration: 1.8,
+                      delay: 0.2 + 0.15 * i,
+                      ease: "easeOut"
+                    }}
+                  >
+                    {emoji}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            
+            {/* Frigy mascot - positioned at bottom, peeking up */}
             <motion.div
-              className="absolute bottom-12 flex gap-2"
+              className="relative z-10 mb-0"
+              initial={{ y: 300, scale: 0.8 }}
+              animate={{
+                y: introPhase === 'rising' ? 40 : introPhase === 'settling' || introPhase === 'done' ? 60 : 20,
+                scale: introPhase === 'rising' ? 1 : introPhase === 'greeting' ? 1.05 : 0.95,
+              }}
+              transition={{
+                y: { type: "spring", stiffness: 100, damping: 15 },
+                scale: { type: "spring", stiffness: 200, damping: 12 },
+              }}
+            >
+              {/* Main mascot - large and positioned at bottom */}
+              <motion.img
+                src={frigyPeekSrc}
+                alt="Frigy"
+                className="w-64 h-64 sm:w-80 sm:h-80 object-contain drop-shadow-[0_-10px_30px_rgba(0,0,0,0.1)]"
+                animate={{
+                  rotate: introPhase === 'greeting' ? [0, -5, 5, -3, 3, 0] : 0,
+                }}
+                transition={{
+                  rotate: { duration: 0.8, ease: "easeInOut", delay: 0.2 }
+                }}
+              />
+            </motion.div>
+            
+            {/* Loading dots */}
+            <motion.div
+              className="absolute bottom-8 flex gap-2 z-20"
               initial={{ opacity: 0 }}
               animate={{ opacity: introPhase === 'settling' ? 1 : 0 }}
               transition={{ duration: 0.3 }}
@@ -351,14 +334,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  className="w-3 h-3 rounded-full bg-primary"
+                  className="w-2.5 h-2.5 rounded-full bg-primary"
                   animate={{ 
                     scale: [1, 1.4, 1], 
-                    opacity: [0.4, 1, 0.4] 
+                    opacity: [0.5, 1, 0.5] 
                   }}
                   transition={{ 
-                    duration: 0.7, 
-                    delay: i * 0.15, 
+                    duration: 0.6, 
+                    delay: i * 0.12, 
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
