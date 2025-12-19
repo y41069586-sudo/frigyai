@@ -7,7 +7,8 @@ import {
   Zap, Clock, Rocket, TrendingUp, Flame, BarChart3, Activity, User,
   Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
   Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding, Bike,
-  GraduationCap, Medal, Crown, Armchair, Footprints, Carrot, CupSoda
+  GraduationCap, Medal, Crown, Armchair, Footprints, Carrot, CupSoda,
+  Droplets, Coffee
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import confetti from "canvas-confetti";
@@ -1442,28 +1443,79 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return <NotificationPrefsStep {...stepProps} />;
 
       case "weekly-plan":
+        // Generate personalized meal plan based on user's calculated macros
+        const weeklyMacros = calculateMacros(userData);
+        const targetCalories = userData.dailyCalories || weeklyMacros.dailyCalories;
         const sampleMealPlan = [
-          { day: "Mo", breakfast: "Rührei mit Spinat", lunch: "Hähnchen-Salat", dinner: "Lachs mit Brokkoli", kcal: 1650 },
-          { day: "Di", breakfast: "Haferflocken mit Beeren", lunch: "Thunfisch-Wrap", dinner: "Putenbrust mit Reis", kcal: 1700 },
-          { day: "Mi", breakfast: "Griechischer Joghurt", lunch: "Quinoa-Bowl", dinner: "Rinderfilet mit Gemüse", kcal: 1680 },
-          { day: "Do", breakfast: "Vollkornbrot mit Avocado", lunch: "Garnelen-Salat", dinner: "Hähnchen-Curry", kcal: 1720 },
-          { day: "Fr", breakfast: "Protein-Smoothie", lunch: "Linsensalat", dinner: "Lachs-Pasta", kcal: 1690 },
+          { day: "Mo", breakfast: "Rührei mit Spinat", lunch: "Hähnchen-Salat", dinner: "Lachs mit Brokkoli", kcal: Math.round(targetCalories * 0.98) },
+          { day: "Di", breakfast: "Haferflocken mit Beeren", lunch: "Thunfisch-Wrap", dinner: "Putenbrust mit Reis", kcal: Math.round(targetCalories * 1.02) },
+          { day: "Mi", breakfast: "Griechischer Joghurt", lunch: "Quinoa-Bowl", dinner: "Rinderfilet mit Gemüse", kcal: Math.round(targetCalories * 0.99) },
+          { day: "Do", breakfast: "Vollkornbrot mit Avocado", lunch: "Garnelen-Salat", dinner: "Hähnchen-Curry", kcal: Math.round(targetCalories * 1.01) },
+          { day: "Fr", breakfast: "Protein-Smoothie", lunch: "Linsensalat", dinner: "Lachs-Pasta", kcal: Math.round(targetCalories) },
+          { day: "Sa", breakfast: "Pancakes mit Früchten", lunch: "Caesar Salat", dinner: "Steak mit Kartoffeln", kcal: Math.round(targetCalories * 1.03) },
+          { day: "So", breakfast: "Omelett mit Käse", lunch: "Buddha Bowl", dinner: "Gebratener Lachs", kcal: Math.round(targetCalories * 0.97) },
         ];
         
         return (
           <StepCard step="weekly-plan">
             <div className="flex flex-col items-center text-center px-4 w-full">
-              <h1 className="text-2xl font-bold mb-1">Dein Wochenplan</h1>
-              <p className="text-muted-foreground/40 text-xs mb-4">Automatisch auf deine Makros abgestimmt</p>
+              {/* Header */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4, type: "spring" }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg"
+              >
+                <Calendar className="w-8 h-8 text-primary-foreground" />
+              </motion.div>
               
-              <div className="w-full max-w-sm space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+              <motion.h1 
+                className="text-2xl font-bold mb-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                Dein Wochenplan ist fertig!
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
+              >
+                Basierend auf deinen {targetCalories} kcal Tagesziel
+              </motion.p>
+              
+              {/* Macro summary badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+                className="flex gap-3 mb-4"
+              >
+                <div className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-500 text-xs font-medium flex items-center gap-1">
+                  <Dumbbell className="w-3 h-3" />
+                  {userData.dailyProtein || weeklyMacros.dailyProtein}g
+                </div>
+                <div className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-500 text-xs font-medium flex items-center gap-1">
+                  <Wheat className="w-3 h-3" />
+                  {userData.dailyCarbs || weeklyMacros.dailyCarbs}g
+                </div>
+                <div className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-500 text-xs font-medium flex items-center gap-1">
+                  <Droplets className="w-3 h-3" />
+                  {userData.dailyFat || weeklyMacros.dailyFat}g
+                </div>
+              </motion.div>
+              
+              {/* Meal plan grid */}
+              <div className="w-full max-w-sm space-y-2 max-h-[240px] overflow-y-auto pr-1">
                 {sampleMealPlan.map((day, i) => (
                   <motion.div
                     key={day.day}
                     initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06, duration: 0.3 }}
-                    className="p-3 rounded-xl bg-card border border-border"
+                    transition={{ delay: 0.25 + i * 0.05, duration: 0.3 }}
+                    className="p-3 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-bold text-primary">{day.day}</span>
@@ -1471,15 +1523,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-[10px]">
                       <div className="text-left">
-                        <span className="block text-muted-foreground/40 mb-0.5">🍳</span>
+                        <div className="flex items-center gap-1 text-muted-foreground/60 mb-0.5">
+                          <Coffee className="w-2.5 h-2.5" />
+                          <span>Früh</span>
+                        </div>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.breakfast}</span>
                       </div>
                       <div className="text-left">
-                        <span className="block text-muted-foreground/40 mb-0.5">🥗</span>
+                        <div className="flex items-center gap-1 text-muted-foreground/60 mb-0.5">
+                          <Salad className="w-2.5 h-2.5" />
+                          <span>Mittag</span>
+                        </div>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.lunch}</span>
                       </div>
                       <div className="text-left">
-                        <span className="block text-muted-foreground/40 mb-0.5">🍝</span>
+                        <div className="flex items-center gap-1 text-muted-foreground/60 mb-0.5">
+                          <Utensils className="w-2.5 h-2.5" />
+                          <span>Abend</span>
+                        </div>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.dinner}</span>
                       </div>
                     </div>
@@ -1487,12 +1548,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </div>
               
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }} className="text-[10px] text-muted-foreground/40 mt-3 mb-4">
-                ✨ Automatisch auf deine Ziele abgestimmt
-              </motion.p>
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.6, duration: 0.3 }} 
+                className="flex items-center gap-2 text-[10px] text-muted-foreground/50 mt-3 mb-4"
+              >
+                <Sparkles className="w-3 h-3 text-primary" />
+                <span>Personalisiert auf deine Präferenzen</span>
+              </motion.div>
               
               <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
-                <Sparkles className="w-5 h-5 mr-2" />
+                <ChevronRight className="w-5 h-5 mr-2" />
                 Weiter
               </Button>
             </div>
