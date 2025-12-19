@@ -214,6 +214,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     onComplete();
   };
 
+  const handleSkip = () => {
+    localStorage.setItem('onboardingComplete', 'true');
+    onComplete();
+  };
+
   const canProceed = (): boolean => {
     switch (currentStep) {
       case "goal": return userData.goal !== null;
@@ -2246,13 +2251,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         
         <ProgressDots current={currentIndex} total={onboardingSteps.length} />
 
-        {["permissions", "community", "notification-prefs"].includes(currentStep) ? (
-          <button onClick={goNext} className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors">
-            Skip
-          </button>
-        ) : (
-          <div className="w-10" />
-        )}
+        <button 
+          onClick={handleSkip} 
+          className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1"
+        >
+          {t.skip || "Überspringen"}
+        </button>
       </div>
 
       {/* Main content */}
