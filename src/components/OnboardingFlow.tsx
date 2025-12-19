@@ -254,8 +254,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="welcome">
             <div className="flex flex-col items-center text-center px-6">
-              {/* Frigy Mascot as main icon */}
-              <FrigyMascotInline size="xl" className="mb-6" />
+              {/* Frigy Mascot as main icon with bubble animation */}
+              <FrigyMascotInline size="xl" className="mb-6" variant="bubble" />
               
               <motion.h1 className="text-3xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.3 }}>
                 {t.welcomeToFrigy}
