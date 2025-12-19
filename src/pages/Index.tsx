@@ -16,6 +16,7 @@ import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { AnimatedFrigyMascot } from "@/components/AnimatedFrigyMascot";
 import { DashboardMacroCircle } from "@/components/DashboardMacroCircle";
+import { MealPlanPreview } from "@/components/MealPlanPreview";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -279,22 +280,23 @@ const Index = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.4 }}
           >
+            {/* Tracker Card */}
             <NavLink to="/meal-plans?tab=tracker" className="block">
-              <div className="p-4 bg-card rounded-2xl border border-border/50 text-center hover:border-primary/30 hover:shadow-md transition-all">
+              <motion.div 
+                className="p-4 bg-card rounded-2xl border border-border/50 text-center hover:border-primary/30 hover:shadow-md transition-all h-full"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Utensils className="w-5 h-5 text-primary" />
                 </div>
                 <p className="text-sm font-medium">Tracker</p>
-              </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Kalorien & Makros</p>
+              </motion.div>
             </NavLink>
-            <NavLink to="/meal-plans?tab=meals" className="block">
-              <div className="p-4 bg-card rounded-2xl border border-border/50 text-center hover:border-primary/30 hover:shadow-md transition-all">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-orange-500" />
-                </div>
-                <p className="text-sm font-medium">Meal Plan</p>
-              </div>
-            </NavLink>
+            
+            {/* Meal Plan Preview */}
+            <MealPlanPreview />
           </motion.div>
         </div>
         
