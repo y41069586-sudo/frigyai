@@ -11,6 +11,7 @@ import {
   Droplets, Coffee
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
+import frigyMascotSrc from "@/assets/frigy-mascot.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
@@ -126,18 +127,29 @@ const AnalysisProgress = () => {
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("intro");
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
   const [macroAnimate, setMacroAnimate] = useState(false);
   const [chartAnimate, setChartAnimate] = useState(false);
   const [selectedPlanOption, setSelectedPlanOption] = useState<'free' | 'premium' | null>(null);
+  const [introPhase, setIntroPhase] = useState<'rising' | 'greeting' | 'settling' | 'done'>('rising');
 
   const currentIndex = onboardingSteps.indexOf(currentStep);
 
   // Step-specific effects
   useEffect(() => {
+    if (currentStep === "intro") {
+      // Intro animation sequence like Yazio
+      setIntroPhase('rising');
+      setTimeout(() => setIntroPhase('greeting'), 800);
+      setTimeout(() => setIntroPhase('settling'), 2200);
+      setTimeout(() => {
+        setIntroPhase('done');
+        goNext();
+      }, 3200);
+    }
     if (currentStep === "fridge-intro") {
       setTimeout(() => setFridgeOpen(true), 300);
       setTimeout(() => setFridgeScan(true), 800);
@@ -201,15 +213,112 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     const stepProps = { userData, setUserData, goNext, goBack };
 
     switch (currentStep) {
+      case "intro":
+        return (
+          <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
+            {/* Frigy rising from bottom */}
+            <motion.div
+              className="relative"
+              initial={{ y: "100vh", scale: 0.5 }}
+              animate={{
+                y: introPhase === 'rising' ? 0 : introPhase === 'settling' || introPhase === 'done' ? 40 : 0,
+                scale: introPhase === 'rising' ? 1.1 : introPhase === 'settling' || introPhase === 'done' ? 0.9 : 1,
+                rotate: introPhase === 'greeting' ? [0, -5, 5, -3, 3, 0] : 0,
+              }}
+              transition={{
+                y: { type: "spring", stiffness: 120, damping: 14 },
+                scale: { type: "spring", stiffness: 200, damping: 15 },
+                rotate: { duration: 0.6, ease: "easeInOut" }
+              }}
+            >
+              <img
+                src={frigyMascotSrc}
+                alt="Frigy"
+                className="w-40 h-40 object-contain drop-shadow-2xl"
+              />
+              
+              {/* Floating sparkles */}
+              {introPhase === 'greeting' && (
+                <>
+                  {[...Array(5)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute text-2xl"
+                      style={{
+                        left: `${-20 + i * 25}%`,
+                        top: `${10 + Math.random() * 30}%`,
+                      }}
+                      initial={{ opacity: 0, scale: 0, y: 0 }}
+                      animate={{ 
+                        opacity: [0, 1, 0],
+                        scale: [0, 1, 0.5],
+                        y: [-10, -30],
+                      }}
+                      transition={{ 
+                        duration: 1,
+                        delay: 0.1 * i,
+                        ease: "easeOut"
+                      }}
+                    >
+                      ✨
+                    </motion.div>
+                  ))}
+                </>
+              )}
+            </motion.div>
+            
+            {/* Welcome text */}
+            <motion.div
+              className="text-center mt-8"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{
+                opacity: introPhase === 'rising' ? 0 : 1,
+                y: introPhase === 'rising' ? 30 : 0,
+              }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <motion.h1 
+                className="text-3xl font-bold text-foreground"
+                animate={{
+                  scale: introPhase === 'greeting' ? [1, 1.05, 1] : 1,
+                }}
+                transition={{ duration: 0.4 }}
+              >
+                Willkommen zu Frigy!
+              </motion.h1>
+              <motion.p
+                className="text-muted-foreground mt-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: introPhase === 'greeting' || introPhase === 'settling' ? 1 : 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                Dein smarter Ernährungsbegleiter 🍎
+              </motion.p>
+            </motion.div>
+            
+            {/* Subtle pulse indicator */}
+            <motion.div
+              className="absolute bottom-16 flex gap-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: introPhase === 'settling' ? 1 : 0 }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-primary/50"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 0.8, delay: i * 0.2, repeat: Infinity }}
+                />
+              ))}
+            </motion.div>
+          </div>
+        );
+
       case "language-select":
         return (
           <StepCard step="language-select">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6"
               >
                 <Globe className="w-8 h-8 text-primary" />
               </motion.div>
