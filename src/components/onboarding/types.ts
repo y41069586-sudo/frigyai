@@ -95,33 +95,48 @@ export const defaultUserData: UserData = {
   dailyFat: 0,
 };
 
-// Steps array for navigation
+// Steps array for navigation - logically structured flow
 export const onboardingSteps: OnboardingStep[] = [
+  // Phase 1: Welcome & Goals
   "language-select",
   "welcome",
   "goal",
   "motivation",
+  
+  // Phase 2: Social Proof & Trust
   "social-proof",
   "success-stats",
   "tracker-intro",
+  
+  // Phase 3: Body Data Collection
   "body-basics",
   "gender",
   "goal-mode",
   "target-weight",
   "speed-select",
+  "planning-setup", // Activity level
+  
+  // Phase 4: Preferences
   "dietary-preferences",
   "allergies",
   "cooking-time",
   "cooking-experience",
-  "planning-setup",
+  
+  // Phase 5: Analysis & Results
   "analyzing",
   "macro-preview",
+  
+  // Phase 6: Your Plan with Frigy
+  "comparison",
+  "transformation",
+  "weekly-plan",
+  
+  // Phase 7: Features & Setup
   "fridge-intro",
   "permissions",
   "notification-prefs",
-  "weekly-plan",
-  "comparison",
-  "transformation",
+  
+  // Phase 8: Finish
   "premium-hint",
   "community",
   "done"
