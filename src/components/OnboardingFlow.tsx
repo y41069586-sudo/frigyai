@@ -15,6 +15,7 @@ import frigyMascotSrc from "@/assets/frigy-mascot.png";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
+import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 
 import { 
@@ -217,50 +218,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "intro":
         return (
           <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
-            {/* Frigy mascot - centered like Yazio */}
-            <motion.div
-              className="relative z-10"
-              initial={{ y: 200, scale: 0.5, opacity: 0 }}
-              animate={{
-                y: introPhase === 'rising' ? 0 : introPhase === 'settling' || introPhase === 'done' ? 20 : 0,
-                scale: introPhase === 'rising' ? 1 : introPhase === 'greeting' ? 1.05 : 0.95,
-                opacity: 1,
-              }}
-              transition={{
-                y: { type: "spring", stiffness: 120, damping: 14 },
-                scale: { type: "spring", stiffness: 200, damping: 12 },
-                opacity: { duration: 0.3 }
-              }}
-            >
-              <motion.img
-                src={frigyMascotSrc}
-                alt="Frigy"
-                className="w-56 h-56 sm:w-64 sm:h-64 object-contain"
-                animate={{
-                  rotate: introPhase === 'greeting' ? [0, -5, 5, -3, 3, 0] : 0,
-                }}
-                transition={{
-                  rotate: { duration: 0.6, ease: "easeInOut", delay: 0.1 }
-                }}
-              />
-            </motion.div>
+            {/* Animated Frigy mascot - fully animated SVG */}
+            <AnimatedFrigyMascot 
+              size={280} 
+              animate={true}
+            />
             
             {/* Welcome text below mascot */}
             <motion.div
-              className="text-center mt-8 z-10 px-6"
+              className="text-center mt-6 z-10 px-6"
               initial={{ opacity: 0, y: 30 }}
-              animate={{
-                opacity: introPhase !== 'rising' ? 1 : 0,
-                y: introPhase !== 'rising' ? 0 : 30,
-              }}
-              transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.5, ease: "easeOut" }}
             >
               <motion.h1 
                 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight"
-                animate={{
-                  scale: introPhase === 'greeting' ? [1, 1.05, 1] : 1,
-                }}
-                transition={{ duration: 0.4, delay: 0.2 }}
+                initial={{ scale: 0.9 }}
+                animate={{ scale: [0.9, 1.05, 1] }}
+                transition={{ delay: 1, duration: 0.4 }}
               >
                 Willkommen zu{' '}
                 <span className="text-primary">Frigy</span>!
@@ -268,10 +243,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <motion.p
                 className="text-base text-muted-foreground mt-3"
                 initial={{ opacity: 0 }}
-                animate={{ 
-                  opacity: introPhase === 'greeting' || introPhase === 'settling' ? 1 : 0,
-                }}
-                transition={{ delay: 0.5, duration: 0.4 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.4 }}
               >
                 Dein smarter Ernährungsbegleiter 🍎
               </motion.p>
