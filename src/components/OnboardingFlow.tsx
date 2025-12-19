@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import frigLogo from "@/assets/frig-logo.png";
 import confetti from "canvas-confetti";
+import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 
 import { 
@@ -253,14 +254,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="welcome">
             <div className="flex flex-col items-center text-center px-6">
-              <motion.img
-                src={frigLogo}
-                alt="Frigy"
-                className="w-24 h-24 rounded-[22%] mb-6 shadow-xl"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              />
+              {/* Frigy Mascot as main icon */}
+              <FrigyMascotInline size="xl" className="mb-6" />
               
               <motion.h1 className="text-3xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.3 }}>
                 {t.welcomeToFrigy}
@@ -2052,6 +2047,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  // Determine when mascot should peek (every 4th slide approximately)
+  const shouldShowMascotPeek = currentIndex > 0 && currentIndex % 4 === 0 && 
+    !["analyzing", "done", "welcome", "language-select"].includes(currentStep);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -2059,6 +2058,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
+      {/* Frigy Mascot Peek Animation */}
+      <FrigyPeek 
+        show={shouldShowMascotPeek} 
+        from="bottom-right" 
+        delay={0.5} 
+      />
+
       {/* Header */}
       <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
         {currentIndex > 0 ? (
