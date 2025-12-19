@@ -99,12 +99,9 @@ export const defaultUserData: UserData = {
 
 // Steps array for navigation - logically structured flow
 export const onboardingSteps: OnboardingStep[] = [
-  // Phase 0: Intro Animation
-  "intro",
-  
   // Phase 1: Welcome & Goals
-  "language-select",
   "welcome",
+  "language-select",
   "goal",
   "motivation",
   
