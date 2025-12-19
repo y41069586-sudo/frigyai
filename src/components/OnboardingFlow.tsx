@@ -1219,13 +1219,30 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         const calculatedMacros = calculateMacros(userData);
         const weeksToGoal = calculateWeeksToGoal(userData);
         
+        // Calculate goal date
+        const goalDate = new Date();
+        goalDate.setDate(goalDate.getDate() + (weeksToGoal * 7));
+        const goalDateFormatted = goalDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+        
         if (userData.dailyCalories !== calculatedMacros.dailyCalories) {
           setTimeout(() => setUserData(prev => ({ ...prev, ...calculatedMacros })), 0);
         }
 
         return (
           <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-4 w-full">
+            <div className="flex flex-col items-center text-center px-4 w-full relative">
+              {/* Edit Button - Top Right */}
+              <motion.button
+                onClick={() => setCurrentStep("target-weight")}
+                className="absolute top-0 right-0 w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, duration: 0.3 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Ruler className="w-4 h-4 text-muted-foreground" />
+              </motion.button>
+              
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -1289,24 +1306,39 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 />
               </motion.div>
               
-              {/* Goal timeline */}
+              {/* Goal Date Banner */}
               <motion.div 
-                className="w-full max-w-xs p-3 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20"
+                className="w-full max-w-xs p-4 rounded-2xl bg-primary/10 border border-primary/30 mb-3"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.3 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-sm font-semibold text-primary block">
+                      🎯 {goalDateFormatted}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      erreichst du dein Ziel von {userData.targetWeight}kg
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Goal details */}
+              <motion.div 
+                className="w-full max-w-xs p-3 rounded-xl bg-muted/50 border border-border"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.3 }}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Target className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-medium block">Ziel: {userData.targetWeight}kg</span>
-                    <span className="text-xs text-muted-foreground/50">~{weeksToGoal} Wochen ({userData.weeklyGoal}kg/Woche)</span>
-                  </div>
-                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <Target className="w-4 h-4 text-primary" />
-                  </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Aktuell: {userData.weight}kg</span>
+                  <span>→ {userData.weeklyGoal}kg/Woche →</span>
+                  <span className="text-primary font-medium">Ziel: {userData.targetWeight}kg</span>
                 </div>
               </motion.div>
             </div>
