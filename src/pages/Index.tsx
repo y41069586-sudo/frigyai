@@ -201,19 +201,47 @@ const Index = () => {
       <main className="flex-1 flex flex-col px-4 pb-32">
         <div className="flex-1 flex flex-col items-center pt-4 max-w-md mx-auto w-full">
           
-          {/* Welcome Section */}
+          {/* Welcome Section - Modern Style */}
           <motion.div
-            className="flex items-center gap-3 w-full mb-6"
+            className="w-full mb-6"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <AnimatedFrigyMascot size={50} animate={false} />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                {user ? `Hallo! 👋` : t.homeTitle}
-              </h1>
-              <p className="text-sm text-muted-foreground">{t.homeSubtitle}</p>
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              >
+                <AnimatedFrigyMascot size={56} animate={false} />
+              </motion.div>
+              <div className="flex-1">
+                <motion.p 
+                  className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-0.5"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  {new Date().getHours() < 12 ? "Guten Morgen" : new Date().getHours() < 18 ? "Guten Tag" : "Guten Abend"}
+                </motion.p>
+                <motion.h1 
+                  className="text-2xl font-bold bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  {user ? "Willkommen zurück! ✨" : t.homeTitle}
+                </motion.h1>
+                <motion.p 
+                  className="text-sm text-muted-foreground mt-0.5"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  {t.homeSubtitle}
+                </motion.p>
+              </div>
             </div>
           </motion.div>
           
