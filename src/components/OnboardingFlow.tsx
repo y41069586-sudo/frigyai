@@ -130,7 +130,7 @@ const AnalysisProgress = () => {
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("intro");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -144,16 +144,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   // Step-specific effects
   useEffect(() => {
-    if (currentStep === "intro") {
-      // Intro animation sequence - extended timing for better UX
-      setIntroPhase('rising');
-      setTimeout(() => setIntroPhase('greeting'), 600);
-      setTimeout(() => setIntroPhase('settling'), 1800);
-      setTimeout(() => {
-        setIntroPhase('done');
-        goNext();
-      }, 4000);
-    }
     if (currentStep === "fridge-intro") {
       setTimeout(() => setFridgeOpen(true), 300);
       setTimeout(() => setFridgeScan(true), 800);
@@ -243,47 +233,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     const stepProps = { userData, setUserData, goNext, goBack };
 
     switch (currentStep) {
-      case "intro":
-        return (
-          <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
-            {/* Content container */}
-            <div className="flex flex-col items-center text-center px-6 z-10">
-              {/* Mascot */}
-              <motion.div
-                initial={{ scale: 0, rotate: -10 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
-              >
-                <AnimatedFrigyMascot size={180} animate={true} />
-              </motion.div>
-              
-              {/* Text */}
-              <motion.div
-                className="mt-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.4 }}
-              >
-                <h1 className="text-2xl font-semibold text-muted-foreground">
-                  Willkommen bei
-                </h1>
-                <h1 className="text-5xl font-black text-primary mt-1">
-                  Frigy!
-                </h1>
-              </motion.div>
-              
-              <motion.p
-                className="text-muted-foreground mt-4 text-base"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.4 }}
-              >
-                Dein smarter Ernährungsbegleiter 🍎
-              </motion.p>
-            </div>
-          </div>
-        );
-
       case "language-select":
         return (
           <StepCard step="language-select">
