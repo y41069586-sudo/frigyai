@@ -227,47 +227,103 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     switch (currentStep) {
       case "intro":
         return (
-          <div className="fixed inset-0 bg-background flex flex-col items-center justify-end overflow-hidden pb-0">
-            {/* Welcome text at top */}
-            <motion.div
-              className="absolute top-[15%] text-center z-10 px-6"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.5, ease: "easeOut" }}
-            >
-              <motion.h1 
-                className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: [0.9, 1.05, 1] }}
-                transition={{ delay: 1, duration: 0.4 }}
+          <div className="fixed inset-0 bg-gradient-to-b from-background via-background to-primary/5 flex flex-col items-center overflow-hidden">
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
+              backgroundSize: '32px 32px'
+            }} />
+            
+            {/* Glowing orb effect */}
+            <motion.div 
+              className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[100px]"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 0.6, scale: 1 }}
+              transition={{ delay: 0.3, duration: 1.2, ease: "easeOut" }}
+            />
+            
+            {/* Welcome content - centered */}
+            <div className="flex-1 flex flex-col items-center justify-center z-10 px-6 pb-32">
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
               >
-                Willkommen zu
-              </motion.h1>
-              <motion.h1 
-                className="text-5xl sm:text-6xl font-bold text-primary tracking-tight mt-1"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: [0.9, 1.08, 1] }}
-                transition={{ delay: 1.1, duration: 0.4 }}
-              >
-                Frigy!
-              </motion.h1>
-              <motion.p
-                className="text-lg text-muted-foreground mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.3, duration: 0.4 }}
-              >
-                Dein smarter Ernährungsbegleiter 🍎
-              </motion.p>
-            </motion.div>
+                {/* Badge */}
+                <motion.div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.7, duration: 0.4 }}
+                >
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Willkommen</span>
+                </motion.div>
+                
+                {/* Main title */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.5 }}
+                >
+                  <h1 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight leading-tight">
+                    Hallo, ich bin
+                  </h1>
+                  <motion.h1 
+                    className="text-5xl sm:text-6xl font-black tracking-tight mt-2 bg-gradient-to-r from-primary via-primary to-green-400 bg-clip-text text-transparent"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.1, duration: 0.4 }}
+                  >
+                    Frigy!
+                  </motion.h1>
+                </motion.div>
+                
+                {/* Subtitle */}
+                <motion.p
+                  className="text-base sm:text-lg text-muted-foreground mt-5 max-w-xs mx-auto leading-relaxed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.3, duration: 0.5 }}
+                >
+                  Dein smarter Ernährungsbegleiter für ein gesünderes Leben
+                </motion.p>
+                
+                {/* Feature pills */}
+                <motion.div 
+                  className="flex flex-wrap justify-center gap-2 mt-6"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5, duration: 0.4 }}
+                >
+                  {['🍎 Tracking', '📸 KI-Scan', '📊 Analysen'].map((item, i) => (
+                    <motion.span
+                      key={item}
+                      className="px-3 py-1.5 rounded-full bg-muted/50 text-xs font-medium text-muted-foreground border border-border/50"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 1.6 + i * 0.1, duration: 0.3 }}
+                    >
+                      {item}
+                    </motion.span>
+                  ))}
+                </motion.div>
+              </motion.div>
+            </div>
 
-            {/* Animated Frigy mascot - comes from bottom, fills screen */}
-            <div className="flex-1 flex items-end justify-center w-full">
+            {/* Animated Frigy mascot - comes from bottom */}
+            <motion.div 
+              className="absolute bottom-0 left-1/2 -translate-x-1/2"
+              initial={{ y: 200, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+            >
               <AnimatedFrigyMascot 
-                size={320} 
+                size={280} 
                 animate={true}
               />
-            </div>
+            </motion.div>
           </div>
         );
 
