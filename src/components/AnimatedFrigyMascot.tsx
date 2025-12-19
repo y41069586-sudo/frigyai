@@ -7,221 +7,202 @@ interface AnimatedFrigyMascotProps {
 }
 
 export const AnimatedFrigyMascot = ({ 
-  size = 256, 
+  size = 320, 
   animate = true,
   onAnimationComplete 
 }: AnimatedFrigyMascotProps) => {
-  const scale = size / 256;
 
   return (
     <motion.div
-      style={{ width: size, height: size }}
-      initial={animate ? { y: 300, scale: 0.5, opacity: 0 } : false}
-      animate={animate ? { y: 0, scale: 1, opacity: 1 } : false}
+      style={{ width: size, height: size * 1.2 }}
+      initial={animate ? { y: "100vh", rotate: -5 } : false}
+      animate={animate ? { y: 0, rotate: 0 } : false}
       transition={{
         type: "spring",
-        stiffness: 120,
-        damping: 12,
+        stiffness: 80,
+        damping: 14,
         duration: 1.2
       }}
       onAnimationComplete={onAnimationComplete}
     >
       <svg
-        viewBox="0 0 256 256"
+        viewBox="0 0 200 240"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         style={{ width: "100%", height: "100%", overflow: "visible" }}
       >
-        {/* Shadow */}
-        <motion.ellipse
-          cx="128"
-          cy="240"
-          rx="60"
-          ry="12"
-          fill="rgba(0,0,0,0.1)"
-          initial={animate ? { scale: 0.5, opacity: 0 } : { scale: 1, opacity: 1 }}
-          animate={{ scale: 1, opacity: 0.15 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        />
-
         {/* Main fridge body */}
         <motion.g
-          initial={animate ? { rotate: -10 } : { rotate: 0 }}
-          animate={{ rotate: [0, -3, 3, -2, 2, 0] }}
-          transition={{ delay: 0.8, duration: 0.6, ease: "easeInOut" }}
-          style={{ transformOrigin: "128px 150px" }}
+          initial={animate ? { scale: 0.9 } : { scale: 1 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
         >
-          {/* Fridge body - back */}
-          <motion.path
-            d="M75 70 L75 210 Q75 220 85 220 L171 220 Q181 220 181 210 L181 70 Q181 60 171 60 L85 60 Q75 60 75 70Z"
+          {/* Fridge body shadow/depth - right side */}
+          <path
+            d="M160 35 L175 45 L175 215 L160 225 L160 35Z"
+            fill="#16a34a"
+          />
+          
+          {/* Fridge body shadow/depth - bottom */}
+          <path
+            d="M40 225 L55 235 L175 215 L160 225 L40 225Z"
+            fill="#15803d"
+          />
+
+          {/* Main fridge body - front */}
+          <motion.rect
+            x="40"
+            y="25"
+            width="120"
+            height="200"
+            rx="12"
             fill="#22c55e"
             stroke="#16a34a"
             strokeWidth="3"
           />
 
-          {/* Fridge front panel - top section */}
+          {/* Fridge door - top section (freezer) */}
           <motion.rect
-            x="82"
-            y="68"
-            width="92"
-            height="70"
+            x="50"
+            y="35"
+            width="100"
+            height="75"
+            rx="8"
+            fill="#bbf7d0"
+            stroke="#22c55e"
+            strokeWidth="2"
+          />
+
+          {/* Fridge door - bottom section */}
+          <motion.rect
+            x="50"
+            y="120"
+            width="100"
+            height="95"
             rx="8"
             fill="#dcfce7"
             stroke="#22c55e"
             strokeWidth="2"
           />
 
-          {/* Fridge front panel - bottom section */}
+          {/* Door handles */}
           <motion.rect
-            x="82"
-            y="145"
-            width="92"
-            height="68"
-            rx="8"
-            fill="#dcfce7"
-            stroke="#22c55e"
-            strokeWidth="2"
-          />
-
-          {/* Fridge handles */}
-          <motion.rect
-            x="164"
-            y="90"
+            x="140"
+            y="60"
             width="6"
-            height="30"
+            height="25"
             rx="3"
             fill="#16a34a"
           />
           <motion.rect
-            x="164"
-            y="165"
+            x="140"
+            y="155"
             width="6"
-            height="30"
+            height="35"
             rx="3"
             fill="#16a34a"
           />
 
           {/* Fridge feet */}
-          <rect x="85" y="218" width="15" height="8" rx="2" fill="#16a34a" />
-          <rect x="156" y="218" width="15" height="8" rx="2" fill="#16a34a" />
+          <rect x="50" y="222" width="18" height="10" rx="3" fill="#16a34a" />
+          <rect x="132" y="222" width="18" height="10" rx="3" fill="#16a34a" />
         </motion.g>
 
-        {/* Fridge lid/top - animated to open */}
+        {/* Face INSIDE the freezer section */}
         <motion.g
-          initial={animate ? { rotate: 0 } : { rotate: -15 }}
-          animate={{ rotate: [-15, -20, -15] }}
-          transition={{ 
-            delay: 0.6, 
-            duration: 0.8, 
-            repeat: Infinity,
-            repeatDelay: 3,
-            ease: "easeInOut" 
-          }}
-          style={{ transformOrigin: "75px 55px" }}
+          initial={animate ? { opacity: 0, scale: 0.8 } : { opacity: 1, scale: 1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.6, duration: 0.4, type: "spring" }}
         >
-          <motion.path
-            d="M70 55 L70 45 Q70 35 80 35 L176 35 Q186 35 186 45 L186 55 Q186 60 176 60 L80 60 Q70 60 70 55Z"
-            fill="#22c55e"
-            stroke="#16a34a"
-            strokeWidth="3"
-          />
-          <motion.rect
-            x="78"
-            y="42"
-            width="100"
-            height="12"
-            rx="4"
-            fill="#4ade80"
-          />
-        </motion.g>
-
-        {/* Face container - peeks out from top */}
-        <motion.g
-          initial={animate ? { y: 20, opacity: 0 } : { y: 0, opacity: 1 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5, type: "spring" }}
-        >
-          {/* Face background */}
-          <motion.ellipse
-            cx="128"
-            cy="25"
-            rx="35"
-            ry="28"
-            fill="#fefce8"
-            stroke="#22c55e"
-            strokeWidth="2"
-          />
-
-          {/* Blush cheeks */}
-          <motion.ellipse
-            cx="100"
-            cy="28"
-            rx="8"
-            ry="5"
-            fill="#fecaca"
-            opacity="0.6"
-            initial={animate ? { scale: 0 } : { scale: 1 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 1, duration: 0.3 }}
-          />
-          <motion.ellipse
-            cx="156"
-            cy="28"
-            rx="8"
-            ry="5"
-            fill="#fecaca"
-            opacity="0.6"
-            initial={animate ? { scale: 0 } : { scale: 1 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 1, duration: 0.3 }}
-          />
-
-          {/* Eyes */}
+          {/* Eyes - inside freezer */}
           <motion.g
             animate={{ scaleY: [1, 0.1, 1] }}
             transition={{ 
-              delay: 1.5, 
+              delay: 2, 
               duration: 0.15, 
               repeat: Infinity, 
-              repeatDelay: 4 
+              repeatDelay: 3.5 
             }}
-            style={{ transformOrigin: "128px 18px" }}
+            style={{ transformOrigin: "100px 65px" }}
           >
             {/* Left eye */}
-            <circle cx="112" cy="18" r="6" fill="#1f2937" />
-            <circle cx="114" cy="16" r="2" fill="white" />
+            <ellipse cx="80" cy="65" rx="8" ry="9" fill="#1f2937" />
+            <ellipse cx="83" cy="62" rx="3" ry="3" fill="white" />
             
             {/* Right eye */}
-            <circle cx="144" cy="18" r="6" fill="#1f2937" />
-            <circle cx="146" cy="16" r="2" fill="white" />
+            <ellipse cx="120" cy="65" rx="8" ry="9" fill="#1f2937" />
+            <ellipse cx="123" cy="62" rx="3" ry="3" fill="white" />
           </motion.g>
 
-          {/* Smile */}
+          {/* Cute blush cheeks */}
+          <motion.ellipse
+            cx="65"
+            cy="78"
+            rx="10"
+            ry="6"
+            fill="#fca5a5"
+            opacity="0.5"
+            initial={animate ? { scale: 0 } : { scale: 1 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 1, duration: 0.3 }}
+          />
+          <motion.ellipse
+            cx="135"
+            cy="78"
+            rx="10"
+            ry="6"
+            fill="#fca5a5"
+            opacity="0.5"
+            initial={animate ? { scale: 0 } : { scale: 1 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 1.1, duration: 0.3 }}
+          />
+
+          {/* Big happy smile */}
           <motion.path
-            d="M115 32 Q128 42 141 32"
+            d="M75 85 Q100 105 125 85"
             stroke="#1f2937"
-            strokeWidth="3"
+            strokeWidth="4"
             strokeLinecap="round"
             fill="none"
             initial={animate ? { pathLength: 0 } : { pathLength: 1 }}
             animate={{ pathLength: 1 }}
-            transition={{ delay: 0.8, duration: 0.4 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
           />
         </motion.g>
 
-        {/* Sparkle effects */}
+        {/* Wiggle animation for whole fridge */}
         <motion.g
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
-          transition={{ delay: 1, duration: 0.8, repeat: Infinity, repeatDelay: 2 }}
+          animate={{ rotate: [0, -2, 2, -1, 1, 0] }}
+          transition={{ 
+            delay: 1.2, 
+            duration: 0.5, 
+            repeat: Infinity,
+            repeatDelay: 4
+          }}
+          style={{ transformOrigin: "100px 130px" }}
         >
-          {/* Sparkle 1 */}
-          <motion.path
-            d="M55 40 L58 35 L61 40 L58 45 Z"
+        </motion.g>
+
+        {/* Sparkle effects around fridge */}
+        <motion.g
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ delay: 1.3, duration: 0.8, repeat: Infinity, repeatDelay: 2.5 }}
+        >
+          {/* Sparkle top right */}
+          <path
+            d="M170 20 L173 12 L176 20 L173 28 Z"
             fill="#fbbf24"
           />
-          <motion.path
-            d="M53 38 L63 42 M58 33 L58 47"
+          <path
+            d="M167 17 L179 23"
+            stroke="#fbbf24"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M173 10 L173 30"
             stroke="#fbbf24"
             strokeWidth="2"
             strokeLinecap="round"
@@ -229,46 +210,49 @@ export const AnimatedFrigyMascot = ({
         </motion.g>
 
         <motion.g
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
-          transition={{ delay: 1.2, duration: 0.8, repeat: Infinity, repeatDelay: 2.5 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ delay: 1.6, duration: 0.8, repeat: Infinity, repeatDelay: 3 }}
         >
-          {/* Sparkle 2 */}
-          <motion.path
-            d="M195 50 L198 45 L201 50 L198 55 Z"
-            fill="#22c55e"
+          {/* Sparkle left */}
+          <path
+            d="M25 60 L28 54 L31 60 L28 66 Z"
+            fill="#4ade80"
           />
-          <motion.path
-            d="M193 48 L203 52 M198 43 L198 57"
-            stroke="#22c55e"
+          <path
+            d="M22 57 L34 63"
+            stroke="#4ade80"
             strokeWidth="2"
             strokeLinecap="round"
           />
         </motion.g>
 
         <motion.g
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
-          transition={{ delay: 1.4, duration: 0.8, repeat: Infinity, repeatDelay: 3 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ delay: 1.9, duration: 0.8, repeat: Infinity, repeatDelay: 3.5 }}
         >
-          {/* Sparkle 3 */}
-          <motion.path
-            d="M45 90 L47 87 L49 90 L47 93 Z"
-            fill="#a3e635"
-          />
+          {/* Sparkle bottom left */}
+          <circle cx="30" cy="180" r="4" fill="#a3e635" />
         </motion.g>
 
-        {/* Small floating hearts */}
-        <motion.g
-          initial={{ opacity: 0, y: 0 }}
-          animate={{ opacity: [0, 1, 0], y: [0, -20] }}
-          transition={{ delay: 1.3, duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-        >
-          <motion.path
-            d="M185 80 C185 76 188 74 191 76 C194 74 197 76 197 80 C197 84 191 88 191 88 C191 88 185 84 185 80Z"
-            fill="#f87171"
-          />
-        </motion.g>
+        {/* Floating heart */}
+        <motion.path
+          d="M175 100 C175 95 179 92 183 95 C187 92 191 95 191 100 C191 106 183 112 183 112 C183 112 175 106 175 100Z"
+          fill="#f87171"
+          initial={{ opacity: 0, y: 0, scale: 0 }}
+          animate={{ 
+            opacity: [0, 1, 1, 0], 
+            y: [0, -15, -25, -35],
+            scale: [0, 1, 1, 0.5]
+          }}
+          transition={{ 
+            delay: 1.5, 
+            duration: 2, 
+            repeat: Infinity, 
+            repeatDelay: 3 
+          }}
+        />
       </svg>
     </motion.div>
   );
