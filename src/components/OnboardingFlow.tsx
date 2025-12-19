@@ -217,38 +217,47 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     switch (currentStep) {
       case "intro":
         return (
-          <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
-            {/* Animated Frigy mascot - fully animated SVG */}
-            <AnimatedFrigyMascot 
-              size={280} 
-              animate={true}
-            />
-            
-            {/* Welcome text below mascot */}
+          <div className="fixed inset-0 bg-background flex flex-col items-center justify-end overflow-hidden pb-0">
+            {/* Welcome text at top */}
             <motion.div
-              className="text-center mt-6 z-10 px-6"
-              initial={{ opacity: 0, y: 30 }}
+              className="absolute top-[15%] text-center z-10 px-6"
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.5, ease: "easeOut" }}
             >
               <motion.h1 
-                className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight"
+                className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight"
                 initial={{ scale: 0.9 }}
                 animate={{ scale: [0.9, 1.05, 1] }}
                 transition={{ delay: 1, duration: 0.4 }}
               >
-                Willkommen zu{' '}
-                <span className="text-primary">Frigy</span>!
+                Willkommen zu
+              </motion.h1>
+              <motion.h1 
+                className="text-5xl sm:text-6xl font-bold text-primary tracking-tight mt-1"
+                initial={{ scale: 0.9 }}
+                animate={{ scale: [0.9, 1.08, 1] }}
+                transition={{ delay: 1.1, duration: 0.4 }}
+              >
+                Frigy!
               </motion.h1>
               <motion.p
-                className="text-base text-muted-foreground mt-3"
+                className="text-lg text-muted-foreground mt-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.4 }}
+                transition={{ delay: 1.3, duration: 0.4 }}
               >
                 Dein smarter Ernährungsbegleiter 🍎
               </motion.p>
             </motion.div>
+
+            {/* Animated Frigy mascot - comes from bottom, fills screen */}
+            <div className="flex-1 flex items-end justify-center w-full">
+              <AnimatedFrigyMascot 
+                size={320} 
+                animate={true}
+              />
+            </div>
           </div>
         );
 
