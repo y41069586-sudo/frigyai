@@ -531,6 +531,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "body-basics":
+        const adjustValue = (field: 'height' | 'weight' | 'age', delta: number) => {
+          const limits = {
+            height: { min: 60, max: 220 },
+            weight: { min: 10, max: 500 },
+            age: { min: 10, max: 100 }
+          };
+          const current = userData[field];
+          const newValue = Math.max(limits[field].min, Math.min(limits[field].max, current + delta));
+          setUserData({ ...userData, [field]: newValue });
+        };
+
         return (
           <StepCard step="body-basics">
             <div className="flex flex-col items-center text-center px-6 w-full">
@@ -549,23 +560,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1, duration: 0.3 }}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <PersonStanding className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium">Größe</span>
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
-                      <AnimatedCounter value={userData.height} suffix=" cm" />
-                    </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <PersonStanding className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium">Größe</span>
                   </div>
-                  <input
-                    type="range" min="60" max="220" value={userData.height}
-                    onChange={(e) => setUserData({ ...userData, height: parseInt(e.target.value) })}
-                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>60 cm</span>
-                    <span>220 cm</span>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => adjustValue('height', -1)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-12 h-12 rounded-xl bg-muted hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-foreground"
+                    >
+                      −
+                    </button>
+                    <div className="flex-1 flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={userData.height}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 60;
+                          setUserData({ ...userData, height: Math.max(60, Math.min(220, val)) });
+                        }}
+                        className="w-20 text-center text-3xl font-bold bg-transparent border-none outline-none text-primary"
+                        min={60}
+                        max={220}
+                      />
+                      <span className="text-lg text-muted-foreground ml-1">cm</span>
+                    </div>
+                    <button
+                      onClick={() => adjustValue('height', 1)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-12 h-12 rounded-xl bg-muted hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-foreground"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground/50 mt-2 px-2">
+                    <span>60</span>
+                    <span>220</span>
                   </div>
                 </motion.div>
                 
@@ -576,23 +607,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2, duration: 0.3 }}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <Scale className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium">Gewicht</span>
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
-                      <AnimatedCounter value={userData.weight} suffix=" kg" />
-                    </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Scale className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium">Gewicht</span>
                   </div>
-                  <input
-                    type="range" min="10" max="500" value={userData.weight}
-                    onChange={(e) => setUserData({ ...userData, weight: parseInt(e.target.value) })}
-                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>10 kg</span>
-                    <span>500 kg</span>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => adjustValue('weight', -1)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-12 h-12 rounded-xl bg-muted hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-foreground"
+                    >
+                      −
+                    </button>
+                    <div className="flex-1 flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={userData.weight}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 10;
+                          setUserData({ ...userData, weight: Math.max(10, Math.min(500, val)) });
+                        }}
+                        className="w-20 text-center text-3xl font-bold bg-transparent border-none outline-none text-primary"
+                        min={10}
+                        max={500}
+                      />
+                      <span className="text-lg text-muted-foreground ml-1">kg</span>
+                    </div>
+                    <button
+                      onClick={() => adjustValue('weight', 1)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-12 h-12 rounded-xl bg-muted hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-foreground"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground/50 mt-2 px-2">
+                    <span>10</span>
+                    <span>500</span>
                   </div>
                 </motion.div>
                 
@@ -603,23 +654,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3, duration: 0.3 }}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium">Alter</span>
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
-                      <AnimatedCounter value={userData.age} suffix=" yrs" />
-                    </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium">Alter</span>
                   </div>
-                  <input
-                    type="range" min="10" max="100" value={userData.age}
-                    onChange={(e) => setUserData({ ...userData, age: parseInt(e.target.value) })}
-                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>10 Jahre</span>
-                    <span>100 Jahre</span>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => adjustValue('age', -1)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-12 h-12 rounded-xl bg-muted hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-foreground"
+                    >
+                      −
+                    </button>
+                    <div className="flex-1 flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={userData.age}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 10;
+                          setUserData({ ...userData, age: Math.max(10, Math.min(100, val)) });
+                        }}
+                        className="w-20 text-center text-3xl font-bold bg-transparent border-none outline-none text-primary"
+                        min={10}
+                        max={100}
+                      />
+                      <span className="text-lg text-muted-foreground ml-1">Jahre</span>
+                    </div>
+                    <button
+                      onClick={() => adjustValue('age', 1)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-12 h-12 rounded-xl bg-muted hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center text-xl font-bold text-foreground"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground/50 mt-2 px-2">
+                    <span>10</span>
+                    <span>100</span>
                   </div>
                 </motion.div>
               </div>
@@ -631,7 +702,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
                 <span className="text-sm">🔒</span>
-                <span className="text-xs text-muted-foreground/60">100% private - stays on your device</span>
+                <span className="text-xs text-muted-foreground/60">100% privat - bleibt auf deinem Gerät</span>
               </motion.div>
             </div>
           </StepCard>
