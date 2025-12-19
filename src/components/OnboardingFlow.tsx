@@ -27,6 +27,7 @@ import {
   AnimatedBicycle, AnimatedCar, AnimatedRocket
 } from "./onboarding/components";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
+import { MascotPopup } from "./onboarding/MascotPopup";
 import { MacroRing } from "./MacroRing";
 
 interface OnboardingFlowProps {
@@ -137,6 +138,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [chartAnimate, setChartAnimate] = useState(false);
   const [selectedPlanOption, setSelectedPlanOption] = useState<'free' | 'premium' | null>(null);
   const [introPhase, setIntroPhase] = useState<'rising' | 'greeting' | 'settling' | 'done'>('rising');
+  const [mascotPopup, setMascotPopup] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
 
   const currentIndex = onboardingSteps.indexOf(currentStep);
 
@@ -183,6 +185,22 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           origin: { y: 0.6 },
           colors: ["hsl(142, 76%, 36%)", "hsl(142, 69%, 58%)", "hsl(43, 96%, 56%)"]
         });
+      }, 400);
+    }
+    
+    // Mascot popup appearances at key moments
+    if (currentStep === "planning-setup") {
+      // After gender selection - encouraging
+      setTimeout(() => {
+        setMascotPopup({ show: true, message: "Du schaffst das! 💪" });
+        setTimeout(() => setMascotPopup({ show: false, message: "" }), 2500);
+      }, 500);
+    }
+    if (currentStep === "notification-prefs") {
+      // Before final steps - almost there
+      setTimeout(() => {
+        setMascotPopup({ show: true, message: "Fast geschafft! 🎯" });
+        setTimeout(() => setMascotPopup({ show: false, message: "" }), 2500);
       }, 400);
     }
   }, [currentStep]);
@@ -2245,6 +2263,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </Button>
         </motion.div>
       )}
+      
+      {/* Mascot popup for encouragement */}
+      <MascotPopup 
+        show={mascotPopup.show} 
+        message={mascotPopup.message}
+      />
     </motion.div>
   );
 };
