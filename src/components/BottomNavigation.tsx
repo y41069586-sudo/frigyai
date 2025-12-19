@@ -1,4 +1,4 @@
-import { Calendar, ShoppingCart, Target, Droplets, TrendingDown, Lock, ScanLine } from "lucide-react";
+import { Calendar, ShoppingCart, Target, Droplets, TrendingDown, Lock, NotebookPen } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -28,7 +28,7 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
     { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-primary", requiresPremium: true, requiresTracker: true },
   ];
   
-  const centerItem = { id: "tracker", label: t.navTracker, icon: ScanLine, color: "text-primary-foreground", requiresPremium: false, requiresTracker: false };
+  const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", requiresPremium: false, requiresTracker: false };
   
   const rightItems = [
     { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: true, requiresTracker: true },
