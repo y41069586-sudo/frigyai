@@ -216,137 +216,65 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     switch (currentStep) {
       case "intro":
         return (
-          <div className="fixed inset-0 bg-gradient-to-b from-emerald-50 via-green-50/50 to-background flex flex-col items-center justify-end overflow-hidden">
-            {/* Soft background gradient */}
+          <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
+            {/* Frigy mascot - centered like Yazio */}
             <motion.div
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              style={{ 
-                background: 'radial-gradient(ellipse at 50% 100%, hsl(142 76% 90% / 0.5) 0%, transparent 50%)'
-              }}
-            />
-            
-            {/* Welcome text at top */}
-            <motion.div
-              className="absolute top-1/4 text-center px-8 z-10"
-              initial={{ opacity: 0, y: -20 }}
+              className="relative z-10"
+              initial={{ y: 200, scale: 0.5, opacity: 0 }}
               animate={{
-                opacity: introPhase !== 'rising' ? 1 : 0,
-                y: introPhase !== 'rising' ? 0 : -20,
-              }}
-              transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
-            >
-              <motion.h1 
-                className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight leading-tight"
-                animate={{
-                  scale: introPhase === 'greeting' ? [1, 1.05, 1] : 1,
-                }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                Willkommen zu
-              </motion.h1>
-              <motion.h1 
-                className="text-5xl sm:text-6xl font-bold text-primary tracking-tight mt-1"
-                animate={{
-                  scale: introPhase === 'greeting' ? [1, 1.08, 1] : 1,
-                }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              >
-                Frigy!
-              </motion.h1>
-              <motion.p
-                className="text-lg text-muted-foreground mt-4 font-medium"
-                initial={{ opacity: 0 }}
-                animate={{ 
-                  opacity: introPhase === 'greeting' || introPhase === 'settling' ? 1 : 0,
-                }}
-                transition={{ delay: 0.6, duration: 0.4 }}
-              >
-                Dein smarter Ernährungsbegleiter 🍎
-              </motion.p>
-            </motion.div>
-            
-            {/* Floating sparkles */}
-            {introPhase === 'greeting' && (
-              <div className="absolute inset-0 pointer-events-none z-20">
-                {['💚', '✨', '🌿', '✨', '💚'].map((emoji, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute text-2xl sm:text-3xl"
-                    style={{
-                      left: `${15 + i * 18}%`,
-                      top: `${35 + (i % 2) * 10}%`,
-                    }}
-                    initial={{ opacity: 0, scale: 0, y: 0 }}
-                    animate={{ 
-                      opacity: [0, 1, 1, 0],
-                      scale: [0, 1.2, 1, 0.5],
-                      y: [0, -30, -50, -80],
-                    }}
-                    transition={{ 
-                      duration: 1.8,
-                      delay: 0.2 + 0.15 * i,
-                      ease: "easeOut"
-                    }}
-                  >
-                    {emoji}
-                  </motion.div>
-                ))}
-              </div>
-            )}
-            
-            {/* Frigy mascot - positioned at bottom, peeking up */}
-            <motion.div
-              className="relative z-10 mb-0"
-              initial={{ y: 300, scale: 0.8 }}
-              animate={{
-                y: introPhase === 'rising' ? 40 : introPhase === 'settling' || introPhase === 'done' ? 60 : 20,
+                y: introPhase === 'rising' ? 0 : introPhase === 'settling' || introPhase === 'done' ? 20 : 0,
                 scale: introPhase === 'rising' ? 1 : introPhase === 'greeting' ? 1.05 : 0.95,
+                opacity: 1,
               }}
               transition={{
-                y: { type: "spring", stiffness: 100, damping: 15 },
+                y: { type: "spring", stiffness: 120, damping: 14 },
                 scale: { type: "spring", stiffness: 200, damping: 12 },
+                opacity: { duration: 0.3 }
               }}
             >
-              {/* Main mascot - large and positioned at bottom */}
               <motion.img
-                src={frigyPeekSrc}
+                src={frigyMascotSrc}
                 alt="Frigy"
-                className="w-64 h-64 sm:w-80 sm:h-80 object-contain drop-shadow-[0_-10px_30px_rgba(0,0,0,0.1)]"
+                className="w-56 h-56 sm:w-64 sm:h-64 object-contain"
                 animate={{
                   rotate: introPhase === 'greeting' ? [0, -5, 5, -3, 3, 0] : 0,
                 }}
                 transition={{
-                  rotate: { duration: 0.8, ease: "easeInOut", delay: 0.2 }
+                  rotate: { duration: 0.6, ease: "easeInOut", delay: 0.1 }
                 }}
               />
             </motion.div>
             
-            {/* Loading dots */}
+            {/* Welcome text below mascot */}
             <motion.div
-              className="absolute bottom-8 flex gap-2 z-20"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: introPhase === 'settling' ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
+              className="text-center mt-8 z-10 px-6"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{
+                opacity: introPhase !== 'rising' ? 1 : 0,
+                y: introPhase !== 'rising' ? 0 : 30,
+              }}
+              transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
             >
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-2.5 h-2.5 rounded-full bg-primary"
-                  animate={{ 
-                    scale: [1, 1.4, 1], 
-                    opacity: [0.5, 1, 0.5] 
-                  }}
-                  transition={{ 
-                    duration: 0.6, 
-                    delay: i * 0.12, 
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                />
-              ))}
+              <motion.h1 
+                className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight"
+                animate={{
+                  scale: introPhase === 'greeting' ? [1, 1.05, 1] : 1,
+                }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                Willkommen zu{' '}
+                <span className="text-primary">Frigy</span>!
+              </motion.h1>
+              <motion.p
+                className="text-base text-muted-foreground mt-3"
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: introPhase === 'greeting' || introPhase === 'settling' ? 1 : 0,
+                }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+              >
+                Dein smarter Ernährungsbegleiter 🍎
+              </motion.p>
             </motion.div>
           </div>
         );
