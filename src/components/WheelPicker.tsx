@@ -184,7 +184,7 @@ export const WheelPicker = ({
         {items.map((item) => {
           const isSelected = item === displayValue;
           const distance = Math.abs(items.indexOf(item) - items.indexOf(displayValue));
-          const opacity = distance === 0 ? 1 : distance === 1 ? 0.5 : 0.25;
+          const opacity = distance === 0 ? 1 : distance === 1 ? 0.4 : 0.2;
           
           return (
             <div
@@ -195,9 +195,9 @@ export const WheelPicker = ({
               style={{ 
                 height: itemHeight,
                 scrollSnapAlign: 'center',
-                fontSize: isSelected ? '1.5rem' : '1.1rem',
+                fontSize: isSelected ? '1.5rem' : '1rem',
                 opacity,
-                transform: isSelected ? 'scale(1.05)' : 'scale(0.95)'
+                transform: isSelected ? 'scale(1.05)' : 'scale(0.9)'
               }}
               onClick={() => {
                 triggerHaptic('medium');
@@ -211,7 +211,7 @@ export const WheelPicker = ({
               }}
             >
               <span>{item}</span>
-              <span className={`text-sm ${isSelected ? 'text-primary/70' : 'text-muted-foreground/50'}`}>
+              <span className={`${isSelected ? 'text-sm text-primary/70' : 'text-xs text-muted-foreground/60'}`}>
                 {unit}
               </span>
             </div>
