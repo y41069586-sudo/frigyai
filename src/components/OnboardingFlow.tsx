@@ -535,11 +535,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <StepCard step="body-basics">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
-                <Ruler className="w-8 h-8 text-primary-foreground" />
+                <PersonStanding className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Your body basics</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Used to calculate your ideal macros</p>
+              <h1 className="text-2xl font-bold mb-1">Deine Körperdaten</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">Für die perfekte Makro-Berechnung</p>
               
               <div className="w-full max-w-sm space-y-4">
                 {/* Height */}
@@ -551,18 +551,22 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">📐</span>
-                      <span className="text-sm font-medium">Height</span>
+                      <PersonStanding className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-medium">Größe</span>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       <AnimatedCounter value={userData.height} suffix=" cm" />
                     </div>
                   </div>
                   <input
-                    type="range" min="140" max="220" value={userData.height}
+                    type="range" min="60" max="220" value={userData.height}
                     onChange={(e) => setUserData({ ...userData, height: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>60 cm</span>
+                    <span>220 cm</span>
+                  </div>
                 </motion.div>
                 
                 {/* Weight */}
@@ -575,17 +579,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <Scale className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium">Weight</span>
+                      <span className="text-sm font-medium">Gewicht</span>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       <AnimatedCounter value={userData.weight} suffix=" kg" />
                     </div>
                   </div>
                   <input
-                    type="range" min="40" max="150" value={userData.weight}
+                    type="range" min="10" max="500" value={userData.weight}
                     onChange={(e) => setUserData({ ...userData, weight: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>10 kg</span>
+                    <span>500 kg</span>
+                  </div>
                 </motion.div>
                 
                 {/* Age */}
@@ -598,17 +606,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium">Age</span>
+                      <span className="text-sm font-medium">Alter</span>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       <AnimatedCounter value={userData.age} suffix=" yrs" />
                     </div>
                   </div>
                   <input
-                    type="range" min="13" max="80" value={userData.age}
+                    type="range" min="10" max="100" value={userData.age}
                     onChange={(e) => setUserData({ ...userData, age: parseInt(e.target.value) })}
                     className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>10 Jahre</span>
+                    <span>100 Jahre</span>
+                  </div>
                 </motion.div>
               </div>
               
