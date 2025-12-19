@@ -29,6 +29,7 @@ export type OnboardingStep =
   | "macro-preview"
   | "premium-hint"
   | "community"
+  | "celebration"
   | "done";
 
 export interface UserData {
@@ -143,5 +144,6 @@ export const onboardingSteps: OnboardingStep[] = [
   // Phase 8: Finish
   "premium-hint",
   "community",
+  "celebration",
   "done"
 ];

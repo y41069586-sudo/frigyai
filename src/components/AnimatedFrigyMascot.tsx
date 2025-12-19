@@ -37,62 +37,109 @@ export const AnimatedFrigyMascot = ({
           animate={{ scale: 1 }}
           transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
         >
+          {/* Gradient definitions for premium look */}
+          <defs>
+            <linearGradient id="fridgeBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#86efac" />
+              <stop offset="50%" stopColor="#6ee7b7" />
+              <stop offset="100%" stopColor="#4ade80" />
+            </linearGradient>
+            <linearGradient id="freezerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#f0fdf4" />
+              <stop offset="100%" stopColor="#dcfce7" />
+            </linearGradient>
+            <linearGradient id="fridgeDoorGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ecfdf5" />
+              <stop offset="100%" stopColor="#d1fae5" />
+            </linearGradient>
+            <linearGradient id="handleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#34d399" />
+              <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+            {/* Glossy shine effect */}
+            <linearGradient id="shineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="white" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
           {/* Fridge body shadow/depth - right side */}
           <path
             d="M160 35 L175 45 L175 215 L160 225 L160 35Z"
-            fill="#4ade80"
+            fill="#6ee7b7"
           />
           
           {/* Fridge body shadow/depth - bottom */}
           <path
             d="M40 225 L55 235 L175 215 L160 225 L40 225Z"
-            fill="#22c55e"
+            fill="#34d399"
           />
 
-          {/* Main fridge body - front - lighter green */}
+          {/* Main fridge body - front with gradient */}
           <motion.rect
             x="40"
             y="25"
             width="120"
             height="200"
             rx="12"
-            fill="#4ade80"
-            stroke="#22c55e"
-            strokeWidth="3"
+            fill="url(#fridgeBodyGradient)"
+            stroke="#34d399"
+            strokeWidth="2"
           />
 
-          {/* Fridge door - top section (freezer) - very light green */}
+          {/* Fridge door - top section (freezer) with gradient */}
           <motion.rect
             x="50"
             y="35"
             width="100"
             height="75"
             rx="8"
-            fill="#dcfce7"
-            stroke="#86efac"
-            strokeWidth="2"
+            fill="url(#freezerGradient)"
+            stroke="#a7f3d0"
+            strokeWidth="1.5"
+          />
+          
+          {/* Freezer shine overlay */}
+          <rect
+            x="52"
+            y="37"
+            width="40"
+            height="30"
+            rx="6"
+            fill="url(#shineGradient)"
           />
 
-          {/* Fridge door - bottom section - light green */}
+          {/* Fridge door - bottom section with gradient */}
           <motion.rect
             x="50"
             y="120"
             width="100"
             height="95"
             rx="8"
-            fill="#bbf7d0"
-            stroke="#86efac"
-            strokeWidth="2"
+            fill="url(#fridgeDoorGradient)"
+            stroke="#a7f3d0"
+            strokeWidth="1.5"
+          />
+          
+          {/* Bottom door shine overlay */}
+          <rect
+            x="52"
+            y="122"
+            width="35"
+            height="40"
+            rx="6"
+            fill="url(#shineGradient)"
           />
 
-          {/* Door handles - medium green */}
+          {/* Door handles with gradient */}
           <motion.rect
             x="140"
             y="60"
             width="6"
             height="25"
             rx="3"
-            fill="#22c55e"
+            fill="url(#handleGradient)"
           />
           <motion.rect
             x="140"
@@ -100,12 +147,12 @@ export const AnimatedFrigyMascot = ({
             width="6"
             height="35"
             rx="3"
-            fill="#22c55e"
+            fill="url(#handleGradient)"
           />
 
           {/* Fridge feet */}
-          <rect x="50" y="222" width="18" height="10" rx="3" fill="#22c55e" />
-          <rect x="132" y="222" width="18" height="10" rx="3" fill="#22c55e" />
+          <rect x="50" y="222" width="18" height="10" rx="3" fill="#34d399" />
+          <rect x="132" y="222" width="18" height="10" rx="3" fill="#34d399" />
         </motion.g>
 
         {/* Face INSIDE the freezer section */}
@@ -184,73 +231,90 @@ export const AnimatedFrigyMascot = ({
         >
         </motion.g>
 
-        {/* Sparkle effects around fridge */}
+        {/* Premium sparkle effects */}
         <motion.g
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}
-          transition={{ delay: 1.3, duration: 0.8, repeat: Infinity, repeatDelay: 2.5 }}
+          transition={{ delay: 1.3, duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
         >
-          {/* Sparkle top right */}
-          <path
-            d="M170 20 L173 12 L176 20 L173 28 Z"
-            fill="#fbbf24"
-          />
-          <path
-            d="M167 17 L179 23"
-            stroke="#fbbf24"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M173 10 L173 30"
-            stroke="#fbbf24"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
+          {/* Star sparkle top right */}
+          <g transform="translate(170, 15)">
+            <motion.path
+              d="M0 -8 L2 -2 L8 0 L2 2 L0 8 L-2 2 L-8 0 L-2 -2 Z"
+              fill="#fde047"
+              animate={{ rotate: [0, 180] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            />
+          </g>
         </motion.g>
 
         <motion.g
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}
-          transition={{ delay: 1.6, duration: 0.8, repeat: Infinity, repeatDelay: 3 }}
+          transition={{ delay: 1.8, duration: 0.6, repeat: Infinity, repeatDelay: 2.5 }}
         >
-          {/* Sparkle left */}
-          <path
-            d="M25 60 L28 54 L31 60 L28 66 Z"
-            fill="#4ade80"
-          />
-          <path
-            d="M22 57 L34 63"
-            stroke="#4ade80"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
+          {/* Star sparkle left */}
+          <g transform="translate(25, 55)">
+            <motion.path
+              d="M0 -6 L1.5 -1.5 L6 0 L1.5 1.5 L0 6 L-1.5 1.5 L-6 0 L-1.5 -1.5 Z"
+              fill="#86efac"
+              animate={{ rotate: [0, -180] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+            />
+          </g>
         </motion.g>
 
         <motion.g
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}
-          transition={{ delay: 1.9, duration: 0.8, repeat: Infinity, repeatDelay: 3.5 }}
+          transition={{ delay: 2.2, duration: 0.6, repeat: Infinity, repeatDelay: 3 }}
         >
-          {/* Sparkle bottom left */}
-          <circle cx="30" cy="180" r="4" fill="#a3e635" />
+          {/* Small sparkle bottom */}
+          <g transform="translate(28, 175)">
+            <circle cx="0" cy="0" r="3" fill="#a3e635" />
+            <motion.circle 
+              cx="0" cy="0" r="6" 
+              fill="none" 
+              stroke="#a3e635" 
+              strokeWidth="1"
+              animate={{ r: [3, 8], opacity: [0.8, 0] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            />
+          </g>
         </motion.g>
 
-        {/* Floating heart */}
+        {/* Floating hearts - multiple */}
         <motion.path
-          d="M175 100 C175 95 179 92 183 95 C187 92 191 95 191 100 C191 106 183 112 183 112 C183 112 175 106 175 100Z"
-          fill="#f87171"
+          d="M175 95 C175 91 178 89 181 91 C184 89 187 91 187 95 C187 99 181 104 181 104 C181 104 175 99 175 95Z"
+          fill="#fb7185"
           initial={{ opacity: 0, y: 0, scale: 0 }}
           animate={{ 
             opacity: [0, 1, 1, 0], 
-            y: [0, -15, -25, -35],
-            scale: [0, 1, 1, 0.5]
+            y: [0, -20, -35, -50],
+            scale: [0, 1, 0.9, 0.3]
           }}
           transition={{ 
             delay: 1.5, 
+            duration: 2.5, 
+            repeat: Infinity, 
+            repeatDelay: 2.5 
+          }}
+        />
+        
+        <motion.path
+          d="M20 130 C20 127 22 126 24 127 C26 126 28 127 28 130 C28 133 24 136 24 136 C24 136 20 133 20 130Z"
+          fill="#f472b6"
+          initial={{ opacity: 0, y: 0, scale: 0 }}
+          animate={{ 
+            opacity: [0, 0.8, 0.8, 0], 
+            y: [0, -15, -25, -40],
+            scale: [0, 0.8, 0.7, 0.2]
+          }}
+          transition={{ 
+            delay: 2.5, 
             duration: 2, 
             repeat: Infinity, 
-            repeatDelay: 3 
+            repeatDelay: 3.5 
           }}
         />
       </svg>

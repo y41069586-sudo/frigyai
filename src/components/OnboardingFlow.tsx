@@ -165,6 +165,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (currentStep === "analyzing") {
       setTimeout(() => setCurrentStep("macro-preview"), 9000);
     }
+    if (currentStep === "celebration") {
+      setTimeout(() => {
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.4 },
+          colors: ["#22c55e", "#4ade80", "#86efac", "#fbbf24", "#fb7185"]
+        });
+      }, 600);
+    }
     if (currentStep === "done") {
       setTimeout(() => {
         confetti({
@@ -2047,6 +2057,70 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "celebration":
+        return (
+          <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
+            {/* Text at top */}
+            <motion.div
+              className="absolute top-[12%] text-center z-10 px-6"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.8, duration: 0.5, type: "spring" }}
+            >
+              <motion.h1 
+                className="text-4xl sm:text-5xl font-bold text-primary tracking-tight"
+                initial={{ y: -20 }}
+                animate={{ y: 0 }}
+                transition={{ delay: 1, duration: 0.4 }}
+              >
+                Du hast es geschafft! 🎉
+              </motion.h1>
+              <motion.p
+                className="text-lg text-muted-foreground mt-4 max-w-xs mx-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.3, duration: 0.4 }}
+              >
+                Frigy ist bereit für dich!
+              </motion.p>
+            </motion.div>
+
+            {/* Animated Frigy mascot - pops up from bottom */}
+            <motion.div 
+              className="absolute bottom-0 flex items-end justify-center w-full"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 100,
+                damping: 15,
+                duration: 1
+              }}
+            >
+              <AnimatedFrigyMascot 
+                size={340} 
+                animate={false}
+              />
+            </motion.div>
+
+            {/* Continue button at bottom */}
+            <motion.div 
+              className="absolute bottom-8 left-0 right-0 px-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.5, duration: 0.4 }}
+            >
+              <Button
+                onClick={goNext}
+                className="w-full max-w-sm mx-auto h-12 rounded-xl flex items-center justify-center"
+              >
+                Weiter geht's!
+                <ChevronRight className="w-5 h-5 ml-1" />
+              </Button>
+            </motion.div>
+          </div>
+        );
+
       case "done":
         return (
           <StepCard step="done">
@@ -2072,7 +2146,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
               >
-                Your system is ready.
+                Dein System ist bereit.
               </motion.h1>
               
               <motion.p 
@@ -2081,7 +2155,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
-                Macros. Structure. Less thinking.
+                Makros. Struktur. Weniger nachdenken.
               </motion.p>
               
               <motion.div
@@ -2090,7 +2164,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
                 <Button onClick={handleComplete} className="w-full max-w-xs h-12 rounded-xl">
-                  Go to dashboard
+                  Zum Dashboard
                   <ChevronRight className="w-5 h-5 ml-1" />
                 </Button>
               </motion.div>
@@ -2156,7 +2230,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Bottom button */}
-      {!["language-select", "fridge-intro", "weekly-plan", "premium-hint", "community", "done", "analyzing"].includes(currentStep) && (
+      {!["language-select", "fridge-intro", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ opacity: 0, y: 20 }}
