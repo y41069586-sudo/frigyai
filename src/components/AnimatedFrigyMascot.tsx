@@ -40,59 +40,59 @@ export const AnimatedFrigyMascot = ({
           {/* Fridge body shadow/depth - right side */}
           <path
             d="M160 35 L175 45 L175 215 L160 225 L160 35Z"
-            fill="#16a34a"
+            fill="#4ade80"
           />
           
           {/* Fridge body shadow/depth - bottom */}
           <path
             d="M40 225 L55 235 L175 215 L160 225 L40 225Z"
-            fill="#15803d"
+            fill="#22c55e"
           />
 
-          {/* Main fridge body - front */}
+          {/* Main fridge body - front - lighter green */}
           <motion.rect
             x="40"
             y="25"
             width="120"
             height="200"
             rx="12"
-            fill="#22c55e"
-            stroke="#16a34a"
+            fill="#4ade80"
+            stroke="#22c55e"
             strokeWidth="3"
           />
 
-          {/* Fridge door - top section (freezer) */}
+          {/* Fridge door - top section (freezer) - very light green */}
           <motion.rect
             x="50"
             y="35"
             width="100"
             height="75"
             rx="8"
-            fill="#bbf7d0"
-            stroke="#22c55e"
+            fill="#dcfce7"
+            stroke="#86efac"
             strokeWidth="2"
           />
 
-          {/* Fridge door - bottom section */}
+          {/* Fridge door - bottom section - light green */}
           <motion.rect
             x="50"
             y="120"
             width="100"
             height="95"
             rx="8"
-            fill="#dcfce7"
-            stroke="#22c55e"
+            fill="#bbf7d0"
+            stroke="#86efac"
             strokeWidth="2"
           />
 
-          {/* Door handles */}
+          {/* Door handles - medium green */}
           <motion.rect
             x="140"
             y="60"
             width="6"
             height="25"
             rx="3"
-            fill="#16a34a"
+            fill="#22c55e"
           />
           <motion.rect
             x="140"
@@ -100,12 +100,12 @@ export const AnimatedFrigyMascot = ({
             width="6"
             height="35"
             rx="3"
-            fill="#16a34a"
+            fill="#22c55e"
           />
 
           {/* Fridge feet */}
-          <rect x="50" y="222" width="18" height="10" rx="3" fill="#16a34a" />
-          <rect x="132" y="222" width="18" height="10" rx="3" fill="#16a34a" />
+          <rect x="50" y="222" width="18" height="10" rx="3" fill="#22c55e" />
+          <rect x="132" y="222" width="18" height="10" rx="3" fill="#22c55e" />
         </motion.g>
 
         {/* Face INSIDE the freezer section */}
