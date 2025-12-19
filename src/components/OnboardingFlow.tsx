@@ -2198,9 +2198,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
-  // Determine when mascot should peek (every 4th slide approximately)
-  const shouldShowMascotPeek = currentIndex > 0 && currentIndex % 4 === 0 && 
-    !["analyzing", "done", "welcome", "language-select"].includes(currentStep);
 
   return (
     <motion.div
@@ -2209,12 +2206,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
-      {/* Frigy Mascot Peek Animation */}
-      <FrigyPeek 
-        show={shouldShowMascotPeek} 
-        from="bottom-right" 
-        delay={0.5} 
-      />
 
       {/* Header */}
       <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
