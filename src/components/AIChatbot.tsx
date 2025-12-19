@@ -116,17 +116,18 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
 
   return (
     <>
-      {/* Floating Chat Button - smaller on mobile, positioned to not interfere */}
+      {/* Floating Chat Button - larger and more visible, positioned above bottom nav */}
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-40 p-2.5 sm:p-3 rounded-full bg-primary/80 hover:bg-primary shadow-md sm:shadow-lg backdrop-blur-sm"
-        whileHover={{ scale: 1.05 }}
+        className="fixed bottom-24 right-4 z-40 p-4 rounded-full bg-primary hover:bg-primary/90 shadow-xl ring-4 ring-primary/20"
+        whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 0.9 }}
+        animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
         transition={{ duration: 0.2 }}
       >
-        <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+        <Bot className="h-6 w-6 text-primary-foreground" />
+        <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
       </motion.button>
 
       {/* Chat Panel */}

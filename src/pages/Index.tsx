@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Heart, LogOut, Crown, Calendar, Settings, XCircle, User, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Camera, Crown, Settings, User, ChevronRight, Calendar, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { AnimatedFrigyMascot } from "@/components/AnimatedFrigyMascot";
+import { DashboardMacroCircle } from "@/components/DashboardMacroCircle";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -186,68 +187,78 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col px-6 pb-24">
-        <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
+      <main className="flex-1 flex flex-col px-4 pb-32">
+        <div className="flex-1 flex flex-col items-center pt-4 max-w-md mx-auto w-full">
           
-          {/* Mascot */}
+          {/* Welcome Section */}
           <motion.div
-            initial={{ scale: 0, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ duration: 0.5, type: "spring", stiffness: 180 }}
-          >
-            <AnimatedFrigyMascot size={120} animate={false} />
-          </motion.div>
-          
-          {/* Greeting */}
-          <motion.div
-            className="text-center mt-4"
-            initial={{ opacity: 0, y: 15 }}
+            className="flex items-center gap-3 w-full mb-6"
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
+            transition={{ duration: 0.4 }}
           >
-            <h1 className="text-2xl font-bold text-foreground">
-              {user ? `Hallo! 👋` : t.homeTitle}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {t.homeSubtitle}
-            </p>
+            <AnimatedFrigyMascot size={50} animate={false} />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">
+                {user ? `Hallo! 👋` : t.homeTitle}
+              </h1>
+              <p className="text-sm text-muted-foreground">{t.homeSubtitle}</p>
+            </div>
           </motion.div>
           
-          {/* Quick Stats for logged in users */}
+          {/* Macro Circle - Main Feature */}
           {user && trackerSettings && (
             <motion.div
-              className="w-full mt-6"
+              className="w-full"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <div className="p-6 bg-card rounded-3xl border border-border/50 shadow-sm">
+                <DashboardMacroCircle
+                  calories={0}
+                  targetCalories={trackerSettings.dailyCalories || 2000}
+                  protein={0}
+                  targetProtein={trackerSettings.dailyProtein || 150}
+                  carbs={0}
+                  targetCarbs={trackerSettings.dailyCarbs || 200}
+                  fat={0}
+                  targetFat={trackerSettings.dailyFat || 65}
+                />
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Quick Stats for non-configured users */}
+          {user && !trackerSettings && (
+            <motion.div
+              className="w-full"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
-              <div className="flex justify-center gap-4">
-                {[
-                  { label: "Kalorien", value: trackerSettings.dailyCalories, unit: "kcal" },
-                  { label: "Protein", value: trackerSettings.dailyProtein, unit: "g" },
-                ].map((stat, i) => (
-                  <div key={i} className="text-center px-4 py-3 bg-muted/50 rounded-2xl border border-border">
-                    <p className="text-xl font-bold text-primary">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.unit} {stat.label}</p>
-                  </div>
-                ))}
+              <div className="p-6 bg-card rounded-3xl border border-border/50 text-center">
+                <p className="text-muted-foreground mb-4">Richte deinen Tracker ein um deine Fortschritte zu sehen</p>
+                <Button onClick={() => navigate("/meal-plans?tab=tracker")} className="rounded-xl">
+                  Tracker einrichten
+                </Button>
               </div>
             </motion.div>
           )}
           
           {/* Main CTA - Scan Button */}
           <motion.div
-            className="w-full mt-8"
+            className="w-full mt-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.4 }}
           >
             <Button 
               onClick={() => navigate("/scan")}
-              className="w-full h-16 text-lg font-semibold rounded-2xl gap-3"
+              className="w-full h-14 text-lg font-semibold rounded-2xl gap-3 shadow-lg"
               size="lg"
             >
-              <Camera className="w-6 h-6" />
+              <Camera className="w-5 h-5" />
               {t.scanFridge}
             </Button>
             
@@ -269,15 +280,19 @@ const Index = () => {
             transition={{ delay: 0.5, duration: 0.4 }}
           >
             <NavLink to="/meal-plans?tab=tracker" className="block">
-              <div className="p-4 bg-muted/50 rounded-2xl border border-border text-center hover:border-primary/30 transition-colors">
-                <span className="text-2xl">📊</span>
-                <p className="text-sm font-medium mt-1">Tracker</p>
+              <div className="p-4 bg-card rounded-2xl border border-border/50 text-center hover:border-primary/30 hover:shadow-md transition-all">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Utensils className="w-5 h-5 text-primary" />
+                </div>
+                <p className="text-sm font-medium">Tracker</p>
               </div>
             </NavLink>
             <NavLink to="/meal-plans?tab=meals" className="block">
-              <div className="p-4 bg-muted/50 rounded-2xl border border-border text-center hover:border-primary/30 transition-colors">
-                <span className="text-2xl">🍽️</span>
-                <p className="text-sm font-medium mt-1">Meal Plan</p>
+              <div className="p-4 bg-card rounded-2xl border border-border/50 text-center hover:border-primary/30 hover:shadow-md transition-all">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-orange-500" />
+                </div>
+                <p className="text-sm font-medium">Meal Plan</p>
               </div>
             </NavLink>
           </motion.div>
