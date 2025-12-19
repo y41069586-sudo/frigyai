@@ -43,12 +43,22 @@ const Index = () => {
   }, [resetOnboarding]);
   
   // Initialize states - check if user already completed onboarding
+  // Skip onboarding if user is logged in OR has completed it before
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
-  // Skip splash, go directly to onboarding with mascot intro
-  const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
-  const [onboardingComplete, setOnboardingComplete] = useState(hasCompletedOnboarding);
+  const shouldSkipOnboarding = hasCompletedOnboarding || dbOnboardingComplete || !!user;
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
+  
+  // Update onboarding visibility when loading completes
+  useEffect(() => {
+    if (!onboardingLoading && !loading) {
+      const skip = hasCompletedOnboarding || dbOnboardingComplete || !!user;
+      setShowOnboarding(!skip);
+      setOnboardingComplete(skip);
+    }
+  }, [onboardingLoading, loading, user, dbOnboardingComplete, hasCompletedOnboarding]);
   
   // Skip onboarding only if coming from subscription success
   useEffect(() => {
