@@ -218,13 +218,22 @@ const Index = () => {
             transition={{ duration: 0.3 }}
           >
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <h1 className="text-2xl font-bold text-foreground">
                   Hallo, {displayName || 'Willkommen'}! 👋
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">
                   Bleib dran, du bist auf Kurs.
                 </p>
+                {/* Progress bar in header */}
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-3 w-full">
+                  <motion.div
+                    className="h-full bg-primary rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, calorieProgress)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
+                </div>
               </div>
               
               <div className="flex items-center gap-2">
