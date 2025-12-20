@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils } from "lucide-react";
+import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -232,6 +232,14 @@ const Index = () => {
                     <span className="text-xs font-medium text-primary">{currentStreak}</span>
                   </div>
                 )}
+                
+                {/* Weight Progress */}
+                <button 
+                  onClick={() => navigate('/meal-plans?tab=tracker')}
+                  className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                >
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                </button>
                 
                 {/* Profile Settings */}
                 <button 
