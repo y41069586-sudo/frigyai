@@ -1,3 +1,12 @@
 export { MotivationStep } from "./MotivationStep";
 export { CookingTimeStep } from "./CookingTimeStep";
 export { NotificationPrefsStep } from "./NotificationPrefsStep";
+export { WelcomeStep } from "./WelcomeStep";
+export { GoalStep } from "./GoalStep";
+export { SocialProofStep } from "./SocialProofStep";
+export { BodyBasicsStep } from "./BodyBasicsStep";
+export { GenderStep } from "./GenderStep";
+export { ActivityLevelStep } from "./ActivityLevelStep";
+export { AnalyzingStep } from "./AnalyzingStep";
+export { CelebrationStep } from "./CelebrationStep";
+export { DoneStep } from "./DoneStep";
