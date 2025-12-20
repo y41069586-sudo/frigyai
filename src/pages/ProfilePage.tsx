@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
 import { HealthSync } from "@/components/HealthSync";
-import ThemeToggle from "@/components/ThemeToggle";
+
 import ProgressCharts from "@/components/ProgressCharts";
 import frigLogo from "@/assets/frig-logo.png";
 
@@ -192,7 +192,7 @@ const ProfilePage = () => {
           </Card>
         </motion.div>
 
-        {/* Theme & Language Settings */}
+        {/* Language Settings */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -200,8 +200,7 @@ const ProfilePage = () => {
         >
           <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20 space-y-4">
             <h3 className="font-semibold">Einstellungen</h3>
-            <ThemeToggle variant="switch" />
-            <div className="border-t border-border pt-4">
+            <div>
               <h4 className="text-sm font-medium mb-2">{t.languageSettings}</h4>
               <LanguageSettings />
             </div>
