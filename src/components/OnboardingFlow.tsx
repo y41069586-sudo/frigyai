@@ -757,14 +757,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               
               <div className="w-full max-w-sm space-y-6">
                 <motion.div 
-                  className="relative h-32 flex items-end justify-center gap-8"
+                  className="relative h-40 flex items-end justify-center gap-8 pt-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.3 }}
                 >
                   <div className="flex flex-col items-center">
                     <motion.div 
-                      className="w-16 bg-muted rounded-t-xl"
+                      className="w-16 bg-muted-foreground/30 rounded-t-xl"
                       initial={{ height: 0 }}
                       animate={{ height: 80 }}
                       transition={{ delay: 0.3, duration: 0.4 }}
@@ -774,7 +774,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                   
                   <motion.div 
-                    className="flex items-center gap-1 mb-12"
+                    className="flex items-center gap-1 mb-16"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.3 }}
@@ -788,7 +788,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       initial={{ height: 0 }}
                       animate={{ height: userData.goalMode === 'lose' ? 80 - weightDiff * 4 : 80 + weightDiff * 2 }}
                       transition={{ delay: 0.4, duration: 0.4 }}
-                      style={{ minHeight: 30, maxHeight: 100 }}
+                      style={{ minHeight: 30, maxHeight: 120 }}
                     />
                     <span className="text-xs text-primary mt-2">Ziel</span>
                     <span className="text-lg font-bold text-primary">{userData.targetWeight}kg</span>
@@ -2198,10 +2198,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
-  // Determine when mascot should peek (every 4th slide approximately)
-  const shouldShowMascotPeek = currentIndex > 0 && currentIndex % 4 === 0 && 
-    !["analyzing", "done", "welcome", "language-select"].includes(currentStep);
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -2209,12 +2205,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
-      {/* Frigy Mascot Peek Animation */}
-      <FrigyPeek 
-        show={shouldShowMascotPeek} 
-        from="bottom-right" 
-        delay={0.5} 
-      />
+      {/* Mascot peek removed */}
 
       {/* Header */}
       <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
