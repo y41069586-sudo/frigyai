@@ -321,7 +321,7 @@ const Index = () => {
                     <span className="ml-auto font-bold text-lg">{targetCalories.toLocaleString('de-DE')}</span>
                   </div>
                   {/* Progress bar */}
-                  <div className="h-2.5 bg-muted/60 rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden mt-1">
                     <motion.div
                       className="h-full bg-primary rounded-full"
                       initial={{ width: 0 }}
