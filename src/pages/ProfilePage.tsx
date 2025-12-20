@@ -14,7 +14,6 @@ import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
 import { HealthSync } from "@/components/HealthSync";
 
-import ProgressCharts from "@/components/ProgressCharts";
 import frigLogo from "@/assets/frig-logo.png";
 
 const ProfilePage = () => {
@@ -207,21 +206,6 @@ const ProfilePage = () => {
           </Card>
         </motion.div>
 
-        {/* Progress Charts */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <ProgressCharts />
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.26 }}
-        >
-        </motion.div>
 
         {/* Quick Links */}
         <motion.div
