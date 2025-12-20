@@ -413,7 +413,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "speed-select":
+      case "weekly-goal":
         const weeklyOptions = userData.goalMode === 'lose' 
           ? [
               { value: 0.25, label: "0.25 kg/Woche", desc: "Langsam & nachhaltig", icon: "🐢" },
@@ -710,11 +710,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
               >
                 <MacroRing 
-                  value={userData.dailyCalories || calculatedMacros.dailyCalories}
-                  max={userData.dailyCalories || calculatedMacros.dailyCalories}
-                  label="kcal"
-                  color="calories"
-                  size="lg"
+                  calories={userData.dailyCalories || calculatedMacros.dailyCalories} 
+                  targetCalories={userData.dailyCalories || calculatedMacros.dailyCalories} 
+                  protein={0} 
+                  targetProtein={userData.dailyProtein || calculatedMacros.dailyProtein}
+                  carbs={0}
+                  targetCarbs={userData.dailyCarbs || calculatedMacros.dailyCarbs}
+                  fat={0}
+                  targetFat={userData.dailyFat || calculatedMacros.dailyFat}
+                  size={160}
                 />
               </motion.div>
               
