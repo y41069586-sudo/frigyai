@@ -206,7 +206,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Main Content */}
-        <main className="flex-1 flex flex-col px-5 pb-32 pt-16 safe-top">
+      <main className="flex-1 flex flex-col px-5 pb-32 pt-20 safe-top">
         <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
           
           {/* Header Section - Clean & Minimal */}
