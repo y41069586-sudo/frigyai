@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Crown, Settings, User, ChevronRight, Calendar, Utensils } from "lucide-react";
+import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,16 +14,13 @@ import { AIChatbot } from "@/components/AIChatbot";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
-import { AnimatedFrigyMascot } from "@/components/AnimatedFrigyMascot";
-import { DashboardMacroCircle } from "@/components/DashboardMacroCircle";
-import { MealPlanPreview } from "@/components/MealPlanPreview";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
   const { t } = useLanguage();
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
-  const { isComplete: dbOnboardingComplete, loading: onboardingLoading, saveProgress } = useOnboardingProgress();
+  const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
   
   // Check localStorage once at mount
@@ -31,11 +28,58 @@ const Index = () => {
   const isFromSubscription = urlParams.get('subscription') === 'success';
   const resetOnboarding = urlParams.get('resetOnboarding') === 'true';
   
+  // Get user name from localStorage or DB
+  const [userName, setUserName] = useState<string | null>(null);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [waterGlasses, setWaterGlasses] = useState(0);
+  const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number }[]>([]);
+  const [caloriesEaten, setCaloriesEaten] = useState(0);
+  
+  useEffect(() => {
+    const localName = localStorage.getItem('userName');
+    if (localName) {
+      setUserName(localName);
+    } else if (dbUserName) {
+      setUserName(dbUserName);
+    }
+  }, [dbUserName]);
+  
+  // Fetch user streak
+  useEffect(() => {
+    const fetchStreak = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_streaks')
+        .select('current_streak')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) setCurrentStreak(data.current_streak);
+    };
+    fetchStreak();
+  }, [user]);
+  
+  // Fetch water intake
+  useEffect(() => {
+    const fetchWater = async () => {
+      if (!user) return;
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('water_intake')
+        .select('glasses')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
+      if (data) setWaterGlasses(data.glasses);
+    };
+    fetchWater();
+  }, [user]);
+  
   // Handle reset onboarding from URL parameter (for testing on iPad etc.)
   useEffect(() => {
     if (resetOnboarding) {
       localStorage.removeItem('onboardingComplete');
       localStorage.removeItem('onboardingUserData');
+      localStorage.removeItem('userName');
       // Clear URL parameter and reload
       window.history.replaceState({}, '', '/');
       window.location.reload();
@@ -75,8 +119,6 @@ const Index = () => {
     }
   }, [isFromSubscription, navigate]);
 
-  // Tracker setup is now handled by useTrackerSettings hook
-
   // Fetch daily scan usage for free users
   useEffect(() => {
     const fetchScanUsage = async () => {
@@ -101,8 +143,6 @@ const Index = () => {
     
     fetchScanUsage();
   }, [user, subscriptionStatus]);
-  
-  // Removed splash screen - onboarding now starts directly with mascot intro
   
   const handleOnboardingComplete = () => {
     // After onboarding slides, mark complete and go to auth page
@@ -137,6 +177,10 @@ const Index = () => {
   };
 
   const scansRemaining = 2 - dailyScansUsed;
+  const targetCalories = trackerSettings?.dailyCalories || 2000;
+  const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
+  const calorieProgress = Math.min(100, (caloriesEaten / targetCalories) * 100);
+  const waterLiters = (waterGlasses * 0.25).toFixed(1);
 
   // Wait for auth before showing anything
   if (loading) {
@@ -150,147 +194,236 @@ const Index = () => {
   }
 
   // Show onboarding with mascot intro (no separate splash screen)
-  
-  // Show onboarding after splash (no navigation)
   if (showOnboarding) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
+  const greeting = new Date().getHours() < 12 ? "Guten Morgen" : new Date().getHours() < 18 ? "Guten Tag" : "Guten Abend";
+  const displayName = userName || (user?.email?.split('@')[0]) || '';
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Minimal Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border safe-top">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={frigLogo} alt="Frigy" className="h-8 w-8 rounded-xl" />
-            <span className="text-lg font-bold text-foreground">Frigy</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {user ? (
-              <>
-                {subscriptionStatus?.subscribed && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="rounded-full">
-                        <Crown className="h-5 w-5 text-primary" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-48 p-2" align="end">
-                      <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleManageSubscription} disabled={portalLoading}>
-                        <Settings className="mr-2 h-4 w-4" /> {t.manageSubscription}
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
-                )}
-                <NavLink to="/profile">
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </NavLink>
-              </>
-            ) : (
-              <NavLink to="/auth">
-                <Button size="sm">{t.login}</Button>
-              </NavLink>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col px-4 pb-32">
-        <div className="flex-1 flex flex-col items-center pt-4 max-w-md mx-auto w-full">
+      {/* Main Content - No header needed, integrated into design */}
+      <main className="flex-1 flex flex-col px-4 pb-32 pt-6 safe-top">
+        <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
           
-          {/* Welcome Section - Modern Style */}
+          {/* Header Section with Name and Streak */}
           <motion.div
             className="w-full mb-6"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <div className="flex items-center gap-4">
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              >
-                <AnimatedFrigyMascot size={56} animate={false} />
-              </motion.div>
-              <div className="flex-1">
-                <motion.p 
-                  className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-0.5"
+            <div className="flex items-start justify-between">
+              <div>
+                <motion.h1 
+                  className="text-2xl font-bold text-foreground flex items-center gap-2"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  {new Date().getHours() < 12 ? "Guten Morgen" : new Date().getHours() < 18 ? "Guten Tag" : "Guten Abend"}
-                </motion.p>
-                <motion.h1 
-                  className="text-2xl font-bold bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {user ? "Willkommen zurück! ✨" : t.homeTitle}
+                  Hallo, {displayName}! 👋
                 </motion.h1>
                 <motion.p 
-                  className="text-sm text-muted-foreground mt-0.5"
+                  className="text-muted-foreground mt-1"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
+                  transition={{ delay: 0.2 }}
                 >
-                  {t.homeSubtitle}
+                  Bleib dran, du bist auf Kurs.
                 </motion.p>
+              </div>
+              
+              {/* Streak Badge */}
+              {currentStreak > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring" }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-full"
+                >
+                  <Zap className="w-4 h-4 text-primary fill-primary" />
+                  <span className="text-sm font-semibold text-primary">{currentStreak} Tage Streak</span>
+                </motion.div>
+              )}
+              
+              {/* Profile button for logged users */}
+              {user && (
+                <NavLink to="/profile" className="ml-2">
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </NavLink>
+              )}
+            </div>
+          </motion.div>
+          
+          {/* Main Calorie Card */}
+          <motion.div
+            className="w-full mb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <div 
+              className="p-5 bg-card rounded-3xl border border-border/30 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate('/meal-plans?tab=tracker')}
+            >
+              <div className="flex items-center gap-6">
+                {/* Calorie Ring */}
+                <div className="relative" style={{ width: 100, height: 100 }}>
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke="hsl(var(--muted))"
+                      strokeWidth="10"
+                      opacity={0.2}
+                    />
+                    <motion.circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray={`${calorieProgress * 2.64} 264`}
+                      initial={{ strokeDasharray: "0 264" }}
+                      animate={{ strokeDasharray: `${calorieProgress * 2.64} 264` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-bold text-foreground">{remainingCalories}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">KCAL ÜBRIG</span>
+                  </div>
+                </div>
+                
+                {/* Stats */}
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🍽️</span>
+                    <span className="text-muted-foreground text-sm">Gegessen</span>
+                    <span className="ml-auto font-bold text-lg">{caloriesEaten.toLocaleString('de-DE')}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📈</span>
+                    <span className="text-muted-foreground text-sm">Ziel</span>
+                    <span className="ml-auto font-bold text-lg">{targetCalories.toLocaleString('de-DE')}</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-primary rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, calorieProgress)}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
           
-          {/* Modern Macro Circle Dashboard */}
-          {user && trackerSettings && (
-            <motion.div
-              className="w-full"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-            >
-              <div className="p-6 bg-card/60 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg">
-                <DashboardMacroCircle
-                  calories={0}
-                  targetCalories={trackerSettings.dailyCalories || 2000}
-                  protein={0}
-                  targetProtein={trackerSettings.dailyProtein || 150}
-                  carbs={0}
-                  targetCarbs={trackerSettings.dailyCarbs || 200}
-                  fat={0}
-                  targetFat={trackerSettings.dailyFat || 65}
-                />
-              </div>
-            </motion.div>
-          )}
-          
-          {/* Quick Stats for non-configured users */}
-          {user && !trackerSettings && (
-            <motion.div
-              className="w-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-            >
-              <div className="p-6 bg-card rounded-3xl border border-border/50 text-center">
-                <p className="text-muted-foreground mb-4">Richte deinen Tracker ein um deine Fortschritte zu sehen</p>
-                <Button onClick={() => navigate("/meal-plans?tab=tracker")} className="rounded-xl">
-                  Tracker einrichten
-                </Button>
-              </div>
-            </motion.div>
-          )}
-          
-          {/* Main CTA - Scan Button */}
+          {/* Water & Activity Cards */}
           <motion.div
-            className="w-full mt-6"
+            className="w-full grid grid-cols-2 gap-3 mb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            {/* Water Card */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                  <Droplets className="w-5 h-5 text-blue-500" />
+                </div>
+                <button 
+                  className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  onClick={() => navigate('/meal-plans?tab=tracker')}
+                >
+                  + Hinzufügen
+                </button>
+              </div>
+              <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Wasser</p>
+              <p className="text-2xl font-bold text-foreground">
+                {waterLiters}L <span className="text-sm font-normal text-muted-foreground">/ 2.5L</span>
+              </p>
+            </div>
+            
+            {/* Activity/Steps Card */}
+            <div className="p-4 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-100 dark:border-orange-900/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-orange-500" />
+                </div>
+                <button 
+                  className="text-sm font-medium text-orange-600 dark:text-orange-400 hover:underline"
+                  onClick={() => navigate('/meal-plans?tab=progress')}
+                >
+                  Details
+                </button>
+              </div>
+              <p className="text-orange-600 dark:text-orange-400 text-sm font-medium">Aktivität</p>
+              <p className="text-2xl font-bold text-foreground">
+                0 <span className="text-sm font-normal text-muted-foreground">Schritte</span>
+              </p>
+            </div>
+          </motion.div>
+          
+          {/* Today's Meals Section */}
+          <motion.div
+            className="w-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-foreground">Mahlzeiten heute</h2>
+              <button 
+                className="text-sm font-medium text-primary hover:underline"
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+              >
+                Alles sehen
+              </button>
+            </div>
+            
+            {todayMeals.length === 0 ? (
+              <div 
+                className="p-4 bg-card rounded-2xl border border-border/30 text-center cursor-pointer hover:border-primary/30 transition-colors"
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+              >
+                <Utensils className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p className="text-muted-foreground text-sm">Noch keine Mahlzeiten eingetragen</p>
+                <p className="text-primary text-sm font-medium mt-1">+ Mahlzeit hinzufügen</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {todayMeals.slice(0, 3).map((meal, i) => (
+                  <div key={i} className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-border/30">
+                    <div className="w-12 h-12 bg-muted/50 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{meal.name}</p>
+                      <p className="text-xs text-muted-foreground">{meal.time} Uhr</p>
+                    </div>
+                    <span className="font-semibold text-foreground">{meal.calories} kcal</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+          
+          {/* Scan CTA */}
+          <motion.div
+            className="w-full mt-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
           >
             <Button 
               onClick={() => navigate("/scan")}
@@ -310,73 +443,47 @@ const Index = () => {
               </p>
             )}
           </motion.div>
-          
-          {/* Quick Actions */}
-          <motion.div
-            className="w-full mt-4 grid grid-cols-2 gap-3"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-          >
-            {/* Tracker Card */}
-            <NavLink to="/meal-plans?tab=tracker" className="block">
-              <motion.div 
-                className="p-4 bg-card rounded-2xl border border-border/50 text-center hover:border-primary/30 hover:shadow-md transition-all h-full"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Utensils className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-sm font-medium">Tracker</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Kalorien & Makros</p>
-              </motion.div>
-            </NavLink>
-            
-            {/* Meal Plan Preview */}
-            <MealPlanPreview />
-          </motion.div>
-        </div>
         
-        {/* Premium Upsell - Compact */}
-        {!subscriptionStatus?.subscribed && (
-          <motion.div
-            className="max-w-sm mx-auto w-full mt-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.4 }}
-          >
-            <div 
-              onClick={() => user ? navigate('/premium') : navigate('/auth?from=premium')}
-              className="p-4 bg-primary/10 rounded-2xl border border-primary/30 cursor-pointer hover:bg-primary/15 transition-colors"
+          {/* Premium Upsell - Compact */}
+          {!subscriptionStatus?.subscribed && (
+            <motion.div
+              className="w-full mt-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
             >
-              <div className="flex items-center gap-3">
-                <Crown className="h-5 w-5 text-primary" />
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">{t.unlockPremium}</p>
-                  <p className="text-xs text-muted-foreground">{t.premiumFeatures}</p>
+              <div 
+                onClick={() => user ? navigate('/premium') : navigate('/auth?from=premium')}
+                className="p-4 bg-primary/10 rounded-2xl border border-primary/30 cursor-pointer hover:bg-primary/15 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Crown className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">{t.unlockPremium}</p>
+                    <p className="text-xs text-muted-foreground">{t.premiumFeatures}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </div>
-            </div>
-          </motion.div>
-        )}
-        
-        {/* Auth CTA for non-logged users */}
-        {!user && (
-          <motion.div
-            className="max-w-sm mx-auto w-full mt-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.4 }}
-          >
-            <NavLink to="/auth">
-              <Button variant="outline" className="w-full h-12 rounded-2xl">
-                {t.startNow}
-              </Button>
-            </NavLink>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+          
+          {/* Auth CTA for non-logged users */}
+          {!user && (
+            <motion.div
+              className="w-full mt-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
+            >
+              <NavLink to="/auth">
+                <Button variant="outline" className="w-full h-12 rounded-2xl">
+                  {t.startNow}
+                </Button>
+              </NavLink>
+            </motion.div>
+          )}
+        </div>
       </main>
 
       {/* Bottom Navigation - Show for all logged in users */}

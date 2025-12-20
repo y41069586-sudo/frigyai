@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface OnboardingProgress {
   onboarding_complete: boolean;
+  user_name?: string | null;
   selected_source?: string | null;
   selected_goal?: string | null;
   selected_cooking?: string | null;
@@ -38,6 +39,7 @@ export const useOnboardingProgress = () => {
       } else if (data) {
         setProgress({
           onboarding_complete: data.onboarding_complete,
+          user_name: data.user_name,
           selected_source: data.selected_source,
           selected_goal: data.selected_goal,
           selected_cooking: data.selected_cooking,
@@ -126,6 +128,7 @@ export const useOnboardingProgress = () => {
     progress,
     loading,
     isComplete: progress?.onboarding_complete ?? false,
+    userName: progress?.user_name ?? null,
     saveProgress,
     completeOnboarding,
     loadProgress,

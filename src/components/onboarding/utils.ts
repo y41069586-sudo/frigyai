@@ -56,6 +56,11 @@ export const saveOnboardingData = (userData: UserData) => {
   localStorage.setItem('onboardingUserData', JSON.stringify(userData));
   localStorage.setItem('onboardingComplete', 'true');
   
+  // Save user name for personalized greetings
+  if (userData.name) {
+    localStorage.setItem('userName', userData.name);
+  }
+  
   const trackerSettings = {
     age: userData.age,
     height: userData.height,
