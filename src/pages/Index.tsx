@@ -219,10 +219,12 @@ const Index = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-muted-foreground text-sm">Hallo</p>
-                <h1 className="text-xl font-semibold text-foreground">
-                  {displayName ? `${displayName}!` : 'Willkommen!'}
+                <h1 className="text-2xl font-bold text-foreground">
+                  Hallo, {displayName || 'Willkommen'}! 👋
                 </h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Bleib dran, du bist auf Kurs.
+                </p>
               </div>
               
               <div className="flex items-center gap-2">
