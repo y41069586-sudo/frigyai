@@ -356,11 +356,11 @@ JSON-Schema:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           response_format: { type: 'json_object' },
-          // Needs to be large enough for 7 days x 5 meals output
-          max_tokens: 12000,
-          temperature: 0.7,
+          // Increased for 7 days x 5 meals with detailed instructions
+          max_tokens: 16000,
+          temperature: 0.6,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userInstruction },
@@ -389,42 +389,47 @@ JSON-Schema:
     };
 
     const generateWithValidation = async () => {
-      const baseInstruction = `Erstelle einen kreativen, abwechslungsreichen Wochenplan (Montag bis Sonntag) als EIN einziges JSON-Objekt.
+      const baseInstruction = `Erstelle einen vollständigen Wochenplan für ALLE 7 Tage als JSON.
 
-Tage (exakt in dieser Reihenfolge): Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag.
-Mahlzeiten pro Tag (exakt in dieser Reihenfolge): Frühstück, Snack, Mittagessen, Snack, Abendessen.
+KRITISCH - Du MUSST genau diese Struktur einhalten:
+- Genau 7 Tage im Array: ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+- Jeder Tag hat genau 5 Mahlzeiten: ["Frühstück", "Snack", "Mittagessen", "Snack", "Abendessen"]
+- Gib das VOLLSTÄNDIGE JSON aus, nicht abkürzen!
 
 ${targetsBlock}
 
-WICHTIG:
-- Gib IMMER genau 7 Tage aus und pro Tag genau 5 Mahlzeiten.
-- Keine Abkürzungen, keine Platzhalter, keine Erklärtexte – nur JSON.
-${preferences ? `
-Präferenzen: ${preferences}` : ''}`;
+${preferences ? `Präferenzen: ${preferences}` : ''}
 
-      // Attempt 1
-      const first = await callOpenAI(baseInstruction);
-      const firstValidation = validatePlanStructure(first);
-      if (firstValidation.ok) {
-        console.log('[GENERATE-MEAL-PLAN] Structure OK (attempt 1)');
-        return first;
+Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
+
+      const MAX_ATTEMPTS = 3;
+      
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          const instruction = attempt === 1 
+            ? baseInstruction 
+            : `${baseInstruction}\n\nWICHTIG: Vorheriger Versuch war unvollständig. Gib ALLE 7 Tage mit je 5 Mahlzeiten aus!`;
+          
+          const result = await callOpenAI(instruction);
+          const validation = validatePlanStructure(result);
+          
+          if (validation.ok) {
+            console.log(`[GENERATE-MEAL-PLAN] Structure OK (attempt ${attempt})`);
+            return result;
+          }
+          
+          console.warn(`[GENERATE-MEAL-PLAN] Structure failed (attempt ${attempt}):`, validation.issues);
+          
+          if (attempt === MAX_ATTEMPTS) {
+            throw new Error(`Planstruktur ungültig: ${validation.issues.slice(0, 3).join(' | ')}`);
+          }
+        } catch (e) {
+          if (attempt === MAX_ATTEMPTS) throw e;
+          console.warn(`[GENERATE-MEAL-PLAN] Attempt ${attempt} error:`, e);
+        }
       }
-
-      console.warn('[GENERATE-MEAL-PLAN] Structure failed (attempt 1):', firstValidation.issues);
-
-      // Attempt 2 with explicit correction feedback
-      const correction = `KORREKTUR (du MUSST korrigieren):
-- ${firstValidation.issues.slice(0, 25).join('\n- ')}`;
-
-      const second = await callOpenAI(`${baseInstruction}\n\n${correction}`);
-      const secondValidation = validatePlanStructure(second);
-      if (secondValidation.ok) {
-        console.log('[GENERATE-MEAL-PLAN] Structure OK (attempt 2)');
-        return second;
-      }
-
-      console.warn('[GENERATE-MEAL-PLAN] Structure failed (attempt 2):', secondValidation.issues);
-      throw new Error(`Planstruktur ungültig: ${secondValidation.issues.slice(0, 6).join(' | ')}`);
+      
+      throw new Error('Wochenplan konnte nach mehreren Versuchen nicht erstellt werden');
     };
 
     const finalizePlan = (plan: any) => {
