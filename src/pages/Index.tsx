@@ -14,6 +14,8 @@ import { AIChatbot } from "@/components/AIChatbot";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
+import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
+import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -203,29 +205,29 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Main Content - No header needed, integrated into design */}
-      <main className="flex-1 flex flex-col px-4 pb-32 pt-6 safe-top">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col px-4 pb-32 pt-12 safe-top">
         <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
           
-          {/* Header Section with Name and Streak */}
+          {/* Header Section - Clean & Modern */}
           <motion.div
-            className="w-full mb-6"
+            className="w-full mb-8"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
                 <motion.h1 
-                  className="text-2xl font-bold text-foreground flex items-center gap-2"
+                  className="text-2xl font-bold text-foreground tracking-tight"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  Hallo, {displayName}! 👋
+                  {displayName ? `Hallo, ${displayName}!` : 'Willkommen!'} 👋
                 </motion.h1>
                 <motion.p 
-                  className="text-muted-foreground mt-1"
+                  className="text-muted-foreground text-sm mt-0.5"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
@@ -234,27 +236,29 @@ const Index = () => {
                 </motion.p>
               </div>
               
-              {/* Streak Badge */}
-              {currentStreak > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring" }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-full"
-                >
-                  <Zap className="w-4 h-4 text-primary fill-primary" />
-                  <span className="text-sm font-semibold text-primary">{currentStreak} Tage Streak</span>
-                </motion.div>
-              )}
-              
-              {/* Profile button for logged users */}
-              {user && (
-                <NavLink to="/profile" className="ml-2">
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </NavLink>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Streak Badge */}
+                {currentStreak > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-full"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-primary fill-primary" />
+                    <span className="text-xs font-semibold text-primary">{currentStreak} Tage</span>
+                  </motion.div>
+                )}
+                
+                {/* Profile button */}
+                {user && (
+                  <NavLink to="/profile">
+                    <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                      <User className="h-4 w-4" />
+                    </Button>
+                  </NavLink>
+                )}
+              </div>
             </div>
           </motion.div>
           
@@ -328,50 +332,18 @@ const Index = () => {
             </div>
           </motion.div>
           
-          {/* Water & Activity Cards */}
+          {/* Meal Plan & Shopping List Cards */}
           <motion.div
             className="w-full grid grid-cols-2 gap-3 mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4 }}
           >
-            {/* Water Card */}
-            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/50">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                  <Droplets className="w-5 h-5 text-blue-500" />
-                </div>
-                <button 
-                  className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  onClick={() => navigate('/meal-plans?tab=tracker')}
-                >
-                  + Hinzufügen
-                </button>
-              </div>
-              <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Wasser</p>
-              <p className="text-2xl font-bold text-foreground">
-                {waterLiters}L <span className="text-sm font-normal text-muted-foreground">/ 2.5L</span>
-              </p>
-            </div>
+            {/* Meal Plan Card */}
+            <DashboardMealPlanCard />
             
-            {/* Activity/Steps Card */}
-            <div className="p-4 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-100 dark:border-orange-900/50">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-orange-500" />
-                </div>
-                <button 
-                  className="text-sm font-medium text-orange-600 dark:text-orange-400 hover:underline"
-                  onClick={() => navigate('/meal-plans?tab=progress')}
-                >
-                  Details
-                </button>
-              </div>
-              <p className="text-orange-600 dark:text-orange-400 text-sm font-medium">Aktivität</p>
-              <p className="text-2xl font-bold text-foreground">
-                0 <span className="text-sm font-normal text-muted-foreground">Schritte</span>
-              </p>
-            </div>
+            {/* Shopping List Card */}
+            <DashboardShoppingCard />
           </motion.div>
           
           {/* Today's Meals Section */}
