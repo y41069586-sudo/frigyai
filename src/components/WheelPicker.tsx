@@ -159,7 +159,7 @@ export const WheelPicker = ({
       
       {/* Center selection indicator */}
       <div 
-        className="absolute inset-x-2 z-0 pointer-events-none border-y-2 border-primary/50 bg-primary/10 rounded-lg"
+        className="absolute inset-x-2 z-0 pointer-events-none border-[3px] border-primary/60 bg-primary/10 rounded-xl"
         style={{ 
           top: paddingItems * itemHeight,
           height: itemHeight 
