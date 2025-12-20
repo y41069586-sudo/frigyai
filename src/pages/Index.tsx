@@ -16,6 +16,7 @@ import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
+import ThemeToggle from "@/components/ThemeToggle";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -233,12 +234,8 @@ const Index = () => {
                   </div>
                 )}
                 
-                {/* Mascot */}
-                <img 
-                  src={frigLogo} 
-                  alt="Frigy" 
-                  className="h-10 w-10 rounded-xl object-cover"
-                />
+                {/* Theme Toggle */}
+                <ThemeToggle />
               </div>
             </div>
           </motion.div>
