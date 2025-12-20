@@ -131,7 +131,7 @@ const AnalysisProgress = () => {
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -265,6 +265,76 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </motion.button>
                 ))}
               </div>
+            </div>
+          </StepCard>
+        );
+
+      case "name-input":
+        return (
+          <StepCard step="name-input">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4, type: "spring" }}
+                className="mb-4"
+              >
+                <AnimatedFrigyMascot size={100} animate={false} />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-2" 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                {language === 'de' ? 'Wie heißt du?' : language === 'fr' ? 'Comment tu t\'appelles ?' : 'What\'s your name?'}
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-8" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.15, duration: 0.3 }}
+              >
+                {language === 'de' ? 'Damit wir dich persönlich begrüßen können' : language === 'fr' ? 'Pour te saluer personnellement' : 'So we can greet you personally'}
+              </motion.p>
+              
+              <motion.div
+                className="w-full max-w-sm"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <input
+                  type="text"
+                  value={userData.name}
+                  onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                  placeholder={language === 'de' ? 'Dein Name' : language === 'fr' ? 'Ton prénom' : 'Your name'}
+                  className="w-full px-6 py-4 text-xl text-center font-semibold bg-card border-2 border-border rounded-2xl focus:border-primary focus:outline-none transition-colors"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && userData.name.trim()) {
+                      goNext();
+                    }
+                  }}
+                />
+              </motion.div>
+              
+              <motion.div
+                className="w-full max-w-sm mt-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.3 }}
+              >
+                <Button 
+                  onClick={goNext} 
+                  disabled={!userData.name.trim()}
+                  className="w-full h-14 text-lg font-semibold rounded-2xl"
+                  size="lg"
+                >
+                  {language === 'de' ? 'Weiter' : language === 'fr' ? 'Continuer' : 'Continue'} <ChevronRight className="w-5 h-5 ml-1" />
+                </Button>
+              </motion.div>
             </div>
           </StepCard>
         );

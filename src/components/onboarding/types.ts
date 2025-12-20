@@ -3,6 +3,7 @@ import { Language } from "@/contexts/LanguageContext";
 export type OnboardingStep = 
   | "intro"
   | "language-select"
+  | "name-input"
   | "welcome"
   | "goal"
   | "motivation"
@@ -33,6 +34,7 @@ export type OnboardingStep =
   | "done";
 
 export interface UserData {
+  name: string;
   goal: string | null;
   motivation: string | null;
   height: number;
@@ -69,6 +71,7 @@ export interface StepProps {
 }
 
 export const defaultUserData: UserData = {
+  name: '',
   goal: null,
   motivation: null,
   height: 170,
@@ -99,9 +102,10 @@ export const defaultUserData: UserData = {
 
 // Steps array for navigation - logically structured flow
 export const onboardingSteps: OnboardingStep[] = [
-  // Phase 1: Welcome & Goals
-  "welcome",
+  // Phase 1: Language & Name
   "language-select",
+  "name-input",
+  "welcome",
   "goal",
   "motivation",
   

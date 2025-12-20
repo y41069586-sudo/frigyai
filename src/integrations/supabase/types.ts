@@ -387,6 +387,7 @@ export type Database = {
           selected_source: string | null
           updated_at: string
           user_id: string
+          user_name: string | null
         }
         Insert: {
           community_joined?: boolean | null
@@ -400,6 +401,7 @@ export type Database = {
           selected_source?: string | null
           updated_at?: string
           user_id: string
+          user_name?: string | null
         }
         Update: {
           community_joined?: boolean | null
@@ -413,6 +415,7 @@ export type Database = {
           selected_source?: string | null
           updated_at?: string
           user_id?: string
+          user_name?: string | null
         }
         Relationships: []
       }
