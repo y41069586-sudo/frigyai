@@ -209,55 +209,36 @@ const Index = () => {
       <main className="flex-1 flex flex-col px-4 pb-32 pt-12 safe-top">
         <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
           
-          {/* Header Section - Clean & Modern */}
+          {/* Header Section - Clean & Minimal */}
           <motion.div
-            className="w-full mb-8"
+            className="w-full mb-6"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.3 }}
           >
             <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <motion.h1 
-                  className="text-2xl font-bold text-foreground tracking-tight"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  {displayName ? `Hallo, ${displayName}!` : 'Willkommen!'} 👋
-                </motion.h1>
-                <motion.p 
-                  className="text-muted-foreground text-sm mt-0.5"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  Bleib dran, du bist auf Kurs.
-                </motion.p>
+              <div>
+                <p className="text-muted-foreground text-sm">Hallo</p>
+                <h1 className="text-xl font-semibold text-foreground">
+                  {displayName ? `${displayName}!` : 'Willkommen!'}
+                </h1>
               </div>
               
               <div className="flex items-center gap-2">
                 {/* Streak Badge */}
                 {currentStreak > 0 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.3, type: "spring" }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-full"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-primary fill-primary" />
-                    <span className="text-xs font-semibold text-primary">{currentStreak} Tage</span>
-                  </motion.div>
+                  <div className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 rounded-full">
+                    <Zap className="w-3 h-3 text-primary fill-primary" />
+                    <span className="text-xs font-medium text-primary">{currentStreak}</span>
+                  </div>
                 )}
                 
-                {/* Profile button */}
-                {user && (
-                  <NavLink to="/profile">
-                    <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                      <User className="h-4 w-4" />
-                    </Button>
-                  </NavLink>
-                )}
+                {/* Mascot */}
+                <img 
+                  src={frigLogo} 
+                  alt="Frigy" 
+                  className="h-10 w-10 rounded-xl object-cover"
+                />
               </div>
             </div>
           </motion.div>
