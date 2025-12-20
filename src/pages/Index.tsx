@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { NavLink } from "@/components/NavLink";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import ProgressCharts from "@/components/ProgressCharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
@@ -233,13 +234,22 @@ const Index = () => {
                   </div>
                 )}
                 
-                {/* Weight Progress */}
-                <button 
-                  onClick={() => navigate('/meal-plans?tab=tracker')}
-                  className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-                >
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                </button>
+                {/* Weight Progress Dialog */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button 
+                      className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                    >
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Gewichtsverlauf</DialogTitle>
+                    </DialogHeader>
+                    <ProgressCharts />
+                  </DialogContent>
+                </Dialog>
                 
                 {/* Profile Settings */}
                 <button 
