@@ -16,7 +16,6 @@ import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
-import ThemeToggle from "@/components/ThemeToggle";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -234,8 +233,13 @@ const Index = () => {
                   </div>
                 )}
                 
-                {/* Theme Toggle */}
-                <ThemeToggle />
+                {/* Profile Settings */}
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                >
+                  <Settings className="w-5 h-5 text-primary" />
+                </button>
               </div>
             </div>
           </motion.div>
