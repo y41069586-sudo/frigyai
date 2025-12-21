@@ -26,14 +26,14 @@ export const PremiumLockOverlay = ({
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-        className="flex flex-col items-center text-center p-6 bg-card/95 rounded-2xl shadow-lg border border-border"
+        className="flex flex-col items-center text-center p-6"
       >
-        <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mb-3">
-          <Lock className="w-7 h-7 text-primary" />
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <Lock className="w-8 h-8 text-primary" />
         </div>
         
         <h3 className="text-lg font-bold mb-1">{title}</h3>
-        <p className="text-sm text-muted-foreground mb-4 max-w-[200px]">
+        <p className="text-sm text-muted-foreground/60 mb-4 max-w-[200px]">
           {description}
         </p>
         
