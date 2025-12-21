@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   ChevronRight, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
   Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe,
@@ -8,8 +9,10 @@ import {
   Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
   Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding, Bike,
   GraduationCap, Medal, Crown, Armchair, Footprints, Carrot, CupSoda,
-  Droplets, Coffee
+  Droplets, Coffee, Mail, Lock, Eye, EyeOff, Save
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import frigLogo from "@/assets/frig-logo.png";
 import frigyMascotSrc from "@/assets/frigy-mascot.png";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
@@ -133,6 +136,8 @@ const AnalysisProgress = () => {
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
+  const { user, signUp, signIn } = useAuth();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
@@ -141,6 +146,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [chartAnimate, setChartAnimate] = useState(false);
   const [selectedPlanOption, setSelectedPlanOption] = useState<'free' | 'premium' | null>(null);
   const [introPhase, setIntroPhase] = useState<'rising' | 'greeting' | 'settling' | 'done'>('rising');
+  
+  // Save progress auth state
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
   const currentIndex = onboardingSteps.indexOf(currentStep);
   const totalSteps = onboardingSteps.length;
@@ -1988,6 +2000,211 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </motion.div>
                 ))}
               </div>
+            </div>
+          </StepCard>
+        );
+
+      case "save-progress":
+        const handleAuth = async () => {
+          if (!authEmail || !authPassword) {
+            toast({
+              title: "Fehler",
+              description: "Bitte E-Mail und Passwort eingeben",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          setIsAuthLoading(true);
+          try {
+            if (authMode === 'signup') {
+              const { error } = await signUp(authEmail, authPassword);
+              if (error) {
+                toast({
+                  title: "Registrierung fehlgeschlagen",
+                  description: error.message === "User already registered" 
+                    ? "Diese E-Mail ist bereits registriert. Bitte melde dich an."
+                    : error.message,
+                  variant: "destructive",
+                });
+                if (error.message === "User already registered") {
+                  setAuthMode('login');
+                }
+              } else {
+                toast({
+                  title: "Erfolgreich registriert!",
+                  description: "Dein Fortschritt wurde gespeichert.",
+                });
+                saveOnboardingData(userData);
+                goNext();
+              }
+            } else {
+              const { error } = await signIn(authEmail, authPassword);
+              if (error) {
+                toast({
+                  title: "Anmeldung fehlgeschlagen",
+                  description: error.message,
+                  variant: "destructive",
+                });
+              } else {
+                toast({
+                  title: "Willkommen zurück!",
+                  description: "Dein Fortschritt wurde geladen.",
+                });
+                saveOnboardingData(userData);
+                goNext();
+              }
+            }
+          } finally {
+            setIsAuthLoading(false);
+          }
+        };
+        
+        return (
+          <StepCard step="save-progress">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Header icon */}
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg"
+              >
+                <Save className="w-8 h-8 text-primary-foreground" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                Speichere deinen Fortschritt
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                {authMode === 'signup' 
+                  ? "Erstelle ein Konto um deinen Plan zu sichern"
+                  : "Melde dich an um fortzufahren"}
+              </motion.p>
+              
+              {/* Auth form */}
+              <motion.div 
+                className="w-full max-w-sm space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
+                {/* Email input */}
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
+                  <Input
+                    type="email"
+                    placeholder="E-Mail Adresse"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="pl-11 h-12 rounded-xl bg-card border-border"
+                  />
+                </div>
+                
+                {/* Password input */}
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Passwort"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="pl-11 pr-11 h-12 rounded-xl bg-card border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                
+                {/* Submit button */}
+                <Button 
+                  onClick={handleAuth}
+                  disabled={isAuthLoading || !authEmail || !authPassword}
+                  className="w-full h-12 rounded-xl"
+                >
+                  {isAuthLoading ? (
+                    <motion.div
+                      className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                  ) : (
+                    <>
+                      {authMode === 'signup' ? 'Registrieren' : 'Anmelden'}
+                      <ChevronRight className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+                
+                {/* Toggle auth mode */}
+                <motion.button
+                  onClick={() => setAuthMode(authMode === 'signup' ? 'login' : 'signup')}
+                  className="text-sm text-muted-foreground/60 hover:text-primary transition-colors"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                >
+                  {authMode === 'signup' 
+                    ? "Bereits registriert? Hier anmelden"
+                    : "Noch kein Konto? Hier registrieren"}
+                </motion.button>
+              </motion.div>
+              
+              {/* Benefits reminder */}
+              <motion.div 
+                className="mt-6 w-full max-w-sm p-4 rounded-xl bg-primary/5 border border-primary/20"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Warum registrieren?</span>
+                </div>
+                <ul className="space-y-1.5 text-left">
+                  <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                    <span>Dein personalisierter Plan wird gespeichert</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                    <span>Fortschritt auf allen Geräten synchronisiert</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                    <span>Zugang zu deinen Rezepten & Mahlzeiten</span>
+                  </li>
+                </ul>
+              </motion.div>
+              
+              {/* Skip option for already logged in users */}
+              {user && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.3 }}
+                  className="mt-4"
+                >
+                  <Button variant="ghost" onClick={goNext} className="text-muted-foreground/60">
+                    Bereits angemeldet - Weiter
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </motion.div>
+              )}
             </div>
           </StepCard>
         );
