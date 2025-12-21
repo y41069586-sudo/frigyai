@@ -2335,7 +2335,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="w-10" />
         )}
         
-        <ProgressDots current={currentIndex} total={onboardingSteps.length} />
+        {/* Progress bar only - no dots */}
 
         <button 
           onClick={handleSkip} 
