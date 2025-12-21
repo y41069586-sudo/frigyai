@@ -329,15 +329,6 @@ const Index = () => {
                     <span className="text-muted-foreground text-sm">Ziel</span>
                     <span className="ml-auto font-bold text-lg">{targetCalories.toLocaleString('de-DE')}</span>
                   </div>
-                  {/* Progress bar */}
-                  <div className="h-2 bg-muted rounded-full overflow-hidden mt-1">
-                    <motion.div
-                      className="h-full bg-primary rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, calorieProgress)}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
