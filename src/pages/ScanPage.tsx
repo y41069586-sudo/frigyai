@@ -356,7 +356,7 @@ const ScanPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/")}
+              onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
               className="mr-2 sm:mr-4 shrink-0 touch-target"
             >
               <ArrowLeft className="h-5 w-5" />
