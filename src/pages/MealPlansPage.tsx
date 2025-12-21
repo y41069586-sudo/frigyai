@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3, Crown } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +26,7 @@ import { AIChatbot } from '@/components/AIChatbot';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
+import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
 
 interface UserProfile {
   age: number;
@@ -141,6 +142,21 @@ const MealPlansPage = () => {
     }
   };
 
+  // Check if user is premium
+  const isPremium = subscriptionStatus?.subscribed || false;
+
+  // Get meal plan generation count for free users
+  const [mealPlanGenerationCount, setMealPlanGenerationCount] = useState(0);
+  
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem('mealPlanGenerationCount') || '0', 10);
+    setMealPlanGenerationCount(count);
+  }, []);
+
+  // Free users: can generate meal plan once (initial + 1 regeneration = 2 total)
+  const maxFreeGenerations = 2;
+  const canGenerateMealPlan = isPremium || mealPlanGenerationCount < maxFreeGenerations;
+
   useEffect(() => {
     // Wait for auth to finish loading before redirecting
     if (loading) return;
@@ -149,12 +165,12 @@ const MealPlansPage = () => {
     const subscriptionParam = searchParams.get('subscription');
     if (subscriptionParam === 'success') return;
     
+    // Only redirect to auth if not logged in
     if (!user) {
       navigate('/auth');
-    } else if (subscriptionStatus !== null && !subscriptionStatus.subscribed) {
-      navigate('/premium');
     }
-  }, [user, subscriptionStatus, loading, navigate, searchParams]);
+    // Remove premium redirect - allow free users to access with limitations
+  }, [user, loading, navigate, searchParams]);
 
   // Load saved meal plan on mount
   useEffect(() => {
@@ -210,6 +226,17 @@ const MealPlansPage = () => {
       return;
     }
 
+    // Check if free user has reached generation limit
+    if (!isPremium && mealPlanGenerationCount >= maxFreeGenerations) {
+      toast({
+        title: "Limit erreicht",
+        description: "Upgrade auf Premium für unbegrenzte Generierungen",
+        variant: 'destructive',
+      });
+      navigate('/premium');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       // Use tracker settings from database/hook (single source of truth)
@@ -258,6 +285,14 @@ const MealPlansPage = () => {
       if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
         setMealPlan((data as any).mealPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify((data as any).mealPlan));
+        
+        // Track generation count for free users
+        if (!isPremium) {
+          const newCount = mealPlanGenerationCount + 1;
+          setMealPlanGenerationCount(newCount);
+          localStorage.setItem('mealPlanGenerationCount', String(newCount));
+        }
+        
         toast({ title: t.newPlanGenerated, description: t.planWithKcal.replace('{kcal}', String(dailyCalories)) });
       } else {
         throw new Error('Leerer Wochenplan erhalten');
@@ -421,18 +456,28 @@ const MealPlansPage = () => {
           </TabsContent>
 
           <TabsContent value="progress">
-            <div className="flex justify-end mb-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowWeeklySummary(true)}
-                className="gap-2"
-              >
-                <BarChart3 className="h-4 w-4" />
-                Wochenübersicht
-              </Button>
+            <div className="relative">
+              {!isPremium && (
+                <PremiumLockOverlay 
+                  title="Stats & Makros"
+                  description="Upgrade auf Premium für detaillierte Statistiken und Makro-Tracking"
+                />
+              )}
+              <div className={!isPremium ? "pointer-events-none" : ""}>
+                <div className="flex justify-end mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowWeeklySummary(true)}
+                    className="gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Wochenübersicht
+                  </Button>
+                </div>
+                <ProgressTracker />
+              </div>
             </div>
-            <ProgressTracker />
           </TabsContent>
 
           <TabsContent value="reminders">
@@ -459,33 +504,45 @@ const MealPlansPage = () => {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <ExportMealPlan mealPlan={mealPlan} />
-                  <Button 
-                    className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
-                    size="sm"
-                    onClick={generateMealPlan}
-                    disabled={isGenerating || !trackerSetup}
-                  >
-                    {isGenerating ? (() => {
-                      const expectedSeconds = 40;
-                      const remaining = Math.max(5, expectedSeconds - generationSeconds);
-                      const label = generationSeconds < expectedSeconds
-                        ? `Wird generiert… ca. ${remaining}s`
-                        : t.almostDone;
-
-                      return (
-                        <>
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                          <span>{label}</span>
-                        </>
-                      );
-                    })() : (
-                      <>
-                        <Calendar className="mr-1 h-4 w-4" />
-                        <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span>
-                        <span className="hidden sm:inline">{t.generateNewPlan}</span>
-                      </>
+                  <div className="flex items-center gap-2">
+                    {!isPremium && (
+                      <span className="text-xs text-muted-foreground">
+                        {mealPlanGenerationCount}/{maxFreeGenerations} Generierungen
+                      </span>
                     )}
-                  </Button>
+                    <Button 
+                      className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
+                      size="sm"
+                      onClick={generateMealPlan}
+                      disabled={isGenerating || !trackerSetup || !canGenerateMealPlan}
+                    >
+                      {isGenerating ? (() => {
+                        const expectedSeconds = 40;
+                        const remaining = Math.max(5, expectedSeconds - generationSeconds);
+                        const label = generationSeconds < expectedSeconds
+                          ? `Wird generiert… ca. ${remaining}s`
+                          : t.almostDone;
+
+                        return (
+                          <>
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                            <span>{label}</span>
+                          </>
+                        );
+                      })() : !canGenerateMealPlan ? (
+                        <>
+                          <Lock className="mr-1 h-4 w-4" />
+                          <span>Limit erreicht</span>
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="mr-1 h-4 w-4" />
+                          <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span>
+                          <span className="hidden sm:inline">{t.generateNewPlan}</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -536,7 +593,17 @@ const MealPlansPage = () => {
           </TabsContent>
 
           <TabsContent value="shopping">
-            <ShoppingList mealPlan={mealPlan} />
+            <div className="relative">
+              {!isPremium && (
+                <PremiumLockOverlay 
+                  title="Einkaufsliste"
+                  description="Upgrade auf Premium für automatische Einkaufslisten"
+                />
+              )}
+              <div className={!isPremium ? "pointer-events-none" : ""}>
+                <ShoppingList mealPlan={mealPlan} />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="water">
