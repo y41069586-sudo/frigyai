@@ -24,6 +24,7 @@ const MealPlansPage = lazy(() => import("./pages/MealPlansPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
+const EmailConfirmationPage = lazy(() => import("./pages/EmailConfirmationPage"));
 const PlanSelectionPage = lazy(() => import("./pages/PlanSelectionPage"));
 const PremiumPricingPage = lazy(() => import("./pages/PremiumPricingPage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -62,6 +63,7 @@ const AppContent = () => {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/update-password" element={<UpdatePasswordPage />} />
+          <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
           <Route path="/plan-selection" element={<PlanSelectionPage />} />
           <Route path="/premium-pricing" element={<PremiumPricingPage />} />
           <Route path="/admin" element={<AdminPage />} />

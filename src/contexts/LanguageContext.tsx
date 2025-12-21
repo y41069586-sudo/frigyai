@@ -358,6 +358,15 @@ interface Translations {
   andMuchMore: string;
   getReady: string;
   chooseLanguage: string;
+  
+  // Email Confirmation
+  checkYourEmail: string;
+  confirmationEmailSent: string;
+  clickLinkToConfirm: string;
+  backToLogin: string;
+  noEmailReceived: string;
+  emailConfirmed: string;
+  redirectingToApp: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -717,6 +726,15 @@ const translations: Record<Language, Translations> = {
     andMuchMore: "...und vieles mehr",
     getReady: "Mach dich gefasst!",
     chooseLanguage: "Wähle deine Sprache",
+    
+    // Email Confirmation
+    checkYourEmail: "Überprüfe deine E-Mail",
+    confirmationEmailSent: "Wir haben dir eine Bestätigungs-E-Mail gesendet.",
+    clickLinkToConfirm: "Klicke auf den Link in der E-Mail, um dein Konto zu bestätigen und fortzufahren.",
+    backToLogin: "Zurück zur Anmeldung",
+    noEmailReceived: "Keine E-Mail erhalten? Überprüfe deinen Spam-Ordner.",
+    emailConfirmed: "E-Mail bestätigt!",
+    redirectingToApp: "Du wirst zur App weitergeleitet...",
   },
   en: {
     // Navigation & Common
@@ -1074,6 +1092,15 @@ const translations: Record<Language, Translations> = {
     andMuchMore: "...and much more",
     getReady: "Get ready!",
     chooseLanguage: "Choose your language",
+    
+    // Email Confirmation
+    checkYourEmail: "Check your email",
+    confirmationEmailSent: "We've sent you a confirmation email.",
+    clickLinkToConfirm: "Click the link in the email to confirm your account and continue.",
+    backToLogin: "Back to login",
+    noEmailReceived: "Didn't receive an email? Check your spam folder.",
+    emailConfirmed: "Email confirmed!",
+    redirectingToApp: "Redirecting you to the app...",
   },
   fr: {
     // Navigation & Common
@@ -1431,6 +1458,15 @@ const translations: Record<Language, Translations> = {
     andMuchMore: "...et bien plus encore",
     getReady: "Préparez-vous!",
     chooseLanguage: "Choisissez votre langue",
+    
+    // Email Confirmation
+    checkYourEmail: "Vérifiez votre e-mail",
+    confirmationEmailSent: "Nous vous avons envoyé un e-mail de confirmation.",
+    clickLinkToConfirm: "Cliquez sur le lien dans l'e-mail pour confirmer votre compte et continuer.",
+    backToLogin: "Retour à la connexion",
+    noEmailReceived: "Pas reçu d'e-mail? Vérifiez votre dossier spam.",
+    emailConfirmed: "E-mail confirmé!",
+    redirectingToApp: "Redirection vers l'application...",
   },
 };
 
