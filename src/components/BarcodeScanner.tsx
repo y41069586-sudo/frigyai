@@ -54,50 +54,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, []);
 
-  // USDA FoodData Central fallback lookup
-  const lookupUSDA = useCallback(async (query: string): Promise<NutritionInfo | null> => {
-    try {
-      console.log('[USDA Barcode] Searching for:', query);
-      const response = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${import.meta.env.VITE_USDA_API_KEY || 'DEMO_KEY'}&query=${encodeURIComponent(query)}&pageSize=1&dataType=Branded`
-      );
-      
-      if (!response.ok) return null;
-      
-      const data = await response.json();
-      
-      if (data.foods && data.foods.length > 0) {
-        const food = data.foods[0];
-        const nutrients: Record<string, number> = {};
-        
-        if (food.foodNutrients) {
-          for (const nutrient of food.foodNutrients) {
-            switch (nutrient.nutrientId) {
-              case 1008: nutrients.calories = Math.round(nutrient.value || 0); break;
-              case 1003: nutrients.protein = Math.round(nutrient.value || 0); break;
-              case 1005: nutrients.carbs = Math.round(nutrient.value || 0); break;
-              case 1004: nutrients.fat = Math.round(nutrient.value || 0); break;
-            }
-          }
-        }
-        
-        if (nutrients.calories && nutrients.calories > 0) {
-          return {
-            name: food.description || food.brandName || 'Unbekanntes Produkt',
-            calories: nutrients.calories,
-            protein: nutrients.protein || 0,
-            carbs: nutrients.carbs || 0,
-            fat: nutrients.fat || 0,
-          };
-        }
-      }
-      return null;
-    } catch (err) {
-      console.error('[USDA Barcode] Error:', err);
-      return null;
-    }
-  }, []);
-
+  // Open Food Facts lookup - kostenlos und gut für EU/DE Produkte
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
@@ -107,7 +64,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     scanningRef.current = false;
 
     try {
-      // Try Open Food Facts first
+      console.log('[Barcode] Looking up:', barcode);
+      
+      // Open Food Facts - kostenlose globale Datenbank mit vielen deutschen Produkten
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
       );
@@ -117,6 +76,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const product = data.product;
         const nutriments = product.nutriments || {};
         
+        // Berechne pro Portion wenn vorhanden, sonst pro 100g
         const servingSize = product.serving_quantity || 100;
         const multiplier = servingSize / 100;
 
@@ -129,6 +89,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           image: product.image_small_url || product.image_url,
         };
 
+        console.log('[Barcode] Found product:', nutritionInfo.name);
+        
         onFoodScanned(nutritionInfo);
         toast({
           title: "Produkt erkannt! 🎉",
@@ -139,32 +101,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // Fallback: Try USDA with barcode as query
-      console.log('[Barcode] Open Food Facts failed, trying USDA...');
-      const usdaResult = await lookupUSDA(barcode);
-      
-      if (usdaResult) {
-        onFoodScanned(usdaResult);
-        toast({
-          title: "Produkt erkannt (USDA)! 🎉",
-          description: `${usdaResult.name} - ${usdaResult.calories} kcal`,
-        });
-        stopCamera();
-        onClose();
-        return;
-      }
-
-      // Both failed
+      // Produkt nicht gefunden
+      console.log('[Barcode] Product not found in Open Food Facts');
       toast({
         title: "Produkt nicht gefunden",
-        description: "Dieser Barcode ist nicht in der Datenbank.",
+        description: "Dieser Barcode ist nicht in der Datenbank. Versuche es manuell einzugeben.",
         variant: "destructive",
       });
       lastScannedRef.current = null;
       scanningRef.current = true;
       setIsLoading(false);
     } catch (err) {
-      console.error("Lookup error:", err);
+      console.error("[Barcode] Lookup error:", err);
       toast({
         title: "Fehler",
         description: "Produkt konnte nicht abgerufen werden.",
@@ -174,9 +122,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     }
-  }, [isLoading, onClose, onFoodScanned, stopCamera, lookupUSDA]);
+  }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Ultra-fast native detection loop - max 2 seconds
+  // Ultra-fast native detection loop
   const detectBarcodes = useCallback(async () => {
     if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
     
@@ -197,7 +145,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
 
     if (scanningRef.current) {
-      // Scan every 50ms for max 2 second detection (20 attempts per second)
       setTimeout(() => {
         if (scanningRef.current) {
           animationFrameRef.current = requestAnimationFrame(detectBarcodes);
@@ -206,14 +153,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [lookupBarcode]);
 
-  // Start with native BarcodeDetector (Chrome, Edge) - optimized for speed
+  // Start with native BarcodeDetector (Chrome, Edge)
   const startNativeScanner = useCallback(async () => {
-    // Create detector with common barcode formats
     detectorRef.current = new (window as any).BarcodeDetector({
       formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
     });
 
-    // Higher resolution for faster, more accurate detection
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
@@ -232,12 +177,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsInitializing(false);
       scanningRef.current = true;
       
-      // Start detection immediately
       animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
   }, [detectBarcodes]);
 
-  // Fallback for Safari/Firefox - optimized for speed
+  // Fallback for Safari/Firefox
   const startFallbackScanner = useCallback(async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
     
@@ -389,7 +333,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         {/* Footer */}
         <div className="p-3 bg-gradient-to-t from-black to-transparent absolute bottom-0 left-0 right-0">
           <p className="text-center text-white/60 text-xs">
-            {hasNativeBarcodeDetector ? "⚡ Sofort-Erkennung aktiv" : "Safari-Modus"}
+            {hasNativeBarcodeDetector ? "⚡ Sofort-Erkennung aktiv" : "Safari-Modus"} • Open Food Facts
           </p>
         </div>
       </motion.div>

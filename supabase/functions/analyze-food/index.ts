@@ -19,183 +19,6 @@ const requestSchema = z.object({
   message: "Either 'food' or 'imageBase64' must be provided",
 });
 
-// German to English food translation map
-const germanToEnglish: Record<string, string> = {
-  'ei': 'egg',
-  'eier': 'eggs',
-  'milch': 'milk',
-  'brot': 'bread',
-  'käse': 'cheese',
-  'butter': 'butter',
-  'joghurt': 'yogurt',
-  'apfel': 'apple',
-  'äpfel': 'apples',
-  'banane': 'banana',
-  'bananen': 'bananas',
-  'kartoffel': 'potato',
-  'kartoffeln': 'potatoes',
-  'reis': 'rice',
-  'nudeln': 'pasta',
-  'hähnchen': 'chicken',
-  'hühnchen': 'chicken',
-  'huhn': 'chicken',
-  'rindfleisch': 'beef',
-  'schweinefleisch': 'pork',
-  'fisch': 'fish',
-  'lachs': 'salmon',
-  'thunfisch': 'tuna',
-  'tomate': 'tomato',
-  'tomaten': 'tomatoes',
-  'gurke': 'cucumber',
-  'salat': 'salad',
-  'spinat': 'spinach',
-  'brokkoli': 'broccoli',
-  'karotte': 'carrot',
-  'karotten': 'carrots',
-  'möhre': 'carrot',
-  'möhren': 'carrots',
-  'zwiebel': 'onion',
-  'zwiebeln': 'onions',
-  'knoblauch': 'garlic',
-  'paprika': 'bell pepper',
-  'avocado': 'avocado',
-  'nuss': 'nut',
-  'nüsse': 'nuts',
-  'mandeln': 'almonds',
-  'walnüsse': 'walnuts',
-  'erdnüsse': 'peanuts',
-  'honig': 'honey',
-  'zucker': 'sugar',
-  'mehl': 'flour',
-  'haferflocken': 'oatmeal',
-  'müsli': 'muesli',
-  'toast': 'toast',
-  'schinken': 'ham',
-  'wurst': 'sausage',
-  'speck': 'bacon',
-  'quark': 'quark cheese',
-  'sahne': 'cream',
-  'olivenöl': 'olive oil',
-  'öl': 'oil',
-};
-
-// Translate German food terms to English for USDA search
-function translateToEnglish(query: string): string {
-  // Extract quantity (numbers) and food term
-  const match = query.match(/^(\d+\s*)?(.+)$/i);
-  if (!match) return query;
-  
-  const quantity = match[1]?.trim() || '';
-  let foodTerm = match[2].trim().toLowerCase();
-  
-  // Check if the food term exists in our translation map
-  if (germanToEnglish[foodTerm]) {
-    const translated = germanToEnglish[foodTerm];
-    console.log(`[TRANSLATE] "${foodTerm}" -> "${translated}"`);
-    return quantity ? `${quantity} ${translated}` : translated;
-  }
-  
-  // Try to find partial matches
-  for (const [german, english] of Object.entries(germanToEnglish)) {
-    if (foodTerm.includes(german)) {
-      const translated = foodTerm.replace(german, english);
-      console.log(`[TRANSLATE] "${foodTerm}" -> "${translated}" (partial match)`);
-      return quantity ? `${quantity} ${translated}` : translated;
-    }
-  }
-  
-  return query;
-}
-
-// USDA FoodData Central API integration
-async function searchUSDA(query: string): Promise<any | null> {
-  const USDA_API_KEY = Deno.env.get('USDA_API_KEY');
-  if (!USDA_API_KEY) {
-    console.log('[USDA] API key not configured, skipping USDA lookup');
-    return null;
-  }
-
-  try {
-    // Translate German to English for better USDA results
-    const translatedQuery = translateToEnglish(query);
-    console.log('[USDA] Original query:', query, '-> Translated:', translatedQuery);
-    
-    // Extract just the food term without quantity for USDA search
-    const foodTermMatch = translatedQuery.match(/^\d+\s*(.+)$/i);
-    const searchTerm = foodTermMatch ? foodTermMatch[1].trim() : translatedQuery;
-    
-    console.log('[USDA] Searching for:', searchTerm);
-    
-    const response = await fetch(
-      `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(searchTerm)}&pageSize=5&dataType=Survey (FNDDS),Foundation,SR Legacy`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-
-    if (!response.ok) {
-      console.error('[USDA] API error:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    console.log('[USDA] Found', data.totalHits, 'results');
-
-    if (data.foods && data.foods.length > 0) {
-      const food = data.foods[0];
-      const nutrients: Record<string, number> = {};
-      
-      // Extract nutrients from USDA response
-      if (food.foodNutrients) {
-        for (const nutrient of food.foodNutrients) {
-          switch (nutrient.nutrientId) {
-            case 1008: // Energy (kcal)
-              nutrients.calories = Math.round(nutrient.value || 0);
-              break;
-            case 1003: // Protein
-              nutrients.protein = Math.round(nutrient.value || 0);
-              break;
-            case 1005: // Carbohydrates
-              nutrients.carbs = Math.round(nutrient.value || 0);
-              break;
-            case 1004: // Total Fat
-              nutrients.fat = Math.round(nutrient.value || 0);
-              break;
-          }
-        }
-      }
-
-      console.log('[USDA] Extracted nutrients:', nutrients);
-      
-      // Extract quantity from original query for portion calculation
-      const quantityMatch = query.match(/^(\d+)\s*/);
-      const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
-      
-      // Adjust nutrients based on quantity (USDA returns per 100g, egg ~50g each)
-      const isEgg = searchTerm.toLowerCase().includes('egg');
-      const portionMultiplier = isEgg ? (quantity * 50) / 100 : quantity;
-      
-      return {
-        name: food.description,
-        protein: Math.round((nutrients.protein || 0) * portionMultiplier),
-        carbs: Math.round((nutrients.carbs || 0) * portionMultiplier),
-        fat: Math.round((nutrients.fat || 0) * portionMultiplier),
-        calories: Math.round((nutrients.calories || 0) * portionMultiplier),
-        portion: isEgg ? `${quantity} Ei(er) (ca. ${quantity * 50}g)` : (food.servingSize ? `${food.servingSize}${food.servingSizeUnit || 'g'}` : '100g'),
-        source: 'USDA FoodData Central',
-        fdcId: food.fdcId,
-        quantity,
-      };
-    }
-
-    return null;
-  } catch (error) {
-    console.error('[USDA] Error:', error);
-    return null;
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -247,71 +70,55 @@ serve(async (req) => {
     
     const { food, imageBase64 } = parseResult.data;
 
-    // For text-based food lookup, try USDA first
-    if (food && !imageBase64) {
-      console.log('[ANALYZE-FOOD] Trying USDA lookup first for:', food);
-      const usdaResult = await searchUSDA(food);
-      
-      if (usdaResult && usdaResult.calories && usdaResult.calories > 0) {
-        console.log('[ANALYZE-FOOD] Using USDA data:', usdaResult);
-        return new Response(JSON.stringify({
-          name: usdaResult.name,
-          calories: usdaResult.calories,
-          protein: usdaResult.protein || 0,
-          carbs: usdaResult.carbs || 0,
-          fat: usdaResult.fat || 0,
-          portion: usdaResult.portion,
-          details: `Daten von USDA FoodData Central (FDC ID: ${usdaResult.fdcId})`,
-          source: 'usda'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      console.log('[ANALYZE-FOOD] USDA lookup failed or no results, falling back to AI');
-    }
-
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
       console.error('OPENAI_API_KEY is not configured');
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
+    console.log('[ANALYZE-FOOD] Using OpenAI Vision for:', food || 'image');
+
     const systemPrompt = `Du bist ein zertifizierter Ernährungsberater mit Expertise in Lebensmittelanalyse und Makronährstoffberechnung.
 
-AUFGABE: Analysiere das Essen präzise und berechne die Nährwerte basierend auf wissenschaftlichen Datenbanken (USDA, BLS).
+AUFGABE: Analysiere das Essen präzise und berechne die Nährwerte basierend auf wissenschaftlichen Datenbanken.
 
 ANALYSE-METHODE:
-1. Identifiziere ALLE sichtbaren Zutaten und deren geschätzte Mengen
+1. Identifiziere das Lebensmittel und die Menge (z.B. "2 Eier", "1 Scheibe Brot")
 2. Berücksichtige Zubereitungsart (roh, gekocht, gebraten - beeinflusst Kaloriengehalt)
-3. Schätze realistische Portionsgrößen basierend auf Tellergrößen/Referenzobjekten
-4. Berechne Makros für JEDE Zutat separat, dann summiere
+3. Berechne Makros basierend auf der angegebenen Menge
 
-NÄHRWERT-REFERENZEN (pro 100g):
+NÄHRWERT-REFERENZEN (pro 100g roh/Standard):
+- Ei (1 Stück, ca. 60g): 93 kcal, 8g P, 0.6g K, 7g F
 - Hähnchenbrust (gekocht): 165 kcal, 31g P, 0g K, 3.6g F
 - Reis (gekocht): 130 kcal, 2.7g P, 28g K, 0.3g F
 - Lachs (gebraten): 208 kcal, 20g P, 0g K, 13g F
-- Ei (gekocht): 155 kcal, 13g P, 1.1g K, 11g F
 - Avocado: 160 kcal, 2g P, 9g K, 15g F
-- Olivenöl: 884 kcal, 0g P, 0g K, 100g F (1 EL = ~14g = 124 kcal)
+- Olivenöl (1 EL = 14g): 124 kcal, 0g P, 0g K, 14g F
 - Brokkoli (gekocht): 35 kcal, 2.8g P, 7g K, 0.4g F
 - Kartoffeln (gekocht): 77 kcal, 2g P, 17g K, 0.1g F
-- Vollkornbrot: 247 kcal, 13g P, 41g K, 4.2g F
+- Vollkornbrot (1 Scheibe = 50g): 110 kcal, 5g P, 20g K, 1.5g F
+- Milch 1.5% (100ml): 47 kcal, 3.4g P, 4.9g K, 1.5g F
+- Toast (1 Scheibe = 25g): 65 kcal, 2g P, 12g K, 1g F
+- Joghurt natur (100g): 61 kcal, 3.5g P, 4.7g K, 3.3g F
+- Käse Gouda (30g Scheibe): 105 kcal, 7.5g P, 0g K, 8.5g F
+- Haferflocken (40g): 150 kcal, 5g P, 24g K, 3g F
+- Banane (1 mittel, 120g): 107 kcal, 1.3g P, 27g K, 0.4g F
 
 WICHTIGE REGELN:
+- Beachte die MENGE im Input (z.B. "2 Eier" = 2x Einzelwerte)
 - Runde Kalorien auf 5er-Schritte
 - Protein, Kohlenhydrate, Fett auf ganze Zahlen
-- Berücksichtige versteckte Kalorien: Öl, Butter, Saucen, Dressings
-- Bei Unklarheit: Schätze konservativ (lieber etwas höher)
+- Bei Unklarheit: Schätze konservativ
 
 Antworte NUR mit validem JSON in diesem Format:
 {
-  "name": "Präziser Name des Gerichts",
-  "calories": 350,
-  "protein": 25,
-  "carbs": 30,
-  "fat": 12,
-  "portion": "1 Portion (ca. 200g)",
-  "details": "Kurze Aufschlüsselung: Hähnchen 150g, Reis 100g, Gemüse 80g"
+  "name": "Präziser Name (z.B. 2 Eier gekocht)",
+  "calories": 186,
+  "protein": 16,
+  "carbs": 1,
+  "fat": 14,
+  "portion": "2 Eier (ca. 120g)",
+  "details": "Pro Ei: 93 kcal, 8g Protein, 7g Fett"
 }`;
 
     const messages: any[] = [
@@ -349,15 +156,7 @@ Antworte NUR mit validem JSON in diesem Format:
     });
 
     const requestId = response.headers.get('x-request-id');
-    const openaiOrg = response.headers.get('openai-organization');
-    const openaiProject = response.headers.get('openai-project');
-    const openaiProcessingMs = response.headers.get('openai-processing-ms');
-    console.log('[ANALYZE-FOOD] OpenAI response headers:', {
-      requestId,
-      openaiOrg,
-      openaiProject,
-      openaiProcessingMs,
-    });
+    console.log('[ANALYZE-FOOD] OpenAI response:', { requestId, status: response.status });
  
     if (!response.ok) {
       const errorText = await response.text();
@@ -386,7 +185,7 @@ Antworte NUR mit validem JSON in diesem Format:
       throw new Error('Failed to parse food data');
     }
 
-    console.log('[ANALYZE-FOOD] Successfully analyzed food');
+    console.log('[ANALYZE-FOOD] Successfully analyzed:', foodData.name);
 
     return new Response(JSON.stringify(foodData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
