@@ -307,6 +307,19 @@ const Index = () => {
               </div>
               
               <div className="flex items-center gap-1.5">
+                {/* Premium Button for non-subscribers */}
+                {!subscriptionStatus?.subscribed && (
+                  <motion.button 
+                    onClick={() => user ? navigate('/premium') : navigate('/auth?from=premium')}
+                    className="h-9 px-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-center gap-1.5 shadow-sm"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Crown className="w-3.5 h-3.5 text-white" />
+                    <span className="text-xs font-bold text-white">Premium</span>
+                  </motion.button>
+                )}
+                
                 {/* Weight Progress Dialog */}
                 <Dialog>
                   <DialogTrigger asChild>
