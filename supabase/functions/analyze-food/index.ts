@@ -19,6 +19,94 @@ const requestSchema = z.object({
   message: "Either 'food' or 'imageBase64' must be provided",
 });
 
+// German to English food translation map
+const germanToEnglish: Record<string, string> = {
+  'ei': 'egg',
+  'eier': 'eggs',
+  'milch': 'milk',
+  'brot': 'bread',
+  'käse': 'cheese',
+  'butter': 'butter',
+  'joghurt': 'yogurt',
+  'apfel': 'apple',
+  'äpfel': 'apples',
+  'banane': 'banana',
+  'bananen': 'bananas',
+  'kartoffel': 'potato',
+  'kartoffeln': 'potatoes',
+  'reis': 'rice',
+  'nudeln': 'pasta',
+  'hähnchen': 'chicken',
+  'hühnchen': 'chicken',
+  'huhn': 'chicken',
+  'rindfleisch': 'beef',
+  'schweinefleisch': 'pork',
+  'fisch': 'fish',
+  'lachs': 'salmon',
+  'thunfisch': 'tuna',
+  'tomate': 'tomato',
+  'tomaten': 'tomatoes',
+  'gurke': 'cucumber',
+  'salat': 'salad',
+  'spinat': 'spinach',
+  'brokkoli': 'broccoli',
+  'karotte': 'carrot',
+  'karotten': 'carrots',
+  'möhre': 'carrot',
+  'möhren': 'carrots',
+  'zwiebel': 'onion',
+  'zwiebeln': 'onions',
+  'knoblauch': 'garlic',
+  'paprika': 'bell pepper',
+  'avocado': 'avocado',
+  'nuss': 'nut',
+  'nüsse': 'nuts',
+  'mandeln': 'almonds',
+  'walnüsse': 'walnuts',
+  'erdnüsse': 'peanuts',
+  'honig': 'honey',
+  'zucker': 'sugar',
+  'mehl': 'flour',
+  'haferflocken': 'oatmeal',
+  'müsli': 'muesli',
+  'toast': 'toast',
+  'schinken': 'ham',
+  'wurst': 'sausage',
+  'speck': 'bacon',
+  'quark': 'quark cheese',
+  'sahne': 'cream',
+  'olivenöl': 'olive oil',
+  'öl': 'oil',
+};
+
+// Translate German food terms to English for USDA search
+function translateToEnglish(query: string): string {
+  // Extract quantity (numbers) and food term
+  const match = query.match(/^(\d+\s*)?(.+)$/i);
+  if (!match) return query;
+  
+  const quantity = match[1]?.trim() || '';
+  let foodTerm = match[2].trim().toLowerCase();
+  
+  // Check if the food term exists in our translation map
+  if (germanToEnglish[foodTerm]) {
+    const translated = germanToEnglish[foodTerm];
+    console.log(`[TRANSLATE] "${foodTerm}" -> "${translated}"`);
+    return quantity ? `${quantity} ${translated}` : translated;
+  }
+  
+  // Try to find partial matches
+  for (const [german, english] of Object.entries(germanToEnglish)) {
+    if (foodTerm.includes(german)) {
+      const translated = foodTerm.replace(german, english);
+      console.log(`[TRANSLATE] "${foodTerm}" -> "${translated}" (partial match)`);
+      return quantity ? `${quantity} ${translated}` : translated;
+    }
+  }
+  
+  return query;
+}
+
 // USDA FoodData Central API integration
 async function searchUSDA(query: string): Promise<any | null> {
   const USDA_API_KEY = Deno.env.get('USDA_API_KEY');
@@ -28,10 +116,18 @@ async function searchUSDA(query: string): Promise<any | null> {
   }
 
   try {
-    console.log('[USDA] Searching for:', query);
+    // Translate German to English for better USDA results
+    const translatedQuery = translateToEnglish(query);
+    console.log('[USDA] Original query:', query, '-> Translated:', translatedQuery);
+    
+    // Extract just the food term without quantity for USDA search
+    const foodTermMatch = translatedQuery.match(/^\d+\s*(.+)$/i);
+    const searchTerm = foodTermMatch ? foodTermMatch[1].trim() : translatedQuery;
+    
+    console.log('[USDA] Searching for:', searchTerm);
     
     const response = await fetch(
-      `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query)}&pageSize=5&dataType=Survey (FNDDS),Foundation,SR Legacy`,
+      `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(searchTerm)}&pageSize=5&dataType=Survey (FNDDS),Foundation,SR Legacy`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -72,12 +168,24 @@ async function searchUSDA(query: string): Promise<any | null> {
 
       console.log('[USDA] Extracted nutrients:', nutrients);
       
+      // Extract quantity from original query for portion calculation
+      const quantityMatch = query.match(/^(\d+)\s*/);
+      const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
+      
+      // Adjust nutrients based on quantity (USDA returns per 100g, egg ~50g each)
+      const isEgg = searchTerm.toLowerCase().includes('egg');
+      const portionMultiplier = isEgg ? (quantity * 50) / 100 : quantity;
+      
       return {
         name: food.description,
-        ...nutrients,
-        portion: food.servingSize ? `${food.servingSize}${food.servingSizeUnit || 'g'}` : '100g',
+        protein: Math.round((nutrients.protein || 0) * portionMultiplier),
+        carbs: Math.round((nutrients.carbs || 0) * portionMultiplier),
+        fat: Math.round((nutrients.fat || 0) * portionMultiplier),
+        calories: Math.round((nutrients.calories || 0) * portionMultiplier),
+        portion: isEgg ? `${quantity} Ei(er) (ca. ${quantity * 50}g)` : (food.servingSize ? `${food.servingSize}${food.servingSizeUnit || 'g'}` : '100g'),
         source: 'USDA FoodData Central',
         fdcId: food.fdcId,
+        quantity,
       };
     }
 
