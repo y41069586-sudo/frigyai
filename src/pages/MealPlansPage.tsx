@@ -460,7 +460,7 @@ const MealPlansPage = () => {
               {!isPremium && (
                 <PremiumLockOverlay 
                   title="Stats & Makros"
-                  description="Upgrade auf Premium für detaillierte Statistiken und Makro-Tracking"
+                  description="Upgrade auf Premium um diese Funktion zu sehen"
                 />
               )}
               <div className={!isPremium ? "pointer-events-none" : ""}>
@@ -597,7 +597,7 @@ const MealPlansPage = () => {
               {!isPremium && (
                 <PremiumLockOverlay 
                   title="Einkaufsliste"
-                  description="Upgrade auf Premium für automatische Einkaufslisten"
+                  description="Upgrade auf Premium um diese Funktion zu sehen"
                 />
               )}
               <div className={!isPremium ? "pointer-events-none" : ""}>

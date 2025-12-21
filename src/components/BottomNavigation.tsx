@@ -24,14 +24,14 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
   
   // Items split: left side, center (elevated), right side
   const leftItems = [
-    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: true, requiresTracker: true },
+    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: false, requiresTracker: true },
     { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-primary", requiresPremium: true, requiresTracker: true },
   ];
   
   const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", requiresPremium: false, requiresTracker: false };
   
   const rightItems = [
-    { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: true, requiresTracker: true },
+    { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: false, requiresTracker: false },
     { id: "progress", label: t.navStats, icon: TrendingDown, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
   ];
 
