@@ -18,7 +18,7 @@ import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
-import { WeekProgressWidget } from "@/components/WeekProgressWidget";
+import { DailyOverviewWidget } from "@/components/DailyOverviewWidget";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -428,9 +428,13 @@ const Index = () => {
             <DashboardShoppingCard />
           </motion.div>
           
-          {/* Week Progress Widget */}
+          {/* Daily Overview Widget */}
           <div className="w-full mb-4">
-            <WeekProgressWidget targetCalories={targetCalories} />
+            <DailyOverviewWidget 
+              targetCalories={targetCalories} 
+              caloriesEaten={caloriesEaten}
+              waterGlasses={waterGlasses}
+            />
           </div>
           
           {/* Today's Meals Section */}
