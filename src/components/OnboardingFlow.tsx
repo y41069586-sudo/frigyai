@@ -344,27 +344,79 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="fixed inset-0 bg-background flex flex-col">
             {/* Main content - centered vertically */}
             <div className="flex-1 flex flex-col items-center justify-center px-6">
-              {/* Mascot */}
+              {/* Animated Fridge Popup */}
               <motion.div
-                initial={{ scale: 0, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ duration: 0.5, type: "spring", stiffness: 180 }}
+                initial={{ scale: 0, y: 100, rotateY: -90 }}
+                animate={{ scale: 1, y: 0, rotateY: 0 }}
+                transition={{ 
+                  duration: 0.8, 
+                  type: "spring", 
+                  stiffness: 120,
+                  damping: 12
+                }}
+                className="relative"
               >
-                <AnimatedFrigyMascot size={140} animate={false} />
+                {/* Fridge Door Animation */}
+                <motion.div
+                  initial={{ rotateY: 0 }}
+                  animate={{ rotateY: [-20, 0] }}
+                  transition={{ delay: 0.8, duration: 0.5 }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <AnimatedFrigyMascot size={160} animate={true} />
+                </motion.div>
+                
+                {/* Sparkle Effects */}
+                <motion.div
+                  className="absolute -top-2 -right-2"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.2, duration: 0.3 }}
+                >
+                  <Sparkles className="w-8 h-8 text-yellow-400" />
+                </motion.div>
+                <motion.div
+                  className="absolute -top-4 left-0"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.4, duration: 0.3 }}
+                >
+                  <Star className="w-5 h-5 text-primary fill-primary" />
+                </motion.div>
               </motion.div>
               
-              {/* Title & Subtitle */}
+              {/* Greeting with User's Name */}
               <motion.div
-                className="text-center mt-6"
-                initial={{ opacity: 0, y: 15 }}
+                className="text-center mt-8"
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
+                transition={{ delay: 1.0, duration: 0.5 }}
               >
+                <motion.div
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.2, duration: 0.3 }}
+                >
+                  <span className="text-xl">👋</span>
+                  <span className="text-primary font-semibold">
+                    {language === 'de' ? 'Hallo' : language === 'fr' ? 'Salut' : 'Hello'}, {userData.name || 'du'}!
+                  </span>
+                </motion.div>
+                
                 <h1 className="text-3xl font-bold text-foreground">
-                  {t.welcomeToFrigy}
+                  {language === 'de' 
+                    ? 'Ich bin Frigy!' 
+                    : language === 'fr' 
+                      ? 'Je suis Frigy!' 
+                      : "I'm Frigy!"}
                 </h1>
-                <p className="text-muted-foreground mt-2 text-base">
-                  {t.welcomeSubtitle}
+                <p className="text-muted-foreground mt-3 text-lg max-w-xs mx-auto">
+                  {language === 'de' 
+                    ? 'Bist du bereit, gemeinsam deine Ziele zu erreichen?' 
+                    : language === 'fr' 
+                      ? 'Es-tu prêt à atteindre tes objectifs ensemble?' 
+                      : 'Are you ready to reach your goals together?'}
                 </p>
               </motion.div>
               
@@ -373,18 +425,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="flex flex-wrap justify-center gap-2 mt-8 max-w-xs"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
+                transition={{ delay: 1.6, duration: 0.4 }}
               >
-              {[
-                  { icon: "📸", text: "Scannen" },
-                  { icon: "📊", text: "Tracken" },
-                  { icon: "🎯", text: "Ziele" },
+                {[
+                  { icon: "📸", text: language === 'de' ? "Scannen" : language === 'fr' ? "Scanner" : "Scan" },
+                  { icon: "📊", text: language === 'de' ? "Tracken" : language === 'fr' ? "Suivre" : "Track" },
+                  { icon: "🎯", text: language === 'de' ? "Ziele" : language === 'fr' ? "Objectifs" : "Goals" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.1, duration: 0.3 }}
+                    transition={{ delay: 1.7 + i * 0.1, duration: 0.3 }}
                     className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full border border-border"
                   >
                     <span className="text-lg">{item.icon}</span>
@@ -399,14 +451,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               className="px-6 pb-8 pt-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.4 }}
+              transition={{ delay: 2.0, duration: 0.4 }}
             >
               <Button 
                 onClick={goNext} 
                 className="w-full h-14 text-lg font-semibold rounded-2xl"
                 size="lg"
               >
-                {t.letsGo} <ChevronRight className="w-5 h-5 ml-1" />
+                {language === 'de' ? 'Ja, los geht\'s!' : language === 'fr' ? 'Oui, allons-y!' : 'Yes, let\'s go!'} <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
             </motion.div>
           </div>
