@@ -69,12 +69,13 @@ const AuthPage = () => {
       } else {
         const { error } = await signUp(email, password);
         if (!error) {
-          // After signup, redirect to plan selection if from onboarding
+          // After signup, redirect to email confirmation page
+          const params = new URLSearchParams();
+          params.set('email', email);
           if (isFromOnboarding) {
-            navigate('/plan-selection', { replace: true });
-          } else {
-            setIsLogin(true);
+            params.set('from', 'onboarding');
           }
+          navigate(`/email-confirmation?${params.toString()}`, { replace: true });
         }
       }
     } finally {
