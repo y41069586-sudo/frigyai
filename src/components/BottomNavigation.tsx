@@ -76,7 +76,6 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
         <motion.button
           key={item.id}
           onClick={(e) => handleNavClick(e, item)}
-          onTouchEnd={(e) => handleNavClick(e, item)}
           type="button"
           className="relative -mt-6 z-10"
           whileTap={{ scale: 0.95 }}
@@ -102,7 +101,6 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
       <button
         key={item.id}
         onClick={(e) => handleNavClick(e, item)}
-        onTouchEnd={(e) => handleNavClick(e, item)}
         type="button"
         className="flex-1 min-h-[56px] select-none"
       >
