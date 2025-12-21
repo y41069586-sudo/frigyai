@@ -9,7 +9,7 @@ import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
-import frigLogo from '@/assets/frig-logo.png';
+import frigyMascot from '@/assets/frigy-mascot.png';
 import { ShoppingList } from '@/components/ShoppingList';
 import { MacroTracker } from '@/components/MacroTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
@@ -407,7 +407,7 @@ const MealPlansPage = () => {
             </Button>
             <NavLink to="/">
               <div className="flex items-center gap-2">
-                <img src={frigLogo} alt="FrigBuddy" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
+                <img src={frigyMascot} alt="FrigBuddy" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
                 <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">FrigBuddy</h1>
               </div>
             </NavLink>
