@@ -10,10 +10,9 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Crown, Gift, Loader2, Shield, Check } from 'lucide-react';
 import frigLogo from '@/assets/frig-logo.png';
 
-// Add your admin emails here
+// Admin emails
 const ADMIN_EMAILS = [
-  "admin@frigbuddy.com",
-  // Add your actual email here
+  "yousef0087mohamed@gmail.com",
 ];
 
 const AdminPage = () => {

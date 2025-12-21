@@ -11,10 +11,9 @@ const logStep = (step: string, details?: any) => {
   console.log(`[GRANT-PREMIUM] ${step}${detailsStr}`);
 };
 
-// Admin emails that can grant premium (add your email here)
+// Admin emails that can grant premium
 const ADMIN_EMAILS = [
-  "admin@frigbuddy.com",
-  // Add your actual admin email here
+  "yousef0087mohamed@gmail.com",
 ];
 
 serve(async (req) => {
