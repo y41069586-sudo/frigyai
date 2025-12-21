@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { BarChart3, ChevronRight } from "lucide-react";
 
 interface DayProgress {
   date: string;
@@ -110,7 +110,6 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
           const dayName = Object.keys(DAYS_MAP).find(d => DAYS_MAP[d] === dayOfWeek);
           const dayPlan = mealPlan.find(d => d.day === dayName);
           if (dayPlan?.meals) {
-            // Show planned calories as a lighter indicator
             days[index].calories = dayPlan.meals.reduce((sum, m) => sum + (m.calories || 0), 0);
           }
         }
@@ -147,6 +146,7 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
   }, [user, targetCalories]);
 
   const hasAnyData = weekData.some(d => d.calories > 0 || d.hasMealPlan);
+  const maxCalories = Math.max(...weekData.map(d => d.calories), targetCalories);
 
   return (
     <motion.div
@@ -156,29 +156,35 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
       transition={{ delay: 0.5, duration: 0.4 }}
     >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-bold text-foreground">Diese Woche</h2>
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary" />
+          <h2 className="text-base font-bold text-foreground">Diese Woche</h2>
+        </div>
         <button 
-          className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+          className="text-xs font-medium text-primary hover:underline flex items-center gap-0.5"
           onClick={() => navigate('/meal-plans?tab=meals')}
         >
-          Wochenplan <ChevronRight className="w-4 h-4" />
+          Details <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
       
       <div 
-        className="p-4 bg-card rounded-2xl border border-border/30 cursor-pointer hover:border-primary/30 transition-colors"
+        className="p-4 bg-card/50 backdrop-blur-sm rounded-2xl border border-border/20 cursor-pointer hover:border-primary/30 transition-all"
         onClick={() => navigate('/meal-plans?tab=tracker')}
       >
         {!hasAnyData ? (
-          <div className="text-center py-4">
-            <p className="text-muted-foreground text-sm mb-2">Noch keine Daten diese Woche</p>
+          <div className="text-center py-6">
+            <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-3">
+              <BarChart3 className="w-6 h-6 text-muted-foreground/50" />
+            </div>
+            <p className="text-muted-foreground text-sm mb-1">Noch keine Daten</p>
             <p className="text-primary text-sm font-medium">Tracke deine Mahlzeiten →</p>
           </div>
         ) : (
-          <div className="flex justify-between gap-1">
+          <div className="flex items-end justify-between gap-2 h-24">
             {weekData.map((day, index) => {
-              const progress = Math.min(100, (day.calories / day.target) * 100);
-              const isComplete = progress >= 80;
+              const heightPercent = maxCalories > 0 ? (day.calories / maxCalories) * 100 : 0;
+              const isComplete = day.calories >= day.target * 0.8;
               
               return (
                 <motion.div
@@ -186,45 +192,33 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
                   className="flex flex-col items-center flex-1"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index, duration: 0.3 }}
+                  transition={{ delay: 0.08 * index, duration: 0.3 }}
                 >
-                  <span className={`text-[10px] font-medium mb-2 ${day.isToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {day.dayName}
-                  </span>
-                  
-                  {/* Progress bar */}
-                  <div className="relative w-full h-16 bg-muted/20 rounded-lg overflow-hidden">
+                  {/* Bar */}
+                  <div className="relative w-full h-16 flex items-end justify-center mb-2">
                     <motion.div
-                      className={`absolute bottom-0 left-0 right-0 rounded-lg ${
+                      className={`w-full max-w-[28px] rounded-lg ${
                         day.isToday 
-                          ? 'bg-gradient-to-t from-primary to-primary/60' 
+                          ? 'bg-gradient-to-t from-primary to-primary/60 shadow-[0_0_12px_hsla(160,100%,50%,0.3)]' 
                           : isComplete 
-                            ? 'bg-gradient-to-t from-emerald-500 to-emerald-400' 
-                            : day.hasMealPlan && day.calories > 0
-                              ? 'bg-gradient-to-t from-primary/40 to-primary/20'
-                              : 'bg-gradient-to-t from-muted-foreground/30 to-muted-foreground/10'
+                            ? 'bg-gradient-to-t from-emerald-500/80 to-emerald-400/60' 
+                            : day.calories > 0
+                              ? 'bg-gradient-to-t from-primary/30 to-primary/15'
+                              : 'bg-muted/20'
                       }`}
                       initial={{ height: 0 }}
-                      animate={{ height: `${Math.max(5, progress)}%` }}
-                      transition={{ duration: 0.5, delay: 0.1 * index + 0.3, ease: "easeOut" }}
+                      animate={{ height: `${Math.max(8, heightPercent)}%` }}
+                      transition={{ duration: 0.5, delay: 0.08 * index + 0.2, ease: "easeOut" }}
                     />
-                    
-                    {/* Checkmark for complete days */}
-                    {isComplete && !day.isToday && (
-                      <motion.div
-                        className="absolute inset-0 flex items-center justify-center"
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.5 + 0.1 * index, duration: 0.3 }}
-                      >
-                        <span className="text-white text-xs">✓</span>
-                      </motion.div>
-                    )}
                   </div>
                   
-                  {/* Calories */}
-                  <span className={`text-[9px] mt-1.5 font-medium ${day.isToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {day.calories > 0 ? day.calories : '-'}
+                  {/* Day label */}
+                  <span className={`text-[10px] font-medium ${
+                    day.isToday 
+                      ? 'text-primary font-semibold' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {day.dayName}
                   </span>
                 </motion.div>
               );

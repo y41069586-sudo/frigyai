@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, ChevronRight, Sparkles } from 'lucide-react';
+import { Calendar, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Meal {
@@ -52,58 +52,58 @@ export const DashboardMealPlanCard = () => {
   return (
     <motion.div
       onClick={handleClick}
-      className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 cursor-pointer hover:shadow-md transition-all"
-      whileHover={{ scale: 1.02 }}
+      className="relative overflow-hidden p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent rounded-2xl border border-emerald-500/20 cursor-pointer group"
+      whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
     >
-      <div className="flex items-center justify-between mb-2">
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-          <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+      {/* Decorative gradient blob */}
+      <div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-colors" />
+      
+      <div className="relative">
+        <div className="flex items-center justify-between mb-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <ArrowRight className="w-4 h-4 text-emerald-500/50 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
         </div>
-        <button className="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
-          {hasMealPlan ? 'Öffnen' : 'Erstellen'}
-        </button>
-      </div>
-      
-      <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">Wochenplan</p>
-      
-      {hasMealPlan ? (
-        <>
-          <p className="text-lg font-bold text-foreground mb-2">
-            {totalCalories} <span className="text-sm font-normal text-muted-foreground">kcal heute</span>
-          </p>
-          
-          {/* Week dots */}
-          <div className="flex justify-between gap-1">
-            {DAYS_SHORT.map((day, index) => {
-              const isToday = index === getCurrentDayIndex();
-              const hasMeals = mealPlan[index]?.meals?.length > 0;
-              
-              return (
-                <div key={day} className="flex flex-col items-center gap-1">
-                  <span className={`text-[9px] font-medium ${isToday ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                    {day}
-                  </span>
-                  <div 
-                    className={`w-2 h-2 rounded-full ${
+        
+        <p className="text-sm font-semibold text-foreground mb-0.5">Wochenplan</p>
+        
+        {hasMealPlan ? (
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              {totalCalories > 0 ? `${totalCalories} kcal heute` : 'Plan erstellt'}
+            </p>
+            
+            {/* Week indicator dots */}
+            <div className="flex gap-1.5">
+              {DAYS_SHORT.map((day, index) => {
+                const isToday = index === getCurrentDayIndex();
+                const hasMeals = mealPlan[index]?.meals?.length > 0;
+                
+                return (
+                  <div
+                    key={day}
+                    className={`w-2 h-2 rounded-full transition-all ${
                       isToday 
-                        ? 'bg-emerald-500 ring-2 ring-emerald-500/30' 
+                        ? 'bg-emerald-500 ring-2 ring-emerald-500/30 ring-offset-1 ring-offset-background' 
                         : hasMeals 
-                          ? 'bg-emerald-400/50' 
-                          : 'bg-muted/40'
+                          ? 'bg-emerald-500/40' 
+                          : 'bg-muted/30'
                     }`}
                   />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-1.5 mt-1">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+            <p className="text-xs text-muted-foreground">Jetzt erstellen</p>
           </div>
-        </>
-      ) : (
-        <div className="flex items-center gap-2 mt-1">
-          <Sparkles className="w-4 h-4 text-emerald-500" />
-          <p className="text-sm text-muted-foreground">Tippe zum Erstellen</p>
-        </div>
-      )}
+        )}
+      </div>
     </motion.div>
   );
 };

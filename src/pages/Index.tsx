@@ -269,44 +269,54 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Mesh gradient background */}
+      <div className="fixed inset-0 mesh-gradient opacity-50 pointer-events-none" />
+      
       {/* Main Content */}
-      <main className="flex-1 flex flex-col px-5 pb-32 pt-32 safe-top">
+      <main className="relative flex-1 flex flex-col px-4 pb-32 pt-6 safe-top">
         <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
           
-          {/* Header Section - Clean & Minimal */}
+          {/* Header Section - Modern & Minimal */}
           <motion.div
-            className="w-full mb-6 mt-8"
+            className="w-full mb-5"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.4 }}
           >
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  Hallo, {displayName || 'Willkommen'}! 👋
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  {currentStreak > 0 && (
+                    <motion.div 
+                      className="flex items-center gap-1 px-2 py-0.5 bg-primary/15 rounded-full"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.3, type: "spring" }}
+                    >
+                      <Zap className="w-3 h-3 text-primary fill-primary" />
+                      <span className="text-[10px] font-bold text-primary">{currentStreak} Tage</span>
+                    </motion.div>
+                  )}
+                </div>
+                <h1 className="text-xl font-bold text-foreground">
+                  Hallo{displayName ? `, ${displayName}` : ''}! 👋
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Bleib dran, du bist auf Kurs.
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Bleib dran, du schaffst das.
                 </p>
               </div>
               
-              <div className="flex items-center gap-2">
-                {/* Streak Badge */}
-                {currentStreak > 0 && (
-                  <div className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 rounded-full">
-                    <Zap className="w-3 h-3 text-primary fill-primary" />
-                    <span className="text-xs font-medium text-primary">{currentStreak}</span>
-                  </div>
-                )}
-                
+              <div className="flex items-center gap-1.5">
                 {/* Weight Progress Dialog */}
                 <Dialog>
                   <DialogTrigger asChild>
-                    <button 
-                      className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                    <motion.button 
+                      className="h-9 w-9 rounded-xl bg-card border border-border/30 flex items-center justify-center hover:border-primary/30 transition-colors shadow-sm"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                    </button>
+                      <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                    </motion.button>
                   </DialogTrigger>
                   <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
@@ -317,25 +327,27 @@ const Index = () => {
                 </Dialog>
                 
                 {/* Profile Settings */}
-                <button 
+                <motion.button 
                   onClick={() => navigate('/profile')}
-                  className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                  className="h-9 w-9 rounded-xl bg-card border border-border/30 flex items-center justify-center hover:border-primary/30 transition-colors shadow-sm"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <Settings className="w-5 h-5 text-primary" />
-                </button>
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                </motion.button>
               </div>
             </div>
           </motion.div>
           
-          {/* Main Calorie Card */}
+          {/* Main Calorie Card - Glass effect */}
           <motion.div
             className="w-full mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
           >
             <div 
-              className="p-5 bg-card rounded-3xl border border-border/30 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              className="p-5 glass-card rounded-3xl shadow-sm cursor-pointer hover:shadow-md transition-all"
               onClick={() => navigate('/meal-plans?tab=tracker')}
             >
               <DashboardMacroRing
@@ -351,17 +363,14 @@ const Index = () => {
             </div>
           </motion.div>
           
-          {/* Meal Plan & Shopping List Cards */}
+          {/* Quick Action Cards - 2 Column Grid */}
           <motion.div
             className="w-full grid grid-cols-2 gap-3 mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
           >
-            {/* Meal Plan Card */}
             <DashboardMealPlanCard />
-            
-            {/* Shopping List Card */}
             <DashboardShoppingCard />
           </motion.div>
           
@@ -375,92 +384,111 @@ const Index = () => {
             className="w-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-foreground">Mahlzeiten heute</h2>
+              <div className="flex items-center gap-2">
+                <Utensils className="w-5 h-5 text-primary" />
+                <h2 className="text-base font-bold text-foreground">Heute</h2>
+              </div>
               <button 
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-xs font-medium text-primary hover:underline"
                 onClick={() => navigate('/meal-plans?tab=tracker')}
               >
-                Alles sehen
+                Alle Mahlzeiten
               </button>
             </div>
             
             {todayMeals.length === 0 ? (
-              <div 
-                className="p-4 bg-card rounded-2xl border border-border/30 text-center cursor-pointer hover:border-primary/30 transition-colors"
+              <motion.div 
+                className="p-5 bg-card/50 backdrop-blur-sm rounded-2xl border border-dashed border-border/50 text-center cursor-pointer hover:border-primary/40 transition-all group"
                 onClick={() => navigate('/meal-plans?tab=tracker')}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
-                <Utensils className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                <p className="text-muted-foreground text-sm">Noch keine Mahlzeiten eingetragen</p>
-                <p className="text-primary text-sm font-medium mt-1">+ Mahlzeit hinzufügen</p>
-              </div>
+                <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/10 transition-colors">
+                  <Plus className="w-6 h-6 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                </div>
+                <p className="text-muted-foreground text-sm">Keine Mahlzeiten eingetragen</p>
+                <p className="text-primary text-sm font-semibold mt-1">+ Jetzt hinzufügen</p>
+              </motion.div>
             ) : (
               <div className="space-y-2">
                 {todayMeals.slice(0, 3).map((meal, i) => (
-                  <div key={i} className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-border/30">
-                    <div className="w-12 h-12 bg-muted/50 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">🍽️</span>
+                  <motion.div 
+                    key={i} 
+                    className="flex items-center gap-3 p-3.5 bg-card/50 backdrop-blur-sm rounded-2xl border border-border/20"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 * i }}
+                  >
+                    <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <span className="text-xl">🍽️</span>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{meal.name}</p>
-                      <p className="text-xs text-muted-foreground">{meal.time} Uhr</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{meal.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{meal.time} Uhr</p>
                     </div>
-                    <span className="font-semibold text-foreground">{meal.calories} kcal</span>
-                  </div>
+                    <span className="font-bold text-foreground text-sm">{meal.calories} <span className="text-xs font-normal text-muted-foreground">kcal</span></span>
+                  </motion.div>
                 ))}
               </div>
             )}
           </motion.div>
           
-          {/* Scan CTA */}
+          {/* Scan CTA - Modern floating style */}
           <motion.div
-            className="w-full mt-4"
+            className="w-full mt-5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
           >
-            <Button 
+            <motion.button 
               onClick={() => navigate("/scan")}
-              className="w-full h-14 text-lg font-semibold rounded-2xl gap-3 shadow-lg"
-              size="lg"
+              className="w-full h-14 bg-gradient-to-r from-primary to-emerald-400 text-primary-foreground text-base font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg hover:shadow-xl transition-shadow"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              style={{ boxShadow: '0 8px 24px -8px hsla(160, 100%, 50%, 0.4)' }}
             >
               <Camera className="w-5 h-5" />
               {t.scanFridge}
-            </Button>
+            </motion.button>
             
             {/* Scan limit for free users */}
             {user && !subscriptionStatus?.subscribed && (
-              <p className="text-center text-xs text-muted-foreground mt-2">
-                <span className={scansRemaining > 0 ? "text-primary" : "text-destructive"}>
+              <p className="text-center text-[10px] text-muted-foreground mt-2">
+                <span className={scansRemaining > 0 ? "text-primary font-medium" : "text-destructive"}>
                   {scansRemaining}/2 {t.scansRemaining}
                 </span>
               </p>
             )}
           </motion.div>
         
-          {/* Premium Upsell - Compact */}
+          {/* Premium Upsell - Subtle gradient card */}
           {!subscriptionStatus?.subscribed && (
             <motion.div
               className="w-full mt-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
             >
-              <div 
+              <motion.div 
                 onClick={() => user ? navigate('/premium') : navigate('/auth?from=premium')}
-                className="p-4 bg-primary/10 rounded-2xl border border-primary/30 cursor-pointer hover:bg-primary/15 transition-colors"
+                className="p-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-primary/10 rounded-2xl border border-amber-500/20 cursor-pointer group"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
                 <div className="flex items-center gap-3">
-                  <Crown className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{t.unlockPremium}</p>
-                    <p className="text-xs text-muted-foreground">{t.premiumFeatures}</p>
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
+                    <Crown className="h-5 w-5 text-white" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-foreground">{t.unlockPremium}</p>
+                    <p className="text-[10px] text-muted-foreground">{t.premiumFeatures}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           )}
           
@@ -470,10 +498,10 @@ const Index = () => {
               className="w-full mt-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
             >
               <NavLink to="/auth">
-                <Button variant="outline" className="w-full h-12 rounded-2xl">
+                <Button variant="outline" className="w-full h-12 rounded-2xl border-border/50 hover:border-primary/50">
                   {t.startNow}
                 </Button>
               </NavLink>
