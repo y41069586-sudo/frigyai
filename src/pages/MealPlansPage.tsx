@@ -60,6 +60,80 @@ interface DayPlan {
   meals: Meal[];
 }
 
+// Demo meal plan to show when no plan is generated yet
+const DEMO_MEAL_PLAN: DayPlan[] = [
+  {
+    day: "Montag",
+    meals: [
+      { type: "Frühstück", name: "Haferflocken mit Beeren", calories: 350, protein: 12, carbs: 55, fat: 8, prepTime: 10, ingredients: [{ name: "Haferflocken", amount: "60g", price: 0.30 }, { name: "Beeren", amount: "100g", price: 1.50 }, { name: "Milch", amount: "200ml", price: 0.40 }], instructions: ["Haferflocken mit Milch kochen", "Mit Beeren toppen"] },
+      { type: "Snack", name: "Griechischer Joghurt", calories: 150, protein: 15, carbs: 8, fat: 6, prepTime: 2, ingredients: [{ name: "Griechischer Joghurt", amount: "150g", price: 1.20 }], instructions: ["Joghurt in eine Schüssel geben"] },
+      { type: "Mittagessen", name: "Hähnchen-Salat", calories: 450, protein: 35, carbs: 20, fat: 25, prepTime: 20, ingredients: [{ name: "Hähnchenbrust", amount: "150g", price: 2.50 }, { name: "Salat-Mix", amount: "100g", price: 1.00 }, { name: "Olivenöl", amount: "2 EL", price: 0.30 }], instructions: ["Hähnchen braten", "Mit Salat servieren"] },
+      { type: "Snack", name: "Apfel mit Mandeln", calories: 180, protein: 5, carbs: 22, fat: 9, prepTime: 2, ingredients: [{ name: "Apfel", amount: "1 Stück", price: 0.50 }, { name: "Mandeln", amount: "20g", price: 0.80 }], instructions: ["Apfel waschen und mit Mandeln genießen"] },
+      { type: "Abendessen", name: "Lachs mit Gemüse", calories: 500, protein: 38, carbs: 25, fat: 28, prepTime: 30, ingredients: [{ name: "Lachsfilet", amount: "150g", price: 4.00 }, { name: "Brokkoli", amount: "150g", price: 1.00 }, { name: "Reis", amount: "80g", price: 0.20 }], instructions: ["Lachs im Ofen backen", "Gemüse dünsten", "Mit Reis servieren"] }
+    ]
+  },
+  {
+    day: "Dienstag",
+    meals: [
+      { type: "Frühstück", name: "Rührei mit Toast", calories: 380, protein: 20, carbs: 30, fat: 20, prepTime: 15, ingredients: [{ name: "Eier", amount: "3 Stück", price: 0.90 }, { name: "Vollkorntoast", amount: "2 Scheiben", price: 0.40 }], instructions: ["Eier verrühren und braten", "Mit Toast servieren"] },
+      { type: "Snack", name: "Banane", calories: 100, protein: 1, carbs: 25, fat: 0, prepTime: 1, ingredients: [{ name: "Banane", amount: "1 Stück", price: 0.30 }], instructions: ["Banane schälen und genießen"] },
+      { type: "Mittagessen", name: "Thunfisch-Wrap", calories: 420, protein: 30, carbs: 40, fat: 15, prepTime: 10, ingredients: [{ name: "Thunfisch", amount: "100g", price: 1.80 }, { name: "Tortilla", amount: "1 Stück", price: 0.50 }, { name: "Salat", amount: "50g", price: 0.50 }], instructions: ["Thunfisch abtropfen", "In Tortilla wickeln mit Salat"] },
+      { type: "Snack", name: "Proteinriegel", calories: 200, protein: 20, carbs: 18, fat: 8, prepTime: 0, ingredients: [{ name: "Proteinriegel", amount: "1 Stück", price: 2.00 }], instructions: ["Auspacken und genießen"] },
+      { type: "Abendessen", name: "Pasta mit Pesto", calories: 520, protein: 18, carbs: 65, fat: 22, prepTime: 20, ingredients: [{ name: "Pasta", amount: "100g", price: 0.40 }, { name: "Pesto", amount: "2 EL", price: 1.00 }, { name: "Parmesan", amount: "20g", price: 0.80 }], instructions: ["Pasta kochen", "Mit Pesto und Parmesan mischen"] }
+    ]
+  },
+  {
+    day: "Mittwoch",
+    meals: [
+      { type: "Frühstück", name: "Smoothie Bowl", calories: 320, protein: 10, carbs: 50, fat: 10, prepTime: 10, ingredients: [{ name: "Gefrorene Beeren", amount: "150g", price: 1.50 }, { name: "Banane", amount: "1 Stück", price: 0.30 }, { name: "Granola", amount: "30g", price: 0.60 }], instructions: ["Beeren und Banane mixen", "Mit Granola toppen"] },
+      { type: "Snack", name: "Hüttenkäse", calories: 120, protein: 14, carbs: 4, fat: 5, prepTime: 2, ingredients: [{ name: "Hüttenkäse", amount: "150g", price: 1.00 }], instructions: ["In Schüssel geben"] },
+      { type: "Mittagessen", name: "Buddha Bowl", calories: 480, protein: 22, carbs: 55, fat: 20, prepTime: 25, ingredients: [{ name: "Quinoa", amount: "80g", price: 0.80 }, { name: "Kichererbsen", amount: "100g", price: 0.60 }, { name: "Avocado", amount: "0.5 Stück", price: 1.00 }], instructions: ["Quinoa kochen", "Alles in einer Bowl anrichten"] },
+      { type: "Snack", name: "Karotten mit Hummus", calories: 150, protein: 5, carbs: 18, fat: 7, prepTime: 5, ingredients: [{ name: "Karotten", amount: "100g", price: 0.30 }, { name: "Hummus", amount: "50g", price: 0.80 }], instructions: ["Karotten schneiden", "Mit Hummus dippen"] },
+      { type: "Abendessen", name: "Rindfleisch-Pfanne", calories: 550, protein: 40, carbs: 30, fat: 30, prepTime: 25, ingredients: [{ name: "Rindfleisch", amount: "150g", price: 4.50 }, { name: "Paprika", amount: "100g", price: 0.80 }, { name: "Zwiebeln", amount: "50g", price: 0.20 }], instructions: ["Rindfleisch anbraten", "Gemüse hinzufügen und braten"] }
+    ]
+  },
+  {
+    day: "Donnerstag",
+    meals: [
+      { type: "Frühstück", name: "Vollkornbrot mit Avocado", calories: 340, protein: 10, carbs: 35, fat: 18, prepTime: 8, ingredients: [{ name: "Vollkornbrot", amount: "2 Scheiben", price: 0.50 }, { name: "Avocado", amount: "0.5 Stück", price: 1.00 }], instructions: ["Avocado zerdrücken", "Auf Brot verteilen"] },
+      { type: "Snack", name: "Nüsse-Mix", calories: 180, protein: 6, carbs: 8, fat: 16, prepTime: 0, ingredients: [{ name: "Gemischte Nüsse", amount: "30g", price: 1.00 }], instructions: ["Genießen"] },
+      { type: "Mittagessen", name: "Gemüsesuppe mit Brot", calories: 380, protein: 12, carbs: 50, fat: 14, prepTime: 30, ingredients: [{ name: "Gemüse-Mix", amount: "300g", price: 2.00 }, { name: "Brühe", amount: "500ml", price: 0.50 }, { name: "Baguette", amount: "50g", price: 0.40 }], instructions: ["Gemüse in Brühe kochen", "Mit Brot servieren"] },
+      { type: "Snack", name: "Quark mit Honig", calories: 140, protein: 12, carbs: 15, fat: 3, prepTime: 3, ingredients: [{ name: "Magerquark", amount: "150g", price: 0.80 }, { name: "Honig", amount: "1 TL", price: 0.20 }], instructions: ["Quark mit Honig mischen"] },
+      { type: "Abendessen", name: "Putengeschnetzeltes", calories: 480, protein: 42, carbs: 35, fat: 18, prepTime: 25, ingredients: [{ name: "Putenbrust", amount: "150g", price: 2.50 }, { name: "Champignons", amount: "100g", price: 1.00 }, { name: "Sahne", amount: "50ml", price: 0.30 }], instructions: ["Pute anbraten", "Champignons und Sahne hinzufügen"] }
+    ]
+  },
+  {
+    day: "Freitag",
+    meals: [
+      { type: "Frühstück", name: "Müsli mit Milch", calories: 360, protein: 12, carbs: 55, fat: 10, prepTime: 5, ingredients: [{ name: "Müsli", amount: "60g", price: 0.60 }, { name: "Milch", amount: "200ml", price: 0.40 }], instructions: ["Müsli mit Milch übergießen"] },
+      { type: "Snack", name: "Erdbeeren", calories: 50, protein: 1, carbs: 12, fat: 0, prepTime: 2, ingredients: [{ name: "Erdbeeren", amount: "150g", price: 2.00 }], instructions: ["Waschen und genießen"] },
+      { type: "Mittagessen", name: "Falafel-Teller", calories: 520, protein: 18, carbs: 60, fat: 24, prepTime: 15, ingredients: [{ name: "Falafel", amount: "6 Stück", price: 2.50 }, { name: "Hummus", amount: "80g", price: 1.20 }, { name: "Pita", amount: "1 Stück", price: 0.50 }], instructions: ["Falafel aufwärmen", "Mit Hummus und Pita servieren"] },
+      { type: "Snack", name: "Reiswaffeln", calories: 80, protein: 2, carbs: 16, fat: 1, prepTime: 0, ingredients: [{ name: "Reiswaffeln", amount: "3 Stück", price: 0.30 }], instructions: ["Genießen"] },
+      { type: "Abendessen", name: "Pizza Margherita", calories: 600, protein: 24, carbs: 70, fat: 25, prepTime: 20, ingredients: [{ name: "Pizzateig", amount: "1 Stück", price: 1.50 }, { name: "Tomatensauce", amount: "100g", price: 0.60 }, { name: "Mozzarella", amount: "100g", price: 1.50 }], instructions: ["Teig ausrollen", "Mit Sauce und Käse belegen", "Im Ofen backen"] }
+    ]
+  },
+  {
+    day: "Samstag",
+    meals: [
+      { type: "Frühstück", name: "Pancakes", calories: 420, protein: 12, carbs: 55, fat: 18, prepTime: 20, ingredients: [{ name: "Mehl", amount: "100g", price: 0.20 }, { name: "Eier", amount: "2 Stück", price: 0.60 }, { name: "Ahornsirup", amount: "2 EL", price: 0.80 }], instructions: ["Teig anrühren", "Pancakes braten", "Mit Sirup servieren"] },
+      { type: "Snack", name: "Orangensaft", calories: 110, protein: 2, carbs: 25, fat: 0, prepTime: 3, ingredients: [{ name: "Orangen", amount: "3 Stück", price: 1.50 }], instructions: ["Orangen auspressen"] },
+      { type: "Mittagessen", name: "Burger mit Süßkartoffeln", calories: 650, protein: 35, carbs: 60, fat: 30, prepTime: 30, ingredients: [{ name: "Rindfleisch-Patty", amount: "150g", price: 3.00 }, { name: "Burger-Brötchen", amount: "1 Stück", price: 0.60 }, { name: "Süßkartoffeln", amount: "150g", price: 1.00 }], instructions: ["Patty braten", "Süßkartoffeln backen", "Burger zusammenbauen"] },
+      { type: "Snack", name: "Schokolade (dunkel)", calories: 150, protein: 2, carbs: 14, fat: 10, prepTime: 0, ingredients: [{ name: "Dunkle Schokolade", amount: "30g", price: 0.80 }], instructions: ["Genießen"] },
+      { type: "Abendessen", name: "Sushi-Platte", calories: 480, protein: 22, carbs: 65, fat: 12, prepTime: 10, ingredients: [{ name: "Sushi-Set", amount: "1 Portion", price: 12.00 }], instructions: ["Sushi servieren mit Sojasauce"] }
+    ]
+  },
+  {
+    day: "Sonntag",
+    meals: [
+      { type: "Frühstück", name: "Eggs Benedict", calories: 480, protein: 22, carbs: 30, fat: 32, prepTime: 25, ingredients: [{ name: "Eier", amount: "2 Stück", price: 0.60 }, { name: "English Muffin", amount: "1 Stück", price: 0.80 }, { name: "Schinken", amount: "50g", price: 1.00 }], instructions: ["Eier pochieren", "Mit Schinken auf Muffin servieren"] },
+      { type: "Snack", name: "Smoothie", calories: 180, protein: 5, carbs: 35, fat: 3, prepTime: 5, ingredients: [{ name: "Banane", amount: "1 Stück", price: 0.30 }, { name: "Beeren", amount: "100g", price: 1.50 }, { name: "Milch", amount: "150ml", price: 0.30 }], instructions: ["Alles mixen"] },
+      { type: "Mittagessen", name: "Braten mit Knödeln", calories: 680, protein: 40, carbs: 55, fat: 35, prepTime: 60, ingredients: [{ name: "Schweinebraten", amount: "200g", price: 4.00 }, { name: "Knödel", amount: "3 Stück", price: 1.50 }, { name: "Soße", amount: "100ml", price: 0.50 }], instructions: ["Braten im Ofen garen", "Knödel kochen", "Mit Soße servieren"] },
+      { type: "Snack", name: "Obstsalat", calories: 120, protein: 2, carbs: 28, fat: 1, prepTime: 10, ingredients: [{ name: "Gemischtes Obst", amount: "200g", price: 2.00 }], instructions: ["Obst schneiden und mischen"] },
+      { type: "Abendessen", name: "Leichte Gemüsepfanne", calories: 320, protein: 12, carbs: 40, fat: 12, prepTime: 20, ingredients: [{ name: "Zucchini", amount: "100g", price: 0.80 }, { name: "Paprika", amount: "100g", price: 0.80 }, { name: "Tofu", amount: "100g", price: 1.50 }], instructions: ["Gemüse und Tofu anbraten", "Mit Sojasauce würzen"] }
+    ]
+  }
+];
+
 const MealPlansPage = () => {
   const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
@@ -172,7 +246,7 @@ const MealPlansPage = () => {
     // Remove premium redirect - allow free users to access with limitations
   }, [user, loading, navigate, searchParams]);
 
-  // Load saved meal plan on mount
+  // Load saved meal plan on mount or show demo
   useEffect(() => {
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
@@ -180,7 +254,12 @@ const MealPlansPage = () => {
         setMealPlan(JSON.parse(saved));
       } catch (e) {
         console.error('Failed to load saved meal plan');
+        // Show demo plan on error
+        setMealPlan(DEMO_MEAL_PLAN);
       }
+    } else {
+      // No saved plan - show demo plan
+      setMealPlan(DEMO_MEAL_PLAN);
     }
   }, []);
 
@@ -233,7 +312,7 @@ const MealPlansPage = () => {
         description: "Upgrade auf Premium für unbegrenzte Generierungen",
         variant: 'destructive',
       });
-      navigate('/premium');
+      navigate('/premium-pricing');
       return;
     }
 
@@ -352,7 +431,8 @@ const MealPlansPage = () => {
   };
 
   const handleTabChange = (value: string) => {
-    if ((value === 'meals' || value === 'shopping' || value === 'water' || value === 'progress') && !trackerSetup) {
+    // Only shopping and progress require tracker setup
+    if ((value === 'shopping' || value === 'progress') && !trackerSetup) {
       toast({ 
         title: t.setupTracker, 
         description: t.setupTrackerFirst, 
@@ -365,7 +445,8 @@ const MealPlansPage = () => {
 
   const canAccessPremiumFeatures = trackerSetup;
 
-  const hasGeneratedPlan = mealPlan.length > 0;
+  // Check if user has generated their own plan (not demo)
+  const hasGeneratedPlan = localStorage.getItem('weeklyMealPlan') !== null;
 
   // Show loading screen while activating subscription
   if (isActivatingSubscription) {
