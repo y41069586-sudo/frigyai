@@ -28,6 +28,7 @@ export type OnboardingStep =
   | "planning-setup"
   | "analyzing"
   | "macro-preview"
+  | "save-progress"
   | "premium-hint"
   | "community"
   | "celebration"
@@ -142,7 +143,8 @@ export const onboardingSteps: OnboardingStep[] = [
   "permissions",
   "notification-prefs",
   
-  // Phase 8: Finish
+  // Phase 8: Save & Finish
+  "save-progress",
   "premium-hint",
   "community",
   "celebration",
