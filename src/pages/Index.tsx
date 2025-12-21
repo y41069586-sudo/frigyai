@@ -17,6 +17,7 @@ import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
+import { DashboardMacroRing } from "@/components/DashboardMacroRing";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -181,6 +182,15 @@ const Index = () => {
 
   const scansRemaining = 2 - dailyScansUsed;
   const targetCalories = trackerSettings?.dailyCalories || 2000;
+  const targetProtein = trackerSettings?.dailyProtein || 150;
+  const targetCarbs = trackerSettings?.dailyCarbs || 200;
+  const targetFat = trackerSettings?.dailyFat || 65;
+  
+  // Calculate eaten macros from meals (simplified calculation)
+  const proteinEaten = Math.round(caloriesEaten * 0.25 / 4); // ~25% from protein
+  const carbsEaten = Math.round(caloriesEaten * 0.45 / 4); // ~45% from carbs
+  const fatEaten = Math.round(caloriesEaten * 0.30 / 9); // ~30% from fat
+  
   const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
   const calorieProgress = Math.min(100, (caloriesEaten / targetCalories) * 100);
   const waterLiters = (waterGlasses * 0.25).toFixed(1);
@@ -275,53 +285,16 @@ const Index = () => {
               className="p-5 bg-card rounded-3xl border border-border/30 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => navigate('/meal-plans?tab=tracker')}
             >
-              <div className="flex items-center gap-6">
-                {/* Calorie Ring */}
-                <div className="relative" style={{ width: 100, height: 100 }}>
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      fill="none"
-                      stroke="hsl(var(--muted))"
-                      strokeWidth="10"
-                      opacity={0.2}
-                    />
-                    <motion.circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={`${calorieProgress * 2.64} 264`}
-                      initial={{ strokeDasharray: "0 264" }}
-                      animate={{ strokeDasharray: `${calorieProgress * 2.64} 264` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xl font-bold text-foreground">{remainingCalories}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">KCAL ÜBRIG</span>
-                  </div>
-                </div>
-                
-                {/* Stats */}
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">🍽️</span>
-                    <span className="text-muted-foreground text-sm">Gegessen</span>
-                    <span className="ml-auto font-bold text-lg">{caloriesEaten.toLocaleString('de-DE')}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">📈</span>
-                    <span className="text-muted-foreground text-sm">Ziel</span>
-                    <span className="ml-auto font-bold text-lg">{targetCalories.toLocaleString('de-DE')}</span>
-                  </div>
-                </div>
-              </div>
+              <DashboardMacroRing
+                caloriesEaten={caloriesEaten}
+                targetCalories={targetCalories}
+                proteinEaten={proteinEaten}
+                targetProtein={targetProtein}
+                carbsEaten={carbsEaten}
+                targetCarbs={targetCarbs}
+                fatEaten={fatEaten}
+                targetFat={targetFat}
+              />
             </div>
           </motion.div>
           
