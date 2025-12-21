@@ -18,6 +18,7 @@ import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
+import { WeekProgressWidget } from "@/components/WeekProgressWidget";
 import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
@@ -38,6 +39,9 @@ const Index = () => {
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number }[]>([]);
   const [caloriesEaten, setCaloriesEaten] = useState(0);
+  const [proteinEaten, setProteinEaten] = useState(0);
+  const [carbsEaten, setCarbsEaten] = useState(0);
+  const [fatEaten, setFatEaten] = useState(0);
   
   useEffect(() => {
     const localName = localStorage.getItem('userName');
@@ -76,6 +80,27 @@ const Index = () => {
       if (data) setWaterGlasses(data.glasses);
     };
     fetchWater();
+  }, [user]);
+  
+  // Fetch today's macros from daily_macros table
+  useEffect(() => {
+    const fetchDailyMacros = async () => {
+      if (!user) return;
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('daily_macros')
+        .select('calories, protein, carbs, fat')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
+      if (data) {
+        setCaloriesEaten(data.calories);
+        setProteinEaten(data.protein);
+        setCarbsEaten(data.carbs);
+        setFatEaten(data.fat);
+      }
+    };
+    fetchDailyMacros();
   }, [user]);
   
   // Handle reset onboarding from URL parameter (for testing on iPad etc.)
@@ -186,10 +211,6 @@ const Index = () => {
   const targetCarbs = trackerSettings?.dailyCarbs || 200;
   const targetFat = trackerSettings?.dailyFat || 65;
   
-  // Calculate eaten macros from meals (simplified calculation)
-  const proteinEaten = Math.round(caloriesEaten * 0.25 / 4); // ~25% from protein
-  const carbsEaten = Math.round(caloriesEaten * 0.45 / 4); // ~45% from carbs
-  const fatEaten = Math.round(caloriesEaten * 0.30 / 9); // ~30% from fat
   
   const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
   const calorieProgress = Math.min(100, (caloriesEaten / targetCalories) * 100);
@@ -311,6 +332,11 @@ const Index = () => {
             {/* Shopping List Card */}
             <DashboardShoppingCard />
           </motion.div>
+          
+          {/* Week Progress Widget */}
+          <div className="w-full mb-4">
+            <WeekProgressWidget targetCalories={targetCalories} />
+          </div>
           
           {/* Today's Meals Section */}
           <motion.div
