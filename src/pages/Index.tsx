@@ -82,7 +82,7 @@ const Index = () => {
     fetchWater();
   }, [user]);
   
-  // Fetch today's macros from daily_macros table
+  // Fetch today's macros from daily_macros table with realtime subscription
   useEffect(() => {
     const fetchDailyMacros = async () => {
       if (!user) return;
@@ -100,7 +100,39 @@ const Index = () => {
         setFatEaten(data.fat);
       }
     };
+    
     fetchDailyMacros();
+    
+    // Subscribe to realtime updates
+    if (user) {
+      const today = new Date().toISOString().split('T')[0];
+      const channel = supabase
+        .channel('dashboard-macros')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'daily_macros',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('[DASHBOARD] Macro update received:', payload);
+            if (payload.new && (payload.new as any).date === today) {
+              const newData = payload.new as any;
+              setCaloriesEaten(newData.calories || 0);
+              setProteinEaten(newData.protein || 0);
+              setCarbsEaten(newData.carbs || 0);
+              setFatEaten(newData.fat || 0);
+            }
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
   
   // Handle reset onboarding from URL parameter (for testing on iPad etc.)

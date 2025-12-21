@@ -120,6 +120,30 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
     };
 
     fetchWeekData();
+
+    // Subscribe to realtime updates for daily_macros
+    if (user) {
+      const channel = supabase
+        .channel('week-progress-macros')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'daily_macros',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            console.log('[WEEK-PROGRESS] Macro update received, refreshing...');
+            fetchWeekData();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user, targetCalories]);
 
   const hasAnyData = weekData.some(d => d.calories > 0 || d.hasMealPlan);
