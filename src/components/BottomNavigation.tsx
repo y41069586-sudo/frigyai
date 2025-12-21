@@ -35,10 +35,7 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
     { id: "progress", label: t.navStats, icon: TrendingDown, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
   ];
 
-  const handleNavClick = (e: React.MouseEvent | React.TouchEvent, item: typeof leftItems[0]) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleNavClick = (item: typeof leftItems[0]) => {
     const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
     
     // For premium-locked features (shopping, progress), still navigate to show blurred preview
@@ -72,9 +69,9 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
       return (
         <motion.button
           key={item.id}
-          onClick={(e) => handleNavClick(e, item)}
+          onPointerDown={() => handleNavClick(item)}
           type="button"
-          className="relative -mt-6 z-10"
+          className="relative -mt-6 z-10 touch-none select-none"
           whileTap={{ scale: 0.95 }}
         >
           <div className={cn(
@@ -97,9 +94,9 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
     return (
       <button
         key={item.id}
-        onClick={(e) => handleNavClick(e, item)}
+        onPointerDown={() => handleNavClick(item)}
         type="button"
-        className="flex-1 min-h-[56px] select-none"
+        className="flex-1 min-h-[56px] select-none touch-none active:scale-95 transition-transform"
       >
         <div className={cn(
           "flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl transition-colors relative h-full",
