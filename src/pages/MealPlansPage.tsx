@@ -379,11 +379,22 @@ const MealPlansPage = () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('Error generating meal plan:', message);
-      toast({
-        title: t.error,
-        description: message ? `${t.couldNotGeneratePlan} (${message})` : t.couldNotGeneratePlan,
-        variant: 'destructive',
-      });
+      
+      // Handle plan limit exceeded specifically
+      if (message.includes('plan_limit_exceeded') || message.includes('wöchentlichen Wochenplan')) {
+        toast({
+          title: "Limit erreicht",
+          description: "Du hast dein wöchentliches Limit erreicht. Upgrade auf Premium für unbegrenzte Pläne!",
+          variant: 'destructive',
+        });
+        navigate('/premium-pricing');
+      } else {
+        toast({
+          title: t.error,
+          description: message ? `${t.couldNotGeneratePlan} (${message})` : t.couldNotGeneratePlan,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
