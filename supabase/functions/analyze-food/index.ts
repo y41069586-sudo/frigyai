@@ -25,43 +25,42 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate user
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Get auth header for user verification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[ANALYZE-FOOD] No auth header');
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    // Create admin client for user verification
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Extract JWT token from header
+    // Extract token and verify user
     const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Use getUser with the token directly for edge function auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      console.error('Auth error:', authError);
+      console.error('[ANALYZE-FOOD] Auth error:', authError?.message || 'No user found');
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('User authenticated:', user.id);
+    console.log('[ANALYZE-FOOD] User authenticated:', user.id);
 
     const body = await req.json();
     
     // Validate input
     const parseResult = requestSchema.safeParse(body);
     if (!parseResult.success) {
-      console.error("Validation error:", parseResult.error);
+      console.error("[ANALYZE-FOOD] Validation error:", parseResult.error);
       return new Response(
         JSON.stringify({ error: "Invalid input", details: parseResult.error.flatten() }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -70,13 +69,17 @@ serve(async (req) => {
     
     const { food, imageBase64 } = parseResult.data;
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY is not configured');
-      throw new Error('OPENAI_API_KEY is not configured');
+    // Use Lovable AI Gateway - no API key needed!
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.error('[ANALYZE-FOOD] LOVABLE_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: 'AI service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('[ANALYZE-FOOD] Using OpenAI Vision for:', food || 'image');
+    console.log('[ANALYZE-FOOD] Analyzing:', food || 'image');
 
     const systemPrompt = `Du bist ein zertifizierter Ernährungsberater mit Expertise in Lebensmittelanalyse und Makronährstoffberechnung.
 
@@ -252,32 +255,44 @@ Antworte NUR mit validem JSON in diesem Format:
       });
     }
 
-    console.log('[ANALYZE-FOOD] Calling OpenAI Vision API...');
+    console.log('[ANALYZE-FOOD] Calling Lovable AI Gateway...');
  
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages,
-        max_tokens: 1000,
       }),
     });
 
-    const requestId = response.headers.get('x-request-id');
-    console.log('[ANALYZE-FOOD] OpenAI response:', { requestId, status: response.status });
+    console.log('[ANALYZE-FOOD] AI response status:', response.status);
  
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[ANALYZE-FOOD] OpenAI API error:', response.status, { requestId, errorText });
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('[ANALYZE-FOOD] AI Gateway error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI-Service nicht verfügbar.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
  
     const data = await response.json();
-    console.log('[ANALYZE-FOOD] OpenAI usage:', { requestId, usage: data?.usage });
+    console.log('[ANALYZE-FOOD] AI usage:', data?.usage);
 
     const content = data.choices?.[0]?.message?.content || '';
     
