@@ -47,7 +47,7 @@ const AppContent = () => {
   return (
     <>
       <OfflineIndicator />
-      <Suspense fallback={<PageLoader />}>
+      <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/landing" element={<LandingPage />} />
