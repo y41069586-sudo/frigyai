@@ -20,7 +20,7 @@ export const PremiumLockOverlay = ({
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-md bg-background/60 rounded-xl ${className}`}
+      className={`absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-[2px] bg-background/40 rounded-xl ${className}`}
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}

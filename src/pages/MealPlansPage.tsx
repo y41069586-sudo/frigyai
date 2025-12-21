@@ -595,7 +595,7 @@ const MealPlansPage = () => {
                       className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
                       size="sm"
                       onClick={generateMealPlan}
-                      disabled={isGenerating || !trackerSetup || !canGenerateMealPlan}
+                      disabled={isGenerating || !canGenerateMealPlan}
                     >
                       {isGenerating ? (() => {
                         const expectedSeconds = 40;

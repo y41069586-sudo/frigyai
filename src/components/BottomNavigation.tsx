@@ -39,13 +39,10 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
     e.preventDefault();
     e.stopPropagation();
     
-    const isLockedPremium = item.requiresPremium && !isPremium;
     const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
     
-    if (isLockedPremium) {
-      navigate('/premium-pricing');
-      return;
-    }
+    // For premium-locked features (shopping, progress), still navigate to show blurred preview
+    // Don't redirect to paywall - let the page show the overlay
     
     if (isLockedTracker) {
       toast({
