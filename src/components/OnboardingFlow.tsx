@@ -24,8 +24,9 @@ import {
 import { calculateMacros, calculateWeeksToGoal, saveOnboardingData } from "./onboarding/utils";
 import { 
   StepCard, ProgressDots, AnimatedCounter, SelectionCard,
-  AnimatedBicycle, AnimatedCar, AnimatedRocket
+  AnimatedBicycle, AnimatedCar, AnimatedRocket, OnboardingProgressBar
 } from "./onboarding/components";
+import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
 import { WheelPicker } from "./WheelPicker";
 
@@ -131,6 +132,7 @@ const AnalysisProgress = () => {
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { language, setLanguage, t } = useLanguage();
+  const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
@@ -140,8 +142,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [selectedPlanOption, setSelectedPlanOption] = useState<'free' | 'premium' | null>(null);
   const [introPhase, setIntroPhase] = useState<'rising' | 'greeting' | 'settling' | 'done'>('rising');
   
-
   const currentIndex = onboardingSteps.indexOf(currentStep);
+  const totalSteps = onboardingSteps.length;
 
   // Step-specific effects
   useEffect(() => {
@@ -182,6 +184,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   }, [currentStep]);
 
   const goNext = () => {
+    lightTap(); // Haptic feedback on navigation
     const nextIndex = currentIndex + 1;
     if (nextIndex < onboardingSteps.length) {
       setCurrentStep(onboardingSteps[nextIndex]);
@@ -191,11 +194,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const goBack = () => {
+    lightTap(); // Haptic feedback on navigation
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
 
   const handleComplete = () => {
+    successFeedback(); // Success haptic on completion
     saveOnboardingData(userData);
     onComplete();
   };
@@ -203,6 +208,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const handleSkip = () => {
     localStorage.setItem('onboardingComplete', 'true');
     onComplete();
+  };
+
+  const handleSelection = (callback: () => void) => {
+    selectionTap(); // Haptic feedback on selection
+    callback();
   };
 
   const canProceed = (): boolean => {
@@ -2303,10 +2313,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
-      {/* Mascot peek removed */}
+      {/* Progress Bar at Top */}
+      {currentStep !== 'language-select' && currentStep !== 'analyzing' && (
+        <OnboardingProgressBar 
+          currentStep={currentIndex + 1} 
+          totalSteps={totalSteps} 
+        />
+      )}
 
       {/* Header */}
-      <div className={`flex items-center justify-between p-4 ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
+      <div className={`flex items-center justify-between p-4 ${currentStep === 'language-select' ? 'mt-0' : 'mt-12'} ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
         {currentIndex > 0 ? (
           <motion.button
             onClick={goBack}

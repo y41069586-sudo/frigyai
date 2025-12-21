@@ -1,14 +1,21 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 
-// For Capacitor native notifications
+// For Capacitor notifications
 let PushNotifications: any = null;
+let LocalNotifications: any = null;
 
-// Dynamic import for Capacitor
-const loadCapacitorPush = async () => {
+// Dynamic imports for Capacitor
+const loadCapacitorPlugins = async () => {
   try {
-    const module = await import("@capacitor/push-notifications");
-    PushNotifications = module.PushNotifications;
+    const [pushModule, localModule] = await Promise.all([
+      import("@capacitor/push-notifications").catch(() => null),
+      import("@capacitor/local-notifications").catch(() => null),
+    ]);
+    
+    if (pushModule) PushNotifications = pushModule.PushNotifications;
+    if (localModule) LocalNotifications = localModule.LocalNotifications;
+    
     return true;
   } catch {
     return false;
@@ -22,28 +29,22 @@ export const usePushNotifications = () => {
 
   useEffect(() => {
     const init = async () => {
-      // Check if running in Capacitor
-      const capacitorAvailable = await loadCapacitorPush();
-      setIsCapacitor(capacitorAvailable && PushNotifications);
+      const capacitorAvailable = await loadCapacitorPlugins();
+      setIsCapacitor(capacitorAvailable && (PushNotifications || LocalNotifications));
 
       if (capacitorAvailable && PushNotifications) {
-        // Check current permission status
         const status = await PushNotifications.checkPermissions();
         setPermissionStatus(status.receive);
 
-        // Listen for registration
         PushNotifications.addListener("registration", (token: any) => {
           console.log("Push registration token:", token.value);
           setToken(token.value);
-          // TODO: Send token to server for later notifications
         });
 
-        // Listen for registration errors
         PushNotifications.addListener("registrationError", (error: any) => {
           console.error("Push registration error:", error);
         });
 
-        // Listen for push notifications
         PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
           console.log("Push notification received:", notification);
           toast({
@@ -52,12 +53,13 @@ export const usePushNotifications = () => {
           });
         });
 
-        // Listen for notification actions
         PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
           console.log("Push notification action:", notification);
         });
+      } else if (capacitorAvailable && LocalNotifications) {
+        const status = await LocalNotifications.checkPermissions();
+        setPermissionStatus(status.display);
       } else {
-        // Fallback to browser notifications
         if ("Notification" in window) {
           setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
         }
@@ -69,7 +71,6 @@ export const usePushNotifications = () => {
 
   const requestPermission = useCallback(async () => {
     if (isCapacitor && PushNotifications) {
-      // Request Capacitor push permission
       const result = await PushNotifications.requestPermissions();
       setPermissionStatus(result.receive);
 
@@ -81,8 +82,18 @@ export const usePushNotifications = () => {
         });
       }
       return result.receive === "granted";
+    } else if (isCapacitor && LocalNotifications) {
+      const result = await LocalNotifications.requestPermissions();
+      setPermissionStatus(result.display);
+      
+      if (result.display === "granted") {
+        toast({
+          title: "🔔 Benachrichtigungen aktiviert!",
+          description: "Du erhältst jetzt lokale Erinnerungen.",
+        });
+      }
+      return result.display === "granted";
     } else if ("Notification" in window) {
-      // Request browser notification permission
       const result = await Notification.requestPermission();
       setPermissionStatus(result as "granted" | "denied" | "prompt");
       
@@ -103,43 +114,129 @@ export const usePushNotifications = () => {
       return;
     }
 
-    if (isCapacitor && PushNotifications) {
-      // For local notifications on Capacitor, you'd use LocalNotifications plugin
-      // This is for push notifications from server
-      console.log("Would send Capacitor notification:", { title, body });
+    if (isCapacitor && LocalNotifications) {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Date.now(),
+            title,
+            body,
+            schedule: { at: new Date(Date.now() + 100) },
+            sound: "default",
+            extra: data,
+          },
+        ],
+      });
     } else if ("Notification" in window) {
-      // Browser notification
       new Notification(title, {
         body,
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
+        icon: "/pwa-192x192.png",
+        badge: "/pwa-192x192.png",
         data,
       });
     }
   }, [isCapacitor, permissionStatus]);
 
-  const scheduleReminder = useCallback(async (type: "water" | "meal" | "weight", time: Date) => {
-    const titles: Record<string, string> = {
-      water: "💧 Zeit für Wasser!",
-      meal: "🍽️ Zeit fürs Essen!",
-      weight: "⚖️ Wiegen nicht vergessen!",
+  const scheduleReminder = useCallback(async (
+    type: "water" | "meal" | "weight", 
+    time: Date,
+    recurring: boolean = false
+  ) => {
+    const config: Record<string, { title: string; body: string; icon: string }> = {
+      water: {
+        title: "💧 Zeit für Wasser!",
+        body: "Bleib hydriert - trink ein Glas Wasser!",
+        icon: "💧",
+      },
+      meal: {
+        title: "🍽️ Zeit fürs Essen!",
+        body: "Vergiss nicht, dein Essen zu loggen.",
+        icon: "🍽️",
+      },
+      weight: {
+        title: "⚖️ Wiegen nicht vergessen!",
+        body: "Trage dein heutiges Gewicht ein.",
+        icon: "⚖️",
+      },
     };
 
-    const bodies: Record<string, string> = {
-      water: "Bleib hydriert - trink ein Glas Wasser!",
-      meal: "Vergiss nicht, dein Essen zu loggen.",
-      weight: "Trage dein heutiges Gewicht ein.",
-    };
+    const { title, body } = config[type];
 
-    // For now, just use setTimeout for simple scheduling
-    // In production, you'd use a proper scheduling system
-    const delay = time.getTime() - Date.now();
-    if (delay > 0) {
-      setTimeout(() => {
-        sendLocalNotification(titles[type], bodies[type]);
-      }, delay);
+    if (isCapacitor && LocalNotifications) {
+      const notificationId = type === "water" ? 1 : type === "meal" ? 2 : 3;
+      
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notificationId,
+            title,
+            body,
+            schedule: { 
+              at: time,
+              repeats: recurring,
+              every: recurring ? "day" : undefined,
+            },
+            sound: "default",
+            smallIcon: "ic_stat_icon_config_sample",
+            largeIcon: "ic_launcher",
+          },
+        ],
+      });
+      
+      console.log(`Scheduled ${type} reminder for ${time.toISOString()}`);
+      return true;
+    } else {
+      // Browser fallback with setTimeout
+      const delay = time.getTime() - Date.now();
+      if (delay > 0) {
+        setTimeout(() => {
+          sendLocalNotification(title, body, { type });
+        }, delay);
+        return true;
+      }
     }
-  }, [sendLocalNotification]);
+    return false;
+  }, [isCapacitor, sendLocalNotification]);
+
+  const cancelReminder = useCallback(async (type: "water" | "meal" | "weight") => {
+    if (isCapacitor && LocalNotifications) {
+      const notificationId = type === "water" ? 1 : type === "meal" ? 2 : 3;
+      await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
+      console.log(`Cancelled ${type} reminder`);
+    }
+  }, [isCapacitor]);
+
+  const scheduleWaterReminders = useCallback(async (intervalHours: number = 2) => {
+    if (permissionStatus !== "granted") return false;
+
+    // Schedule reminders every X hours from 8am to 10pm
+    const now = new Date();
+    const reminders: Date[] = [];
+    
+    for (let hour = 8; hour <= 22; hour += intervalHours) {
+      const reminderTime = new Date(now);
+      reminderTime.setHours(hour, 0, 0, 0);
+      
+      if (reminderTime > now) {
+        reminders.push(reminderTime);
+      }
+    }
+
+    if (isCapacitor && LocalNotifications) {
+      const notifications = reminders.map((time, index) => ({
+        id: 100 + index,
+        title: "💧 Zeit für Wasser!",
+        body: "Bleib hydriert - trink ein Glas Wasser!",
+        schedule: { at: time },
+        sound: "default",
+      }));
+
+      await LocalNotifications.schedule({ notifications });
+      return true;
+    }
+    
+    return false;
+  }, [isCapacitor, permissionStatus]);
 
   return {
     isCapacitor,
@@ -148,5 +245,7 @@ export const usePushNotifications = () => {
     requestPermission,
     sendLocalNotification,
     scheduleReminder,
+    cancelReminder,
+    scheduleWaterReminders,
   };
 };
