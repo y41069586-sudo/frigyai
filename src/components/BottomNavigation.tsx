@@ -43,7 +43,7 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
     const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
     
     if (isLockedPremium) {
-      navigate('/premium');
+      navigate('/premium-pricing');
       return;
     }
     

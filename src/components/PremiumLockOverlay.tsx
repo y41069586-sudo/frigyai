@@ -11,7 +11,7 @@ interface PremiumLockOverlayProps {
 
 export const PremiumLockOverlay = ({ 
   title = "Premium Feature",
-  description = "Upgrade auf Premium um diese Funktion freizuschalten",
+  description = "Upgrade auf Premium um diese Funktion zu sehen",
   className = ""
 }: PremiumLockOverlayProps) => {
   const navigate = useNavigate();
@@ -38,11 +38,11 @@ export const PremiumLockOverlay = ({
         </p>
         
         <Button 
-          onClick={() => navigate('/premium')}
+          onClick={() => navigate('/premium-pricing')}
           className="gap-2"
         >
           <Crown className="w-4 h-4" />
-          Premium freischalten
+          Upgrade to Premium
         </Button>
       </motion.div>
     </motion.div>
