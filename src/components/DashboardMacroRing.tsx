@@ -38,25 +38,25 @@ export const DashboardMacroRing = ({
   const fatSegment = (fatCalories / targetCalories) * circumference;
 
   const macros = [
-    { label: "Protein", eaten: proteinEaten, target: targetProtein, color: "hsl(217, 91%, 60%)" },
-    { label: "Carbs", eaten: carbsEaten, target: targetCarbs, color: "hsl(25, 95%, 53%)" },
-    { label: "Fette", eaten: fatEaten, target: targetFat, color: "hsl(142, 71%, 45%)" },
+    { label: "P", eaten: proteinEaten, target: targetProtein, color: "hsl(217, 91%, 60%)", angle: -60 },
+    { label: "C", eaten: carbsEaten, target: targetCarbs, color: "hsl(25, 95%, 53%)", angle: 60 },
+    { label: "F", eaten: fatEaten, target: targetFat, color: "hsl(142, 71%, 45%)", angle: 180 },
   ];
 
   return (
     <div className="flex justify-center">
-      {/* Large Macro Ring with all data inside */}
-      <div className="relative" style={{ width: 220, height: 220 }}>
+      {/* Large Macro Ring */}
+      <div className="relative" style={{ width: 240, height: 240 }}>
         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-          {/* Background ring */}
+          {/* Gray background ring */}
           <circle
             cx="50"
             cy="50"
             r={radius}
             fill="none"
             stroke="hsl(var(--muted))"
-            strokeWidth="8"
-            opacity={0.2}
+            strokeWidth="12"
+            opacity={0.3}
           />
           
           {/* Protein segment (blue) */}
@@ -66,7 +66,8 @@ export const DashboardMacroRing = ({
             r={radius}
             fill="none"
             stroke="hsl(217, 91%, 60%)"
-            strokeWidth="8"
+            strokeWidth="12"
+            strokeLinecap="round"
             strokeDasharray={`${proteinSegment} ${circumference}`}
             strokeDashoffset={0}
             initial={{ strokeDasharray: `0 ${circumference}` }}
@@ -81,7 +82,8 @@ export const DashboardMacroRing = ({
             r={radius}
             fill="none"
             stroke="hsl(25, 95%, 53%)"
-            strokeWidth="8"
+            strokeWidth="12"
+            strokeLinecap="round"
             strokeDasharray={`${carbsSegment} ${circumference}`}
             strokeDashoffset={-proteinSegment}
             initial={{ strokeDasharray: `0 ${circumference}` }}
@@ -96,7 +98,8 @@ export const DashboardMacroRing = ({
             r={radius}
             fill="none"
             stroke="hsl(142, 71%, 45%)"
-            strokeWidth="8"
+            strokeWidth="12"
+            strokeLinecap="round"
             strokeDasharray={`${fatSegment} ${circumference}`}
             strokeDashoffset={-(proteinSegment + carbsSegment)}
             initial={{ strokeDasharray: `0 ${circumference}` }}
@@ -105,35 +108,53 @@ export const DashboardMacroRing = ({
           />
         </svg>
         
-        {/* All content inside the circle */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-          {/* Main calories */}
-          <motion.div 
-            className="text-center mb-2"
+        {/* Macro labels positioned around the ring */}
+        {macros.map((macro) => {
+          const angleRad = (macro.angle * Math.PI) / 180;
+          const labelRadius = 100; // Position on the ring edge
+          const x = 120 + labelRadius * Math.cos(angleRad);
+          const y = 120 + labelRadius * Math.sin(angleRad);
+          
+          return (
+            <div
+              key={macro.label}
+              className="absolute flex flex-col items-center"
+              style={{
+                left: x,
+                top: y,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md"
+                style={{ backgroundColor: macro.color }}
+              >
+                {macro.label}
+              </div>
+              <span className="text-[10px] text-foreground font-semibold mt-1">
+                {macro.eaten}g
+              </span>
+              <span className="text-[9px] text-muted-foreground">
+                /{macro.target}g
+              </span>
+            </div>
+          );
+        })}
+        
+        {/* Center content - just calories */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <motion.span 
+            className="text-3xl font-bold text-foreground"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <span className="text-3xl font-bold text-foreground">{caloriesEaten.toLocaleString('de-DE')}</span>
-            <span className="text-sm text-muted-foreground ml-1">kcal</span>
-          </motion.div>
-          
-          {/* Remaining */}
-          <div className="text-xs text-muted-foreground mb-3">
-            <span className="text-primary font-semibold">{remainingCalories.toLocaleString('de-DE')}</span> übrig
-          </div>
-          
-          {/* Macro breakdown */}
-          <div className="flex gap-3 text-[10px]">
-            {macros.map((macro) => (
-              <div key={macro.label} className="flex items-center gap-1">
-                <div 
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: macro.color }}
-                />
-                <span className="text-muted-foreground">{macro.eaten}/{macro.target}g</span>
-              </div>
-            ))}
+            {caloriesEaten.toLocaleString('de-DE')}
+          </motion.span>
+          <span className="text-xs text-muted-foreground">kcal gegessen</span>
+          <div className="mt-1">
+            <span className="text-sm font-semibold text-primary">{remainingCalories.toLocaleString('de-DE')}</span>
+            <span className="text-xs text-muted-foreground ml-1">übrig</span>
           </div>
         </div>
       </div>
