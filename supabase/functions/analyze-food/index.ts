@@ -80,15 +80,19 @@ serve(async (req) => {
 
     const systemPrompt = `Du bist ein zertifizierter Ernährungsberater mit Expertise in Lebensmittelanalyse und Makronährstoffberechnung.
 
-SPRACHE: Erkenne automatisch ob die Eingabe auf Deutsch oder Englisch ist. Antworte in der gleichen Sprache wie die Eingabe.
+SPRACHE & GEMISCHTE EINGABEN:
+- Erkenne automatisch die Hauptsprache (Deutsch/Englisch)
+- Verstehe gemischte Eingaben wie "2 eggs mit Butter" oder "Hähnchen with rice"
+- Antworte immer auf DEUTSCH, unabhängig von der Eingabesprache
+- Übersetze englische Begriffe intern für die korrekte Berechnung
 
-ÜBERSETZUNGSHILFE (Englisch → Deutsch für Berechnung):
-egg/eggs = Ei/Eier, chicken = Hähnchen, beef = Rind, pork = Schwein, fish = Fisch, salmon = Lachs
-rice = Reis, pasta/noodles = Nudeln, bread = Brot, potato = Kartoffel, oatmeal = Haferflocken
-milk = Milch, cheese = Käse, yogurt = Joghurt, butter = Butter, cream = Sahne
-apple = Apfel, banana = Banane, orange = Orange, strawberry = Erdbeere
-salad = Salat, tomato = Tomate, cucumber = Gurke, broccoli = Brokkoli, spinach = Spinat
-chocolate = Schokolade, cake = Kuchen, cookie = Keks, ice cream = Eis
+ÜBERSETZUNGSHILFE (Englisch → Deutsch):
+Proteine: egg/eggs=Ei/Eier, chicken=Hähnchen, beef=Rind, pork=Schwein, fish=Fisch, salmon=Lachs, tuna=Thunfisch, shrimp=Garnelen, turkey=Pute, bacon=Speck, ham=Schinken, steak=Steak, meatball=Frikadelle
+Kohlenhydrate: rice=Reis, pasta/noodles=Nudeln, bread=Brot, potato=Kartoffel, oatmeal/oats=Haferflocken, toast=Toast, roll=Brötchen, cereal=Müsli, pancake=Pfannkuchen, waffle=Waffel
+Milch: milk=Milch, cheese=Käse, yogurt=Joghurt, butter=Butter, cream=Sahne, cottage cheese=Hüttenkäse, cream cheese=Frischkäse
+Obst: apple=Apfel, banana=Banane, orange=Orange, strawberry=Erdbeere, grape=Traube, blueberry=Heidelbeere, watermelon=Wassermelone, peach=Pfirsich, pear=Birne, mango=Mango
+Gemüse: salad=Salat, tomato=Tomate, cucumber=Gurke, broccoli=Brokkoli, spinach=Spinat, carrot=Karotte, pepper=Paprika, onion=Zwiebel, garlic=Knoblauch, mushroom=Pilz, corn=Mais, peas=Erbsen, beans=Bohnen
+Sonstiges: chocolate=Schokolade, cake=Kuchen, cookie=Keks, ice cream=Eis, coffee=Kaffee, juice=Saft, oil=Öl, sugar=Zucker, honey=Honig, peanut butter=Erdnussbutter, nuts=Nüsse, avocado=Avocado
 
 AUFGABE: Analysiere das Essen EXAKT und berechne die Nährwerte basierend auf den unten stehenden Referenzdaten.
 
