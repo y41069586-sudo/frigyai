@@ -2211,18 +2211,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "premium-hint":
         const freeFeatures = [
+          "Wochenplan (1x generieren)",
+          "Wasser-Tracker",
           "2 Kühlschrank-Scans/Tag",
-          "Basis-Rezeptvorschläge",
-          "Kalorien-Anzeige"
+          "Basis-Rezeptvorschläge"
         ];
         
         const premiumFeaturesOnboarding = [
           "Unbegrenzte Scans",
-          "KI-Chatbot",
-          "Wöchentliche Meal Plans",
+          "Unbegrenzte Meal Plan Generierung",
           "Einkaufslisten",
-          "Makro-Tracking",
-          "Wasser-Tracker"
+          "Stats & Makro-Tracking",
+          "KI-Chatbot"
         ];
         
         const handlePlanContinue = () => {
