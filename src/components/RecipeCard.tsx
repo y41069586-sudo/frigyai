@@ -56,67 +56,64 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
       onClick={() => navigate(`/recipe/${recipe.id}`, { state: { recipe } })}
-      className="bg-card rounded-3xl overflow-hidden shadow-xl border border-border/50 hover:border-primary/50 transition-all cursor-pointer group"
+      className="bg-card rounded-2xl overflow-hidden border border-border/30 hover:border-primary/30 transition-all cursor-pointer active:scale-[0.99]"
+      whileTap={{ scale: 0.98 }}
     >
-      <div className="p-6">
+      <div className="p-4">
         {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-semibold flex-1 group-hover:text-neon transition-colors">
-            {recipe.title}
-          </h3>
+        <div className="flex justify-between items-start gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-foreground truncate">
+              {recipe.title}
+            </h3>
+            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Flame className="h-3 w-3 text-primary" />
+                {recipe.calories} kcal
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                {recipe.prepTime} min
+              </span>
+            </div>
+          </div>
           <Button
             size="icon"
             variant="ghost"
             onClick={toggleFavorite}
-            className={`shrink-0 ${isFavorite ? "text-red-500" : ""}`}
+            className={`h-8 w-8 shrink-0 ${isFavorite ? "text-red-500" : "text-muted-foreground/50"}`}
           >
-            <Heart className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
+            <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Flame className="h-4 w-4 text-primary" />
-            <span>{recipe.calories} kcal</span>
+        {/* Macros - Compact Pills */}
+        <div className="flex gap-2 mb-3">
+          <div className="px-2.5 py-1 bg-red-500/10 rounded-full">
+            <span className="text-[10px] font-medium text-red-600">{recipe.protein}g P</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4 text-primary" />
-            <span>{recipe.prepTime} min</span>
+          <div className="px-2.5 py-1 bg-amber-500/10 rounded-full">
+            <span className="text-[10px] font-medium text-amber-600">{recipe.carbs}g K</span>
           </div>
-        </div>
-
-        {/* Macros */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
-            <div className="text-xs text-muted-foreground mb-1">{t.proteinLabel}</div>
-            <div className="font-semibold">{recipe.protein}g</div>
-          </div>
-          <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
-            <div className="text-xs text-muted-foreground mb-1">{t.carbsLabel}</div>
-            <div className="font-semibold">{recipe.carbs}g</div>
-          </div>
-          <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
-            <div className="text-xs text-muted-foreground mb-1">{t.fatLabel}</div>
-            <div className="font-semibold">{recipe.fat}g</div>
+          <div className="px-2.5 py-1 bg-blue-500/10 rounded-full">
+            <span className="text-[10px] font-medium text-blue-600">{recipe.fat}g F</span>
           </div>
         </div>
 
         {/* Ingredients Preview */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {recipe.ingredients.slice(0, 3).map((ingredient, index) => (
             <span
               key={index}
-              className="text-xs bg-muted px-3 py-1 rounded-full"
+              className="text-[10px] bg-muted/50 px-2 py-0.5 rounded-md text-muted-foreground"
             >
               {ingredient}
             </span>
           ))}
           {recipe.ingredients.length > 3 && (
-            <span className="text-xs text-muted-foreground px-3 py-1">
-              +{recipe.ingredients.length - 3} {t.more}
+            <span className="text-[10px] text-muted-foreground/70 px-2 py-0.5">
+              +{recipe.ingredients.length - 3}
             </span>
           )}
         </div>

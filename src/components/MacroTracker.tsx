@@ -776,9 +776,33 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         </Button>
       </div>
 
-      {/* Add Food */}
-      <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <p className="font-semibold mb-3">{t.addFood}</p>
+      {/* Add Food - Improved UX */}
+      <Card className="p-4 bg-card border-border/30">
+        <p className="font-semibold text-sm mb-3">{t.addFood}</p>
+        
+        {/* Quick Actions */}
+        <div className="flex gap-2 mb-3">
+          <motion.button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isAnalyzing}
+            className="flex-1 flex items-center justify-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors"
+            whileTap={{ scale: 0.97 }}
+          >
+            <Camera className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium text-primary">Foto</span>
+          </motion.button>
+          <motion.button
+            onClick={() => setShowBarcodeScanner(true)}
+            disabled={isAnalyzing}
+            className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors"
+            whileTap={{ scale: 0.97 }}
+          >
+            <Barcode className="h-5 w-5 text-amber-600" />
+            <span className="text-sm font-medium text-amber-600">Barcode</span>
+          </motion.button>
+        </div>
+        
+        {/* Text Input */}
         <div className="flex gap-2">
           <Input
             placeholder={t.egTwoEggsWithToast}
@@ -786,31 +810,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             onChange={(e) => setFoodInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && foodInput && analyzeFood(foodInput)}
             disabled={isAnalyzing}
+            className="h-11"
           />
           <Button
             onClick={() => foodInput && analyzeFood(foodInput)}
             disabled={isAnalyzing || !foodInput}
-            className="shrink-0"
+            className="shrink-0 h-11 px-4"
           >
             {isAnalyzing ? <span className="animate-spin">⏳</span> : <Plus className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isAnalyzing}
-            className="shrink-0"
-            title={t.takePhoto}
-          >
-            <Camera className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowBarcodeScanner(true)}
-            disabled={isAnalyzing}
-            className="shrink-0"
-            title={t.scanBarcode}
-          >
-            <Barcode className="h-4 w-4" />
           </Button>
           <input
             ref={fileInputRef}
@@ -915,33 +922,54 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         )}
       </AnimatePresence>
 
-      {/* Food Entries */}
+      {/* Food Entries - Improved Design */}
       <div className="space-y-2">
+        {foodEntries.length > 0 && (
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-foreground">Heute gegessen</p>
+            <p className="text-xs text-muted-foreground">{foodEntries.length} Einträge</p>
+          </div>
+        )}
+        
         {foodEntries.map((entry, idx) => (
           <motion.div
             key={entry.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
+            transition={{ delay: idx * 0.03 }}
           >
             <Card 
-              className="p-3 bg-card/60 border-primary/10 cursor-pointer hover:bg-card/80 transition-colors"
+              className="p-3 bg-card border-border/20 cursor-pointer hover:border-primary/30 transition-all active:scale-[0.99]"
               onClick={() => editEntry(entry)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+              <div className="flex items-center gap-3">
+                {/* Food Icon */}
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg flex-shrink-0">
+                  🍽️
+                </div>
+                
+                {/* Info */}
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{entry.name}</span>
-                    <span className="text-xs text-muted-foreground">{entry.time}</span>
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium text-sm truncate">{entry.name}</span>
+                    <Pencil className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
                   </div>
-                  <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                    <span>{entry.calories} kcal</span>
-                    <span className="text-red-400">{entry.protein}g P</span>
-                    <span className="text-amber-400">{entry.carbs}g K</span>
-                    <span className="text-blue-400">{entry.fat}g F</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-muted-foreground">{entry.time}</span>
+                    <span className="text-[10px] text-muted-foreground">•</span>
+                    <span className="text-[10px] text-red-500/70">{entry.protein}g P</span>
+                    <span className="text-[10px] text-amber-500/70">{entry.carbs}g K</span>
+                    <span className="text-[10px] text-blue-500/70">{entry.fat}g F</span>
                   </div>
                 </div>
+                
+                {/* Calories */}
+                <div className="text-right flex-shrink-0">
+                  <span className="font-bold text-sm text-foreground">{entry.calories}</span>
+                  <span className="text-[10px] text-muted-foreground ml-0.5">kcal</span>
+                </div>
+                
+                {/* Delete */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -949,7 +977,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                     e.stopPropagation();
                     removeEntry(entry.id);
                   }}
-                  className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                  className="h-8 w-8 text-muted-foreground/50 hover:text-destructive flex-shrink-0"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -959,10 +987,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         ))}
 
         {foodEntries.length === 0 && (
-          <Card className="p-8 text-center bg-card/60 border-primary/10">
-            <Flame className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">{t.nothingEatenToday}</p>
-            <p className="text-sm text-muted-foreground mt-1">{t.addFirstFood}</p>
+          <Card className="p-8 text-center bg-card/50 border-dashed border-border/50">
+            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+              <Flame className="h-7 w-7 text-muted-foreground/50" />
+            </div>
+            <p className="text-sm text-muted-foreground">{t.nothingEatenToday}</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">{t.addFirstFood}</p>
           </Card>
         )}
       </div>
