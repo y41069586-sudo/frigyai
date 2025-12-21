@@ -89,7 +89,7 @@ export const DashboardMacroRing = ({
               fill="none"
               stroke="currentColor"
               strokeWidth="12"
-              className="text-muted/15"
+              className="text-muted-foreground/25"
             />
             {/* Progress circle */}
             <motion.circle
