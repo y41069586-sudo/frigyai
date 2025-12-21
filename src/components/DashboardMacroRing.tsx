@@ -32,12 +32,20 @@ const MiniRing = ({
 
   return (
     <motion.div 
-      className="flex flex-col items-center"
+      className="flex flex-col items-center cursor-pointer"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.92 }}
     >
-      <div className="relative w-[72px] h-[72px]">
+      <motion.div 
+        className="relative w-[72px] h-[72px]"
+        whileTap={{ 
+          rotate: [0, -5, 5, -5, 0],
+          transition: { duration: 0.4 }
+        }}
+      >
         <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
           <circle
             cx="32"
@@ -63,11 +71,14 @@ const MiniRing = ({
             style={{ filter: `drop-shadow(0 0 6px ${color}40)` }}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.div 
+          className="absolute inset-0 flex flex-col items-center justify-center"
+          whileTap={{ scale: 1.1 }}
+        >
           <span className="text-base font-bold text-foreground">{value}</span>
           <span className="text-[8px] text-muted-foreground uppercase">/{max}g</span>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
       <span className="text-[10px] font-medium text-muted-foreground mt-1 uppercase tracking-wide">{label}</span>
     </motion.div>
   );
