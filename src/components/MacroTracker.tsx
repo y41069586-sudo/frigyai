@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useGamification } from '@/hooks/useGamification';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { EditFoodEntryDialog } from './EditFoodEntryDialog';
@@ -52,6 +53,7 @@ interface MacroTrackerProps {
 
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
@@ -224,13 +226,52 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     onSetupComplete?.();
   };
 
-  const saveFoodEntries = (entries: FoodEntry[]) => {
+  // Sync macros to database
+  const syncMacrosToDatabase = useCallback(async (entries: FoodEntry[]) => {
+    if (!user) return;
+    
+    const totalCals = entries.reduce((sum, e) => sum + e.calories, 0);
+    const totalProt = entries.reduce((sum, e) => sum + e.protein, 0);
+    const totalCarb = entries.reduce((sum, e) => sum + e.carbs, 0);
+    const totalFats = entries.reduce((sum, e) => sum + e.fat, 0);
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+      const { error } = await supabase
+        .from('daily_macros')
+        .upsert({
+          user_id: user.id,
+          date: today,
+          calories: totalCals,
+          protein: totalProt,
+          carbs: totalCarb,
+          fat: totalFats,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,date',
+        });
+      
+      if (error) {
+        console.error('Error syncing macros:', error);
+      } else {
+        console.log('[MACRO-SYNC] Synced to DB:', { calories: totalCals, protein: totalProt });
+      }
+    } catch (e) {
+      console.error('Failed to sync macros:', e);
+    }
+  }, [user]);
+
+  const saveFoodEntries = useCallback((entries: FoodEntry[]) => {
     localStorage.setItem('todayFood', JSON.stringify({
       date: new Date().toDateString(),
       entries,
     }));
     setFoodEntries(entries);
-  };
+    
+    // Sync to database
+    syncMacrosToDatabase(entries);
+  }, [syncMacrosToDatabase]);
 
   const analyzeFood = async (food: string, imageBase64?: string) => {
     setIsAnalyzing(true);
