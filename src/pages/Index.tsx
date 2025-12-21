@@ -81,6 +81,47 @@ const Index = () => {
     };
     fetchWater();
   }, [user]);
+
+  // Load today's meals from localStorage
+  useEffect(() => {
+    const loadTodayMeals = () => {
+      const saved = localStorage.getItem('todayFood');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.date === new Date().toDateString() && data.entries) {
+            const meals = data.entries.map((entry: any) => ({
+              name: entry.name || 'Mahlzeit',
+              time: entry.time || new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+              calories: entry.calories || 0,
+            }));
+            setTodayMeals(meals);
+          }
+        } catch (e) {
+          console.error('Failed to parse todayFood');
+        }
+      }
+    };
+    
+    loadTodayMeals();
+    
+    // Listen for storage changes (when user adds food in tracker)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'todayFood') {
+        loadTodayMeals();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for same-tab updates
+    const interval = setInterval(loadTodayMeals, 2000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
   
   // Fetch today's macros from daily_macros table with realtime subscription
   useEffect(() => {

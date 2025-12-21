@@ -148,6 +148,11 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
   const hasAnyData = weekData.some(d => d.calories > 0 || d.hasMealPlan);
   const maxCalories = Math.max(...weekData.map(d => d.calories), targetCalories);
 
+  // Calculate weekly totals
+  const totalTrackedCalories = weekData.reduce((sum, d) => sum + d.calories, 0);
+  const daysWithData = weekData.filter(d => d.calories > 0).length;
+  const avgCalories = daysWithData > 0 ? Math.round(totalTrackedCalories / daysWithData) : 0;
+
   return (
     <motion.div
       className="w-full overflow-hidden"
@@ -158,13 +163,13 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-primary flex-shrink-0" />
-          <h2 className="text-sm font-bold text-foreground truncate">Diese Woche</h2>
+          <h2 className="text-sm font-bold text-foreground truncate">Wochenübersicht</h2>
         </div>
         <button 
           className="text-xs font-medium text-primary hover:underline flex items-center gap-0.5 flex-shrink-0"
-          onClick={() => navigate('/meal-plans?tab=meals')}
+          onClick={() => navigate('/meal-plans?tab=tracker')}
         >
-          Details <ChevronRight className="w-3 h-3" />
+          Tracker <ChevronRight className="w-3 h-3" />
         </button>
       </div>
       
@@ -177,52 +182,99 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
             <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-3">
               <BarChart3 className="w-6 h-6 text-muted-foreground/50" />
             </div>
-            <p className="text-muted-foreground text-sm mb-1">Noch keine Daten</p>
+            <p className="text-muted-foreground text-sm mb-1">Noch keine Daten diese Woche</p>
             <p className="text-primary text-sm font-medium">Tracke deine Mahlzeiten →</p>
           </div>
         ) : (
-          <div className="flex items-end justify-between gap-1 h-20">
-            {weekData.map((day, index) => {
-              const heightPercent = maxCalories > 0 ? (day.calories / maxCalories) * 100 : 0;
-              const isComplete = day.calories >= day.target * 0.8;
-              
-              return (
-                <motion.div
-                  key={day.date}
-                  className="flex flex-col items-center flex-1"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 * index, duration: 0.3 }}
-                >
-                  {/* Bar */}
-                  <div className="relative w-full h-16 flex items-end justify-center mb-2">
-                    <motion.div
-                      className={`w-full max-w-[28px] rounded-lg ${
-                        day.isToday 
-                          ? 'bg-gradient-to-t from-primary to-primary/60 shadow-[0_0_12px_hsla(160,100%,50%,0.3)]' 
-                          : isComplete 
-                            ? 'bg-gradient-to-t from-emerald-500/80 to-emerald-400/60' 
-                            : day.calories > 0
-                              ? 'bg-gradient-to-t from-primary/30 to-primary/15'
-                              : 'bg-muted/20'
-                      }`}
-                      initial={{ height: 0 }}
-                      animate={{ height: `${Math.max(8, heightPercent)}%` }}
-                      transition={{ duration: 0.5, delay: 0.08 * index + 0.2, ease: "easeOut" }}
-                    />
-                  </div>
-                  
-                  {/* Day label */}
-                  <span className={`text-[10px] font-medium ${
-                    day.isToday 
-                      ? 'text-primary font-semibold' 
-                      : 'text-muted-foreground'
-                  }`}>
-                    {day.dayName}
-                  </span>
-                </motion.div>
-              );
-            })}
+          <div className="space-y-3">
+            {/* Weekly Stats */}
+            <div className="flex items-center justify-between text-xs mb-2">
+              <div className="flex items-center gap-3">
+                <span className="text-muted-foreground">
+                  Ø <span className="font-semibold text-foreground">{avgCalories}</span> kcal/Tag
+                </span>
+                <span className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">{daysWithData}</span>/7 Tage
+                </span>
+              </div>
+              <span className="text-muted-foreground">
+                Ziel: <span className="text-primary font-medium">{targetCalories}</span> kcal
+              </span>
+            </div>
+            
+            {/* Bar Chart */}
+            <div className="flex items-end justify-between gap-1 h-16">
+              {weekData.map((day, index) => {
+                const heightPercent = maxCalories > 0 ? (day.calories / maxCalories) * 100 : 0;
+                const percentOfTarget = Math.round((day.calories / day.target) * 100);
+                const isComplete = day.calories >= day.target * 0.8;
+                const isOverTarget = day.calories > day.target;
+                
+                return (
+                  <motion.div
+                    key={day.date}
+                    className="flex flex-col items-center flex-1 group"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 * index, duration: 0.3 }}
+                  >
+                    {/* Calorie value on hover/tap */}
+                    <div className="text-[9px] font-medium text-muted-foreground h-4 flex items-center">
+                      {day.calories > 0 && (
+                        <span className={`${day.isToday ? 'text-primary' : ''}`}>
+                          {day.calories}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Bar */}
+                    <div className="relative w-full h-10 flex items-end justify-center mb-1">
+                      <motion.div
+                        className={`w-full max-w-[24px] rounded-md ${
+                          day.isToday 
+                            ? 'bg-gradient-to-t from-primary to-primary/60 shadow-[0_0_8px_hsla(160,100%,50%,0.3)]' 
+                            : isOverTarget
+                              ? 'bg-gradient-to-t from-orange-500/80 to-orange-400/60'
+                              : isComplete 
+                                ? 'bg-gradient-to-t from-emerald-500/80 to-emerald-400/60' 
+                                : day.calories > 0
+                                  ? 'bg-gradient-to-t from-primary/40 to-primary/20'
+                                  : 'bg-muted/20'
+                        }`}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${Math.max(4, heightPercent)}%` }}
+                        transition={{ duration: 0.5, delay: 0.08 * index + 0.2, ease: "easeOut" }}
+                      />
+                    </div>
+                    
+                    {/* Day label */}
+                    <span className={`text-[10px] font-medium ${
+                      day.isToday 
+                        ? 'text-primary font-semibold' 
+                        : 'text-muted-foreground'
+                    }`}>
+                      {day.dayName}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </div>
+            
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-4 text-[9px] text-muted-foreground pt-1 border-t border-border/20">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gradient-to-t from-emerald-500/80 to-emerald-400/60" />
+                <span>≥80% Ziel</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gradient-to-t from-orange-500/80 to-orange-400/60" />
+                <span>Über Ziel</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gradient-to-t from-primary/40 to-primary/20" />
+                <span>&lt;80%</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
