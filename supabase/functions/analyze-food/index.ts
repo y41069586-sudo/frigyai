@@ -19,6 +19,75 @@ const requestSchema = z.object({
   message: "Either 'food' or 'imageBase64' must be provided",
 });
 
+// USDA FoodData Central API integration
+async function searchUSDA(query: string): Promise<any | null> {
+  const USDA_API_KEY = Deno.env.get('USDA_API_KEY');
+  if (!USDA_API_KEY) {
+    console.log('[USDA] API key not configured, skipping USDA lookup');
+    return null;
+  }
+
+  try {
+    console.log('[USDA] Searching for:', query);
+    
+    const response = await fetch(
+      `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query)}&pageSize=5&dataType=Survey (FNDDS),Foundation,SR Legacy`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[USDA] API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('[USDA] Found', data.totalHits, 'results');
+
+    if (data.foods && data.foods.length > 0) {
+      const food = data.foods[0];
+      const nutrients: Record<string, number> = {};
+      
+      // Extract nutrients from USDA response
+      if (food.foodNutrients) {
+        for (const nutrient of food.foodNutrients) {
+          switch (nutrient.nutrientId) {
+            case 1008: // Energy (kcal)
+              nutrients.calories = Math.round(nutrient.value || 0);
+              break;
+            case 1003: // Protein
+              nutrients.protein = Math.round(nutrient.value || 0);
+              break;
+            case 1005: // Carbohydrates
+              nutrients.carbs = Math.round(nutrient.value || 0);
+              break;
+            case 1004: // Total Fat
+              nutrients.fat = Math.round(nutrient.value || 0);
+              break;
+          }
+        }
+      }
+
+      console.log('[USDA] Extracted nutrients:', nutrients);
+      
+      return {
+        name: food.description,
+        ...nutrients,
+        portion: food.servingSize ? `${food.servingSize}${food.servingSizeUnit || 'g'}` : '100g',
+        source: 'USDA FoodData Central',
+        fdcId: food.fdcId,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[USDA] Error:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -69,6 +138,29 @@ serve(async (req) => {
     }
     
     const { food, imageBase64 } = parseResult.data;
+
+    // For text-based food lookup, try USDA first
+    if (food && !imageBase64) {
+      console.log('[ANALYZE-FOOD] Trying USDA lookup first for:', food);
+      const usdaResult = await searchUSDA(food);
+      
+      if (usdaResult && usdaResult.calories && usdaResult.calories > 0) {
+        console.log('[ANALYZE-FOOD] Using USDA data:', usdaResult);
+        return new Response(JSON.stringify({
+          name: usdaResult.name,
+          calories: usdaResult.calories,
+          protein: usdaResult.protein || 0,
+          carbs: usdaResult.carbs || 0,
+          fat: usdaResult.fat || 0,
+          portion: usdaResult.portion,
+          details: `Daten von USDA FoodData Central (FDC ID: ${usdaResult.fdcId})`,
+          source: 'usda'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      console.log('[ANALYZE-FOOD] USDA lookup failed or no results, falling back to AI');
+    }
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
@@ -177,6 +269,7 @@ Antworte NUR mit validem JSON in diesem Format:
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         foodData = JSON.parse(jsonMatch[0]);
+        foodData.source = 'ai';
       } else {
         throw new Error('No JSON found in response');
       }
