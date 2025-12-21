@@ -94,7 +94,7 @@ const ProfilePage = () => {
       {/* Header */}
       <div className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border/50 safe-top">
         <div className="container mx-auto px-3 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-bold">{t.settings}</h1>
