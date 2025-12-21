@@ -29,6 +29,7 @@ const PremiumPricingPage = lazy(() => import("./pages/PremiumPricingPage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ const AppContent = () => {
           <Route path="/plan-selection" element={<PlanSelectionPage />} />
           <Route path="/premium-pricing" element={<PremiumPricingPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/legal/:type" element={<LegalPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

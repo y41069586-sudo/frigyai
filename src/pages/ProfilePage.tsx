@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3 } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3, FileText, Shield, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -274,11 +274,48 @@ const ProfilePage = () => {
           </Button>
         </motion.div>
 
-        {/* App Info */}
+        {/* Legal Links */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+        >
+          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
+            <h3 className="font-semibold mb-3">Rechtliches</h3>
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/legal/datenschutz")}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Datenschutzerklärung
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/legal/agb")}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                AGB
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/legal/impressum")}
+              >
+                <Scale className="h-4 w-4 mr-2" />
+                Impressum
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* App Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="text-center py-4"
         >
           <img src={frigLogo} alt="FrigBuddy" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
