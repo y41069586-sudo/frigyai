@@ -44,9 +44,13 @@ All colors MUST be HSL.
     
     --gradient-bg: linear-gradient(135deg, hsl(140, 40%, 98%) 0%, hsl(0, 0%, 100%) 100%);
     --gradient-neon: linear-gradient(135deg, hsl(160, 100%, 50%) 0%, hsl(140, 100%, 45%) 100%);
+    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 0.9) 0%, hsla(0, 0%, 100%, 0.7) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(160, 100%, 50%) 0%, hsl(140, 100%, 40%) 100%);
     
     --shadow-glow: 0 0 30px hsla(160, 100%, 50%, 0.3);
     --shadow-glow-lg: 0 0 50px hsla(160, 100%, 50%, 0.4);
+    --shadow-soft: 0 4px 20px -4px hsla(0, 0%, 0%, 0.08);
+    --shadow-card: 0 8px 32px -8px hsla(0, 0%, 0%, 0.1);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -127,6 +131,29 @@ All colors MUST be HSL.
   
   .text-neon {
     color: hsl(var(--neon-green));
+  }
+  
+  .glass-card {
+    background: hsla(0, 0%, 100%, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsla(0, 0%, 100%, 0.5);
+  }
+  
+  .dark .glass-card {
+    background: hsla(0, 0%, 10%, 0.8);
+    border: 1px solid hsla(0, 0%, 100%, 0.1);
+  }
+  
+  .hero-gradient {
+    background: linear-gradient(135deg, hsl(160, 100%, 45%) 0%, hsl(140, 100%, 35%) 100%);
+  }
+  
+  .mesh-gradient {
+    background: 
+      radial-gradient(at 40% 20%, hsla(160, 100%, 60%, 0.3) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsla(140, 100%, 50%, 0.2) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(160, 100%, 70%, 0.2) 0px, transparent 50%);
   }
 
   .gradient-primary {
