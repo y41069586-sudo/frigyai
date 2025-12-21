@@ -54,6 +54,50 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, []);
 
+  // USDA FoodData Central fallback lookup
+  const lookupUSDA = useCallback(async (query: string): Promise<NutritionInfo | null> => {
+    try {
+      console.log('[USDA Barcode] Searching for:', query);
+      const response = await fetch(
+        `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${import.meta.env.VITE_USDA_API_KEY || 'DEMO_KEY'}&query=${encodeURIComponent(query)}&pageSize=1&dataType=Branded`
+      );
+      
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      
+      if (data.foods && data.foods.length > 0) {
+        const food = data.foods[0];
+        const nutrients: Record<string, number> = {};
+        
+        if (food.foodNutrients) {
+          for (const nutrient of food.foodNutrients) {
+            switch (nutrient.nutrientId) {
+              case 1008: nutrients.calories = Math.round(nutrient.value || 0); break;
+              case 1003: nutrients.protein = Math.round(nutrient.value || 0); break;
+              case 1005: nutrients.carbs = Math.round(nutrient.value || 0); break;
+              case 1004: nutrients.fat = Math.round(nutrient.value || 0); break;
+            }
+          }
+        }
+        
+        if (nutrients.calories && nutrients.calories > 0) {
+          return {
+            name: food.description || food.brandName || 'Unbekanntes Produkt',
+            calories: nutrients.calories,
+            protein: nutrients.protein || 0,
+            carbs: nutrients.carbs || 0,
+            fat: nutrients.fat || 0,
+          };
+        }
+      }
+      return null;
+    } catch (err) {
+      console.error('[USDA Barcode] Error:', err);
+      return null;
+    }
+  }, []);
+
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
@@ -63,6 +107,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     scanningRef.current = false;
 
     try {
+      // Try Open Food Facts first
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
       );
@@ -91,16 +136,33 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         });
         stopCamera();
         onClose();
-      } else {
-        toast({
-          title: "Produkt nicht gefunden",
-          description: "Dieser Barcode ist nicht in der Datenbank.",
-          variant: "destructive",
-        });
-        lastScannedRef.current = null;
-        scanningRef.current = true;
-        setIsLoading(false);
+        return;
       }
+
+      // Fallback: Try USDA with barcode as query
+      console.log('[Barcode] Open Food Facts failed, trying USDA...');
+      const usdaResult = await lookupUSDA(barcode);
+      
+      if (usdaResult) {
+        onFoodScanned(usdaResult);
+        toast({
+          title: "Produkt erkannt (USDA)! 🎉",
+          description: `${usdaResult.name} - ${usdaResult.calories} kcal`,
+        });
+        stopCamera();
+        onClose();
+        return;
+      }
+
+      // Both failed
+      toast({
+        title: "Produkt nicht gefunden",
+        description: "Dieser Barcode ist nicht in der Datenbank.",
+        variant: "destructive",
+      });
+      lastScannedRef.current = null;
+      scanningRef.current = true;
+      setIsLoading(false);
     } catch (err) {
       console.error("Lookup error:", err);
       toast({
@@ -112,7 +174,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     }
-  }, [isLoading, onClose, onFoodScanned, stopCamera]);
+  }, [isLoading, onClose, onFoodScanned, stopCamera, lookupUSDA]);
 
   // Ultra-fast native detection loop - max 2 seconds
   const detectBarcodes = useCallback(async () => {
