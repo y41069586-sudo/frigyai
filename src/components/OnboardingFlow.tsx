@@ -420,30 +420,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </p>
               </motion.div>
               
-              {/* Feature Pills */}
-              <motion.div
-                className="flex flex-wrap justify-center gap-2 mt-8 max-w-xs"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.6, duration: 0.4 }}
-              >
-                {[
-                  { icon: "📸", text: language === 'de' ? "Scannen" : language === 'fr' ? "Scanner" : "Scan" },
-                  { icon: "📊", text: language === 'de' ? "Tracken" : language === 'fr' ? "Suivre" : "Track" },
-                  { icon: "🎯", text: language === 'de' ? "Ziele" : language === 'fr' ? "Objectifs" : "Goals" },
-                ].map((item, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.7 + i * 0.1, duration: 0.3 }}
-                    className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full border border-border"
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="text-sm font-medium text-foreground">{item.text}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
             </div>
             
             {/* Bottom CTA */}
