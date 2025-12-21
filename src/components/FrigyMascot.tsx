@@ -1,5 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
-import frigyMascot from "@/assets/frigy-mascot.png";
+import sligoMascot from "@/assets/sligo-mascot.png";
+
+// Keep old import as alias for backward compatibility
+const frigyMascot = sligoMascot;
 
 interface FrigyMascotProps {
   show: boolean;
@@ -67,10 +70,10 @@ export const FrigyMascot = ({
           className={`fixed z-50 pointer-events-none ${config.className} ${className}`}
         >
           <motion.img
-            src={frigyMascot}
-            alt="Frigy Mascot"
+            src={sligoMascot}
+            alt="Sligo Mascot"
             className={`${sizeClasses[size]} object-contain drop-shadow-lg`}
-            animate={{ 
+            animate={{
               rotate: [0, -5, 5, -3, 3, 0],
               scale: [1, 1.02, 1]
             }}
@@ -189,8 +192,8 @@ export const FrigyMascotInline = ({
         )}
         
         <motion.img
-          src={frigyMascot}
-          alt="Frigy"
+          src={sligoMascot}
+          alt="Sligo"
           className={`${sizeClasses[size]} object-contain drop-shadow-lg ${className}`}
           initial={variants[variant].initial}
           animate={variants[variant].animate}
@@ -210,7 +213,7 @@ export const FrigyMascotInline = ({
           }}
         >
           <img
-            src={frigyMascot}
+            src={sligoMascot}
             alt=""
             className={`${sizeClasses[size]} object-contain opacity-0`}
           />
@@ -221,8 +224,8 @@ export const FrigyMascotInline = ({
 
   return (
     <img
-      src={frigyMascot}
-      alt="Frigy"
+      src={sligoMascot}
+      alt="Sligo"
       className={`${sizeClasses[size]} object-contain ${className}`}
     />
   );
@@ -279,10 +282,10 @@ export const FrigyPeek = ({
           className={`fixed z-50 pointer-events-none ${config.className}`}
         >
           <motion.img
-            src={frigyMascot}
-            alt="Frigy"
+            src={sligoMascot}
+            alt="Sligo"
             className="w-20 h-20 object-contain drop-shadow-xl"
-            animate={{ 
+            animate={{
               y: [0, -5, 0],
             }}
             transition={{ 
