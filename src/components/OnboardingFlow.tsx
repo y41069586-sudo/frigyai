@@ -1335,56 +1335,108 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="macro-preview">
             <div className="flex flex-col items-center text-center px-4 w-full">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-3"
+              {/* Hero Goal Prediction Banner - TOP */}
+              <motion.div 
+                className="w-full max-w-sm mb-6"
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, type: "spring" }}
               >
-                <span className="text-2xl">✨</span>
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-5 shadow-lg">
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+                  
+                  <div className="relative z-10">
+                    <motion.div 
+                      className="flex items-center justify-center gap-2 mb-3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <span className="text-2xl">🎯</span>
+                      <span className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">Dein Ziel</span>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
+                    >
+                      <p className="text-primary-foreground text-lg font-bold mb-1">
+                        Du wirst <span className="text-2xl">{userData.targetWeight}kg</span> erreichen
+                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary-foreground/70" />
+                        <p className="text-primary-foreground/90 font-semibold text-xl">
+                          am {goalDateFormatted}
+                        </p>
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div 
+                      className="mt-4 flex items-center justify-center gap-4 text-primary-foreground/70 text-xs"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <span>{userData.weight}kg jetzt</span>
+                      <span className="text-primary-foreground/50">→</span>
+                      <span>{userData.weeklyGoal > 0 ? '-' : '+'}{Math.abs(userData.weeklyGoal)}kg/Woche</span>
+                      <span className="text-primary-foreground/50">→</span>
+                      <span className="font-semibold text-primary-foreground">{userData.targetWeight}kg</span>
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Section title */}
+              <motion.div
+                className="mb-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.3 }}
+              >
+                <h2 className="text-lg font-bold text-foreground">Dein täglicher Plan</h2>
+                <p className="text-muted-foreground/60 text-xs">Tippe zum Anpassen</p>
               </motion.div>
               
-              <motion.h1 className="text-xl font-bold mb-1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
-                Dein optimaler Plan
-              </motion.h1>
-              <motion.p className="text-muted-foreground/50 text-xs mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                Tippe auf ✏️ um Werte anzupassen
-              </motion.p>
-              
-              {/* Calorie Ring with Edit */}
+              {/* Calorie Ring - Modern Card Style */}
               <motion.div
                 className="mb-5 relative"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
               >
-                <MacroRing
-                  value={userData.dailyCalories || calculatedMacros.dailyCalories}
-                  max={userData.dailyCalories || calculatedMacros.dailyCalories}
-                  label="Tägliches Ziel"
-                  unit=" kcal"
-                  color="calories"
-                  size="lg"
-                />
+                <div className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                  <MacroRing
+                    value={userData.dailyCalories || calculatedMacros.dailyCalories}
+                    max={userData.dailyCalories || calculatedMacros.dailyCalories}
+                    label="Tägliches Ziel"
+                    unit=" kcal"
+                    color="calories"
+                    size="lg"
+                  />
+                </div>
                 <button
                   onClick={() => handleMacroEdit('dailyCalories', userData.dailyCalories || calculatedMacros.dailyCalories)}
-                  className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-background border-2 border-primary/30 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all shadow-md"
                 >
-                  <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </button>
               </motion.div>
               
-              {/* Macro Rings with Edit Buttons */}
+              {/* Macro Rings - Modern Grid */}
               <motion.div 
-                className="flex justify-center gap-8 mb-5 w-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
+                className="grid grid-cols-3 gap-3 w-full max-w-xs"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.3 }}
               >
                 {/* Protein */}
-                <div className="relative">
+                <div className="relative p-3 rounded-xl bg-card border border-border/50 shadow-sm">
                   <MacroRing
                     value={userData.dailyProtein || calculatedMacros.dailyProtein}
                     max={userData.dailyProtein || calculatedMacros.dailyProtein}
@@ -1394,16 +1446,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                   <button
                     onClick={() => handleMacroEdit('dailyProtein', userData.dailyProtein || calculatedMacros.dailyProtein)}
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-background border border-blue-300 flex items-center justify-center hover:bg-blue-50 transition-colors shadow-sm"
                   >
-                    <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                   </button>
                 </div>
                 
                 {/* Carbs */}
-                <div className="relative">
+                <div className="relative p-3 rounded-xl bg-card border border-border/50 shadow-sm">
                   <MacroRing
                     value={userData.dailyCarbs || calculatedMacros.dailyCarbs}
                     max={userData.dailyCarbs || calculatedMacros.dailyCarbs}
@@ -1413,16 +1465,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                   <button
                     onClick={() => handleMacroEdit('dailyCarbs', userData.dailyCarbs || calculatedMacros.dailyCarbs)}
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-background border border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors shadow-sm"
                   >
-                    <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                   </button>
                 </div>
                 
                 {/* Fat */}
-                <div className="relative">
+                <div className="relative p-3 rounded-xl bg-card border border-border/50 shadow-sm">
                   <MacroRing
                     value={userData.dailyFat || calculatedMacros.dailyFat}
                     max={userData.dailyFat || calculatedMacros.dailyFat}
@@ -1432,48 +1484,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                   <button
                     onClick={() => handleMacroEdit('dailyFat', userData.dailyFat || calculatedMacros.dailyFat)}
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center hover:bg-primary/20 transition-colors shadow-sm"
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-background border border-rose-300 flex items-center justify-center hover:bg-rose-50 transition-colors shadow-sm"
                   >
-                    <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                   </button>
-                </div>
-              </motion.div>
-              
-              {/* Goal Date Banner */}
-              <motion.div 
-                className="w-full max-w-xs p-4 rounded-2xl bg-primary/10 border border-primary/30 mb-3"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.3 }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-semibold text-primary block">
-                      🎯 {goalDateFormatted}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      erreichst du dein Ziel von {userData.targetWeight}kg
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              {/* Goal details */}
-              <motion.div 
-                className="w-full max-w-xs p-3 rounded-xl bg-muted/50 border border-border"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7, duration: 0.3 }}
-              >
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Aktuell: {userData.weight}kg</span>
-                  <span>→ {userData.weeklyGoal}kg/Woche →</span>
-                  <span className="text-primary font-medium">Ziel: {userData.targetWeight}kg</span>
                 </div>
               </motion.div>
             </div>
