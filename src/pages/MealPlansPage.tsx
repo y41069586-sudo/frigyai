@@ -227,8 +227,8 @@ const MealPlansPage = () => {
     setMealPlanGenerationCount(count);
   }, []);
 
-  // Free users: can generate meal plan once (initial + 1 regeneration = 2 total)
-  const maxFreeGenerations = 2;
+  // Free users: can regenerate meal plan only once after the onboarding plan
+  const maxFreeGenerations = 1;
   const canGenerateMealPlan = isPremium || mealPlanGenerationCount < maxFreeGenerations;
 
   useEffect(() => {
