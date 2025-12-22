@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import IngredientsList from "@/components/IngredientsList";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import CookingPrefsSelector from "@/components/CookingPrefsSelector";
 
 const FREE_SCAN_LIMIT = 2;
 
@@ -24,6 +25,7 @@ const ScanPage = () => {
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [scanLimitReached, setScanLimitReached] = useState(false);
   const [mode, setMode] = useState<"photo" | "video">("photo");
+  const [showPrefsSelector, setShowPrefsSelector] = useState(false);
 
   const isPremium = subscriptionStatus?.subscribed;
 
@@ -340,7 +342,15 @@ const ScanPage = () => {
   };
 
   const handleGenerateRecipes = () => {
-    navigate("/recipes", { state: { ingredients } });
+    setShowPrefsSelector(true);
+  };
+
+  const handlePrefsConfirm = (cookingTime: number, mood: 'tired' | 'normal' | 'motivated') => {
+    navigate("/recipes", { state: { ingredients, cookingTime, mood } });
+  };
+
+  const handlePrefsBack = () => {
+    setShowPrefsSelector(false);
   };
 
   return (
@@ -606,35 +616,58 @@ const ScanPage = () => {
               </div>
 
               {!analyzing && (
-                <>
-                  {/* Ingredients List */}
-                  <IngredientsList
-                    ingredients={ingredients}
-                    onIngredientsChange={setIngredients}
-                  />
+                <AnimatePresence mode="wait">
+                  {showPrefsSelector ? (
+                    <motion.div
+                      key="prefs"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                    >
+                      <CookingPrefsSelector
+                        onConfirm={handlePrefsConfirm}
+                        onBack={handlePrefsBack}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="ingredients"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-6"
+                    >
+                      {/* Ingredients List */}
+                      <IngredientsList
+                        ingredients={ingredients}
+                        onIngredientsChange={setIngredients}
+                      />
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button
-                      onClick={() => {
-                        setImagePreview(null);
-                        setVideoPreview(null);
-                        setIngredients([]);
-                      }}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      {t.newPhoto}
-                    </Button>
-                    <Button
-                      onClick={handleGenerateRecipes}
-                      disabled={ingredients.length === 0}
-                      className="flex-1 gradient-neon text-black font-semibold glow-button"
-                    >
-                      {t.generateRecipes}
-                    </Button>
-                  </div>
-                </>
+                      {/* Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button
+                          onClick={() => {
+                            setImagePreview(null);
+                            setVideoPreview(null);
+                            setIngredients([]);
+                            setShowPrefsSelector(false);
+                          }}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          {t.newPhoto}
+                        </Button>
+                        <Button
+                          onClick={handleGenerateRecipes}
+                          disabled={ingredients.length === 0}
+                          className="flex-1 gradient-neon text-black font-semibold glow-button"
+                        >
+                          Weiter
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               )}
             </motion.div>
           ) : null}
