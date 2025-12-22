@@ -189,9 +189,11 @@ const Index = () => {
   }, [resetOnboarding]);
   
   // Initialize states - check if user already completed onboarding
-  // Skip onboarding if user is logged in OR has completed it before
+  // TESTMODUS: Onboarding wird bei jeder Session angezeigt (Login bleibt möglich)
+  const ONBOARDING_TEST_MODE = true; // Auf false setzen um Testmodus zu deaktivieren
+  
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
-  const shouldSkipOnboarding = hasCompletedOnboarding || dbOnboardingComplete || !!user;
+  const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
@@ -200,7 +202,7 @@ const Index = () => {
   // Update onboarding visibility when loading completes
   useEffect(() => {
     if (!onboardingLoading && !loading) {
-      const skip = hasCompletedOnboarding || dbOnboardingComplete || !!user;
+      const skip = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
       setShowOnboarding(!skip);
       setOnboardingComplete(skip);
     }
