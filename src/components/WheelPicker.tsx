@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 interface WheelPickerProps {
   value: number;
@@ -9,10 +9,9 @@ interface WheelPickerProps {
   unit?: string;
 }
 
-// Enhanced haptic feedback function
-const triggerHaptic = (intensity: 'light' | 'medium' = 'light') => {
+const triggerHaptic = () => {
   if ('vibrate' in navigator) {
-    navigator.vibrate(intensity === 'light' ? 3 : 8);
+    navigator.vibrate(5);
   }
 };
 
@@ -25,48 +24,31 @@ export const WheelPicker = ({
   unit = ''
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastValueRef = useRef(value);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const [displayValue, setDisplayValue] = useState(value);
-  const itemHeight = 48; // Slightly larger for mobile
-  const visibleItems = 3; // Reduced for compact display
-  const items: number[] = [];
+  const isUserScrolling = useRef(false);
+  const lastSelectedValue = useRef(value);
+  const scrollEndTimer = useRef<number | null>(null);
   
-  // Generate items array
+  const itemHeight = 48;
+  const visibleItems = 3;
+  const paddingItems = Math.floor(visibleItems / 2);
+  
+  // Generate items
+  const items: number[] = [];
   for (let i = min; i <= max; i += step) {
     items.push(i);
   }
   
-  const currentIndex = items.indexOf(value);
-  const paddingItems = Math.floor(visibleItems / 2);
-  
-  // Scroll to current value on mount
+  // Sync scroll position when value changes externally
   useEffect(() => {
-    if (scrollRef.current && currentIndex >= 0) {
-      scrollRef.current.scrollTop = currentIndex * itemHeight;
+    if (!scrollRef.current || isUserScrolling.current) return;
+    
+    const index = items.indexOf(value);
+    if (index >= 0) {
+      scrollRef.current.scrollTop = index * itemHeight;
+      lastSelectedValue.current = value;
     }
-  }, []);
+  }, [value, items, itemHeight]);
 
-  // Update display value in real-time while scrolling
-  const updateDisplayValue = useCallback(() => {
-    if (!scrollRef.current) return;
-    
-    const scrollTop = scrollRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
-    const newValue = items[clampedIndex];
-    
-    // Update display immediately while scrolling
-    if (newValue !== displayValue) {
-      setDisplayValue(newValue);
-      // Trigger light haptic for each value change
-      if (newValue !== lastValueRef.current) {
-        triggerHaptic('light');
-      }
-    }
-  }, [items, itemHeight, displayValue]);
-  
-  // Handle scroll end - snap to nearest item and confirm selection
   const handleScrollEnd = useCallback(() => {
     if (!scrollRef.current) return;
     
@@ -75,121 +57,111 @@ export const WheelPicker = ({
     const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
     const newValue = items[clampedIndex];
     
-    // Snap to exact position
+    // Snap to position
     scrollRef.current.scrollTo({
       top: clampedIndex * itemHeight,
       behavior: 'smooth'
     });
     
-    // Confirm value change
-    if (newValue !== lastValueRef.current) {
-      triggerHaptic('medium');
-      lastValueRef.current = newValue;
+    // Update value if changed
+    if (newValue !== lastSelectedValue.current) {
+      triggerHaptic();
+      lastSelectedValue.current = newValue;
       onChange(newValue);
     }
     
-    setIsScrolling(false);
+    isUserScrolling.current = false;
   }, [items, onChange, itemHeight]);
-  
-  // Scroll event handlers
-  const scrollTimeout = useRef<NodeJS.Timeout>();
-  const scrollUpdateInterval = useRef<NodeJS.Timeout>();
-  
-  const onScrollStart = useCallback(() => {
-    setIsScrolling(true);
+
+  const handleScroll = useCallback(() => {
+    isUserScrolling.current = true;
     
-    // Clear existing intervals
-    if (scrollUpdateInterval.current) {
-      clearInterval(scrollUpdateInterval.current);
+    // Clear previous timer
+    if (scrollEndTimer.current) {
+      window.clearTimeout(scrollEndTimer.current);
     }
     
-    // Update display value frequently while scrolling
-    scrollUpdateInterval.current = setInterval(updateDisplayValue, 16);
-  }, [updateDisplayValue]);
+    // Set new timer for scroll end detection
+    scrollEndTimer.current = window.setTimeout(handleScrollEnd, 120);
+  }, [handleScrollEnd]);
   
-  const onScroll = useCallback(() => {
-    if (!isScrolling) {
-      onScrollStart();
-    }
-    
-    // Update display value immediately
-    updateDisplayValue();
-    
-    // Debounce the scroll end
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-    }
-    scrollTimeout.current = setTimeout(() => {
-      if (scrollUpdateInterval.current) {
-        clearInterval(scrollUpdateInterval.current);
-      }
-      handleScrollEnd();
-    }, 100);
-  }, [isScrolling, onScrollStart, updateDisplayValue, handleScrollEnd]);
-  
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-      if (scrollUpdateInterval.current) clearInterval(scrollUpdateInterval.current);
+      if (scrollEndTimer.current) {
+        window.clearTimeout(scrollEndTimer.current);
+      }
     };
   }, []);
   
+  const handleItemClick = (item: number) => {
+    const index = items.indexOf(item);
+    if (scrollRef.current && index >= 0) {
+      triggerHaptic();
+      scrollRef.current.scrollTo({
+        top: index * itemHeight,
+        behavior: 'smooth'
+      });
+      lastSelectedValue.current = item;
+      onChange(item);
+    }
+  };
+  
   const containerHeight = visibleItems * itemHeight;
+  const currentIndex = items.indexOf(value);
   
   return (
     <div className="relative mx-auto w-full" style={{ height: containerHeight }}>
-      {/* Top fade gradient */}
+      {/* Top gradient */}
       <div 
         className="absolute inset-x-0 top-0 z-10 pointer-events-none"
         style={{ 
           height: paddingItems * itemHeight,
-          background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.6) 60%, transparent 100%)'
+          background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.5) 50%, transparent 100%)'
         }}
       />
       
-      {/* Bottom fade gradient */}
+      {/* Bottom gradient */}
       <div 
         className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
         style={{ 
           height: paddingItems * itemHeight,
-          background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.6) 60%, transparent 100%)'
+          background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.5) 50%, transparent 100%)'
         }}
       />
       
-      {/* Center selection indicator */}
+      {/* Selection indicator */}
       <div 
-        className="absolute inset-x-2 z-0 pointer-events-none border-[3px] border-primary/60 bg-primary/10 rounded-xl"
+        className="absolute inset-x-2 z-0 pointer-events-none border-2 border-primary/50 bg-primary/10 rounded-xl"
         style={{ 
           top: paddingItems * itemHeight,
           height: itemHeight 
         }}
       />
       
-      {/* Scrollable container */}
+      {/* Scroll container */}
       <div
         ref={scrollRef}
-        className="h-full overflow-y-auto scrollbar-hide touch-pan-y"
+        className="h-full overflow-y-scroll scrollbar-hide overscroll-contain"
         style={{ 
           scrollSnapType: 'y mandatory',
           WebkitOverflowScrolling: 'touch'
         }}
-        onScroll={onScroll}
-        onTouchStart={onScrollStart}
+        onScroll={handleScroll}
       >
         {/* Top padding */}
         <div style={{ height: paddingItems * itemHeight }} />
         
         {/* Items */}
-        {items.map((item) => {
-          const isSelected = item === displayValue;
-          const distance = Math.abs(items.indexOf(item) - items.indexOf(displayValue));
-          const opacity = distance === 0 ? 1 : distance === 1 ? 0.4 : 0.2;
+        {items.map((item, index) => {
+          const isSelected = item === value;
+          const distanceFromSelected = Math.abs(index - currentIndex);
+          const opacity = distanceFromSelected === 0 ? 1 : distanceFromSelected === 1 ? 0.5 : 0.25;
           
           return (
             <div
               key={item}
-              className={`flex items-center justify-center select-none transition-all duration-100 gap-1 ${
+              className={`flex items-center justify-center select-none cursor-pointer gap-1 ${
                 isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
               }`}
               style={{ 
@@ -197,18 +169,10 @@ export const WheelPicker = ({
                 scrollSnapAlign: 'center',
                 fontSize: isSelected ? '1.5rem' : '1rem',
                 opacity,
-                transform: isSelected ? 'scale(1.05)' : 'scale(0.9)'
+                transform: isSelected ? 'scale(1.05)' : 'scale(0.9)',
+                transition: 'opacity 0.1s, transform 0.1s'
               }}
-              onClick={() => {
-                triggerHaptic('medium');
-                if (scrollRef.current) {
-                  const index = items.indexOf(item);
-                  scrollRef.current.scrollTo({
-                    top: index * itemHeight,
-                    behavior: 'smooth'
-                  });
-                }
-              }}
+              onClick={() => handleItemClick(item)}
             >
               <span>{item}</span>
               <span className={`${isSelected ? 'text-sm text-primary/70' : 'text-xs text-muted-foreground/60'}`}>
