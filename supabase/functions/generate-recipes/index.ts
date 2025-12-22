@@ -7,7 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Input validation schema
 const requestSchema = z.object({
   ingredients: z.array(z.string().min(1).max(100)).min(1).max(50),
   cookingTime: z.number().optional().default(20),
@@ -20,7 +19,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -48,8 +46,6 @@ serve(async (req) => {
     console.log('User authenticated:', user.id);
 
     const body = await req.json();
-    
-    // Validate input
     const parseResult = requestSchema.safeParse(body);
     if (!parseResult.success) {
       console.error("Validation error:", parseResult.error);
@@ -68,96 +64,84 @@ serve(async (req) => {
 
     console.log("Processing ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
 
-    // Build the decision prompt
-    const systemPrompt = `Du bist FRIGY – ein smarter, entscheidungsfreudiger Koch-Assistent.
+    const moodGerman = mood === 'tired' ? 'müde (minimaler Aufwand)' : mood === 'motivated' ? 'motiviert (gerne mehr Aufwand)' : 'normal';
+    
+    const systemPrompt = `Du bist FRIGY – ein smarter Koch-Assistent der GENAU 3 realistische Gerichte vorschlägt.
 
-🧱 SCHRITT 1 — ZUTATEN-ANALYSE
+🧱 SCHRITT 1 — ZUTATEN-KLASSIFIZIERUNG
 
 Klassifiziere jede Zutat:
-- Protein (Fleisch, Fisch, Eier, Tofu, Hülsenfrüchte, Käse)
-- Kohlenhydrate (Pasta, Reis, Kartoffeln, Brot, Tortillas)
+- Protein (Fleisch, Fisch, Eier, Tofu, Käse, Hülsenfrüchte)
+- Kohlenhydrate (Pasta, Reis, Kartoffeln, Brot)
 - Gemüse
-- Fett/Sauce (Öl, Butter, Sahne, Saucen)
-- Gewürze/Optional (Gewürze, Kräuter, Senf, etc.)
+- Fett/Sauce (Öl, Butter, Sahne)
+- Optional (Gewürze, Senf, Ketchup)
 
-Ein kochbares Gericht MUSS enthalten:
-- Mindestens 1 Protein ODER 1 Kohlenhydrat
-- UND mindestens 1 unterstützende Zutat
+WICHTIG: Ein kochbares Gericht braucht MINDESTENS:
+- 1 Protein ODER 1 Kohlenhydrat
+- Plus mindestens 1 weitere Zutat
 
-❌ Wenn NUR Gemüse vorhanden (z.B. Gurke + Paprika):
-→ Das ist KEIN gültiges Hauptgericht
-→ Gib eine hilfreiche Nachricht zurück (siehe unten)
+Wenn NUR Gemüse vorhanden → KEINE Gerichte generieren!
 
-🧱 SCHRITT 2 — ZEIT & STIMMUNG
+🧱 SCHRITT 2 — ZEIT & STIMMUNG FILTER
 
-Verfügbare Kochzeit: ${cookingTime} Minuten
-Stimmung: ${mood === 'tired' ? 'müde' : mood === 'motivated' ? 'motiviert' : 'normal'}
+Kochzeit: ${cookingTime} Minuten
+Stimmung: ${moodGerman}
 
 Zeit-Regeln:
-- 10 Min → kein Ofen, max 3-4 Schritte
-- 20 Min → einfache Herd-Gerichte
-- 30+ Min → normales Kochen
+- 10 Min → Ultra-simpel, 1 Pfanne, max 4 Schritte
+- 20 Min → Einfaches Kochen
+- 30 Min → Normales Kochen
 
-Stimmung-Regeln:
-- Müde → minimal Aufwand, One-Pan, kein Multitasking
-- Normal → einfach aber komplett
-- Motiviert → etwas aufwändiger, aber realistisch
+Stimmung filtert NUR Aufwand:
+- Müde → Minimaler Aufwand, One-Pan
+- Normal → Standard
+- Motiviert → Etwas aufwändiger
 
-🧠 SCHRITT 3 — ENTSCHEIDUNG
+🧱 SCHRITT 3 — GENERIERE EXAKT 3 GERICHTE
 
-Du MUSST EINE einzige beste Rezept-Empfehlung treffen.
-- KEINE Liste von Rezepten
-- KEINE Auswahlmöglichkeiten
-- DU entscheidest für den Nutzer
-
-Wähle das Rezept das:
-1. Die meisten gescannten Zutaten nutzt
-2. Am wenigsten Aufwand erfordert
-3. Am besten zu Zeit + Stimmung passt
-
-🍽️ SCHRITT 4 — VALIDIERUNG
-
-Prüfe vor der Ausgabe:
-- Würde das eine normale Person kochen?
-- Macht es kulinarisch Sinn?
-- Hat es eine klare Hauptkomponente?
+Jedes Gericht MUSS:
+- Kulinarisch Sinn machen
+- Gescannte Zutaten nutzen
+- Sich von den anderen unterscheiden
+- In die Zeit passen
 
 🧾 OUTPUT FORMAT
 
-Wenn Zutaten AUSREICHEND sind, gib JSON zurück:
+Wenn Zutaten AUSREICHEND:
 {
-  "type": "recipe",
-  "recipe": {
-    "id": "unique-id",
-    "title": "Einfacher deutscher Name",
-    "reason": "Kurzer Satz warum dieses Gericht",
-    "calories": 350,
-    "protein": 25,
-    "carbs": 30,
-    "fat": 12,
-    "prepTime": ${cookingTime},
-    "difficulty": "Einfach",
-    "ingredients": ["Zutat 1", "Zutat 2"],
-    "instructions": ["Schritt 1", "Schritt 2", "Schritt 3", "Schritt 4", "Schritt 5"]
-  }
+  "type": "recipes",
+  "recipes": [
+    {
+      "id": "gericht-1-kebab-case",
+      "title": "Einfacher Name",
+      "reason": "1 Satz warum es heute passt",
+      "calories": 350,
+      "protein": 25,
+      "carbs": 30,
+      "fat": 12,
+      "prepTime": ${cookingTime},
+      "difficulty": "Einfach",
+      "ingredients": ["Zutat 1", "Zutat 2"],
+      "instructions": ["Schritt 1", "Schritt 2", "Schritt 3", "Schritt 4"]
+    }
+  ]
 }
 
-Wenn Zutaten NICHT AUSREICHEND sind:
+Wenn Zutaten NICHT AUSREICHEND:
 {
   "type": "clarification",
-  "message": "Mit dem was du hast, kann ich noch kein vollständiges Gericht vorschlagen. Wenn du noch Eier, Nudeln oder Reis hinzufügst, kann ich dir etwas Leckeres empfehlen.",
+  "message": "Mit Gurke und Paprika allein kann ich kein Hauptgericht zaubern. Füg noch Eier, Nudeln oder Reis hinzu!",
   "suggestion": "Eier"
 }
 
-REGELN für instructions:
-- Max 5 Schritte
-- Kurz und klar
-- Kein Kochblog-Stil
+REGELN:
+- Max 4-5 Schritte pro Gericht
+- Nur gescannte Zutaten + Öl, Salz, Pfeffer, Wasser
+- KEINE Random-Kombinationen
+- KEINE Salate als Hauptgericht (außer mit Protein)
 
-Erlaubte Basis-Zutaten (immer verfügbar):
-- Öl, Salz, Pfeffer, Wasser
-
-🎯 DEIN ZIEL: Der Nutzer soll aufhören zu überlegen und anfangen zu kochen.`;
+🎯 ZIEL: 3 gute Optionen, kein Inspirations-Spam.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -199,7 +183,6 @@ Erlaubte Basis-Zutaten (immer verfügbar):
     
     console.log("AI response:", content);
 
-    // Parse the JSON response
     let result;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -210,7 +193,6 @@ Erlaubte Basis-Zutaten (immer verfügbar):
       }
     } catch (e) {
       console.error("Error parsing response:", e);
-      // Fallback: treat as clarification
       result = {
         type: "clarification",
         message: "Ich konnte die Zutaten nicht richtig analysieren. Bitte versuche es noch einmal.",
@@ -218,9 +200,12 @@ Erlaubte Basis-Zutaten (immer verfügbar):
       };
     }
 
-    // Ensure recipe has unique ID
-    if (result.type === "recipe" && result.recipe) {
-      result.recipe.id = result.recipe.id || `recipe-${Date.now()}`;
+    // Ensure recipes have unique IDs
+    if (result.type === "recipes" && result.recipes) {
+      result.recipes = result.recipes.map((recipe: any, index: number) => ({
+        ...recipe,
+        id: recipe.id || `recipe-${Date.now()}-${index}`,
+      }));
     }
 
     return new Response(
