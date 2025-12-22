@@ -200,31 +200,34 @@ WICHTIG:
 - Summiere pro Tag Kalorien/Protein/Kohlenhydrate/Fett aller 5 Mahlzeiten.
 - Überschreite NIE diese Werte.`;
 
-    const systemPrompt = `Du bist ein kreativer STERNEKOCH und Ernährungsexperte. Erstelle einen ULTRA-ABWECHSLUNGSREICHEN Wochenplan mit EINZIGARTIGEN, INTERNATIONALEN Gerichten!
+    const systemPrompt = `Du bist ein deutscher Hausmannskost-Experte. Erstelle einen ALLTAGSTAUGLICHEN Wochenplan mit EINFACHEN, BELIEBTEN Gerichten die jeder kennt und mag!
 
-KREATIVITÄT IST PFLICHT:
-- Verwende Gerichte aus VERSCHIEDENEN KÜCHEN: Italienisch, Asiatisch, Mexikanisch, Griechisch, Indisch, Amerikanisch, Mediterran, Orientalisch
-- NIEMALS langweilige Standardgerichte - jedes Gericht muss INTERESSANT klingen!
-- Beispiele für kreative Gerichte:
-  * Frühstück: Shakshuka, Avocado-Toast mit Ei, Overnight Oats mit Mango, Griechischer Joghurt Bowl, Smoothie Bowl, French Toast mit Beeren
-  * Mittag: Teriyaki Lachs Bowl, Buddha Bowl, Burrito Bowl, Pad Thai, Gyros Teller, Curry mit Naan
-  * Abend: Gegrilltes Hähnchen mit Chimichurri, Lachs en Croûte, Gefüllte Paprika, Zucchini-Lasagne, Thai Curry, Falafel-Teller
-  * Snacks: Hummus mit Gemüsesticks, Energy Balls, Griechischer Salat, Caprese, Edamame, Nussmix
+WICHTIG - NUR EINFACHE, ALLTÄGLICHE GERICHTE:
+- Verwende KLASSISCHE deutsche und europäische Gerichte die man regelmäßig isst
+- KEINE exotischen Zutaten wie Tofu, Quinoa, Bulgur, Tahini, Miso, etc.
+- KEINE komplizierten asiatischen, orientalischen oder ausgefallenen Gerichte
+- Fokus auf: Fleisch, Fisch, Eier, Käse, Nudeln, Reis, Kartoffeln, Gemüse
+
+BEISPIELE FÜR GUTE GERICHTE:
+* Frühstück: Rührei mit Speck, Müsli mit Milch, Brötchen mit Käse/Wurst, Haferbrei mit Banane, Joghurt mit Früchten, Vollkornbrot mit Ei
+* Mittagessen: Spaghetti Bolognese, Schnitzel mit Pommes, Hähnchen mit Reis, Nudeln mit Sahnesauce, Frikadellen mit Kartoffeln, Pizza, Burger
+* Abendessen: Bratkartoffeln mit Spiegelei, Ofenhähnchen mit Gemüse, Lachs mit Kartoffeln, Würstchen mit Sauerkraut, Auflauf, Suppe mit Brot
+* Snacks: Apfel, Banane, Joghurt, Käsewürfel, Nüsse, Müsliriegel, Quark mit Früchten
 
 STRENGE REGELN:
-- KEIN GERICHT darf sich wiederholen (auch nicht ähnlich!)
-- Jeden Tag ANDERE Proteinquelle: Hähnchen, Lachs, Rind, Thunfisch, Garnelen, Tofu, Eier, Linsen, Kichererbsen, Feta
-- Jeden Tag ANDERE Beilage: Reis, Quinoa, Süßkartoffel, Couscous, Bulgur, Pasta, Kartoffeln, Vollkornbrot, Naan
-- Jede Mahlzeit muss APPETITLICH und SPANNEND klingen
+- KEINE Wiederholungen - jeden Tag andere Gerichte
+- Einfache Zutaten die es in jedem Supermarkt gibt
+- Realistische Portionsgrößen
+- Gerichte die man in 10-30 Minuten zubereiten kann
+- KEINE Fertiggerichte, aber trotzdem einfach
 
-DETAILLIERTE ANLEITUNGEN:
-- Schreibe 3-5 konkrete Zubereitungsschritte pro Gericht
-- Beschreibe WIE man kocht (anbraten, köcheln, würzen, marinieren, servieren)
-- Gib genaue Mengenangaben für alle Zutaten
+KURZE, KLARE ANLEITUNGEN:
+- 2-4 einfache Schritte pro Gericht
+- Keine komplizierten Techniken
 
 ${targetsBlock}
 
-Kalorienverteilung pro Tag (Richtwerte, du darfst intern anpassen – die Tages-SUMME muss passen):
+Kalorienverteilung pro Tag:
 - Frühstück: ${breakfastCal} kcal
 - Snack: ${snackCal} kcal
 - Mittagessen: ${lunchCal} kcal
@@ -235,12 +238,12 @@ Output-Regeln:
 - NUR valides JSON (kein Markdown)
 - 7 Tage: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag
 - Pro Tag genau 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen
-- Pro Mahlzeit 4-6 Zutaten mit genauen Mengen
-- Pro Mahlzeit 3-5 detaillierte Zubereitungsschritte
+- Pro Mahlzeit 3-5 einfache Zutaten mit genauen Mengen
+- Pro Mahlzeit 2-4 kurze Zubereitungsschritte
 - Preise als Zahl (EUR)
 
 JSON-Schema:
-{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"Shakshuka mit Feta","calories":380,"protein":22,"carbs":28,"fat":18,"prepTime":15,"ingredients":[{"name":"Eier","amount":"2 Stück","price":0.6},{"name":"Tomaten gehackt","amount":"200g","price":0.8},{"name":"Feta","amount":"50g","price":0.9},{"name":"Paprika","amount":"1 Stück","price":0.5},{"name":"Zwiebel","amount":"1 Stück","price":0.2},{"name":"Petersilie","amount":"frisch","price":0.3}],"instructions":["Zwiebel und Paprika würfeln und in Olivenöl anbraten.","Tomaten hinzufügen und 5 Minuten köcheln lassen.","Mulden formen und Eier vorsichtig hineingleiten lassen.","Bei geschlossenem Deckel 8-10 Minuten garen.","Mit zerbröseltem Feta und frischer Petersilie servieren."]}]}]}`;
+{"mealPlan":[{"day":"Montag","meals":[{"type":"Frühstück","name":"Rührei mit Speck","calories":380,"protein":22,"carbs":8,"fat":28,"prepTime":10,"ingredients":[{"name":"Eier","amount":"3 Stück","price":0.9},{"name":"Speck","amount":"50g","price":1.2},{"name":"Butter","amount":"10g","price":0.1}],"instructions":["Speck in der Pfanne knusprig braten.","Eier verquirlen und dazugeben.","Bei mittlerer Hitze stocken lassen und servieren."]}]}]}`;
 
     class HttpError extends Error {
       status: number;
