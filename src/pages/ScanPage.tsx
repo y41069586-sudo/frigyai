@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Video } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -9,8 +9,17 @@ import IngredientsList from "@/components/IngredientsList";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CookingPrefsSelector from "@/components/CookingPrefsSelector";
+import { Card } from "@/components/ui/card";
 
 const FREE_SCAN_LIMIT = 2;
+
+interface RecentDish {
+  id: string;
+  title: string;
+  prepTime: number;
+  calories: number;
+  date: string;
+}
 
 const ScanPage = () => {
   const navigate = useNavigate();
@@ -19,17 +28,16 @@ const ScanPage = () => {
   const { user, subscriptionStatus } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [scanLimitReached, setScanLimitReached] = useState(false);
-  const [mode, setMode] = useState<"photo" | "video">("photo");
   const [showPrefsSelector, setShowPrefsSelector] = useState(false);
+  const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
 
   const isPremium = subscriptionStatus?.subscribed;
 
-  // Load scan usage on mount
+  // Load scan usage and recent dishes on mount
   useEffect(() => {
     const loadScanUsage = async () => {
       if (!user || isPremium) {
@@ -50,191 +58,22 @@ const ScanPage = () => {
       setScanLimitReached(usedScans >= FREE_SCAN_LIMIT);
     };
 
-    loadScanUsage();
-  }, [user, isPremium]);
-
-
-  const startVideoRecording = async () => {
-    if (!user) {
-      toast({
-        title: t.loginRequired,
-        description: t.loginToUseScanner,
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    if (!isPremium && scansRemaining !== null && scansRemaining <= 0) {
-      setScanLimitReached(true);
-      toast({
-        title: t.scanLimitReached,
-        description: t.upgradeToPremium,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Use native file input for video capture - works better on mobile
-    document.getElementById("videoInput")?.click();
-  };
-
-  const [videoProcessing, setVideoProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState("");
-
-  const processingMessages = [
-    "Video wird verarbeitet...",
-    "Frames werden analysiert...",
-    "Zutaten werden erkannt...",
-    "Bitte haben Sie Geduld...",
-    "Fast fertig...",
-  ];
-
-  // Cycle through processing messages
-  useEffect(() => {
-    if (!videoProcessing) return;
-    
-    let messageIndex = 0;
-    setProcessingMessage(processingMessages[0]);
-    
-    const interval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % processingMessages.length;
-      setProcessingMessage(processingMessages[messageIndex]);
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, [videoProcessing]);
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Create video URL for background playback
-    const videoUrl = URL.createObjectURL(file);
-    setVideoPreview(videoUrl);
-    
-    // Show video processing state with animations
-    setVideoProcessing(true);
-    setAnalyzing(true);
-    setUploading(true);
-
-    try {
-      // Create video element to extract multiple frames
-      const video = document.createElement("video");
-      video.src = videoUrl;
-      video.muted = true;
-      video.playsInline = true;
-
-      await new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => resolve();
-        video.onerror = () => reject(new Error("Video konnte nicht geladen werden"));
-      });
-
-      const duration = video.duration;
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
-      const ctx = canvas.getContext("2d");
-
-      // Extract multiple frames from video for better ingredient recognition
-      const frameTimestamps = [
-        duration * 0.1,  // 10%
-        duration * 0.25, // 25%
-        duration * 0.4,  // 40%
-        duration * 0.5,  // 50% (middle)
-        duration * 0.6,  // 60%
-        duration * 0.75, // 75%
-        duration * 0.9,  // 90%
-      ];
-
-      const allIngredients = new Set<string>();
-
-      for (const timestamp of frameTimestamps) {
-        video.currentTime = timestamp;
-        
-        await new Promise<void>((resolve) => {
-          video.onseeked = () => resolve();
-        });
-
-        ctx?.drawImage(video, 0, 0);
-        const base64 = canvas.toDataURL("image/jpeg", 0.8);
-
-        // Set preview from middle frame
-        if (timestamp === duration * 0.5) {
-          setImagePreview(base64);
+    // Load recent dishes from localStorage
+    const loadRecentDishes = () => {
+      try {
+        const stored = localStorage.getItem('recentDishes');
+        if (stored) {
+          const dishes = JSON.parse(stored) as RecentDish[];
+          setRecentDishes(dishes.slice(0, 5)); // Show max 5 recent dishes
         }
-
-        // Call edge function to analyze this frame
-        const { data, error } = await supabase.functions.invoke(
-          "analyze-ingredients",
-          {
-            body: { image: base64 },
-          }
-        );
-
-        if (error) {
-          if (error.message?.includes("429") || data?.error === "scan_limit_exceeded") {
-            setScanLimitReached(true);
-            setScansRemaining(0);
-            toast({
-              title: t.scanLimitReached,
-              description: t.usedScansToday,
-              variant: "destructive",
-            });
-            setImagePreview(null);
-            setVideoPreview(null);
-            return;
-          }
-          // Continue with other frames even if one fails
-          console.error("Frame analysis error:", error);
-          continue;
-        }
-
-        if (data?.error === "scan_limit_exceeded") {
-          setScanLimitReached(true);
-          setScansRemaining(0);
-          toast({
-            title: t.scanLimitReached,
-            description: data.message || t.upgradeToPremium,
-            variant: "destructive",
-          });
-          setImagePreview(null);
-          setVideoPreview(null);
-          return;
-        }
-
-        // Collect all ingredients from all frames
-        if (data.ingredients) {
-          data.ingredients.forEach((ing: string) => allIngredients.add(ing));
-        }
-        
-        if (data.scansRemaining !== undefined && data.scansRemaining !== null) {
-          setScansRemaining(data.scansRemaining);
-        }
+      } catch (e) {
+        console.error('Error loading recent dishes:', e);
       }
+    };
 
-      // Set combined ingredients from all frames
-      const combinedIngredients = Array.from(allIngredients);
-      setIngredients(combinedIngredients);
-
-      toast({
-        title: t.ingredientsRecognized,
-        description: `${combinedIngredients.length} ${t.ingredientsFound}.`,
-      });
-    } catch (error) {
-      console.error("Error analyzing video:", error);
-      toast({
-        title: t.error,
-        description: t.couldNotAnalyze,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-      setAnalyzing(false);
-      setVideoProcessing(false);
-    }
-  };
-
+    loadScanUsage();
+    loadRecentDishes();
+  }, [user, isPremium]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -353,6 +192,21 @@ const ScanPage = () => {
     setShowPrefsSelector(false);
   };
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Heute';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Gestern';
+    } else {
+      return date.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 safe-bottom">
@@ -435,154 +289,100 @@ const ScanPage = () => {
             </motion.div>
           )}
 
-          {/* Mode Toggle */}
-          {!imagePreview && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-center gap-2 mb-6"
-            >
-              <Button
-                variant={mode === "photo" ? "default" : "outline"}
-                onClick={() => setMode("photo")}
-                className={mode === "photo" ? "gradient-neon text-black" : ""}
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Foto
-              </Button>
-              <Button
-                variant={mode === "video" ? "default" : "outline"}
-                onClick={() => setMode("video")}
-                className={mode === "video" ? "gradient-neon text-black" : ""}
-              >
-                <Video className="h-4 w-4 mr-2" />
-                Video
-              </Button>
-            </motion.div>
-          )}
-
           {/* Upload Area */}
           {!imagePreview ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all bg-card ${
-                scanLimitReached && !isPremium
-                  ? 'border-muted cursor-not-allowed opacity-50'
-                  : 'border-primary/50 hover:border-primary cursor-pointer'
-              }`}
-              onClick={() => {
-                if (scanLimitReached && !isPremium) return;
-                if (mode === "photo") {
+            <>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all bg-card ${
+                  scanLimitReached && !isPremium
+                    ? 'border-muted cursor-not-allowed opacity-50'
+                    : 'border-primary/50 hover:border-primary cursor-pointer'
+                }`}
+                onClick={() => {
+                  if (scanLimitReached && !isPremium) return;
                   document.getElementById("imageInput")?.click();
-                } else {
-                  startVideoRecording();
-                }
-              }}
-            >
-              {mode === "photo" ? (
-                <>
-                  <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
-                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">
-                    {t.uploadPhoto}
-                  </h2>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
-                    {t.takePhotoOrSelect}
-                  </p>
-                  <Button 
-                    className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
-                    disabled={scanLimitReached && !isPremium}
-                  >
-                    {t.selectImage}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Video className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
-                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">
-                    Video aufnehmen
-                  </h2>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
-                    Filme deinen Kühlschrank für eine bessere Erkennung
-                  </p>
-                  <Button 
-                    className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
-                    disabled={scanLimitReached && !isPremium}
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Aufnahme starten
-                  </Button>
-                </>
+                }}
+              >
+                <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
+                <h2 className="text-xl sm:text-2xl font-semibold mb-2">
+                  {t.uploadPhoto}
+                </h2>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
+                  {t.takePhotoOrSelect}
+                </p>
+                <Button 
+                  className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
+                  disabled={scanLimitReached && !isPremium}
+                >
+                  {t.selectImage}
+                </Button>
+                <input
+                  id="imageInput"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={scanLimitReached && !isPremium}
+                />
+              </motion.div>
+
+              {/* Recent Dishes History */}
+              {recentDishes.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-8"
+                >
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    Zuletzt gekocht
+                  </h3>
+                  <div className="space-y-3">
+                    {recentDishes.map((dish, index) => (
+                      <motion.div
+                        key={dish.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                      >
+                        <Card className="p-4 bg-card/50 backdrop-blur border-border/50 hover:bg-card/80 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2.5 rounded-xl bg-primary/10">
+                              <ChefHat className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{dish.title}</p>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                <span>{dish.prepTime} Min</span>
+                                <span>•</span>
+                                <span>{dish.calories} kcal</span>
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {formatDate(dish.date)}
+                            </span>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
               )}
-              <input
-                id="imageInput"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleImageUpload}
-                className="hidden"
-                disabled={scanLimitReached && !isPremium}
-              />
-              <input
-                id="videoInput"
-                type="file"
-                accept="video/*"
-                capture="environment"
-                onChange={handleVideoUpload}
-                className="hidden"
-                disabled={scanLimitReached && !isPremium}
-              />
-            </motion.div>
-          ) : (imagePreview || videoPreview) ? (
+            </>
+          ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="space-y-6"
             >
-              {/* Video/Image Preview with dark overlay during analysis */}
+              {/* Image Preview with dark overlay during analysis */}
               <div className="rounded-3xl overflow-hidden shadow-2xl relative">
-                {videoPreview && analyzing ? (
+                {analyzing ? (
                   <>
-                    {/* Video playing in background */}
-                    <video
-                      src={videoPreview}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-auto"
-                    />
-                    {/* Dark overlay with analyzing UI */}
-                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center">
-                      <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="relative"
-                      >
-                        <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
-                        <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-primary relative z-10" />
-                      </motion.div>
-                      <motion.p 
-                        key={processingMessage}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-xl font-semibold text-white text-center px-4"
-                      >
-                        {processingMessage}
-                      </motion.p>
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="text-sm text-white/70 mt-3 text-center px-4"
-                      >
-                        Alle Zutaten werden erkannt...
-                      </motion.p>
-                    </div>
-                  </>
-                ) : imagePreview && analyzing && !videoPreview ? (
-                  <>
-                    {/* Photo with dark overlay during analysis */}
                     <img
                       src={imagePreview}
                       alt={t.scanFridge}
@@ -608,7 +408,7 @@ const ScanPage = () => {
                   </>
                 ) : (
                   <img
-                    src={imagePreview || ""}
+                    src={imagePreview}
                     alt={t.scanFridge}
                     className="w-full h-auto"
                   />
@@ -648,7 +448,6 @@ const ScanPage = () => {
                         <Button
                           onClick={() => {
                             setImagePreview(null);
-                            setVideoPreview(null);
                             setIngredients([]);
                             setShowPrefsSelector(false);
                           }}
@@ -670,7 +469,7 @@ const ScanPage = () => {
                 </AnimatePresence>
               )}
             </motion.div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

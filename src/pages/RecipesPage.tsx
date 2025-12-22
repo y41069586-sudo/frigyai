@@ -78,6 +78,25 @@ const RecipesPage = () => {
         });
       } else if (data.type === "recipe" && data.recipe) {
         setRecipe(data.recipe);
+        
+        // Save to recent dishes history
+        try {
+          const stored = localStorage.getItem('recentDishes');
+          const recentDishes = stored ? JSON.parse(stored) : [];
+          const newDish = {
+            id: data.recipe.id,
+            title: data.recipe.title,
+            prepTime: data.recipe.prepTime,
+            calories: data.recipe.calories,
+            date: new Date().toISOString(),
+          };
+          // Add to beginning, remove duplicates, keep max 10
+          const updated = [newDish, ...recentDishes.filter((d: any) => d.id !== newDish.id)].slice(0, 10);
+          localStorage.setItem('recentDishes', JSON.stringify(updated));
+        } catch (e) {
+          console.error('Error saving recent dish:', e);
+        }
+        
         toast({
           title: "Perfekt!",
           description: `${data.recipe.title} ist bereit zum Kochen.`,
