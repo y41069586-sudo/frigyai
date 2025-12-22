@@ -77,12 +77,6 @@ serve(async (req) => {
     }
     
     const { image } = parseResult.data;
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-
-    if (!OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured");
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
 
     // Check if user has premium subscription via Stripe
     let isPremium = false;
@@ -153,48 +147,97 @@ serve(async (req) => {
       console.log(`User ${userId} weekly scan count: ${currentCount + 1}/${FREE_SCAN_LIMIT}`);
     }
 
-    console.log("Analyzing image for ingredients using OpenAI Vision...");
+    console.log("Analyzing image for ingredients using Lovable AI Vision...");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
-            content: `Du bist ein Experte für Lebensmittelerkennung und Kühlschrankorganisation.
+            content: `Du bist FRIGY – der intelligenteste Kühlschrank-Scanner der Welt.
 
-AUFGABE: Identifiziere ALLE sichtbaren Lebensmittel im Bild präzise.
+🔬 TIEFENANALYSE-MODUS AKTIVIERT
 
-ERKENNUNGS-REGELN:
-1. Sei SPEZIFISCH: Nicht "Käse", sondern "Gouda", "Mozzarella", "Parmesan"
-2. Unterscheide Varianten: "Hähnchenbrust", "Hackfleisch", "Lachs-Filet"
-3. Beachte Verpackungen: Lies Beschriftungen wenn sichtbar
-4. Mengen ignorieren: Liste nur die Zutat, nicht die Menge
-5. Frische vs. Verarbeitet: "Frische Tomaten" vs "Tomatenmark"
+Du analysierst Kühlschrankbilder mit EXTREMER Präzision. Dein Ziel: JEDES einzelne Lebensmittel erkennen, auch wenn es:
+- Teilweise verdeckt ist
+- In durchsichtigen Behältern steckt
+- Im Hintergrund liegt
+- Auf der Tür steht
+- In Schubladen sichtbar ist
 
-KATEGORIEN zum Achten:
-- Proteine: Fleisch, Fisch, Eier, Tofu, Hülsenfrüchte
-- Milchprodukte: Milch, Joghurt (0%, 1.5%, griechisch), Käsesorten, Quark
-- Gemüse: Frisch, TK, Konserven
-- Obst: Frisch, TK
-- Kohlenhydrate: Brot, Nudeln, Reis, Kartoffeln
-- Fette: Butter, Öle, Avocado
-- Würzmittel: Senf, Ketchup, Saucen
+📦 VERPACKUNGS-ERKENNUNG (KRITISCH!)
+- Lies ALLE sichtbaren Etiketten, Markennamen, Produktnamen
+- Erkenne Verpackungstypen: Dose, Glas, Tetrapack, Folie, Plastikbox
+- Identifiziere spezifische Produkte: "Barilla Spaghetti", "Philadelphia Frischkäse", "Activia Joghurt"
 
-Antworte NUR mit einem JSON-Array auf Deutsch:
-["Hähnchenbrust", "Griechischer Joghurt 0%", "Frische Tomaten", "Mozzarella", "Eier"]`
+🔍 DETAIL-EBENEN
+1. VORDERGRUND: Alles klar sichtbare
+2. MITTELGRUND: Teilweise verdeckte Produkte
+3. HINTERGRUND: Auch unscharfe/kleine Objekte erkennen
+4. TÜRFÄCHER: Saucen, Getränke, Eier
+5. SCHUBLADEN: Gemüse, Obst (auch durch Glas)
+
+🎯 KATEGORIEN MIT BEISPIELEN
+
+PROTEINE:
+- Fleisch: "Hähnchenbrust", "Rinderhackfleisch 500g", "Schweinefilet", "Aufschnitt (Salami)"
+- Fisch: "Räucherlachs", "TK Kabeljau", "Thunfisch Dose"
+- Eier: "Bio-Eier", "Eierkarton (ca. 6 Stück)"
+- Pflanzlich: "Tofu Natur", "Kichererbsen Dose", "Rote Linsen"
+
+MILCHPRODUKTE:
+- Milch: "Vollmilch 3.5%", "Hafermilch", "Sahne"
+- Joghurt: "Griechischer Joghurt 0%", "Naturjoghurt", "Skyr"
+- Käse: "Gouda Scheiben", "Mozzarella Kugel", "Parmesan Stück", "Feta", "Frischkäse"
+- Quark: "Magerquark", "Kräuterquark"
+- Butter: "Butter", "Margarine"
+
+GEMÜSE:
+- Frisch: "Tomaten", "Gurke", "Paprika rot", "Zwiebeln", "Knoblauch", "Karotten", "Brokkoli", "Spinat frisch"
+- Salat: "Eisbergsalat", "Rucola", "Feldsalat"
+- TK: "TK Erbsen", "TK Bohnen"
+
+OBST:
+- "Äpfel", "Bananen", "Zitronen", "Orangen", "Beeren"
+
+KOHLENHYDRATE:
+- "Spaghetti", "Fusilli", "Reis", "Kartoffeln", "Toastbrot", "Vollkornbrot"
+
+SAUCEN & WÜRZMITTEL:
+- "Ketchup", "Senf", "Mayonnaise", "Sojasauce", "Pesto", "Tomatenmark", "Sriracha"
+
+GETRÄNKE:
+- "Apfelsaft", "Wasser", "Cola", "Bier"
+
+⚡ OUTPUT-REGELN
+1. NUR JSON-Array zurückgeben
+2. Auf Deutsch
+3. Sei SPEZIFISCH – nicht "Käse" sondern "Gouda" oder "Frischkäse"
+4. Bei Unsicherheit: Trotzdem auflisten mit Indikator "(evtl.)"
+5. KEINE Duplikate
+6. Sortiere nach Kategorie im Array
+
+Beispiel-Output:
+["Hähnchenbrust", "Eier (6 Stück)", "Vollmilch 3.5%", "Gouda Scheiben", "Mozzarella", "Frischkäse Philadelphia", "Griechischer Joghurt", "Tomaten", "Gurke", "Paprika rot", "Zwiebeln", "Karotten", "Spaghetti Barilla", "Butter", "Ketchup Heinz", "Senf", "Mayonnaise"]`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Analyze this refrigerator image and identify all food ingredients you can see. List them in German."
+                text: "Analysiere dieses Kühlschrankbild EXTREM gründlich. Scanne JEDEN Bereich: Hauptfächer, Türfächer, Schubladen. Lies ALLE Etiketten. Liste JEDES einzelne Lebensmittel auf, auch wenn es teilweise verdeckt ist. Sei dabei so spezifisch wie möglich (Marke, Variante, Menge wenn erkennbar)."
               },
               {
                 type: "image_url",
@@ -205,7 +248,6 @@ Antworte NUR mit einem JSON-Array auf Deutsch:
             ]
           }
         ],
-        max_tokens: 1000,
       }),
     });
 
