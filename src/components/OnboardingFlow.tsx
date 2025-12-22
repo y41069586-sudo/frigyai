@@ -1556,6 +1556,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     </svg>
                   </button>
                 </div>
+               </motion.div>
+              
+              {/* Scientific Sources Card - like reference image */}
+              <motion.div
+                className="w-full max-w-sm mt-6 p-4 rounded-2xl bg-card border border-border/50"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.3 }}
+              >
+                <p className="text-sm text-foreground/80 mb-3 text-left">
+                  Plan basiert unter anderem auf folgenden Quellen und weiteren peer-reviewten medizinischen Studi...
+                </p>
+                <ul className="space-y-1.5 text-left">
+                  {[
+                    { name: "Grundumsatz", url: "https://de.wikipedia.org/wiki/Grundumsatz" },
+                    { name: "Kalorienzählen - Harvard", url: "https://www.hsph.harvard.edu/nutritionsource/calories/" },
+                    { name: "International Society of Sports Nutrition", url: "https://jissn.biomedcentral.com/" },
+                    { name: "National Institutes of Health", url: "https://www.nih.gov/" },
+                  ].map((source, i) => (
+                    <motion.li 
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8 + i * 0.05, duration: 0.2 }}
+                    >
+                      <span className="text-sm text-muted-foreground">• </span>
+                      <a 
+                        href={source.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+                      >
+                        {source.name}
+                      </a>
+                    </motion.li>
+                  ))}
+                </ul>
               </motion.div>
             </div>
           </StepCard>
