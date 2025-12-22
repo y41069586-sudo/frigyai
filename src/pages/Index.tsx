@@ -249,6 +249,12 @@ const Index = () => {
   }, [user, subscriptionStatus]);
   
   const handleOnboardingComplete = () => {
+    // Im Testmodus: Onboarding neu starten statt zum Dashboard
+    if (ONBOARDING_TEST_MODE) {
+      // Onboarding bleibt sichtbar, nur zurück zum Anfang
+      window.location.reload();
+      return;
+    }
     // After onboarding slides, mark complete and go to auth page
     setShowOnboarding(false);
     setOnboardingComplete(true);
