@@ -954,27 +954,28 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         const maxSpeed = 1.5;
         const currentSpeed = userData.weeklyGoal || 0.5;
         
-        // Determine category for visual feedback
-        const getSpeedCategory = (speed: number) => {
-          if (speed <= 0.4) return { label: "Langsam", desc: "Entspannt & nachhaltig", emoji: "🚶", color: "text-green-500" };
-          if (speed <= 0.8) return { label: "Moderat", desc: "Gute Balance", emoji: "🚴", color: "text-blue-500" };
-          if (speed <= 1.1) return { label: "Zügig", desc: "Ambitioniert", emoji: "🚗", color: "text-orange-500" };
-          return { label: "Intensiv", desc: "Maximales Tempo", emoji: "🚀", color: "text-red-500" };
+        // Determine category for visual feedback with animated icons
+        const getSpeedCategory = (speed: number): { label: string; desc: string; Component: typeof AnimatedBicycle; color: string } => {
+          if (speed <= 0.5) return { label: "Langsam", desc: "Entspannt & nachhaltig", Component: AnimatedBicycle, color: "text-green-500" };
+          if (speed <= 0.9) return { label: "Moderat", desc: "Gute Balance", Component: AnimatedCar, color: "text-blue-500" };
+          return { label: "Schnell", desc: "Intensiv & fokussiert", Component: AnimatedRocket, color: "text-orange-500" };
         };
         
         const speedCategory = getSpeedCategory(currentSpeed);
+        const SpeedIcon = speedCategory.Component;
         
         return (
           <StepCard step="speed-select">
             <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Animated Speed Icon */}
               <motion.div 
-                key={speedCategory.emoji}
+                key={speedCategory.label}
                 initial={{ scale: 0.5, opacity: 0 }} 
                 animate={{ scale: 1, opacity: 1 }} 
-                transition={{ duration: 0.3 }} 
-                className="text-5xl mb-4"
+                transition={{ duration: 0.3, type: "spring" }} 
+                className={`mb-4 ${speedCategory.color}`}
               >
-                {speedCategory.emoji}
+                <SpeedIcon selected={true} />
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Dein Tempo</h1>
@@ -1002,6 +1003,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   {speedCategory.label} – {speedCategory.desc}
                 </motion.div>
               </motion.div>
+              
+              {/* Animated Icons as Markers */}
+              <div className="w-full max-w-sm px-2 mb-2">
+                <div className="flex justify-between items-end px-1 mb-1">
+                  <div className={`transition-all duration-200 ${currentSpeed <= 0.5 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
+                    <AnimatedBicycle selected={currentSpeed <= 0.5} />
+                  </div>
+                  <div className={`transition-all duration-200 ${currentSpeed > 0.5 && currentSpeed <= 0.9 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
+                    <AnimatedCar selected={currentSpeed > 0.5 && currentSpeed <= 0.9} />
+                  </div>
+                  <div className={`transition-all duration-200 ${currentSpeed > 0.9 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
+                    <AnimatedRocket selected={currentSpeed > 0.9} />
+                  </div>
+                </div>
+              </div>
               
               {/* Slider */}
               <div className="w-full max-w-sm px-2">
