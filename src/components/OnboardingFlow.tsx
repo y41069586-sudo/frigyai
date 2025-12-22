@@ -1574,7 +1574,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </div>
                </motion.div>
               
-              {/* Scientific Sources Card - like reference image */}
+              {/* Scientific Sources Card - ehrliche Quellen die tatsächlich verwendet werden */}
               <motion.div
                 className="w-full max-w-sm mt-6 p-4 rounded-2xl bg-card border border-border/50"
                 initial={{ opacity: 0, y: 20 }}
@@ -1582,30 +1582,34 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.7, duration: 0.3 }}
               >
                 <p className="text-sm text-foreground/80 mb-3 text-left">
-                  Plan basiert unter anderem auf folgenden Quellen und weiteren peer-reviewten medizinischen Studi...
+                  Berechnung basiert auf folgenden wissenschaftlichen Formeln:
                 </p>
                 <ul className="space-y-1.5 text-left">
                   {[
-                    { name: "Grundumsatz", url: "https://de.wikipedia.org/wiki/Grundumsatz" },
-                    { name: "Kalorienzählen - Harvard", url: "https://www.hsph.harvard.edu/nutritionsource/calories/" },
-                    { name: "International Society of Sports Nutrition", url: "https://jissn.biomedcentral.com/" },
-                    { name: "National Institutes of Health", url: "https://www.nih.gov/" },
+                    { name: "Mifflin-St Jeor Formel (BMR)", url: "https://pubmed.ncbi.nlm.nih.gov/2305711/", desc: "Grundumsatz-Berechnung" },
+                    { name: "TDEE Aktivitätsfaktoren", url: "https://pubmed.ncbi.nlm.nih.gov/8878356/", desc: "Gesamtenergieverbrauch" },
+                    { name: "Protein: 2g/kg Körpergewicht", url: "https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8", desc: "ISSN Protein-Empfehlung" },
+                    { name: "Defizit: 7700 kcal/kg", url: "https://pubmed.ncbi.nlm.nih.gov/21872751/", desc: "Energiebilanz-Regel" },
                   ].map((source, i) => (
                     <motion.li 
                       key={i}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.8 + i * 0.05, duration: 0.2 }}
+                      className="flex flex-col"
                     >
-                      <span className="text-sm text-muted-foreground">• </span>
-                      <a 
-                        href={source.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-foreground underline underline-offset-2 hover:text-primary transition-colors"
-                      >
-                        {source.name}
-                      </a>
+                      <div className="flex items-start gap-1">
+                        <span className="text-sm text-muted-foreground">• </span>
+                        <a 
+                          href={source.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+                        >
+                          {source.name}
+                        </a>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 ml-3">{source.desc}</span>
                     </motion.li>
                   ))}
                 </ul>
