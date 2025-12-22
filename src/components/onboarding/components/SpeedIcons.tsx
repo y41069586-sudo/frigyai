@@ -5,35 +5,149 @@ interface SpeedIconProps {
 }
 
 export const AnimatedBicycle = ({ selected }: SpeedIconProps) => (
-  <svg viewBox="0 0 80 60" className="w-16 h-12">
-    <motion.circle
-      cx="18" cy="42" r="12"
-      fill="none" stroke="currentColor" strokeWidth="2"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "18px 42px" }}
-    />
-    <motion.circle
-      cx="62" cy="42" r="12"
-      fill="none" stroke="currentColor" strokeWidth="2"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "62px 42px" }}
-    />
-    <path d="M18 42 L35 25 L50 25 L62 42 M35 25 L35 42 L50 42 M50 25 L45 15" 
-          stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-    <path d="M45 15 L42 12 M45 15 L50 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  <svg viewBox="0 0 100 80" className="w-20 h-16">
+    {/* Back wheel */}
     <motion.g
       animate={{ rotate: selected ? 360 : 0 }}
       transition={{ duration: 0.6, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "35px 42px" }}
+      style={{ transformOrigin: "22px 58px" }}
     >
-      <circle cx="35" cy="42" r="4" fill="currentColor" />
-      <line x1="35" y1="38" x2="35" y2="46" stroke="currentColor" strokeWidth="2" />
+      <circle cx="22" cy="58" r="14" fill="none" stroke="currentColor" strokeWidth="2.5" />
+      <line x1="22" y1="44" x2="22" y2="72" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+      <line x1="8" y1="58" x2="36" y2="58" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
     </motion.g>
-    <motion.g animate={{ y: selected ? [0, -2, 0] : 0 }} transition={{ duration: 0.4, repeat: selected ? Infinity : 0 }}>
-      <circle cx="40" cy="8" r="5" fill="currentColor" />
-      <path d="M40 13 L40 22 M40 16 L35 25 M40 16 L48 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    
+    {/* Front wheel */}
+    <motion.g
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.6, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "78px 58px" }}
+    >
+      <circle cx="78" cy="58" r="14" fill="none" stroke="currentColor" strokeWidth="2.5" />
+      <line x1="78" y1="44" x2="78" y2="72" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+      <line x1="64" y1="58" x2="92" y2="58" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+    </motion.g>
+    
+    {/* Bike frame */}
+    <path 
+      d="M22 58 L45 35 L65 35 L78 58 M45 35 L45 58 L65 58 M65 35 L60 22" 
+      stroke="currentColor" 
+      strokeWidth="2.5" 
+      fill="none" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+    
+    {/* Handlebar */}
+    <path d="M60 22 L55 18 M60 22 L68 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    
+    {/* Seat */}
+    <path d="M45 35 L38 30 L52 30 Z" fill="currentColor" />
+    
+    {/* Pedal crank - rotating */}
+    <motion.g
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.5, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "45px 58px" }}
+    >
+      <circle cx="45" cy="58" r="5" fill="currentColor" />
+      <line x1="45" y1="52" x2="45" y2="64" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+      {/* Pedals */}
+      <rect x="41" y="50" width="8" height="3" rx="1" fill="currentColor" />
+      <rect x="41" y="65" width="8" height="3" rx="1" fill="currentColor" />
+    </motion.g>
+    
+    {/* Rider */}
+    <motion.g 
+      animate={{ y: selected ? [0, -1, 0, 1, 0] : 0 }} 
+      transition={{ duration: 0.25, repeat: selected ? Infinity : 0 }}
+    >
+      {/* Head */}
+      <circle cx="52" cy="10" r="6" fill="currentColor" />
+      
+      {/* Body - sitting on seat */}
+      <path 
+        d="M52 16 L50 28 M50 28 L45 32" 
+        stroke="currentColor" 
+        strokeWidth="3" 
+        strokeLinecap="round" 
+        fill="none"
+      />
+      
+      {/* Arms to handlebar */}
+      <path 
+        d="M50 22 L60 22" 
+        stroke="currentColor" 
+        strokeWidth="2.5" 
+        strokeLinecap="round"
+      />
+    </motion.g>
+    
+    {/* Left leg - pedaling animation */}
+    <motion.g
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.5, repeat: selected ? Infinity : 0, ease: "linear" }}
+      style={{ transformOrigin: "45px 58px" }}
+    >
+      {/* Thigh */}
+      <motion.path
+        d="M45 32 L45 52"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        style={{ transformOrigin: "45px 32px" }}
+      />
+    </motion.g>
+    
+    {/* Right leg - pedaling (opposite phase) */}
+    <motion.g
+      animate={{ rotate: selected ? 360 : 0 }}
+      transition={{ duration: 0.5, repeat: selected ? Infinity : 0, ease: "linear", delay: 0.25 }}
+      style={{ transformOrigin: "45px 58px" }}
+    >
+      <motion.path
+        d="M45 32 L45 64"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        style={{ transformOrigin: "45px 32px" }}
+      />
+    </motion.g>
+    
+    {/* Animated legs with knee bend */}
+    <motion.g>
+      {/* Left leg */}
+      <motion.path
+        d="M47 32 Q 42 45, 45 52"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+        animate={selected ? {
+          d: [
+            "M47 32 Q 42 45, 45 52",
+            "M47 32 Q 52 48, 45 64",
+            "M47 32 Q 42 45, 45 52"
+          ]
+        } : {}}
+        transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+      />
+      {/* Right leg */}
+      <motion.path
+        d="M47 32 Q 52 48, 45 64"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+        animate={selected ? {
+          d: [
+            "M47 32 Q 52 48, 45 64",
+            "M47 32 Q 42 45, 45 52",
+            "M47 32 Q 52 48, 45 64"
+          ]
+        } : {}}
+        transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+      />
     </motion.g>
   </svg>
 );
