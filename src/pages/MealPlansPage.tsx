@@ -27,6 +27,7 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
+import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 
 interface UserProfile {
   age: number;
@@ -485,7 +486,12 @@ const MealPlansPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-primary safe-area-inset">
+    <>
+      <MealPlanGeneratingOverlay 
+        isGenerating={isGenerating} 
+        elapsedSeconds={generationSeconds} 
+      />
+      <div className="min-h-screen bg-gradient-primary safe-area-inset">
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center">
@@ -731,6 +737,7 @@ const MealPlansPage = () => {
       {/* Bottom Navigation */}
       <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} trackerLoading={trackerLoading} onTabChange={setActiveTab} />
     </div>
+    </>
   );
 };
 
