@@ -383,54 +383,63 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-5"
+            className="flex flex-col"
           >
-            {/* Water */}
-            <div 
-              className="flex-shrink-0 w-28 p-4 bg-sky-500/5 rounded-2xl border border-sky-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate('/meal-plans?tab=tracker')}
-            >
-              <Droplets className="w-5 h-5 text-sky-500 mb-2" />
-              <p className="text-lg font-bold text-foreground">{waterLiters}L</p>
-              <p className="text-[10px] text-muted-foreground">von 2.0L</p>
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-5 pb-3">
+              {/* Water */}
+              <div 
+                className="flex-shrink-0 w-28 p-4 bg-sky-500/5 rounded-2xl border border-sky-500/10 cursor-pointer active:scale-[0.98] transition-transform"
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+              >
+                <Droplets className="w-5 h-5 text-sky-500 mb-2" />
+                <p className="text-lg font-bold text-foreground">{waterLiters}L</p>
+                <p className="text-[10px] text-muted-foreground">von 2.0L</p>
+              </div>
+              
+              {/* Meals Today */}
+              <div 
+                className="flex-shrink-0 w-28 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 cursor-pointer active:scale-[0.98] transition-transform"
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+              >
+                <Utensils className="w-5 h-5 text-amber-500 mb-2" />
+                <p className="text-lg font-bold text-foreground">{todayMeals.length}</p>
+                <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
+              </div>
+              
+              {/* Remaining */}
+              <div 
+                className="flex-shrink-0 w-28 p-4 bg-primary/5 rounded-2xl border border-primary/10 cursor-pointer active:scale-[0.98] transition-transform"
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+              >
+                <TrendingUp className="w-5 h-5 text-primary mb-2" />
+                <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
+                <p className="text-[10px] text-muted-foreground">kcal übrig</p>
+              </div>
+              
+              {/* Progress Chart */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="flex-shrink-0 w-28 p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 cursor-pointer active:scale-[0.98] transition-transform">
+                    <TrendingUp className="w-5 h-5 text-purple-500 mb-2" />
+                    <p className="text-lg font-bold text-foreground">📊</p>
+                    <p className="text-[10px] text-muted-foreground">Verlauf</p>
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Gewichtsverlauf</DialogTitle>
+                  </DialogHeader>
+                  <ProgressCharts />
+                </DialogContent>
+              </Dialog>
             </div>
             
-            {/* Meals Today */}
-            <div 
-              className="flex-shrink-0 w-28 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate('/meal-plans?tab=tracker')}
-            >
-              <Utensils className="w-5 h-5 text-amber-500 mb-2" />
-              <p className="text-lg font-bold text-foreground">{todayMeals.length}</p>
-              <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
+            {/* Swipe Indicator */}
+            <div className="flex justify-center gap-1 mt-1">
+              <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
+              <div className="w-2 h-1 bg-muted-foreground/20 rounded-full" />
+              <div className="w-2 h-1 bg-muted-foreground/20 rounded-full" />
             </div>
-            
-            {/* Remaining */}
-            <div 
-              className="flex-shrink-0 w-28 p-4 bg-primary/5 rounded-2xl border border-primary/10 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate('/meal-plans?tab=tracker')}
-            >
-              <TrendingUp className="w-5 h-5 text-primary mb-2" />
-              <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
-              <p className="text-[10px] text-muted-foreground">kcal übrig</p>
-            </div>
-            
-            {/* Progress Chart */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="flex-shrink-0 w-28 p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 cursor-pointer active:scale-[0.98] transition-transform">
-                  <TrendingUp className="w-5 h-5 text-purple-500 mb-2" />
-                  <p className="text-lg font-bold text-foreground">📊</p>
-                  <p className="text-[10px] text-muted-foreground">Verlauf</p>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Gewichtsverlauf</DialogTitle>
-                </DialogHeader>
-                <ProgressCharts />
-              </DialogContent>
-            </Dialog>
           </motion.section>
           
           {/* Action Cards Grid */}
