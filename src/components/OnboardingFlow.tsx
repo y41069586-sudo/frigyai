@@ -949,17 +949,32 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "speed-select":
-        const speedOptions = [
-          { id: 0.3, label: "Langsam", desc: "Entspannt & nachhaltig", Component: AnimatedBicycle },
-          { id: 0.8, label: "Normal", desc: "Gute Balance", Component: AnimatedCar },
-          { id: 1.4, label: "Schnell", desc: "Intensiv & fokussiert", Component: AnimatedRocket },
-        ];
+        // Slider-based tempo selection (0.1 - 1.5 kg/week)
+        const minSpeed = 0.1;
+        const maxSpeed = 1.5;
+        const currentSpeed = userData.weeklyGoal || 0.5;
+        
+        // Determine category for visual feedback
+        const getSpeedCategory = (speed: number) => {
+          if (speed <= 0.4) return { label: "Langsam", desc: "Entspannt & nachhaltig", emoji: "🚶", color: "text-green-500" };
+          if (speed <= 0.8) return { label: "Moderat", desc: "Gute Balance", emoji: "🚴", color: "text-blue-500" };
+          if (speed <= 1.1) return { label: "Zügig", desc: "Ambitioniert", emoji: "🚗", color: "text-orange-500" };
+          return { label: "Intensiv", desc: "Maximales Tempo", emoji: "🚀", color: "text-red-500" };
+        };
+        
+        const speedCategory = getSpeedCategory(currentSpeed);
         
         return (
           <StepCard step="speed-select">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
-                ⚡
+              <motion.div 
+                key={speedCategory.emoji}
+                initial={{ scale: 0.5, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                transition={{ duration: 0.3 }} 
+                className="text-5xl mb-4"
+              >
+                {speedCategory.emoji}
               </motion.div>
               
               <h1 className="text-2xl font-bold mb-1">Dein Tempo</h1>
@@ -967,46 +982,84 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 Wie schnell möchtest du {userData.goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}?
               </p>
               
-              <div className="w-full max-w-sm space-y-3">
-                {speedOptions.map((option, i) => (
+              {/* Speed Display */}
+              <motion.div 
+                className="mb-6 text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="text-5xl font-bold text-primary mb-1">
+                  {currentSpeed.toFixed(1)}
+                  <span className="text-lg font-normal text-muted-foreground ml-1">kg/Woche</span>
+                </div>
+                <motion.div 
+                  key={speedCategory.label}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`text-sm font-medium ${speedCategory.color}`}
+                >
+                  {speedCategory.label} – {speedCategory.desc}
+                </motion.div>
+              </motion.div>
+              
+              {/* Slider */}
+              <div className="w-full max-w-sm px-2">
+                <input
+                  type="range"
+                  min={minSpeed * 10}
+                  max={maxSpeed * 10}
+                  step={1}
+                  value={currentSpeed * 10}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value) / 10;
+                    selectionTap();
+                    setUserData({ ...userData, weeklyGoal: newValue });
+                  }}
+                  className="w-full h-3 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
+                  style={{
+                    background: `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${((currentSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100}%, hsl(var(--muted)) ${((currentSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100}%, hsl(var(--muted)) 100%)`
+                  }}
+                />
+                
+                {/* Labels */}
+                <div className="flex justify-between mt-2 text-xs text-muted-foreground/60">
+                  <span>0.1 kg</span>
+                  <span>0.5 kg</span>
+                  <span>1.0 kg</span>
+                  <span>1.5 kg</span>
+                </div>
+              </div>
+              
+              {/* Quick Select Buttons */}
+              <div className="flex gap-2 mt-6">
+                {[0.3, 0.5, 0.8, 1.0, 1.2].map((speed) => (
                   <motion.button
-                    key={option.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.08, duration: 0.3 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserData({ ...userData, weeklyGoal: option.id })}
-                    className={`relative w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
-                      userData.weeklyGoal === option.id
-                        ? "border-primary bg-primary/10 shadow-md"
-                        : "border-border bg-card hover:border-primary/30"
+                    key={speed}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      selectionTap();
+                      setUserData({ ...userData, weeklyGoal: speed });
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      Math.abs(currentSpeed - speed) < 0.05
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    <div className={`w-20 h-16 flex items-center justify-center rounded-xl transition-colors ${
-                      userData.weeklyGoal === option.id ? 'text-primary' : 'text-muted-foreground'
-                    }`}>
-                      <option.Component selected={userData.weeklyGoal === option.id} />
-                    </div>
-                    
-                    <div className="flex-1 text-left">
-                      <span className="font-bold block">{option.label}</span>
-                      <span className="text-xs text-muted-foreground/60">{option.desc}</span>
-                      <span className={`text-xs font-semibold block mt-1 ${userData.weeklyGoal === option.id ? 'text-primary' : 'text-muted-foreground/50'}`}>
-                        ~{option.id}kg / Woche
-                      </span>
-                    </div>
-                    
-                    {userData.weeklyGoal === option.id && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }} className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-4 h-4 text-primary-foreground" />
-                      </motion.div>
-                    )}
+                    {speed}
                   </motion.button>
                 ))}
               </div>
               
-              <motion.p className="text-xs text-muted-foreground/40 mt-6 flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
-                <AlertTriangle className="w-3 h-3 text-yellow-500" /> Schnelleres Tempo = mehr Disziplin erforderlich
+              <motion.p 
+                className="text-xs text-muted-foreground/40 mt-6 flex items-center gap-1" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.4, duration: 0.3 }}
+              >
+                <AlertTriangle className="w-3 h-3 text-yellow-500" /> 
+                {currentSpeed >= 1.0 ? "Hohes Tempo erfordert viel Disziplin!" : "Empfohlen: 0.3-0.8 kg pro Woche"}
               </motion.p>
             </div>
           </StepCard>
