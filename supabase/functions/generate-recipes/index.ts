@@ -10,6 +10,8 @@ const corsHeaders = {
 // Input validation schema
 const requestSchema = z.object({
   ingredients: z.array(z.string().min(1).max(100)).min(1).max(50),
+  cookingTime: z.number().optional().default(20),
+  mood: z.enum(['tired', 'normal', 'motivated']).optional().default('normal'),
 });
 
 serve(async (req) => {
@@ -57,66 +59,117 @@ serve(async (req) => {
       );
     }
     
-    const { ingredients } = parseResult.data;
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const { ingredients, cookingTime, mood } = parseResult.data;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating recipes for ingredients:", ingredients);
+    console.log("Processing ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Build the decision prompt
+    const systemPrompt = `Du bist FRIGY – ein smarter, entscheidungsfreudiger Koch-Assistent.
+
+🧱 SCHRITT 1 — ZUTATEN-ANALYSE
+
+Klassifiziere jede Zutat:
+- Protein (Fleisch, Fisch, Eier, Tofu, Hülsenfrüchte, Käse)
+- Kohlenhydrate (Pasta, Reis, Kartoffeln, Brot, Tortillas)
+- Gemüse
+- Fett/Sauce (Öl, Butter, Sahne, Saucen)
+- Gewürze/Optional (Gewürze, Kräuter, Senf, etc.)
+
+Ein kochbares Gericht MUSS enthalten:
+- Mindestens 1 Protein ODER 1 Kohlenhydrat
+- UND mindestens 1 unterstützende Zutat
+
+❌ Wenn NUR Gemüse vorhanden (z.B. Gurke + Paprika):
+→ Das ist KEIN gültiges Hauptgericht
+→ Gib eine hilfreiche Nachricht zurück (siehe unten)
+
+🧱 SCHRITT 2 — ZEIT & STIMMUNG
+
+Verfügbare Kochzeit: ${cookingTime} Minuten
+Stimmung: ${mood === 'tired' ? 'müde' : mood === 'motivated' ? 'motiviert' : 'normal'}
+
+Zeit-Regeln:
+- 10 Min → kein Ofen, max 3-4 Schritte
+- 20 Min → einfache Herd-Gerichte
+- 30+ Min → normales Kochen
+
+Stimmung-Regeln:
+- Müde → minimal Aufwand, One-Pan, kein Multitasking
+- Normal → einfach aber komplett
+- Motiviert → etwas aufwändiger, aber realistisch
+
+🧠 SCHRITT 3 — ENTSCHEIDUNG
+
+Du MUSST EINE einzige beste Rezept-Empfehlung treffen.
+- KEINE Liste von Rezepten
+- KEINE Auswahlmöglichkeiten
+- DU entscheidest für den Nutzer
+
+Wähle das Rezept das:
+1. Die meisten gescannten Zutaten nutzt
+2. Am wenigsten Aufwand erfordert
+3. Am besten zu Zeit + Stimmung passt
+
+🍽️ SCHRITT 4 — VALIDIERUNG
+
+Prüfe vor der Ausgabe:
+- Würde das eine normale Person kochen?
+- Macht es kulinarisch Sinn?
+- Hat es eine klare Hauptkomponente?
+
+🧾 OUTPUT FORMAT
+
+Wenn Zutaten AUSREICHEND sind, gib JSON zurück:
+{
+  "type": "recipe",
+  "recipe": {
+    "id": "unique-id",
+    "title": "Einfacher deutscher Name",
+    "reason": "Kurzer Satz warum dieses Gericht",
+    "calories": 350,
+    "protein": 25,
+    "carbs": 30,
+    "fat": 12,
+    "prepTime": ${cookingTime},
+    "difficulty": "Einfach",
+    "ingredients": ["Zutat 1", "Zutat 2"],
+    "instructions": ["Schritt 1", "Schritt 2", "Schritt 3", "Schritt 4", "Schritt 5"]
+  }
+}
+
+Wenn Zutaten NICHT AUSREICHEND sind:
+{
+  "type": "clarification",
+  "message": "Mit dem was du hast, kann ich noch kein vollständiges Gericht vorschlagen. Wenn du noch Eier, Nudeln oder Reis hinzufügst, kann ich dir etwas Leckeres empfehlen.",
+  "suggestion": "Eier"
+}
+
+REGELN für instructions:
+- Max 5 Schritte
+- Kurz und klar
+- Kein Kochblog-Stil
+
+Erlaubte Basis-Zutaten (immer verfügbar):
+- Öl, Salz, Pfeffer, Wasser
+
+🎯 DEIN ZIEL: Der Nutzer soll aufhören zu überlegen und anfangen zu kochen.`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: `Du bist ein erfahrener Koch und Ernährungsberater, der kreative, ECHTE Rezepte erstellt.
-
-WICHTIG: Erstelle REALISTISCHE Gerichte, die man tatsächlich kochen würde!
-- NICHT einfach Zutaten-Namen kombinieren (z.B. NICHT "Joghurt-Erbsen-Salat")
-- Stattdessen ECHTE Gerichte wie: "Cremiges Erbsen-Curry", "Protein-Bowl mit Joghurt-Dressing", "Gebratene Kichererbsen mit Gemüse"
-
-Denke wie ein Koch: Was kann man aus diesen Zutaten WIRKLICH Leckeres zubereiten?
-
-Regeln:
-- 3-5 Rezepte erstellen
-- Nur 3-4 Zutaten aus der Liste pro Rezept verwenden
-- Unter 500 Kalorien pro Portion
-- Unter 15 Minuten Zubereitungszeit
-- Einfache Zubereitung (Pfanne, Ofen, Mixer)
-
-Return ONLY a valid JSON array:
-[
-  {
-    "id": "unique-kebab-case-id",
-    "title": "Kreativer deutscher Rezeptname",
-    "calories": 350,
-    "protein": 30,
-    "carbs": 25,
-    "fat": 12,
-    "prepTime": 10,
-    "difficulty": "Einfach",
-    "ingredients": ["Zutat 1", "Zutat 2", "Zutat 3"],
-    "instructions": ["Schritt 1...", "Schritt 2...", "Schritt 3..."],
-    "healthierAlternatives": []
-  }
-]
-
-Alle Texte auf Deutsch. Sei kreativ mit den Rezeptnamen!`
-          },
-          {
-            role: "user",
-            content: `Hier sind die verfügbaren Zutaten: ${ingredients.join(", ")}
-
-Erstelle kreative, ECHTE Rezepte die man wirklich kochen würde. Denke an klassische Gerichte wie Rührei, Omelette, Salate mit Dressing, Wraps, Bowls, Pfannengerichte etc. Kombiniere die Zutaten sinnvoll!`
-          }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Gescannte Zutaten: ${ingredients.join(", ")}` }
         ],
       }),
     });
@@ -124,47 +177,61 @@ Erstelle kreative, ECHTE Rezepte die man wirklich kochen würde. Denke an klassi
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI Gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Zu viele Anfragen. Bitte warte einen Moment." }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Service temporär nicht verfügbar." }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "[]";
+    const content = data.choices?.[0]?.message?.content || "{}";
     
     console.log("AI response:", content);
 
-    // Parse the JSON array from the response
-    let recipes = [];
+    // Parse the JSON response
+    let result;
     try {
-      // Try to extract JSON array from the response
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        recipes = JSON.parse(jsonMatch[0]);
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No JSON found in response");
       }
     } catch (e) {
-      console.error("Error parsing recipes:", e);
-      throw new Error("Failed to parse recipe response");
+      console.error("Error parsing response:", e);
+      // Fallback: treat as clarification
+      result = {
+        type: "clarification",
+        message: "Ich konnte die Zutaten nicht richtig analysieren. Bitte versuche es noch einmal.",
+        suggestion: null
+      };
     }
 
-    // Ensure each recipe has a unique ID
-    recipes = recipes.map((recipe: any, index: number) => ({
-      ...recipe,
-      id: recipe.id || `recipe-${Date.now()}-${index}`,
-    }));
+    // Ensure recipe has unique ID
+    if (result.type === "recipe" && result.recipe) {
+      result.recipe.id = result.recipe.id || `recipe-${Date.now()}`;
+    }
 
     return new Response(
-      JSON.stringify({ recipes }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in generate-recipes:", error);
     return new Response(
       JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es erneut." }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
