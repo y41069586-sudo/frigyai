@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +29,10 @@ interface CommunityRecipe {
   fat: number | null;
   prep_time: number | null;
   created_at: string;
-  average_rating?: number;
-  rating_count?: number;
+  average_rating: number;
+  rating_count: number;
+  likes_count: number;
+  isLiked?: boolean;
 }
 
 interface Post {
@@ -61,9 +63,28 @@ export const CommunityPage = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<CommunityRecipe | null>(null);
   const [activeTab, setActiveTab] = useState('recipes');
+  const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+
+  // Load user's likes
+  const loadUserLikes = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('recipe_likes')
+        .select('recipe_id')
+        .eq('user_id', user.id);
+      
+      if (data) {
+        setUserLikes(new Set(data.map(l => l.recipe_id)));
+      }
+    } catch (error) {
+      console.error('Error loading user likes:', error);
+    }
+  }, [user]);
 
   // Load community recipes from database
-  const loadCommunityRecipes = async () => {
+  const loadCommunityRecipes = useCallback(async () => {
     setLoadingRecipes(true);
     try {
       const { data, error } = await supabase
@@ -72,17 +93,71 @@ export const CommunityPage = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCommunityRecipes(data || []);
+      
+      const recipesWithLikes = (data || []).map(recipe => ({
+        ...recipe,
+        average_rating: Number(recipe.average_rating) || 0,
+        rating_count: recipe.rating_count || 0,
+        likes_count: recipe.likes_count || 0,
+        isLiked: userLikes.has(recipe.id)
+      }));
+      
+      setCommunityRecipes(recipesWithLikes);
     } catch (error) {
       console.error('Error loading community recipes:', error);
     } finally {
       setLoadingRecipes(false);
     }
-  };
+  }, [userLikes]);
+
+  useEffect(() => {
+    loadUserLikes();
+  }, [loadUserLikes]);
 
   useEffect(() => {
     loadCommunityRecipes();
-  }, []);
+  }, [loadCommunityRecipes]);
+
+  // Like/unlike a recipe
+  const handleRecipeLike = async (recipeId: string) => {
+    if (!user) {
+      toast({ title: 'Bitte einloggen', variant: 'destructive' });
+      return;
+    }
+
+    const isLiked = userLikes.has(recipeId);
+    
+    try {
+      if (isLiked) {
+        await supabase
+          .from('recipe_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('recipe_id', recipeId);
+        
+        setUserLikes(prev => {
+          const next = new Set(prev);
+          next.delete(recipeId);
+          return next;
+        });
+      } else {
+        await supabase
+          .from('recipe_likes')
+          .insert({ user_id: user.id, recipe_id: recipeId });
+        
+        setUserLikes(prev => new Set([...prev, recipeId]));
+      }
+      
+      // Update local state
+      setCommunityRecipes(prev => prev.map(r => 
+        r.id === recipeId 
+          ? { ...r, likes_count: r.likes_count + (isLiked ? -1 : 1), isLiked: !isLiked }
+          : r
+      ));
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
 
   // Load demo posts
   useEffect(() => {

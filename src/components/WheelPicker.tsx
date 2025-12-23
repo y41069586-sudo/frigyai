@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 
 interface WheelPickerProps {
   value: number;
@@ -24,9 +24,11 @@ export const WheelPicker = ({
   unit = ''
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isUserScrolling = useRef(false);
-  const lastSelectedValue = useRef(value);
-  const scrollEndTimer = useRef<number | null>(null);
+  const isScrollingRef = useRef(false);
+  const lastValueRef = useRef(value);
+  const rafRef = useRef<number | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const itemHeight = 48;
   const visibleItems = 3;
@@ -37,75 +39,125 @@ export const WheelPicker = ({
   for (let i = min; i <= max; i += step) {
     items.push(i);
   }
-  
-  // Sync scroll position when value changes externally
+
+  // Initial scroll position - only once
   useEffect(() => {
-    if (!scrollRef.current || isUserScrolling.current) return;
+    if (!scrollRef.current || isInitialized) return;
     
     const index = items.indexOf(value);
     if (index >= 0) {
-      scrollRef.current.scrollTop = index * itemHeight;
-      lastSelectedValue.current = value;
+      // Use requestAnimationFrame for smoother initial positioning
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = index * itemHeight;
+          lastValueRef.current = value;
+          setIsInitialized(true);
+        }
+      });
     }
-  }, [value, items, itemHeight]);
+  }, [value, items, itemHeight, isInitialized]);
 
-  const handleScrollEnd = useCallback(() => {
+  // Sync scroll when value changes externally (not from scrolling)
+  useEffect(() => {
+    if (!scrollRef.current || !isInitialized || isScrollingRef.current) return;
+    
+    const index = items.indexOf(value);
+    if (index >= 0 && value !== lastValueRef.current) {
+      scrollRef.current.scrollTop = index * itemHeight;
+      lastValueRef.current = value;
+    }
+  }, [value, items, itemHeight, isInitialized]);
+
+  const snapToValue = useCallback(() => {
     if (!scrollRef.current) return;
     
     const scrollTop = scrollRef.current.scrollTop;
     const index = Math.round(scrollTop / itemHeight);
     const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+    const targetScrollTop = clampedIndex * itemHeight;
     const newValue = items[clampedIndex];
     
-    // Snap to position
+    // Smooth snap to position
     scrollRef.current.scrollTo({
-      top: clampedIndex * itemHeight,
+      top: targetScrollTop,
       behavior: 'smooth'
     });
     
     // Update value if changed
-    if (newValue !== lastSelectedValue.current) {
+    if (newValue !== lastValueRef.current) {
       triggerHaptic();
-      lastSelectedValue.current = newValue;
+      lastValueRef.current = newValue;
       onChange(newValue);
     }
     
-    isUserScrolling.current = false;
+    isScrollingRef.current = false;
   }, [items, onChange, itemHeight]);
 
   const handleScroll = useCallback(() => {
-    isUserScrolling.current = true;
+    isScrollingRef.current = true;
     
-    // Clear previous timer
-    if (scrollEndTimer.current) {
-      window.clearTimeout(scrollEndTimer.current);
+    // Cancel any pending RAF
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
     }
     
-    // Set new timer for scroll end detection
-    scrollEndTimer.current = window.setTimeout(handleScrollEnd, 120);
-  }, [handleScrollEnd]);
-  
+    // Clear previous timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Use longer timeout for iOS to ensure scroll momentum has finished
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const scrollEndDelay = isIOS ? 150 : 100;
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      rafRef.current = requestAnimationFrame(snapToValue);
+    }, scrollEndDelay);
+  }, [snapToValue]);
+
   // Cleanup
   useEffect(() => {
     return () => {
-      if (scrollEndTimer.current) {
-        window.clearTimeout(scrollEndTimer.current);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
       }
     };
   }, []);
   
-  const handleItemClick = (item: number) => {
+  const handleItemClick = useCallback((item: number) => {
     const index = items.indexOf(item);
     if (scrollRef.current && index >= 0) {
       triggerHaptic();
+      isScrollingRef.current = true;
       scrollRef.current.scrollTo({
         top: index * itemHeight,
         behavior: 'smooth'
       });
-      lastSelectedValue.current = item;
+      lastValueRef.current = item;
       onChange(item);
+      
+      // Reset scrolling flag after animation
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 300);
     }
-  };
+  }, [items, itemHeight, onChange]);
+
+  // Handle touch end for iOS - ensure snap happens
+  const handleTouchEnd = useCallback(() => {
+    // Clear existing timeout and set a new one
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Longer delay for touch end to handle momentum
+    scrollTimeoutRef.current = setTimeout(() => {
+      rafRef.current = requestAnimationFrame(snapToValue);
+    }, 200);
+  }, [snapToValue]);
   
   const containerHeight = visibleItems * itemHeight;
   const currentIndex = items.indexOf(value);
@@ -139,15 +191,18 @@ export const WheelPicker = ({
         }}
       />
       
-      {/* Scroll container */}
+      {/* Scroll container - iOS optimized */}
       <div
         ref={scrollRef}
-        className="h-full overflow-y-scroll scrollbar-hide overscroll-contain"
+        className="h-full overflow-y-scroll scrollbar-hide"
         style={{ 
           scrollSnapType: 'y mandatory',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+          touchAction: 'pan-y'
         }}
         onScroll={handleScroll}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Top padding */}
         <div style={{ height: paddingItems * itemHeight }} />
@@ -170,7 +225,7 @@ export const WheelPicker = ({
                 fontSize: isSelected ? '1.5rem' : '1rem',
                 opacity,
                 transform: isSelected ? 'scale(1.05)' : 'scale(0.9)',
-                transition: 'opacity 0.1s, transform 0.1s'
+                transition: 'opacity 0.15s ease-out, transform 0.15s ease-out'
               }}
               onClick={() => handleItemClick(item)}
             >
