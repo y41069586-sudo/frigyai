@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3, FileText, Shield, Scale } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3, FileText, Shield, Scale, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
 import { HealthSync } from "@/components/HealthSync";
+import { ReminderSettings } from "@/components/ReminderSettings";
 
 import frigLogo from "@/assets/frig-logo.png";
 
@@ -206,7 +207,20 @@ const ProfilePage = () => {
           </Card>
         </motion.div>
 
-
+        {/* Reminder Settings */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Bell className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Erinnerungen</h3>
+            </div>
+            <ReminderSettings />
+          </Card>
+        </motion.div>
         {/* Quick Links */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
