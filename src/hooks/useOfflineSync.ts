@@ -16,8 +16,8 @@ interface CachedData {
   lastSync: string;
 }
 
-const CACHE_KEY = 'frigbuddy_offline_cache';
-const PENDING_KEY = 'frigbuddy_pending_actions';
+const CACHE_KEY = 'fridgie_offline_cache';
+const PENDING_KEY = 'fridgie_pending_actions';
 
 export const useOfflineSync = () => {
   const { user } = useAuth();

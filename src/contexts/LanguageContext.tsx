@@ -687,7 +687,7 @@ const translations: Record<Language, Translations> = {
     generateMealPlanForList: "Generiere einen Wochenplan um die Einkaufsliste zu sehen",
     
     // AI Chatbot
-    aiAdvisor: "FrigBuddy Berater",
+    aiAdvisor: "Fridgie Berater",
     yourNutritionExpert: "Dein Ernährungsexperte",
     helloImAI: "Hallo! Ich bin dein KI-Assistent.",
     askAboutRecipes: "Frag mich nach Rezepten, App-Hilfe oder sage \"Tracker zurücksetzen\"!",
@@ -1053,7 +1053,7 @@ const translations: Record<Language, Translations> = {
     generateMealPlanForList: "Generate a meal plan to see the shopping list",
     
     // AI Chatbot
-    aiAdvisor: "FrigBuddy Advisor",
+    aiAdvisor: "Fridgie Advisor",
     yourNutritionExpert: "Your nutrition expert",
     helloImAI: "Hello! I am your AI assistant.",
     askAboutRecipes: "Ask me about recipes, app help, or say \"reset tracker\"!",
@@ -1419,7 +1419,7 @@ const translations: Record<Language, Translations> = {
     generateMealPlanForList: "Générez un plan de repas pour voir la liste de courses",
     
     // AI Chatbot
-    aiAdvisor: "Conseiller FrigBuddy",
+    aiAdvisor: "Conseiller Fridgie",
     yourNutritionExpert: "Votre expert en nutrition",
     helloImAI: "Bonjour! Je suis votre assistant IA.",
     askAboutRecipes: "Demandez-moi des recettes, de l'aide sur l'app, ou dites \"réinitialiser le suivi\"!",
