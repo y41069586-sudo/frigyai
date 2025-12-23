@@ -18,6 +18,7 @@ import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
+import { useReminders } from "@/hooks/useReminders";
 
 import frigLogo from "@/assets/frig-logo.png";
 
@@ -27,6 +28,9 @@ const Index = () => {
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
+  
+  // Initialize reminders system
+  useReminders();
   
   // Check localStorage once at mount
   const urlParams = new URLSearchParams(window.location.search);
