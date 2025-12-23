@@ -49,6 +49,7 @@ export type Database = {
       }
       community_recipes: {
         Row: {
+          average_rating: number | null
           calories: number | null
           carbs: number | null
           created_at: string
@@ -58,13 +59,16 @@ export type Database = {
           image_url: string | null
           ingredients: string[]
           instructions: string[]
+          likes_count: number | null
           prep_time: number | null
           protein: number | null
+          rating_count: number | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          average_rating?: number | null
           calories?: number | null
           carbs?: number | null
           created_at?: string
@@ -74,13 +78,16 @@ export type Database = {
           image_url?: string | null
           ingredients: string[]
           instructions: string[]
+          likes_count?: number | null
           prep_time?: number | null
           protein?: number | null
+          rating_count?: number | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          average_rating?: number | null
           calories?: number | null
           carbs?: number | null
           created_at?: string
@@ -90,8 +97,10 @@ export type Database = {
           image_url?: string | null
           ingredients?: string[]
           instructions?: string[]
+          likes_count?: number | null
           prep_time?: number | null
           protein?: number | null
+          rating_count?: number | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -128,6 +137,51 @@ export type Database = {
           date?: string
           fat?: number
           id?: string
+          protein?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      food_entries: {
+        Row: {
+          calories: number
+          carbs: number
+          created_at: string
+          date: string
+          fat: number
+          id: string
+          meal_type: string | null
+          name: string
+          portion: string | null
+          protein: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          date?: string
+          fat?: number
+          id?: string
+          meal_type?: string | null
+          name: string
+          portion?: string | null
+          protein?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          date?: string
+          fat?: number
+          id?: string
+          meal_type?: string | null
+          name?: string
+          portion?: string | null
           protein?: number
           updated_at?: string
           user_id?: string
@@ -243,6 +297,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recipe_comments_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "community_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_likes: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_likes_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "community_recipes"
