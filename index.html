@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>FrigBuddy - 3-Zutaten Abnehm-Rezepte | Gesund & Einfach</title>
+    <title>Fridgie - 3-Zutaten Abnehm-Rezepte | Gesund & Einfach</title>
     <meta name="description" content="Entdecke ultra-einfache 3-Zutaten Abnehm-Rezepte. Scanne deinen Kühlschrank oder gib Zutaten ein - erhalte sofort gesunde, kalorienarme Rezepte unter 500 Kalorien in Sekunden." />
-    <meta name="author" content="FrigBuddy" />
+    <meta name="author" content="Fridgie" />
     <meta name="keywords" content="abnehmen, rezepte, gesund, 3 zutaten, low calorie, einfach, schnell, kühlschrank scan" />
     
     <!-- Mobile App Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="FrigBuddy" />
+    <meta name="apple-mobile-web-app-title" content="Fridgie" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#00FF88" />
     <meta name="format-detection" content="telephone=no" />
@@ -22,13 +22,13 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
 
-    <meta property="og:title" content="FrigBuddy - Ultra-Einfache 3-Zutaten Abnehm-Rezepte" />
+    <meta property="og:title" content="Fridgie - Ultra-Einfache 3-Zutaten Abnehm-Rezepte" />
     <meta property="og:description" content="Scanne deinen Kühlschrank oder gib Zutaten ein - erhalte sofort gesunde, kalorienarme Rezepte in Sekunden. Abnehmen war nie einfacher!" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FrigBuddy - 3-Zutaten Abnehm-Rezepte" />
+    <meta name="twitter:title" content="Fridgie - 3-Zutaten Abnehm-Rezepte" />
     <meta name="twitter:description" content="Ultra-einfache, gesunde Rezepte mit nur 3 Zutaten. Unter 500 Kalorien, unter 15 Minuten!" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
     
@@ -47,7 +47,7 @@
             if (sessionStorage.getItem(FLAG)) return;
             sessionStorage.setItem(FLAG, "1");
 
-            console.warn("[FrigBuddy] Cache-Recovery gestartet:", reason);
+            console.warn("[Fridgie] Cache-Recovery gestartet:", reason);
 
             if ("serviceWorker" in navigator) {
               const regs = await navigator.serviceWorker.getRegistrations();
@@ -59,7 +59,7 @@
               await Promise.all(keys.map((k) => caches.delete(k)));
             }
           } catch (e) {
-            console.warn("[FrigBuddy] Cache-Recovery Fehler (ignoriert):", e);
+            console.warn("[Fridgie] Cache-Recovery Fehler (ignoriert):", e);
           } finally {
             const url = new URL(window.location.href);
             url.searchParams.set("recovered", String(Date.now()));

@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { 
   Activity, Apple, Smartphone, Check, RefreshCw, 
-  Scale, Footprints, Heart, Flame, AlertCircle, Lock, Crown
+  Scale, Footprints, Heart, Flame, AlertCircle, Lock, Crown,
+  Download, Upload, FileText
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HealthSyncProps {
   onClose?: () => void;
@@ -24,8 +27,15 @@ interface SyncSettings {
   autoSync: boolean;
 }
 
+interface HealthData {
+  weight?: number;
+  steps?: number;
+  caloriesBurned?: number;
+  date: string;
+}
+
 export const HealthSync = ({ onClose }: HealthSyncProps) => {
-  const { subscriptionStatus } = useAuth();
+  const { user, subscriptionStatus } = useAuth();
   const navigate = useNavigate();
   const isPremium = subscriptionStatus?.subscribed === true;
 
@@ -46,6 +56,8 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
     return saved ? new Date(saved) : null;
   });
   const [isNativeApp, setIsNativeApp] = useState(false);
+  const [manualWeight, setManualWeight] = useState('');
+  const [importedData, setImportedData] = useState<HealthData[]>([]);
 
   // Health Sync is Premium-only
   if (!isPremium) {
@@ -105,17 +117,14 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
     if (!isNativeApp) {
       toast({
         title: 'Native App erforderlich',
-        description: 'Apple Health ist nur in der iOS App verfügbar.',
-        variant: 'destructive'
+        description: 'Apple Health ist nur in der iOS App verfügbar. Nutze den manuellen Import für die Web-Version.',
       });
       return;
     }
 
     try {
-      // In a real implementation, this would use Capacitor Health plugin
-      // @ts-ignore
+      // @ts-ignore - Capacitor Health plugin
       // await CapacitorHealthkit.requestAuthorization({...});
-      
       setSettings(prev => ({ ...prev, appleHealth: true }));
       toast({ title: 'Apple Health verbunden! 🍎' });
     } catch (error) {
@@ -131,17 +140,14 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
     if (!isNativeApp) {
       toast({
         title: 'Native App erforderlich',
-        description: 'Google Fit ist nur in der Android App verfügbar.',
-        variant: 'destructive'
+        description: 'Google Fit ist nur in der Android App verfügbar. Nutze den manuellen Import für die Web-Version.',
       });
       return;
     }
 
     try {
-      // In a real implementation, this would use Capacitor Google Fit plugin
-      // @ts-ignore
+      // @ts-ignore - Capacitor Google Fit plugin
       // await GoogleFit.authorize();
-      
       setSettings(prev => ({ ...prev, googleFit: true }));
       toast({ title: 'Google Fit verbunden! 🏃' });
     } catch (error) {
@@ -153,19 +159,154 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
     }
   };
 
+  // Manual weight import from file (CSV/JSON)
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let data: HealthData[] = [];
+
+      if (file.name.endsWith('.json')) {
+        const json = JSON.parse(text);
+        // Support various JSON formats
+        if (Array.isArray(json)) {
+          data = json.map((item: any) => ({
+            weight: item.weight || item.value,
+            date: item.date || item.recorded_at || new Date().toISOString()
+          }));
+        } else if (json.data) {
+          data = json.data.map((item: any) => ({
+            weight: item.weight || item.value,
+            date: item.date || new Date().toISOString()
+          }));
+        }
+      } else if (file.name.endsWith('.csv')) {
+        const lines = text.split('\n');
+        const headers = lines[0].toLowerCase().split(',');
+        const weightIdx = headers.findIndex(h => h.includes('weight') || h.includes('gewicht'));
+        const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('datum'));
+
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',');
+          if (values.length > Math.max(weightIdx, dateIdx)) {
+            const weight = parseFloat(values[weightIdx]);
+            if (!isNaN(weight)) {
+              data.push({
+                weight,
+                date: dateIdx >= 0 ? values[dateIdx] : new Date().toISOString()
+              });
+            }
+          }
+        }
+      }
+
+      if (data.length > 0) {
+        setImportedData(data);
+        toast({ 
+          title: `${data.length} Einträge erkannt`,
+          description: 'Klicke auf "Importieren" um die Daten zu speichern.'
+        });
+      } else {
+        toast({ 
+          title: 'Keine Daten gefunden',
+          description: 'Die Datei enthält keine gültigen Gewichtsdaten.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ 
+        title: 'Import fehlgeschlagen',
+        description: 'Die Datei konnte nicht gelesen werden.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleImportData = async () => {
+    if (!user || importedData.length === 0) return;
+
+    setIsSyncing(true);
+    try {
+      // Import weight entries to database
+      const entries = importedData
+        .filter(d => d.weight && d.weight > 0)
+        .map(d => ({
+          user_id: user.id,
+          weight: d.weight!,
+          recorded_at: new Date(d.date).toISOString()
+        }));
+
+      if (entries.length > 0) {
+        const { error } = await supabase
+          .from('weight_entries')
+          .insert(entries);
+
+        if (error) throw error;
+
+        toast({ 
+          title: `${entries.length} Einträge importiert! ✅`,
+          description: 'Die Gewichtsdaten wurden gespeichert.'
+        });
+        setImportedData([]);
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ 
+        title: 'Import fehlgeschlagen',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleManualWeightAdd = async () => {
+    if (!user || !manualWeight) return;
+
+    const weight = parseFloat(manualWeight);
+    if (isNaN(weight) || weight <= 0) {
+      toast({ title: 'Ungültiges Gewicht', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('weight_entries')
+        .insert({
+          user_id: user.id,
+          weight,
+          recorded_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast({ title: `${weight} kg gespeichert! ✅` });
+      setManualWeight('');
+      
+      const now = new Date();
+      setLastSync(now);
+      localStorage.setItem('healthSyncLastSync', now.toISOString());
+    } catch (error) {
+      console.error('Error saving weight:', error);
+      toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+    }
+  };
+
   const handleSync = async () => {
-    if (!settings.appleHealth && !settings.googleFit) {
+    if (!settings.appleHealth && !settings.googleFit && importedData.length === 0) {
       toast({
         title: 'Keine Verbindung',
-        description: 'Verbinde zuerst eine Health App.',
-        variant: 'destructive'
+        description: 'Verbinde eine Health App oder importiere Daten manuell.',
       });
       return;
     }
 
     setIsSyncing(true);
     
-    // Simulate sync
+    // Simulate sync for native apps
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const now = new Date();
@@ -196,6 +337,8 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
     return lastSync.toLocaleDateString('de-DE');
   };
 
+  const isConnected = settings.appleHealth || settings.googleFit;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -205,20 +348,87 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
         </div>
         <h2 className="text-xl font-bold">Health Sync</h2>
         <p className="text-sm text-muted-foreground">
-          Synchronisiere mit Apple Health & Google Fit
+          Synchronisiere deine Gesundheitsdaten
         </p>
       </div>
 
-      {/* Native App Warning */}
+      {/* Web Version - Manual Import Section */}
+      {!isNativeApp && (
+        <Card className="p-4 bg-card/50 border-primary/20">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Download className="h-4 w-4 text-primary" />
+            Manueller Import (Web)
+          </h3>
+          
+          {/* Quick Weight Entry */}
+          <div className="flex gap-2 mb-4">
+            <Input
+              type="number"
+              placeholder="Gewicht in kg"
+              value={manualWeight}
+              onChange={(e) => setManualWeight(e.target.value)}
+              className="flex-1"
+              step="0.1"
+            />
+            <Button 
+              size="sm" 
+              onClick={handleManualWeightAdd}
+              disabled={!manualWeight}
+            >
+              <Scale className="h-4 w-4 mr-1" />
+              Speichern
+            </Button>
+          </div>
+
+          {/* File Import */}
+          <div className="space-y-2">
+            <label className="block">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <FileText className="h-4 w-4" />
+                CSV/JSON Datei importieren
+              </div>
+              <input
+                type="file"
+                accept=".csv,.json"
+                onChange={handleFileImport}
+                className="block w-full text-sm text-muted-foreground
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary/10 file:text-primary
+                  hover:file:bg-primary/20
+                  cursor-pointer"
+              />
+            </label>
+            
+            {importedData.length > 0 && (
+              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
+                <span className="text-sm font-medium">
+                  {importedData.length} Einträge bereit
+                </span>
+                <Button size="sm" onClick={handleImportData} disabled={isSyncing}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  Importieren
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <p className="text-xs text-muted-foreground mt-3">
+            Du kannst Gewichtsdaten aus Google Fit, Apple Health oder Fitnessapps als CSV/JSON exportieren und hier importieren.
+          </p>
+        </Card>
+      )}
+
+      {/* Native App Info */}
       {!isNativeApp && (
         <Card className="p-4 bg-amber-500/10 border-amber-500/30">
           <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <Smartphone className="h-5 w-5 text-amber-500 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-amber-500">Web-Version</p>
+              <p className="text-sm font-medium text-amber-500">Für automatische Sync</p>
               <p className="text-xs text-muted-foreground">
-                Health Sync ist nur in der nativen iOS/Android App verfügbar. 
-                Lade die App aus dem App Store oder Play Store.
+                Lade die native iOS/Android App für automatische Synchronisierung mit Apple Health & Google Fit.
               </p>
             </div>
           </div>
@@ -237,7 +447,7 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
               <div>
                 <p className="font-medium">Apple Health</p>
                 <p className="text-xs text-muted-foreground">
-                  {settings.appleHealth ? 'Verbunden' : 'Nicht verbunden'}
+                  {settings.appleHealth ? 'Verbunden' : isNativeApp ? 'Nicht verbunden' : 'Nur in App'}
                 </p>
               </div>
             </div>
@@ -253,9 +463,10 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
               <Button 
                 size="sm"
                 onClick={handleConnectAppleHealth}
+                variant={isNativeApp ? "default" : "outline"}
                 disabled={!isNativeApp}
               >
-                Verbinden
+                {isNativeApp ? 'Verbinden' : 'App nötig'}
               </Button>
             )}
           </div>
@@ -271,7 +482,7 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
               <div>
                 <p className="font-medium">Google Fit</p>
                 <p className="text-xs text-muted-foreground">
-                  {settings.googleFit ? 'Verbunden' : 'Nicht verbunden'}
+                  {settings.googleFit ? 'Verbunden' : isNativeApp ? 'Nicht verbunden' : 'Nur in App'}
                 </p>
               </div>
             </div>
@@ -287,9 +498,10 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
               <Button 
                 size="sm"
                 onClick={handleConnectGoogleFit}
+                variant={isNativeApp ? "default" : "outline"}
                 disabled={!isNativeApp}
               >
-                Verbinden
+                {isNativeApp ? 'Verbinden' : 'App nötig'}
               </Button>
             )}
           </div>
@@ -297,7 +509,7 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
       </div>
 
       {/* Sync Options */}
-      {(settings.appleHealth || settings.googleFit) && (
+      {isConnected && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -354,31 +566,33 @@ export const HealthSync = ({ onClose }: HealthSyncProps) => {
       )}
 
       {/* Sync Button */}
-      <div className="space-y-2">
-        <Button 
-          className="w-full gap-2" 
-          onClick={handleSync}
-          disabled={isSyncing || (!settings.appleHealth && !settings.googleFit)}
-        >
-          {isSyncing ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Synchronisiere...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4" />
-              Jetzt synchronisieren
-            </>
-          )}
-        </Button>
-        <p className="text-xs text-center text-muted-foreground">
-          Letzte Sync: {formatLastSync()}
-        </p>
-      </div>
+      {isConnected && (
+        <div className="space-y-2">
+          <Button 
+            className="w-full gap-2" 
+            onClick={handleSync}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Synchronisiere...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                Jetzt synchronisieren
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Letzte Sync: {formatLastSync()}
+          </p>
+        </div>
+      )}
 
       {/* Connected Status */}
-      {(settings.appleHealth || settings.googleFit) && (
+      {isConnected && (
         <Card className="p-4 bg-green-500/10 border-green-500/30">
           <div className="flex gap-3">
             <Check className="h-5 w-5 text-green-500 flex-shrink-0" />

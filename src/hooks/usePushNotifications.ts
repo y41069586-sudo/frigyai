@@ -22,17 +22,45 @@ const loadCapacitorPlugins = async () => {
   }
 };
 
+// Check if browser supports notifications
+const isBrowserNotificationSupported = () => {
+  return 'Notification' in window && 'serviceWorker' in navigator;
+};
+
+// Register service worker for push notifications
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw-notifications.js');
+      console.log('[Fridgie] Service Worker registered:', registration.scope);
+      return registration;
+    } catch (error) {
+      console.error('[Fridgie] Service Worker registration failed:', error);
+      return null;
+    }
+  }
+  return null;
+};
+
 export const usePushNotifications = () => {
   const [isCapacitor, setIsCapacitor] = useState(false);
+  const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<"granted" | "denied" | "prompt">("prompt");
   const [token, setToken] = useState<string | null>(null);
+  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     const init = async () => {
+      // Check browser support first
+      const browserSupported = isBrowserNotificationSupported();
+      setIsBrowserSupported(browserSupported);
+
+      // Try to load Capacitor plugins
       const capacitorAvailable = await loadCapacitorPlugins();
       setIsCapacitor(capacitorAvailable && (PushNotifications || LocalNotifications));
 
       if (capacitorAvailable && PushNotifications) {
+        // Capacitor Push Notifications
         const status = await PushNotifications.checkPermissions();
         setPermissionStatus(status.receive);
 
@@ -48,7 +76,7 @@ export const usePushNotifications = () => {
         PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
           console.log("Push notification received:", notification);
           toast({
-            title: notification.title || "FrigBuddy",
+            title: notification.title || "Fridgie",
             description: notification.body,
           });
         });
@@ -59,9 +87,14 @@ export const usePushNotifications = () => {
       } else if (capacitorAvailable && LocalNotifications) {
         const status = await LocalNotifications.checkPermissions();
         setPermissionStatus(status.display);
-      } else {
-        if ("Notification" in window) {
-          setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
+      } else if (browserSupported) {
+        // Browser notifications - register service worker
+        setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
+        
+        // Register service worker for better notification handling
+        const registration = await registerServiceWorker();
+        if (registration) {
+          setSwRegistration(registration);
         }
       }
     };
@@ -93,7 +126,8 @@ export const usePushNotifications = () => {
         });
       }
       return result.display === "granted";
-    } else if ("Notification" in window) {
+    } else if (isBrowserSupported) {
+      // Browser notification permission
       const result = await Notification.requestPermission();
       setPermissionStatus(result as "granted" | "denied" | "prompt");
       
@@ -102,11 +136,19 @@ export const usePushNotifications = () => {
           title: "🔔 Benachrichtigungen aktiviert!",
           description: "Du erhältst jetzt Browser-Benachrichtigungen.",
         });
+        
+        // Re-register service worker if needed
+        if (!swRegistration) {
+          const registration = await registerServiceWorker();
+          if (registration) {
+            setSwRegistration(registration);
+          }
+        }
       }
       return result === "granted";
     }
     return false;
-  }, [isCapacitor]);
+  }, [isCapacitor, isBrowserSupported, swRegistration]);
 
   const sendLocalNotification = useCallback(async (title: string, body: string, data?: any) => {
     if (permissionStatus !== "granted") {
@@ -127,15 +169,27 @@ export const usePushNotifications = () => {
           },
         ],
       });
-    } else if ("Notification" in window) {
-      new Notification(title, {
-        body,
-        icon: "/pwa-192x192.png",
-        badge: "/pwa-192x192.png",
-        data,
-      });
+    } else if (isBrowserSupported) {
+      // Use service worker for better notification handling
+      if (swRegistration) {
+        await swRegistration.showNotification(title, {
+          body,
+          icon: "/pwa-192x192.png",
+          badge: "/pwa-192x192.png",
+          tag: data?.type || 'fridgie-notification',
+          data,
+          requireInteraction: false,
+        });
+      } else {
+        // Fallback to basic notification
+        new Notification(title, {
+          body,
+          icon: "/pwa-192x192.png",
+          data,
+        });
+      }
     }
-  }, [isCapacitor, permissionStatus]);
+  }, [isCapacitor, isBrowserSupported, permissionStatus, swRegistration]);
 
   const scheduleReminder = useCallback(async (
     type: "water" | "meal" | "weight", 
@@ -185,24 +239,53 @@ export const usePushNotifications = () => {
       
       console.log(`Scheduled ${type} reminder for ${time.toISOString()}`);
       return true;
-    } else {
-      // Browser fallback with setTimeout
+    } else if (isBrowserSupported) {
+      // Browser: Use setTimeout for scheduling
       const delay = time.getTime() - Date.now();
       if (delay > 0) {
+        // Store reminder in localStorage for persistence
+        const reminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
+        const reminderId = `${type}_${Date.now()}`;
+        reminders.push({
+          id: reminderId,
+          type,
+          time: time.toISOString(),
+          title,
+          body,
+          recurring
+        });
+        localStorage.setItem('fridgie_reminders', JSON.stringify(reminders));
+
+        // Schedule the notification
         setTimeout(() => {
           sendLocalNotification(title, body, { type });
+          
+          // Remove from storage after sending (if not recurring)
+          if (!recurring) {
+            const updatedReminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
+            const filtered = updatedReminders.filter((r: any) => r.id !== reminderId);
+            localStorage.setItem('fridgie_reminders', JSON.stringify(filtered));
+          }
         }, delay);
+        
+        console.log(`Browser: Scheduled ${type} reminder for ${time.toISOString()}`);
         return true;
       }
     }
     return false;
-  }, [isCapacitor, sendLocalNotification]);
+  }, [isCapacitor, isBrowserSupported, sendLocalNotification]);
 
   const cancelReminder = useCallback(async (type: "water" | "meal" | "weight") => {
     if (isCapacitor && LocalNotifications) {
       const notificationId = type === "water" ? 1 : type === "meal" ? 2 : 3;
       await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
       console.log(`Cancelled ${type} reminder`);
+    } else {
+      // Browser: Remove from localStorage
+      const reminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
+      const filtered = reminders.filter((r: any) => r.type !== type);
+      localStorage.setItem('fridgie_reminders', JSON.stringify(filtered));
+      console.log(`Browser: Cancelled ${type} reminder`);
     }
   }, [isCapacitor]);
 
@@ -233,15 +316,46 @@ export const usePushNotifications = () => {
 
       await LocalNotifications.schedule({ notifications });
       return true;
+    } else if (isBrowserSupported) {
+      // Browser: Schedule each reminder
+      for (const time of reminders) {
+        await scheduleReminder('water', time, false);
+      }
+      return true;
     }
     
     return false;
-  }, [isCapacitor, permissionStatus]);
+  }, [isCapacitor, isBrowserSupported, permissionStatus, scheduleReminder]);
+
+  // Check for pending reminders on page load (browser)
+  useEffect(() => {
+    if (!isBrowserSupported || permissionStatus !== 'granted') return;
+
+    const checkPendingReminders = () => {
+      const reminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
+      const now = Date.now();
+      
+      reminders.forEach((reminder: any) => {
+        const reminderTime = new Date(reminder.time).getTime();
+        const delay = reminderTime - now;
+        
+        if (delay > 0 && delay < 24 * 60 * 60 * 1000) { // Within 24 hours
+          setTimeout(() => {
+            sendLocalNotification(reminder.title, reminder.body, { type: reminder.type });
+          }, delay);
+        }
+      });
+    };
+
+    checkPendingReminders();
+  }, [isBrowserSupported, permissionStatus, sendLocalNotification]);
 
   return {
     isCapacitor,
+    isBrowserSupported,
     permissionStatus,
     token,
+    swRegistration,
     requestPermission,
     sendLocalNotification,
     scheduleReminder,

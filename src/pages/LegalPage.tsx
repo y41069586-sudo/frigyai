@@ -233,7 +233,7 @@ const AGBContent = () => (
     <section>
       <h2 className="text-lg font-semibold text-foreground">§ 1 Geltungsbereich</h2>
       <p className="text-muted-foreground">
-        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der App "FrigBuddy" 
+        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der App "Fridgie" 
         (nachfolgend "App" genannt), bereitgestellt von [Ihr Name/Firma] (nachfolgend "Anbieter").
       </p>
     </section>

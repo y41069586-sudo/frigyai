@@ -159,7 +159,7 @@ const PremiumPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="Fridgie" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
           <h2 className="text-xl font-bold mb-2">{"Premium wird aktiviert..."}</h2>
           <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
         </motion.div>
@@ -176,7 +176,7 @@ const PremiumPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="Fridgie" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
           <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
           <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
         </motion.div>

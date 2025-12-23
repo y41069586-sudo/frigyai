@@ -22,7 +22,7 @@ export const ShareRecipeDialog = ({ recipe, open, onOpenChange }: ShareRecipeDia
   const [copied, setCopied] = useState(false);
 
   const shareUrl = `${window.location.origin}/recipe/${recipe.id}`;
-  const shareText = `🍽️ ${recipe.title} - Nur ${recipe.calories} kcal!\n\nZutaten: ${recipe.ingredients.slice(0, 3).join(", ")}${recipe.ingredients.length > 3 ? "..." : ""}\n\nEntdeckt mit FrigBuddy!`;
+  const shareText = `🍽️ ${recipe.title} - Nur ${recipe.calories} kcal!\n\nZutaten: ${recipe.ingredients.slice(0, 3).join(", ")}${recipe.ingredients.length > 3 ? "..." : ""}\n\nEntdeckt mit Fridgie!`;
 
   const handleCopyLink = async () => {
     try {
