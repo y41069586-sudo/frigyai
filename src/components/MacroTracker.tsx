@@ -16,6 +16,7 @@ import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
+import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
@@ -34,6 +35,7 @@ export interface FoodEntry {
   carbs: number;
   fat: number;
   time: string;
+  image_url?: string;
 }
 
 interface UserProfile {
@@ -58,6 +60,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
+  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals } = useFoodEntries();
   
   const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -276,10 +279,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setIsAnalyzing(true);
     if (imageBase64) {
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
-      playScanStart(); // Play scan start sound
+      playScanStart();
     }
     try {
-      // Only send non-empty food, or imageBase64
       const body: { food?: string; imageBase64?: string } = {};
       if (food && food.trim()) body.food = food.trim();
       if (imageBase64) body.imageBase64 = imageBase64;
@@ -290,20 +292,31 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
       if (error) throw error;
 
+      // Save to database with image_url
+      const savedEntry = await addDbEntry({
+        name: data.name,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat,
+        image_url: data.image_url,
+      });
+
+      // Also update local state for immediate UI feedback
       const newEntry: FoodEntry = {
-        id: Date.now().toString(),
+        id: savedEntry?.id || Date.now().toString(),
         name: data.name,
         calories: data.calories,
         protein: data.protein,
         carbs: data.carbs,
         fat: data.fat,
         time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        image_url: data.image_url,
       };
 
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
       
-      // Show success overlay with confetti for image scans
       if (imageBase64) {
         setLastAnalyzedFood({
           name: data.name,
@@ -313,13 +326,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           fat: data.fat,
         });
         setShowSuccessOverlay(true);
-        playSuccess(); // Play success sound
+        playSuccess();
       } else {
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
-        playClick(); // Play click sound for text input
+        playClick();
       }
       
-      // Record activity for streak and award badge
       recordActivity();
       checkAndAwardBadge('meal_logged');
     } catch (error) {

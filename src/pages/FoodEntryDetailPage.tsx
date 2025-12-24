@@ -1,107 +1,137 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Flame, Beef, Wheat, Droplets, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Flame, Beef, Wheat, Droplets, Save, Trash2, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
-
-interface FoodEntry {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  time: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FoodEntryDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const { t } = useLanguage();
+  const { user } = useAuth();
   
-  const [entry, setEntry] = useState<FoodEntry | null>(null);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [calories, setCalories] = useState(0);
   const [protein, setProtein] = useState(0);
   const [carbs, setCarbs] = useState(0);
   const [fat, setFat] = useState(0);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [originalData, setOriginalData] = useState({
+    name: '',
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  });
   const [hasChanges, setHasChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Load entry from localStorage
+  // Load entry from database
   useEffect(() => {
-    const saved = localStorage.getItem('todayFood');
-    if (saved && id) {
-      const data = JSON.parse(saved);
-      const foundEntry = data.entries?.find((e: FoodEntry) => e.id === id);
-      if (foundEntry) {
-        setEntry(foundEntry);
-        setName(foundEntry.name);
-        setCalories(foundEntry.calories);
-        setProtein(foundEntry.protein);
-        setCarbs(foundEntry.carbs);
-        setFat(foundEntry.fat);
+    const loadEntry = async () => {
+      if (!id || !user) {
+        setLoading(false);
+        return;
       }
-    }
-  }, [id]);
 
-  const handleSave = () => {
-    if (!entry) return;
+      try {
+        const { data, error } = await supabase
+          .from('food_entries')
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setName(data.name);
+          setCalories(data.calories);
+          setProtein(data.protein);
+          setCarbs(data.carbs);
+          setFat(data.fat);
+          setImageUrl(data.image_url);
+          setOriginalData({
+            name: data.name,
+            calories: data.calories,
+            protein: data.protein,
+            carbs: data.carbs,
+            fat: data.fat
+          });
+        }
+      } catch (error) {
+        console.error('Error loading entry:', error);
+        toast({ title: 'Fehler beim Laden', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEntry();
+  }, [id, user]);
+
+  const handleSave = async () => {
+    if (!id || !user) return;
     
-    const saved = localStorage.getItem('todayFood');
-    if (saved) {
-      const data = JSON.parse(saved);
-      const updatedEntries = data.entries.map((e: FoodEntry) =>
-        e.id === entry.id
-          ? { ...e, name, calories, protein, carbs, fat }
-          : e
-      );
-      localStorage.setItem('todayFood', JSON.stringify({
-        ...data,
-        entries: updatedEntries,
-      }));
-      toast({ title: 'Gespeichert', description: `${name} wurde aktualisiert` });
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('food_entries')
+        .update({ name, calories, protein, carbs, fat })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Gespeichert' });
       navigate('/meal-plans?tab=tracker');
+    } catch (error) {
+      console.error('Error saving:', error);
+      toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = () => {
-    if (!entry) return;
+  const handleDelete = async () => {
+    if (!id || !user) return;
     
-    const saved = localStorage.getItem('todayFood');
-    if (saved) {
-      const data = JSON.parse(saved);
-      const updatedEntries = data.entries.filter((e: FoodEntry) => e.id !== entry.id);
-      localStorage.setItem('todayFood', JSON.stringify({
-        ...data,
-        entries: updatedEntries,
-      }));
-      toast({ title: 'Gelöscht', description: `${entry.name} wurde entfernt` });
+    try {
+      const { error } = await supabase
+        .from('food_entries')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Gelöscht' });
       navigate('/meal-plans?tab=tracker');
+    } catch (error) {
+      console.error('Error deleting:', error);
+      toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
     }
   };
 
   // Track changes
   useEffect(() => {
-    if (entry) {
-      const changed = 
-        name !== entry.name ||
-        calories !== entry.calories ||
-        protein !== entry.protein ||
-        carbs !== entry.carbs ||
-        fat !== entry.fat;
-      setHasChanges(changed);
-    }
-  }, [name, calories, protein, carbs, fat, entry]);
+    const changed = 
+      name !== originalData.name ||
+      calories !== originalData.calories ||
+      protein !== originalData.protein ||
+      carbs !== originalData.carbs ||
+      fat !== originalData.fat;
+    setHasChanges(changed);
+  }, [name, calories, protein, carbs, fat, originalData]);
 
-  if (!entry) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Eintrag nicht gefunden</p>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -112,167 +142,165 @@ const FoodEntryDetailPage = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative h-56 bg-gradient-to-br from-primary/20 via-primary/10 to-background"
+        transition={{ duration: 0.4 }}
+        className="relative h-64 overflow-hidden"
       >
-        {/* Food Emoji as placeholder for photo */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="w-28 h-28 rounded-3xl bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-2xl border border-primary/20"
-          >
-            <span className="text-6xl">🍽️</span>
-          </motion.div>
-        </div>
+        {imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+            <Image className="w-16 h-16 text-muted-foreground/30" />
+          </div>
+        )}
+        
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
         
         {/* Back Button */}
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="absolute top-4 left-4"
+          className="absolute top-4 left-4 z-10"
         >
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/meal-plans?tab=tracker')}
-            className="bg-background/80 backdrop-blur-sm hover:bg-background"
+            className="bg-background/60 backdrop-blur-md hover:bg-background/80 border border-border/50"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-        </motion.div>
-
-        {/* Time Badge */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm text-xs font-medium text-muted-foreground"
-        >
-          {entry.time}
         </motion.div>
       </motion.div>
 
       {/* Content */}
       <motion.div
-        initial={{ y: 30, opacity: 0 }}
+        initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.4 }}
-        className="px-4 py-6 space-y-6 -mt-6"
+        transition={{ delay: 0.2, duration: 0.4 }}
+        className="px-4 pb-8 -mt-16 relative z-10"
       >
-        {/* Name Input */}
-        <Card className="p-4 bg-card border-border/30">
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">
-            Name
-          </label>
+        {/* Name Input Card */}
+        <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/50 p-5 mb-4 shadow-lg">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="text-lg font-semibold border-0 bg-transparent px-0 focus-visible:ring-0"
+            className="text-xl font-semibold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/50"
             placeholder="Mahlzeit Name"
           />
-        </Card>
+        </div>
 
         {/* Macros Grid */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-2 gap-3"
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-2 gap-3 mb-6"
         >
           {/* Calories */}
-          <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                <Flame className="h-4 w-4 text-orange-500" />
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
+                <Flame className="h-5 w-5 text-orange-500" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Kalorien</span>
+              <span className="text-sm text-muted-foreground">Kalorien</span>
             </div>
-            <Input
-              type="number"
-              value={calories}
-              onChange={(e) => setCalories(Number(e.target.value))}
-              className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
-            />
-            <span className="text-xs text-muted-foreground">kcal</span>
-          </Card>
+            <div className="flex items-baseline gap-1">
+              <Input
+                type="number"
+                value={calories}
+                onChange={(e) => setCalories(Number(e.target.value))}
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-20"
+              />
+              <span className="text-sm text-muted-foreground">kcal</span>
+            </div>
+          </div>
 
           {/* Protein */}
-          <Card className="p-4 bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
-                <Beef className="h-4 w-4 text-red-500" />
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center">
+                <Beef className="h-5 w-5 text-red-500" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Protein</span>
+              <span className="text-sm text-muted-foreground">Protein</span>
             </div>
-            <Input
-              type="number"
-              value={protein}
-              onChange={(e) => setProtein(Number(e.target.value))}
-              className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
-            />
-            <span className="text-xs text-muted-foreground">g</span>
-          </Card>
+            <div className="flex items-baseline gap-1">
+              <Input
+                type="number"
+                value={protein}
+                onChange={(e) => setProtein(Number(e.target.value))}
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-16"
+              />
+              <span className="text-sm text-muted-foreground">g</span>
+            </div>
+          </div>
 
           {/* Carbs */}
-          <Card className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <Wheat className="h-4 w-4 text-amber-500" />
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Wheat className="h-5 w-5 text-amber-500" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Kohlenhydrate</span>
+              <span className="text-sm text-muted-foreground">Carbs</span>
             </div>
-            <Input
-              type="number"
-              value={carbs}
-              onChange={(e) => setCarbs(Number(e.target.value))}
-              className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
-            />
-            <span className="text-xs text-muted-foreground">g</span>
-          </Card>
+            <div className="flex items-baseline gap-1">
+              <Input
+                type="number"
+                value={carbs}
+                onChange={(e) => setCarbs(Number(e.target.value))}
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-16"
+              />
+              <span className="text-sm text-muted-foreground">g</span>
+            </div>
+          </div>
 
           {/* Fat */}
-          <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <Droplets className="h-4 w-4 text-blue-500" />
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-sky-500/15 flex items-center justify-center">
+                <Droplets className="h-5 w-5 text-sky-500" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground">Fett</span>
+              <span className="text-sm text-muted-foreground">Fett</span>
             </div>
-            <Input
-              type="number"
-              value={fat}
-              onChange={(e) => setFat(Number(e.target.value))}
-              className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
-            />
-            <span className="text-xs text-muted-foreground">g</span>
-          </Card>
+            <div className="flex items-baseline gap-1">
+              <Input
+                type="number"
+                value={fat}
+                onChange={(e) => setFat(Number(e.target.value))}
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-16"
+              />
+              <span className="text-sm text-muted-foreground">g</span>
+            </div>
+          </div>
         </motion.div>
 
         {/* Action Buttons */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex gap-3 pt-4"
+          transition={{ delay: 0.4 }}
+          className="flex gap-3"
         >
           <Button
             variant="outline"
             onClick={handleDelete}
-            className="flex-1 h-12 border-destructive/30 text-destructive hover:bg-destructive/10"
+            className="flex-1 h-12 border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Löschen
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!hasChanges}
+            disabled={!hasChanges || saving}
             className="flex-1 h-12"
           >
             <Save className="h-4 w-4 mr-2" />
-            Speichern
+            {saving ? 'Speichert...' : 'Speichern'}
           </Button>
         </motion.div>
       </motion.div>

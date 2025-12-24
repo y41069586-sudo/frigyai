@@ -15,6 +15,7 @@ export interface FoodEntry {
   meal_type?: string;
   date: string;
   created_at: string;
+  image_url?: string;
 }
 
 export const useFoodEntries = () => {
@@ -122,6 +123,7 @@ export const useFoodEntries = () => {
           fat: entry.fat,
           portion: entry.portion,
           meal_type: entry.meal_type,
+          image_url: entry.image_url,
           date: today
         })
         .select()
