@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Flame, TrendingUp } from "lucide-react";
+import { Flame } from "lucide-react";
 
 interface DashboardMacroRingProps {
   caloriesEaten: number;
@@ -133,30 +133,19 @@ export const DashboardMacroRing = ({
         </motion.div>
         
         {/* Right side info */}
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.4 }}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Noch übrig</span>
-            </div>
-            <p className="text-2xl font-bold text-primary">
-              {remainingCalories.toLocaleString('de-DE')}
+            <p className="text-sm text-muted-foreground mb-1">Tagesziel</p>
+            <p className="text-2xl font-bold text-foreground">
+              {targetCalories.toLocaleString('de-DE')}
               <span className="text-sm font-normal text-muted-foreground ml-1">kcal</span>
             </p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="pt-2 border-t border-border/30"
-          >
-            <p className="text-xs text-muted-foreground">
-              Tagesziel: <span className="font-semibold text-foreground">{targetCalories.toLocaleString('de-DE')} kcal</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              {Math.round((caloriesEaten / targetCalories) * 100)}% erreicht
             </p>
           </motion.div>
         </div>

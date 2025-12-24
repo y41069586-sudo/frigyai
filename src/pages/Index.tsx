@@ -331,23 +331,23 @@ const Index = () => {
           
           {/* Header - Clean & Modern */}
           <motion.header
-            className="flex items-center justify-between"
+            className="flex items-center justify-between gap-4"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground font-medium">
                 {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'short' })}
               </p>
-              <h1 className="text-2xl font-bold text-foreground mt-0.5">
+              <h1 className="text-xl font-bold text-foreground mt-0.5 truncate">
                 {displayName ? `Hey, ${displayName}` : 'Willkommen'} 👋
               </h1>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {currentStreak > 0 && (
                 <motion.div 
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 rounded-full"
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 rounded-full"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
@@ -359,7 +359,7 @@ const Index = () => {
               
               <motion.button 
                 onClick={() => navigate('/profile')}
-                className="w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center"
+                className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center"
                 whileTap={{ scale: 0.95 }}
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
@@ -418,15 +418,6 @@ const Index = () => {
                 <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
               </div>
               
-              {/* Remaining */}
-              <div 
-                className="flex-shrink-0 w-28 p-4 bg-primary/5 rounded-2xl border border-primary/10 cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => navigate('/meal-plans?tab=tracker')}
-              >
-                <TrendingUp className="w-5 h-5 text-primary mb-2" />
-                <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
-                <p className="text-[10px] text-muted-foreground">kcal übrig</p>
-              </div>
               
               {/* Progress Chart */}
               <Dialog>
