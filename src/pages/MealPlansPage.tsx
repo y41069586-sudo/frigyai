@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
 import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3, Crown } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
@@ -27,7 +28,6 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
-import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 
 interface UserProfile {
   age: number;
@@ -487,10 +487,6 @@ const MealPlansPage = () => {
 
   return (
     <>
-      <MealPlanGeneratingOverlay 
-        isGenerating={isGenerating} 
-        elapsedSeconds={generationSeconds} 
-      />
       <div className="min-h-screen bg-gradient-primary safe-area-inset">
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">

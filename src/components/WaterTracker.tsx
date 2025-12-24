@@ -12,21 +12,29 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useGamification } from '@/hooks/useGamification';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 
-const ML_PER_GLASS = 250;
+const ML_PER_CUP = 200;
+
+// Cup icon component
+const CupIcon = ({ className, filled }: { className?: string; filled?: boolean }) => (
+  <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} className={className} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" fill={filled ? "currentColor" : "none"} />
+  </svg>
+);
 
 export const WaterTracker = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playWaterDrop, playGoalReached } = useSoundEffects();
-  const [glasses, setGlasses] = useState(0);
+  const [cups, setCups] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [dailyGoal, setDailyGoal] = useState(8); // Default 8 glasses = 2L
-  const [tempGoal, setTempGoal] = useState(8);
+  const [dailyGoal, setDailyGoal] = useState(10); // Default 10 cups = 2L
+  const [tempGoal, setTempGoal] = useState(10);
 
   useEffect(() => {
     // Load saved goal from localStorage
-    const savedGoal = localStorage.getItem('waterDailyGoal');
+    const savedGoal = localStorage.getItem('waterDailyGoalCups');
     if (savedGoal) {
       const goal = parseInt(savedGoal);
       setDailyGoal(goal);
@@ -51,45 +59,43 @@ export const WaterTracker = () => {
       .maybeSingle();
 
     if (!error && data) {
-      setGlasses(data.glasses);
+      setCups(data.glasses);
     }
   };
 
   const updateIntake = async (change: number) => {
     if (!user) return;
     
-    const newGlasses = Math.max(0, Math.min(20, glasses + change));
+    const newCups = Math.max(0, Math.min(20, cups + change));
     const today = new Date().toISOString().split('T')[0];
     
     setIsLoading(true);
-    setGlasses(newGlasses);
+    setCups(newCups);
 
     const { error } = await supabase
       .from('water_intake')
       .upsert(
-        { user_id: user.id, date: today, glasses: newGlasses },
+        { user_id: user.id, date: today, glasses: newCups },
         { onConflict: 'user_id,date' }
       );
 
     if (error) {
       console.error('Error updating water intake:', error);
-      setGlasses(glasses); // Revert on error
+      setCups(cups); // Revert on error
       toast({ title: t.error, variant: 'destructive' });
     } else {
-      const mlDrunk = newGlasses * ML_PER_GLASS;
+      const mlDrunk = newCups * ML_PER_CUP;
       if (change > 0) {
-        playWaterDrop(); // Play water drop sound
+        playWaterDrop();
         toast({ 
           title: t.waterAdded, 
           description: `${mlDrunk}ml ${t.today.toLowerCase()}` 
         });
-        // Record activity for streak
         recordActivity();
       }
-      if (newGlasses >= dailyGoal && glasses < dailyGoal) {
-        playGoalReached(); // Play goal reached fanfare
+      if (newCups >= dailyGoal && cups < dailyGoal) {
+        playGoalReached();
         toast({ title: `🎉 ${t.dailyGoalReached}`, description: t.wellDone });
-        // Award water goal badge
         checkAndAwardBadge('water_goal');
       }
     }
@@ -100,14 +106,14 @@ export const WaterTracker = () => {
   const saveGoal = () => {
     if (tempGoal >= 1 && tempGoal <= 20) {
       setDailyGoal(tempGoal);
-      localStorage.setItem('waterDailyGoal', tempGoal.toString());
-      toast({ title: t.goalSaved, description: `${tempGoal} ${t.glasses} (${tempGoal * ML_PER_GLASS}ml) ${t.perDay}` });
+      localStorage.setItem('waterDailyGoalCups', tempGoal.toString());
+      toast({ title: t.goalSaved, description: `${tempGoal} Tassen (${tempGoal * ML_PER_CUP}ml) ${t.perDay}` });
     }
   };
 
-  const progress = (glasses / dailyGoal) * 100;
-  const mlDrunk = glasses * ML_PER_GLASS;
-  const mlGoal = dailyGoal * ML_PER_GLASS;
+  const progress = (cups / dailyGoal) * 100;
+  const mlDrunk = cups * ML_PER_CUP;
+  const mlGoal = dailyGoal * ML_PER_CUP;
 
   return (
     <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
@@ -117,7 +123,7 @@ export const WaterTracker = () => {
           {t.waterTracker}
         </h4>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{glasses}/{dailyGoal} {t.glasses}</span>
+          <span className="text-sm text-muted-foreground">{cups}/{dailyGoal} Tassen</span>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -136,10 +142,10 @@ export const WaterTracker = () => {
                     onChange={(e) => setTempGoal(parseInt(e.target.value) || 1)}
                     className="w-20"
                   />
-                  <span className="text-sm text-muted-foreground">{t.glasses}</span>
+                  <span className="text-sm text-muted-foreground">Tassen</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  = {tempGoal * ML_PER_GLASS}ml {t.perDay}
+                  = {tempGoal * ML_PER_CUP}ml {t.perDay}
                 </p>
                 <Button onClick={saveGoal} size="sm" className="w-full">
                   {t.save}
@@ -227,22 +233,24 @@ export const WaterTracker = () => {
         )}
       </div>
 
-      {/* Glass icons */}
-      <div className="flex flex-wrap gap-1 justify-center mb-4">
+      {/* Cup icons */}
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
         {Array.from({ length: dailyGoal }).map((_, i) => (
           <motion.div
             key={i}
             initial={{ scale: 0.8, opacity: 0.5 }}
             animate={{ 
-              scale: i < glasses ? 1 : 0.8, 
-              opacity: i < glasses ? 1 : 0.3 
+              scale: i < cups ? 1 : 0.8, 
+              opacity: i < cups ? 1 : 0.3 
             }}
-            className={`w-6 h-8 rounded-b-lg border-2 ${
-              i < glasses 
-                ? 'bg-blue-400/80 border-blue-500' 
-                : 'bg-transparent border-muted-foreground/30'
+            className={`transition-colors ${
+              i < cups 
+                ? 'text-blue-400' 
+                : 'text-muted-foreground/30'
             }`}
-          />
+          >
+            <CupIcon className="w-7 h-7" filled={i < cups} />
+          </motion.div>
         ))}
       </div>
 
@@ -252,7 +260,7 @@ export const WaterTracker = () => {
           variant="outline"
           size="icon"
           onClick={() => updateIntake(-1)}
-          disabled={isLoading || glasses <= 0}
+          disabled={isLoading || cups <= 0}
           className="rounded-full"
         >
           <Minus className="h-4 w-4" />
@@ -262,7 +270,7 @@ export const WaterTracker = () => {
           disabled={isLoading}
           className="glow-button px-6"
         >
-          <Plus className="h-4 w-4 mr-1" /> +{ML_PER_GLASS}ml
+          <CupIcon className="h-4 w-4 mr-1" /> +{ML_PER_CUP}ml
         </Button>
         <Button
           variant="outline"
@@ -276,7 +284,7 @@ export const WaterTracker = () => {
       </div>
 
       <p className="text-xs text-center text-muted-foreground mt-3">
-        {ML_PER_GLASS}ml {t.perDay.split(' ')[0]} • {t.goal}: {mlGoal / 1000}L
+        {ML_PER_CUP}ml pro Tasse • {t.goal}: {mlGoal / 1000}L
       </p>
     </Card>
   );

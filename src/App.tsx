@@ -6,9 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { MealPlanProvider } from "@/contexts/MealPlanContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
+import { MealPlanGeneratingOverlay } from "@/components/MealPlanGeneratingOverlay";
+import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
 
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -44,10 +47,25 @@ const queryClient = new QueryClient({
   },
 });
 
+// Global overlay component that uses the context
+const GlobalMealPlanOverlay = () => {
+  const { isGenerating, isMinimized, elapsedSeconds, setMinimized } = useMealPlanGeneration();
+  
+  return (
+    <MealPlanGeneratingOverlay
+      isGenerating={isGenerating}
+      isMinimized={isMinimized}
+      elapsedSeconds={elapsedSeconds}
+      onMinimize={() => setMinimized(true)}
+    />
+  );
+};
+
 const AppContent = () => {
   return (
     <>
       <OfflineIndicator />
+      <GlobalMealPlanOverlay />
       <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -88,7 +106,9 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <AuthProvider>
-                <AppContent />
+                <MealPlanProvider>
+                  <AppContent />
+                </MealPlanProvider>
               </AuthProvider>
             </BrowserRouter>
           </TooltipProvider>
