@@ -300,7 +300,7 @@ const Index = () => {
   
   const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
   const calorieProgress = Math.min(100, (caloriesEaten / targetCalories) * 100);
-  const waterLiters = (waterGlasses * 0.25).toFixed(1);
+  const waterLiters = (waterGlasses * 0.2).toFixed(1);
 
   // Wait for auth before showing anything
   if (loading) {
@@ -391,64 +391,61 @@ const Index = () => {
             </div>
           </motion.section>
           
-          {/* Quick Stats - Horizontal Scroll */}
+          {/* Water Widget - Full Width */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="flex flex-col"
           >
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-5 pb-3">
-              {/* Water Widget */}
-              <DashboardWaterWidget 
-                waterGlasses={waterGlasses} 
-                onWaterUpdate={setWaterGlasses} 
-              />
-              
-              {/* Meals Today */}
-              <div 
-                className="flex-shrink-0 w-28 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => navigate('/meal-plans?tab=tracker')}
-              >
-                <Utensils className="w-5 h-5 text-amber-500 mb-2" />
-                <p className="text-lg font-bold text-foreground">{todayMeals.length}</p>
-                <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
-              </div>
-              
-              {/* Remaining Calories */}
-              <div 
-                className="flex-shrink-0 w-28 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => navigate('/meal-plans?tab=tracker')}
-              >
-                <Zap className="w-5 h-5 text-emerald-500 mb-2" />
-                <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
-                <p className="text-[10px] text-muted-foreground">kcal übrig</p>
-              </div>
-              
-              {/* Progress Chart */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div className="flex-shrink-0 w-28 p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 cursor-pointer active:scale-[0.98] transition-transform">
-                    <TrendingUp className="w-5 h-5 text-purple-500 mb-2" />
-                    <p className="text-lg font-bold text-foreground">📊</p>
-                    <p className="text-[10px] text-muted-foreground">Verlauf</p>
-                  </div>
-                </DialogTrigger>
-                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Gewichtsverlauf</DialogTitle>
-                  </DialogHeader>
-                  <ProgressCharts />
-                </DialogContent>
-              </Dialog>
+            <DashboardWaterWidget 
+              waterGlasses={waterGlasses} 
+              onWaterUpdate={setWaterGlasses} 
+            />
+          </motion.section>
+          
+          {/* Quick Stats Row */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-3 gap-3"
+          >
+            {/* Meals Today */}
+            <div 
+              className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 cursor-pointer active:scale-[0.98] transition-transform"
+              onClick={() => navigate('/meal-plans?tab=tracker')}
+            >
+              <Utensils className="w-5 h-5 text-amber-500 mb-2" />
+              <p className="text-lg font-bold text-foreground">{todayMeals.length}</p>
+              <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
             </div>
             
-            {/* Swipe Indicator */}
-            <div className="flex justify-center gap-1 mt-1">
-              <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
-              <div className="w-2 h-1 bg-muted-foreground/20 rounded-full" />
-              <div className="w-2 h-1 bg-muted-foreground/20 rounded-full" />
+            {/* Remaining Calories */}
+            <div 
+              className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 cursor-pointer active:scale-[0.98] transition-transform"
+              onClick={() => navigate('/meal-plans?tab=tracker')}
+            >
+              <Zap className="w-5 h-5 text-emerald-500 mb-2" />
+              <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
+              <p className="text-[10px] text-muted-foreground">kcal übrig</p>
             </div>
+            
+            {/* Progress Chart */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 cursor-pointer active:scale-[0.98] transition-transform">
+                  <TrendingUp className="w-5 h-5 text-purple-500 mb-2" />
+                  <p className="text-lg font-bold text-foreground">📊</p>
+                  <p className="text-[10px] text-muted-foreground">Verlauf</p>
+                </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Gewichtsverlauf</DialogTitle>
+                </DialogHeader>
+                <ProgressCharts />
+              </DialogContent>
+            </Dialog>
           </motion.section>
           
           {/* Action Cards Grid */}

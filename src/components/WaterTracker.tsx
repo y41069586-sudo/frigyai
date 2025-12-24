@@ -233,24 +233,19 @@ export const WaterTracker = () => {
         )}
       </div>
 
-      {/* Cup icons */}
+      {/* Cup icons - simple, no weird animations */}
       <div className="flex flex-wrap gap-2 justify-center mb-4">
         {Array.from({ length: dailyGoal }).map((_, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={{ scale: 0.8, opacity: 0.5 }}
-            animate={{ 
-              scale: i < cups ? 1 : 0.8, 
-              opacity: i < cups ? 1 : 0.3 
-            }}
-            className={`transition-colors ${
+            className={`transition-all duration-200 ${
               i < cups 
-                ? 'text-blue-400' 
-                : 'text-muted-foreground/30'
+                ? 'text-blue-400 scale-100 opacity-100' 
+                : 'text-muted-foreground/30 scale-90 opacity-40'
             }`}
           >
             <CupIcon className="w-7 h-7" filled={i < cups} />
-          </motion.div>
+          </div>
         ))}
       </div>
 
