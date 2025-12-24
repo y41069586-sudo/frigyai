@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, Minus, Scale, Flame, Droplet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { format, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
+import { format, subDays, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
 
 interface WeightData {
@@ -32,6 +32,26 @@ interface WaterData {
 }
 
 type TimeRange = "week" | "month" | "3months";
+
+// Custom smooth tooltip
+const CustomTooltip = ({ active, payload, label, suffix }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-card/95 backdrop-blur-xl border border-border/30 rounded-2xl px-4 py-3 shadow-2xl"
+      >
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</p>
+        <p className="text-xl font-bold text-foreground">
+          {typeof payload[0].value === 'number' ? payload[0].value.toFixed(1) : payload[0].value}
+          <span className="text-sm font-normal text-muted-foreground ml-1">{suffix}</span>
+        </p>
+      </motion.div>
+    );
+  }
+  return null;
+};
 
 const ProgressCharts = () => {
   const { user } = useAuth();
@@ -155,8 +175,8 @@ const ProgressCharts = () => {
     const diff = last - first;
     
     if (Math.abs(diff) < 0.1) return { icon: Minus, color: "text-muted-foreground", text: "Stabil" };
-    if (diff < 0) return { icon: TrendingDown, color: "text-primary", text: `${Math.abs(diff).toFixed(1)} kg verloren` };
-    return { icon: TrendingUp, color: "text-destructive", text: `${diff.toFixed(1)} kg zugenommen` };
+    if (diff < 0) return { icon: TrendingDown, color: "text-emerald-500", text: `${Math.abs(diff).toFixed(1)} kg verloren` };
+    return { icon: TrendingUp, color: "text-amber-500", text: `${diff.toFixed(1)} kg zugenommen` };
   };
 
   const weightTrend = getWeightTrend();
@@ -172,14 +192,74 @@ const ProgressCharts = () => {
 
   if (loading) {
     return (
-      <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
+      <Card className="p-6 bg-card/80 backdrop-blur-xl border-border/30 shadow-xl">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-muted rounded w-1/3" />
-          <div className="h-48 bg-muted rounded" />
+          <div className="h-6 bg-muted/50 rounded-full w-1/3" />
+          <div className="h-52 bg-muted/30 rounded-2xl" />
         </div>
       </Card>
     );
   }
+
+  const renderChart = (
+    data: any[], 
+    dataKey: string, 
+    gradientId: string, 
+    strokeColor: string,
+    gradientColors: [string, string],
+    suffix: string
+  ) => (
+    <ResponsiveContainer width="100%" height={220}>
+      <AreaChart data={data} margin={{ top: 20, right: 10, left: -15, bottom: 0 }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={gradientColors[0]} stopOpacity={0.5} />
+            <stop offset="50%" stopColor={gradientColors[0]} stopOpacity={0.2} />
+            <stop offset="100%" stopColor={gradientColors[1]} stopOpacity={0} />
+          </linearGradient>
+          <filter id={`glow-${gradientId}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <XAxis 
+          dataKey="displayDate" 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, dy: 8 }}
+          interval="preserveStartEnd"
+        />
+        <YAxis 
+          domain={['dataMin - 1', 'dataMax + 1']} 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
+          width={40}
+        />
+        <Tooltip content={<CustomTooltip suffix={suffix} />} />
+        <Area 
+          type="natural"
+          dataKey={dataKey} 
+          stroke={strokeColor}
+          strokeWidth={3}
+          fill={`url(#${gradientId})`}
+          dot={false}
+          activeDot={{ 
+            r: 6, 
+            fill: strokeColor,
+            stroke: 'hsl(var(--background))',
+            strokeWidth: 3,
+            filter: `url(#glow-${gradientId})`
+          }}
+          animationDuration={1200}
+          animationEasing="ease-out"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
 
   return (
     <motion.div
@@ -188,14 +268,18 @@ const ProgressCharts = () => {
       className="space-y-4"
     >
       {/* Time Range Selector */}
-      <div className="flex gap-2 justify-center">
+      <div className="flex gap-2 justify-center p-1 bg-muted/30 rounded-xl w-fit mx-auto">
         {(["week", "month", "3months"] as TimeRange[]).map((range) => (
           <Button
             key={range}
-            variant={timeRange === range ? "default" : "outline"}
+            variant={timeRange === range ? "default" : "ghost"}
             size="sm"
             onClick={() => setTimeRange(range)}
-            className={timeRange === range ? "gradient-neon text-primary-foreground" : ""}
+            className={`px-4 h-9 rounded-lg font-medium transition-all duration-300 ${
+              timeRange === range 
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
+                : "hover:bg-muted/50"
+            }`}
           >
             {range === "week" ? "7 Tage" : range === "month" ? "30 Tage" : "3 Monate"}
           </Button>
@@ -203,181 +287,83 @@ const ProgressCharts = () => {
       </div>
 
       <Tabs defaultValue="weight" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-          <TabsTrigger value="weight" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Scale className="h-4 w-4 mr-1" />
+        <TabsList className="grid w-full grid-cols-3 bg-muted/30 p-1 rounded-xl h-12">
+          <TabsTrigger 
+            value="weight" 
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300"
+          >
+            <Scale className="h-4 w-4 mr-2" />
             Gewicht
           </TabsTrigger>
-          <TabsTrigger value="calories" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Flame className="h-4 w-4 mr-1" />
+          <TabsTrigger 
+            value="calories" 
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300"
+          >
+            <Flame className="h-4 w-4 mr-2" />
             Kalorien
           </TabsTrigger>
-          <TabsTrigger value="water" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Droplet className="h-4 w-4 mr-1" />
+          <TabsTrigger 
+            value="water" 
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300"
+          >
+            <Droplet className="h-4 w-4 mr-2" />
             Wasser
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="weight">
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Gewichtsverlauf</h3>
-              <div className={`flex items-center gap-1 text-sm ${weightTrend.color}`}>
+        <TabsContent value="weight" className="mt-4">
+          <Card className="p-5 bg-card/60 backdrop-blur-xl border-border/20 shadow-xl rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-lg">Gewichtsverlauf</h3>
+              <motion.div 
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={`flex items-center gap-1.5 text-sm font-medium ${weightTrend.color} bg-background/50 px-3 py-1.5 rounded-full`}
+              >
                 <WeightIcon className="h-4 w-4" />
                 {weightTrend.text}
-              </div>
+              </motion.div>
             </div>
             {weightData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={weightData}>
-                  <defs>
-                    <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="displayDate" 
-                    tick={{ fontSize: 12 }} 
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis 
-                    domain={['dataMin - 1', 'dataMax + 1']} 
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                    formatter={(value: number) => [`${value} kg`, 'Gewicht']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="weight" 
-                    stroke="hsl(var(--primary))" 
-                    fill="url(#weightGradient)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              renderChart(weightData, 'weight', 'weightGradient', '#10b981', ['#10b981', '#34d399'], 'kg')
             ) : (
-              <div className="h-48 flex items-center justify-center text-muted-foreground">
+              <div className="h-52 flex items-center justify-center text-muted-foreground">
                 Noch keine Gewichtsdaten vorhanden
               </div>
             )}
           </Card>
         </TabsContent>
 
-        <TabsContent value="calories">
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Kalorienverlauf</h3>
-              <div className="text-sm text-muted-foreground">
+        <TabsContent value="calories" className="mt-4">
+          <Card className="p-5 bg-card/60 backdrop-blur-xl border-border/20 shadow-xl rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-lg">Kalorienverlauf</h3>
+              <div className="text-sm font-medium text-muted-foreground bg-background/50 px-3 py-1.5 rounded-full">
                 Ø {avgCalories} kcal/Tag
               </div>
             </div>
             {calorieData.some(d => d.calories > 0) ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={calorieData}>
-                  <defs>
-                    <linearGradient id="calorieGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="displayDate" 
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                    formatter={(value: number, name: string) => {
-                      const labels: Record<string, string> = {
-                        calories: 'Kalorien',
-                        protein: 'Protein',
-                        carbs: 'Kohlenhydrate',
-                        fat: 'Fett'
-                      };
-                      return [`${value}${name === 'calories' ? ' kcal' : 'g'}`, labels[name] || name];
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="calories" 
-                    stroke="hsl(var(--primary))" 
-                    fill="url(#calorieGradient)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              renderChart(calorieData, 'calories', 'calorieGradient', '#f59e0b', ['#f59e0b', '#fbbf24'], 'kcal')
             ) : (
-              <div className="h-48 flex items-center justify-center text-muted-foreground">
+              <div className="h-52 flex items-center justify-center text-muted-foreground">
                 Noch keine Kaloriendaten vorhanden
               </div>
             )}
           </Card>
         </TabsContent>
 
-        <TabsContent value="water">
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Wasseraufnahme</h3>
-              <div className="text-sm text-muted-foreground">
+        <TabsContent value="water" className="mt-4">
+          <Card className="p-5 bg-card/60 backdrop-blur-xl border-border/20 shadow-xl rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-lg">Wasseraufnahme</h3>
+              <div className="text-sm font-medium text-muted-foreground bg-background/50 px-3 py-1.5 rounded-full">
                 Ø {avgWater} Gläser/Tag
               </div>
             </div>
             {waterData.some(d => d.glasses > 0) ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={waterData}>
-                  <defs>
-                    <linearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(200, 100%, 50%)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(200, 100%, 50%)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="displayDate" 
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                    formatter={(value: number) => [`${value} Gläser`, 'Wasser']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="glasses" 
-                    stroke="hsl(200, 100%, 50%)" 
-                    fill="url(#waterGradient)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              renderChart(waterData, 'glasses', 'waterGradient', '#3b82f6', ['#3b82f6', '#60a5fa'], 'Gläser')
             ) : (
-              <div className="h-48 flex items-center justify-center text-muted-foreground">
+              <div className="h-52 flex items-center justify-center text-muted-foreground">
                 Noch keine Wasserdaten vorhanden
               </div>
             )}

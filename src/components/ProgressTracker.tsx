@@ -7,7 +7,7 @@ import { TrendingDown, Plus, Trash2, Target, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGamification } from '@/hooks/useGamification';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -164,29 +164,62 @@ export const ProgressTracker = () => {
 
         {/* Chart */}
         {chartData.length > 1 && (
-          <div className="h-48 mb-6">
+          <div className="h-52 mb-6">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis domain={['dataMin - 1', 'dataMax + 1']} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="progressWeightGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.5} />
+                    <stop offset="50%" stopColor="#34d399" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, dy: 8 }}
+                />
+                <YAxis 
+                  domain={['dataMin - 1', 'dataMax + 1']} 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
+                  width={40}
+                />
                 <Tooltip 
-                  contentStyle={{ 
-                    background: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--primary) / 0.3)',
-                    borderRadius: '8px'
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-card/95 backdrop-blur-xl border border-border/30 rounded-2xl px-4 py-3 shadow-2xl">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {Number(payload[0].value).toFixed(1)}
+                            <span className="text-sm font-normal text-muted-foreground ml-1">kg</span>
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
                 />
-                <Line 
-                  type="monotone" 
+                <Area 
+                  type="natural"
                   dataKey="weight" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))', r: 4 }}
-                  activeDot={{ r: 6 }}
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  fill="url(#progressWeightGradient)"
+                  dot={false}
+                  activeDot={{ 
+                    r: 6, 
+                    fill: '#10b981',
+                    stroke: 'hsl(var(--background))',
+                    strokeWidth: 3
+                  }}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
