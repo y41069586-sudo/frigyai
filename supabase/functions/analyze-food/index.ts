@@ -69,10 +69,10 @@ serve(async (req) => {
     
     const { food, imageBase64 } = parseResult.data;
 
-    // Use Lovable AI Gateway - no API key needed!
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('[ANALYZE-FOOD] LOVABLE_API_KEY is not configured');
+    // Use OpenAI API
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      console.error('[ANALYZE-FOOD] OPENAI_API_KEY is not configured');
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -255,17 +255,18 @@ Antworte NUR mit validem JSON in diesem Format:
       });
     }
 
-    console.log('[ANALYZE-FOOD] Calling Lovable AI Gateway...');
+    console.log('[ANALYZE-FOOD] Calling OpenAI API...');
  
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages,
+        max_tokens: 1000,
       }),
     });
 
