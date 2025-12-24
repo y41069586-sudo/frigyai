@@ -418,6 +418,15 @@ const Index = () => {
                 <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
               </div>
               
+              {/* Remaining Calories */}
+              <div 
+                className="flex-shrink-0 w-28 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 cursor-pointer active:scale-[0.98] transition-transform"
+                onClick={() => navigate('/meal-plans?tab=tracker')}
+              >
+                <Zap className="w-5 h-5 text-emerald-500 mb-2" />
+                <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
+                <p className="text-[10px] text-muted-foreground">kcal übrig</p>
+              </div>
               
               {/* Progress Chart */}
               <Dialog>
