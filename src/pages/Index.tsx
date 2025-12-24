@@ -427,47 +427,49 @@ const Index = () => {
             />
           </motion.section>
           
-          {/* Quick Stats Row */}
+          {/* Progress/Verlauf Section */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-3 gap-3"
           >
-            {/* Meals Today */}
-            <div 
-              className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate('/meal-plans?tab=tracker')}
-            >
-              <Utensils className="w-5 h-5 text-amber-500 mb-2" />
-              <p className="text-lg font-bold text-foreground">{todayMeals.length}</p>
-              <p className="text-[10px] text-muted-foreground">Mahlzeiten</p>
-            </div>
-            
-            {/* Remaining Calories */}
-            <div 
-              className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate('/meal-plans?tab=tracker')}
-            >
-              <Zap className="w-5 h-5 text-emerald-500 mb-2" />
-              <p className="text-lg font-bold text-foreground">{remainingCalories}</p>
-              <p className="text-[10px] text-muted-foreground">kcal übrig</p>
-            </div>
-            
-            {/* Progress Chart */}
             <Dialog>
               <DialogTrigger asChild>
-                <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 cursor-pointer active:scale-[0.98] transition-transform">
-                  <TrendingUp className="w-5 h-5 text-purple-500 mb-2" />
-                  <p className="text-lg font-bold text-foreground">📊</p>
-                  <p className="text-[10px] text-muted-foreground">Verlauf</p>
+                <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Gewichtsverlauf</p>
+                        <p className="text-xs text-muted-foreground">Tippe für Details</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-purple-500/50" />
+                  </div>
+                  
+                  {/* Mini Chart Preview */}
+                  <div className="h-12 flex items-end gap-1">
+                    {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
+                      <motion.div
+                        key={i}
+                        className="flex-1 bg-gradient-to-t from-purple-500/40 to-purple-400/20 rounded-t-sm"
+                        initial={{ height: 0 }}
+                        animate={{ height: `${height}%` }}
+                        transition={{ delay: 0.3 + i * 0.05, duration: 0.4, ease: "easeOut" }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Gewichtsverlauf</DialogTitle>
+                  <DialogTitle className="text-lg font-bold">Dein Fortschritt</DialogTitle>
                 </DialogHeader>
-                <ProgressCharts />
+                <div className="mt-4">
+                  <ProgressCharts />
+                </div>
               </DialogContent>
             </Dialog>
           </motion.section>
