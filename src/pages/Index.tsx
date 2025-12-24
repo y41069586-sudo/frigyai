@@ -18,6 +18,7 @@ import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
+import { DashboardWaterWidget } from "@/components/DashboardWaterWidget";
 import { useReminders } from "@/hooks/useReminders";
 
 import frigLogo from "@/assets/frig-logo.png";
@@ -398,15 +399,11 @@ const Index = () => {
             className="flex flex-col"
           >
             <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-5 pb-3">
-              {/* Water */}
-              <div 
-                className="flex-shrink-0 w-28 p-4 bg-sky-500/5 rounded-2xl border border-sky-500/10 cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => navigate('/meal-plans?tab=tracker')}
-              >
-                <Droplets className="w-5 h-5 text-sky-500 mb-2" />
-                <p className="text-lg font-bold text-foreground">{waterLiters}L</p>
-                <p className="text-[10px] text-muted-foreground">von 2.0L</p>
-              </div>
+              {/* Water Widget */}
+              <DashboardWaterWidget 
+                waterGlasses={waterGlasses} 
+                onWaterUpdate={setWaterGlasses} 
+              />
               
               {/* Meals Today */}
               <div 
