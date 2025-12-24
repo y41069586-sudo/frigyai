@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
-import frigyMascot from "@/assets/frigy-mascot.png";
+import { VectorFrigyMascot } from "./VectorFrigyMascot";
 
 interface MealPlanGeneratingOverlayProps {
   isGenerating: boolean;
@@ -20,7 +20,7 @@ const motivationalTexts = [
   "Deine Mahlzeiten werden vorbereitet",
 ];
 
-// Floating ingredient component
+// Floating vector ingredient component
 const FloatingIngredient = ({ 
   emoji, 
   delay, 
@@ -52,6 +52,32 @@ const FloatingIngredient = ({
   >
     {emoji}
   </motion.div>
+);
+
+// Vector-based mini Frigy for minimized state
+const MiniFrigyVector = () => (
+  <motion.svg
+    width={48}
+    height={48}
+    viewBox="0 0 100 100"
+    animate={{ rotate: [-5, 5, -5] }}
+    transition={{ duration: 1, repeat: Infinity }}
+  >
+    <defs>
+      <linearGradient id="miniFridgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="hsl(160, 84%, 39%)" />
+        <stop offset="100%" stopColor="hsl(158, 64%, 52%)" />
+      </linearGradient>
+    </defs>
+    <rect x="20" y="10" width="60" height="80" rx="8" fill="url(#miniFridgeGrad)" />
+    <rect x="24" y="14" width="52" height="20" rx="4" fill="hsl(160, 84%, 32%)" />
+    <rect x="24" y="38" width="52" height="48" rx="4" fill="hsl(160, 84%, 32%)" />
+    <ellipse cx="40" cy="55" rx="6" ry="7" fill="white" />
+    <ellipse cx="41" cy="56" rx="3" ry="3.5" fill="hsl(220, 20%, 20%)" />
+    <ellipse cx="60" cy="55" rx="6" ry="7" fill="white" />
+    <ellipse cx="61" cy="56" rx="3" ry="3.5" fill="hsl(220, 20%, 20%)" />
+    <path d="M 42 68 Q 50 76 58 68" fill="none" stroke="hsl(220, 20%, 20%)" strokeWidth="2.5" strokeLinecap="round" />
+  </motion.svg>
 );
 
 export const MealPlanGeneratingOverlay = ({ 
@@ -94,7 +120,7 @@ export const MealPlanGeneratingOverlay = ({
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  // Minimized floating indicator
+  // Minimized floating indicator with vector mascot
   if (isGenerating && isMinimized) {
     return (
       <motion.div
@@ -114,13 +140,7 @@ export const MealPlanGeneratingOverlay = ({
             transition={{ duration: 1.5, repeat: Infinity }}
             className="w-16 h-16 rounded-full bg-card border-2 border-emerald-500 shadow-xl flex items-center justify-center overflow-hidden"
           >
-            <motion.img
-              src={frigyMascot}
-              alt="Frigy"
-              className="w-12 h-12 object-contain"
-              animate={{ rotate: [-5, 5, -5] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
+            <MiniFrigyVector />
           </motion.div>
           <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
             <motion.div
@@ -183,7 +203,7 @@ export const MealPlanGeneratingOverlay = ({
               <FloatingIngredient emoji="🍎" delay={2.5} x={40} duration={3.1} />
             </div>
 
-            {/* Main Frigy mascot with premium animations */}
+            {/* Main Frigy mascot - PURE VECTOR, NO IMAGE */}
             <motion.div
               className="relative"
               initial={{ scale: 0.8, opacity: 0 }}
@@ -210,28 +230,34 @@ export const MealPlanGeneratingOverlay = ({
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
+                className="relative z-10"
               >
-                <motion.img
-                  src={frigyMascot}
-                  alt="Frigy plant deinen Wochenplan"
-                  className="w-36 h-36 object-contain drop-shadow-xl relative z-10"
-                  animate={{ 
-                    rotate: [-3, 3, -3],
-                    scale: [1, 1.02, 1]
+                <VectorFrigyMascot size={144} animate={true} />
+                
+                {/* Floating ingredient Frigy "holds" */}
+                <motion.div
+                  className="absolute -top-6 -right-4 text-3xl"
+                  animate={{
+                    y: [0, -8, 0],
+                    rotate: [-10, 15, -10],
+                    scale: [1, 1.15, 1]
                   }}
-                  transition={{ 
-                    duration: 2,
+                  transition={{
+                    duration: 2.5,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: "easeInOut",
+                    delay: 0.5
                   }}
-                />
+                >
+                  🥕
+                </motion.div>
               </motion.div>
               
-              {/* Landing squish effect */}
+              {/* Landing squish effect / shadow */}
               <motion.div
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-3 bg-slate-900/5 dark:bg-white/5 rounded-full blur-sm"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-4 bg-slate-900/10 dark:bg-white/5 rounded-full blur-sm"
                 animate={{
-                  scaleX: [1, 1.2, 1],
+                  scaleX: [1, 1.3, 1],
                   opacity: [0.3, 0.5, 0.3]
                 }}
                 transition={{
