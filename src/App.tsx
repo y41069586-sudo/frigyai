@@ -31,6 +31,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
+const FoodEntryDetailPage = lazy(() => import("./pages/FoodEntryDetailPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +69,7 @@ const AppContent = () => {
           <Route path="/premium-pricing" element={<PremiumPricingPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/legal/:type" element={<LegalPage />} />
+          <Route path="/food-entry/:id" element={<FoodEntryDetailPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
