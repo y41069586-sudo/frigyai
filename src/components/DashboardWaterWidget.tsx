@@ -189,21 +189,19 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
           
           {/* Control buttons */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Minus */}
+          {/* Minus */}
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onMouseDown={() => handlePressStart(-1)}
-              onMouseUp={handlePressEnd}
-              onMouseLeave={handlePressEnd}
-              onTouchStart={() => handlePressStart(-1)}
-              onTouchEnd={handlePressEnd}
+              onPointerDown={() => handlePressStart(-1)}
+              onPointerUp={handlePressEnd}
+              onPointerLeave={handlePressEnd}
               disabled={waterGlasses <= 0}
               className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800
                          flex items-center justify-center
                          border border-slate-200/50 dark:border-slate-700/50
                          active:bg-slate-200 dark:active:bg-slate-700
                          disabled:opacity-30 disabled:cursor-not-allowed
-                         transition-colors"
+                         transition-colors touch-none"
             >
               <Minus className="w-4 h-4 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
             </motion.button>
@@ -211,15 +209,13 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
             {/* Plus */}
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onMouseDown={() => handlePressStart(1)}
-              onMouseUp={handlePressEnd}
-              onMouseLeave={handlePressEnd}
-              onTouchStart={() => handlePressStart(1)}
-              onTouchEnd={handlePressEnd}
+              onPointerDown={() => handlePressStart(1)}
+              onPointerUp={handlePressEnd}
+              onPointerLeave={handlePressEnd}
               className="w-10 h-10 rounded-xl bg-sky-500 dark:bg-sky-600
                          flex items-center justify-center
                          active:bg-sky-600 dark:active:bg-sky-700
-                         transition-colors shadow-sm shadow-sky-500/30"
+                         transition-colors shadow-sm shadow-sky-500/30 touch-none"
             >
               <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
             </motion.button>
