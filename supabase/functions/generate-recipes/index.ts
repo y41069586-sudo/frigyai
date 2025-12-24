@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
@@ -28,35 +29,29 @@ serve(async (req) => {
     if (!parseResult.success) return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
     const { ingredients, cookingTime, mood } = parseResult.data;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
     console.log("[GENERATE-RECIPES] Ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
 
-    const moodHint = mood === 'tired' ? 'Sehr einfach, max 3 Schritte' : mood === 'motivated' ? 'Kann aufwändiger sein' : 'Normal';
+    const moodHint = mood === 'tired' ? 'Sehr einfach' : mood === 'motivated' ? 'Aufwändiger' : 'Normal';
 
-    const systemPrompt = `Erstelle 3 Rezepte aus diesen Zutaten. Zeit: ${cookingTime}min. Aufwand: ${moodHint}.
+    const systemPrompt = `Erstelle 3 Rezepte. Zeit: ${cookingTime}min. Aufwand: ${moodHint}. Nur gegebene Zutaten + Basics.
 
-Regeln:
-- Nur gegebene Zutaten + Basics (Öl, Salz, Gewürze)
-- Realistische Portionen und Nährwerte
-- Deutsche Namen
+JSON: {"type":"recipes","recipes":[{"id":"name","title":"Name","calories":400,"protein":25,"carbs":35,"fat":15,"prepTime":${cookingTime},"difficulty":"Einfach","ingredients":["Zutat"],"instructions":["Schritt"]}]}
 
-JSON-Format:
-{"type":"recipes","recipes":[{"id":"kebab-case","title":"Name","calories":400,"protein":25,"carbs":35,"fat":15,"prepTime":${cookingTime},"difficulty":"Einfach","ingredients":["Zutat mit Menge"],"instructions":["Schritt 1","Schritt 2"]}]}
+Wenig Zutaten: {"type":"clarification","message":"Text","suggestion":"Zutat"}`;
 
-Bei zu wenig Zutaten: {"type":"clarification","message":"Erklärung","suggestion":"Zutat"}`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Zutaten: ${ingredients.join(", ")}` }
         ],
-        max_tokens: 1500,
+        max_tokens: 1000,
       }),
     });
 

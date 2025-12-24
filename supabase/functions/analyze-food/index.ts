@@ -9,7 +9,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Max 5MB for base64 image
 const MAX_BASE64_SIZE = 6_700_000;
 
 const requestSchema = z.object({
@@ -59,10 +58,10 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
-    if (!LOVABLE_API_KEY) {
-      console.error('[ANALYZE-FOOD] LOVABLE_API_KEY not configured');
+    if (!OPENAI_API_KEY) {
+      console.error('[ANALYZE-FOOD] OPENAI_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -107,16 +106,10 @@ serve(async (req) => {
 
     console.log('[ANALYZE-FOOD] Analyzing:', food || 'image');
 
-    // Compact system prompt - much faster!
-    const systemPrompt = `Du bist ein Ernährungsexperte. Analysiere Essen und gib Nährwerte auf Deutsch zurück.
-
-Antworte NUR mit JSON:
+    // Compact system prompt
+    const systemPrompt = `Analysiere Essen. Antworte NUR mit JSON:
 {"name":"Name mit Menge","calories":123,"protein":10,"carbs":20,"fat":5,"portion":"Portionsangabe"}
-
-Regeln:
-- Beachte Mengen (z.B. "2 Eier" = 2x Einzelwerte)
-- Kalorien auf 5er runden, Makros auf ganze Zahlen
-- Deutsche Namen verwenden`;
+Beachte Mengen. Kalorien auf 5er runden. Deutsche Namen.`;
 
     const messages: any[] = [
       { role: 'system', content: systemPrompt }
@@ -126,7 +119,7 @@ Regeln:
       messages.push({
         role: 'user',
         content: [
-          { type: 'text', text: 'Analysiere dieses Essen:' },
+          { type: 'text', text: 'Analysiere:' },
           { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: 'low' } }
         ]
       });
@@ -137,16 +130,16 @@ Regeln:
       });
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages,
-        max_tokens: 200,
+        max_tokens: 150,
       }),
     });
 

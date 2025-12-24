@@ -70,24 +70,24 @@ serve(async (req) => {
       }
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
     console.log("[ANALYZE-INGREDIENTS] Scanning image...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: `Analysiere Kühlschrankbilder. Liste ALLE Lebensmittel als JSON-Array auf Deutsch. Sei spezifisch (z.B. "Gouda" statt "Käse"). Keine Duplikate.` },
+          { role: "system", content: `Liste ALLE Lebensmittel im Bild als JSON-Array auf Deutsch. Sei spezifisch (z.B. "Gouda" statt "Käse").` },
           { role: "user", content: [
-            { type: "text", text: "Liste alle Lebensmittel im Bild:" },
+            { type: "text", text: "Lebensmittel:" },
             { type: "image_url", image_url: { url: image, detail: "low" } }
           ]}
         ],
-        max_tokens: 500,
+        max_tokens: 300,
       }),
     });
 
