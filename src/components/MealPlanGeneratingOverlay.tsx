@@ -103,15 +103,20 @@ export const MealPlanGeneratingOverlay = ({
       startTimeRef.current = Date.now();
       setShowOverlay(true);
     } else if (!isGenerating && showOverlay) {
+      // Immediately allow clicks through, then fade out
       const elapsed = Date.now() - (startTimeRef.current || Date.now());
       const remaining = Math.max(0, minDisplayTime - elapsed);
       
+      // Use shorter timeout for snappier feel
       setTimeout(() => {
         setShowOverlay(false);
         startTimeRef.current = null;
-      }, remaining);
+      }, Math.min(remaining, 300));
+    } else if (isMinimized) {
+      // Immediately hide overlay when minimized
+      setShowOverlay(false);
     }
-  }, [isGenerating, isMinimized]);
+  }, [isGenerating, isMinimized, showOverlay]);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -161,14 +166,15 @@ export const MealPlanGeneratingOverlay = ({
   }
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {showOverlay && !isMinimized && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
+          exit={{ opacity: 0, pointerEvents: "none" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+          style={{ pointerEvents: showOverlay ? "auto" : "none" }}
         >
           {/* Blurred background - shows content behind with blur effect */}
           <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
