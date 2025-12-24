@@ -393,14 +393,24 @@ const Index = () => {
             {/* Scan Fridge Button */}
             <motion.button
               onClick={() => navigate('/scan')}
-              className="w-full mt-3 py-3 px-4 bg-primary/10 hover:bg-primary/15 
-                         rounded-2xl border border-primary/20 
-                         flex items-center justify-center gap-2
-                         text-primary font-medium text-sm
+              className="w-full mt-4 py-4 px-4 
+                         bg-gradient-to-r from-emerald-500 to-teal-500
+                         hover:from-emerald-600 hover:to-teal-600
+                         rounded-2xl shadow-lg shadow-emerald-500/25
+                         flex items-center justify-center gap-3
+                         text-white font-semibold text-base
                          active:scale-[0.98] transition-all"
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
-              <Scan className="w-4 h-4" />
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Scan className="w-5 h-5" />
+              </motion.div>
               Kühlschrank scannen
             </motion.button>
           </motion.section>
@@ -534,27 +544,6 @@ const Index = () => {
             )}
           </motion.section>
           
-          {/* Scan Button - Primary CTA */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <motion.button 
-              onClick={() => navigate("/scan")}
-              className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center justify-center gap-2"
-              whileTap={{ scale: 0.98 }}
-            >
-              <Camera className="w-5 h-5" />
-              {t.scanFridge}
-            </motion.button>
-            
-            {user && !subscriptionStatus?.subscribed && (
-              <p className="text-center text-[10px] text-muted-foreground mt-2">
-                {scansRemaining}/2 Scans heute übrig
-              </p>
-            )}
-          </motion.section>
           
           {/* Premium Upsell */}
           {!subscriptionStatus?.subscribed && (
