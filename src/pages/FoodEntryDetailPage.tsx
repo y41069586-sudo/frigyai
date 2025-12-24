@@ -340,17 +340,14 @@ const FoodEntryDetailPage = () => {
           className="grid grid-cols-2 gap-3 mb-6"
         >
           {/* Calories */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
-            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Pencil className="h-3 w-3 text-primary" />
-            </div>
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
                 <Flame className="h-5 w-5 text-orange-500" />
               </div>
               <span className="text-sm text-muted-foreground">Kalorien</span>
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 value={calories}
@@ -358,21 +355,19 @@ const FoodEntryDetailPage = () => {
                 className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-20 caret-primary"
               />
               <span className="text-sm text-muted-foreground">kcal</span>
+              <Pencil className="h-3.5 w-3.5 text-primary/60 group-hover:text-primary transition-colors ml-auto" />
             </div>
           </div>
 
           {/* Protein */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
-            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Pencil className="h-3 w-3 text-primary" />
-            </div>
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center">
                 <Beef className="h-5 w-5 text-red-500" />
               </div>
               <span className="text-sm text-muted-foreground">Protein</span>
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 value={protein}
@@ -380,21 +375,19 @@ const FoodEntryDetailPage = () => {
                 className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-16 caret-primary"
               />
               <span className="text-sm text-muted-foreground">g</span>
+              <Pencil className="h-3.5 w-3.5 text-primary/60 group-hover:text-primary transition-colors ml-auto" />
             </div>
           </div>
 
           {/* Carbs */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
-            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Pencil className="h-3 w-3 text-primary" />
-            </div>
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center">
                 <Wheat className="h-5 w-5 text-amber-500" />
               </div>
               <span className="text-sm text-muted-foreground">Carbs</span>
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 value={carbs}
@@ -402,21 +395,19 @@ const FoodEntryDetailPage = () => {
                 className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-16 caret-primary"
               />
               <span className="text-sm text-muted-foreground">g</span>
+              <Pencil className="h-3.5 w-3.5 text-primary/60 group-hover:text-primary transition-colors ml-auto" />
             </div>
           </div>
 
           {/* Fat */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
-            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Pencil className="h-3 w-3 text-primary" />
-            </div>
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-sky-500/15 flex items-center justify-center">
                 <Droplets className="h-5 w-5 text-sky-500" />
               </div>
               <span className="text-sm text-muted-foreground">Fett</span>
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 value={fat}
@@ -424,6 +415,7 @@ const FoodEntryDetailPage = () => {
                 className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-16 caret-primary"
               />
               <span className="text-sm text-muted-foreground">g</span>
+              <Pencil className="h-3.5 w-3.5 text-primary/60 group-hover:text-primary transition-colors ml-auto" />
             </div>
           </div>
         </motion.div>
