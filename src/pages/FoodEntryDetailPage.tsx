@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Flame, Beef, Wheat, Droplets, Save, Trash2, Image } from 'lucide-react';
+import { ArrowLeft, Flame, Beef, Wheat, Droplets, Save, Trash2, Image, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { Skeleton } from '@/components/ui/skeleton';
 interface LocalFoodEntry {
   id: string;
   name: string;
@@ -18,6 +18,29 @@ interface LocalFoodEntry {
   time: string;
   image_url?: string;
 }
+
+// Image component with skeleton loading
+const ImageWithSkeleton = ({ src, alt }: { src: string; alt: string }) => {
+  const [loaded, setLoaded] = useState(false);
+  
+  return (
+    <div className="relative w-full h-full">
+      {!loaded && (
+        <div className="absolute inset-0 bg-muted/30">
+          <Skeleton className="w-full h-full" />
+        </div>
+      )}
+      <img 
+        src={src} 
+        alt={alt}
+        loading="eager"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+      />
+    </div>
+  );
+};
 
 const FoodEntryDetailPage = () => {
   const navigate = useNavigate();
@@ -256,7 +279,7 @@ const FoodEntryDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Image Section */}
+      {/* Hero Image Section with lazy loading */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -264,11 +287,7 @@ const FoodEntryDetailPage = () => {
         className="relative h-64 overflow-hidden"
       >
         {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt={name}
-            className="w-full h-full object-cover"
-          />
+          <ImageWithSkeleton src={imageUrl} alt={name} />
         ) : (
           <div className="w-full h-full bg-muted/30 flex items-center justify-center">
             <Image className="w-16 h-16 text-muted-foreground/30" />
@@ -313,7 +332,7 @@ const FoodEntryDetailPage = () => {
           />
         </div>
 
-        {/* Macros Grid */}
+        {/* Macros Grid - Editable with neon glow */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -321,7 +340,10 @@ const FoodEntryDetailPage = () => {
           className="grid grid-cols-2 gap-3 mb-6"
         >
           {/* Calories */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
+            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <Pencil className="h-3 w-3 text-primary" />
+            </div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
                 <Flame className="h-5 w-5 text-orange-500" />
@@ -333,14 +355,17 @@ const FoodEntryDetailPage = () => {
                 type="number"
                 value={calories}
                 onChange={(e) => setCalories(Number(e.target.value))}
-                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-20"
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-20 caret-primary"
               />
               <span className="text-sm text-muted-foreground">kcal</span>
             </div>
           </div>
 
           {/* Protein */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
+            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <Pencil className="h-3 w-3 text-primary" />
+            </div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center">
                 <Beef className="h-5 w-5 text-red-500" />
@@ -352,14 +377,17 @@ const FoodEntryDetailPage = () => {
                 type="number"
                 value={protein}
                 onChange={(e) => setProtein(Number(e.target.value))}
-                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-16"
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-16 caret-primary"
               />
               <span className="text-sm text-muted-foreground">g</span>
             </div>
           </div>
 
           {/* Carbs */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
+            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <Pencil className="h-3 w-3 text-primary" />
+            </div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center">
                 <Wheat className="h-5 w-5 text-amber-500" />
@@ -371,14 +399,17 @@ const FoodEntryDetailPage = () => {
                 type="number"
                 value={carbs}
                 onChange={(e) => setCarbs(Number(e.target.value))}
-                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-16"
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-16 caret-primary"
               />
               <span className="text-sm text-muted-foreground">g</span>
             </div>
           </div>
 
           {/* Fat */}
-          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/30 p-4">
+          <div className="bg-card/60 backdrop-blur-sm rounded-2xl border-2 border-primary/50 p-4 relative group hover:border-primary transition-colors shadow-[0_0_10px_rgba(57,255,20,0.15)]">
+            <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <Pencil className="h-3 w-3 text-primary" />
+            </div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-xl bg-sky-500/15 flex items-center justify-center">
                 <Droplets className="h-5 w-5 text-sky-500" />
@@ -390,7 +421,7 @@ const FoodEntryDetailPage = () => {
                 type="number"
                 value={fat}
                 onChange={(e) => setFat(Number(e.target.value))}
-                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 w-16"
+                className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-16 caret-primary"
               />
               <span className="text-sm text-muted-foreground">g</span>
             </div>
