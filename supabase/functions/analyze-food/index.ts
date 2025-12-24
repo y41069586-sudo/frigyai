@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +19,42 @@ const requestSchema = z.object({
 }).refine(data => data.food || data.imageBase64, {
   message: "Either 'food' or 'imageBase64' must be provided",
 });
+
+// Helper to upload image to storage
+async function uploadFoodPhoto(
+  supabaseAdmin: any,
+  userId: string,
+  imageBase64: string
+): Promise<string | null> {
+  try {
+    // Decode base64 to binary
+    const imageData = base64Decode(imageBase64);
+    const fileName = `${userId}/${Date.now()}.jpg`;
+    
+    const { data, error } = await supabaseAdmin.storage
+      .from('food-photos')
+      .upload(fileName, imageData, {
+        contentType: 'image/jpeg',
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('[ANALYZE-FOOD] Storage upload error:', error);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabaseAdmin.storage
+      .from('food-photos')
+      .getPublicUrl(fileName);
+    
+    console.log('[ANALYZE-FOOD] Photo uploaded:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error('[ANALYZE-FOOD] Photo upload failed:', err);
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -68,6 +105,12 @@ serve(async (req) => {
     }
     
     const { food, imageBase64 } = parseResult.data;
+
+    // Upload image to storage if provided
+    let imageUrl: string | null = null;
+    if (imageBase64) {
+      imageUrl = await uploadFoodPhoto(supabaseAdmin, user.id, imageBase64);
+    }
 
     // Use OpenAI API
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -305,6 +348,10 @@ Antworte NUR mit validem JSON in diesem Format:
       if (jsonMatch) {
         foodData = JSON.parse(jsonMatch[0]);
         foodData.source = 'ai';
+        // Add image URL if we uploaded one
+        if (imageUrl) {
+          foodData.image_url = imageUrl;
+        }
       } else {
         throw new Error('No JSON found in response');
       }
