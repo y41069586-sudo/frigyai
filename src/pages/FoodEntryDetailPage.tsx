@@ -8,12 +8,24 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface LocalFoodEntry {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  time: string;
+  image_url?: string;
+}
+
 const FoodEntryDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
+  const [isLocalEntry, setIsLocalEntry] = useState(false);
   const [name, setName] = useState('');
   const [calories, setCalories] = useState(0);
   const [protein, setProtein] = useState(0);
@@ -29,91 +41,185 @@ const FoodEntryDetailPage = () => {
   });
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
-  // Load entry from database
+  // Check if ID is a UUID (database) or timestamp (localStorage)
+  const isUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
+  // Load entry from database or localStorage
   useEffect(() => {
     const loadEntry = async () => {
-      if (!id || !user) {
+      if (!id) {
         setLoading(false);
+        setNotFound(true);
         return;
       }
 
-      try {
-        const { data, error } = await supabase
-          .from('food_entries')
-          .select('*')
-          .eq('id', id)
-          .eq('user_id', user.id)
-          .single();
+      // Check if it's a UUID (database entry) or timestamp (localStorage)
+      if (isUUID(id) && user) {
+        // Try loading from database
+        try {
+          const { data, error } = await supabase
+            .from('food_entries')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        if (error) throw error;
+          if (error) throw error;
 
-        if (data) {
-          setName(data.name);
-          setCalories(data.calories);
-          setProtein(data.protein);
-          setCarbs(data.carbs);
-          setFat(data.fat);
-          setImageUrl(data.image_url);
-          setOriginalData({
-            name: data.name,
-            calories: data.calories,
-            protein: data.protein,
-            carbs: data.carbs,
-            fat: data.fat
-          });
+          if (data) {
+            setName(data.name);
+            setCalories(data.calories);
+            setProtein(data.protein);
+            setCarbs(data.carbs);
+            setFat(data.fat);
+            setImageUrl(data.image_url);
+            setOriginalData({
+              name: data.name,
+              calories: data.calories,
+              protein: data.protein,
+              carbs: data.carbs,
+              fat: data.fat
+            });
+            setIsLocalEntry(false);
+          } else {
+            setNotFound(true);
+          }
+        } catch (error) {
+          console.error('Error loading entry from DB:', error);
+          setNotFound(true);
         }
-      } catch (error) {
-        console.error('Error loading entry:', error);
-        toast({ title: 'Fehler beim Laden', variant: 'destructive' });
-      } finally {
-        setLoading(false);
+      } else {
+        // Try loading from localStorage
+        try {
+          const saved = localStorage.getItem('todayFood');
+          if (saved) {
+            const data = JSON.parse(saved);
+            const foundEntry = data.entries?.find((e: LocalFoodEntry) => e.id === id);
+            if (foundEntry) {
+              setName(foundEntry.name);
+              setCalories(foundEntry.calories);
+              setProtein(foundEntry.protein);
+              setCarbs(foundEntry.carbs);
+              setFat(foundEntry.fat);
+              setImageUrl(foundEntry.image_url || null);
+              setOriginalData({
+                name: foundEntry.name,
+                calories: foundEntry.calories,
+                protein: foundEntry.protein,
+                carbs: foundEntry.carbs,
+                fat: foundEntry.fat
+              });
+              setIsLocalEntry(true);
+            } else {
+              setNotFound(true);
+            }
+          } else {
+            setNotFound(true);
+          }
+        } catch (error) {
+          console.error('Error loading entry from localStorage:', error);
+          setNotFound(true);
+        }
       }
+      
+      setLoading(false);
     };
 
     loadEntry();
   }, [id, user]);
 
   const handleSave = async () => {
-    if (!id || !user) return;
+    if (!id) return;
     
     setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('food_entries')
-        .update({ name, calories, protein, carbs, fat })
-        .eq('id', id)
-        .eq('user_id', user.id);
+    
+    if (isLocalEntry) {
+      // Save to localStorage
+      try {
+        const saved = localStorage.getItem('todayFood');
+        if (saved) {
+          const data = JSON.parse(saved);
+          const updatedEntries = data.entries.map((e: LocalFoodEntry) =>
+            e.id === id
+              ? { ...e, name, calories, protein, carbs, fat }
+              : e
+          );
+          localStorage.setItem('todayFood', JSON.stringify({
+            ...data,
+            entries: updatedEntries,
+          }));
+          toast({ title: 'Gespeichert' });
+          navigate('/meal-plans?tab=tracker');
+        }
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+        toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+      }
+    } else if (user) {
+      // Save to database
+      try {
+        const { error } = await supabase
+          .from('food_entries')
+          .update({ name, calories, protein, carbs, fat })
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({ title: 'Gespeichert' });
-      navigate('/meal-plans?tab=tracker');
-    } catch (error) {
-      console.error('Error saving:', error);
-      toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
-    } finally {
-      setSaving(false);
+        toast({ title: 'Gespeichert' });
+        navigate('/meal-plans?tab=tracker');
+      } catch (error) {
+        console.error('Error saving to DB:', error);
+        toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+      }
     }
+    
+    setSaving(false);
   };
 
   const handleDelete = async () => {
-    if (!id || !user) return;
+    if (!id) return;
     
-    try {
-      const { error } = await supabase
-        .from('food_entries')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+    if (isLocalEntry) {
+      // Delete from localStorage
+      try {
+        const saved = localStorage.getItem('todayFood');
+        if (saved) {
+          const data = JSON.parse(saved);
+          const updatedEntries = data.entries.filter((e: LocalFoodEntry) => e.id !== id);
+          localStorage.setItem('todayFood', JSON.stringify({
+            ...data,
+            entries: updatedEntries,
+          }));
+          toast({ title: 'Gelöscht' });
+          navigate('/meal-plans?tab=tracker');
+        }
+      } catch (error) {
+        console.error('Error deleting from localStorage:', error);
+        toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
+      }
+    } else if (user) {
+      // Delete from database
+      try {
+        const { error } = await supabase
+          .from('food_entries')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({ title: 'Gelöscht' });
-      navigate('/meal-plans?tab=tracker');
-    } catch (error) {
-      console.error('Error deleting:', error);
-      toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
+        toast({ title: 'Gelöscht' });
+        navigate('/meal-plans?tab=tracker');
+      } catch (error) {
+        console.error('Error deleting from DB:', error);
+        toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
+      }
     }
   };
 
@@ -132,6 +238,18 @@ const FoodEntryDetailPage = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-muted-foreground text-center">Eintrag nicht gefunden</p>
+        <Button onClick={() => navigate('/meal-plans?tab=tracker')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Zurück
+        </Button>
       </div>
     );
   }
