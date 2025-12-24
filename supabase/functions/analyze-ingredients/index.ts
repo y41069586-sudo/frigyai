@@ -8,323 +8,116 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Max ~50MB for base64/URL image data
-const MAX_IMAGE_SIZE = 50_000_000;
+const requestSchema = z.object({ image: z.string().min(1).max(50_000_000) });
+const FREE_SCAN_LIMIT = 1;
 
-// Input validation schema
-const requestSchema = z.object({
-  image: z.string().min(1).max(MAX_IMAGE_SIZE),
-});
-
-const FREE_SCAN_LIMIT = 1; // 1 scan per week for free users
-
-// Helper to get the start of the current week (Monday)
 const getWeekStart = (): string => {
   const now = new Date();
   const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  const monday = new Date(now.setDate(diff));
-  return monday.toISOString().split('T')[0];
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(now.setDate(diff)).toISOString().split('T')[0];
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Initialize Supabase client first for auth check
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-    // SECURITY: Check authentication BEFORE any processing
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header provided");
-      return new Response(
-        JSON.stringify({ error: "Authentifizierung erforderlich. Bitte melde dich an." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!authHeader) return new Response(JSON.stringify({ error: "Auth erforderlich" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !userData.user) {
-      console.error("Authentication failed:", authError?.message);
-      return new Response(
-        JSON.stringify({ error: "Ungültiger Token. Bitte melde dich erneut an." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { data: userData, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authError || !userData.user) return new Response(JSON.stringify({ error: "Ungültiger Token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const userId = userData.user.id;
     const userEmail = userData.user.email;
-    console.log("User authenticated:", userId);
 
-    // Now parse and validate input
-    const body = await req.json();
-    const parseResult = requestSchema.safeParse(body);
-    if (!parseResult.success) {
-      console.error("Validation error:", parseResult.error);
-      return new Response(
-        JSON.stringify({ error: "Invalid input", details: parseResult.error.flatten() }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const parseResult = requestSchema.safeParse(await req.json());
+    if (!parseResult.success) return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     
     const { image } = parseResult.data;
 
-    // Check if user has premium subscription via Stripe
+    // Check premium
     let isPremium = false;
-    if (userEmail) {
-      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-      if (stripeKey) {
-        try {
-          const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
-          const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-          const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-          if (customers.data.length > 0) {
-            const subscriptions = await stripe.subscriptions.list({
-              customer: customers.data[0].id,
-              status: "active",
-              limit: 1,
-            });
-            isPremium = subscriptions.data.length > 0;
-          }
-        } catch (stripeError) {
-          console.error("Stripe check error:", stripeError);
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (userEmail && stripeKey) {
+      try {
+        const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
+        const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+        const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+        if (customers.data.length > 0) {
+          const subs = await stripe.subscriptions.list({ customer: customers.data[0].id, status: "active", limit: 1 });
+          isPremium = subs.data.length > 0;
         }
-      }
+      } catch (e) { console.error("Stripe error:", e); }
     }
 
-    // Check scan limits for non-premium users (1 scan per WEEK)
+    // Check limits
     if (!isPremium) {
       const weekStart = getWeekStart();
-      
-      // Get this week's scan count
-      const { data: usageData } = await supabaseClient
-        .from('scan_usage')
-        .select('scan_count')
-        .eq('user_id', userId)
-        .eq('week_start', weekStart)
-        .single();
-
+      const { data: usageData } = await supabase.from('scan_usage').select('scan_count').eq('user_id', userId).eq('week_start', weekStart).single();
       const currentCount = usageData?.scan_count || 0;
 
       if (currentCount >= FREE_SCAN_LIMIT) {
-        console.log(`User ${userId} exceeded free weekly scan limit (${currentCount}/${FREE_SCAN_LIMIT})`);
-        return new Response(
-          JSON.stringify({ 
-            error: "scan_limit_exceeded",
-            message: "Du hast deinen wöchentlichen Scan erreicht. Upgrade auf Premium für unbegrenzte Scans!",
-            scansUsed: currentCount,
-            scansLimit: FREE_SCAN_LIMIT
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ error: "scan_limit_exceeded", message: "Wöchentlicher Scan erreicht. Premium für unbegrenzte Scans!", scansUsed: currentCount, scansLimit: FREE_SCAN_LIMIT }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Increment scan count for this week
       if (usageData) {
-        await supabaseClient
-          .from('scan_usage')
-          .update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() })
-          .eq('user_id', userId)
-          .eq('week_start', weekStart);
+        await supabase.from('scan_usage').update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('week_start', weekStart);
       } else {
-        await supabaseClient
-          .from('scan_usage')
-          .insert({ user_id: userId, scan_date: new Date().toISOString().split('T')[0], week_start: weekStart, scan_count: 1 });
+        await supabase.from('scan_usage').insert({ user_id: userId, scan_date: new Date().toISOString().split('T')[0], week_start: weekStart, scan_count: 1 });
       }
-
-      console.log(`User ${userId} weekly scan count: ${currentCount + 1}/${FREE_SCAN_LIMIT}`);
     }
 
-    console.log("Analyzing image for ingredients using OpenAI Vision...");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured");
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
+    console.log("[ANALYZE-INGREDIENTS] Scanning image...");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: `Du bist FRIGY – der intelligenteste Kühlschrank-Scanner der Welt.
-
-🔬 TIEFENANALYSE-MODUS AKTIVIERT
-
-Du analysierst Kühlschrankbilder mit EXTREMER Präzision. Dein Ziel: JEDES einzelne Lebensmittel erkennen, auch wenn es:
-- Teilweise verdeckt ist
-- In durchsichtigen Behältern steckt
-- Im Hintergrund liegt
-- Auf der Tür steht
-- In Schubladen sichtbar ist
-
-📦 VERPACKUNGS-ERKENNUNG (KRITISCH!)
-- Lies ALLE sichtbaren Etiketten, Markennamen, Produktnamen
-- Erkenne Verpackungstypen: Dose, Glas, Tetrapack, Folie, Plastikbox
-- Identifiziere spezifische Produkte: "Barilla Spaghetti", "Philadelphia Frischkäse", "Activia Joghurt"
-
-🔍 DETAIL-EBENEN
-1. VORDERGRUND: Alles klar sichtbare
-2. MITTELGRUND: Teilweise verdeckte Produkte
-3. HINTERGRUND: Auch unscharfe/kleine Objekte erkennen
-4. TÜRFÄCHER: Saucen, Getränke, Eier
-5. SCHUBLADEN: Gemüse, Obst (auch durch Glas)
-
-🎯 KATEGORIEN MIT BEISPIELEN
-
-PROTEINE:
-- Fleisch: "Hähnchenbrust", "Rinderhackfleisch 500g", "Schweinefilet", "Aufschnitt (Salami)"
-- Fisch: "Räucherlachs", "TK Kabeljau", "Thunfisch Dose"
-- Eier: "Bio-Eier", "Eierkarton (ca. 6 Stück)"
-- Pflanzlich: "Tofu Natur", "Kichererbsen Dose", "Rote Linsen"
-
-MILCHPRODUKTE:
-- Milch: "Vollmilch 3.5%", "Hafermilch", "Sahne"
-- Joghurt: "Griechischer Joghurt 0%", "Naturjoghurt", "Skyr"
-- Käse: "Gouda Scheiben", "Mozzarella Kugel", "Parmesan Stück", "Feta", "Frischkäse"
-- Quark: "Magerquark", "Kräuterquark"
-- Butter: "Butter", "Margarine"
-
-GEMÜSE:
-- Frisch: "Tomaten", "Gurke", "Paprika rot", "Zwiebeln", "Knoblauch", "Karotten", "Brokkoli", "Spinat frisch"
-- Salat: "Eisbergsalat", "Rucola", "Feldsalat"
-- TK: "TK Erbsen", "TK Bohnen"
-
-OBST:
-- "Äpfel", "Bananen", "Zitronen", "Orangen", "Beeren"
-
-KOHLENHYDRATE:
-- "Spaghetti", "Fusilli", "Reis", "Kartoffeln", "Toastbrot", "Vollkornbrot"
-
-SAUCEN & WÜRZMITTEL:
-- "Ketchup", "Senf", "Mayonnaise", "Sojasauce", "Pesto", "Tomatenmark", "Sriracha"
-
-GETRÄNKE:
-- "Apfelsaft", "Wasser", "Cola", "Bier"
-
-⚡ OUTPUT-REGELN
-1. NUR JSON-Array zurückgeben
-2. Auf Deutsch
-3. Sei SPEZIFISCH – nicht "Käse" sondern "Gouda" oder "Frischkäse"
-4. Bei Unsicherheit: Trotzdem auflisten mit Indikator "(evtl.)"
-5. KEINE Duplikate
-6. Sortiere nach Kategorie im Array
-
-Beispiel-Output:
-["Hähnchenbrust", "Eier (6 Stück)", "Vollmilch 3.5%", "Gouda Scheiben", "Mozzarella", "Frischkäse Philadelphia", "Griechischer Joghurt", "Tomaten", "Gurke", "Paprika rot", "Zwiebeln", "Karotten", "Spaghetti Barilla", "Butter", "Ketchup Heinz", "Senf", "Mayonnaise"]`
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Analysiere dieses Kühlschrankbild EXTREM gründlich. Scanne JEDEN Bereich: Hauptfächer, Türfächer, Schubladen. Lies ALLE Etiketten. Liste JEDES einzelne Lebensmittel auf, auch wenn es teilweise verdeckt ist. Sei dabei so spezifisch wie möglich (Marke, Variante, Menge wenn erkennbar)."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: image
-                }
-              }
-            ]
-          }
+          { role: "system", content: `Analysiere Kühlschrankbilder. Liste ALLE Lebensmittel als JSON-Array auf Deutsch. Sei spezifisch (z.B. "Gouda" statt "Käse"). Keine Duplikate.` },
+          { role: "user", content: [
+            { type: "text", text: "Liste alle Lebensmittel im Bild:" },
+            { type: "image_url", image_url: { url: image, detail: "low" } }
+          ]}
         ],
+        max_tokens: 500,
       }),
-    });
-
-    const requestId = response.headers.get("x-request-id");
-    const openaiOrg = response.headers.get("openai-organization");
-    const openaiProject = response.headers.get("openai-project");
-    const openaiProcessingMs = response.headers.get("openai-processing-ms");
-    console.log("OpenAI response headers:", {
-      requestId,
-      openaiOrg,
-      openaiProject,
-      openaiProcessingMs,
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, { requestId, errorText });
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error("[ANALYZE-INGREDIENTS] AI error:", response.status);
+      throw new Error(`AI error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("OpenAI usage:", { requestId, usage: data?.usage });
-
     const content = data.choices?.[0]?.message?.content || "[]";
-    
-    console.log("OpenAI response:", content);
+    console.log("[ANALYZE-INGREDIENTS] Response:", content);
 
-    // Parse the JSON array from the response
     let ingredients: string[] = [];
     try {
-      // Try to extract JSON array from the response
       const jsonMatch = content.match(/\[.*\]/s);
-      if (jsonMatch) {
-        ingredients = JSON.parse(jsonMatch[0]);
-      }
+      if (jsonMatch) ingredients = JSON.parse(jsonMatch[0]);
     } catch (e) {
-      console.error("Error parsing ingredients:", e);
-      // Fallback: split by commas and clean up
-      ingredients = content
-        .replace(/[\[\]"]/g, "")
-        .split(",")
-        .map((item: string) => item.trim())
-        .filter((item: string) => item.length > 0);
+      ingredients = content.replace(/[\[\]"]/g, "").split(",").map((s: string) => s.trim()).filter((s: string) => s);
     }
 
-    // Return remaining scans info for free users (weekly)
     let scansRemaining = null;
-    if (userId && !isPremium) {
+    if (!isPremium) {
       const weekStart = getWeekStart();
-      const { data: usageData } = await supabaseClient
-        .from('scan_usage')
-        .select('scan_count')
-        .eq('user_id', userId)
-        .eq('week_start', weekStart)
-        .single();
-      
+      const { data: usageData } = await supabase.from('scan_usage').select('scan_count').eq('user_id', userId).eq('week_start', weekStart).single();
       scansRemaining = FREE_SCAN_LIMIT - (usageData?.scan_count || 0);
     }
 
-    return new Response(
-      JSON.stringify({ 
-        ingredients,
-        scansRemaining,
-        isPremium
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ ingredients, scansRemaining, isPremium }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("Error in analyze-ingredients:", error);
-    return new Response(
-      JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es erneut." }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    console.error("[ANALYZE-INGREDIENTS] Error:", error);
+    return new Response(JSON.stringify({ error: "Analyse fehlgeschlagen. Bitte erneut versuchen." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

@@ -14,244 +14,76 @@ const requestSchema = z.object({
 });
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (!authHeader) return new Response(JSON.stringify({ error: 'Auth required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authError || !user) return new Response(JSON.stringify({ error: 'Invalid auth' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('User authenticated:', user.id);
-
-    const body = await req.json();
-    const parseResult = requestSchema.safeParse(body);
-    if (!parseResult.success) {
-      console.error("Validation error:", parseResult.error);
-      return new Response(
-        JSON.stringify({ error: "Invalid input", details: parseResult.error.flatten() }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const parseResult = requestSchema.safeParse(await req.json());
+    if (!parseResult.success) return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
     const { ingredients, cookingTime, mood } = parseResult.data;
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
+    console.log("[GENERATE-RECIPES] Ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
 
-    console.log("Processing ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
+    const moodHint = mood === 'tired' ? 'Sehr einfach, max 3 Schritte' : mood === 'motivated' ? 'Kann aufwändiger sein' : 'Normal';
 
-    const moodGerman = mood === 'tired' ? 'müde (minimaler Aufwand)' : mood === 'motivated' ? 'motiviert (gerne mehr Aufwand)' : 'normal';
-    
-    // Mood-specific cooking style hints
-    const moodCookingStyle = {
-      tired: `
-🛋️ MÜDE-MODUS AKTIV:
-- MAXIMAL 3-4 Schritte pro Gericht
-- One-Pan / One-Pot bevorzugen
-- Keine komplizierten Techniken
-- Wenig Schneiden, wenig Abwasch
-- Fertig-Produkte erlaubt (Pesto, Fertigsauce)
-- Schnelle Garzeit priorisieren`,
-      normal: `
-👨‍🍳 NORMAL-MODUS:
-- Standard Kochaufwand
-- 4-5 Schritte OK
-- Normale Techniken
-- Ausgewogene Gerichte`,
-      motivated: `
-💪 MOTIVIERT-MODUS:
-- Darf etwas aufwändiger sein
-- Bis zu 6 Schritte erlaubt
-- Kreativere Kombinationen
-- Bessere Präsentation
-- Mehr Geschmacksschichten`
-    };
+    const systemPrompt = `Erstelle 3 Rezepte aus diesen Zutaten. Zeit: ${cookingTime}min. Aufwand: ${moodHint}.
 
-    const systemPrompt = `Du bist FRIGY – der intelligenteste Koch-Assistent der Welt. Du denkst wie ein echter Koch und verstehst, was der Benutzer WIRKLICH will.
+Regeln:
+- Nur gegebene Zutaten + Basics (Öl, Salz, Gewürze)
+- Realistische Portionen und Nährwerte
+- Deutsche Namen
 
-🧠 INTELLIGENTE ANALYSE
+JSON-Format:
+{"type":"recipes","recipes":[{"id":"kebab-case","title":"Name","calories":400,"protein":25,"carbs":35,"fat":15,"prepTime":${cookingTime},"difficulty":"Einfach","ingredients":["Zutat mit Menge"],"instructions":["Schritt 1","Schritt 2"]}]}
 
-SCHRITT 1 — TIEFE ZUTATEN-ANALYSE
-Analysiere jede Zutat nach:
-- Kategorie: Protein / Kohlenhydrate / Gemüse / Fett / Würzmittel
-- Geschmacksprofil: salzig, süß, sauer, umami, scharf
-- Textur: knackig, cremig, weich, bissfest
-- Kochmethoden: braten, kochen, roh, backen
+Bei zu wenig Zutaten: {"type":"clarification","message":"Erklärung","suggestion":"Zutat"}`;
 
-Erstelle mental eine "Flavor Map" – welche Zutaten harmonieren?
-
-SCHRITT 2 — BENUTZER-KONTEXT VERSTEHEN
-
-⏱️ VERFÜGBARE ZEIT: ${cookingTime} Minuten
-${cookingTime <= 10 ? '→ ULTRA-SCHNELL: Nur Blitzgerichte, 1 Pfanne, max 3-4 Schritte' : ''}
-${cookingTime === 20 ? '→ SCHNELL: Einfache Gerichte, wenig Abwasch, max 4-5 Schritte' : ''}
-${cookingTime >= 30 ? '→ ENTSPANNT: Normale Gerichte, kann etwas aufwändiger sein' : ''}
-
-😊 STIMMUNG: ${moodGerman}
-${moodCookingStyle[mood]}
-
-SCHRITT 3 — KULINARISCHE LOGIK
-
-NICHT ERLAUBT:
-❌ Random-Kombinationen die niemand kochen würde
-❌ Zutaten die nicht zusammenpassen (z.B. Fisch + Erdnussbutter)
-❌ Gerichte die länger dauern als angegeben
-❌ Komplizierte Techniken bei "müde"
-❌ Salate als Hauptgericht (außer mit ordentlich Protein)
-❌ Erfundene Zutaten (nur was gescannt wurde + Basics)
-
-ERLAUBT (immer verfügbar):
-✅ Öl, Butter, Salz, Pfeffer, Wasser
-✅ Standard-Gewürze (Paprika, Knoblauchpulver, Oregano)
-
-SCHRITT 4 — 3 UNTERSCHIEDLICHE GERICHTE
-
-Generiere EXAKT 3 Gerichte die sich unterscheiden in:
-- Hauptzutat (wenn möglich verschiedene Proteine/Kohlenhydrate)
-- Küchenstil (z.B. italienisch, asiatisch, deutsch)
-- Zubereitungsart (z.B. Pfanne, Ofen, Topf)
-
-JEDES Gericht muss den "Would I actually cook this?"-Test bestehen.
-
-🧾 OUTPUT FORMAT
-
-Bei AUSREICHENDEN Zutaten:
-{
-  "type": "recipes",
-  "recipes": [
-    {
-      "id": "gericht-name-kebab-case",
-      "title": "Appetitlicher Name",
-      "reason": "Kurze Erklärung warum perfekt für heute (Zeit/Stimmung bezogen)",
-      "calories": 400,
-      "protein": 28,
-      "carbs": 35,
-      "fat": 15,
-      "prepTime": ${cookingTime},
-      "difficulty": "${mood === 'tired' ? 'Sehr Einfach' : mood === 'motivated' ? 'Mittel' : 'Einfach'}",
-      "ingredients": ["Zutat 1 mit Menge", "Zutat 2 mit Menge"],
-      "instructions": ["Klarer Schritt 1", "Klarer Schritt 2", "Klarer Schritt 3"]
-    }
-  ]
-}
-
-Bei NICHT AUSREICHENDEN Zutaten:
-{
-  "type": "clarification", 
-  "message": "Freundliche Erklärung was fehlt",
-  "suggestion": "Konkrete Zutat die helfen würde"
-}
-
-🎯 QUALITÄTS-CHECK VOR OUTPUT
-
-Bevor du antwortest, prüfe für JEDES Gericht:
-1. ⏱️ Ist es wirklich in ${cookingTime} Min machbar?
-2. 😊 Passt der Aufwand zur Stimmung "${mood}"?
-3. 🍳 Würde ein normaler Mensch das so kochen?
-4. 🥗 Schmecken die Zutaten zusammen?
-5. 📝 Sind die Schritte klar und realistisch?
-
-Wenn NEIN → Verwerfen und neu generieren.`;
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Gescannte Zutaten: ${ingredients.join(", ")}` }
+          { role: "user", content: `Zutaten: ${ingredients.join(", ")}` }
         ],
-        max_tokens: 2000,
+        max_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Zu viele Anfragen. Bitte warte einen Moment." }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Service temporär nicht verfügbar." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      throw new Error(`AI Gateway error: ${response.status}`);
+      if (response.status === 429) return new Response(JSON.stringify({ error: "Zu viele Anfragen." }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      throw new Error(`AI error: ${response.status}`);
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "{}";
-    
-    console.log("AI response:", content);
+    console.log("[GENERATE-RECIPES] Response:", content.substring(0, 200));
 
     let result;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found in response");
-      }
-    } catch (e) {
-      console.error("Error parsing response:", e);
-      result = {
-        type: "clarification",
-        message: "Ich konnte die Zutaten nicht richtig analysieren. Bitte versuche es noch einmal.",
-        suggestion: null
-      };
+      result = jsonMatch ? JSON.parse(jsonMatch[0]) : { type: "clarification", message: "Konnte nicht analysieren.", suggestion: null };
+    } catch {
+      result = { type: "clarification", message: "Fehler beim Parsen.", suggestion: null };
     }
 
-    // Ensure recipes have unique IDs
     if (result.type === "recipes" && result.recipes) {
-      result.recipes = result.recipes.map((recipe: any, index: number) => ({
-        ...recipe,
-        id: recipe.id || `recipe-${Date.now()}-${index}`,
-      }));
+      result.recipes = result.recipes.map((r: any, i: number) => ({ ...r, id: r.id || `recipe-${Date.now()}-${i}` }));
     }
 
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("Error in generate-recipes:", error);
-    return new Response(
-      JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es erneut." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("[GENERATE-RECIPES] Error:", error);
+    return new Response(JSON.stringify({ error: "Fehler aufgetreten. Bitte erneut versuchen." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
