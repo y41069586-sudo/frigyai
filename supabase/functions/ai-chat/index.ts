@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -193,20 +194,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Invalid auth' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
 
     const { message, userProfile, history = [] } = await req.json();
     if (!message) {
       return new Response(JSON.stringify({ error: 'Message required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const userContext = userProfile ? `Ziele: ${userProfile.dailyCalories}kcal, ${userProfile.dailyProtein}g P, ${userProfile.weight}kg→${userProfile.targetWeight}kg` : '';
+    const userContext = userProfile ? `Ziele: ${userProfile.dailyCalories}kcal, ${userProfile.dailyProtein}g P` : '';
 
-    const systemPrompt = `Du bist Fridgie, ein freundlicher Ernährungsassistent (deutsch).
-${userContext}
-
-Nutze Tools nur wenn explizit gefragt. Halte Antworten kurz (max 100 Wörter). Sei motivierend!`;
+    const systemPrompt = `Du bist Fridgie, Ernährungsassistent. ${userContext} Kurze Antworten, deutsch, motivierend.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -214,10 +212,10 @@ Nutze Tools nur wenn explizit gefragt. Halte Antworten kurz (max 100 Wörter). S
       { role: 'user', content: message },
     ];
 
-    let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    let response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, tools, tool_choice: 'auto', max_tokens: 200 }),
     });
 
     if (!response.ok) {
@@ -235,10 +233,10 @@ Nutze Tools nur wenn explizit gefragt. Halte Antworten kurz (max 100 Wörter). S
         toolResults.push({ role: 'tool', tool_call_id: tc.id, content: result });
       }
       
-      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 200 }),
       });
       
       if (!response.ok) throw new Error(`AI error: ${response.status}`);
