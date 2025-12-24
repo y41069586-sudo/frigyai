@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Droplets, Plus, Minus, Check } from "lucide-react";
+import { Minus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -10,14 +10,28 @@ interface DashboardWaterWidgetProps {
   onWaterUpdate: (glasses: number) => void;
 }
 
+// Cup icon component
+const CupIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+    <line x1="6" x2="6" y1="2" y2="4" />
+    <line x1="10" x2="10" y1="2" y2="4" />
+    <line x1="14" x2="14" y1="2" y2="4" />
+  </svg>
+);
+
 export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardWaterWidgetProps) => {
   const { user } = useAuth();
   const [showCheck, setShowCheck] = useState(false);
   
-  const targetGlasses = 8; // 8 glasses = 2L (250ml each)
-  const waterLiters = (waterGlasses * 0.25).toFixed(1);
-  const fillPercent = Math.min((waterGlasses / targetGlasses) * 100, 100);
-  const isComplete = waterGlasses >= targetGlasses;
+  const ML_PER_CUP = 200;
+  const targetMl = 2000; // 2L goal
+  const targetCups = targetMl / ML_PER_CUP; // 10 cups
+  const currentMl = waterGlasses * ML_PER_CUP;
+  const waterLiters = (currentMl / 1000).toFixed(1);
+  const fillPercent = Math.min((currentMl / targetMl) * 100, 100);
+  const isComplete = currentMl >= targetMl;
   
   const updateWater = async (delta: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,7 +44,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
     onWaterUpdate(newGlasses);
     
     // Show checkmark animation when goal reached
-    if (delta > 0 && newGlasses >= targetGlasses && waterGlasses < targetGlasses) {
+    if (delta > 0 && newGlasses * ML_PER_CUP >= targetMl && currentMl < targetMl) {
       setShowCheck(true);
       toast({
         title: "🎉 Wasserziel erreicht!",
@@ -125,58 +139,59 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
               animate={{ y: [-3, -12, -3], opacity: [0.2, 0.5, 0.2] }}
               transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
             />
-            <motion.div
-              className="absolute w-1 h-1 rounded-full bg-white/25"
-              style={{ left: '75%', bottom: '15%' }}
-              animate={{ y: [-4, -10, -4], opacity: [0.25, 0.5, 0.25] }}
-              transition={{ duration: 1.8, repeat: Infinity, delay: 1 }}
-            />
           </>
         )}
       </motion.div>
       
       {/* Content */}
-      <div className="relative z-10 p-3 h-full flex flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <Droplets className="w-4 h-4 text-sky-400" />
+      <div className="relative z-10 p-3 h-full flex flex-col">
+        {/* Top row: Droplet left, Cup/Check right */}
+        <div className="flex items-start justify-between">
+          <CupIcon className="w-4 h-4 text-sky-400" />
           
-          {/* Checkmark Animation */}
-          <AnimatePresence>
-            {(isComplete || showCheck) && (
+          {/* Cup button (top right) or Checkmark */}
+          <AnimatePresence mode="wait">
+            {(isComplete || showCheck) ? (
               <motion.div
+                key="check"
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
+                className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
               >
-                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
               </motion.div>
+            ) : (
+              <motion.button
+                key="add"
+                whileTap={{ scale: 0.85 }}
+                onClick={(e) => updateWater(1, e)}
+                className="w-6 h-6 rounded-full bg-sky-500/30 flex items-center justify-center active:bg-sky-500/50 transition-colors"
+              >
+                <CupIcon className="w-3.5 h-3.5 text-sky-300" />
+              </motion.button>
             )}
           </AnimatePresence>
         </div>
         
-        <div>
-          <p className="text-lg font-bold text-foreground">{waterLiters}L</p>
-          <p className="text-[10px] text-muted-foreground">von 2.0L</p>
+        {/* Middle: Water amount */}
+        <div className="flex-1 flex items-center">
+          <div>
+            <p className="text-lg font-bold text-foreground">{waterLiters}L</p>
+            <p className="text-[10px] text-muted-foreground">von 2.0L</p>
+          </div>
         </div>
         
-        {/* Control buttons */}
-        <div className="flex gap-1.5">
+        {/* Bottom left: Minus button */}
+        <div className="flex justify-start">
           <motion.button
             whileTap={{ scale: 0.85 }}
             onClick={(e) => updateWater(-1, e)}
-            className="flex-1 h-6 rounded-md bg-sky-500/20 flex items-center justify-center active:bg-sky-500/30 transition-colors"
+            className="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center active:bg-sky-500/30 transition-colors"
             disabled={waterGlasses <= 0}
           >
             <Minus className="w-3 h-3 text-sky-400" strokeWidth={2.5} />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={(e) => updateWater(1, e)}
-            className="flex-1 h-6 rounded-md bg-sky-500/30 flex items-center justify-center active:bg-sky-500/40 transition-colors"
-          >
-            <Plus className="w-3 h-3 text-sky-400" strokeWidth={2.5} />
           </motion.button>
         </div>
       </div>
