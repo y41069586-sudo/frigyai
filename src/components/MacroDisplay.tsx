@@ -114,95 +114,77 @@ export const MacroDisplay = ({
     );
   }
 
-  // Full variant
+  // Full variant - Compact & Modern
   return (
     <motion.div 
-      className="p-6 rounded-3xl bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-xl border border-border/50 shadow-2xl"
-      initial={{ opacity: 0, y: 20 }}
+      className="p-4 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/30 shadow-lg"
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Calories Header */}
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-          <Flame className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-primary">{t.today}</span>
+      {/* Compact Header Row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/15">
+            <Flame className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-xs font-medium text-primary">{t.today}</span>
         </div>
-        
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <span className={`text-5xl font-bold ${isOverCalories ? 'text-red-400' : 'text-foreground'}`}>
-            {calories.current}
-          </span>
-          <span className="text-xl text-muted-foreground"> / {calories.target}</span>
-          <p className="text-sm text-muted-foreground mt-1">kcal</p>
-        </motion.div>
+        <p className="text-xs text-muted-foreground">
+          {isOverCalories 
+            ? `+${calories.current - calories.target} kcal`
+            : `${calories.target - calories.current} kcal übrig`
+          }
+        </p>
       </div>
 
-      {/* Calorie Progress Bar */}
+      {/* Calories Display - Compact */}
+      <div className="flex items-baseline gap-1 mb-2">
+        <span className={`text-3xl font-bold tracking-tight ${isOverCalories ? 'text-red-400' : 'text-foreground'}`}>
+          {calories.current}
+        </span>
+        <span className="text-base text-muted-foreground">/ {calories.target} kcal</span>
+      </div>
+
+      {/* Slim Progress Bar */}
       {showCalorieBar && (
-        <div className="relative h-4 bg-muted/20 rounded-full overflow-hidden mb-8">
+        <div className="relative h-2 bg-muted/20 rounded-full overflow-hidden mb-4">
           <motion.div
             className={`absolute inset-y-0 left-0 rounded-full ${
               isOverCalories 
-                ? 'bg-gradient-to-r from-red-500 to-red-400' 
-                : 'bg-gradient-to-r from-primary via-green-400 to-emerald-400'
+                ? 'bg-red-500' 
+                : 'bg-gradient-to-r from-primary to-emerald-400'
             }`}
             initial={{ width: 0 }}
             animate={{ width: `${caloriePercentage}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-          />
-          {/* Glow effect */}
-          <motion.div
-            className={`absolute inset-y-0 left-0 rounded-full blur-sm ${
-              isOverCalories ? 'bg-red-500/50' : 'bg-primary/50'
-            }`}
-            initial={{ width: 0 }}
-            animate={{ width: `${caloriePercentage}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           />
         </div>
       )}
 
-      {/* Macro Rings */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Compact Macro Row */}
+      <div className="grid grid-cols-3 gap-3">
         <MacroRing
           value={protein.current}
           max={protein.target}
           label={t.protein}
           color="protein"
-          size="md"
+          size="sm"
         />
         <MacroRing
           value={carbs.current}
           max={carbs.target}
           label={t.carbs}
           color="carbs"
-          size="md"
+          size="sm"
         />
         <MacroRing
           value={fat.current}
           max={fat.target}
           label={t.fat}
           color="fat"
-          size="md"
+          size="sm"
         />
       </div>
-
-      {/* Remaining calories hint */}
-      <motion.p 
-        className="text-center text-sm text-muted-foreground mt-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        {isOverCalories 
-          ? `${calories.current - calories.target} kcal über dem Ziel`
-          : `${calories.target - calories.current} kcal verbleibend`
-        }
-      </motion.p>
     </motion.div>
   );
 };

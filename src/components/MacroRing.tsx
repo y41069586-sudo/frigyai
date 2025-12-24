@@ -38,8 +38,8 @@ const colorMap = {
 };
 
 const sizeMap = {
-  sm: { ring: 60, stroke: 5, fontSize: 'text-sm', labelSize: 'text-[10px]' },
-  md: { ring: 80, stroke: 6, fontSize: 'text-lg', labelSize: 'text-xs' },
+  sm: { ring: 52, stroke: 4, fontSize: 'text-xs', labelSize: 'text-[9px]' },
+  md: { ring: 72, stroke: 5, fontSize: 'text-base', labelSize: 'text-[10px]' },
   lg: { ring: 100, stroke: 8, fontSize: 'text-xl', labelSize: 'text-sm' },
 };
 
@@ -115,7 +115,7 @@ export const MacroRing = ({
         </div>
       </div>
       
-      <p className={`mt-2 font-medium ${sizes.labelSize} text-muted-foreground uppercase tracking-wider`}>
+      <p className={`mt-1.5 font-medium ${sizes.labelSize} text-muted-foreground uppercase tracking-wide`}>
         {label}
       </p>
     </div>
