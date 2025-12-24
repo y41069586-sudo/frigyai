@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,6 @@ import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
-import { EditFoodEntryDialog } from './EditFoodEntryDialog';
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
@@ -52,6 +52,7 @@ interface MacroTrackerProps {
 }
 
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const { user } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
@@ -108,8 +109,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [foodInput, setFoodInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
-  const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
@@ -349,16 +348,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const editEntry = (entry: FoodEntry) => {
-    setEditingEntry(entry);
-    setIsEditDialogOpen(true);
-  };
-
-  const saveEditedEntry = (updatedEntry: FoodEntry) => {
-    const updatedEntries = foodEntries.map(e => 
-      e.id === updatedEntry.id ? updatedEntry : e
-    );
-    saveFoodEntries(updatedEntries);
-    toast({ title: t.entryUpdated, description: `${updatedEntry.name} - ${updatedEntry.calories} kcal` });
+    navigate(`/food-entry/${entry.id}`);
   };
 
   const handleBarcodeScanned = (food: { name: string; calories: number; protein: number; carbs: number; fat: number }) => {
@@ -996,14 +986,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           </Card>
         )}
       </div>
-
-      {/* Edit Food Entry Dialog */}
-      <EditFoodEntryDialog
-        entry={editingEntry}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onSave={saveEditedEntry}
-      />
 
       {/* Success Overlay after successful scan */}
       <ScanSuccessOverlay
