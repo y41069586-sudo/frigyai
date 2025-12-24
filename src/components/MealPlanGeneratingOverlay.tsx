@@ -33,20 +33,20 @@ const FloatingIngredient = ({
   duration: number;
 }) => (
   <motion.div
-    className="absolute text-3xl pointer-events-none drop-shadow-lg"
+    className="absolute text-xl pointer-events-none"
     style={{ left: `${x}%` }}
-    initial={{ opacity: 0, y: 80, scale: 0.5 }}
+    initial={{ opacity: 0, y: 40, scale: 0.5 }}
     animate={{ 
-      opacity: [0, 1, 1, 0],
-      y: [80, 0, -40, -100],
-      scale: [0.5, 1.1, 1, 0.8],
-      rotate: [-15, 10, -10, 15]
+      opacity: [0, 0.8, 0.8, 0],
+      y: [40, 0, -30, -60],
+      scale: [0.5, 1, 1, 0.7],
+      rotate: [-10, 8, -8, 10]
     }}
     transition={{ 
       duration: duration,
       delay: delay,
       repeat: Infinity,
-      repeatDelay: 1.5,
+      repeatDelay: 2,
       ease: "easeOut"
     }}
   >
@@ -57,7 +57,7 @@ const FloatingIngredient = ({
 // Mini mascot for minimized state
 const MiniFrigyMascot = () => (
   <motion.svg
-    width={48}
+    width={40}
     height={48}
     viewBox="0 0 200 240"
     animate={{ rotate: [-5, 5, -5] }}
@@ -144,15 +144,15 @@ export const MealPlanGeneratingOverlay = ({
               ]
             }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-16 h-16 rounded-full bg-card border-2 border-emerald-500 shadow-xl flex items-center justify-center overflow-hidden"
+            className="w-14 h-14 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-emerald-200 dark:border-emerald-800 shadow-lg flex items-center justify-center overflow-hidden"
           >
             <MiniFrigyMascot />
           </motion.div>
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm">
             <motion.div
-              className="w-2 h-2 bg-white rounded-full"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
+              className="w-1.5 h-1.5 bg-white rounded-full"
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 0.6, repeat: Infinity }}
             />
           </div>
         </div>
@@ -170,140 +170,129 @@ export const MealPlanGeneratingOverlay = ({
           transition={{ duration: 0.4, ease: "easeInOut" }}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
         >
-          {/* Heavy blur background overlay */}
-          <div className="absolute inset-0 bg-white/90 dark:bg-slate-950/95 backdrop-blur-xl" />
+          {/* Blurred background - shows content behind with blur effect */}
+          <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
           
-          {/* Very subtle gradient for depth */}
-          <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/40 via-transparent to-emerald-50/30 dark:from-emerald-950/30 dark:via-transparent dark:to-emerald-950/20" />
-          
-          {/* Soft ambient glow - very subtle */}
-          <motion.div 
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-emerald-300/20 dark:bg-emerald-500/10 blur-3xl"
-            animate={{ 
-              scale: [1, 1.15, 1],
-              opacity: [0.4, 0.6, 0.4]
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
+          {/* Very light gradient overlay for modern feel */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 via-white/20 to-teal-50/40 dark:from-emerald-900/20 dark:via-transparent dark:to-teal-900/20" />
 
           {/* Minimize button */}
           {onMinimize && (
             <motion.button
               onClick={onMinimize}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="absolute top-6 right-6 p-2.5 rounded-full bg-white/80 dark:bg-slate-800/80 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
-                         hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-sm z-20"
+                         hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
             >
-              <X className="w-4 h-4 text-slate-500" />
+              <X className="w-4 h-4 text-slate-400" />
             </motion.button>
           )}
 
-          <div className="relative flex flex-col items-center gap-6 p-8 text-center max-w-md z-10">
+          <div className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10">
             
-            {/* Floating ingredients around mascot */}
-            <div className="absolute inset-0 -top-32 pointer-events-none">
-              <FloatingIngredient emoji="🥕" delay={0} x={10} duration={3} />
-              <FloatingIngredient emoji="🥦" delay={0.8} x={80} duration={3.5} />
-              <FloatingIngredient emoji="🍳" delay={1.6} x={20} duration={3.2} />
-              <FloatingIngredient emoji="🥗" delay={0.4} x={75} duration={3.3} />
-              <FloatingIngredient emoji="🍎" delay={1.2} x={50} duration={3.1} />
-              <FloatingIngredient emoji="🧀" delay={2} x={5} duration={2.9} />
-              <FloatingIngredient emoji="🍞" delay={2.4} x={90} duration={3.4} />
+            {/* Floating ingredients - smaller and more subtle */}
+            <div className="absolute inset-x-0 top-0 h-40 pointer-events-none">
+              <FloatingIngredient emoji="🥕" delay={0} x={15} duration={3} />
+              <FloatingIngredient emoji="🥦" delay={0.6} x={80} duration={3.2} />
+              <FloatingIngredient emoji="🍳" delay={1.2} x={25} duration={2.8} />
+              <FloatingIngredient emoji="🥗" delay={0.3} x={70} duration={3.1} />
+              <FloatingIngredient emoji="🍎" delay={0.9} x={50} duration={3} />
             </div>
 
-            {/* Main Frigy mascot from Onboarding - centered and prominent */}
+            {/* Main Frigy mascot - SMALLER SIZE */}
             <motion.div
-              className="relative"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              className="relative mt-8"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
               {/* Soft glow behind mascot */}
               <motion.div 
-                className="absolute inset-0 -inset-x-8 -inset-y-8 bg-gradient-radial from-emerald-300/40 to-transparent rounded-full blur-2xl"
+                className="absolute inset-0 -m-8 bg-emerald-300/20 dark:bg-emerald-400/10 rounded-full blur-3xl"
                 animate={{ 
-                  scale: [1, 1.1, 1],
+                  scale: [1, 1.08, 1],
                   opacity: [0.5, 0.7, 0.5]
                 }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               />
               
-              {/* Mascot with bounce animation */}
+              {/* Mascot with gentle bounce */}
               <motion.div
                 animate={{ 
-                  y: [0, -12, 0],
+                  y: [0, -8, 0],
                 }}
                 transition={{ 
-                  duration: 2,
+                  duration: 2.5,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
                 className="relative z-10"
               >
-                <AnimatedFrigyMascot size={200} animate={false} />
+                {/* Smaller mascot size: 120 instead of 200 */}
+                <AnimatedFrigyMascot size={120} animate={false} />
               </motion.div>
               
-              {/* Landing shadow */}
+              {/* Landing shadow - more subtle */}
               <motion.div
-                className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900/10 dark:bg-white/5 rounded-full blur-md"
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-3 bg-slate-900/8 dark:bg-white/5 rounded-full blur-sm"
                 animate={{
-                  scaleX: [1, 1.2, 1],
+                  scaleX: [1, 1.15, 1],
                   opacity: [0.4, 0.6, 0.4]
                 }}
                 transition={{
-                  duration: 2,
+                  duration: 2.5,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
               />
             </motion.div>
 
-            {/* Motivational text - more prominent */}
-            <div className="h-16 flex items-center justify-center mt-4">
+            {/* Motivational text - cleaner typography */}
+            <div className="h-12 flex items-center justify-center mt-4">
               <AnimatePresence mode="wait">
                 <motion.p
                   key={currentTextIndex}
-                  initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="text-xl font-semibold text-slate-800 dark:text-slate-100 leading-relaxed"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="text-lg font-medium text-slate-700 dark:text-slate-200 tracking-tight"
                 >
                   {motivationalTexts[currentTextIndex]}
                 </motion.p>
               </AnimatePresence>
             </div>
 
-            {/* Breathing dots */}
-            <div className="flex gap-3 mt-2">
+            {/* Modern breathing dots - smaller */}
+            <div className="flex gap-2">
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  className="w-2.5 h-2.5 rounded-full bg-emerald-500"
+                  className="w-2 h-2 rounded-full bg-emerald-400 dark:bg-emerald-500"
                   animate={{ 
-                    scale: [1, 1.5, 1],
+                    scale: [1, 1.4, 1],
                     opacity: [0.5, 1, 0.5]
                   }}
                   transition={{ 
-                    duration: 1.5, 
+                    duration: 1.2, 
                     repeat: Infinity, 
-                    delay: i * 0.2,
+                    delay: i * 0.15,
                     ease: "easeInOut"
                   }}
                 />
               ))}
             </div>
 
-            {/* Minimize hint */}
+            {/* Minimize hint - cleaner */}
             {onMinimize && (
               <motion.p 
-                className="text-sm text-slate-500 dark:text-slate-400 mt-6"
+                className="text-xs text-slate-400 dark:text-slate-500 mt-4 font-normal"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 2 }}
+                transition={{ delay: 1.5 }}
               >
                 Du kannst weiterstöbern – Frigy arbeitet im Hintergrund
               </motion.p>
