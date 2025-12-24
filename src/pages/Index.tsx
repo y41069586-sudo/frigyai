@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp } from "lucide-react";
+import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -389,6 +389,20 @@ const Index = () => {
                 targetFat={targetFat}
               />
             </div>
+            
+            {/* Scan Fridge Button */}
+            <motion.button
+              onClick={() => navigate('/scan')}
+              className="w-full mt-3 py-3 px-4 bg-primary/10 hover:bg-primary/15 
+                         rounded-2xl border border-primary/20 
+                         flex items-center justify-center gap-2
+                         text-primary font-medium text-sm
+                         active:scale-[0.98] transition-all"
+              whileTap={{ scale: 0.98 }}
+            >
+              <Scan className="w-4 h-4" />
+              Kühlschrank scannen
+            </motion.button>
           </motion.section>
           
           {/* Water Widget - Full Width */}
