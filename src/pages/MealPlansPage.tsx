@@ -140,9 +140,15 @@ const MealPlansPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  // Use global meal plan context for background generation
+  const { 
+    mealPlan: globalMealPlan, 
+    isGenerating: globalIsGenerating, 
+    elapsedSeconds: globalElapsedSeconds,
+    generateMealPlan: globalGenerateMealPlan 
+  } = useMealPlanGeneration();
+  
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationSeconds, setGenerationSeconds] = useState(0);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -247,36 +253,26 @@ const MealPlansPage = () => {
     // Remove premium redirect - allow free users to access with limitations
   }, [user, loading, navigate, searchParams]);
 
-  // Load saved meal plan on mount or show demo
+  // Sync meal plan from global context or localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('weeklyMealPlan');
-    if (saved) {
-      try {
-        setMealPlan(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load saved meal plan');
-        // Show demo plan on error
+    if (globalMealPlan && globalMealPlan.length > 0) {
+      setMealPlan(globalMealPlan);
+    } else {
+      const saved = localStorage.getItem('weeklyMealPlan');
+      if (saved) {
+        try {
+          setMealPlan(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to load saved meal plan');
+          setMealPlan(DEMO_MEAL_PLAN);
+        }
+      } else {
         setMealPlan(DEMO_MEAL_PLAN);
       }
-    } else {
-      // No saved plan - show demo plan
-      setMealPlan(DEMO_MEAL_PLAN);
     }
-  }, []);
+  }, [globalMealPlan]);
 
-  // Track elapsed time during meal plan generation
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isGenerating) {
-      setGenerationSeconds(0);
-      interval = setInterval(() => {
-        setGenerationSeconds(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isGenerating]);
+  // Elapsed time now comes from global context (globalElapsedSeconds)
 
   // Listen for tracker setup changes - reload settings from DB
   const handleTrackerSetup = () => {
@@ -317,87 +313,27 @@ const MealPlansPage = () => {
       return;
     }
 
-    setIsGenerating(true);
-    try {
-      // Use tracker settings from database/hook (single source of truth)
-      const dailyCalories = trackerSettings.dailyCalories || 1600;
-      const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
-      const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
-      const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
+    // Use tracker settings from database/hook (single source of truth)
+    const dailyCalories = trackerSettings.dailyCalories || 1600;
+    const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
+    const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
+    const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
 
-      console.log('[MEAL-PLAN] Using tracker settings:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
+    console.log('[MEAL-PLAN] Using global context for generation:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
 
-      // Prefer invoke (handles base URL). We also pass the session token explicitly for reliability.
-      const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { preferences: '', dailyCalories, dailyProtein, dailyCarbs, dailyFat },
-      });
+    // Use global context for background generation
+    const success = await globalGenerateMealPlan({
+      dailyCalories,
+      dailyProtein,
+      dailyCarbs,
+      dailyFat,
+    });
 
-      console.log('[MEAL-PLAN] Function response:', {
-        hasMealPlan: Boolean((data as any)?.mealPlan),
-        days: Array.isArray((data as any)?.mealPlan) ? (data as any).mealPlan.length : null,
-      });
-
-      if (error) {
-        // Try to extract the function's JSON error for a helpful message
-        let details = (error as any)?.message ? String((error as any).message) : String(error);
-
-        const resp: Response | undefined = (error as any)?.context;
-        if (resp && typeof (resp as any).text === 'function') {
-          try {
-            const text = await resp.text();
-            if (text) {
-              try {
-                const parsed = JSON.parse(text);
-                details = parsed?.error || parsed?.message || details;
-              } catch {
-                details = text;
-              }
-            }
-          } catch {
-            // ignore
-          }
-        }
-
-        throw new Error(details);
-      }
-
-      if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
-        setMealPlan((data as any).mealPlan);
-        localStorage.setItem('weeklyMealPlan', JSON.stringify((data as any).mealPlan));
-        
-        // Track generation count for free users
-        if (!isPremium) {
-          const newCount = mealPlanGenerationCount + 1;
-          setMealPlanGenerationCount(newCount);
-          localStorage.setItem('mealPlanGenerationCount', String(newCount));
-        }
-        
-        toast({ title: t.newPlanGenerated, description: t.planWithKcal.replace('{kcal}', String(dailyCalories)) });
-      } else {
-        throw new Error('Leerer Wochenplan erhalten');
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('Error generating meal plan:', message);
-      
-      // Handle plan limit exceeded specifically
-      if (message.includes('plan_limit_exceeded') || message.includes('wöchentlichen Wochenplan')) {
-        toast({
-          title: "Limit erreicht",
-          description: "Du hast dein wöchentliches Limit erreicht. Upgrade auf Premium für unbegrenzte Pläne!",
-          variant: 'destructive',
-        });
-        navigate('/premium-pricing');
-      } else {
-        toast({
-          title: t.error,
-          description: message ? `${t.couldNotGeneratePlan} (${message})` : t.couldNotGeneratePlan,
-          variant: 'destructive',
-        });
-      }
-    } finally {
-      setIsGenerating(false);
+    if (success && !isPremium) {
+      // Track generation count for free users
+      const newCount = mealPlanGenerationCount + 1;
+      setMealPlanGenerationCount(newCount);
+      localStorage.setItem('mealPlanGenerationCount', String(newCount));
     }
   };
 
@@ -608,12 +544,12 @@ const MealPlansPage = () => {
                       className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
                       size="sm"
                       onClick={generateMealPlan}
-                      disabled={isGenerating || !canGenerateMealPlan}
+                      disabled={globalIsGenerating || !canGenerateMealPlan}
                     >
-                      {isGenerating ? (() => {
+                      {globalIsGenerating ? (() => {
                         const expectedSeconds = 40;
-                        const remaining = Math.max(5, expectedSeconds - generationSeconds);
-                        const label = generationSeconds < expectedSeconds
+                        const remaining = Math.max(5, expectedSeconds - globalElapsedSeconds);
+                        const label = globalElapsedSeconds < expectedSeconds
                           ? `Wird generiert… ca. ${remaining}s`
                           : t.almostDone;
 
