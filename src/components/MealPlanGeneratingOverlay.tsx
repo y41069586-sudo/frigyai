@@ -111,6 +111,56 @@ export const MealPlanGeneratingOverlay = ({
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  const handleBackgroundPointerDown = (e: any) => {
+    if (!onMinimize) return;
+
+    const target = e?.target as HTMLElement | null;
+    if (target?.closest?.('[data-mealplan-overlay-card="true"]')) return;
+
+    const clientX = e?.clientX as number | undefined;
+    const clientY = e?.clientY as number | undefined;
+    const pointerId = e?.pointerId as number | undefined;
+    const pointerType = (e?.pointerType as string | undefined) ?? "touch";
+
+    onMinimize();
+
+    if (typeof clientX !== "number" || typeof clientY !== "number") return;
+
+    // Forward the original tap to the element underneath so navigation works with a single tap.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+        if (!el) return;
+
+        try {
+          el.dispatchEvent(
+            new PointerEvent("pointerdown", {
+              bubbles: true,
+              clientX,
+              clientY,
+              pointerId: pointerId ?? 1,
+              pointerType,
+              isPrimary: true,
+            })
+          );
+          el.dispatchEvent(
+            new PointerEvent("pointerup", {
+              bubbles: true,
+              clientX,
+              clientY,
+              pointerId: pointerId ?? 1,
+              pointerType,
+              isPrimary: true,
+            })
+          );
+          el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX, clientY }));
+        } catch {
+          // ignore
+        }
+      });
+    });
+  };
+
   // Minimized floating indicator
   if (isGenerating && isMinimized) {
     return (
@@ -153,7 +203,9 @@ export const MealPlanGeneratingOverlay = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+          style={{ pointerEvents: showOverlay ? "auto" : "none" }}
+          onPointerDown={handleBackgroundPointerDown}
         >
           {/* Blurred background - shows content behind with blur effect */}
           <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
@@ -164,19 +216,20 @@ export const MealPlanGeneratingOverlay = ({
           {/* Minimize button */}
           {onMinimize && (
             <motion.button
+              data-mealplan-overlay-card="true"
               onClick={onMinimize}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
               className="absolute top-4 right-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
-                         hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20 pointer-events-auto"
+                         hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
             >
               <X className="w-4 h-4 text-slate-400" />
             </motion.button>
           )}
 
-          <div className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10 pointer-events-auto">
+          <div data-mealplan-overlay-card="true" className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10">
 
             {/* Floating ingredients - smaller and more subtle */}
             <div className="absolute inset-x-0 top-0 h-40 pointer-events-none">
