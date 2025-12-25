@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 
 interface MealPlanGeneratingOverlayProps {
@@ -213,7 +213,7 @@ export const MealPlanGeneratingOverlay = ({
           {/* Very light gradient overlay for modern feel */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 via-white/20 to-teal-50/40 dark:from-emerald-900/20 dark:via-transparent dark:to-teal-900/20" />
 
-          {/* Minimize button */}
+          {/* Zurück (wie vorher das X): minimiert das Overlay */}
           {onMinimize && (
             <motion.button
               data-mealplan-overlay-card="true"
@@ -221,11 +221,12 @@ export const MealPlanGeneratingOverlay = ({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
+              aria-label="Zurück"
+              className="absolute top-4 left-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
                          hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
             >
-              <X className="w-4 h-4 text-slate-400" />
+              <ArrowLeft className="w-4 h-4 text-slate-400" />
             </motion.button>
           )}
 
