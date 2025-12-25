@@ -45,23 +45,42 @@ export const MotivationStep = ({ userData, setUserData }: StepProps) => {
           {language === 'de' ? "Hilft uns, dich besser zu unterstützen" : language === 'fr' ? "Nous aide à mieux te soutenir" : "Helps us support you better"}
         </motion.p>
         
-        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+        <div className="flex flex-col gap-2.5 w-full max-w-sm">
           {motivations.map((option, i) => {
             const IconComponent = option.icon;
+            const isSelected = userData.motivation === option.id;
             return (
-              <SelectionCard
+              <motion.button
                 key={option.id}
-                selected={userData.motivation === option.id}
                 onClick={() => setUserData({ ...userData, motivation: option.id })}
-                delay={0.1 + i * 0.05}
-                className="flex flex-col items-center gap-2 p-4"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
+                className={`w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
+                  isSelected 
+                    ? 'border-primary bg-primary/10 shadow-sm' 
+                    : 'border-border/50 bg-card/50 hover:bg-card/80'
+                }`}
               >
-                <div className={`w-10 h-10 rounded-xl ${option.bgColor} flex items-center justify-center ${option.color}`}>
+                <div className={`w-10 h-10 rounded-xl ${option.bgColor} flex items-center justify-center flex-shrink-0 ${option.color}`}>
                   <IconComponent className="w-5 h-5" />
                 </div>
-                <span className="text-sm font-medium">{option.label}</span>
-                <span className="text-[10px] text-muted-foreground/50">{option.desc}</span>
-              </SelectionCard>
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-medium block">{option.label}</span>
+                  <span className="text-[10px] text-muted-foreground/50">{option.desc}</span>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
+                }`}>
+                  {isSelected && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-2 h-2 rounded-full bg-primary-foreground"
+                    />
+                  )}
+                </div>
+              </motion.button>
             );
           })}
         </div>
