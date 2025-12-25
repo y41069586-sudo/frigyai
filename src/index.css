@@ -8,49 +8,55 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 140 40% 98%;
-    --foreground: 0 0% 5%;
+    /* Optimized light mode with better contrast */
+    --background: 0 0% 99%;
+    --foreground: 160 10% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 5%;
+    --card-foreground: 160 10% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover-foreground: 160 10% 12%;
 
-    --primary: 160 100% 50%;
-    --primary-foreground: 0 0% 0%;
+    /* Neon green primary - slightly deeper for better contrast on white */
+    --primary: 160 100% 38%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 140 30% 96%;
-    --secondary-foreground: 0 0% 5%;
+    --secondary: 160 20% 96%;
+    --secondary-foreground: 160 10% 15%;
 
-    --muted: 140 30% 96%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 160 15% 95%;
+    --muted-foreground: 160 5% 45%;
 
-    --accent: 160 100% 50%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 160 100% 38%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 140 30% 90%;
-    --input: 140 30% 90%;
-    --ring: 160 100% 50%;
+    --border: 160 15% 88%;
+    --input: 160 15% 90%;
+    --ring: 160 100% 38%;
 
     --radius: 1rem;
 
-    --neon-green: 160 100% 50%;
-    --neon-green-dark: 160 100% 40%;
-    --soft-green: 140 40% 98%;
+    /* Neon green variants */
+    --neon-green: 160 100% 45%;
+    --neon-green-dark: 160 100% 35%;
+    --neon-green-light: 160 80% 85%;
+    --soft-green: 160 30% 97%;
     
-    --gradient-bg: linear-gradient(135deg, hsl(140, 40%, 98%) 0%, hsl(0, 0%, 100%) 100%);
-    --gradient-neon: linear-gradient(135deg, hsl(160, 100%, 50%) 0%, hsl(140, 100%, 45%) 100%);
-    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 0.9) 0%, hsla(0, 0%, 100%, 0.7) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(160, 100%, 50%) 0%, hsl(140, 100%, 40%) 100%);
+    /* Refined gradients */
+    --gradient-bg: linear-gradient(135deg, hsl(160, 20%, 98%) 0%, hsl(0, 0%, 100%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(160, 100%, 42%) 0%, hsl(155, 100%, 35%) 100%);
+    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 0.95) 0%, hsla(160, 20%, 99%, 0.9) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(160, 100%, 42%) 0%, hsl(155, 100%, 32%) 100%);
     
-    --shadow-glow: 0 0 30px hsla(160, 100%, 50%, 0.3);
-    --shadow-glow-lg: 0 0 50px hsla(160, 100%, 50%, 0.4);
-    --shadow-soft: 0 4px 20px -4px hsla(0, 0%, 0%, 0.08);
-    --shadow-card: 0 8px 32px -8px hsla(0, 0%, 0%, 0.1);
+    /* Refined shadows with green tint */
+    --shadow-glow: 0 0 30px hsla(160, 100%, 45%, 0.25);
+    --shadow-glow-lg: 0 0 50px hsla(160, 100%, 45%, 0.35);
+    --shadow-soft: 0 4px 20px -4px hsla(160, 30%, 20%, 0.08);
+    --shadow-card: 0 8px 32px -8px hsla(160, 30%, 20%, 0.1);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
