@@ -25,7 +25,7 @@ import frigLogo from "@/assets/frig-logo.png";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
@@ -318,7 +318,8 @@ const Index = () => {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  const greeting = new Date().getHours() < 12 ? "Guten Morgen" : new Date().getHours() < 18 ? "Guten Tag" : "Guten Abend";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? t.goodMorning : hour < 18 ? t.goodAfternoon : t.goodEvening;
   const displayName = userName || (user?.email?.split('@')[0]) || '';
 
   return (
@@ -338,10 +339,10 @@ const Index = () => {
           >
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground font-medium">
-                {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'short' })}
+                {new Date().toLocaleDateString(language === 'de' ? 'de-DE' : language === 'fr' ? 'fr-FR' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
               </p>
               <h1 className="text-xl font-bold text-foreground mt-0.5 truncate">
-                {displayName ? `Hey, ${displayName}` : 'Willkommen'} 👋
+                {displayName ? `Hey, ${displayName}` : t.welcome} 👋
               </h1>
             </div>
             
@@ -411,7 +412,7 @@ const Index = () => {
               >
                 <Scan className="w-5 h-5" />
               </motion.div>
-              Kühlschrank scannen
+              {t.scanFridge}
             </motion.button>
           </motion.section>
           
@@ -442,8 +443,8 @@ const Index = () => {
                         <TrendingUp className="w-5 h-5 text-purple-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Gewichtsverlauf</p>
-                        <p className="text-xs text-muted-foreground">Tippe für Details</p>
+                        <p className="text-sm font-semibold text-foreground">{t.weightHistory}</p>
+                        <p className="text-xs text-muted-foreground">{t.tapForDetails}</p>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-purple-500/50" />
@@ -465,7 +466,7 @@ const Index = () => {
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-bold">Dein Fortschritt</DialogTitle>
+                  <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
                 </DialogHeader>
                 <div className="mt-4">
                   <ProgressCharts />
@@ -492,12 +493,12 @@ const Index = () => {
             transition={{ delay: 0.25 }}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground">Heute gegessen</h2>
+              <h2 className="text-sm font-semibold text-foreground">{t.eaten} {t.today.toLowerCase()}</h2>
               <button 
                 className="text-xs text-primary font-medium"
                 onClick={() => navigate('/meal-plans?tab=tracker')}
               >
-                Alle →
+                {t.more} →
               </button>
             </div>
             
@@ -510,8 +511,8 @@ const Index = () => {
                 <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
                   <Plus className="w-7 h-7 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm text-muted-foreground">Noch nichts eingetragen</p>
-                <p className="text-sm font-medium text-primary mt-1">+ Mahlzeit hinzufügen</p>
+                <p className="text-sm text-muted-foreground">{t.nothingEatenToday}</p>
+                <p className="text-sm font-medium text-primary mt-1">+ {t.addFood}</p>
               </motion.div>
             ) : (
               <div className="space-y-2">
@@ -539,7 +540,7 @@ const Index = () => {
                     className="w-full py-2 text-xs text-primary font-medium"
                     onClick={() => navigate('/meal-plans?tab=tracker')}
                   >
-                    + {todayMeals.length - 3} weitere anzeigen
+                    + {todayMeals.length - 3} {t.more}
                   </button>
                 )}
               </div>

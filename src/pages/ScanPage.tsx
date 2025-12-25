@@ -24,7 +24,7 @@ interface RecentDish {
 const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user, subscriptionStatus } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -192,6 +192,8 @@ const ScanPage = () => {
     setShowPrefsSelector(false);
   };
 
+  // language and t already destructured at line 27
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
@@ -199,11 +201,11 @@ const ScanPage = () => {
     yesterday.setDate(yesterday.getDate() - 1);
     
     if (date.toDateString() === today.toDateString()) {
-      return 'Heute';
+      return t.todayLabel;
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Gestern';
+      return t.yesterdayLabel;
     } else {
-      return date.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+      return date.toLocaleDateString(language === 'de' ? 'de-DE' : language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' });
     }
   };
 
@@ -339,7 +341,7 @@ const ScanPage = () => {
                 >
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Clock className="h-5 w-5 text-muted-foreground" />
-                    Zuletzt gekocht
+                    {t.recentlyCooked}
                   </h3>
                   <div className="space-y-3">
                     {recentDishes.map((dish, index) => (
@@ -357,7 +359,7 @@ const ScanPage = () => {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">{dish.title}</p>
                               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                <span>{dish.prepTime} Min</span>
+                                <span>{dish.prepTime} {t.min}</span>
                                 <span>•</span>
                                 <span>{dish.calories} kcal</span>
                               </div>
@@ -461,7 +463,7 @@ const ScanPage = () => {
                           disabled={ingredients.length === 0}
                           className="flex-1 gradient-neon text-black font-semibold glow-button"
                         >
-                          Weiter
+                          {t.continueButton}
                         </Button>
                       </div>
                     </motion.div>

@@ -377,6 +377,51 @@ interface Translations {
   mealPlanGenerating6: string;
   mealPlanGenerating7: string;
   mealPlanBackgroundHint: string;
+  
+  // Dashboard & Home
+  goodMorning: string;
+  goodAfternoon: string;
+  goodEvening: string;
+  welcome: string;
+  weightHistory: string;
+  tapForDetails: string;
+  mealPlanReady: string;
+  generateMealPlan: string;
+  noMealPlanYet: string;
+  
+  // Profile & Settings
+  subscriptionStatus: string;
+  subscriptionRefreshed: string;
+  freePlanLabel: string;
+  deleteAccount: string;
+  deleteAccountSoon: string;
+  resetOnboarding: string;
+  onboardingResetMessage: string;
+  legal: string;
+  privacyPolicy: string;
+  termsOfService: string;
+  imprint: string;
+  settingsLabel: string;
+  reminders: string;
+  
+  // Food Entry Detail
+  mealName: string;
+  calories: string;
+  kcal: string;
+  grams: string;
+  saved: string;
+  deleted: string;
+  errorSaving: string;
+  errorDeleting: string;
+  entryNotFound: string;
+  saving: string;
+  
+  // Scan Page
+  recentlyCooked: string;
+  todayLabel: string;
+  yesterdayLabel: string;
+  min: string;
+  continueButton: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -755,6 +800,51 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Noch ein kleiner Moment…",
     mealPlanGenerating7: "Deine Mahlzeiten werden vorbereitet",
     mealPlanBackgroundHint: "Du kannst weiterstöbern – Frigy arbeitet im Hintergrund",
+    
+    // Dashboard & Home
+    goodMorning: "Guten Morgen",
+    goodAfternoon: "Guten Tag",
+    goodEvening: "Guten Abend",
+    welcome: "Willkommen",
+    weightHistory: "Gewichtsverlauf",
+    tapForDetails: "Tippe für Details",
+    mealPlanReady: "Wochenplan bereit",
+    generateMealPlan: "Wochenplan erstellen",
+    noMealPlanYet: "Noch kein Wochenplan",
+    
+    // Profile & Settings
+    subscriptionStatus: "Abo-Status",
+    subscriptionRefreshed: "Abo-Status aktualisiert",
+    freePlanLabel: "Kostenloser Plan",
+    deleteAccount: "Konto löschen",
+    deleteAccountSoon: "Diese Funktion wird bald verfügbar sein.",
+    resetOnboarding: "Onboarding zurücksetzen",
+    onboardingResetMessage: "Beim nächsten Öffnen startet das Onboarding neu.",
+    legal: "Rechtliches",
+    privacyPolicy: "Datenschutzerklärung",
+    termsOfService: "AGB",
+    imprint: "Impressum",
+    settingsLabel: "Einstellungen",
+    reminders: "Erinnerungen",
+    
+    // Food Entry Detail
+    mealName: "Mahlzeit Name",
+    calories: "Kalorien",
+    kcal: "kcal",
+    grams: "g",
+    saved: "Gespeichert",
+    deleted: "Gelöscht",
+    errorSaving: "Fehler beim Speichern",
+    errorDeleting: "Fehler beim Löschen",
+    entryNotFound: "Eintrag nicht gefunden",
+    saving: "Speichert...",
+    
+    // Scan Page
+    recentlyCooked: "Zuletzt gekocht",
+    todayLabel: "Heute",
+    yesterdayLabel: "Gestern",
+    min: "Min",
+    continueButton: "Weiter",
   },
   en: {
     // Navigation & Common
@@ -1131,6 +1221,51 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Just a moment longer…",
     mealPlanGenerating7: "Your meals are being prepared",
     mealPlanBackgroundHint: "You can browse around – Frigy is working in the background",
+    
+    // Dashboard & Home
+    goodMorning: "Good morning",
+    goodAfternoon: "Good afternoon",
+    goodEvening: "Good evening",
+    welcome: "Welcome",
+    weightHistory: "Weight History",
+    tapForDetails: "Tap for details",
+    mealPlanReady: "Meal plan ready",
+    generateMealPlan: "Generate meal plan",
+    noMealPlanYet: "No meal plan yet",
+    
+    // Profile & Settings
+    subscriptionStatus: "Subscription Status",
+    subscriptionRefreshed: "Subscription status refreshed",
+    freePlanLabel: "Free Plan",
+    deleteAccount: "Delete Account",
+    deleteAccountSoon: "This feature will be available soon.",
+    resetOnboarding: "Reset Onboarding",
+    onboardingResetMessage: "Onboarding will restart next time you open the app.",
+    legal: "Legal",
+    privacyPolicy: "Privacy Policy",
+    termsOfService: "Terms of Service",
+    imprint: "Imprint",
+    settingsLabel: "Settings",
+    reminders: "Reminders",
+    
+    // Food Entry Detail
+    mealName: "Meal Name",
+    calories: "Calories",
+    kcal: "kcal",
+    grams: "g",
+    saved: "Saved",
+    deleted: "Deleted",
+    errorSaving: "Error saving",
+    errorDeleting: "Error deleting",
+    entryNotFound: "Entry not found",
+    saving: "Saving...",
+    
+    // Scan Page
+    recentlyCooked: "Recently cooked",
+    todayLabel: "Today",
+    yesterdayLabel: "Yesterday",
+    min: "min",
+    continueButton: "Continue",
   },
   fr: {
     // Navigation & Common
@@ -1507,6 +1642,51 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Encore un petit moment…",
     mealPlanGenerating7: "Tes repas sont en préparation",
     mealPlanBackgroundHint: "Tu peux continuer à naviguer – Frigy travaille en arrière-plan",
+    
+    // Dashboard & Home
+    goodMorning: "Bonjour",
+    goodAfternoon: "Bon après-midi",
+    goodEvening: "Bonsoir",
+    welcome: "Bienvenue",
+    weightHistory: "Historique du poids",
+    tapForDetails: "Appuyer pour les détails",
+    mealPlanReady: "Plan de repas prêt",
+    generateMealPlan: "Générer le plan de repas",
+    noMealPlanYet: "Pas encore de plan de repas",
+    
+    // Profile & Settings
+    subscriptionStatus: "Statut de l'abonnement",
+    subscriptionRefreshed: "Statut de l'abonnement actualisé",
+    freePlanLabel: "Plan gratuit",
+    deleteAccount: "Supprimer le compte",
+    deleteAccountSoon: "Cette fonctionnalité sera bientôt disponible.",
+    resetOnboarding: "Réinitialiser l'onboarding",
+    onboardingResetMessage: "L'onboarding redémarrera à la prochaine ouverture.",
+    legal: "Mentions légales",
+    privacyPolicy: "Politique de confidentialité",
+    termsOfService: "Conditions d'utilisation",
+    imprint: "Mentions légales",
+    settingsLabel: "Paramètres",
+    reminders: "Rappels",
+    
+    // Food Entry Detail
+    mealName: "Nom du repas",
+    calories: "Calories",
+    kcal: "kcal",
+    grams: "g",
+    saved: "Enregistré",
+    deleted: "Supprimé",
+    errorSaving: "Erreur lors de l'enregistrement",
+    errorDeleting: "Erreur lors de la suppression",
+    entryNotFound: "Entrée non trouvée",
+    saving: "Enregistrement...",
+    
+    // Scan Page
+    recentlyCooked: "Récemment cuisiné",
+    todayLabel: "Aujourd'hui",
+    yesterdayLabel: "Hier",
+    min: "min",
+    continueButton: "Continuer",
   },
 };
 

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
 interface LocalFoodEntry {
   id: string;
@@ -46,6 +47,7 @@ const FoodEntryDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   const [loading, setLoading] = useState(true);
   const [isLocalEntry, setIsLocalEntry] = useState(false);
@@ -176,12 +178,12 @@ const FoodEntryDetailPage = () => {
             ...data,
             entries: updatedEntries,
           }));
-          toast({ title: 'Gespeichert' });
+          toast({ title: t.saved });
           navigate('/meal-plans?tab=tracker');
         }
       } catch (error) {
         console.error('Error saving to localStorage:', error);
-        toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+        toast({ title: t.errorSaving, variant: 'destructive' });
       }
     } else if (user) {
       // Save to database
@@ -194,11 +196,11 @@ const FoodEntryDetailPage = () => {
 
         if (error) throw error;
 
-        toast({ title: 'Gespeichert' });
+        toast({ title: t.saved });
         navigate('/meal-plans?tab=tracker');
       } catch (error) {
         console.error('Error saving to DB:', error);
-        toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+        toast({ title: t.errorSaving, variant: 'destructive' });
       }
     }
     
@@ -219,12 +221,12 @@ const FoodEntryDetailPage = () => {
             ...data,
             entries: updatedEntries,
           }));
-          toast({ title: 'Gelöscht' });
+          toast({ title: t.deleted });
           navigate('/meal-plans?tab=tracker');
         }
       } catch (error) {
         console.error('Error deleting from localStorage:', error);
-        toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
+        toast({ title: t.errorDeleting, variant: 'destructive' });
       }
     } else if (user) {
       // Delete from database
@@ -237,11 +239,11 @@ const FoodEntryDetailPage = () => {
 
         if (error) throw error;
 
-        toast({ title: 'Gelöscht' });
+        toast({ title: t.deleted });
         navigate('/meal-plans?tab=tracker');
       } catch (error) {
         console.error('Error deleting from DB:', error);
-        toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
+        toast({ title: t.errorDeleting, variant: 'destructive' });
       }
     }
   };
@@ -268,10 +270,10 @@ const FoodEntryDetailPage = () => {
   if (notFound) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
-        <p className="text-muted-foreground text-center">Eintrag nicht gefunden</p>
+        <p className="text-muted-foreground text-center">{t.entryNotFound}</p>
         <Button onClick={() => navigate('/meal-plans?tab=tracker')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
+          {t.back}
         </Button>
       </div>
     );
@@ -328,7 +330,7 @@ const FoodEntryDetailPage = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="text-xl font-semibold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/50"
-            placeholder="Mahlzeit Name"
+            placeholder={t.mealName}
           />
         </div>
 
@@ -345,7 +347,7 @@ const FoodEntryDetailPage = () => {
               <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
                 <Flame className="h-5 w-5 text-orange-500" />
               </div>
-              <span className="text-sm text-muted-foreground">Kalorien</span>
+              <span className="text-sm text-muted-foreground">{t.calories}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Input
@@ -354,7 +356,7 @@ const FoodEntryDetailPage = () => {
                 onChange={(e) => setCalories(Number(e.target.value))}
                 className="text-2xl font-bold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 w-20 caret-primary"
               />
-              <span className="text-sm text-muted-foreground">kcal</span>
+              <span className="text-sm text-muted-foreground">{t.kcal}</span>
               <Pencil className="h-3.5 w-3.5 text-primary/60 group-hover:text-primary transition-colors ml-auto" />
             </div>
           </div>
@@ -405,7 +407,7 @@ const FoodEntryDetailPage = () => {
               <div className="w-9 h-9 rounded-xl bg-sky-500/15 flex items-center justify-center">
                 <Droplets className="h-5 w-5 text-sky-500" />
               </div>
-              <span className="text-sm text-muted-foreground">Fett</span>
+              <span className="text-sm text-muted-foreground">{t.fat}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Input
@@ -433,7 +435,7 @@ const FoodEntryDetailPage = () => {
             className="flex-1 h-12 border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Löschen
+            {t.deleted}
           </Button>
           <Button
             onClick={handleSave}
@@ -441,7 +443,7 @@ const FoodEntryDetailPage = () => {
             className="flex-1 h-12"
           >
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Speichert...' : 'Speichern'}
+            {saving ? t.saving : t.save}
           </Button>
         </motion.div>
       </motion.div>
