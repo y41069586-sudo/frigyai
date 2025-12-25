@@ -367,6 +367,16 @@ interface Translations {
   noEmailReceived: string;
   emailConfirmed: string;
   redirectingToApp: string;
+  
+  // Meal Plan Generation Overlay
+  mealPlanGenerating1: string;
+  mealPlanGenerating2: string;
+  mealPlanGenerating3: string;
+  mealPlanGenerating4: string;
+  mealPlanGenerating5: string;
+  mealPlanGenerating6: string;
+  mealPlanGenerating7: string;
+  mealPlanBackgroundHint: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -735,6 +745,16 @@ const translations: Record<Language, Translations> = {
     noEmailReceived: "Keine E-Mail erhalten? Überprüfe deinen Spam-Ordner.",
     emailConfirmed: "E-Mail bestätigt!",
     redirectingToApp: "Du wirst zur App weitergeleitet...",
+    
+    // Meal Plan Generation Overlay
+    mealPlanGenerating1: "Frigy plant deine Woche…",
+    mealPlanGenerating2: "Dein Wochenplan nimmt Form an",
+    mealPlanGenerating3: "Wir machen dir das Denken leicht",
+    mealPlanGenerating4: "Fast geschafft…",
+    mealPlanGenerating5: "Frigy wählt die besten Rezepte",
+    mealPlanGenerating6: "Noch ein kleiner Moment…",
+    mealPlanGenerating7: "Deine Mahlzeiten werden vorbereitet",
+    mealPlanBackgroundHint: "Du kannst weiterstöbern – Frigy arbeitet im Hintergrund",
   },
   en: {
     // Navigation & Common
@@ -1101,6 +1121,16 @@ const translations: Record<Language, Translations> = {
     noEmailReceived: "Didn't receive an email? Check your spam folder.",
     emailConfirmed: "Email confirmed!",
     redirectingToApp: "Redirecting you to the app...",
+    
+    // Meal Plan Generation Overlay
+    mealPlanGenerating1: "Frigy is planning your week…",
+    mealPlanGenerating2: "Your weekly plan is taking shape",
+    mealPlanGenerating3: "We're making it easy for you",
+    mealPlanGenerating4: "Almost done…",
+    mealPlanGenerating5: "Frigy is selecting the best recipes",
+    mealPlanGenerating6: "Just a moment longer…",
+    mealPlanGenerating7: "Your meals are being prepared",
+    mealPlanBackgroundHint: "You can browse around – Frigy is working in the background",
   },
   fr: {
     // Navigation & Common
@@ -1467,6 +1497,16 @@ const translations: Record<Language, Translations> = {
     noEmailReceived: "Pas reçu d'e-mail? Vérifiez votre dossier spam.",
     emailConfirmed: "E-mail confirmé!",
     redirectingToApp: "Redirection vers l'application...",
+    
+    // Meal Plan Generation Overlay
+    mealPlanGenerating1: "Frigy prépare ta semaine…",
+    mealPlanGenerating2: "Ton plan hebdomadaire prend forme",
+    mealPlanGenerating3: "On te facilite la vie",
+    mealPlanGenerating4: "Presque terminé…",
+    mealPlanGenerating5: "Frigy sélectionne les meilleures recettes",
+    mealPlanGenerating6: "Encore un petit moment…",
+    mealPlanGenerating7: "Tes repas sont en préparation",
+    mealPlanBackgroundHint: "Tu peux continuer à naviguer – Frigy travaille en arrière-plan",
   },
 };
 
