@@ -220,9 +220,6 @@ export const DashboardMacroRing = ({
               {targetCalories.toLocaleString('de-DE')}
               <span className="text-sm font-normal text-muted-foreground ml-1">kcal</span>
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {todayPercent}% erreicht
-            </p>
           </motion.div>
         </div>
       </div>
@@ -268,7 +265,7 @@ export const DashboardMacroRing = ({
               const isComplete = day.percentAchieved >= 90;
               const isOver = day.percentAchieved > 100;
               const distanceFromCenter = Math.abs(index - 2);
-              const opacity = day.isToday ? 1 : 0.5 - (distanceFromCenter * 0.1);
+              const opacity = day.isToday ? 1 : 0.4 - (distanceFromCenter * 0.08);
               
               return (
                 <motion.div
@@ -278,42 +275,30 @@ export const DashboardMacroRing = ({
                   animate={{ opacity: day.isToday ? 1 : opacity, scale: 1 }}
                   transition={{ delay: 0.08 * index + 0.7, duration: 0.3 }}
                 >
-                  {/* Day circle */}
-                  <div 
-                    className={`relative flex items-center justify-center transition-all ${
-                      day.isToday 
-                        ? 'w-12 h-12 rounded-xl ring-2 ring-primary/40 bg-primary/15' 
-                        : 'w-9 h-9 rounded-lg'
-                    } ${
-                      !day.isToday && (
-                        day.calories === 0
-                          ? 'bg-muted/15'
-                          : isOver
-                            ? 'bg-orange-500/15'
-                            : isComplete
-                              ? 'bg-emerald-500/15'
-                              : 'bg-primary/10'
-                      )
-                    }`}
-                  >
-                    {day.isToday ? (
+                  {/* Day circle - only for today */}
+                  {day.isToday ? (
+                    <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center">
                       <span className="text-sm font-bold text-primary">
                         {day.percentAchieved}%
                       </span>
-                    ) : isComplete ? (
-                      <Check className={`w-3.5 h-3.5 ${isOver ? 'text-orange-500' : 'text-emerald-500'}`} />
-                    ) : (
-                      <span className="text-[10px] font-medium text-muted-foreground">
-                        {day.dayShort}
-                      </span>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="w-9 h-9 flex items-center justify-center">
+                      {isComplete ? (
+                        <Check className={`w-4 h-4 ${isOver ? 'text-orange-400/60' : 'text-emerald-400/60'}`} />
+                      ) : (
+                        <span className="text-xs font-medium text-muted-foreground/40">
+                          {day.dayShort}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Day label */}
                   <span className={`mt-1 text-[9px] font-medium ${
                     day.isToday 
                       ? 'text-primary' 
-                      : 'text-muted-foreground/50'
+                      : 'text-muted-foreground/30'
                   }`}>
                     {day.isToday ? 'Heute' : day.dayShort}
                   </span>
