@@ -28,6 +28,183 @@ interface Translations {
   success: string;
   or: string;
   
+  // Onboarding Steps
+  onboardingWhatsYourName: string;
+  onboardingNameSubtitle: string;
+  onboardingYourName: string;
+  onboardingImFrigy: string;
+  onboardingReadyToReachGoals: string;
+  onboardingYesLetsGo: string;
+  onboardingWhatsYourGoal: string;
+  onboardingSelectToPersonalize: string;
+  onboardingLoseWeight: string;
+  onboardingMaintainWeight: string;
+  onboardingGainMuscle: string;
+  onboardingEatHealthier: string;
+  onboardingLovedByThousands: string;
+  onboardingJoinUsers: string;
+  onboardingRealResults: string;
+  onboardingBasedOnData: string;
+  onboardingReachGoals: string;
+  onboardingAvgWeightLoss: string;
+  onboardingTimeSaved: string;
+  onboardingTimeToPersonalize: string;
+  onboardingQuickSteps: string;
+  onboardingBody: string;
+  onboardingActivity: string;
+  onboardingMacros: string;
+  onboardingTakesLess30Sec: string;
+  onboardingYourBodyData: string;
+  onboardingScrollToSet: string;
+  onboardingHeight: string;
+  onboardingWeightLabel: string;
+  onboardingAgeLabel: string;
+  onboardingPrivate: string;
+  onboardingYourGender: string;
+  onboardingGenderImportant: string;
+  onboardingMale: string;
+  onboardingFemale: string;
+  onboardingYourGoalMode: string;
+  onboardingWhatDirection: string;
+  onboardingLoseWeightMode: string;
+  onboardingGainWeightMode: string;
+  onboardingTargetWeight: string;
+  onboardingGoalIn: string;
+  onboardingWeeks: string;
+  onboardingYourSpeed: string;
+  onboardingHowFast: string;
+  onboardingSlow: string;
+  onboardingGentle: string;
+  onboardingModerate: string;
+  onboardingSteady: string;
+  onboardingFast: string;
+  onboardingAmbitious: string;
+  onboardingIntense: string;
+  onboardingMaximum: string;
+  onboardingHighTempoWarning: string;
+  onboardingRecommendedTempo: string;
+  onboardingDietaryPrefs: string;
+  onboardingForMatchingRecipes: string;
+  onboardingVegetarian: string;
+  onboardingNoMeatFish: string;
+  onboardingVegan: string;
+  onboardingNoAnimalProducts: string;
+  onboardingPescatarian: string;
+  onboardingFishNoMeat: string;
+  onboardingNone: string;
+  onboardingEverythingAllowed: string;
+  onboardingAllergies: string;
+  onboardingMultiSelect: string;
+  onboardingGluten: string;
+  onboardingLactose: string;
+  onboardingNuts: string;
+  onboardingSoy: string;
+  onboardingEggs: string;
+  onboardingCookingExperience: string;
+  onboardingForRecipeDifficulty: string;
+  onboardingBeginner: string;
+  onboardingSimpleRecipes: string;
+  onboardingIntermediate: string;
+  onboardingMediumDishes: string;
+  onboardingAdvanced: string;
+  onboardingDemandingCuisine: string;
+  onboardingActivityLevel: string;
+  onboardingHowActive: string;
+  onboardingChill: string;
+  onboardingDeskJob: string;
+  onboardingActive: string;
+  onboardingRegularWorkouts: string;
+  onboardingBeast: string;
+  onboardingIntenseTraining: string;
+  onboardingAnalyzingGoals: string;
+  onboardingProcessingBodyData: string;
+  onboardingCalculatingTargetWeight: string;
+  onboardingDeterminingMacros: string;
+  onboardingCreatingPlan: string;
+  onboardingYourDailyGoal: string;
+  onboardingPersonalizedForYou: string;
+  onboardingBasedOnScience: string;
+  onboardingMifflinFormula: string;
+  onboardingBMRCalculation: string;
+  onboardingTDEEFactors: string;
+  onboardingTotalEnergy: string;
+  onboardingProteinRecommendation: string;
+  onboardingISSNProtein: string;
+  onboardingDeficitRule: string;
+  onboardingEnergyBalance: string;
+  onboardingLetFridgeDecide: string;
+  onboardingBuildMealsFromWhat: string;
+  onboardingIllHandlePlanning: string;
+  onboardingScanFridgeNow: string;
+  onboardingEnableCamera: string;
+  onboardingRequiredForScanning: string;
+  onboardingCameraAccess: string;
+  onboardingForFridgeScanning: string;
+  onboardingAllow: string;
+  onboardingOptionalHealthSync: string;
+  onboardingYourWeeklyPlan: string;
+  onboardingPersonalizedMealPlan: string;
+  onboardingWithoutFrigy: string;
+  onboardingWithFrigy: string;
+  onboardingNoStructure: string;
+  onboardingRandomMeals: string;
+  onboardingClearPlan: string;
+  onboardingSuccessRate: string;
+  onboardingGoalAchievement: string;
+  onboardingFaster: string;
+  onboardingSavedPerDay: string;
+  onboardingUsersFaster: string;
+  onboardingYourTransformation: string;
+  onboardingWhatToExpect: string;
+  onboardingMoreEnergy: string;
+  onboardingSaveProgress: string;
+  onboardingCreateAccount: string;
+  onboardingSignInToContinue: string;
+  onboardingEmailAddress: string;
+  onboardingPasswordLabel: string;
+  onboardingRegister: string;
+  onboardingSignInButton: string;
+  onboardingAlreadyRegistered: string;
+  onboardingNoAccountYet: string;
+  onboardingWhyRegister: string;
+  onboardingPlanSaved: string;
+  onboardingProgressSynced: string;
+  onboardingAccessRecipes: string;
+  onboardingAlreadyLoggedIn: string;
+  onboardingChooseYourPlan: string;
+  onboardingStartFreeOrPremium: string;
+  onboardingFree: string;
+  onboardingWeeklyPlan1x: string;
+  onboardingWaterTrackerFeature: string;
+  onboarding2ScansPerDay: string;
+  onboardingBasicRecipes: string;
+  onboardingPremiumLabel: string;
+  onboardingUnlimitedScans: string;
+  onboardingUnlimitedMealPlans: string;
+  onboardingShoppingLists: string;
+  onboardingStatsAndMacros: string;
+  onboardingAIChatbot: string;
+  onboardingMostPopular: string;
+  onboardingFreeTrial7Days: string;
+  onboardingContinue: string;
+  onboardingJoinCommunity: string;
+  onboardingShareRecipes: string;
+  onboardingExploreLater: string;
+  onboardingYouMadeIt: string;
+  onboardingFrigyReady: string;
+  onboardingLetsGoContinue: string;
+  onboardingSystemReady: string;
+  onboardingMacrosStructure: string;
+  onboardingToDashboard: string;
+  onboardingRegistrationFailed: string;
+  onboardingEmailAlreadyRegistered: string;
+  onboardingSuccessfullyRegistered: string;
+  onboardingProgressSavedMsg: string;
+  onboardingLoginFailed: string;
+  onboardingWelcomeBack: string;
+  onboardingProgressLoaded: string;
+  onboardingEnterEmailPassword: string;
+  
   // Home Page
   homeTitle: string;
   homeSubtitle: string;
@@ -845,6 +1022,183 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Gestern",
     min: "Min",
     continueButton: "Weiter",
+    
+    // Onboarding Steps
+    onboardingWhatsYourName: "Wie heißt du?",
+    onboardingNameSubtitle: "Damit wir dich persönlich begrüßen können",
+    onboardingYourName: "Dein Name",
+    onboardingImFrigy: "Ich bin Frigy!",
+    onboardingReadyToReachGoals: "Bist du bereit, gemeinsam deine Ziele zu erreichen?",
+    onboardingYesLetsGo: "Ja, los geht's!",
+    onboardingWhatsYourGoal: "Was ist dein Ziel?",
+    onboardingSelectToPersonalize: "Wähle eines, um dein Erlebnis zu personalisieren",
+    onboardingLoseWeight: "Abnehmen",
+    onboardingMaintainWeight: "Gewicht halten",
+    onboardingGainMuscle: "Muskeln aufbauen",
+    onboardingEatHealthier: "Gesünder essen",
+    onboardingLovedByThousands: "Von Tausenden geliebt",
+    onboardingJoinUsers: "Schließe dich 50.000+ zufriedenen Nutzern an",
+    onboardingRealResults: "Echte Ergebnisse",
+    onboardingBasedOnData: "Basierend auf Nutzerdaten der letzten 6 Monate",
+    onboardingReachGoals: "erreichen ihre Ziele",
+    onboardingAvgWeightLoss: "durchschn. Gewichtsverlust/Monat",
+    onboardingTimeSaved: "täglich gespart bei Mahlzeitenplanung",
+    onboardingTimeToPersonalize: "Zeit für Personalisierung!",
+    onboardingQuickSteps: "3 schnelle Schritte zu deinen perfekten Makros",
+    onboardingBody: "Körper",
+    onboardingActivity: "Aktivität",
+    onboardingMacros: "Makros",
+    onboardingTakesLess30Sec: "Dauert weniger als 30 Sekunden",
+    onboardingYourBodyData: "Deine Körperdaten",
+    onboardingScrollToSet: "Scrolle um Werte einzustellen",
+    onboardingHeight: "Größe",
+    onboardingWeightLabel: "Gewicht",
+    onboardingAgeLabel: "Alter",
+    onboardingPrivate: "100% privat",
+    onboardingYourGender: "Dein Geschlecht",
+    onboardingGenderImportant: "Wichtig für genaue Kalorien-Berechnung",
+    onboardingMale: "Männlich",
+    onboardingFemale: "Weiblich",
+    onboardingYourGoalMode: "Dein Ziel",
+    onboardingWhatDirection: "In welche Richtung soll es gehen?",
+    onboardingLoseWeightMode: "Abnehmen",
+    onboardingGainWeightMode: "Zunehmen",
+    onboardingTargetWeight: "Dein Zielgewicht",
+    onboardingGoalIn: "Ziel in",
+    onboardingWeeks: "Wochen",
+    onboardingYourSpeed: "Dein Tempo",
+    onboardingHowFast: "Wie schnell möchtest du dein Ziel erreichen?",
+    onboardingSlow: "Langsam",
+    onboardingGentle: "Sanft & nachhaltig",
+    onboardingModerate: "Moderat",
+    onboardingSteady: "Stetig & gesund",
+    onboardingFast: "Zügig",
+    onboardingAmbitious: "Ambitioniert",
+    onboardingIntense: "Intensiv",
+    onboardingMaximum: "Maximales Tempo",
+    onboardingHighTempoWarning: "Hohes Tempo erfordert viel Disziplin!",
+    onboardingRecommendedTempo: "Empfohlen: 0.3-0.8 kg pro Woche",
+    onboardingDietaryPrefs: "Ernährungsweise",
+    onboardingForMatchingRecipes: "Für passende Rezepte",
+    onboardingVegetarian: "Vegetarisch",
+    onboardingNoMeatFish: "Kein Fleisch oder Fisch",
+    onboardingVegan: "Vegan",
+    onboardingNoAnimalProducts: "Keine tierischen Produkte",
+    onboardingPescatarian: "Pescetarisch",
+    onboardingFishNoMeat: "Fisch, kein Fleisch",
+    onboardingNone: "Keine",
+    onboardingEverythingAllowed: "Alles erlaubt",
+    onboardingAllergies: "Allergien & Unverträglichkeiten",
+    onboardingMultiSelect: "Mehrfachauswahl möglich",
+    onboardingGluten: "Gluten",
+    onboardingLactose: "Laktose",
+    onboardingNuts: "Nüsse",
+    onboardingSoy: "Soja",
+    onboardingEggs: "Eier",
+    onboardingCookingExperience: "Kocherfahrung",
+    onboardingForRecipeDifficulty: "Für passende Rezept-Schwierigkeit",
+    onboardingBeginner: "Anfänger",
+    onboardingSimpleRecipes: "Einfache Rezepte",
+    onboardingIntermediate: "Fortgeschritten",
+    onboardingMediumDishes: "Mittelschwere Gerichte",
+    onboardingAdvanced: "Profi",
+    onboardingDemandingCuisine: "Anspruchsvolle Küche",
+    onboardingActivityLevel: "Aktivitätslevel",
+    onboardingHowActive: "Wie aktiv bist du?",
+    onboardingChill: "Chill",
+    onboardingDeskJob: "Schreibtischjob, leichte Spaziergänge",
+    onboardingActive: "Aktiv",
+    onboardingRegularWorkouts: "Regelmäßiges Training",
+    onboardingBeast: "Beast",
+    onboardingIntenseTraining: "Intensives Training",
+    onboardingAnalyzingGoals: "Ziele werden analysiert",
+    onboardingProcessingBodyData: "Körperdaten verarbeiten",
+    onboardingCalculatingTargetWeight: "Zielgewicht berechnen",
+    onboardingDeterminingMacros: "Optimale Makros ermitteln",
+    onboardingCreatingPlan: "Plan wird erstellt",
+    onboardingYourDailyGoal: "Dein Tagesziel",
+    onboardingPersonalizedForYou: "Personalisiert für dich",
+    onboardingBasedOnScience: "Berechnung basiert auf folgenden wissenschaftlichen Formeln:",
+    onboardingMifflinFormula: "Mifflin-St Jeor Formel (BMR)",
+    onboardingBMRCalculation: "Grundumsatz-Berechnung",
+    onboardingTDEEFactors: "TDEE Aktivitätsfaktoren",
+    onboardingTotalEnergy: "Gesamtenergieverbrauch",
+    onboardingProteinRecommendation: "Protein: 2g/kg Körpergewicht",
+    onboardingISSNProtein: "ISSN Protein-Empfehlung",
+    onboardingDeficitRule: "Defizit: 7700 kcal/kg",
+    onboardingEnergyBalance: "Energiebilanz-Regel",
+    onboardingLetFridgeDecide: "Lass deinen Kühlschrank entscheiden.",
+    onboardingBuildMealsFromWhat: "Wir erstellen Mahlzeiten aus dem, was du schon hast.",
+    onboardingIllHandlePlanning: "Ich übernehme die Planung. Du isst einfach.",
+    onboardingScanFridgeNow: "Kühlschrank jetzt scannen",
+    onboardingEnableCamera: "Kamera aktivieren",
+    onboardingRequiredForScanning: "Erforderlich zum Scannen deines Kühlschranks",
+    onboardingCameraAccess: "Kamera-Zugriff",
+    onboardingForFridgeScanning: "Für Kühlschrank-Scanning",
+    onboardingAllow: "Erlauben",
+    onboardingOptionalHealthSync: "Optional: Synchronisiere deine Gesundheitsdaten",
+    onboardingYourWeeklyPlan: "Dein Wochenplan",
+    onboardingPersonalizedMealPlan: "Personalisiert für deine Makros",
+    onboardingWithoutFrigy: "Ohne Frigy",
+    onboardingWithFrigy: "Mit Frigy",
+    onboardingNoStructure: "Kein Plan",
+    onboardingRandomMeals: "Zufällige Mahlzeiten",
+    onboardingClearPlan: "Klarer Plan",
+    onboardingSuccessRate: "94% Erfolg",
+    onboardingGoalAchievement: "Zielerreichung",
+    onboardingFaster: "Schneller",
+    onboardingSavedPerDay: "Gespart/Tag",
+    onboardingUsersFaster: "Nutzer erreichen ihre Ziele 2.4x schneller",
+    onboardingYourTransformation: "Deine Transformation",
+    onboardingWhatToExpect: "Was dich mit Frigy erwartet",
+    onboardingMoreEnergy: "Mehr Energie",
+    onboardingSaveProgress: "Speichere deinen Fortschritt",
+    onboardingCreateAccount: "Erstelle ein Konto um deinen Plan zu sichern",
+    onboardingSignInToContinue: "Melde dich an um fortzufahren",
+    onboardingEmailAddress: "E-Mail Adresse",
+    onboardingPasswordLabel: "Passwort",
+    onboardingRegister: "Registrieren",
+    onboardingSignInButton: "Anmelden",
+    onboardingAlreadyRegistered: "Bereits registriert? Hier anmelden",
+    onboardingNoAccountYet: "Noch kein Konto? Hier registrieren",
+    onboardingWhyRegister: "Warum registrieren?",
+    onboardingPlanSaved: "Dein personalisierter Plan wird gespeichert",
+    onboardingProgressSynced: "Fortschritt auf allen Geräten synchronisiert",
+    onboardingAccessRecipes: "Zugang zu deinen Rezepten & Mahlzeiten",
+    onboardingAlreadyLoggedIn: "Bereits angemeldet - Weiter",
+    onboardingChooseYourPlan: "Wähle deinen Plan",
+    onboardingStartFreeOrPremium: "Starte mit Free oder teste Premium 7 Tage gratis",
+    onboardingFree: "Free",
+    onboardingWeeklyPlan1x: "Wochenplan (1x generieren)",
+    onboardingWaterTrackerFeature: "Wasser-Tracker",
+    onboarding2ScansPerDay: "2 Kühlschrank-Scans/Tag",
+    onboardingBasicRecipes: "Basis-Rezeptvorschläge",
+    onboardingPremiumLabel: "Premium",
+    onboardingUnlimitedScans: "Unbegrenzte Scans",
+    onboardingUnlimitedMealPlans: "Unbegrenzte Meal Plan Generierung",
+    onboardingShoppingLists: "Einkaufslisten",
+    onboardingStatsAndMacros: "Stats & Makro-Tracking",
+    onboardingAIChatbot: "KI-Chatbot",
+    onboardingMostPopular: "Beliebteste Wahl",
+    onboardingFreeTrial7Days: "7 Tage gratis, dann €4,99/Monat",
+    onboardingContinue: "Weiter",
+    onboardingJoinCommunity: "Community beitreten",
+    onboardingShareRecipes: "Teile Rezepte & motiviere andere",
+    onboardingExploreLater: "Später erkunden",
+    onboardingYouMadeIt: "Du hast es geschafft!",
+    onboardingFrigyReady: "Frigy ist bereit für dich!",
+    onboardingLetsGoContinue: "Weiter geht's!",
+    onboardingSystemReady: "Dein System ist bereit.",
+    onboardingMacrosStructure: "Makros. Struktur. Weniger nachdenken.",
+    onboardingToDashboard: "Zum Dashboard",
+    onboardingRegistrationFailed: "Registrierung fehlgeschlagen",
+    onboardingEmailAlreadyRegistered: "Diese E-Mail ist bereits registriert. Bitte melde dich an.",
+    onboardingSuccessfullyRegistered: "Erfolgreich registriert!",
+    onboardingProgressSavedMsg: "Dein Fortschritt wurde gespeichert.",
+    onboardingLoginFailed: "Anmeldung fehlgeschlagen",
+    onboardingWelcomeBack: "Willkommen zurück!",
+    onboardingProgressLoaded: "Dein Fortschritt wurde geladen.",
+    onboardingEnterEmailPassword: "Bitte E-Mail und Passwort eingeben",
   },
   en: {
     // Navigation & Common
@@ -1266,6 +1620,183 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Yesterday",
     min: "min",
     continueButton: "Continue",
+    
+    // Onboarding Steps
+    onboardingWhatsYourName: "What's your name?",
+    onboardingNameSubtitle: "So we can greet you personally",
+    onboardingYourName: "Your name",
+    onboardingImFrigy: "I'm Frigy!",
+    onboardingReadyToReachGoals: "Are you ready to reach your goals together?",
+    onboardingYesLetsGo: "Yes, let's go!",
+    onboardingWhatsYourGoal: "What's your goal?",
+    onboardingSelectToPersonalize: "Select one to personalize your experience",
+    onboardingLoseWeight: "Lose weight",
+    onboardingMaintainWeight: "Maintain weight",
+    onboardingGainMuscle: "Gain muscle",
+    onboardingEatHealthier: "Eat healthier",
+    onboardingLovedByThousands: "Loved by thousands",
+    onboardingJoinUsers: "Join 50,000+ happy users",
+    onboardingRealResults: "Real results",
+    onboardingBasedOnData: "Based on user data from the last 6 months",
+    onboardingReachGoals: "reach their goals",
+    onboardingAvgWeightLoss: "avg. weight loss/month",
+    onboardingTimeSaved: "saved daily on meal planning",
+    onboardingTimeToPersonalize: "Time to personalize!",
+    onboardingQuickSteps: "3 quick steps to unlock your perfect macros",
+    onboardingBody: "Body",
+    onboardingActivity: "Activity",
+    onboardingMacros: "Macros",
+    onboardingTakesLess30Sec: "Takes less than 30 seconds",
+    onboardingYourBodyData: "Your body data",
+    onboardingScrollToSet: "Scroll to set values",
+    onboardingHeight: "Height",
+    onboardingWeightLabel: "Weight",
+    onboardingAgeLabel: "Age",
+    onboardingPrivate: "100% private",
+    onboardingYourGender: "Your gender",
+    onboardingGenderImportant: "Important for accurate calorie calculation",
+    onboardingMale: "Male",
+    onboardingFemale: "Female",
+    onboardingYourGoalMode: "Your goal",
+    onboardingWhatDirection: "Which direction do you want to go?",
+    onboardingLoseWeightMode: "Lose weight",
+    onboardingGainWeightMode: "Gain weight",
+    onboardingTargetWeight: "Your target weight",
+    onboardingGoalIn: "Goal in",
+    onboardingWeeks: "weeks",
+    onboardingYourSpeed: "Your pace",
+    onboardingHowFast: "How fast do you want to reach your goal?",
+    onboardingSlow: "Slow",
+    onboardingGentle: "Gentle & sustainable",
+    onboardingModerate: "Moderate",
+    onboardingSteady: "Steady & healthy",
+    onboardingFast: "Fast",
+    onboardingAmbitious: "Ambitious",
+    onboardingIntense: "Intense",
+    onboardingMaximum: "Maximum pace",
+    onboardingHighTempoWarning: "High pace requires a lot of discipline!",
+    onboardingRecommendedTempo: "Recommended: 0.3-0.8 kg per week",
+    onboardingDietaryPrefs: "Dietary preferences",
+    onboardingForMatchingRecipes: "For matching recipes",
+    onboardingVegetarian: "Vegetarian",
+    onboardingNoMeatFish: "No meat or fish",
+    onboardingVegan: "Vegan",
+    onboardingNoAnimalProducts: "No animal products",
+    onboardingPescatarian: "Pescatarian",
+    onboardingFishNoMeat: "Fish, no meat",
+    onboardingNone: "None",
+    onboardingEverythingAllowed: "Everything allowed",
+    onboardingAllergies: "Allergies & intolerances",
+    onboardingMultiSelect: "Multiple selection possible",
+    onboardingGluten: "Gluten",
+    onboardingLactose: "Lactose",
+    onboardingNuts: "Nuts",
+    onboardingSoy: "Soy",
+    onboardingEggs: "Eggs",
+    onboardingCookingExperience: "Cooking experience",
+    onboardingForRecipeDifficulty: "For matching recipe difficulty",
+    onboardingBeginner: "Beginner",
+    onboardingSimpleRecipes: "Simple recipes",
+    onboardingIntermediate: "Intermediate",
+    onboardingMediumDishes: "Medium difficulty dishes",
+    onboardingAdvanced: "Pro",
+    onboardingDemandingCuisine: "Demanding cuisine",
+    onboardingActivityLevel: "Activity level",
+    onboardingHowActive: "How active are you?",
+    onboardingChill: "Chill",
+    onboardingDeskJob: "Desk job, light walks",
+    onboardingActive: "Active",
+    onboardingRegularWorkouts: "Regular workouts",
+    onboardingBeast: "Beast",
+    onboardingIntenseTraining: "Intense training",
+    onboardingAnalyzingGoals: "Analyzing goals",
+    onboardingProcessingBodyData: "Processing body data",
+    onboardingCalculatingTargetWeight: "Calculating target weight",
+    onboardingDeterminingMacros: "Determining optimal macros",
+    onboardingCreatingPlan: "Creating plan",
+    onboardingYourDailyGoal: "Your daily goal",
+    onboardingPersonalizedForYou: "Personalized for you",
+    onboardingBasedOnScience: "Calculation based on the following scientific formulas:",
+    onboardingMifflinFormula: "Mifflin-St Jeor Formula (BMR)",
+    onboardingBMRCalculation: "BMR calculation",
+    onboardingTDEEFactors: "TDEE activity factors",
+    onboardingTotalEnergy: "Total energy expenditure",
+    onboardingProteinRecommendation: "Protein: 2g/kg body weight",
+    onboardingISSNProtein: "ISSN protein recommendation",
+    onboardingDeficitRule: "Deficit: 7700 kcal/kg",
+    onboardingEnergyBalance: "Energy balance rule",
+    onboardingLetFridgeDecide: "Let your fridge decide.",
+    onboardingBuildMealsFromWhat: "We build meals from what you already have.",
+    onboardingIllHandlePlanning: "I'll handle the planning. You just eat.",
+    onboardingScanFridgeNow: "Scan fridge now",
+    onboardingEnableCamera: "Enable camera",
+    onboardingRequiredForScanning: "Required for scanning your fridge",
+    onboardingCameraAccess: "Camera access",
+    onboardingForFridgeScanning: "For fridge scanning",
+    onboardingAllow: "Allow",
+    onboardingOptionalHealthSync: "Optional: Sync your health data",
+    onboardingYourWeeklyPlan: "Your weekly plan",
+    onboardingPersonalizedMealPlan: "Personalized for your macros",
+    onboardingWithoutFrigy: "Without Frigy",
+    onboardingWithFrigy: "With Frigy",
+    onboardingNoStructure: "No plan",
+    onboardingRandomMeals: "Random meals",
+    onboardingClearPlan: "Clear plan",
+    onboardingSuccessRate: "94% success",
+    onboardingGoalAchievement: "Goal achievement",
+    onboardingFaster: "Faster",
+    onboardingSavedPerDay: "Saved/day",
+    onboardingUsersFaster: "Users reach their goals 2.4x faster",
+    onboardingYourTransformation: "Your Transformation",
+    onboardingWhatToExpect: "What to expect with Frigy",
+    onboardingMoreEnergy: "More Energy",
+    onboardingSaveProgress: "Save your progress",
+    onboardingCreateAccount: "Create an account to save your plan",
+    onboardingSignInToContinue: "Sign in to continue",
+    onboardingEmailAddress: "Email address",
+    onboardingPasswordLabel: "Password",
+    onboardingRegister: "Register",
+    onboardingSignInButton: "Sign in",
+    onboardingAlreadyRegistered: "Already registered? Sign in here",
+    onboardingNoAccountYet: "No account yet? Register here",
+    onboardingWhyRegister: "Why register?",
+    onboardingPlanSaved: "Your personalized plan will be saved",
+    onboardingProgressSynced: "Progress synced across all devices",
+    onboardingAccessRecipes: "Access to your recipes & meals",
+    onboardingAlreadyLoggedIn: "Already logged in - Continue",
+    onboardingChooseYourPlan: "Choose your plan",
+    onboardingStartFreeOrPremium: "Start with Free or try Premium 7 days free",
+    onboardingFree: "Free",
+    onboardingWeeklyPlan1x: "Weekly plan (1x generate)",
+    onboardingWaterTrackerFeature: "Water tracker",
+    onboarding2ScansPerDay: "2 fridge scans/day",
+    onboardingBasicRecipes: "Basic recipe suggestions",
+    onboardingPremiumLabel: "Premium",
+    onboardingUnlimitedScans: "Unlimited scans",
+    onboardingUnlimitedMealPlans: "Unlimited meal plan generation",
+    onboardingShoppingLists: "Shopping lists",
+    onboardingStatsAndMacros: "Stats & macro tracking",
+    onboardingAIChatbot: "AI chatbot",
+    onboardingMostPopular: "Most popular choice",
+    onboardingFreeTrial7Days: "7 days free, then €4.99/month",
+    onboardingContinue: "Continue",
+    onboardingJoinCommunity: "Join community",
+    onboardingShareRecipes: "Share recipes & motivate others",
+    onboardingExploreLater: "Explore later",
+    onboardingYouMadeIt: "You made it!",
+    onboardingFrigyReady: "Frigy is ready for you!",
+    onboardingLetsGoContinue: "Let's go!",
+    onboardingSystemReady: "Your system is ready.",
+    onboardingMacrosStructure: "Macros. Structure. Less thinking.",
+    onboardingToDashboard: "To dashboard",
+    onboardingRegistrationFailed: "Registration failed",
+    onboardingEmailAlreadyRegistered: "This email is already registered. Please sign in.",
+    onboardingSuccessfullyRegistered: "Successfully registered!",
+    onboardingProgressSavedMsg: "Your progress has been saved.",
+    onboardingLoginFailed: "Login failed",
+    onboardingWelcomeBack: "Welcome back!",
+    onboardingProgressLoaded: "Your progress has been loaded.",
+    onboardingEnterEmailPassword: "Please enter email and password",
   },
   fr: {
     // Navigation & Common
@@ -1687,6 +2218,183 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Hier",
     min: "min",
     continueButton: "Continuer",
+    
+    // Onboarding Steps
+    onboardingWhatsYourName: "Comment tu t'appelles ?",
+    onboardingNameSubtitle: "Pour te saluer personnellement",
+    onboardingYourName: "Ton prénom",
+    onboardingImFrigy: "Je suis Frigy!",
+    onboardingReadyToReachGoals: "Es-tu prêt à atteindre tes objectifs ensemble?",
+    onboardingYesLetsGo: "Oui, allons-y!",
+    onboardingWhatsYourGoal: "Quel est ton objectif?",
+    onboardingSelectToPersonalize: "Sélectionne pour personnaliser ton expérience",
+    onboardingLoseWeight: "Perdre du poids",
+    onboardingMaintainWeight: "Maintenir le poids",
+    onboardingGainMuscle: "Prendre du muscle",
+    onboardingEatHealthier: "Manger plus sainement",
+    onboardingLovedByThousands: "Aimé par des milliers",
+    onboardingJoinUsers: "Rejoins 50 000+ utilisateurs satisfaits",
+    onboardingRealResults: "Résultats réels",
+    onboardingBasedOnData: "Basé sur les données des 6 derniers mois",
+    onboardingReachGoals: "atteignent leurs objectifs",
+    onboardingAvgWeightLoss: "perte de poids moy./mois",
+    onboardingTimeSaved: "gagnées par jour en planification",
+    onboardingTimeToPersonalize: "Temps de personnaliser!",
+    onboardingQuickSteps: "3 étapes rapides pour tes macros parfaites",
+    onboardingBody: "Corps",
+    onboardingActivity: "Activité",
+    onboardingMacros: "Macros",
+    onboardingTakesLess30Sec: "Prend moins de 30 secondes",
+    onboardingYourBodyData: "Tes données corporelles",
+    onboardingScrollToSet: "Fais défiler pour définir les valeurs",
+    onboardingHeight: "Taille",
+    onboardingWeightLabel: "Poids",
+    onboardingAgeLabel: "Âge",
+    onboardingPrivate: "100% privé",
+    onboardingYourGender: "Ton genre",
+    onboardingGenderImportant: "Important pour un calcul précis des calories",
+    onboardingMale: "Homme",
+    onboardingFemale: "Femme",
+    onboardingYourGoalMode: "Ton objectif",
+    onboardingWhatDirection: "Dans quelle direction veux-tu aller?",
+    onboardingLoseWeightMode: "Perdre du poids",
+    onboardingGainWeightMode: "Prendre du poids",
+    onboardingTargetWeight: "Ton poids cible",
+    onboardingGoalIn: "Objectif en",
+    onboardingWeeks: "semaines",
+    onboardingYourSpeed: "Ton rythme",
+    onboardingHowFast: "À quelle vitesse veux-tu atteindre ton objectif?",
+    onboardingSlow: "Lent",
+    onboardingGentle: "Doux & durable",
+    onboardingModerate: "Modéré",
+    onboardingSteady: "Régulier & sain",
+    onboardingFast: "Rapide",
+    onboardingAmbitious: "Ambitieux",
+    onboardingIntense: "Intense",
+    onboardingMaximum: "Rythme maximum",
+    onboardingHighTempoWarning: "Un rythme élevé demande beaucoup de discipline!",
+    onboardingRecommendedTempo: "Recommandé: 0.3-0.8 kg par semaine",
+    onboardingDietaryPrefs: "Régime alimentaire",
+    onboardingForMatchingRecipes: "Pour des recettes adaptées",
+    onboardingVegetarian: "Végétarien",
+    onboardingNoMeatFish: "Pas de viande ni de poisson",
+    onboardingVegan: "Végan",
+    onboardingNoAnimalProducts: "Pas de produits animaux",
+    onboardingPescatarian: "Pescétarien",
+    onboardingFishNoMeat: "Poisson, pas de viande",
+    onboardingNone: "Aucun",
+    onboardingEverythingAllowed: "Tout est permis",
+    onboardingAllergies: "Allergies & intolérances",
+    onboardingMultiSelect: "Sélection multiple possible",
+    onboardingGluten: "Gluten",
+    onboardingLactose: "Lactose",
+    onboardingNuts: "Noix",
+    onboardingSoy: "Soja",
+    onboardingEggs: "Œufs",
+    onboardingCookingExperience: "Expérience culinaire",
+    onboardingForRecipeDifficulty: "Pour la difficulté des recettes adaptée",
+    onboardingBeginner: "Débutant",
+    onboardingSimpleRecipes: "Recettes simples",
+    onboardingIntermediate: "Intermédiaire",
+    onboardingMediumDishes: "Plats de difficulté moyenne",
+    onboardingAdvanced: "Pro",
+    onboardingDemandingCuisine: "Cuisine exigeante",
+    onboardingActivityLevel: "Niveau d'activité",
+    onboardingHowActive: "Quelle est ton activité?",
+    onboardingChill: "Tranquille",
+    onboardingDeskJob: "Bureau, marche légère",
+    onboardingActive: "Actif",
+    onboardingRegularWorkouts: "Entraînements réguliers",
+    onboardingBeast: "Beast",
+    onboardingIntenseTraining: "Entraînement intense",
+    onboardingAnalyzingGoals: "Analyse des objectifs",
+    onboardingProcessingBodyData: "Traitement des données corporelles",
+    onboardingCalculatingTargetWeight: "Calcul du poids cible",
+    onboardingDeterminingMacros: "Détermination des macros optimales",
+    onboardingCreatingPlan: "Création du plan",
+    onboardingYourDailyGoal: "Ton objectif quotidien",
+    onboardingPersonalizedForYou: "Personnalisé pour toi",
+    onboardingBasedOnScience: "Calcul basé sur les formules scientifiques suivantes:",
+    onboardingMifflinFormula: "Formule Mifflin-St Jeor (BMR)",
+    onboardingBMRCalculation: "Calcul du métabolisme de base",
+    onboardingTDEEFactors: "Facteurs d'activité TDEE",
+    onboardingTotalEnergy: "Dépense énergétique totale",
+    onboardingProteinRecommendation: "Protéines: 2g/kg de poids corporel",
+    onboardingISSNProtein: "Recommandation protéines ISSN",
+    onboardingDeficitRule: "Déficit: 7700 kcal/kg",
+    onboardingEnergyBalance: "Règle d'équilibre énergétique",
+    onboardingLetFridgeDecide: "Laisse ton frigo décider.",
+    onboardingBuildMealsFromWhat: "On crée des repas avec ce que tu as déjà.",
+    onboardingIllHandlePlanning: "Je m'occupe de la planification. Toi, tu manges.",
+    onboardingScanFridgeNow: "Scanner le frigo maintenant",
+    onboardingEnableCamera: "Activer la caméra",
+    onboardingRequiredForScanning: "Requis pour scanner ton frigo",
+    onboardingCameraAccess: "Accès caméra",
+    onboardingForFridgeScanning: "Pour scanner le frigo",
+    onboardingAllow: "Autoriser",
+    onboardingOptionalHealthSync: "Optionnel: Synchronise tes données de santé",
+    onboardingYourWeeklyPlan: "Ton plan hebdomadaire",
+    onboardingPersonalizedMealPlan: "Personnalisé pour tes macros",
+    onboardingWithoutFrigy: "Sans Frigy",
+    onboardingWithFrigy: "Avec Frigy",
+    onboardingNoStructure: "Pas de plan",
+    onboardingRandomMeals: "Repas aléatoires",
+    onboardingClearPlan: "Plan clair",
+    onboardingSuccessRate: "94% de succès",
+    onboardingGoalAchievement: "Atteinte des objectifs",
+    onboardingFaster: "Plus rapide",
+    onboardingSavedPerDay: "Gagné/jour",
+    onboardingUsersFaster: "Les utilisateurs atteignent leurs objectifs 2.4x plus vite",
+    onboardingYourTransformation: "Ta Transformation",
+    onboardingWhatToExpect: "Ce qui t'attend avec Frigy",
+    onboardingMoreEnergy: "Plus d'énergie",
+    onboardingSaveProgress: "Sauvegarde ta progression",
+    onboardingCreateAccount: "Crée un compte pour sauvegarder ton plan",
+    onboardingSignInToContinue: "Connecte-toi pour continuer",
+    onboardingEmailAddress: "Adresse e-mail",
+    onboardingPasswordLabel: "Mot de passe",
+    onboardingRegister: "S'inscrire",
+    onboardingSignInButton: "Se connecter",
+    onboardingAlreadyRegistered: "Déjà inscrit? Connecte-toi ici",
+    onboardingNoAccountYet: "Pas encore de compte? Inscris-toi ici",
+    onboardingWhyRegister: "Pourquoi s'inscrire?",
+    onboardingPlanSaved: "Ton plan personnalisé sera sauvegardé",
+    onboardingProgressSynced: "Progression synchronisée sur tous les appareils",
+    onboardingAccessRecipes: "Accès à tes recettes & repas",
+    onboardingAlreadyLoggedIn: "Déjà connecté - Continuer",
+    onboardingChooseYourPlan: "Choisis ton plan",
+    onboardingStartFreeOrPremium: "Commence avec Free ou essaie Premium 7 jours gratuit",
+    onboardingFree: "Gratuit",
+    onboardingWeeklyPlan1x: "Plan hebdo (1x génération)",
+    onboardingWaterTrackerFeature: "Suivi d'eau",
+    onboarding2ScansPerDay: "2 scans frigo/jour",
+    onboardingBasicRecipes: "Suggestions de recettes de base",
+    onboardingPremiumLabel: "Premium",
+    onboardingUnlimitedScans: "Scans illimités",
+    onboardingUnlimitedMealPlans: "Génération de plans illimitée",
+    onboardingShoppingLists: "Listes de courses",
+    onboardingStatsAndMacros: "Stats & suivi des macros",
+    onboardingAIChatbot: "Chatbot IA",
+    onboardingMostPopular: "Choix le plus populaire",
+    onboardingFreeTrial7Days: "7 jours gratuits, puis €4,99/mois",
+    onboardingContinue: "Continuer",
+    onboardingJoinCommunity: "Rejoindre la communauté",
+    onboardingShareRecipes: "Partage des recettes & motive les autres",
+    onboardingExploreLater: "Explorer plus tard",
+    onboardingYouMadeIt: "Tu as réussi!",
+    onboardingFrigyReady: "Frigy est prêt pour toi!",
+    onboardingLetsGoContinue: "C'est parti!",
+    onboardingSystemReady: "Ton système est prêt.",
+    onboardingMacrosStructure: "Macros. Structure. Moins de réflexion.",
+    onboardingToDashboard: "Vers le tableau de bord",
+    onboardingRegistrationFailed: "Inscription échouée",
+    onboardingEmailAlreadyRegistered: "Cet e-mail est déjà enregistré. Connecte-toi.",
+    onboardingSuccessfullyRegistered: "Inscription réussie!",
+    onboardingProgressSavedMsg: "Ta progression a été sauvegardée.",
+    onboardingLoginFailed: "Connexion échouée",
+    onboardingWelcomeBack: "Bon retour!",
+    onboardingProgressLoaded: "Ta progression a été chargée.",
+    onboardingEnterEmailPassword: "Veuillez entrer l'e-mail et le mot de passe",
   },
 };
 

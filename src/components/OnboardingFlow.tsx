@@ -310,7 +310,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }} 
                 transition={{ delay: 0.1, duration: 0.3 }}
               >
-                {language === 'de' ? 'Wie heißt du?' : language === 'fr' ? 'Comment tu t\'appelles ?' : 'What\'s your name?'}
+                {t.onboardingWhatsYourName}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground/60 text-sm mb-8" 
@@ -318,7 +318,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1 }} 
                 transition={{ delay: 0.15, duration: 0.3 }}
               >
-                {language === 'de' ? 'Damit wir dich persönlich begrüßen können' : language === 'fr' ? 'Pour te saluer personnellement' : 'So we can greet you personally'}
+                {t.onboardingNameSubtitle}
               </motion.p>
               
               <motion.div
@@ -331,7 +331,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   type="text"
                   value={userData.name}
                   onChange={(e) => setUserData({ ...userData, name: e.target.value })}
-                  placeholder={language === 'de' ? 'Dein Name' : language === 'fr' ? 'Ton prénom' : 'Your name'}
+                  placeholder={t.onboardingYourName}
                   className="w-full px-6 py-4 text-xl text-center font-semibold bg-card border-2 border-border rounded-2xl focus:border-primary focus:outline-none transition-colors"
                   autoFocus
                   onKeyDown={(e) => {
@@ -354,7 +354,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   className="w-full h-14 text-lg font-semibold rounded-2xl"
                   size="lg"
                 >
-                  {language === 'de' ? 'Weiter' : language === 'fr' ? 'Continuer' : 'Continue'} <ChevronRight className="w-5 h-5 ml-1" />
+                  {t.next} <ChevronRight className="w-5 h-5 ml-1" />
                 </Button>
               </motion.div>
             </div>
@@ -427,18 +427,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </motion.div>
                 
                 <h1 className="text-3xl font-bold text-foreground">
-                  {language === 'de' 
-                    ? 'Ich bin Frigy!' 
-                    : language === 'fr' 
-                      ? 'Je suis Frigy!' 
-                      : "I'm Frigy!"}
+                  {t.onboardingImFrigy}
                 </h1>
                 <p className="text-muted-foreground mt-3 text-lg max-w-xs mx-auto">
-                  {language === 'de' 
-                    ? 'Bist du bereit, gemeinsam deine Ziele zu erreichen?' 
-                    : language === 'fr' 
-                      ? 'Es-tu prêt à atteindre tes objectifs ensemble?' 
-                      : 'Are you ready to reach your goals together?'}
+                  {t.onboardingReadyToReachGoals}
                 </p>
               </motion.div>
               
@@ -456,7 +448,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="w-full h-14 text-lg font-semibold rounded-2xl"
                 size="lg"
               >
-                {language === 'de' ? 'Ja, los geht\'s!' : language === 'fr' ? 'Oui, allons-y!' : 'Yes, let\'s go!'} <ChevronRight className="w-5 h-5 ml-1" />
+                {t.onboardingYesLetsGo} <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
             </motion.div>
           </div>
