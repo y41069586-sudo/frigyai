@@ -396,8 +396,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const onboardingSteps = [
     {
       icon: PersonStanding,
-      title: "Deine Körperdaten",
-      subtitle: "Scrolle um Werte einzustellen",
+      title: t.trackerYourBodyData,
+      subtitle: t.trackerScrollToSet,
       content: (
         <div className="w-full">
           {/* Three wheel pickers side by side - like OnboardingFlow */}
@@ -411,7 +411,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             >
               <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
                 <PersonStanding className="w-4 h-4 text-primary" />
-                <span className="text-xs font-medium">Größe</span>
+                <span className="text-xs font-medium">{t.trackerHeight}</span>
               </div>
               <WheelPicker
                 value={userHeight}
@@ -432,7 +432,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             >
               <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
                 <Scale className="w-4 h-4 text-primary" />
-                <span className="text-xs font-medium">Gewicht</span>
+                <span className="text-xs font-medium">{t.trackerWeight}</span>
               </div>
               <WheelPicker
                 value={weight}
@@ -453,7 +453,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             >
               <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
                 <User className="w-4 h-4 text-primary" />
-                <span className="text-xs font-medium">Alter</span>
+                <span className="text-xs font-medium">{t.trackerAge}</span>
               </div>
               <WheelPicker
                 value={age}
@@ -461,7 +461,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                 min={10}
                 max={100}
                 step={1}
-                unit="J."
+                unit={t.trackerYearsShort}
               />
             </motion.div>
           </div>
@@ -473,20 +473,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             transition={{ delay: 0.5, duration: 0.3 }}
           >
             <span className="text-sm">🔒</span>
-            <span className="text-xs text-muted-foreground/60">100% privat</span>
+            <span className="text-xs text-muted-foreground/60">{t.trackerPrivate}</span>
           </motion.div>
         </div>
       ),
     },
     {
       icon: User,
-      title: "Dein Geschlecht",
-      subtitle: "Wichtig für genaue Kalorien-Berechnung",
+      title: t.trackerYourGender,
+      subtitle: t.trackerGenderImportant,
       content: (
         <div className="grid grid-cols-2 gap-4 w-full">
           {[
-            { id: 'male' as const, label: 'Männlich', color: 'from-blue-500/20 to-cyan-500/20' },
-            { id: 'female' as const, label: 'Weiblich', color: 'from-pink-500/20 to-rose-500/20' },
+            { id: 'male' as const, label: t.trackerMale, color: 'from-blue-500/20 to-cyan-500/20' },
+            { id: 'female' as const, label: t.trackerFemale, color: 'from-pink-500/20 to-rose-500/20' },
           ].map((option, index) => (
             <motion.button
               key={option.id}
@@ -515,15 +515,15 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Flame,
-      title: "Wie aktiv bist du?",
-      subtitle: "Für genaue Kalorienberechnung",
+      title: t.trackerHowActive,
+      subtitle: t.trackerForCalories,
       content: (
         <div className="space-y-3 w-full">
           {[
-            { value: 1.2, label: 'Wenig aktiv', desc: 'Bürojob, wenig Bewegung', icon: Armchair, color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
-            { value: 1.375, label: 'Leicht aktiv', desc: '1-2x Sport pro Woche', icon: Footprints, color: 'text-green-500', bgColor: 'bg-green-500/20' },
-            { value: 1.55, label: 'Moderat aktiv', desc: '3-5x Sport pro Woche', icon: PersonStanding, color: 'text-yellow-500', bgColor: 'bg-yellow-500/20' },
-            { value: 1.725, label: 'Sehr aktiv', desc: '6-7x Sport pro Woche', icon: Dumbbell, color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
+            { value: 1.2, label: t.trackerLowActive, desc: t.trackerLowActiveDesc, icon: Armchair, color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
+            { value: 1.375, label: t.trackerLightActive, desc: t.trackerLightActiveDesc, icon: Footprints, color: 'text-green-500', bgColor: 'bg-green-500/20' },
+            { value: 1.55, label: t.trackerModerateActive, desc: t.trackerModerateActiveDesc, icon: PersonStanding, color: 'text-yellow-500', bgColor: 'bg-yellow-500/20' },
+            { value: 1.725, label: t.trackerVeryActive, desc: t.trackerVeryActiveDesc, icon: Dumbbell, color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
           ].map((level) => {
             const IconComponent = level.icon;
             return (
@@ -552,8 +552,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Target,
-      title: "Dein Ziel",
-      subtitle: "Abnehmen oder Zunehmen?",
+      title: t.trackerYourGoal,
+      subtitle: t.trackerLoseOrGain,
       content: (
         <div className="w-full space-y-6">
           <div className="grid grid-cols-2 gap-4">
@@ -573,8 +573,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-500/10 flex items-center justify-center">
                 <TrendingDown className="w-6 h-6 text-red-500" />
               </div>
-              <span className="text-lg font-bold block">Abnehmen</span>
-              <span className="text-xs text-muted-foreground/60">Kaloriendefizit</span>
+              <span className="text-lg font-bold block">{t.trackerLoseWeight}</span>
+              <span className="text-xs text-muted-foreground/60">{t.trackerCalorieDeficit}</span>
             </motion.button>
             
             <motion.button
@@ -593,8 +593,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-green-500/10 flex items-center justify-center">
                 <TrendingDown className="w-6 h-6 text-green-500 rotate-180" />
               </div>
-              <span className="text-lg font-bold block">Zunehmen</span>
-              <span className="text-xs text-muted-foreground/60">Kalorienüberschuss</span>
+              <span className="text-lg font-bold block">{t.trackerGainWeight}</span>
+              <span className="text-xs text-muted-foreground/60">{t.trackerCalorieSurplus}</span>
             </motion.button>
           </div>
         </div>
@@ -602,8 +602,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Scale,
-      title: "Dein Zielgewicht",
-      subtitle: goalMode === 'lose' ? 'Wie viel möchtest du verlieren?' : 'Wie viel möchtest du zunehmen?',
+      title: t.trackerYourTargetWeight,
+      subtitle: goalMode === 'lose' ? t.trackerHowMuchLose : t.trackerHowMuchGain,
       content: (
         <div className="w-full space-y-6">
           <motion.div 
@@ -619,7 +619,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                 animate={{ height: 70 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
               />
-              <span className="text-xs text-muted-foreground/60 mt-2">Aktuell</span>
+              <span className="text-xs text-muted-foreground/60 mt-2">{t.trackerCurrent}</span>
               <span className="text-lg font-bold">{weight}kg</span>
             </div>
             
@@ -640,7 +640,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                 transition={{ delay: 0.4, duration: 0.4 }}
                 style={{ minHeight: 25, maxHeight: 100 }}
               />
-              <span className="text-xs text-primary mt-2">Ziel</span>
+              <span className="text-xs text-primary mt-2">{t.trackerGoalLabel}</span>
               <span className="text-lg font-bold text-primary">{targetWeight}kg</span>
             </div>
           </motion.div>
@@ -653,7 +653,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           >
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium">
-                {goalMode === 'lose' ? 'Gewichtsverlust' : 'Gewichtszunahme'}
+                {goalMode === 'lose' ? t.trackerWeightLoss : t.trackerWeightGain}
               </span>
               <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                 {goalMode === 'lose' ? '-' : '+'}{weightDiff}kg
@@ -673,14 +673,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: TrendingDown,
-      title: "Dein Tempo",
-      subtitle: `Wie schnell möchtest du ${goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}?`,
+      title: t.trackerYourSpeed,
+      subtitle: goalMode === 'lose' ? t.trackerHowFastLose : t.trackerHowFastGain,
       content: (
         <div className="w-full space-y-6">
           {/* Speed Value Display */}
           <div className="text-center">
             <span className="text-5xl font-bold text-primary">{weeklyLossRate.toFixed(1)}</span>
-            <span className="text-xl text-muted-foreground ml-2">kg/Woche</span>
+            <span className="text-xl text-muted-foreground ml-2">{t.trackerKgPerWeek}</span>
           </div>
           
           {/* Animal Icons */}
@@ -707,9 +707,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               className="py-4"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Langsam</span>
-              <span>Moderat</span>
-              <span>Schnell</span>
+              <span>{t.trackerSlowSustainable}</span>
+              <span>{t.trackerModerate}</span>
+              <span>{t.trackerFast}</span>
             </div>
           </div>
           
@@ -732,9 +732,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           
           {/* Info based on speed */}
           <div className={`text-sm p-3 rounded-lg text-center ${weeklyLossRate > 1.0 ? 'bg-red-500/10 text-red-400' : weeklyLossRate > 0.75 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
-            {weeklyLossRate > 1.0 && "⚠️ Hohes Tempo erfordert viel Disziplin!"}
-            {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Schnell aber machbar mit Fokus."}
-            {weeklyLossRate <= 0.75 && "✅ Nachhaltig und gesund - empfohlen!"}
+            {weeklyLossRate > 1.0 && `⚠️ ${t.trackerHighDiscipline}`}
+            {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 " + t.trackerFast}
+            {weeklyLossRate <= 0.75 && `✅ ${t.trackerRecommended}`}
           </div>
         </div>
       ),
