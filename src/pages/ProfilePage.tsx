@@ -28,7 +28,7 @@ const ProfilePage = () => {
     setRefreshing(true);
     await checkSubscription();
     setRefreshing(false);
-    toast({ title: t.success, description: "Abo-Status aktualisiert" });
+    toast({ title: t.success, description: t.subscriptionRefreshed });
   };
 
   const handleManageSubscription = async () => {
@@ -55,8 +55,8 @@ const ProfilePage = () => {
   const handleDeleteAccount = async () => {
     // TODO: Implement account deletion with confirmation
     toast({ 
-      title: "Konto löschen", 
-      description: "Diese Funktion wird bald verfügbar sein.",
+      title: t.deleteAccount, 
+      description: t.deleteAccountSoon,
       variant: "destructive"
     });
   };
@@ -65,8 +65,8 @@ const ProfilePage = () => {
     localStorage.removeItem('onboardingComplete');
     localStorage.removeItem('onboardingUserData');
     toast({ 
-      title: "Onboarding zurückgesetzt", 
-      description: "Beim nächsten Öffnen startet das Onboarding neu."
+      title: t.resetOnboarding, 
+      description: t.onboardingResetMessage
     });
     // Reload to start onboarding
     setTimeout(() => {
@@ -145,7 +145,7 @@ const ProfilePage = () => {
         >
           <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Abo-Status</h3>
+              <h3 className="font-semibold">{t.subscriptionStatus}</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -179,7 +179,7 @@ const ProfilePage = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Kostenloser Plan</p>
+                <p className="text-sm text-muted-foreground">{t.freePlanLabel}</p>
                 <Button
                   onClick={() => navigate("/premium")}
                   className="w-full glow-button"
@@ -199,7 +199,7 @@ const ProfilePage = () => {
           transition={{ delay: 0.2 }}
         >
           <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20 space-y-4">
-            <h3 className="font-semibold">Einstellungen</h3>
+            <h3 className="font-semibold">{t.settingsLabel}</h3>
             <div>
               <h4 className="text-sm font-medium mb-2">{t.languageSettings}</h4>
               <LanguageSettings />
@@ -216,7 +216,7 @@ const ProfilePage = () => {
           <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Erinnerungen</h3>
+              <h3 className="font-semibold">{t.reminders}</h3>
             </div>
             <ReminderSettings />
           </Card>
@@ -274,7 +274,7 @@ const ProfilePage = () => {
             onClick={handleDeleteAccount}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Konto löschen
+            {t.deleteAccount}
           </Button>
 
           {/* Dev/Test: Reset Onboarding */}
@@ -284,7 +284,7 @@ const ProfilePage = () => {
             onClick={handleResetOnboarding}
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Onboarding zurücksetzen
+            {t.resetOnboarding}
           </Button>
         </motion.div>
 
@@ -295,7 +295,7 @@ const ProfilePage = () => {
           transition={{ delay: 0.4 }}
         >
           <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <h3 className="font-semibold mb-3">Rechtliches</h3>
+            <h3 className="font-semibold mb-3">{t.legal}</h3>
             <div className="space-y-2">
               <Button
                 variant="ghost"
@@ -303,7 +303,7 @@ const ProfilePage = () => {
                 onClick={() => navigate("/legal/datenschutz")}
               >
                 <Shield className="h-4 w-4 mr-2" />
-                Datenschutzerklärung
+                {t.privacyPolicy}
               </Button>
               <Button
                 variant="ghost"
@@ -311,7 +311,7 @@ const ProfilePage = () => {
                 onClick={() => navigate("/legal/agb")}
               >
                 <FileText className="h-4 w-4 mr-2" />
-                AGB
+                {t.termsOfService}
               </Button>
               <Button
                 variant="ghost"
@@ -319,7 +319,7 @@ const ProfilePage = () => {
                 onClick={() => navigate("/legal/impressum")}
               >
                 <Scale className="h-4 w-4 mr-2" />
-                Impressum
+                {t.imprint}
               </Button>
             </div>
           </Card>
