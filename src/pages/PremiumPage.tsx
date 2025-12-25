@@ -445,10 +445,12 @@ const PremiumPage = () => {
                   <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">
-                  Healthy3 Premium
+                  FrigBuddy Premium
                 </h2>
-                <p className="text-3xl sm:text-4xl font-bold text-primary mb-1">4,99€</p>
-                <p className="text-sm text-muted-foreground">{t.perMonth}</p>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <p className="text-3xl sm:text-4xl font-bold text-primary">ab 4,99€</p>
+                </div>
+                <p className="text-sm text-muted-foreground">{t.perMonth} (bei jährlicher Zahlung)</p>
               </div>
 
               <div className="space-y-3 mb-6">
@@ -470,13 +472,17 @@ const PremiumPage = () => {
               </div>
 
               <Button
-                onClick={handleSubscribe}
+                onClick={() => navigate('/premium-pricing')}
                 disabled={loading}
                 className="w-full h-12 text-base font-semibold"
                 size="lg"
               >
-                {loading ? t.loading : t.getPremiumNow}
+                {loading ? t.loading : "Pläne ansehen"}
               </Button>
+              
+              <p className="text-xs text-center text-muted-foreground mt-3">
+                7 Tage kostenlos testen
+              </p>
             </div>
           )}
         </motion.div>
