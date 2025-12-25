@@ -1398,7 +1398,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         // Calculate goal date
         const goalDate = new Date();
         goalDate.setDate(goalDate.getDate() + (weeksToGoal * 7));
-        const goalDateFormatted = goalDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+        const goalDateFormatted = goalDate.toLocaleDateString(language === 'de' ? 'de-DE' : language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long' });
         
         if (userData.dailyCalories !== calculatedMacros.dailyCalories && userData.dailyCalories === 0) {
           setTimeout(() => setUserData(prev => ({ ...prev, ...calculatedMacros })), 0);
@@ -1437,7 +1437,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       transition={{ delay: 0.2 }}
                     >
                       <span className="text-2xl">🎯</span>
-                      <span className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">Dein Ziel</span>
+                      <span className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">{t.yourGoalLabel2}</span>
                     </motion.div>
                     
                     <motion.div
@@ -1446,12 +1446,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       transition={{ delay: 0.3, duration: 0.4 }}
                     >
                       <p className="text-primary-foreground text-lg font-bold mb-1">
-                        Du wirst <span className="text-2xl">{userData.targetWeight}kg</span> erreichen
+                        {t.youWillReach} <span className="text-2xl">{userData.targetWeight}kg</span> {language === 'de' ? 'erreichen' : ''}
                       </p>
                       <div className="flex items-center justify-center gap-2">
                         <Calendar className="w-4 h-4 text-primary-foreground/70" />
                         <p className="text-primary-foreground/90 font-semibold text-xl">
-                          am {goalDateFormatted}
+                          {t.onDate} {goalDateFormatted}
                         </p>
                       </div>
                     </motion.div>
@@ -1462,9 +1462,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.5 }}
                     >
-                      <span>{userData.weight}kg jetzt</span>
+                      <span>{userData.weight}kg {t.now}</span>
                       <span className="text-primary-foreground/50">→</span>
-                      <span>{userData.weeklyGoal > 0 ? '-' : '+'}{Math.abs(userData.weeklyGoal)}kg/Woche</span>
+                      <span>{userData.weeklyGoal > 0 ? '-' : '+'}{Math.abs(userData.weeklyGoal)}kg/{t.weekLabel}</span>
                       <span className="text-primary-foreground/50">→</span>
                       <span className="font-semibold text-primary-foreground">{userData.targetWeight}kg</span>
                     </motion.div>
@@ -1479,8 +1479,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
-                <h2 className="text-lg font-bold text-foreground">Dein täglicher Plan</h2>
-                <p className="text-muted-foreground/60 text-xs">Tippe zum Anpassen</p>
+                <h2 className="text-lg font-bold text-foreground">{t.yourDailyPlan}</h2>
+                <p className="text-muted-foreground/60 text-xs">{t.tapToAdjust}</p>
               </motion.div>
               
               {/* Calorie Ring - Modern Card Style */}
@@ -1494,7 +1494,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <MacroRing
                     value={userData.dailyCalories || calculatedMacros.dailyCalories}
                     max={userData.dailyCalories || calculatedMacros.dailyCalories}
-                    label="Tägliches Ziel"
+                    label={t.dailyGoalLabel}
                     unit=" kcal"
                     color="calories"
                     size="lg"
@@ -1583,14 +1583,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.7, duration: 0.3 }}
               >
                 <p className="text-sm text-foreground/80 mb-3 text-left">
-                  Berechnung basiert auf folgenden wissenschaftlichen Formeln:
+                  {t.calculationBasedOn}
                 </p>
                 <ul className="space-y-1.5 text-left">
                   {[
-                    { name: "Mifflin-St Jeor Formel (BMR)", url: "https://pubmed.ncbi.nlm.nih.gov/2305711/", desc: "Grundumsatz-Berechnung" },
-                    { name: "TDEE Aktivitätsfaktoren", url: "https://pubmed.ncbi.nlm.nih.gov/8878356/", desc: "Gesamtenergieverbrauch" },
-                    { name: "Protein: 2g/kg Körpergewicht", url: "https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8", desc: "ISSN Protein-Empfehlung" },
-                    { name: "Defizit: 7700 kcal/kg", url: "https://pubmed.ncbi.nlm.nih.gov/21872751/", desc: "Energiebilanz-Regel" },
+                    { name: t.onboardingMifflinFormula, url: "https://pubmed.ncbi.nlm.nih.gov/2305711/", desc: t.bmrCalculation },
+                    { name: t.onboardingTDEEFactors, url: "https://pubmed.ncbi.nlm.nih.gov/8878356/", desc: t.totalEnergyExpenditure },
+                    { name: t.onboardingProteinRecommendation, url: "https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8", desc: t.issnProteinRecommendation },
+                    { name: t.onboardingDeficitRule, url: "https://pubmed.ncbi.nlm.nih.gov/21872751/", desc: t.energyBalanceRule },
                   ].map((source, i) => (
                     <motion.li 
                       key={i}

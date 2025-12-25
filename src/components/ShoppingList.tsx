@@ -115,7 +115,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             onClick={() => setShowOrderDialog(true)}
           >
             <Truck className="h-4 w-4" />
-            Zutaten bestellen ({unpurchasedItems.length})
+            {t.orderIngredients} ({unpurchasedItems.length})
           </Button>
         )}
       </Card>
