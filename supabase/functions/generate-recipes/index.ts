@@ -34,13 +34,66 @@ serve(async (req) => {
 
     console.log("[GENERATE-RECIPES] Ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
 
-    const moodHint = mood === 'tired' ? 'Sehr einfach' : mood === 'motivated' ? 'Aufwändiger' : 'Normal';
+    const moodHint = mood === 'tired' 
+      ? 'MÜDE - Minimaler Aufwand, One-Pot-Gerichte, maximal 4 Schritte, keine komplizierten Techniken' 
+      : mood === 'motivated' 
+        ? 'MOTIVIERT - Kann aufwändiger sein, mehrere Komponenten, bis zu 6-7 Schritte erlaubt' 
+        : 'NORMAL - Ausgewogener Aufwand, 4-5 Schritte, einfache aber leckere Gerichte';
 
-    const systemPrompt = `Erstelle 3 Rezepte. Zeit: ${cookingTime}min. Aufwand: ${moodHint}. Nur gegebene Zutaten + Basics.
+    const timeHint = cookingTime <= 10 
+      ? 'SEHR SCHNELL (≤10 Min) - Nur Schneiden und Braten/Kochen. KEIN Ofen, keine lange Garzeit.'
+      : cookingTime <= 20
+        ? 'SCHNELL (≤20 Min) - Einfache Gerichte, kurze Garzeiten, maximal eine Pfanne/Topf.'
+        : 'NORMAL (30+ Min) - Normale Hausmannskost erlaubt, auch Ofen oder längere Garzeiten.';
 
-JSON: {"type":"recipes","recipes":[{"id":"name","title":"Name","calories":400,"protein":25,"carbs":35,"fat":15,"prepTime":${cookingTime},"difficulty":"Einfach","ingredients":["Zutat"],"instructions":["Schritt"]}]}
+    const systemPrompt = `Du bist ein INTELLIGENTER KOCH-ASSISTENT, der DURCHDACHTE Rezepte erstellt.
 
-Wenig Zutaten: {"type":"clarification","message":"Text","suggestion":"Zutat"}`;
+DEINE AUFGABE:
+Analysiere die gegebenen Zutaten und erstelle 3 SINNVOLLE, ECHTE Gerichte.
+
+KONTEXT:
+- Verfügbare Zeit: ${cookingTime} Minuten (${timeHint})
+- Stimmung: ${moodHint}
+
+DENKPROZESS (WICHTIG!):
+1. ZUTATEN-ANALYSE: Welche Zutaten passen geschmacklich und texturell zusammen?
+2. GERICHT-LOGIK: Was sind ECHTE Gerichte, die man tatsächlich so kochen würde?
+3. ZEIT-REALISMUS: Passt die Zubereitung wirklich in ${cookingTime} Minuten?
+4. EMPFEHLUNG: Welches der 3 Gerichte passt AM BESTEN zur Stimmung und Zeit?
+
+VERBOTEN:
+- Zufällige Kombinationen wie "Paprika-Salat" oder "Gemüse-Mix"
+- Gerichte die nur aus 1-2 Zutaten bestehen
+- Unrealistische Zubereitungszeiten
+- Langweilige oder unappetitliche Gerichte
+
+ERLAUBT als Basics (immer verfügbar):
+Salz, Pfeffer, Öl, Butter, Zwiebeln, Knoblauch, Gewürze
+
+AUSGABE-FORMAT (streng JSON):
+{
+  "type": "recipes",
+  "recommendedIndex": 0,
+  "recommendedReason": "Passt perfekt zu deiner Zeit und Stimmung weil...",
+  "recipes": [
+    {
+      "id": "gericht-name",
+      "title": "Echter Gerichtname",
+      "reason": "Warum dieses Gericht zu den Zutaten passt",
+      "calories": 450,
+      "protein": 28,
+      "carbs": 40,
+      "fat": 18,
+      "prepTime": ${cookingTime},
+      "difficulty": "Einfach/Mittel/Anspruchsvoll",
+      "ingredients": ["Zutat mit Menge"],
+      "instructions": ["Klarer Kochschritt"]
+    }
+  ]
+}
+
+Bei zu wenigen Zutaten für sinnvolle Gerichte:
+{"type":"clarification","message":"Erkläre was fehlt und warum","suggestion":"Eine konkrete Zutat die helfen würde"}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -73,7 +126,12 @@ Wenig Zutaten: {"type":"clarification","message":"Text","suggestion":"Zutat"}`;
     }
 
     if (result.type === "recipes" && result.recipes) {
-      result.recipes = result.recipes.map((r: any, i: number) => ({ ...r, id: r.id || `recipe-${Date.now()}-${i}` }));
+      result.recipes = result.recipes.map((r: any, i: number) => ({ 
+        ...r, 
+        id: r.id || `recipe-${Date.now()}-${i}`,
+        isRecommended: i === (result.recommendedIndex ?? 0)
+      }));
+      result.recommendedReason = result.recommendedReason || "Perfekt für deine aktuelle Situation!";
     }
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
