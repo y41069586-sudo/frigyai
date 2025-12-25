@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 
@@ -94,29 +94,9 @@ export const MealPlanGeneratingOverlay = ({
   isMinimized = false
 }: MealPlanGeneratingOverlayProps) => {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
-  const [showOverlay, setShowOverlay] = useState(false);
-  const startTimeRef = useRef<number | null>(null);
-  const minDisplayTime = 1000;
 
-  useEffect(() => {
-    if (isGenerating && !isMinimized) {
-      startTimeRef.current = Date.now();
-      setShowOverlay(true);
-    } else if (!isGenerating && showOverlay) {
-      // Immediately allow clicks through, then fade out
-      const elapsed = Date.now() - (startTimeRef.current || Date.now());
-      const remaining = Math.max(0, minDisplayTime - elapsed);
-      
-      // Use shorter timeout for snappier feel
-      setTimeout(() => {
-        setShowOverlay(false);
-        startTimeRef.current = null;
-      }, Math.min(remaining, 300));
-    } else if (isMinimized) {
-      // Immediately hide overlay when minimized
-      setShowOverlay(false);
-    }
-  }, [isGenerating, isMinimized, showOverlay]);
+  // Simple: show overlay only when actively generating and not minimized
+  const showOverlay = isGenerating && !isMinimized;
 
   useEffect(() => {
     if (!isGenerating) {
@@ -167,14 +147,13 @@ export const MealPlanGeneratingOverlay = ({
 
   return (
     <AnimatePresence mode="wait">
-      {showOverlay && !isMinimized && (
+      {showOverlay && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0, pointerEvents: "none" }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
-          style={{ pointerEvents: showOverlay ? "auto" : "none" }}
         >
           {/* Blurred background - shows content behind with blur effect */}
           <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
