@@ -2,27 +2,30 @@ import { motion } from "framer-motion";
 import { StepCard } from "../components";
 import { StepProps } from "../types";
 import { Bell, Droplets, Scale, Utensils } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const NotificationPrefsStep = ({ userData, setUserData }: StepProps) => {
+  const { language } = useLanguage();
+  
   const notifications = [
     { 
       id: 'meals' as const, 
-      label: 'Mahlzeiten', 
-      desc: 'Erinnere mich ans Essen loggen',
+      label: language === 'de' ? 'Mahlzeiten' : language === 'fr' ? 'Repas' : 'Meals', 
+      desc: language === 'de' ? 'Erinnere mich ans Essen loggen' : language === 'fr' ? 'Rappel de noter les repas' : 'Remind me to log meals',
       icon: Utensils,
       color: 'text-orange-500'
     },
     { 
       id: 'water' as const, 
-      label: 'Wasser trinken', 
-      desc: 'Regelmäßige Trink-Erinnerungen',
+      label: language === 'de' ? 'Wasser trinken' : language === 'fr' ? 'Boire de l\'eau' : 'Drink water', 
+      desc: language === 'de' ? 'Regelmäßige Trink-Erinnerungen' : language === 'fr' ? 'Rappels réguliers de boire' : 'Regular drink reminders',
       icon: Droplets,
       color: 'text-blue-500'
     },
     { 
       id: 'weight' as const, 
-      label: 'Tägliches Wiegen', 
-      desc: 'Morgens ans Wiegen erinnern',
+      label: language === 'de' ? 'Tägliches Wiegen' : language === 'fr' ? 'Pesée quotidienne' : 'Daily weigh-in', 
+      desc: language === 'de' ? 'Morgens ans Wiegen erinnern' : language === 'fr' ? 'Rappel de pesée le matin' : 'Morning weigh reminder',
       icon: Scale,
       color: 'text-purple-500'
     },
@@ -56,7 +59,7 @@ export const NotificationPrefsStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3 }}
         >
-          Erinnerungen
+          {language === 'de' ? 'Erinnerungen' : language === 'fr' ? 'Rappels' : 'Reminders'}
         </motion.h1>
         <motion.p
           className="text-muted-foreground/50 text-xs mb-6"
@@ -64,7 +67,7 @@ export const NotificationPrefsStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.3 }}
         >
-          Woran sollen wir dich erinnern?
+          {language === 'de' ? 'Woran sollen wir dich erinnern?' : language === 'fr' ? 'À quoi devons-nous te rappeler?' : 'What should we remind you about?'}
         </motion.p>
         
         <div className="w-full max-w-sm space-y-3">
@@ -113,7 +116,7 @@ export const NotificationPrefsStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.3 }}
         >
-          Erinnerungen helfen 94% der Nutzer, ihre Ziele zu erreichen
+          {language === 'de' ? 'Erinnerungen helfen 94% der Nutzer, ihre Ziele zu erreichen' : language === 'fr' ? 'Les rappels aident 94% des utilisateurs à atteindre leurs objectifs' : 'Reminders help 94% of users reach their goals'}
         </motion.p>
       </div>
     </StepCard>

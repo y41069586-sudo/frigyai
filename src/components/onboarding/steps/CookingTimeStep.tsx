@@ -2,32 +2,35 @@ import { motion } from "framer-motion";
 import { StepCard } from "../components";
 import { StepProps } from "../types";
 import { Clock, Zap, Utensils, ChefHat, Check } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
+  const { language } = useLanguage();
+  
   const timeOptions = [
     { 
       id: 'quick' as const, 
-      label: '15 Minuten', 
+      label: language === 'de' ? '15 Minuten' : language === 'fr' ? '15 minutes' : '15 minutes', 
       icon: Zap,
-      desc: 'Schnelle Gerichte',
+      desc: language === 'de' ? 'Schnelle Gerichte' : language === 'fr' ? 'Plats rapides' : 'Quick meals',
       color: 'from-green-500/20 to-emerald-500/20',
       iconColor: 'text-green-500',
       bgColor: 'bg-green-500/20'
     },
     { 
       id: 'medium' as const, 
-      label: '30 Minuten', 
+      label: language === 'de' ? '30 Minuten' : language === 'fr' ? '30 minutes' : '30 minutes', 
       icon: Utensils,
-      desc: 'Normale Rezepte',
+      desc: language === 'de' ? 'Normale Rezepte' : language === 'fr' ? 'Recettes normales' : 'Standard recipes',
       color: 'from-yellow-500/20 to-orange-500/20',
       iconColor: 'text-yellow-500',
       bgColor: 'bg-yellow-500/20'
     },
     { 
       id: 'long' as const, 
-      label: '45+ Minuten', 
+      label: language === 'de' ? '45+ Minuten' : language === 'fr' ? '45+ minutes' : '45+ minutes', 
       icon: ChefHat,
-      desc: 'Aufwendige Küche',
+      desc: language === 'de' ? 'Aufwendige Küche' : language === 'fr' ? 'Cuisine élaborée' : 'Elaborate cooking',
       color: 'from-purple-500/20 to-pink-500/20',
       iconColor: 'text-purple-500',
       bgColor: 'bg-purple-500/20'
@@ -52,7 +55,7 @@ export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3 }}
         >
-          Wie viel Zeit zum Kochen?
+          {language === 'de' ? 'Wie viel Zeit zum Kochen?' : language === 'fr' ? 'Combien de temps pour cuisiner?' : 'How much time to cook?'}
         </motion.h1>
         <motion.p
           className="text-muted-foreground/50 text-xs mb-6"
@@ -60,7 +63,7 @@ export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.3 }}
         >
-          Für passende Rezeptvorschläge
+          {language === 'de' ? 'Für passende Rezeptvorschläge' : language === 'fr' ? 'Pour des suggestions adaptées' : 'For matching recipe suggestions'}
         </motion.p>
         
         <div className="flex flex-col gap-3 w-full max-w-sm">
@@ -111,7 +114,7 @@ export const CookingTimeStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.3 }}
         >
-          Du kannst dies später in den Einstellungen ändern
+          {language === 'de' ? 'Du kannst dies später in den Einstellungen ändern' : language === 'fr' ? 'Tu peux changer cela plus tard dans les paramètres' : 'You can change this later in settings'}
         </motion.p>
       </div>
     </StepCard>
