@@ -456,16 +456,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "goal":
         const goalOptionsData = [
-          { id: "lose", label: "Lose weight", Icon: Flame },
-          { id: "maintain", label: "Maintain weight", Icon: Scale },
-          { id: "gain", label: "Gain muscle", Icon: Dumbbell },
-          { id: "healthier", label: "Eat healthier", Icon: Salad },
+          { id: "lose", label: t.onboardingLoseWeight, Icon: Flame },
+          { id: "maintain", label: t.onboardingMaintainWeight, Icon: Scale },
+          { id: "gain", label: t.onboardingGainMuscle, Icon: Dumbbell },
+          { id: "healthier", label: t.onboardingEatHealthier, Icon: Salad },
         ];
         return (
           <StepCard step="goal">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">What&apos;s your goal?</h1>
-              <p className="text-muted-foreground/60 text-xs mb-6">Select one to personalize your experience</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingWhatsYourGoal}</h1>
+              <p className="text-muted-foreground/60 text-xs mb-6">{t.onboardingSelectToPersonalize}</p>
               
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
                 {goalOptionsData.map((option, i) => (
@@ -492,9 +492,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "social-proof":
         const testimonials = [
-          { name: "Sarah M.", text: "Lost 8kg in 2 months!", color: "from-pink-500/20 to-rose-500/20", rating: 5 },
-          { name: "Thomas K.", text: "Finally hitting my macros!", color: "from-blue-500/20 to-cyan-500/20", rating: 5 },
-          { name: "Lisa R.", text: "Best meal planning app ever", color: "from-purple-500/20 to-pink-500/20", rating: 5 },
+          { name: "Sarah M.", text: language === 'de' ? "8kg in 2 Monaten verloren!" : language === 'fr' ? "Perdu 8kg en 2 mois!" : "Lost 8kg in 2 months!", color: "from-pink-500/20 to-rose-500/20", rating: 5 },
+          { name: "Thomas K.", text: language === 'de' ? "Endlich meine Makros erreicht!" : language === 'fr' ? "Enfin atteint mes macros!" : "Finally hitting my macros!", color: "from-blue-500/20 to-cyan-500/20", rating: 5 },
+          { name: "Lisa R.", text: language === 'de' ? "Beste Meal-Planning App!" : language === 'fr' ? "La meilleure app de planification!" : "Best meal planning app ever", color: "from-purple-500/20 to-pink-500/20", rating: 5 },
         ];
         return (
           <StepCard step="social-proof">
@@ -514,10 +514,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.div>
               
               <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1, duration: 0.3 }}>
-                Loved by thousands
+                {t.onboardingLovedByThousands}
               </motion.h1>
               <motion.p className="text-muted-foreground/50 text-xs mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.3 }}>
-                Join 50,000+ happy users
+                {t.onboardingJoinUsers}
               </motion.p>
               
               <div className="w-full max-w-sm space-y-3">
@@ -550,9 +550,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "success-stats":
         const stats = [
-          { value: 94, suffix: "%", label: "reach their goals", color: "from-green-500 to-emerald-500" },
-          { value: 2.5, suffix: "kg", label: "avg. weight loss/month", color: "from-blue-500 to-cyan-500" },
-          { value: 15, suffix: "min", label: "saved daily on meal planning", color: "from-purple-500 to-pink-500" },
+          { value: 94, suffix: "%", label: t.onboardingReachGoals, color: "from-green-500 to-emerald-500" },
+          { value: 2.5, suffix: "kg", label: t.onboardingAvgWeightLoss, color: "from-blue-500 to-cyan-500" },
+          { value: 15, suffix: "min", label: t.onboardingTimeSaved, color: "from-purple-500 to-pink-500" },
         ];
         return (
           <StepCard step="success-stats">
@@ -562,10 +562,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.div>
               
               <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
-                Real results
+                {t.onboardingRealResults}
               </motion.h1>
               <motion.p className="text-muted-foreground/50 text-xs mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                Based on user data from the last 6 months
+                {t.onboardingBasedOnData}
               </motion.p>
               
               <div className="w-full max-w-sm space-y-4">
@@ -609,17 +609,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.div>
               
               <motion.h1 className="text-2xl font-bold mb-2" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                Time to personalize!
+                {t.onboardingTimeToPersonalize}
               </motion.h1>
               <motion.p className="text-muted-foreground/60 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.3 }}>
-                3 quick steps to unlock your perfect macros
+                {t.onboardingQuickSteps}
               </motion.p>
               
               <div className="flex gap-4 mb-8">
                 {[
-                  { Icon: Ruler, label: "Body" },
-                  { Icon: Activity, label: "Activity" },
-                  { Icon: BarChart3, label: "Macros" }
+                  { Icon: Ruler, label: t.onboardingBody },
+                  { Icon: Activity, label: t.onboardingActivity },
+                  { Icon: BarChart3, label: t.onboardingMacros }
                 ].map((step, i) => (
                   <motion.div
                     key={step.label}
@@ -637,7 +637,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </div>
               
               <motion.p className="text-xs text-muted-foreground/40 italic flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
-                Takes less than 30 seconds <Zap className="w-3 h-3 text-primary" />
+                {t.onboardingTakesLess30Sec} <Zap className="w-3 h-3 text-primary" />
               </motion.p>
             </div>
           </StepCard>
@@ -651,8 +651,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <PersonStanding className="w-7 h-7 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-xl font-bold mb-1">Deine Körperdaten</h1>
-              <p className="text-muted-foreground/40 text-xs mb-4">Scrolle um Werte einzustellen</p>
+              <h1 className="text-xl font-bold mb-1">{t.onboardingYourBodyData}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-4">{t.onboardingScrollToSet}</p>
               
               {/* Three wheel pickers side by side */}
               <div className="w-full max-w-md grid grid-cols-3 gap-2">
@@ -665,7 +665,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
                     <PersonStanding className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-medium">Größe</span>
+                    <span className="text-xs font-medium">{t.onboardingHeight}</span>
                   </div>
                   <WheelPicker
                     value={userData.height}
@@ -686,7 +686,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
                     <Scale className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-medium">Gewicht</span>
+                    <span className="text-xs font-medium">{t.onboardingWeightLabel}</span>
                   </div>
                   <WheelPicker
                     value={userData.weight}
@@ -707,7 +707,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
                     <Calendar className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-medium">Alter</span>
+                    <span className="text-xs font-medium">{t.onboardingAgeLabel}</span>
                   </div>
                   <WheelPicker
                     value={userData.age}
@@ -727,7 +727,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
                 <span className="text-sm">🔒</span>
-                <span className="text-xs text-muted-foreground/60">100% privat</span>
+                <span className="text-xs text-muted-foreground/60">{t.onboardingPrivate}</span>
               </motion.div>
             </div>
           </StepCard>
@@ -741,13 +741,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <User className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Dein Geschlecht</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Wichtig für genaue Kalorien-Berechnung</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingYourGender}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingGenderImportant}</p>
               
               <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
                 {[
-                  { id: 'male' as const, label: 'Männlich', color: 'from-blue-500/20 to-cyan-500/20' },
-                  { id: 'female' as const, label: 'Weiblich', color: 'from-pink-500/20 to-rose-500/20' },
+                  { id: 'male' as const, label: t.onboardingMale, color: 'from-blue-500/20 to-cyan-500/20' },
+                  { id: 'female' as const, label: t.onboardingFemale, color: 'from-pink-500/20 to-rose-500/20' },
                 ].map((option, index) => (
                   <motion.button
                     key={option.id}
@@ -784,7 +784,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </div>
               
               <motion.p className="text-xs text-muted-foreground/40 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
-                ~166 kcal Unterschied zwischen Männern & Frauen
+                {language === 'de' ? '~166 kcal Unterschied zwischen Männern & Frauen' : language === 'fr' ? '~166 kcal différence entre hommes & femmes' : '~166 kcal difference between men & women'}
               </motion.p>
             </div>
           </StepCard>
@@ -798,8 +798,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Target className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Dein Ziel</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Abnehmen oder Zunehmen?</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingYourGoalMode}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingWhatDirection}</p>
               
               <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
                 <motion.button
@@ -815,8 +815,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-500/10 flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-red-500 rotate-180" />
                   </div>
-                  <span className="text-lg font-bold block">Abnehmen</span>
-                  <span className="text-xs text-muted-foreground/40">Kaloriendefizit</span>
+                  <span className="text-lg font-bold block">{t.onboardingLoseWeightMode}</span>
+                  <span className="text-xs text-muted-foreground/40">{language === 'de' ? 'Kaloriendefizit' : language === 'fr' ? 'Déficit calorique' : 'Calorie deficit'}</span>
                   {userData.goalMode === 'lose' && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-4 h-4 text-primary-foreground" />
@@ -837,8 +837,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-green-500/10 flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-green-500" />
                   </div>
-                  <span className="text-lg font-bold block">Zunehmen</span>
-                  <span className="text-xs text-muted-foreground/40">Kalorienüberschuss</span>
+                  <span className="text-lg font-bold block">{t.onboardingGainWeightMode}</span>
+                  <span className="text-xs text-muted-foreground/40">{language === 'de' ? 'Kalorienüberschuss' : language === 'fr' ? 'Surplus calorique' : 'Calorie surplus'}</span>
                   {userData.goalMode === 'gain' && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-4 h-4 text-primary-foreground" />
@@ -862,9 +862,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Scale className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Dein Zielgewicht</h1>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingTargetWeight}</h1>
               <p className="text-muted-foreground/40 text-xs mb-6">
-                {userData.goalMode === 'lose' ? 'Wie viel möchtest du verlieren?' : 'Wie viel möchtest du zunehmen?'}
+                {userData.goalMode === 'lose' 
+                  ? (language === 'de' ? 'Wie viel möchtest du verlieren?' : language === 'fr' ? 'Combien voulez-vous perdre?' : 'How much do you want to lose?')
+                  : (language === 'de' ? 'Wie viel möchtest du zunehmen?' : language === 'fr' ? 'Combien voulez-vous prendre?' : 'How much do you want to gain?')}
               </p>
               
               <div className="w-full max-w-sm space-y-6">
@@ -881,7 +883,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       animate={{ height: 80 }}
                       transition={{ delay: 0.3, duration: 0.4 }}
                     />
-                    <span className="text-xs text-muted-foreground/60 mt-2">Aktuell</span>
+                    <span className="text-xs text-muted-foreground/60 mt-2">{language === 'de' ? 'Aktuell' : language === 'fr' ? 'Actuel' : 'Current'}</span>
                     <span className="text-lg font-bold">{userData.weight}kg</span>
                   </div>
                   
@@ -902,7 +904,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       transition={{ delay: 0.4, duration: 0.4 }}
                       style={{ minHeight: 30, maxHeight: 120 }}
                     />
-                    <span className="text-xs text-primary mt-2">Ziel</span>
+                    <span className="text-xs text-primary mt-2">{t.goal}</span>
                     <span className="text-lg font-bold text-primary">{userData.targetWeight}kg</span>
                   </div>
                 </motion.div>
@@ -915,7 +917,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-sm font-medium">
-                      {userData.goalMode === 'lose' ? 'Gewichtsverlust' : 'Gewichtszunahme'}
+                      {userData.goalMode === 'lose' 
+                        ? (language === 'de' ? 'Gewichtsverlust' : language === 'fr' ? 'Perte de poids' : 'Weight loss')
+                        : (language === 'de' ? 'Gewichtszunahme' : language === 'fr' ? 'Prise de poids' : 'Weight gain')}
                     </span>
                     <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
                       {userData.goalMode === 'lose' ? '-' : '+'}{weightDiff}kg
@@ -933,7 +937,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </motion.div>
                 
                 <motion.p className="text-xs text-muted-foreground/40 text-center flex items-center justify-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
-                  <Sparkles className="w-3 h-3 text-primary" /> Max. 10kg {userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse
+                  <Sparkles className="w-3 h-3 text-primary" /> 
+                  {language === 'de' 
+                    ? `Max. 10kg ${userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse`
+                    : language === 'fr'
+                      ? `Max. 10kg ${userData.goalMode === 'lose' ? 'de perte' : 'de gain'} pour résultats durables`
+                      : `Max. 10kg ${userData.goalMode === 'lose' ? 'loss' : 'gain'} for sustainable results`}
                 </motion.p>
               </div>
             </div>
@@ -948,9 +957,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         
         // Determine category for visual feedback with animated icons
         const getSpeedCategory = (speed: number): { label: string; desc: string; Component: typeof AnimatedBicycle; color: string } => {
-          if (speed <= 0.5) return { label: "Langsam", desc: "Entspannt & nachhaltig", Component: AnimatedBicycle, color: "text-green-500" };
-          if (speed <= 0.9) return { label: "Moderat", desc: "Gute Balance", Component: AnimatedCar, color: "text-blue-500" };
-          return { label: "Schnell", desc: "Intensiv & fokussiert", Component: AnimatedRocket, color: "text-orange-500" };
+          if (speed <= 0.5) return { label: t.onboardingSlow, desc: t.onboardingGentle, Component: AnimatedBicycle, color: "text-green-500" };
+          if (speed <= 0.9) return { label: t.onboardingModerate, desc: t.onboardingSteady, Component: AnimatedCar, color: "text-blue-500" };
+          return { label: t.onboardingFast, desc: t.onboardingAmbitious, Component: AnimatedRocket, color: "text-orange-500" };
         };
         
         const speedCategory = getSpeedCategory(currentSpeed);
@@ -970,9 +979,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <SpeedIcon selected={true} />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Dein Tempo</h1>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingYourSpeed}</h1>
               <p className="text-muted-foreground/40 text-xs mb-6">
-                Wie schnell möchtest du {userData.goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}?
+                {t.onboardingHowFast}
               </p>
               
               {/* Speed Display */}
@@ -984,7 +993,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               >
                 <div className="text-5xl font-bold text-primary mb-1">
                   {currentSpeed.toFixed(1)}
-                  <span className="text-lg font-normal text-muted-foreground ml-1">kg/Woche</span>
+                  <span className="text-lg font-normal text-muted-foreground ml-1">kg/{language === 'de' ? 'Woche' : language === 'fr' ? 'semaine' : 'week'}</span>
                 </div>
                 <motion.div 
                   key={speedCategory.label}
@@ -1067,7 +1076,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
                 <AlertTriangle className="w-3 h-3 text-yellow-500" /> 
-                {currentSpeed >= 1.0 ? "Hohes Tempo erfordert viel Disziplin!" : "Empfohlen: 0.3-0.8 kg pro Woche"}
+                {currentSpeed >= 1.0 ? t.onboardingHighTempoWarning : t.onboardingRecommendedTempo}
               </motion.p>
             </div>
           </StepCard>
@@ -1075,10 +1084,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "dietary-preferences":
         const dietOptionsData = [
-          { id: 'vegetarian', label: 'Vegetarisch', Icon: Salad, desc: 'Kein Fleisch oder Fisch' },
-          { id: 'vegan', label: 'Vegan', Icon: Leaf, desc: 'Keine tierischen Produkte' },
-          { id: 'pescatarian', label: 'Pescetarisch', Icon: Fish, desc: 'Fisch, kein Fleisch' },
-          { id: 'none', label: 'Keine', Icon: Utensils, desc: 'Alles erlaubt' },
+          { id: 'vegetarian', label: t.onboardingVegetarian, Icon: Salad, desc: t.onboardingNoMeatFish },
+          { id: 'vegan', label: t.onboardingVegan, Icon: Leaf, desc: t.onboardingNoAnimalProducts },
+          { id: 'pescatarian', label: t.onboardingPescatarian, Icon: Fish, desc: t.onboardingFishNoMeat },
+          { id: 'none', label: t.onboardingNone, Icon: Utensils, desc: t.onboardingEverythingAllowed },
         ];
         return (
           <StepCard step="dietary-preferences">
@@ -1087,8 +1096,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Leaf className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Ernährungsweise</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezepte</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingDietaryPrefs}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingForMatchingRecipes}</p>
               
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
                 {dietOptionsData.map((option, index) => {
@@ -1141,12 +1150,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "allergies":
         const allergyOptionsData = [
-          { id: 'gluten', label: 'Gluten', Icon: Wheat },
-          { id: 'lactose', label: 'Laktose', Icon: Milk },
-          { id: 'nuts', label: 'Nüsse', Icon: Apple },
-          { id: 'soy', label: 'Soja', Icon: Bean },
-          { id: 'eggs', label: 'Eier', Icon: Egg },
-          { id: 'none', label: 'Keine', Icon: CircleCheck },
+          { id: 'gluten', label: t.onboardingGluten, Icon: Wheat },
+          { id: 'lactose', label: t.onboardingLactose, Icon: Milk },
+          { id: 'nuts', label: t.onboardingNuts, Icon: Apple },
+          { id: 'soy', label: t.onboardingSoy, Icon: Bean },
+          { id: 'eggs', label: t.onboardingEggs, Icon: Egg },
+          { id: 'none', label: t.onboardingNone, Icon: CircleCheck },
         ];
         return (
           <StepCard step="allergies">
@@ -1155,8 +1164,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <AlertTriangle className="w-8 h-8 text-white" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Allergien & Unverträglichkeiten</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Mehrfachauswahl möglich</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingAllergies}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingMultiSelect}</p>
               
               <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
                 {allergyOptionsData.map((option, index) => {
@@ -1205,9 +1214,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "cooking-experience":
         const experienceOptions = [
-          { id: 'beginner' as const, label: 'Anfänger', icon: GraduationCap, desc: 'Einfache Rezepte', color: 'from-green-500/20 to-emerald-500/20', iconColor: 'text-green-500' },
-          { id: 'intermediate' as const, label: 'Fortgeschritten', icon: ChefHat, desc: 'Mittelschwere Gerichte', color: 'from-yellow-500/20 to-orange-500/20', iconColor: 'text-yellow-500' },
-          { id: 'advanced' as const, label: 'Profi', icon: Crown, desc: 'Anspruchsvolle Küche', color: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-500' },
+          { id: 'beginner' as const, label: t.onboardingBeginner, icon: GraduationCap, desc: t.onboardingSimpleRecipes, color: 'from-green-500/20 to-emerald-500/20', iconColor: 'text-green-500' },
+          { id: 'intermediate' as const, label: t.onboardingIntermediate, icon: ChefHat, desc: t.onboardingMediumDishes, color: 'from-yellow-500/20 to-orange-500/20', iconColor: 'text-yellow-500' },
+          { id: 'advanced' as const, label: t.onboardingAdvanced, icon: Crown, desc: t.onboardingDemandingCuisine, color: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-500' },
         ];
         return (
           <StepCard step="cooking-experience">
@@ -1221,8 +1230,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Utensils className="w-8 h-8 text-primary" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Kocherfahrung</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Für passende Rezept-Schwierigkeit</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingCookingExperience}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingForRecipeDifficulty}</p>
               
               <div className="flex flex-col gap-3 w-full max-w-sm">
                 {experienceOptions.map((option, index) => {
@@ -1266,9 +1275,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "planning-setup":
         const activityLevels = [
-          { id: "low", label: "Chill", icon: Armchair, desc: "Desk job, light walks", color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
-          { id: "medium", label: "Active", icon: Footprints, desc: "Regular workouts", color: 'text-yellow-500', bgColor: 'bg-yellow-500/20' },
-          { id: "high", label: "Beast", icon: Flame, desc: "Intense training", color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
+          { id: "low", label: t.onboardingChill, icon: Armchair, desc: t.onboardingDeskJob, color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
+          { id: "medium", label: t.onboardingActive, icon: Footprints, desc: t.onboardingRegularWorkouts, color: 'text-yellow-500', bgColor: 'bg-yellow-500/20' },
+          { id: "high", label: t.onboardingBeast, icon: Flame, desc: t.onboardingIntenseTraining, color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
         ];
         return (
           <StepCard step="planning-setup">
@@ -1282,8 +1291,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Activity className="w-8 h-8 text-primary" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Aktivitätslevel</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Wie aktiv bist du?</p>
+              <h1 className="text-2xl font-bold mb-1">{t.onboardingActivityLevel}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingHowActive}</p>
               
               <div className="flex flex-col gap-3 w-full max-w-sm">
                 {activityLevels.map((level, i) => {
@@ -1324,11 +1333,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "analyzing":
         const analysisSteps = [
-          { id: 1, text: "Ziele werden analysiert", delay: 0 },
-          { id: 2, text: "Körperdaten verarbeiten", delay: 1600 },
-          { id: 3, text: "Zielgewicht berechnen", delay: 3200 },
-          { id: 4, text: "Optimale Makros ermitteln", delay: 4800 },
-          { id: 5, text: "Plan wird erstellt", delay: 6400 },
+          { id: 1, text: t.onboardingAnalyzingGoals, delay: 0 },
+          { id: 2, text: t.onboardingProcessingBodyData, delay: 1600 },
+          { id: 3, text: t.onboardingCalculatingTargetWeight, delay: 3200 },
+          { id: 4, text: t.onboardingDeterminingMacros, delay: 4800 },
+          { id: 5, text: t.onboardingCreatingPlan, delay: 6400 },
         ];
         
         return (

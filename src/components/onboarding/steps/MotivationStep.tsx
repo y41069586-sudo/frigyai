@@ -2,15 +2,18 @@ import { motion } from "framer-motion";
 import { StepCard, SelectionCard } from "../components";
 import { StepProps } from "../types";
 import { Target, Heart, Dumbbell, PartyPopper, Stethoscope, Footprints, Sparkles } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const MotivationStep = ({ userData, setUserData }: StepProps) => {
+  const { t, language } = useLanguage();
+  
   const motivations = [
-    { id: "health", label: "Gesünder leben", icon: Heart, desc: "Mehr Energie im Alltag", color: 'text-red-500', bgColor: 'bg-red-500/20' },
-    { id: "confidence", label: "Selbstbewusster fühlen", icon: Dumbbell, desc: "Wohler im eigenen Körper", color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
-    { id: "event", label: "Für ein Event", icon: PartyPopper, desc: "Hochzeit, Urlaub, etc.", color: 'text-pink-500', bgColor: 'bg-pink-500/20' },
-    { id: "doctor", label: "Arzt empfohlen", icon: Stethoscope, desc: "Medizinischer Rat", color: 'text-cyan-500', bgColor: 'bg-cyan-500/20' },
-    { id: "fitness", label: "Fitness verbessern", icon: Footprints, desc: "Sportliche Ziele", color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
-    { id: "habit", label: "Bessere Gewohnheiten", icon: Sparkles, desc: "Langfristige Änderung", color: 'text-purple-500', bgColor: 'bg-purple-500/20' },
+    { id: "health", label: language === 'de' ? "Gesünder leben" : language === 'fr' ? "Vivre plus sainement" : "Live healthier", icon: Heart, desc: language === 'de' ? "Mehr Energie im Alltag" : language === 'fr' ? "Plus d'énergie au quotidien" : "More daily energy", color: 'text-red-500', bgColor: 'bg-red-500/20' },
+    { id: "confidence", label: language === 'de' ? "Selbstbewusster fühlen" : language === 'fr' ? "Plus de confiance" : "Feel more confident", icon: Dumbbell, desc: language === 'de' ? "Wohler im eigenen Körper" : language === 'fr' ? "Bien dans son corps" : "Comfortable in your body", color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
+    { id: "event", label: language === 'de' ? "Für ein Event" : language === 'fr' ? "Pour un événement" : "For an event", icon: PartyPopper, desc: language === 'de' ? "Hochzeit, Urlaub, etc." : language === 'fr' ? "Mariage, vacances, etc." : "Wedding, vacation, etc.", color: 'text-pink-500', bgColor: 'bg-pink-500/20' },
+    { id: "doctor", label: language === 'de' ? "Arzt empfohlen" : language === 'fr' ? "Recommandé par médecin" : "Doctor recommended", icon: Stethoscope, desc: language === 'de' ? "Medizinischer Rat" : language === 'fr' ? "Conseil médical" : "Medical advice", color: 'text-cyan-500', bgColor: 'bg-cyan-500/20' },
+    { id: "fitness", label: language === 'de' ? "Fitness verbessern" : language === 'fr' ? "Améliorer fitness" : "Improve fitness", icon: Footprints, desc: language === 'de' ? "Sportliche Ziele" : language === 'fr' ? "Objectifs sportifs" : "Athletic goals", color: 'text-orange-500', bgColor: 'bg-orange-500/20' },
+    { id: "habit", label: language === 'de' ? "Bessere Gewohnheiten" : language === 'fr' ? "Meilleures habitudes" : "Better habits", icon: Sparkles, desc: language === 'de' ? "Langfristige Änderung" : language === 'fr' ? "Changement durable" : "Long-term change", color: 'text-purple-500', bgColor: 'bg-purple-500/20' },
   ];
 
   return (
@@ -31,7 +34,7 @@ export const MotivationStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3 }}
         >
-          Was motiviert dich?
+          {language === 'de' ? "Was motiviert dich?" : language === 'fr' ? "Qu'est-ce qui te motive?" : "What motivates you?"}
         </motion.h1>
         <motion.p
           className="text-muted-foreground/50 text-xs mb-6"
@@ -39,7 +42,7 @@ export const MotivationStep = ({ userData, setUserData }: StepProps) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.3 }}
         >
-          Hilft uns, dich besser zu unterstützen
+          {language === 'de' ? "Hilft uns, dich besser zu unterstützen" : language === 'fr' ? "Nous aide à mieux te soutenir" : "Helps us support you better"}
         </motion.p>
         
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
