@@ -21,6 +21,7 @@ interface Recipe {
   difficulty: string;
   ingredients: string[];
   instructions: string[];
+  isRecommended?: boolean;
 }
 
 interface ClarificationResponse {
@@ -42,6 +43,7 @@ const RecipesPage = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recommendedReason, setRecommendedReason] = useState<string>("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [clarification, setClarification] = useState<ClarificationResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +63,7 @@ const RecipesPage = () => {
   const generateRecipes = async () => {
     setLoading(true);
     setRecipes([]);
+    setRecommendedReason("");
     setSelectedRecipe(null);
     setClarification(null);
     setShowDetail(false);
@@ -81,10 +84,15 @@ const RecipesPage = () => {
           description: "Ein paar Zutaten fehlen noch.",
         });
       } else if (data.type === "recipes" && data.recipes) {
-        setRecipes(data.recipes);
+        // Sort so recommended recipe is first
+        const sortedRecipes = [...data.recipes].sort((a: Recipe, b: Recipe) => 
+          (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0)
+        );
+        setRecipes(sortedRecipes);
+        setRecommendedReason(data.recommendedReason || "");
         toast({
           title: "3 Gerichte gefunden!",
-          description: "Wähle dein Lieblingsgericht.",
+          description: "FRIGY empfiehlt dir das erste Gericht.",
         });
       } else if (data.error) {
         throw new Error(data.error);
@@ -326,46 +334,76 @@ const RecipesPage = () => {
         </motion.div>
 
         <div className="space-y-4">
-          {recipes.map((recipe, index) => (
-            <motion.div
-              key={recipe.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card
-                className="p-4 bg-card/50 backdrop-blur border-border/50 hover:bg-card/80 transition-all cursor-pointer active:scale-[0.98]"
-                onClick={() => handleSelectRecipe(recipe)}
+          {recipes.map((recipe, index) => {
+            const isRecommended = recipe.isRecommended;
+            
+            return (
+              <motion.div
+                key={recipe.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <span className="text-2xl">
-                      {index === 0 ? '🍳' : index === 1 ? '🥗' : '🍲'}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg mb-1 truncate">{recipe.title}</h3>
-                    {recipe.reason && (
-                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{recipe.reason}</p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {recipe.prepTime} Min
-                      </span>
-                      <span>{recipe.calories} kcal</span>
-                      <span className="text-primary font-medium">{recipe.protein}g Protein</span>
+                <Card
+                  className={`relative overflow-hidden bg-card/50 backdrop-blur transition-all cursor-pointer active:scale-[0.98] ${
+                    isRecommended 
+                      ? 'border-2 border-primary shadow-lg shadow-primary/20 scale-[1.02]' 
+                      : 'border-border/50 hover:bg-card/80'
+                  }`}
+                  onClick={() => handleSelectRecipe(recipe)}
+                >
+                  {isRecommended && (
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs font-semibold py-1.5 px-4 flex items-center gap-2">
+                      <span className="text-sm">⭐</span>
+                      <span>EMPFOHLEN</span>
+                      {recommendedReason && (
+                        <span className="text-primary-foreground/80 font-normal ml-1 truncate">
+                          — {recommendedReason}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className={`p-4 ${isRecommended ? 'pt-10' : ''}`}>
+                    <div className="flex gap-4">
+                      <div className={`flex-shrink-0 rounded-xl flex items-center justify-center ${
+                        isRecommended ? 'w-14 h-14 bg-primary/20' : 'w-12 h-12 bg-primary/10'
+                      }`}>
+                        <span className={isRecommended ? 'text-3xl' : 'text-2xl'}>
+                          {index === 0 ? '🍳' : index === 1 ? '🥗' : '🍲'}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`font-semibold mb-1 truncate ${isRecommended ? 'text-xl' : 'text-lg'}`}>
+                          {recipe.title}
+                        </h3>
+                        {recipe.reason && (
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{recipe.reason}</p>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {recipe.prepTime} Min
+                          </span>
+                          <span>{recipe.calories} kcal</span>
+                          <span className="text-primary font-medium">{recipe.protein}g Protein</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <div className={`rounded-full border-2 flex items-center justify-center ${
+                          isRecommended 
+                            ? 'w-10 h-10 border-primary bg-primary/10' 
+                            : 'w-8 h-8 border-primary/30'
+                        }`}>
+                          <Check className={`text-primary ${isRecommended ? 'h-5 w-5' : 'h-4 w-4 opacity-50'}`} />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full border-2 border-primary/30 flex items-center justify-center">
-                      <Check className="h-4 w-4 text-primary/50" />
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
 
         {recipes.length === 0 && !loading && (

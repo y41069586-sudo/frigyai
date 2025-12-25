@@ -73,7 +73,35 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    console.log("[ANALYZE-INGREDIENTS] Scanning image...");
+    console.log("[ANALYZE-INGREDIENTS] Scanning image with deep analysis...");
+
+    const systemPrompt = `Du bist ein EXTREM PRÄZISER Lebensmittel-Scanner im TIEFENANALYSE-MODUS.
+
+AUFGABE: Analysiere das Bild und liste JEDES EINZELNE Lebensmittel auf.
+
+ERKENNUNGSREGELN:
+1. SCHAUE GENAU HIN - auch teilweise verdeckte Produkte zählen
+2. LIES ALLE ETIKETTEN und Markennamen (z.B. "Philadelphia Frischkäse" statt nur "Frischkäse")
+3. ERKENNE VERPACKUNGSTYPEN:
+   - Flaschen (Saft, Milch, Sauce, Öl, Wasser)
+   - Dosen (Tomaten, Bohnen, Mais, Thunfisch)
+   - Gläser (Marmelade, Senf, Gewürze, Pesto)
+   - Tüten (Nudeln, Reis, Chips, Brot)
+   - Boxen/Kartons (Eier, Milch, Müsli)
+   - Plastikschalen (Fleisch, Wurst, Käse, Salat)
+   - Frischware ohne Verpackung (Obst, Gemüse)
+4. KATEGORISIERE ALLES:
+   - Proteine: Fleisch (Hähnchen, Rind, Schwein, Hackfleisch), Fisch, Eier, Tofu, Wurst
+   - Milchprodukte: Milch, Butter, Käse (Gouda, Emmentaler, Mozzarella), Joghurt, Sahne, Quark
+   - Gemüse: Tomaten, Paprika, Zwiebeln, Knoblauch, Karotten, Gurken, Salat, Brokkoli, Zucchini
+   - Obst: Äpfel, Bananen, Orangen, Beeren, Trauben, Zitronen
+   - Kohlenhydrate: Nudeln, Reis, Brot, Kartoffeln, Toast
+   - Saucen/Gewürze: Ketchup, Senf, Mayo, Pesto, Sojasauce, Öl, Essig
+   - Getränke: Saft, Milch, Wasser, Limonade
+5. UNSICHERE Produkte mit "(evtl.)" markieren
+
+AUSGABE: Nur ein JSON-Array mit allen erkannten Lebensmitteln auf Deutsch.
+Beispiel: ["Hähnchenbrust", "Paprika rot", "Zwiebeln", "Gouda Käse", "Sahne", "Knoblauch", "Olivenöl"]`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -81,13 +109,13 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: `Liste ALLE Lebensmittel im Bild als JSON-Array auf Deutsch. Sei spezifisch (z.B. "Gouda" statt "Käse").` },
+          { role: "system", content: systemPrompt },
           { role: "user", content: [
-            { type: "text", text: "Lebensmittel:" },
-            { type: "image_url", image_url: { url: image, detail: "low" } }
+            { type: "text", text: "Analysiere dieses Bild im Detail und liste ALLE erkennbaren Lebensmittel auf:" },
+            { type: "image_url", image_url: { url: image, detail: "high" } }
           ]}
         ],
-        max_tokens: 300,
+        max_tokens: 800,
       }),
     });
 
