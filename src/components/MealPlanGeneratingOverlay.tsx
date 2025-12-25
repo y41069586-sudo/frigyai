@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MealPlanGeneratingOverlayProps {
   isGenerating: boolean;
@@ -9,16 +10,6 @@ interface MealPlanGeneratingOverlayProps {
   onMinimize?: () => void;
   isMinimized?: boolean;
 }
-
-const motivationalTexts = [
-  "Frigy plant deine Woche…",
-  "Dein Wochenplan nimmt Form an",
-  "Wir machen dir das Denken leicht",
-  "Fast geschafft…",
-  "Frigy wählt die besten Rezepte",
-  "Noch ein kleiner Moment…",
-  "Deine Mahlzeiten werden vorbereitet",
-];
 
 // Floating ingredient component
 const FloatingIngredient = ({ 
@@ -93,7 +84,18 @@ export const MealPlanGeneratingOverlay = ({
   onMinimize,
   isMinimized = false
 }: MealPlanGeneratingOverlayProps) => {
+  const { t } = useLanguage();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+
+  const motivationalTexts = [
+    t.mealPlanGenerating1,
+    t.mealPlanGenerating2,
+    t.mealPlanGenerating3,
+    t.mealPlanGenerating4,
+    t.mealPlanGenerating5,
+    t.mealPlanGenerating6,
+    t.mealPlanGenerating7,
+  ];
 
   // Simple: show overlay only when actively generating and not minimized
   const showOverlay = isGenerating && !isMinimized;
@@ -221,7 +223,7 @@ export const MealPlanGeneratingOverlay = ({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              aria-label="Zurück"
+              aria-label={t.back}
               className="absolute top-4 left-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
                          hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
@@ -333,7 +335,7 @@ export const MealPlanGeneratingOverlay = ({
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5 }}
               >
-                Du kannst weiterstöbern – Frigy arbeitet im Hintergrund
+                {t.mealPlanBackgroundHint}
               </motion.p>
             )}
           </div>
