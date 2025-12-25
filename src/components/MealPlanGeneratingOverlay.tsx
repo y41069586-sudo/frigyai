@@ -153,7 +153,7 @@ export const MealPlanGeneratingOverlay = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none"
         >
           {/* Blurred background - shows content behind with blur effect */}
           <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
@@ -170,14 +170,14 @@ export const MealPlanGeneratingOverlay = ({
               transition={{ delay: 0.3 }}
               className="absolute top-4 right-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
-                         hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
+                         hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20 pointer-events-auto"
             >
               <X className="w-4 h-4 text-slate-400" />
             </motion.button>
           )}
 
-          <div className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10">
-            
+          <div className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10 pointer-events-auto">
+
             {/* Floating ingredients - smaller and more subtle */}
             <div className="absolute inset-x-0 top-0 h-40 pointer-events-none">
               <FloatingIngredient emoji="🥕" delay={0} x={15} duration={3} />
