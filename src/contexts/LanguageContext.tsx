@@ -593,6 +593,65 @@ interface Translations {
   entryNotFound: string;
   saving: string;
   
+  // MacroTracker Onboarding
+  trackerYourBodyData: string;
+  trackerScrollToSet: string;
+  trackerHeight: string;
+  trackerWeight: string;
+  trackerAge: string;
+  trackerPrivate: string;
+  trackerYourGender: string;
+  trackerGenderImportant: string;
+  trackerMale: string;
+  trackerFemale: string;
+  trackerCalorieDifference: string;
+  trackerHowActive: string;
+  trackerForCalories: string;
+  trackerLowActive: string;
+  trackerLowActiveDesc: string;
+  trackerLightActive: string;
+  trackerLightActiveDesc: string;
+  trackerModerateActive: string;
+  trackerModerateActiveDesc: string;
+  trackerVeryActive: string;
+  trackerVeryActiveDesc: string;
+  trackerYourGoal: string;
+  trackerLoseOrGain: string;
+  trackerLoseWeight: string;
+  trackerGainWeight: string;
+  trackerCalorieDeficit: string;
+  trackerCalorieSurplus: string;
+  trackerYourTargetWeight: string;
+  trackerHowMuchLose: string;
+  trackerHowMuchGain: string;
+  trackerCurrent: string;
+  trackerGoalLabel: string;
+  trackerWeightLoss: string;
+  trackerWeightGain: string;
+  trackerYourSpeed: string;
+  trackerHowFastLose: string;
+  trackerHowFastGain: string;
+  trackerKgPerWeek: string;
+  trackerSlowSustainable: string;
+  trackerModerate: string;
+  trackerFast: string;
+  trackerVeryFast: string;
+  trackerHighDiscipline: string;
+  trackerRecommended: string;
+  trackerYourPlan: string;
+  trackerPersonalizedForYou: string;
+  trackerYourDailyGoal: string;
+  trackerBasedOnScience: string;
+  trackerMifflinFormula: string;
+  trackerBMRCalc: string;
+  trackerTDEEFactors: string;
+  trackerTotalEnergy: string;
+  trackerProteinRec: string;
+  trackerISSNProtein: string;
+  trackerDeficitRule: string;
+  trackerEnergyBalance: string;
+  trackerYearsShort: string;
+  
   // Scan Page
   recentlyCooked: string;
   todayLabel: string;
@@ -1022,6 +1081,65 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Gestern",
     min: "Min",
     continueButton: "Weiter",
+    
+    // MacroTracker Onboarding
+    trackerYourBodyData: "Deine Körperdaten",
+    trackerScrollToSet: "Scrolle um Werte einzustellen",
+    trackerHeight: "Größe",
+    trackerWeight: "Gewicht",
+    trackerAge: "Alter",
+    trackerPrivate: "100% privat",
+    trackerYourGender: "Dein Geschlecht",
+    trackerGenderImportant: "Wichtig für genaue Kalorien-Berechnung",
+    trackerMale: "Männlich",
+    trackerFemale: "Weiblich",
+    trackerCalorieDifference: "~166 kcal Unterschied zwischen Männern & Frauen",
+    trackerHowActive: "Wie aktiv bist du?",
+    trackerForCalories: "Für genaue Kalorienberechnung",
+    trackerLowActive: "Wenig aktiv",
+    trackerLowActiveDesc: "Bürojob, wenig Bewegung",
+    trackerLightActive: "Leicht aktiv",
+    trackerLightActiveDesc: "1-2x Sport pro Woche",
+    trackerModerateActive: "Moderat aktiv",
+    trackerModerateActiveDesc: "3-5x Sport pro Woche",
+    trackerVeryActive: "Sehr aktiv",
+    trackerVeryActiveDesc: "6-7x Sport pro Woche",
+    trackerYourGoal: "Dein Ziel",
+    trackerLoseOrGain: "Abnehmen oder Zunehmen?",
+    trackerLoseWeight: "Abnehmen",
+    trackerGainWeight: "Zunehmen",
+    trackerCalorieDeficit: "Kaloriendefizit",
+    trackerCalorieSurplus: "Kalorienüberschuss",
+    trackerYourTargetWeight: "Dein Zielgewicht",
+    trackerHowMuchLose: "Wie viel möchtest du verlieren?",
+    trackerHowMuchGain: "Wie viel möchtest du zunehmen?",
+    trackerCurrent: "Aktuell",
+    trackerGoalLabel: "Ziel",
+    trackerWeightLoss: "Gewichtsverlust",
+    trackerWeightGain: "Gewichtszunahme",
+    trackerYourSpeed: "Dein Tempo",
+    trackerHowFastLose: "Wie schnell möchtest du abnehmen?",
+    trackerHowFastGain: "Wie schnell möchtest du zunehmen?",
+    trackerKgPerWeek: "kg/Woche",
+    trackerSlowSustainable: "Langsam & Nachhaltig",
+    trackerModerate: "Moderat",
+    trackerFast: "Schnell",
+    trackerVeryFast: "Sehr Schnell",
+    trackerHighDiscipline: "Hohes Tempo erfordert viel Disziplin!",
+    trackerRecommended: "Empfohlen: 0.3-0.8 kg pro Woche",
+    trackerYourPlan: "Dein persönlicher Plan",
+    trackerPersonalizedForYou: "Personalisiert für dich",
+    trackerYourDailyGoal: "Dein Tagesziel",
+    trackerBasedOnScience: "Basierend auf wissenschaftlichen Formeln:",
+    trackerMifflinFormula: "Mifflin-St Jeor Formel",
+    trackerBMRCalc: "Grundumsatz-Berechnung",
+    trackerTDEEFactors: "TDEE Aktivitätsfaktoren",
+    trackerTotalEnergy: "Gesamtenergieverbrauch",
+    trackerProteinRec: "Protein: 2g/kg Körpergewicht",
+    trackerISSNProtein: "ISSN Protein-Empfehlung",
+    trackerDeficitRule: "Defizit: 7700 kcal/kg",
+    trackerEnergyBalance: "Energiebilanz-Regel",
+    trackerYearsShort: "J.",
     
     // Onboarding Steps
     onboardingWhatsYourName: "Wie heißt du?",
@@ -1621,6 +1739,65 @@ const translations: Record<Language, Translations> = {
     min: "min",
     continueButton: "Continue",
     
+    // MacroTracker Onboarding
+    trackerYourBodyData: "Your body data",
+    trackerScrollToSet: "Scroll to set values",
+    trackerHeight: "Height",
+    trackerWeight: "Weight",
+    trackerAge: "Age",
+    trackerPrivate: "100% private",
+    trackerYourGender: "Your gender",
+    trackerGenderImportant: "Important for accurate calorie calculation",
+    trackerMale: "Male",
+    trackerFemale: "Female",
+    trackerCalorieDifference: "~166 kcal difference between men & women",
+    trackerHowActive: "How active are you?",
+    trackerForCalories: "For accurate calorie calculation",
+    trackerLowActive: "Low active",
+    trackerLowActiveDesc: "Desk job, little movement",
+    trackerLightActive: "Lightly active",
+    trackerLightActiveDesc: "1-2x sports per week",
+    trackerModerateActive: "Moderately active",
+    trackerModerateActiveDesc: "3-5x sports per week",
+    trackerVeryActive: "Very active",
+    trackerVeryActiveDesc: "6-7x sports per week",
+    trackerYourGoal: "Your goal",
+    trackerLoseOrGain: "Lose or gain weight?",
+    trackerLoseWeight: "Lose weight",
+    trackerGainWeight: "Gain weight",
+    trackerCalorieDeficit: "Calorie deficit",
+    trackerCalorieSurplus: "Calorie surplus",
+    trackerYourTargetWeight: "Your target weight",
+    trackerHowMuchLose: "How much do you want to lose?",
+    trackerHowMuchGain: "How much do you want to gain?",
+    trackerCurrent: "Current",
+    trackerGoalLabel: "Goal",
+    trackerWeightLoss: "Weight loss",
+    trackerWeightGain: "Weight gain",
+    trackerYourSpeed: "Your pace",
+    trackerHowFastLose: "How fast do you want to lose weight?",
+    trackerHowFastGain: "How fast do you want to gain weight?",
+    trackerKgPerWeek: "kg/week",
+    trackerSlowSustainable: "Slow & sustainable",
+    trackerModerate: "Moderate",
+    trackerFast: "Fast",
+    trackerVeryFast: "Very fast",
+    trackerHighDiscipline: "High pace requires lots of discipline!",
+    trackerRecommended: "Recommended: 0.3-0.8 kg per week",
+    trackerYourPlan: "Your personal plan",
+    trackerPersonalizedForYou: "Personalized for you",
+    trackerYourDailyGoal: "Your daily goal",
+    trackerBasedOnScience: "Based on scientific formulas:",
+    trackerMifflinFormula: "Mifflin-St Jeor Formula",
+    trackerBMRCalc: "BMR calculation",
+    trackerTDEEFactors: "TDEE activity factors",
+    trackerTotalEnergy: "Total energy expenditure",
+    trackerProteinRec: "Protein: 2g/kg body weight",
+    trackerISSNProtein: "ISSN protein recommendation",
+    trackerDeficitRule: "Deficit: 7700 kcal/kg",
+    trackerEnergyBalance: "Energy balance rule",
+    trackerYearsShort: "y.",
+    
     // Onboarding Steps
     onboardingWhatsYourName: "What's your name?",
     onboardingNameSubtitle: "So we can greet you personally",
@@ -2218,6 +2395,65 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Hier",
     min: "min",
     continueButton: "Continuer",
+    
+    // MacroTracker Onboarding
+    trackerYourBodyData: "Tes données corporelles",
+    trackerScrollToSet: "Fais défiler pour définir les valeurs",
+    trackerHeight: "Taille",
+    trackerWeight: "Poids",
+    trackerAge: "Âge",
+    trackerPrivate: "100% privé",
+    trackerYourGender: "Ton genre",
+    trackerGenderImportant: "Important pour un calcul précis des calories",
+    trackerMale: "Homme",
+    trackerFemale: "Femme",
+    trackerCalorieDifference: "~166 kcal différence entre hommes & femmes",
+    trackerHowActive: "Quelle est ton activité?",
+    trackerForCalories: "Pour un calcul précis des calories",
+    trackerLowActive: "Peu actif",
+    trackerLowActiveDesc: "Bureau, peu de mouvement",
+    trackerLightActive: "Légèrement actif",
+    trackerLightActiveDesc: "1-2x sport par semaine",
+    trackerModerateActive: "Modérément actif",
+    trackerModerateActiveDesc: "3-5x sport par semaine",
+    trackerVeryActive: "Très actif",
+    trackerVeryActiveDesc: "6-7x sport par semaine",
+    trackerYourGoal: "Ton objectif",
+    trackerLoseOrGain: "Perdre ou prendre du poids?",
+    trackerLoseWeight: "Perdre du poids",
+    trackerGainWeight: "Prendre du poids",
+    trackerCalorieDeficit: "Déficit calorique",
+    trackerCalorieSurplus: "Surplus calorique",
+    trackerYourTargetWeight: "Ton poids cible",
+    trackerHowMuchLose: "Combien veux-tu perdre?",
+    trackerHowMuchGain: "Combien veux-tu prendre?",
+    trackerCurrent: "Actuel",
+    trackerGoalLabel: "Objectif",
+    trackerWeightLoss: "Perte de poids",
+    trackerWeightGain: "Prise de poids",
+    trackerYourSpeed: "Ton rythme",
+    trackerHowFastLose: "À quelle vitesse veux-tu perdre du poids?",
+    trackerHowFastGain: "À quelle vitesse veux-tu prendre du poids?",
+    trackerKgPerWeek: "kg/semaine",
+    trackerSlowSustainable: "Lent & durable",
+    trackerModerate: "Modéré",
+    trackerFast: "Rapide",
+    trackerVeryFast: "Très rapide",
+    trackerHighDiscipline: "Un rythme élevé demande beaucoup de discipline!",
+    trackerRecommended: "Recommandé: 0.3-0.8 kg par semaine",
+    trackerYourPlan: "Ton plan personnel",
+    trackerPersonalizedForYou: "Personnalisé pour toi",
+    trackerYourDailyGoal: "Ton objectif quotidien",
+    trackerBasedOnScience: "Basé sur des formules scientifiques:",
+    trackerMifflinFormula: "Formule Mifflin-St Jeor",
+    trackerBMRCalc: "Calcul du métabolisme de base",
+    trackerTDEEFactors: "Facteurs d'activité TDEE",
+    trackerTotalEnergy: "Dépense énergétique totale",
+    trackerProteinRec: "Protéines: 2g/kg de poids corporel",
+    trackerISSNProtein: "Recommandation protéines ISSN",
+    trackerDeficitRule: "Déficit: 7700 kcal/kg",
+    trackerEnergyBalance: "Règle d'équilibre énergétique",
+    trackerYearsShort: "ans",
     
     // Onboarding Steps
     onboardingWhatsYourName: "Comment tu t'appelles ?",
