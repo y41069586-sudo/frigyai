@@ -19,6 +19,7 @@ import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
 import { DashboardWaterWidget } from "@/components/DashboardWaterWidget";
+import { DashboardWeekDays } from "@/components/DashboardWeekDays";
 import { useReminders } from "@/hooks/useReminders";
 
 import frigLogo from "@/assets/frig-logo.png";
@@ -416,11 +417,14 @@ const Index = () => {
             </motion.button>
           </motion.section>
           
+          {/* Week Days Progress Widget */}
+          <DashboardWeekDays targetCalories={targetCalories} />
+          
           {/* Water Widget - Full Width */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
+            transition={{ delay: 0.2 }}
           >
             <DashboardWaterWidget 
               waterGlasses={waterGlasses} 

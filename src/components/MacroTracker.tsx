@@ -756,7 +756,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   return (
     <div className="space-y-4">
       {/* Modern Macro Display */}
-      <div className="relative">
+      <div className="space-y-3">
         <MacroDisplay
           calories={{ current: totalCalories, target: profile?.dailyCalories || 0 }}
           protein={{ current: totalProtein, target: profile?.dailyProtein || 0 }}
@@ -767,13 +767,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-4 right-4"
+          className="w-full text-xs text-muted-foreground hover:text-primary"
           onClick={() => {
             localStorage.removeItem('userProfile');
             setStep('onboarding');
             setOnboardingStep(0);
           }}
         >
+          <Pencil className="h-3 w-3 mr-1.5" />
           {t.changeGoal}
         </Button>
       </div>
