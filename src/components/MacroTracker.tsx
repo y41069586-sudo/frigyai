@@ -395,81 +395,130 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const onboardingSteps = [
     {
-      icon: User,
-      title: t.howOldAreYou,
+      icon: PersonStanding,
+      title: "Deine Körperdaten",
+      subtitle: "Scrolle um Werte einzustellen",
       content: (
-        <div className="py-2">
-          <WheelPicker
-            value={age}
-            onChange={setAge}
-            min={13}
-            max={80}
-            step={1}
-            unit={t.years}
-          />
-        </div>
-      ),
-    },
-    {
-      icon: User,
-      title: "Geschlecht",
-      content: (
-        <div className="space-y-6">
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => setGender('male')}
-              className={`p-6 rounded-2xl border-2 transition-all ${gender === 'male' ? 'border-primary bg-primary/20' : 'border-border'}`}
+        <div className="w-full">
+          {/* Three wheel pickers side by side - like OnboardingFlow */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {/* Height Picker */}
+            <motion.div 
+              className="rounded-2xl bg-background border-2 border-border overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
             >
-              <span className="text-4xl">👨</span>
-              <p className="mt-2 font-medium">Mann</p>
-            </button>
-            <button
-              onClick={() => setGender('female')}
-              className={`p-6 rounded-2xl border-2 transition-all ${gender === 'female' ? 'border-primary bg-primary/20' : 'border-border'}`}
+              <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
+                <PersonStanding className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium">Größe</span>
+              </div>
+              <WheelPicker
+                value={userHeight}
+                onChange={setUserHeight}
+                min={60}
+                max={220}
+                step={1}
+                unit="cm"
+              />
+            </motion.div>
+            
+            {/* Weight Picker */}
+            <motion.div 
+              className="rounded-2xl bg-background border-2 border-border overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
             >
-              <span className="text-4xl">👩</span>
-              <p className="mt-2 font-medium">Frau</p>
-            </button>
+              <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
+                <Scale className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium">Gewicht</span>
+              </div>
+              <WheelPicker
+                value={weight}
+                onChange={setWeight}
+                min={10}
+                max={250}
+                step={1}
+                unit="kg"
+              />
+            </motion.div>
+            
+            {/* Age Picker */}
+            <motion.div 
+              className="rounded-2xl bg-background border-2 border-border overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
+              <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
+                <User className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium">Alter</span>
+              </div>
+              <WheelPicker
+                value={age}
+                onChange={setAge}
+                min={10}
+                max={100}
+                step={1}
+                unit="J."
+              />
+            </motion.div>
           </div>
+          
+          <motion.div
+            className="flex items-center gap-2 justify-center px-4 py-2 rounded-full bg-primary/5 border border-primary/20"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
+          >
+            <span className="text-sm">🔒</span>
+            <span className="text-xs text-muted-foreground/60">100% privat</span>
+          </motion.div>
         </div>
       ),
     },
     {
-      icon: Scale,
-      title: "Wie groß bist du?",
+      icon: User,
+      title: "Dein Geschlecht",
+      subtitle: "Wichtig für genaue Kalorien-Berechnung",
       content: (
-        <div className="py-2">
-          <WheelPicker
-            value={userHeight}
-            onChange={setUserHeight}
-            min={140}
-            max={220}
-            step={1}
-            unit="cm"
-          />
-        </div>
-      ),
-    },
-    {
-      icon: Scale,
-      title: t.howMuchDoYouWeigh,
-      content: (
-        <div className="py-2">
-          <WeightPicker
-            value={weight}
-            onChange={(v) => setWeight(Math.round(v * 10) / 10)}
-            min={40}
-            max={200}
-            unit={t.kg}
-          />
+        <div className="grid grid-cols-2 gap-4 w-full">
+          {[
+            { id: 'male' as const, label: 'Männlich', color: 'from-blue-500/20 to-cyan-500/20' },
+            { id: 'female' as const, label: 'Weiblich', color: 'from-pink-500/20 to-rose-500/20' },
+          ].map((option, index) => (
+            <motion.button
+              key={option.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setGender(option.id)}
+              className={`relative p-6 rounded-2xl border-2 transition-all overflow-hidden ${
+                gender === option.id
+                  ? 'border-primary bg-primary/10 shadow-md'
+                  : 'border-border bg-card hover:border-primary/30'
+              }`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-50`} />
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-card/80 flex items-center justify-center">
+                  <User className="w-6 h-6 text-primary" />
+                </div>
+                <span className="font-medium">{option.label}</span>
+              </div>
+            </motion.button>
+          ))}
         </div>
       ),
     },
     {
       icon: Flame,
       title: "Wie aktiv bist du?",
+      subtitle: "Für genaue Kalorienberechnung",
       content: (
-        <div className="space-y-4">
+        <div className="space-y-3 w-full">
           {[
             { value: 1.2, label: 'Wenig aktiv', desc: 'Bürojob, wenig Bewegung', icon: Armchair, color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
             { value: 1.375, label: 'Leicht aktiv', desc: '1-2x Sport pro Woche', icon: Footprints, color: 'text-green-500', bgColor: 'bg-green-500/20' },
@@ -478,10 +527,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           ].map((level) => {
             const IconComponent = level.icon;
             return (
-              <button
+              <motion.button
                 key={level.value}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setActivityLevel(level.value)}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${activityLevel === level.value ? 'border-primary bg-primary/20' : 'border-border'}`}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${activityLevel === level.value ? 'border-primary bg-primary/10' : 'border-border'}`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl ${level.bgColor} flex items-center justify-center ${level.color}`}>
@@ -492,7 +544,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                     <p className="text-sm text-muted-foreground">{level.desc}</p>
                   </div>
                 </div>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -500,89 +552,146 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Target,
-      title: "Was ist dein Ziel?",
+      title: "Dein Ziel",
+      subtitle: "Abnehmen oder Zunehmen?",
       content: (
-        <div className="space-y-6">
-          {/* Goal Mode Selection */}
-          <div className="flex gap-4 justify-center">
-            <button
+        <div className="w-full space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setGoalMode('lose');
-                setTargetWeight(Math.max(40, weight - 10));
+                setTargetWeight(Math.max(40, weight - 5));
               }}
-              className={`flex-1 p-4 rounded-2xl border-2 transition-all ${goalMode === 'lose' ? 'border-primary bg-primary/20' : 'border-border'}`}
+              className={`relative p-6 rounded-2xl border-2 transition-all ${
+                goalMode === 'lose' ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
+              }`}
             >
-              <TrendingDown className="h-8 w-8 mx-auto mb-2 text-green-400" />
-              <p className="font-medium">Abnehmen</p>
-              <p className="text-xs text-muted-foreground">Gewicht verlieren</p>
-            </button>
-            <button
+              <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-red-500" />
+              </div>
+              <span className="text-lg font-bold block">Abnehmen</span>
+              <span className="text-xs text-muted-foreground/60">Kaloriendefizit</span>
+            </motion.button>
+            
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setGoalMode('gain');
-                setTargetWeight(Math.min(200, weight + 10));
+                setTargetWeight(Math.min(200, weight + 5));
               }}
-              className={`flex-1 p-4 rounded-2xl border-2 transition-all ${goalMode === 'gain' ? 'border-primary bg-primary/20' : 'border-border'}`}
+              className={`relative p-6 rounded-2xl border-2 transition-all ${
+                goalMode === 'gain' ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
+              }`}
             >
-              <Scale className="h-8 w-8 mx-auto mb-2 text-blue-400" />
-              <p className="font-medium">Zunehmen</p>
-              <p className="text-xs text-muted-foreground">Masse aufbauen</p>
-            </button>
-          </div>
-          
-          {/* Target Weight */}
-          <div className="text-center mt-6">
-            <span className="text-6xl font-bold text-primary">{targetWeight}</span>
-            <span className="text-2xl text-muted-foreground ml-2">{t.kg}</span>
-          </div>
-          <Slider
-            value={[targetWeight]}
-            onValueChange={([v]) => setTargetWeight(v)}
-            min={goalMode === 'lose' ? Math.max(40, weight - 30) : weight}
-            max={goalMode === 'lose' ? weight : Math.min(200, weight + 30)}
-            step={1}
-            className="py-4"
-          />
-          <div className="flex items-center gap-2 justify-center text-muted-foreground">
-            {goalMode === 'lose' ? (
-              <>
-                <TrendingDown className="h-5 w-5 text-green-400" />
-                <span>{weightDiff} {t.kg} abnehmen</span>
-              </>
-            ) : (
-              <>
-                <Scale className="h-5 w-5 text-blue-400" />
-                <span>{weightDiff} {t.kg} zunehmen</span>
-              </>
-            )}
+              <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-green-500 rotate-180" />
+              </div>
+              <span className="text-lg font-bold block">Zunehmen</span>
+              <span className="text-xs text-muted-foreground/60">Kalorienüberschuss</span>
+            </motion.button>
           </div>
         </div>
       ),
     },
     {
-      icon: TrendingDown,
-      title: goalMode === 'lose' ? "Wie schnell möchtest du abnehmen?" : "Wie schnell möchtest du zunehmen?",
+      icon: Scale,
+      title: "Dein Zielgewicht",
+      subtitle: goalMode === 'lose' ? 'Wie viel möchtest du verlieren?' : 'Wie viel möchtest du zunehmen?',
       content: (
-        <div className="space-y-6">
+        <div className="w-full space-y-6">
+          <motion.div 
+            className="relative h-32 flex items-end justify-center gap-8 pt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            <div className="flex flex-col items-center">
+              <motion.div 
+                className="w-16 bg-muted-foreground/30 rounded-t-xl"
+                initial={{ height: 0 }}
+                animate={{ height: 70 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              />
+              <span className="text-xs text-muted-foreground/60 mt-2">Aktuell</span>
+              <span className="text-lg font-bold">{weight}kg</span>
+            </div>
+            
+            <motion.div 
+              className="flex items-center gap-1 mb-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+            >
+              <span className="text-2xl">→</span>
+            </motion.div>
+            
+            <div className="flex flex-col items-center">
+              <motion.div 
+                className="w-16 bg-primary rounded-t-xl"
+                initial={{ height: 0 }}
+                animate={{ height: goalMode === 'lose' ? 70 - weightDiff * 3 : 70 + weightDiff * 2 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+                style={{ minHeight: 25, maxHeight: 100 }}
+              />
+              <span className="text-xs text-primary mt-2">Ziel</span>
+              <span className="text-lg font-bold text-primary">{targetWeight}kg</span>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            className="p-4 rounded-2xl bg-card border-2 border-border"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm font-medium">
+                {goalMode === 'lose' ? 'Gewichtsverlust' : 'Gewichtszunahme'}
+              </span>
+              <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
+                {goalMode === 'lose' ? '-' : '+'}{weightDiff}kg
+              </div>
+            </div>
+            <input
+              type="range" 
+              min={goalMode === 'lose' ? Math.max(40, weight - 20) : weight} 
+              max={goalMode === 'lose' ? weight - 1 : weight + 20} 
+              value={targetWeight}
+              onChange={(e) => setTargetWeight(parseInt(e.target.value))}
+              className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+            />
+          </motion.div>
+        </div>
+      ),
+    },
+    {
+      icon: TrendingDown,
+      title: "Dein Tempo",
+      subtitle: `Wie schnell möchtest du ${goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}?`,
+      content: (
+        <div className="w-full space-y-6">
           {/* Speed Value Display */}
           <div className="text-center">
             <span className="text-5xl font-bold text-primary">{weeklyLossRate.toFixed(1)}</span>
             <span className="text-xl text-muted-foreground ml-2">kg/Woche</span>
           </div>
           
-          {/* Icons - All 3 positioned without track */}
-          <div className="relative h-28 mt-4 flex items-end justify-between px-4">
-            {/* Walking Person - Left (slow) */}
-            <div className="flex flex-col items-center">
+          {/* Animal Icons */}
+          <div className="relative h-20 flex items-end justify-between px-4">
+            <div className={`transition-all duration-200 ${weeklyLossRate <= 0.5 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
               <AnimatedSloth isActive={weeklyLossRate <= 0.5} />
             </div>
-            
-            {/* Car - Center (medium) */}
-            <div className="flex flex-col items-center">
+            <div className={`transition-all duration-200 ${weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
               <AnimatedRabbit isActive={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0} />
             </div>
-            
-            {/* Rocket - Right (fast) */}
-            <div className="flex flex-col items-center">
+            <div className={`transition-all duration-200 ${weeklyLossRate > 1.0 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
               <AnimatedCheetah isActive={weeklyLossRate > 1.0} />
             </div>
           </div>
@@ -592,8 +701,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <Slider
               value={[weeklyLossRate * 100]}
               onValueChange={([v]) => setWeeklyLossRate(v / 100)}
-              min={30}
-              max={140}
+              min={10}
+              max={150}
               step={5}
               className="py-4"
             />
@@ -604,31 +713,38 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             </div>
           </div>
           
-          {/* Info based on speed and mode */}
-          <div className={`text-sm p-3 rounded-lg ${weeklyLossRate > 1.0 ? 'bg-red-500/10 text-red-400' : weeklyLossRate > 0.75 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
-            {goalMode === 'lose' ? (
-              <>
-                {weeklyLossRate > 1.0 && "⚠️ Sehr ambitioniert! Kann schwer durchzuhalten sein."}
-                {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Schnell aber machbar mit Disziplin."}
-                {weeklyLossRate <= 0.75 && "✅ Nachhaltig und gesund - empfohlen!"}
-              </>
-            ) : (
-              <>
-                {weeklyLossRate > 1.0 && "⚠️ Sehr schneller Aufbau - mehr Fett möglich."}
-                {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Guter Aufbau mit moderatem Überschuss."}
-                {weeklyLossRate <= 0.75 && "✅ Lean Bulk - minimaler Fettansatz!"}
-              </>
-            )}
+          {/* Quick select */}
+          <div className="flex gap-2 justify-center">
+            {[0.3, 0.5, 0.8, 1.0, 1.2].map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setWeeklyLossRate(speed)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  Math.abs(weeklyLossRate - speed) < 0.05
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {speed}
+              </button>
+            ))}
           </div>
           
+          {/* Info based on speed */}
+          <div className={`text-sm p-3 rounded-lg text-center ${weeklyLossRate > 1.0 ? 'bg-red-500/10 text-red-400' : weeklyLossRate > 0.75 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
+            {weeklyLossRate > 1.0 && "⚠️ Hohes Tempo erfordert viel Disziplin!"}
+            {weeklyLossRate > 0.75 && weeklyLossRate <= 1.0 && "👍 Schnell aber machbar mit Fokus."}
+            {weeklyLossRate <= 0.75 && "✅ Nachhaltig und gesund - empfohlen!"}
+          </div>
         </div>
       ),
     },
     {
       icon: Sparkles,
       title: t.yourPersonalPlan,
+      subtitle: "Dein persönlicher Makro-Plan",
       content: (
-        <div className="space-y-4 text-center">
+        <div className="space-y-4 text-center w-full">
           <div className="p-6 bg-primary/10 rounded-2xl">
             <Flame className="h-12 w-12 mx-auto text-primary mb-2" />
             <p className="text-4xl font-bold text-primary">{targetCalories}</p>
@@ -639,31 +755,19 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <p>{t.baseMetabolism}: ~{bmr.toFixed(0)} kcal</p>
             <p>{t.withActivity}: ~{tdee} kcal</p>
             <p>{goalMode === 'lose' ? t.deficit : 'Überschuss'}: {goalMode === 'lose' ? '-' : '+'}{Math.round(dailyAdjustment)} kcal/Tag</p>
-            <p className="text-xs font-medium text-primary">
-              {weeklyLossRate.toFixed(1)} {t.kg}/Woche {goalMode === 'lose' ? 'abnehmen' : 'zunehmen'}
-            </p>
           </div>
-          
-          {isAtMinimum && (
-            <div className="text-sm">
-              <p className="text-amber-400 bg-amber-500/10 p-2 rounded-lg text-xs">
-                {t.calorieGoalSet} {minCalories} kcal {t.forYourHealth}
-              </p>
-            </div>
-          )}
           
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="p-3 bg-background/50 rounded-xl">
-              <p className="text-lg font-bold text-red-400">{targetProtein}g</p>
+              <p className="text-lg font-bold text-blue-400">{targetProtein}g</p>
               <p className="text-xs text-muted-foreground">{t.protein}</p>
-              <p className="text-[10px] text-muted-foreground/60">2g/{t.kg}</p>
             </div>
             <div className="p-3 bg-background/50 rounded-xl">
-              <p className="text-lg font-bold text-amber-400">{targetCarbs}g</p>
+              <p className="text-lg font-bold text-orange-400">{targetCarbs}g</p>
               <p className="text-xs text-muted-foreground">{t.carbs}</p>
             </div>
             <div className="p-3 bg-background/50 rounded-xl">
-              <p className="text-lg font-bold text-blue-400">{targetFat}g</p>
+              <p className="text-lg font-bold text-emerald-400">{targetFat}g</p>
               <p className="text-xs text-muted-foreground">{t.fat}</p>
             </div>
           </div>
@@ -683,18 +787,18 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   }
 
   if (step === 'onboarding') {
-    const currentStep = onboardingSteps[onboardingStep];
-    const Icon = currentStep.icon;
+    const currentStepData = onboardingSteps[onboardingStep];
+    const Icon = currentStepData.icon;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Progress dots */}
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 mb-2">
           {onboardingSteps.map((_, idx) => (
             <div
               key={idx}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                idx === onboardingStep ? 'w-8 bg-primary' : 'w-2 bg-primary/30'
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                idx === onboardingStep ? 'w-8 bg-primary' : 'w-1.5 bg-primary/30'
               }`}
             />
           ))}
@@ -708,18 +812,31 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 rounded-full bg-primary/20">
-                  <Icon className="h-8 w-8 text-primary" />
-                </div>
+            <Card className="p-5 bg-card/90 backdrop-blur-xl border-border/30 shadow-lg">
+              {/* Header */}
+              <div className="flex flex-col items-center mb-4">
+                <motion.div 
+                  initial={{ scale: 0 }} 
+                  animate={{ scale: 1 }} 
+                  transition={{ duration: 0.4 }} 
+                  className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-3 shadow-lg"
+                >
+                  <Icon className="h-7 w-7 text-primary-foreground" />
+                </motion.div>
+                
+                <h3 className="text-xl font-bold text-center">{currentStepData.title}</h3>
+                {currentStepData.subtitle && (
+                  <p className="text-muted-foreground/50 text-xs mt-1">{currentStepData.subtitle}</p>
+                )}
               </div>
               
-              <h3 className="text-xl font-bold text-center mb-6">{currentStep.title}</h3>
-              
-              {currentStep.content}
+              {/* Content */}
+              <div className="min-h-[200px] flex flex-col justify-center">
+                {currentStepData.content}
+              </div>
 
-              <div className="flex gap-3 mt-6">
+              {/* Navigation */}
+              <div className="flex gap-3 mt-5 pt-4 border-t border-border/20">
                 {onboardingStep > 0 && (
                   <Button
                     variant="outline"
@@ -737,12 +854,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                       saveProfile();
                     }
                   }}
-                  className="flex-1 glow-button"
+                  className="flex-1"
                 >
                   {onboardingStep < onboardingSteps.length - 1 ? (
                     <>{t.next} <ChevronRight className="h-4 w-4 ml-1" /></>
                   ) : (
-                    t.letsGo
+                    <>{t.letsGo} <Sparkles className="h-4 w-4 ml-1" /></>
                   )}
                 </Button>
               </div>
