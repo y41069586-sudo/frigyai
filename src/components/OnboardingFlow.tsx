@@ -1623,8 +1623,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="fridge-intro">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Let your fridge decide.</h1>
-              <p className="text-muted-foreground/60 text-xs mb-8">We build meals from what you already have.</p>
+              <h1 className="text-2xl font-bold mb-1">{t.letFridgeDecide}</h1>
+              <p className="text-muted-foreground/60 text-xs mb-8">{t.weBuildMeals}</p>
               
               {/* Animated Fridge */}
               <motion.div 
@@ -1679,16 +1679,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.div>
               
               <motion.p className="text-xs text-muted-foreground/40 mt-6 mb-4 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.3 }}>
-                &quot;I&apos;ll handle the planning. You just eat.&quot;
+                "{t.iHandlePlanning}"
               </motion.p>
               
               <div className="flex flex-col gap-3 w-full max-w-xs">
                 <Button onClick={goNext} className="w-full h-12 rounded-xl">
                   <Camera className="w-5 h-5 mr-2" />
-                  Scan fridge now
+                  {t.onboardingScanFridgeNow}
                 </Button>
                 <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground/60 text-sm">
-                  Skip for now
+                  {t.skipForNowBtn}
                 </Button>
               </div>
             </div>
@@ -1722,8 +1722,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Camera className="w-8 h-8 text-primary" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Enable camera</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Required for scanning your fridge</p>
+              <h1 className="text-2xl font-bold mb-1">{t.enableCamera}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.requiredForScanning}</p>
               
               <div className="w-full max-w-sm space-y-4">
                 <motion.div 
@@ -1737,8 +1737,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <Camera className="w-5 h-5 text-primary" />
                     </div>
                     <div className="text-left">
-                      <span className="font-medium block text-sm">Camera access</span>
-                      <span className="text-[10px] text-muted-foreground/40">For fridge scanning</span>
+                      <span className="font-medium block text-sm">{t.cameraAccessLabel}</span>
+                      <span className="text-[10px] text-muted-foreground/40">{t.forFridgeScanning}</span>
                     </div>
                   </div>
                   {userData.cameraPermission ? (
@@ -1751,13 +1751,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       onClick={requestCameraPermission}
                       className="h-8 px-4 text-sm"
                     >
-                      Allow
+                      {t.allowAccess}
                     </Button>
                   )}
                 </motion.div>
                 
                 <div className="pt-4">
-                  <p className="text-[10px] text-muted-foreground/40 mb-3">Optional: Sync your health data</p>
+                  <p className="text-[10px] text-muted-foreground/40 mb-3">{t.onboardingOptionalHealthSync}</p>
                   <div className="flex gap-2">
                     <motion.button
                       whileTap={{ scale: 0.97 }}
@@ -1788,7 +1788,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   onClick={goNext}
                   className="w-full h-10 text-muted-foreground/60 text-sm mt-4"
                 >
-                  Skip for now
+                  {t.skipForNowBtn}
                 </Button>
               </div>
             </div>
@@ -1831,7 +1831,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
               >
-                Dein Wochenplan ist fertig!
+                {t.onboardingYourWeeklyPlan}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground/60 text-sm mb-2"
@@ -1839,7 +1839,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.3 }}
               >
-                Basierend auf deinen {targetCalories} kcal Tagesziel
+                {t.onboardingPersonalizedMealPlan} - {targetCalories} kcal
               </motion.p>
               
               {/* Macro summary badge */}
@@ -1881,21 +1881,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <div className="text-left">
                         <div className="flex items-center gap-1 text-muted-foreground/60 mb-0.5">
                           <Coffee className="w-2.5 h-2.5" />
-                          <span>Früh</span>
+                          <span>{t.breakfast}</span>
                         </div>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.breakfast}</span>
                       </div>
                       <div className="text-left">
                         <div className="flex items-center gap-1 text-muted-foreground/60 mb-0.5">
                           <Salad className="w-2.5 h-2.5" />
-                          <span>Mittag</span>
+                          <span>{t.lunch}</span>
                         </div>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.lunch}</span>
                       </div>
                       <div className="text-left">
                         <div className="flex items-center gap-1 text-muted-foreground/60 mb-0.5">
                           <Utensils className="w-2.5 h-2.5" />
-                          <span>Abend</span>
+                          <span>{t.dinner}</span>
                         </div>
                         <span className="text-muted-foreground/80 line-clamp-1">{day.dinner}</span>
                       </div>
@@ -1911,12 +1911,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="flex items-center gap-2 text-[10px] text-muted-foreground/50 mt-3 mb-4"
               >
                 <Sparkles className="w-3 h-3 text-primary" />
-                <span>Personalisiert auf deine Präferenzen</span>
+                <span>{t.personalizedOnPrefs}</span>
               </motion.div>
               
               <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
                 <ChevronRight className="w-5 h-5 mr-2" />
-                Weiter
+                {t.continueBtn}
               </Button>
             </div>
           </StepCard>
@@ -1942,7 +1942,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
               >
-                Planning with Frigy
+                {t.planningWithFrigy}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground/60 text-sm mb-8"
@@ -1950,7 +1950,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
-                Dein Weg zum Erfolg
+                {t.yourWayToSuccess}
               </motion.p>
               
               {/* Comparison visualization */}
@@ -1970,7 +1970,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.4, duration: 0.4 }}
                   >
                     <div className="relative z-10">
-                      <div className="text-xs text-muted-foreground/60 mb-2">Ohne Frigy</div>
+                      <div className="text-xs text-muted-foreground/60 mb-2">{t.withoutFrigyLabel}</div>
                       <div className="h-24 flex items-end justify-center">
                         <motion.div 
                           className="w-full max-w-[60px] bg-muted/60 rounded-t-xl"
@@ -1982,11 +1982,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <div className="mt-3 space-y-1">
                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
                           <X className="w-3 h-3" />
-                          <span>Keine Struktur</span>
+                          <span>{t.noStructure}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
                           <X className="w-3 h-3" />
-                          <span>Ziele verfehlt</span>
+                          <span>{t.goalsMissed}</span>
                         </div>
                       </div>
                     </div>
@@ -2005,7 +2005,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <div className="relative z-10">
                       <div className="text-xs text-primary font-medium mb-2 flex items-center gap-1">
                         <Star className="w-3 h-3 fill-primary" />
-                        Mit Frigy
+                        {t.withFrigyLabel}
                       </div>
                       <div className="h-24 flex items-end justify-center">
                         <motion.div 
@@ -2019,11 +2019,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <div className="mt-3 space-y-1">
                         <div className="flex items-center gap-1.5 text-[10px] text-primary">
                           <Check className="w-3 h-3" />
-                          <span>Klarer Plan</span>
+                          <span>{t.clearPlan}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10px] text-primary">
                           <Check className="w-3 h-3" />
-                          <span>94% Erfolg</span>
+                          <span>{t.successRate94}</span>
                         </div>
                       </div>
                     </div>
@@ -2038,9 +2038,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   transition={{ delay: 0.9, duration: 0.3 }}
                 >
                   {[
-                    { value: "94%", label: "Zielerreichung", icon: Target },
-                    { value: "2.4x", label: "Schneller", icon: Sparkles },
-                    { value: "15min", label: "Gespart/Tag", icon: Heart },
+                    { value: "94%", label: t.goalAchievementLabel, icon: Target },
+                    { value: "2.4x", label: t.fasterLabel, icon: Sparkles },
+                    { value: "15min", label: t.savedPerDayLabel, icon: Heart },
                   ].map((stat, i) => (
                     <motion.div
                       key={stat.label}
@@ -2065,7 +2065,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 >
                   <Target className="w-5 h-5 text-primary" />
                   <span className="text-sm font-medium text-primary">
-                    Nutzer erreichen ihre Ziele 2.4x schneller
+                    {t.usersReachGoalsFaster}
                   </span>
                 </motion.div>
               </motion.div>
@@ -2075,9 +2075,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "transformation":
         const transformationItems = [
-          { label: "More Energy", Icon: Zap, value: "+40%" },
-          { label: "Time Saved", Icon: Clock, value: "15 min/day" },
-          { label: "Goal Success", Icon: Target, value: "94%" },
+          { label: t.moreEnergyLabel, Icon: Zap, value: "+40%" },
+          { label: t.timeSavedLabel, Icon: Clock, value: "15 min" },
+          { label: t.goalSuccessLabel, Icon: Target, value: "94%" },
         ];
         return (
           <StepCard step="transformation">
@@ -2091,8 +2091,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <Rocket className="w-8 h-8 text-primary-foreground" />
               </motion.div>
               
-              <h1 className="text-2xl font-bold mb-1">Your Transformation</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">What to expect with Frigy</p>
+              <h1 className="text-2xl font-bold mb-1">{t.yourTransformationLabel}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.whatToExpectWithFrigy}</p>
               
               <div className="w-full max-w-sm space-y-4">
                 {transformationItems.map((item, i) => (
@@ -2119,8 +2119,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         const handleAuth = async () => {
           if (!authEmail || !authPassword) {
             toast({
-              title: "Fehler",
-              description: "Bitte E-Mail und Passwort eingeben",
+              title: t.error,
+              description: t.onboardingEnterEmailPassword,
               variant: "destructive",
             });
             return;
@@ -2132,9 +2132,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               const { error } = await signUp(authEmail, authPassword);
               if (error) {
                 toast({
-                  title: "Registrierung fehlgeschlagen",
+                  title: t.onboardingRegistrationFailed,
                   description: error.message === "User already registered" 
-                    ? "Diese E-Mail ist bereits registriert. Bitte melde dich an."
+                    ? t.onboardingEmailAlreadyRegistered
                     : error.message,
                   variant: "destructive",
                 });
@@ -2143,8 +2143,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 }
               } else {
                 toast({
-                  title: "Erfolgreich registriert!",
-                  description: "Dein Fortschritt wurde gespeichert.",
+                  title: t.onboardingSuccessfullyRegistered,
+                  description: t.onboardingProgressSavedMsg,
                 });
                 saveOnboardingData(userData);
                 goNext();
@@ -2153,14 +2153,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               const { error } = await signIn(authEmail, authPassword);
               if (error) {
                 toast({
-                  title: "Anmeldung fehlgeschlagen",
+                  title: t.onboardingLoginFailed,
                   description: error.message,
                   variant: "destructive",
                 });
               } else {
                 toast({
-                  title: "Willkommen zurück!",
-                  description: "Dein Fortschritt wurde geladen.",
+                  title: t.onboardingWelcomeBack,
+                  description: t.onboardingProgressLoaded,
                 });
                 saveOnboardingData(userData);
                 goNext();
@@ -2190,7 +2190,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
               >
-                Speichere deinen Fortschritt
+                {t.saveYourProgress}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground/60 text-sm mb-6"
@@ -2199,8 +2199,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
                 {authMode === 'signup' 
-                  ? "Erstelle ein Konto um deinen Plan zu sichern"
-                  : "Melde dich an um fortzufahren"}
+                  ? t.createAccountToSave
+                  : t.signInToContinue}
               </motion.p>
               
               {/* Auth form */}
@@ -2215,7 +2215,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
                   <Input
                     type="email"
-                    placeholder="E-Mail Adresse"
+                    placeholder={t.emailAddressPlaceholder}
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
                     className="pl-11 h-12 rounded-xl bg-card border-border"
@@ -2227,7 +2227,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Passwort"
+                    placeholder={t.passwordPlaceholder}
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     className="pl-11 pr-11 h-12 rounded-xl bg-card border-border"
@@ -2255,7 +2255,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     />
                   ) : (
                     <>
-                      {authMode === 'signup' ? 'Registrieren' : 'Anmelden'}
+                      {authMode === 'signup' ? t.registerBtn : t.signInBtn}
                       <ChevronRight className="w-5 h-5 ml-2" />
                     </>
                   )}
@@ -2270,8 +2270,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   transition={{ delay: 0.4, duration: 0.3 }}
                 >
                   {authMode === 'signup' 
-                    ? "Bereits registriert? Hier anmelden"
-                    : "Noch kein Konto? Hier registrieren"}
+                    ? t.alreadyRegisteredSignIn
+                    : t.noAccountRegister}
                 </motion.button>
               </motion.div>
               
@@ -2284,20 +2284,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">Warum registrieren?</span>
+                  <span className="text-sm font-medium text-primary">{t.whyRegister}</span>
                 </div>
                 <ul className="space-y-1.5 text-left">
                   <li className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Check className="w-3 h-3 text-primary flex-shrink-0" />
-                    <span>Dein personalisierter Plan wird gespeichert</span>
+                    <span>{t.personalizedPlanSaved}</span>
                   </li>
                   <li className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Check className="w-3 h-3 text-primary flex-shrink-0" />
-                    <span>Fortschritt auf allen Geräten synchronisiert</span>
+                    <span>{t.progressSyncedDevices}</span>
                   </li>
                   <li className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Check className="w-3 h-3 text-primary flex-shrink-0" />
-                    <span>Zugang zu deinen Rezepten & Mahlzeiten</span>
+                    <span>{t.accessRecipesMeals}</span>
                   </li>
                 </ul>
               </motion.div>
@@ -2311,7 +2311,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   className="mt-4"
                 >
                   <Button variant="ghost" onClick={goNext} className="text-muted-foreground/60">
-                    Bereits angemeldet - Weiter
+                    {t.alreadyLoggedInContinue}
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </motion.div>
@@ -2322,18 +2322,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "premium-hint":
         const freeFeatures = [
-          "Wochenplan (1x generieren)",
-          "Wasser-Tracker",
-          "2 Kühlschrank-Scans/Tag",
-          "Basis-Rezeptvorschläge"
+          t.weeklyPlan1Gen,
+          t.waterTrackerLabel,
+          t.scansPerDay2,
+          t.basicRecipeSuggestions
         ];
         
         const premiumFeaturesOnboarding = [
-          "Unbegrenzte Scans",
-          "Unbegrenzte Meal Plan Generierung",
-          "Einkaufslisten",
-          "Stats & Makro-Tracking",
-          "KI-Chatbot"
+          t.unlimitedScansLabel,
+          t.unlimitedMealPlanGen,
+          t.shoppingListsLabel,
+          t.statsMacroTracking,
+          t.aiChatbotLabel
         ];
         
         const handlePlanContinue = () => {
@@ -2353,8 +2353,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <StepCard step="premium-hint">
             <div className="flex flex-col items-center text-center px-4 w-full">
-              <h1 className="text-2xl font-bold mb-1">Wähle deinen Plan</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Starte mit Free oder teste Premium 7 Tage gratis</p>
+              <h1 className="text-2xl font-bold mb-1">{t.chooseYourPlan}</h1>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.startFreeOrPremium}</p>
               
               <div className="w-full max-w-sm grid grid-cols-2 gap-3 mb-6">
                 {/* Free Plan */}
@@ -2373,7 +2373,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted mb-2">
                       <Check className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-bold">Free</h3>
+                    <h3 className="text-lg font-bold">{t.freeLabel}</h3>
                     <div className="mt-1">
                       <span className="text-2xl font-bold">€0</span>
                     </div>
@@ -2416,7 +2416,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1">
                       <Sparkles className="h-2.5 w-2.5" />
-                      EMPFOHLEN
+                      {t.recommendedLabel}
                     </span>
                   </div>
                   
@@ -2424,12 +2424,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 mb-2">
                       <Star className="h-5 w-5 text-primary" fill="currentColor" />
                     </div>
-                    <h3 className="text-lg font-bold text-primary">Premium</h3>
+                    <h3 className="text-lg font-bold text-primary">{t.premiumLabel2}</h3>
                     <div className="mt-1">
                       <span className="text-2xl font-bold text-primary">€4,99</span>
                       <span className="text-muted-foreground text-[10px]">/Mo</span>
                     </div>
-                    <p className="text-[9px] text-primary mt-0.5">7 Tage gratis</p>
+                    <p className="text-[9px] text-primary mt-0.5">{t.trial7DaysFree}</p>
                   </div>
                   
                   <div className="space-y-1.5">
@@ -2712,8 +2712,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
           >
             {currentStep === "welcome" ? t.start : 
-             currentStep === "tracker-intro" ? "Let's go! 🚀" : 
-             currentStep === "macro-preview" ? "Perfekt! 🎯" :
+             currentStep === "tracker-intro" ? t.letsGo : 
+             currentStep === "macro-preview" ? t.perfectBtn :
              t.next}
             <ChevronRight className="w-5 h-5 ml-1" />
           </Button>
