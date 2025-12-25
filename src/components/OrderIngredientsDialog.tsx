@@ -1,9 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ShoppingCart, ExternalLink, CheckCircle2, Copy, Check } from "lucide-react";
+import { ShoppingCart, ExternalLink, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface OrderIngredientsDialogProps {
   ingredients: string[];
@@ -12,6 +13,7 @@ interface OrderIngredientsDialogProps {
 }
 
 export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: OrderIngredientsDialogProps) => {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   
   const searchQuery = encodeURIComponent(ingredients.join(", "));
@@ -23,7 +25,7 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
       logo: "📦",
       color: "bg-orange-500",
       url: `https://www.amazon.com/s?k=${searchQuery}`,
-      description: "Worldwide delivery",
+      description: t.worldwideDelivery,
     },
   ];
 
@@ -32,8 +34,8 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
     await navigator.clipboard.writeText(bringList);
     setCopied(true);
     toast({
-      title: "Für Bring! kopiert",
-      description: "Öffne Bring! und füge die Liste ein",
+      title: t.copiedForBring,
+      description: t.openBringPaste,
     });
     setTimeout(() => setCopied(false), 2000);
   };
@@ -48,14 +50,14 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
-            Zutaten bestellen
+            {t.orderIngredientsTitle}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Ingredients Preview */}
           <div className="bg-muted/50 rounded-xl p-4 max-h-32 overflow-y-auto">
-            <p className="text-sm font-medium mb-2">Folgende Zutaten:</p>
+            <p className="text-sm font-medium mb-2">{t.followingIngredients}</p>
             <div className="flex flex-wrap gap-2">
               {ingredients.slice(0, 8).map((ingredient, index) => (
                 <span
@@ -67,7 +69,7 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
               ))}
               {ingredients.length > 8 && (
                 <span className="text-xs text-muted-foreground">
-                  +{ingredients.length - 8} weitere
+                  +{ingredients.length - 8} {t.andMore}
                 </span>
               )}
             </div>
@@ -75,7 +77,7 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
 
           {/* Bring! App Button */}
           <div className="space-y-2">
-            <p className="text-sm font-medium">Empfohlen:</p>
+            <p className="text-sm font-medium">{t.recommended}</p>
             <Button
               variant="outline"
               className="w-full justify-between h-auto py-3 px-4 border-primary/30 bg-primary/5"
@@ -86,8 +88,8 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
                   B!
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold">Bring! App</p>
-                  <p className="text-xs text-muted-foreground">Liste kopieren & in Bring! einfügen</p>
+                  <p className="font-semibold">{t.bringApp}</p>
+                  <p className="text-xs text-muted-foreground">{t.copyListPasteBring}</p>
                 </div>
               </div>
               {copied ? (
@@ -100,7 +102,7 @@ export const OrderIngredientsDialog = ({ ingredients, open, onOpenChange }: Orde
 
           {/* Delivery Services */}
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Oder direkt beim Lieferdienst suchen:</p>
+            <p className="text-sm text-muted-foreground">{t.orSearchDelivery}</p>
             {deliveryServices.map((service, index) => (
               <motion.div
                 key={service.id}

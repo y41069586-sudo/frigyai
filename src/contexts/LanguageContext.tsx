@@ -658,6 +658,107 @@ interface Translations {
   yesterdayLabel: string;
   min: string;
   continueButton: string;
+  
+  // Additional translations for full i18n
+  cups: string;
+  mlPerCup: string;
+  orderIngredients: string;
+  orderIngredientsTitle: string;
+  followingIngredients: string;
+  andMore: string;
+  recommended: string;
+  bringApp: string;
+  copyListPasteBring: string;
+  copiedForBring: string;
+  openBringPaste: string;
+  orSearchDelivery: string;
+  worldwideDelivery: string;
+  yourGoalLabel2: string;
+  youWillReach: string;
+  onDate: string;
+  now: string;
+  perWeek: string;
+  yourDailyPlan: string;
+  tapToAdjust: string;
+  dailyGoalLabel: string;
+  calculationBasedOn: string;
+  bmrCalculation: string;
+  totalEnergyExpenditure: string;
+  issnProteinRecommendation: string;
+  energyBalanceRule: string;
+  letFridgeDecide: string;
+  weBuildMeals: string;
+  iHandlePlanning: string;
+  skipForNowBtn: string;
+  enableCamera: string;
+  requiredForScanning: string;
+  cameraAccessLabel: string;
+  forFridgeScanning: string;
+  allowAccess: string;
+  planningWithFrigy: string;
+  yourWayToSuccess: string;
+  withoutFrigyLabel: string;
+  withFrigyLabel: string;
+  noStructure: string;
+  goalsMissed: string;
+  clearPlan: string;
+  successRate94: string;
+  goalAchievementLabel: string;
+  fasterLabel: string;
+  savedPerDayLabel: string;
+  usersReachGoalsFaster: string;
+  yourTransformationLabel: string;
+  whatToExpectWithFrigy: string;
+  moreEnergyLabel: string;
+  timeSavedLabel: string;
+  goalSuccessLabel: string;
+  saveYourProgress: string;
+  createAccountToSave: string;
+  signInToContinue: string;
+  emailAddressPlaceholder: string;
+  passwordPlaceholder: string;
+  registerBtn: string;
+  signInBtn: string;
+  alreadyRegisteredSignIn: string;
+  noAccountRegister: string;
+  whyRegister: string;
+  personalizedPlanSaved: string;
+  progressSyncedDevices: string;
+  accessRecipesMeals: string;
+  alreadyLoggedInContinue: string;
+  chooseYourPlan: string;
+  startFreeOrPremium: string;
+  freeLabel: string;
+  weeklyPlan1Gen: string;
+  waterTrackerLabel: string;
+  scansPerDay2: string;
+  basicRecipeSuggestions: string;
+  premiumLabel2: string;
+  unlimitedScansLabel: string;
+  unlimitedMealPlanGen: string;
+  shoppingListsLabel: string;
+  statsMacroTracking: string;
+  aiChatbotLabel: string;
+  recommendedLabel: string;
+  trial7DaysFree: string;
+  startWithFree: string;
+  continueToPremium: string;
+  selectAPlan: string;
+  youSelectedFree: string;
+  cookWithOthers: string;
+  discoverCommunityRecipes: string;
+  byUser: string;
+  exploreLater: string;
+  youMadeIt: string;
+  frigyReadyForYou: string;
+  letsGoContinue: string;
+  systemReady: string;
+  macrosStructureLessThinking: string;
+  toDashboard: string;
+  personalizedOnPrefs: string;
+  continueBtn: string;
+  perfectBtn: string;
+  weekLabel: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -1081,6 +1182,107 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Gestern",
     min: "Min",
     continueButton: "Weiter",
+    
+    // Additional translations
+    cups: "Tassen",
+    mlPerCup: "ml pro Tasse",
+    orderIngredients: "Zutaten bestellen",
+    orderIngredientsTitle: "Zutaten bestellen",
+    followingIngredients: "Folgende Zutaten:",
+    andMore: "weitere",
+    recommended: "Empfohlen:",
+    bringApp: "Bring! App",
+    copyListPasteBring: "Liste kopieren & in Bring! einfügen",
+    copiedForBring: "Für Bring! kopiert",
+    openBringPaste: "Öffne Bring! und füge die Liste ein",
+    orSearchDelivery: "Oder direkt beim Lieferdienst suchen:",
+    worldwideDelivery: "Weltweite Lieferung",
+    yourGoalLabel2: "Dein Ziel",
+    youWillReach: "Du wirst",
+    onDate: "am",
+    now: "jetzt",
+    perWeek: "Woche",
+    yourDailyPlan: "Dein täglicher Plan",
+    tapToAdjust: "Tippe zum Anpassen",
+    dailyGoalLabel: "Tägliches Ziel",
+    calculationBasedOn: "Berechnung basiert auf folgenden wissenschaftlichen Formeln:",
+    bmrCalculation: "Grundumsatz-Berechnung",
+    totalEnergyExpenditure: "Gesamtenergieverbrauch",
+    issnProteinRecommendation: "ISSN Protein-Empfehlung",
+    energyBalanceRule: "Energiebilanz-Regel",
+    letFridgeDecide: "Lass deinen Kühlschrank entscheiden.",
+    weBuildMeals: "Wir erstellen Mahlzeiten aus dem, was du schon hast.",
+    iHandlePlanning: "Ich übernehme die Planung. Du isst einfach.",
+    skipForNowBtn: "Später",
+    enableCamera: "Kamera aktivieren",
+    requiredForScanning: "Erforderlich zum Scannen",
+    cameraAccessLabel: "Kamera-Zugriff",
+    forFridgeScanning: "Für Kühlschrank-Scanning",
+    allowAccess: "Erlauben",
+    planningWithFrigy: "Planung mit Frigy",
+    yourWayToSuccess: "Dein Weg zum Erfolg",
+    withoutFrigyLabel: "Ohne Frigy",
+    withFrigyLabel: "Mit Frigy",
+    noStructure: "Keine Struktur",
+    goalsMissed: "Ziele verfehlt",
+    clearPlan: "Klarer Plan",
+    successRate94: "94% Erfolg",
+    goalAchievementLabel: "Zielerreichung",
+    fasterLabel: "Schneller",
+    savedPerDayLabel: "Gespart/Tag",
+    usersReachGoalsFaster: "Nutzer erreichen ihre Ziele 2.4x schneller",
+    yourTransformationLabel: "Deine Transformation",
+    whatToExpectWithFrigy: "Was dich mit Frigy erwartet",
+    moreEnergyLabel: "Mehr Energie",
+    timeSavedLabel: "Zeit gespart",
+    goalSuccessLabel: "Zielerfolg",
+    saveYourProgress: "Speichere deinen Fortschritt",
+    createAccountToSave: "Erstelle ein Konto um deinen Plan zu sichern",
+    signInToContinue: "Melde dich an um fortzufahren",
+    emailAddressPlaceholder: "E-Mail Adresse",
+    passwordPlaceholder: "Passwort",
+    registerBtn: "Registrieren",
+    signInBtn: "Anmelden",
+    alreadyRegisteredSignIn: "Bereits registriert? Hier anmelden",
+    noAccountRegister: "Noch kein Konto? Hier registrieren",
+    whyRegister: "Warum registrieren?",
+    personalizedPlanSaved: "Dein personalisierter Plan wird gespeichert",
+    progressSyncedDevices: "Fortschritt auf allen Geräten synchronisiert",
+    accessRecipesMeals: "Zugang zu deinen Rezepten & Mahlzeiten",
+    alreadyLoggedInContinue: "Bereits angemeldet - Weiter",
+    chooseYourPlan: "Wähle deinen Plan",
+    startFreeOrPremium: "Starte mit Free oder teste Premium 7 Tage gratis",
+    freeLabel: "Free",
+    weeklyPlan1Gen: "Wochenplan (1x generieren)",
+    waterTrackerLabel: "Wasser-Tracker",
+    scansPerDay2: "2 Kühlschrank-Scans/Tag",
+    basicRecipeSuggestions: "Basis-Rezeptvorschläge",
+    premiumLabel2: "Premium",
+    unlimitedScansLabel: "Unbegrenzte Scans",
+    unlimitedMealPlanGen: "Unbegrenzte Meal Plan Generierung",
+    shoppingListsLabel: "Einkaufslisten",
+    statsMacroTracking: "Stats & Makro-Tracking",
+    aiChatbotLabel: "KI-Chatbot",
+    recommendedLabel: "EMPFOHLEN",
+    trial7DaysFree: "7 Tage gratis",
+    startWithFree: "Mit Free starten",
+    continueToPremium: "Weiter zu Premium",
+    selectAPlan: "Wähle einen Plan",
+    youSelectedFree: "Du hast den kostenlosen Plan ausgewählt. Drücke den Button um zu starten!",
+    cookWithOthers: "Mit anderen kochen",
+    discoverCommunityRecipes: "Entdecke Rezepte aus der Community",
+    byUser: "von",
+    exploreLater: "Später erkunden",
+    youMadeIt: "Du hast es geschafft!",
+    frigyReadyForYou: "Frigy ist bereit für dich!",
+    letsGoContinue: "Weiter geht's!",
+    systemReady: "Dein System ist bereit.",
+    macrosStructureLessThinking: "Makros. Struktur. Weniger nachdenken.",
+    toDashboard: "Zum Dashboard",
+    personalizedOnPrefs: "Personalisiert auf deine Präferenzen",
+    continueBtn: "Weiter",
+    perfectBtn: "Perfekt!",
+    weekLabel: "Woche",
     
     // MacroTracker Onboarding
     trackerYourBodyData: "Deine Körperdaten",
@@ -1739,6 +1941,107 @@ const translations: Record<Language, Translations> = {
     min: "min",
     continueButton: "Continue",
     
+    // Additional translations
+    cups: "cups",
+    mlPerCup: "ml per cup",
+    orderIngredients: "Order ingredients",
+    orderIngredientsTitle: "Order Ingredients",
+    followingIngredients: "Following ingredients:",
+    andMore: "more",
+    recommended: "Recommended:",
+    bringApp: "Bring! App",
+    copyListPasteBring: "Copy list & paste in Bring!",
+    copiedForBring: "Copied for Bring!",
+    openBringPaste: "Open Bring! and paste the list",
+    orSearchDelivery: "Or search directly at delivery service:",
+    worldwideDelivery: "Worldwide delivery",
+    yourGoalLabel2: "Your Goal",
+    youWillReach: "You will reach",
+    onDate: "on",
+    now: "now",
+    perWeek: "week",
+    yourDailyPlan: "Your daily plan",
+    tapToAdjust: "Tap to adjust",
+    dailyGoalLabel: "Daily Goal",
+    calculationBasedOn: "Calculation based on the following scientific formulas:",
+    bmrCalculation: "BMR calculation",
+    totalEnergyExpenditure: "Total energy expenditure",
+    issnProteinRecommendation: "ISSN protein recommendation",
+    energyBalanceRule: "Energy balance rule",
+    letFridgeDecide: "Let your fridge decide.",
+    weBuildMeals: "We build meals from what you already have.",
+    iHandlePlanning: "I'll handle the planning. You just eat.",
+    skipForNowBtn: "Skip for now",
+    enableCamera: "Enable camera",
+    requiredForScanning: "Required for scanning",
+    cameraAccessLabel: "Camera access",
+    forFridgeScanning: "For fridge scanning",
+    allowAccess: "Allow",
+    planningWithFrigy: "Planning with Frigy",
+    yourWayToSuccess: "Your way to success",
+    withoutFrigyLabel: "Without Frigy",
+    withFrigyLabel: "With Frigy",
+    noStructure: "No structure",
+    goalsMissed: "Goals missed",
+    clearPlan: "Clear plan",
+    successRate94: "94% success",
+    goalAchievementLabel: "Goal achievement",
+    fasterLabel: "Faster",
+    savedPerDayLabel: "Saved/day",
+    usersReachGoalsFaster: "Users reach their goals 2.4x faster",
+    yourTransformationLabel: "Your Transformation",
+    whatToExpectWithFrigy: "What to expect with Frigy",
+    moreEnergyLabel: "More Energy",
+    timeSavedLabel: "Time Saved",
+    goalSuccessLabel: "Goal Success",
+    saveYourProgress: "Save your progress",
+    createAccountToSave: "Create an account to save your plan",
+    signInToContinue: "Sign in to continue",
+    emailAddressPlaceholder: "Email Address",
+    passwordPlaceholder: "Password",
+    registerBtn: "Register",
+    signInBtn: "Sign In",
+    alreadyRegisteredSignIn: "Already registered? Sign in here",
+    noAccountRegister: "No account yet? Register here",
+    whyRegister: "Why register?",
+    personalizedPlanSaved: "Your personalized plan will be saved",
+    progressSyncedDevices: "Progress synced across all devices",
+    accessRecipesMeals: "Access to your recipes & meals",
+    alreadyLoggedInContinue: "Already logged in - Continue",
+    chooseYourPlan: "Choose your plan",
+    startFreeOrPremium: "Start with Free or try Premium 7 days free",
+    freeLabel: "Free",
+    weeklyPlan1Gen: "Weekly plan (1x generation)",
+    waterTrackerLabel: "Water Tracker",
+    scansPerDay2: "2 fridge scans/day",
+    basicRecipeSuggestions: "Basic recipe suggestions",
+    premiumLabel2: "Premium",
+    unlimitedScansLabel: "Unlimited scans",
+    unlimitedMealPlanGen: "Unlimited meal plan generation",
+    shoppingListsLabel: "Shopping lists",
+    statsMacroTracking: "Stats & macro tracking",
+    aiChatbotLabel: "AI Chatbot",
+    recommendedLabel: "RECOMMENDED",
+    trial7DaysFree: "7 days free",
+    startWithFree: "Start with Free",
+    continueToPremium: "Continue to Premium",
+    selectAPlan: "Select a plan",
+    youSelectedFree: "You selected the free plan. Press the button to start!",
+    cookWithOthers: "Cook with others",
+    discoverCommunityRecipes: "Discover recipes from the community",
+    byUser: "by",
+    exploreLater: "Explore later",
+    youMadeIt: "You made it!",
+    frigyReadyForYou: "Frigy is ready for you!",
+    letsGoContinue: "Let's go!",
+    systemReady: "Your system is ready.",
+    macrosStructureLessThinking: "Macros. Structure. Less thinking.",
+    toDashboard: "To Dashboard",
+    personalizedOnPrefs: "Personalized to your preferences",
+    continueBtn: "Continue",
+    perfectBtn: "Perfect!",
+    weekLabel: "week",
+    
     // MacroTracker Onboarding
     trackerYourBodyData: "Your body data",
     trackerScrollToSet: "Scroll to set values",
@@ -2395,6 +2698,107 @@ const translations: Record<Language, Translations> = {
     yesterdayLabel: "Hier",
     min: "min",
     continueButton: "Continuer",
+    
+    // Additional translations
+    cups: "tasses",
+    mlPerCup: "ml par tasse",
+    orderIngredients: "Commander les ingrédients",
+    orderIngredientsTitle: "Commander les ingrédients",
+    followingIngredients: "Ingrédients suivants:",
+    andMore: "de plus",
+    recommended: "Recommandé:",
+    bringApp: "Bring! App",
+    copyListPasteBring: "Copier la liste & coller dans Bring!",
+    copiedForBring: "Copié pour Bring!",
+    openBringPaste: "Ouvre Bring! et colle la liste",
+    orSearchDelivery: "Ou rechercher directement chez le livreur:",
+    worldwideDelivery: "Livraison mondiale",
+    yourGoalLabel2: "Ton objectif",
+    youWillReach: "Tu atteindras",
+    onDate: "le",
+    now: "maintenant",
+    perWeek: "semaine",
+    yourDailyPlan: "Ton plan quotidien",
+    tapToAdjust: "Appuie pour ajuster",
+    dailyGoalLabel: "Objectif quotidien",
+    calculationBasedOn: "Calcul basé sur les formules scientifiques suivantes:",
+    bmrCalculation: "Calcul du métabolisme de base",
+    totalEnergyExpenditure: "Dépense énergétique totale",
+    issnProteinRecommendation: "Recommandation protéines ISSN",
+    energyBalanceRule: "Règle d'équilibre énergétique",
+    letFridgeDecide: "Laisse ton frigo décider.",
+    weBuildMeals: "On crée des repas avec ce que tu as déjà.",
+    iHandlePlanning: "Je m'occupe de la planification. Toi, tu manges.",
+    skipForNowBtn: "Plus tard",
+    enableCamera: "Activer la caméra",
+    requiredForScanning: "Requis pour scanner",
+    cameraAccessLabel: "Accès caméra",
+    forFridgeScanning: "Pour scanner le frigo",
+    allowAccess: "Autoriser",
+    planningWithFrigy: "Planification avec Frigy",
+    yourWayToSuccess: "Ton chemin vers le succès",
+    withoutFrigyLabel: "Sans Frigy",
+    withFrigyLabel: "Avec Frigy",
+    noStructure: "Pas de structure",
+    goalsMissed: "Objectifs manqués",
+    clearPlan: "Plan clair",
+    successRate94: "94% de succès",
+    goalAchievementLabel: "Atteinte des objectifs",
+    fasterLabel: "Plus rapide",
+    savedPerDayLabel: "Gagné/jour",
+    usersReachGoalsFaster: "Les utilisateurs atteignent leurs objectifs 2.4x plus vite",
+    yourTransformationLabel: "Ta Transformation",
+    whatToExpectWithFrigy: "Ce qui t'attend avec Frigy",
+    moreEnergyLabel: "Plus d'énergie",
+    timeSavedLabel: "Temps gagné",
+    goalSuccessLabel: "Succès objectif",
+    saveYourProgress: "Sauvegarde ta progression",
+    createAccountToSave: "Crée un compte pour sauvegarder ton plan",
+    signInToContinue: "Connecte-toi pour continuer",
+    emailAddressPlaceholder: "Adresse e-mail",
+    passwordPlaceholder: "Mot de passe",
+    registerBtn: "S'inscrire",
+    signInBtn: "Se connecter",
+    alreadyRegisteredSignIn: "Déjà inscrit? Connecte-toi ici",
+    noAccountRegister: "Pas encore de compte? Inscris-toi ici",
+    whyRegister: "Pourquoi s'inscrire?",
+    personalizedPlanSaved: "Ton plan personnalisé sera sauvegardé",
+    progressSyncedDevices: "Progression synchronisée sur tous les appareils",
+    accessRecipesMeals: "Accès à tes recettes & repas",
+    alreadyLoggedInContinue: "Déjà connecté - Continuer",
+    chooseYourPlan: "Choisis ton plan",
+    startFreeOrPremium: "Commence avec Free ou essaie Premium 7 jours gratuit",
+    freeLabel: "Gratuit",
+    weeklyPlan1Gen: "Plan hebdo (1x génération)",
+    waterTrackerLabel: "Suivi d'eau",
+    scansPerDay2: "2 scans frigo/jour",
+    basicRecipeSuggestions: "Suggestions de recettes de base",
+    premiumLabel2: "Premium",
+    unlimitedScansLabel: "Scans illimités",
+    unlimitedMealPlanGen: "Génération de plans illimitée",
+    shoppingListsLabel: "Listes de courses",
+    statsMacroTracking: "Stats & suivi des macros",
+    aiChatbotLabel: "Chatbot IA",
+    recommendedLabel: "RECOMMANDÉ",
+    trial7DaysFree: "7 jours gratuits",
+    startWithFree: "Commencer avec Gratuit",
+    continueToPremium: "Continuer vers Premium",
+    selectAPlan: "Choisis un plan",
+    youSelectedFree: "Tu as choisi le plan gratuit. Appuie sur le bouton pour commencer!",
+    cookWithOthers: "Cuisiner avec les autres",
+    discoverCommunityRecipes: "Découvre des recettes de la communauté",
+    byUser: "par",
+    exploreLater: "Explorer plus tard",
+    youMadeIt: "Tu as réussi!",
+    frigyReadyForYou: "Frigy est prêt pour toi!",
+    letsGoContinue: "C'est parti!",
+    systemReady: "Ton système est prêt.",
+    macrosStructureLessThinking: "Macros. Structure. Moins de réflexion.",
+    toDashboard: "Vers le tableau de bord",
+    personalizedOnPrefs: "Personnalisé selon tes préférences",
+    continueBtn: "Continuer",
+    perfectBtn: "Parfait!",
+    weekLabel: "semaine",
     
     // MacroTracker Onboarding
     trackerYourBodyData: "Tes données corporelles",

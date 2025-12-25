@@ -123,7 +123,7 @@ export const WaterTracker = () => {
           {t.waterTracker}
         </h4>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{cups}/{dailyGoal} Tassen</span>
+          <span className="text-sm text-muted-foreground">{cups}/{dailyGoal} {t.cups}</span>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -142,7 +142,7 @@ export const WaterTracker = () => {
                     onChange={(e) => setTempGoal(parseInt(e.target.value) || 1)}
                     className="w-20"
                   />
-                  <span className="text-sm text-muted-foreground">Tassen</span>
+                  <span className="text-sm text-muted-foreground">{t.cups}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   = {tempGoal * ML_PER_CUP}ml {t.perDay}
@@ -279,7 +279,7 @@ export const WaterTracker = () => {
       </div>
 
       <p className="text-xs text-center text-muted-foreground mt-3">
-        {ML_PER_CUP}ml pro Tasse • {t.goal}: {mlGoal / 1000}L
+        {ML_PER_CUP}{t.mlPerCup} • {t.goal}: {mlGoal / 1000}L
       </p>
     </Card>
   );
