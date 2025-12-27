@@ -157,6 +157,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const currentIndex = onboardingSteps.indexOf(currentStep);
   const totalSteps = onboardingSteps.length;
 
+  // Scroll to top on every step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [currentStep]);
+
   // Step-specific effects
   useEffect(() => {
     if (currentStep === "fridge-intro") {
