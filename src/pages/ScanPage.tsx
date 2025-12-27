@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CookingPrefsSelector from "@/components/CookingPrefsSelector";
 import { Card } from "@/components/ui/card";
+import { useShoppingListSync } from "@/hooks/useShoppingListSync";
 
 const FREE_SCAN_LIMIT = 2;
 
@@ -34,6 +35,9 @@ const ScanPage = () => {
   const [scanLimitReached, setScanLimitReached] = useState(false);
   const [showPrefsSelector, setShowPrefsSelector] = useState(false);
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
+  const [syncedItems, setSyncedItems] = useState<string[]>([]);
+
+  const { syncWithScannedIngredients } = useShoppingListSync();
 
   const isPremium = subscriptionStatus?.subscribed;
 
@@ -158,6 +162,12 @@ const ScanPage = () => {
 
       setIngredients(data.ingredients || []);
       
+      // Sync mit Einkaufsliste
+      if (data.ingredients && data.ingredients.length > 0) {
+        const syncResult = syncWithScannedIngredients(data.ingredients);
+        setSyncedItems(syncResult.matchedItems);
+      }
+      
       // Update remaining scans
       if (data.scansRemaining !== undefined && data.scansRemaining !== null) {
         setScansRemaining(data.scansRemaining);
@@ -184,7 +194,7 @@ const ScanPage = () => {
     setShowPrefsSelector(true);
   };
 
-  const handlePrefsConfirm = (cookingTime: number, mood: 'tired' | 'normal' | 'motivated') => {
+  const handlePrefsConfirm = (cookingTime: number, mood: 'tired' | 'normal' | 'motivated' | 'stressed') => {
     // Lade aktuelles Makro-Budget aus localStorage
     const storedProfile = localStorage.getItem('userProfile');
     const storedMacros = localStorage.getItem('todayMacros');
@@ -224,6 +234,28 @@ const ScanPage = () => {
         mealToReplace: 'Mittagessen', // Standard-Mahlzeit
       } 
     });
+  };
+
+  // Berechne Makro-Budget für die Anzeige
+  const getMacroBudget = () => {
+    const storedProfile = localStorage.getItem('userProfile');
+    const storedMacros = localStorage.getItem('todayMacros');
+    
+    if (storedProfile) {
+      try {
+        const profile = JSON.parse(storedProfile);
+        const todayMacros = storedMacros ? JSON.parse(storedMacros) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        return {
+          remainingCalories: Math.max(0, (profile.dailyCalories || 2000) - (todayMacros.calories || 0)),
+          remainingProtein: Math.max(0, (profile.dailyProtein || 150) - (todayMacros.protein || 0)),
+          remainingCarbs: Math.max(0, (profile.dailyCarbs || 200) - (todayMacros.carbs || 0)),
+          remainingFat: Math.max(0, (profile.dailyFat || 70) - (todayMacros.fat || 0)),
+        };
+      } catch (e) {
+        return undefined;
+      }
+    }
+    return undefined;
   };
 
   const handlePrefsBack = () => {
@@ -467,6 +499,7 @@ const ScanPage = () => {
                       <CookingPrefsSelector
                         onConfirm={handlePrefsConfirm}
                         onBack={handlePrefsBack}
+                        macroBudget={getMacroBudget()}
                       />
                     </motion.div>
                   ) : (
@@ -477,6 +510,35 @@ const ScanPage = () => {
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-6"
                     >
+                      {/* Synced Shopping List Items */}
+                      {syncedItems.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="p-4 rounded-xl bg-green-500/10 border border-green-500/20"
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 rounded-full bg-green-500/20">
+                              <ShoppingCart className="h-4 w-4 text-green-500" />
+                            </div>
+                            <span className="font-medium text-green-600 dark:text-green-400">
+                              Von Einkaufsliste abgehakt
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {syncedItems.map((item, i) => (
+                              <span 
+                                key={i}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 text-green-700 dark:text-green-300 text-sm"
+                              >
+                                <Check className="h-3 w-3" />
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+
                       {/* Ingredients List */}
                       <IngredientsList
                         ingredients={ingredients}
