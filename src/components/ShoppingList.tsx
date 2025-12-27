@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Truck } from 'lucide-react';
+import { ShoppingCart, Check, Truck, WifiOff, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { OrderIngredientsDialog } from './OrderIngredientsDialog';
+import { toast } from '@/hooks/use-toast';
+
 interface Ingredient {
   name: string;
   amount: string;
@@ -21,12 +23,61 @@ interface ShoppingListProps {
   mealPlan: any[];
 }
 
+const OFFLINE_SHOPPING_LIST_KEY = 'frigai_offline_shopping_list';
+const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
+
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
+  // Offline-Status überwachen
   useEffect(() => {
-    // Aggregate all ingredients from meal plan
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast({
+        title: "📴 Offline-Modus",
+        description: "Einkaufsliste ist weiterhin verfügbar!",
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Cache laden beim Start
+  useEffect(() => {
+    const cachedTimestamp = localStorage.getItem(SHOPPING_LIST_TIMESTAMP_KEY);
+    if (cachedTimestamp) {
+      setLastSyncTime(cachedTimestamp);
+    }
+  }, []);
+
+  // Einkaufsliste aus MealPlan generieren ODER aus Cache laden
+  useEffect(() => {
+    // Wenn offline und kein MealPlan, lade aus Cache
+    if (isOffline && (!mealPlan || mealPlan.length === 0)) {
+      const cached = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
+      if (cached) {
+        try {
+          const parsedItems = JSON.parse(cached);
+          setItems(parsedItems);
+          console.log('[SHOPPING] Loaded from offline cache:', parsedItems.length, 'items');
+          return;
+        } catch (e) {
+          console.error('[SHOPPING] Failed to load cache:', e);
+        }
+      }
+    }
+
+    // Normale Generierung aus MealPlan
     const ingredientMap = new Map<string, ShoppingItem>();
     
     mealPlan.forEach(day => {
@@ -39,7 +90,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           } else {
             ingredientMap.set(key, {
               ...ing,
-              id: `${key}-${Date.now()}`,
+              id: `${key}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               purchased: false,
             });
           }
@@ -47,8 +98,46 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       });
     });
 
-    setItems(Array.from(ingredientMap.values()));
-  }, [mealPlan]);
+    // Lade purchased-Status aus Cache
+    const cachedItems = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
+    let purchasedMap = new Map<string, boolean>();
+    if (cachedItems) {
+      try {
+        const parsed = JSON.parse(cachedItems) as ShoppingItem[];
+        parsed.forEach(item => {
+          purchasedMap.set(item.name.toLowerCase(), item.purchased);
+        });
+      } catch (e) {}
+    }
+
+    // Merge: Behalte purchased-Status aus Cache
+    const newItems = Array.from(ingredientMap.values()).map(item => ({
+      ...item,
+      purchased: purchasedMap.get(item.name.toLowerCase()) || false,
+    }));
+
+    setItems(newItems);
+  }, [mealPlan, isOffline]);
+
+  // Einkaufsliste im Cache speichern bei jeder Änderung
+  const saveToCache = useCallback((itemsToCache: ShoppingItem[]) => {
+    try {
+      localStorage.setItem(OFFLINE_SHOPPING_LIST_KEY, JSON.stringify(itemsToCache));
+      const timestamp = new Date().toLocaleString('de-DE');
+      localStorage.setItem(SHOPPING_LIST_TIMESTAMP_KEY, timestamp);
+      setLastSyncTime(timestamp);
+      console.log('[SHOPPING] Saved to cache:', itemsToCache.length, 'items');
+    } catch (e) {
+      console.error('[SHOPPING] Failed to save cache:', e);
+    }
+  }, []);
+
+  // Auto-save bei Änderungen
+  useEffect(() => {
+    if (items.length > 0) {
+      saveToCache(items);
+    }
+  }, [items, saveToCache]);
 
   const setPurchased = (id: string, purchased: boolean) => {
     setItems((prev) =>
@@ -74,8 +163,30 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   // Get unpurchased items for ordering
   const unpurchasedItems = items.filter((i) => !i.purchased).map((i) => i.name);
 
+  // Manuelles Sync zum Cache
+  const forceSync = () => {
+    saveToCache(items);
+    toast({
+      title: "✅ Offline gespeichert!",
+      description: "Einkaufsliste ist jetzt im Supermarkt ohne Internet verfügbar.",
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Offline-Banner */}
+      {isOffline && (
+        <Card className="p-3 bg-amber-500/20 border-amber-500/50 flex items-center gap-3">
+          <WifiOff className="h-5 w-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="font-medium text-amber-500">Offline-Modus aktiv</p>
+            <p className="text-xs text-muted-foreground">
+              {lastSyncTime ? `Zuletzt gespeichert: ${lastSyncTime}` : 'Daten aus Cache geladen'}
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Summary Card */}
       <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
         <div className="flex items-center justify-between">
@@ -108,15 +219,36 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           />
         </div>
 
-        {/* Order Button */}
-        {unpurchasedItems.length > 0 && (
+        {/* Action Buttons */}
+        <div className="mt-4 flex gap-2">
+          {/* Offline Sync Button */}
           <Button 
-            className="w-full mt-4 gap-2"
-            onClick={() => setShowOrderDialog(true)}
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={forceSync}
           >
-            <Truck className="h-4 w-4" />
-            {t.orderIngredients} ({unpurchasedItems.length})
+            <RefreshCw className="h-4 w-4" />
+            Für Offline speichern
           </Button>
+
+          {/* Order Button */}
+          {unpurchasedItems.length > 0 && (
+            <Button 
+              className="flex-1 gap-2"
+              onClick={() => setShowOrderDialog(true)}
+              disabled={isOffline}
+            >
+              <Truck className="h-4 w-4" />
+              {t.orderIngredients}
+            </Button>
+          )}
+        </div>
+
+        {/* Sync Status */}
+        {lastSyncTime && !isOffline && (
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Zuletzt gespeichert: {lastSyncTime}
+          </p>
         )}
       </Card>
 
