@@ -8,7 +8,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const requestSchema = z.object({ image: z.string().min(1).max(50_000_000) });
+const requestSchema = z.object({ 
+  image: z.string().min(1).max(50_000_000),
+  shoppingList: z.array(z.string()).optional(), // Einkaufsliste zum Abgleich
+});
 const FREE_SCAN_LIMIT = 1;
 
 const getWeekStart = (): string => {
@@ -36,7 +39,7 @@ serve(async (req) => {
     const parseResult = requestSchema.safeParse(await req.json());
     if (!parseResult.success) return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     
-    const { image } = parseResult.data;
+    const { image, shoppingList } = parseResult.data;
 
     // Check premium
     let isPremium = false;
@@ -73,7 +76,7 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    console.log("[ANALYZE-INGREDIENTS] Scanning image with deep analysis...");
+    console.log("[ANALYZE-INGREDIENTS] Scanning with shopping list:", shoppingList?.length || 0, "items");
 
     const systemPrompt = `Du bist ein EXTREM PRÄZISER Lebensmittel-Scanner im TIEFENANALYSE-MODUS.
 
@@ -91,17 +94,26 @@ ERKENNUNGSREGELN:
    - Plastikschalen (Fleisch, Wurst, Käse, Salat)
    - Frischware ohne Verpackung (Obst, Gemüse)
 4. KATEGORISIERE ALLES:
-   - Proteine: Fleisch (Hähnchen, Rind, Schwein, Hackfleisch), Fisch, Eier, Tofu, Wurst
-   - Milchprodukte: Milch, Butter, Käse (Gouda, Emmentaler, Mozzarella), Joghurt, Sahne, Quark
-   - Gemüse: Tomaten, Paprika, Zwiebeln, Knoblauch, Karotten, Gurken, Salat, Brokkoli, Zucchini
-   - Obst: Äpfel, Bananen, Orangen, Beeren, Trauben, Zitronen
-   - Kohlenhydrate: Nudeln, Reis, Brot, Kartoffeln, Toast
-   - Saucen/Gewürze: Ketchup, Senf, Mayo, Pesto, Sojasauce, Öl, Essig
-   - Getränke: Saft, Milch, Wasser, Limonade
-5. UNSICHERE Produkte mit "(evtl.)" markieren
+   - Proteine: Fleisch, Fisch, Eier, Tofu, Wurst
+   - Milchprodukte: Milch, Butter, Käse, Joghurt, Sahne, Quark
+   - Gemüse: Tomaten, Paprika, Zwiebeln, Knoblauch, Karotten, Gurken, Salat
+   - Obst: Äpfel, Bananen, Orangen, Beeren
+   - Kohlenhydrate: Nudeln, Reis, Brot, Kartoffeln
+   - Saucen/Gewürze: Ketchup, Senf, Mayo, Pesto, Öl, Essig
+   - Getränke: Saft, Milch, Wasser
+5. SCHÄTZE MENGEN ein (z.B. "ca. 500g", "1 Packung", "3 Stück")
+6. UNSICHERE Produkte mit "(evtl.)" markieren
 
-AUSGABE: Nur ein JSON-Array mit allen erkannten Lebensmitteln auf Deutsch.
-Beispiel: ["Hähnchenbrust", "Paprika rot", "Zwiebeln", "Gouda Käse", "Sahne", "Knoblauch", "Olivenöl"]`;
+AUSGABE: JSON mit dieser Struktur:
+{
+  "ingredients": ["Zutat 1", "Zutat 2"],
+  "ingredientsWithQuantity": [
+    {"name": "Hähnchenbrust", "quantity": "ca. 400g", "confidence": "high"},
+    {"name": "Paprika rot", "quantity": "2 Stück", "confidence": "high"},
+    {"name": "Sahne", "quantity": "1 Becher", "confidence": "medium"}
+  ],
+  "confidenceLevel": "high/medium/low"
+}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -115,7 +127,7 @@ Beispiel: ["Hähnchenbrust", "Paprika rot", "Zwiebeln", "Gouda Käse", "Sahne", 
             { type: "image_url", image_url: { url: image, detail: "high" } }
           ]}
         ],
-        max_tokens: 800,
+        max_tokens: 1000,
       }),
     });
 
@@ -125,15 +137,44 @@ Beispiel: ["Hähnchenbrust", "Paprika rot", "Zwiebeln", "Gouda Käse", "Sahne", 
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "[]";
-    console.log("[ANALYZE-INGREDIENTS] Response:", content);
+    const content = data.choices?.[0]?.message?.content || "{}";
+    console.log("[ANALYZE-INGREDIENTS] Response:", content.substring(0, 200));
 
     let ingredients: string[] = [];
+    let ingredientsWithQuantity: any[] = [];
+    let confidenceLevel = "medium";
+    
     try {
-      const jsonMatch = content.match(/\[.*\]/s);
-      if (jsonMatch) ingredients = JSON.parse(jsonMatch[0]);
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        ingredients = parsed.ingredients || [];
+        ingredientsWithQuantity = parsed.ingredientsWithQuantity || [];
+        confidenceLevel = parsed.confidenceLevel || "medium";
+      }
     } catch (e) {
-      ingredients = content.replace(/[\[\]"]/g, "").split(",").map((s: string) => s.trim()).filter((s: string) => s);
+      // Fallback: Parse as simple array
+      const arrayMatch = content.match(/\[.*\]/s);
+      if (arrayMatch) {
+        ingredients = JSON.parse(arrayMatch[0]);
+      } else {
+        ingredients = content.replace(/[\[\]"]/g, "").split(",").map((s: string) => s.trim()).filter((s: string) => s);
+      }
+    }
+
+    // Einkaufslisten-Abgleich
+    let shoppingListMatches: string[] = [];
+    if (shoppingList && shoppingList.length > 0) {
+      const ingredientsLower = ingredients.map(i => i.toLowerCase());
+      
+      shoppingListMatches = shoppingList.filter(item => {
+        const itemLower = item.toLowerCase();
+        return ingredientsLower.some(ing => 
+          ing.includes(itemLower) || itemLower.includes(ing)
+        );
+      });
+      
+      console.log("[ANALYZE-INGREDIENTS] Shopping list matches:", shoppingListMatches);
     }
 
     let scansRemaining = null;
@@ -143,7 +184,14 @@ Beispiel: ["Hähnchenbrust", "Paprika rot", "Zwiebeln", "Gouda Käse", "Sahne", 
       scansRemaining = FREE_SCAN_LIMIT - (usageData?.scan_count || 0);
     }
 
-    return new Response(JSON.stringify({ ingredients, scansRemaining, isPremium }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ 
+      ingredients, 
+      ingredientsWithQuantity,
+      confidenceLevel,
+      scansRemaining, 
+      isPremium,
+      shoppingListMatches, // Gefundene Einkaufslisten-Items
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("[ANALYZE-INGREDIENTS] Error:", error);
     return new Response(JSON.stringify({ error: "Analyse fehlgeschlagen. Bitte erneut versuchen." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
