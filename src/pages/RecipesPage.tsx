@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChefHat, Clock, Zap, RefreshCw, Check, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowLeft, ChefHat, Clock, Zap, RefreshCw, Check, Target, TrendingDown, TrendingUp, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import MealReplacementDialog from "@/components/MealReplacementDialog";
 
 interface Recipe {
   id: string;
@@ -61,6 +62,7 @@ const RecipesPage = () => {
   const [loading, setLoading] = useState(true);
   const [showDetail, setShowDetail] = useState(false);
   const [budgetAfterMeal, setBudgetAfterMeal] = useState<RecipesResponse['budgetAfterMeal'] | null>(null);
+  const [showMealDialog, setShowMealDialog] = useState(false);
   
   // Kontext aus Navigation
   const cookingTime = location.state?.cookingTime || 20;
@@ -168,13 +170,22 @@ const RecipesPage = () => {
 
   const handleAddToMealPlan = () => {
     if (!selectedRecipe) return;
+    setShowMealDialog(true);
+  };
+
+  const handleMealPlanConfirm = (mealType: string, dayOffset: number) => {
+    if (!selectedRecipe) return;
+    
+    // Berechne das Zieldatum
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + dayOffset);
     
     // Speichere das Rezept für den Wochenplan
     try {
       const mealPlanUpdate = {
         recipe: selectedRecipe,
-        mealType: mealToReplace || 'Mittagessen',
-        date: new Date().toISOString().split('T')[0],
+        mealType,
+        date: targetDate.toISOString().split('T')[0],
       };
       
       const stored = localStorage.getItem('mealPlanUpdates');
@@ -182,9 +193,48 @@ const RecipesPage = () => {
       updates.push(mealPlanUpdate);
       localStorage.setItem('mealPlanUpdates', JSON.stringify(updates));
       
+      // Aktualisiere auch den Wochenplan direkt
+      const storedPlan = localStorage.getItem('weeklyMealPlan');
+      if (storedPlan) {
+        const weeklyPlan = JSON.parse(storedPlan);
+        const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        const targetDayName = dayNames[targetDate.getDay()];
+        
+        const updatedPlan = weeklyPlan.map((day: any) => {
+          if (day.day === targetDayName) {
+            const updatedMeals = day.meals.map((meal: any) => {
+              if (meal.type === mealType) {
+                return {
+                  ...meal,
+                  name: selectedRecipe.title,
+                  calories: selectedRecipe.calories,
+                  protein: selectedRecipe.protein,
+                  carbs: selectedRecipe.carbs,
+                  fat: selectedRecipe.fat,
+                  prepTime: selectedRecipe.prepTime,
+                  ingredients: selectedRecipe.ingredients.map(ing => ({
+                    name: ing,
+                    amount: '1x',
+                    price: 0
+                  })),
+                  instructions: selectedRecipe.instructions,
+                };
+              }
+              return meal;
+            });
+            return { ...day, meals: updatedMeals };
+          }
+          return day;
+        });
+        
+        localStorage.setItem('weeklyMealPlan', JSON.stringify(updatedPlan));
+      }
+      
+      const dayLabel = dayOffset === 0 ? 'heute' : dayOffset === 1 ? 'morgen' : 'übermorgen';
+      
       toast({
-        title: "Zum Wochenplan hinzugefügt!",
-        description: `${selectedRecipe.title} ersetzt ${mealToReplace || 'die nächste Mahlzeit'}.`,
+        title: "Im Wochenplan gespeichert! 📅",
+        description: `${selectedRecipe.title} → ${mealType} (${dayLabel})`,
       });
     } catch (e) {
       console.error('Error updating meal plan:', e);
@@ -418,6 +468,14 @@ const RecipesPage = () => {
               </div>
             )}
           </motion.div>
+
+          {/* Meal Replacement Dialog */}
+          <MealReplacementDialog
+            open={showMealDialog}
+            onOpenChange={setShowMealDialog}
+            onConfirm={handleMealPlanConfirm}
+            recipeName={selectedRecipe?.title || ''}
+          />
         </div>
       </div>
     );
