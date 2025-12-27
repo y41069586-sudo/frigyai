@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,12 +154,22 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
+  // Ref for scrollable container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
   const currentIndex = onboardingSteps.indexOf(currentStep);
   const totalSteps = onboardingSteps.length;
 
   // Scroll to top on every step change
   useEffect(() => {
+    // Scroll the main container ref
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+    // Also scroll window as fallback
     window.scrollTo({ top: 0, behavior: 'instant' });
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
   }, [currentStep]);
 
   // Step-specific effects
@@ -2695,7 +2705,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 flex flex-col items-center justify-center overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div key={currentStep} className="w-full max-w-md">
             {renderStepContent()}
