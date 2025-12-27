@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChefHat, Clock, Zap, RefreshCw, Check } from "lucide-react";
+import { ArrowLeft, ChefHat, Clock, Zap, RefreshCw, Check, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +33,18 @@ interface ClarificationResponse {
 interface RecipesResponse {
   type: "recipes";
   recipes: Recipe[];
+  recommendedReason?: string;
+  analyse?: {
+    gefundene_zutaten: string[];
+    beste_kombinationen: string;
+    makro_optimierung: string;
+  };
+  budgetAfterMeal?: {
+    remainingCalories: number;
+    remainingProtein: number;
+    remainingCarbs: number;
+    remainingFat: number;
+  };
 }
 
 type AIResponse = ClarificationResponse | RecipesResponse;
@@ -48,9 +60,15 @@ const RecipesPage = () => {
   const [clarification, setClarification] = useState<ClarificationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetail, setShowDetail] = useState(false);
-  const [cookingTime] = useState(location.state?.cookingTime || 20);
-  const [mood] = useState(location.state?.mood || 'normal');
+  const [budgetAfterMeal, setBudgetAfterMeal] = useState<RecipesResponse['budgetAfterMeal'] | null>(null);
+  
+  // Kontext aus Navigation
+  const cookingTime = location.state?.cookingTime || 20;
+  const mood = location.state?.mood || 'normal';
   const ingredients = location.state?.ingredients || [];
+  const macroBudget = location.state?.macroBudget;
+  const userProfile = location.state?.userProfile;
+  const mealToReplace = location.state?.mealToReplace;
 
   useEffect(() => {
     if (ingredients.length === 0) {
@@ -67,10 +85,18 @@ const RecipesPage = () => {
     setSelectedRecipe(null);
     setClarification(null);
     setShowDetail(false);
+    setBudgetAfterMeal(null);
     
     try {
       const { data, error } = await supabase.functions.invoke("generate-recipes", {
-        body: { ingredients, cookingTime, mood },
+        body: { 
+          ingredients, 
+          cookingTime, 
+          mood,
+          macroBudget,
+          userProfile,
+          mealToReplace,
+        },
       });
 
       if (error) throw error;
@@ -90,9 +116,15 @@ const RecipesPage = () => {
         );
         setRecipes(sortedRecipes);
         setRecommendedReason(data.recommendedReason || "");
+        setBudgetAfterMeal(data.budgetAfterMeal);
+        
+        const budgetInfo = macroBudget 
+          ? `Passt zu deinem Makro-Budget!` 
+          : `FRIGY empfiehlt dir das erste Gericht.`;
+        
         toast({
           title: "3 Gerichte gefunden!",
-          description: "FRIGY empfiehlt dir das erste Gericht.",
+          description: budgetInfo,
         });
       } else if (data.error) {
         throw new Error(data.error);
@@ -122,6 +154,9 @@ const RecipesPage = () => {
         title: recipe.title,
         prepTime: recipe.prepTime,
         calories: recipe.calories,
+        protein: recipe.protein,
+        carbs: recipe.carbs,
+        fat: recipe.fat,
         date: new Date().toISOString(),
       };
       const updated = [newDish, ...recentDishes.filter((d: any) => d.id !== newDish.id)].slice(0, 10);
@@ -129,6 +164,33 @@ const RecipesPage = () => {
     } catch (e) {
       console.error('Error saving recent dish:', e);
     }
+  };
+
+  const handleAddToMealPlan = () => {
+    if (!selectedRecipe) return;
+    
+    // Speichere das Rezept für den Wochenplan
+    try {
+      const mealPlanUpdate = {
+        recipe: selectedRecipe,
+        mealType: mealToReplace || 'Mittagessen',
+        date: new Date().toISOString().split('T')[0],
+      };
+      
+      const stored = localStorage.getItem('mealPlanUpdates');
+      const updates = stored ? JSON.parse(stored) : [];
+      updates.push(mealPlanUpdate);
+      localStorage.setItem('mealPlanUpdates', JSON.stringify(updates));
+      
+      toast({
+        title: "Zum Wochenplan hinzugefügt!",
+        description: `${selectedRecipe.title} ersetzt ${mealToReplace || 'die nächste Mahlzeit'}.`,
+      });
+    } catch (e) {
+      console.error('Error updating meal plan:', e);
+    }
+    
+    navigate("/");
   };
 
   if (loading) {
@@ -150,8 +212,20 @@ const RecipesPage = () => {
             FRIGY sucht 3 Gerichte...
           </h2>
           <p className="text-muted-foreground">
-            Analysiere Zutaten & finde passende Rezepte
+            {macroBudget 
+              ? "Optimiere für dein Makro-Budget" 
+              : "Analysiere Zutaten & finde passende Rezepte"}
           </p>
+          {macroBudget && (
+            <div className="mt-4 flex justify-center gap-3 text-xs">
+              <span className="px-2 py-1 rounded bg-primary/10 text-primary">
+                {macroBudget.remainingCalories} kcal übrig
+              </span>
+              <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-500">
+                {macroBudget.remainingProtein}g Protein
+              </span>
+            </div>
+          )}
           <motion.div 
             className="flex justify-center gap-1 mt-6"
             initial={{ opacity: 0 }}
@@ -272,6 +346,30 @@ const RecipesPage = () => {
                 </div>
               </div>
 
+              {/* Budget After Meal Info */}
+              {budgetAfterMeal && (
+                <div className="px-6 py-3 bg-primary/5 border-t border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Nach dieser Mahlzeit übrig:</span>
+                  </div>
+                  <div className="flex gap-3 text-xs">
+                    <span className="px-2 py-1 rounded bg-background/50">
+                      {budgetAfterMeal.remainingCalories} kcal
+                    </span>
+                    <span className="px-2 py-1 rounded bg-background/50">
+                      {budgetAfterMeal.remainingProtein}g P
+                    </span>
+                    <span className="px-2 py-1 rounded bg-background/50">
+                      {budgetAfterMeal.remainingCarbs}g C
+                    </span>
+                    <span className="px-2 py-1 rounded bg-background/50">
+                      {budgetAfterMeal.remainingFat}g F
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="p-6 border-t border-border/50">
                 <h3 className="font-semibold mb-3">Zutaten</h3>
                 <ul className="space-y-2">
@@ -300,10 +398,25 @@ const RecipesPage = () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6">
-            <Button onClick={() => navigate("/")} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 space-y-3">
+            <Button onClick={handleAddToMealPlan} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
               Los geht's! 🍳
             </Button>
+            {userProfile?.goalMode && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                {userProfile.goalMode === 'lose' ? (
+                  <>
+                    <TrendingDown className="h-4 w-4 text-primary" />
+                    <span>Optimiert für Abnehmen</span>
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 text-amber-500" />
+                    <span>Optimiert für Zunehmen</span>
+                  </>
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
@@ -325,13 +438,35 @@ const RecipesPage = () => {
             </Button>
             <div>
               <h1 className="text-xl font-bold">Wähle dein Gericht</h1>
-              <p className="text-sm text-muted-foreground">3 passende Optionen</p>
+              <p className="text-sm text-muted-foreground">
+                {macroBudget ? "Passt zu deinen Makros" : "3 passende Optionen"}
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={generateRecipes}>
             <RefreshCw className="h-5 w-5" />
           </Button>
         </motion.div>
+
+        {/* Makro-Budget Anzeige */}
+        {macroBudget && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Dein Tagesbudget</span>
+            </div>
+            <div className="flex gap-2 text-xs">
+              <span className="px-2 py-1 rounded bg-background/80">{macroBudget.remainingCalories} kcal</span>
+              <span className="px-2 py-1 rounded bg-background/80">{macroBudget.remainingProtein}g P</span>
+              <span className="px-2 py-1 rounded bg-background/80">{macroBudget.remainingCarbs}g C</span>
+              <span className="px-2 py-1 rounded bg-background/80">{macroBudget.remainingFat}g F</span>
+            </div>
+          </motion.div>
+        )}
 
         <div className="space-y-4">
           {recipes.map((recipe, index) => {

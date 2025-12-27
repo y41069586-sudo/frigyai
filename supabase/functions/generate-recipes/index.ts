@@ -12,6 +12,19 @@ const requestSchema = z.object({
   ingredients: z.array(z.string().min(1).max(100)).min(1).max(50),
   cookingTime: z.number().optional().default(20),
   mood: z.enum(['tired', 'normal', 'motivated']).optional().default('normal'),
+  // NEU: Erweiterte Kontext-Parameter
+  macroBudget: z.object({
+    remainingCalories: z.number(),
+    remainingProtein: z.number(),
+    remainingCarbs: z.number(),
+    remainingFat: z.number(),
+  }).optional(),
+  userProfile: z.object({
+    goalMode: z.enum(['lose', 'gain']).optional(),
+    age: z.number().optional(),
+    weight: z.number().optional(),
+  }).optional(),
+  mealToReplace: z.string().optional(), // z.B. "Mittagessen", "Abendessen"
 });
 
 serve(async (req) => {
@@ -28,72 +41,121 @@ serve(async (req) => {
     const parseResult = requestSchema.safeParse(await req.json());
     if (!parseResult.success) return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
-    const { ingredients, cookingTime, mood } = parseResult.data;
+    const { ingredients, cookingTime, mood, macroBudget, userProfile, mealToReplace } = parseResult.data;
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    console.log("[GENERATE-RECIPES] Ingredients:", ingredients, "Time:", cookingTime, "Mood:", mood);
+    console.log("[GENERATE-RECIPES] Context:", {
+      ingredients: ingredients.length,
+      time: cookingTime,
+      mood,
+      hasMacroBudget: !!macroBudget,
+      hasUserProfile: !!userProfile,
+      mealToReplace
+    });
 
+    // Mood-basierte Anpassungen
     const moodHint = mood === 'tired' 
-      ? 'MÜDE - Minimaler Aufwand, One-Pot-Gerichte, maximal 4 Schritte, keine komplizierten Techniken' 
+      ? 'MÜDE - Minimaler Aufwand, One-Pot-Gerichte, maximal 4 Schritte, keine komplizierten Techniken, einfache Zutaten' 
       : mood === 'motivated' 
-        ? 'MOTIVIERT - Kann aufwändiger sein, mehrere Komponenten, bis zu 6-7 Schritte erlaubt' 
+        ? 'MOTIVIERT - Kann aufwändiger sein, mehrere Komponenten, bis zu 6-7 Schritte erlaubt, kreative Gerichte' 
         : 'NORMAL - Ausgewogener Aufwand, 4-5 Schritte, einfache aber leckere Gerichte';
 
+    // Zeit-basierte Anpassungen
     const timeHint = cookingTime <= 10 
-      ? 'SEHR SCHNELL (≤10 Min) - Nur Schneiden und Braten/Kochen. KEIN Ofen, keine lange Garzeit.'
+      ? 'SEHR SCHNELL (≤10 Min) - Nur Schneiden und Braten/Kochen. KEIN Ofen, keine lange Garzeit. Salate, Wraps, gebratene Gerichte.'
       : cookingTime <= 20
-        ? 'SCHNELL (≤20 Min) - Einfache Gerichte, kurze Garzeiten, maximal eine Pfanne/Topf.'
+        ? 'SCHNELL (≤20 Min) - Einfache Gerichte, kurze Garzeiten, maximal eine Pfanne/Topf. Nudeln, Reis-Pfannen, Omeletts.'
         : 'NORMAL (30+ Min) - Normale Hausmannskost erlaubt, auch Ofen oder längere Garzeiten.';
 
-    const systemPrompt = `Du bist ein INTELLIGENTER KOCH-ASSISTENT, der DURCHDACHTE Rezepte erstellt.
+    // Makro-Budget Constraints
+    let macroConstraint = '';
+    if (macroBudget) {
+      macroConstraint = `
+KRITISCHE MAKRO-GRENZEN (NICHT ÜBERSCHREITEN!):
+- Max Kalorien: ${macroBudget.remainingCalories} kcal
+- Max Protein: ${macroBudget.remainingProtein}g
+- Max Kohlenhydrate: ${macroBudget.remainingCarbs}g
+- Max Fett: ${macroBudget.remainingFat}g
+
+Das Rezept MUSS innerhalb dieser Grenzen liegen! Passe die Portionsgrößen entsprechend an.`;
+    }
+
+    // Ziel-basierte Anpassungen
+    let goalHint = '';
+    if (userProfile?.goalMode) {
+      goalHint = userProfile.goalMode === 'lose'
+        ? '\nZIEL: ABNEHMEN - Priorisiere proteinreiche, kalorienarme Gerichte. Weniger Kohlenhydrate, mehr Gemüse.'
+        : '\nZIEL: ZUNEHMEN - Füge gesunde Fettquellen hinzu (Avocado, Nüsse, Olivenöl). Größere Portionen, mehr Kalorien.';
+    }
+
+    const systemPrompt = `Du bist ein INTELLIGENTER ERNÄHRUNGS-COACH, der PERFEKT ANGEPASSTE Rezepte erstellt.
 
 DEINE AUFGABE:
-Analysiere die gegebenen Zutaten und erstelle 3 SINNVOLLE, ECHTE Gerichte.
+Analysiere die Zutaten und erstelle 3 OPTIMALE Gerichte, die perfekt zum Nutzer-Kontext passen.
 
 KONTEXT:
 - Verfügbare Zeit: ${cookingTime} Minuten (${timeHint})
 - Stimmung: ${moodHint}
+${macroConstraint}
+${goalHint}
+${mealToReplace ? `- Mahlzeit: ${mealToReplace}` : ''}
 
 DENKPROZESS (WICHTIG!):
 1. ZUTATEN-ANALYSE: Welche Zutaten passen geschmacklich und texturell zusammen?
-2. GERICHT-LOGIK: Was sind ECHTE Gerichte, die man tatsächlich so kochen würde?
-3. ZEIT-REALISMUS: Passt die Zubereitung wirklich in ${cookingTime} Minuten?
-4. EMPFEHLUNG: Welches der 3 Gerichte passt AM BESTEN zur Stimmung und Zeit?
+2. MAKRO-OPTIMIERUNG: Wie kann ich das Makro-Budget optimal ausnutzen ohne zu überschreiten?
+3. PSYCHOLOGIE: Bei Müdigkeit = Comfort Food mit wenig Aufwand. Bei Stress = schnell und sättigend.
+4. ZEIT-REALISMUS: Passt die Zubereitung wirklich in ${cookingTime} Minuten?
+5. EMPFEHLUNG: Welches der 3 Gerichte passt AM BESTEN zur Gesamtsituation?
 
 VERBOTEN:
-- Zufällige Kombinationen wie "Paprika-Salat" oder "Gemüse-Mix"
-- Gerichte die nur aus 1-2 Zutaten bestehen
+- Rezepte die das Makro-Budget überschreiten
+- Zufällige Kombinationen wie "Paprika-Salat" ohne Sinn
 - Unrealistische Zubereitungszeiten
-- Langweilige oder unappetitliche Gerichte
+- Bei "müde" komplizierte Rezepte
 
 ERLAUBT als Basics (immer verfügbar):
-Salz, Pfeffer, Öl, Butter, Zwiebeln, Knoblauch, Gewürze
+Salz, Pfeffer, Öl, Butter, Zwiebeln, Knoblauch, Gewürze, Kräuter
 
 AUSGABE-FORMAT (streng JSON):
 {
   "type": "recipes",
+  "analyse": {
+    "gefundene_zutaten": ["Zutat A", "Zutat B"],
+    "beste_kombinationen": "Erklärung welche Zutaten gut zusammenpassen",
+    "makro_optimierung": "Wie die Rezepte zum Budget passen"
+  },
   "recommendedIndex": 0,
-  "recommendedReason": "Passt perfekt zu deiner Zeit und Stimmung weil...",
+  "recommendedReason": "Passt perfekt weil... (Bezug auf Stimmung, Zeit UND Makros)",
   "recipes": [
     {
       "id": "gericht-name",
       "title": "Echter Gerichtname",
-      "reason": "Warum dieses Gericht zu den Zutaten passt",
+      "reason": "Warum dieses Gericht zu den Zutaten und deiner Situation passt",
       "calories": 450,
       "protein": 28,
       "carbs": 40,
       "fat": 18,
       "prepTime": ${cookingTime},
       "difficulty": "Einfach/Mittel/Anspruchsvoll",
-      "ingredients": ["Zutat mit Menge"],
+      "ingredients": ["Menge Zutat"],
       "instructions": ["Klarer Kochschritt"]
     }
-  ]
+  ],
+  "wochenplan_anpassung": {
+    "aktion": "REPLACE",
+    "mahlzeit": "${mealToReplace || 'Nicht angegeben'}",
+    "neues_tagesbudget_nach_mahlzeit": {
+      "kcal": "verbleibend",
+      "protein": "verbleibend",
+      "carbs": "verbleibend",
+      "fat": "verbleibend"
+    }
+  }
 }
 
-Bei zu wenigen Zutaten für sinnvolle Gerichte:
-{"type":"clarification","message":"Erkläre was fehlt und warum","suggestion":"Eine konkrete Zutat die helfen würde"}`;
+Bei zu wenigen Zutaten:
+{"type":"clarification","message":"Erkläre was fehlt","suggestion":"Eine konkrete Zutat die helfen würde"}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -104,7 +166,7 @@ Bei zu wenigen Zutaten für sinnvolle Gerichte:
           { role: "system", content: systemPrompt },
           { role: "user", content: `Zutaten: ${ingredients.join(", ")}` }
         ],
-        max_tokens: 1000,
+        max_tokens: 1500,
       }),
     });
 
@@ -115,7 +177,7 @@ Bei zu wenigen Zutaten für sinnvolle Gerichte:
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "{}";
-    console.log("[GENERATE-RECIPES] Response:", content.substring(0, 200));
+    console.log("[GENERATE-RECIPES] Response length:", content.length);
 
     let result;
     try {
@@ -132,6 +194,17 @@ Bei zu wenigen Zutaten für sinnvolle Gerichte:
         isRecommended: i === (result.recommendedIndex ?? 0)
       }));
       result.recommendedReason = result.recommendedReason || "Perfekt für deine aktuelle Situation!";
+      
+      // Berechne verbleibendes Budget nach empfohlenem Rezept
+      if (macroBudget && result.recipes[result.recommendedIndex ?? 0]) {
+        const recommended = result.recipes[result.recommendedIndex ?? 0];
+        result.budgetAfterMeal = {
+          remainingCalories: Math.max(0, macroBudget.remainingCalories - (recommended.calories || 0)),
+          remainingProtein: Math.max(0, macroBudget.remainingProtein - (recommended.protein || 0)),
+          remainingCarbs: Math.max(0, macroBudget.remainingCarbs - (recommended.carbs || 0)),
+          remainingFat: Math.max(0, macroBudget.remainingFat - (recommended.fat || 0)),
+        };
+      }
     }
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -185,7 +185,45 @@ const ScanPage = () => {
   };
 
   const handlePrefsConfirm = (cookingTime: number, mood: 'tired' | 'normal' | 'motivated') => {
-    navigate("/recipes", { state: { ingredients, cookingTime, mood } });
+    // Lade aktuelles Makro-Budget aus localStorage
+    const storedProfile = localStorage.getItem('userProfile');
+    const storedMacros = localStorage.getItem('todayMacros');
+    
+    let macroBudget = undefined;
+    let userProfile = undefined;
+    
+    if (storedProfile) {
+      try {
+        const profile = JSON.parse(storedProfile);
+        userProfile = {
+          goalMode: profile.goalMode,
+          age: profile.age,
+          weight: profile.weight,
+        };
+        
+        // Berechne restliches Budget
+        const todayMacros = storedMacros ? JSON.parse(storedMacros) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        macroBudget = {
+          remainingCalories: Math.max(0, (profile.dailyCalories || 2000) - (todayMacros.calories || 0)),
+          remainingProtein: Math.max(0, (profile.dailyProtein || 150) - (todayMacros.protein || 0)),
+          remainingCarbs: Math.max(0, (profile.dailyCarbs || 200) - (todayMacros.carbs || 0)),
+          remainingFat: Math.max(0, (profile.dailyFat || 70) - (todayMacros.fat || 0)),
+        };
+      } catch (e) {
+        console.error('Error parsing profile:', e);
+      }
+    }
+    
+    navigate("/recipes", { 
+      state: { 
+        ingredients, 
+        cookingTime, 
+        mood,
+        macroBudget,
+        userProfile,
+        mealToReplace: 'Mittagessen', // Standard-Mahlzeit
+      } 
+    });
   };
 
   const handlePrefsBack = () => {
