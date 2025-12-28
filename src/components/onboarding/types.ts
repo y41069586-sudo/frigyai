@@ -115,7 +115,10 @@ export const onboardingSteps: OnboardingStep[] = [
   "success-stats",
   "tracker-intro",
   
-  // Phase 3: Body Data Collection
+  // Phase 3: Fridge Scan Demo
+  "fridge-intro",
+  
+  // Phase 4: Body Data Collection
   "body-basics",
   "gender",
   "goal-mode",
@@ -123,27 +126,26 @@ export const onboardingSteps: OnboardingStep[] = [
   "speed-select",
   "planning-setup", // Activity level
   
-  // Phase 4: Preferences
+  // Phase 5: Preferences
   "dietary-preferences",
   "allergies",
   "cooking-time",
   "cooking-experience",
   
-  // Phase 5: Analysis & Results
+  // Phase 6: Analysis & Results
   "analyzing",
   "macro-preview",
   
-  // Phase 6: Your Plan with Frigy
+  // Phase 7: Your Plan with Frigy
   "comparison",
   "transformation",
   "weekly-plan",
   
-  // Phase 7: Features & Setup
-  "fridge-intro",
+  // Phase 8: Features & Setup
   "permissions",
   "notification-prefs",
   
-  // Phase 8: Save & Finish
+  // Phase 9: Save & Finish
   "save-progress",
   "premium-hint",
   "community",
