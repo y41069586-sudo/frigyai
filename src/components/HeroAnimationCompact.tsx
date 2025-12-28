@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Sparkles, ChefHat, Utensils } from "lucide-react";
 
@@ -8,12 +8,12 @@ const HeroAnimationCompact = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setStep((prev) => (prev + 1) % 4);
-    }, 1200);
+    }, 1800);
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="relative w-full h-48 flex items-center justify-center">
+    <div className="relative w-full h-52 flex items-center justify-center">
       {/* Background gradient */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 rounded-2xl"
@@ -23,7 +23,7 @@ const HeroAnimationCompact = () => {
       />
 
       {/* Main Container */}
-      <div className="relative flex items-center justify-center gap-4 px-4">
+      <div className="relative flex items-center justify-center gap-5 px-4">
         
         {/* Frigy Mascot with animated door */}
         <motion.div
@@ -34,9 +34,9 @@ const HeroAnimationCompact = () => {
         >
           <motion.svg
             viewBox="0 0 100 130"
-            className="w-24 h-32"
+            className="w-28 h-36"
             animate={{ 
-              rotate: step === 1 ? [-1, 1, -1] : 0
+              rotate: step >= 1 ? [-1, 1, -1] : 0
             }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
           >
@@ -73,18 +73,21 @@ const HeroAnimationCompact = () => {
               transition={{ duration: 0.3 }}
             >
               <rect x="18" y="13" width="64" height="89" rx="7" fill="hsl(160, 20%, 96%)" />
-              {/* Shelf lines */}
-              <line x1="20" y1="40" x2="80" y2="40" stroke="hsl(160, 15%, 85%)" strokeWidth="1.5" />
-              <line x1="20" y1="68" x2="80" y2="68" stroke="hsl(160, 15%, 85%)" strokeWidth="1.5" />
-              {/* Food items inside */}
-              <circle cx="32" cy="26" r="7" fill="hsl(25, 95%, 58%)" /> {/* Orange */}
-              <circle cx="50" cy="26" r="5" fill="hsl(0, 80%, 55%)" /> {/* Apple */}
-              <rect x="62" y="20" width="10" height="14" rx="2" fill="hsl(45, 85%, 55%)" /> {/* Cheese */}
-              <rect x="26" y="46" width="14" height="18" rx="3" fill="hsl(200, 65%, 60%)" /> {/* Milk */}
-              <circle cx="58" cy="54" r="6" fill="hsl(120, 55%, 50%)" /> {/* Lettuce */}
-              <rect x="32" y="74" width="12" height="10" rx="2" fill="hsl(30, 75%, 50%)" /> {/* Bread */}
-              <circle cx="58" cy="80" r="7" fill="hsl(50, 85%, 55%)" /> {/* Lemon */}
-              <circle cx="72" cy="54" r="4" fill="hsl(350, 70%, 55%)" /> {/* Tomato */}
+              {/* Shelf line - between freezer and fridge */}
+              <line x1="20" y1="55" x2="80" y2="55" stroke="hsl(160, 15%, 85%)" strokeWidth="2" />
+              {/* Food items inside - Freezer section (top) */}
+              <rect x="25" y="20" width="22" height="12" rx="3" fill="hsl(200, 70%, 75%)" /> {/* Ice cream */}
+              <rect x="52" y="18" width="18" height="15" rx="2" fill="hsl(40, 50%, 85%)" /> {/* Frozen pizza */}
+              <rect x="25" y="38" width="15" height="10" rx="2" fill="hsl(180, 40%, 70%)" /> {/* Frozen peas */}
+              <rect x="45" y="40" width="12" height="8" rx="2" fill="hsl(30, 60%, 65%)" /> {/* Nuggets */}
+              
+              {/* Food items inside - Fridge section (bottom) */}
+              <circle cx="32" cy="68" r="7" fill="hsl(25, 95%, 58%)" /> {/* Orange */}
+              <circle cx="52" cy="68" r="5" fill="hsl(0, 80%, 55%)" /> {/* Apple */}
+              <rect x="62" y="62" width="10" height="14" rx="2" fill="hsl(45, 85%, 55%)" /> {/* Cheese */}
+              <rect x="26" y="80" width="14" height="18" rx="3" fill="hsl(200, 65%, 60%)" /> {/* Milk */}
+              <circle cx="58" cy="88" r="6" fill="hsl(120, 55%, 50%)" /> {/* Lettuce */}
+              <circle cx="72" cy="80" r="5" fill="hsl(50, 85%, 55%)" /> {/* Lemon */}
             </motion.g>
 
             {/* Fridge Door - animated opening */}
@@ -95,7 +98,7 @@ const HeroAnimationCompact = () => {
                 x: step >= 1 ? -30 : 0,
                 scaleX: step >= 1 ? 0.25 : 1
               }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
               <rect
                 x="15"
@@ -105,19 +108,20 @@ const HeroAnimationCompact = () => {
                 rx="10"
                 fill="url(#fridgeDoorGradient)"
               />
-              {/* Freezer section line */}
-              <line x1="18" y1="38" x2="82" y2="38" stroke="hsl(160, 64%, 35%)" strokeWidth="1.5" />
+              {/* Freezer/Fridge divider line - in the middle */}
+              <line x1="18" y1="55" x2="82" y2="55" stroke="hsl(160, 64%, 35%)" strokeWidth="2" />
+              
               {/* Door handles */}
-              <rect x="75" y="48" width="5" height="16" rx="2.5" fill="hsl(160, 50%, 70%)" />
-              <rect x="75" y="20" width="5" height="10" rx="2.5" fill="hsl(160, 50%, 70%)" />
+              <rect x="75" y="65" width="5" height="16" rx="2.5" fill="hsl(160, 50%, 70%)" />
+              <rect x="75" y="28" width="5" height="12" rx="2.5" fill="hsl(160, 50%, 70%)" />
 
-              {/* Frigy's cute face on the door */}
+              {/* Frigy's cute face - in the freezer section (top half) */}
               {/* Eyes */}
-              <ellipse cx="38" cy="60" rx="7" ry="8" fill="white" />
-              <ellipse cx="62" cy="60" rx="7" ry="8" fill="white" />
+              <ellipse cx="38" cy="32" rx="7" ry="8" fill="white" />
+              <ellipse cx="62" cy="32" rx="7" ry="8" fill="white" />
               <motion.ellipse
                 cx="40"
-                cy="62"
+                cy="34"
                 rx="3.5"
                 ry="4"
                 fill="hsl(220, 20%, 20%)"
@@ -126,64 +130,75 @@ const HeroAnimationCompact = () => {
               />
               <motion.ellipse
                 cx="64"
-                cy="62"
+                cy="34"
                 rx="3.5"
                 ry="4"
                 fill="hsl(220, 20%, 20%)"
                 animate={{ cx: [64, 65, 64, 63, 64] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
-              <circle cx="43" cy="59" r="1.5" fill="white" />
-              <circle cx="67" cy="59" r="1.5" fill="white" />
+              <circle cx="43" cy="31" r="1.5" fill="white" />
+              <circle cx="67" cy="31" r="1.5" fill="white" />
               
-              {/* Smile */}
+              {/* Smile - bigger when door opens */}
               <motion.path
-                d="M 42 78 Q 50 88 58 78"
+                d="M 42 46 Q 50 54 58 46"
                 fill="none"
                 stroke="hsl(220, 20%, 20%)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 animate={{
-                  d: ["M 42 78 Q 50 88 58 78", "M 42 79 Q 50 90 58 79", "M 42 78 Q 50 88 58 78"]
+                  d: step >= 1 
+                    ? ["M 40 44 Q 50 58 60 44", "M 40 45 Q 50 60 60 45", "M 40 44 Q 50 58 60 44"]
+                    : ["M 42 46 Q 50 54 58 46", "M 42 47 Q 50 56 58 47", "M 42 46 Q 50 54 58 46"]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
               
               {/* Blush */}
-              <ellipse cx="30" cy="72" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
-              <ellipse cx="70" cy="72" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
+              <ellipse cx="30" cy="42" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
+              <ellipse cx="70" cy="42" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
             </motion.g>
 
-            {/* Frigy's arm opening the door */}
+            {/* Frigy's arm coming from the left to open door */}
             <motion.g
               animate={{
-                rotate: step >= 1 ? -25 : 0,
-                x: step >= 1 ? -8 : 0,
+                x: step >= 1 ? 35 : 0,
+                rotate: step >= 1 ? 15 : 0,
               }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{ transformOrigin: "15px 60px" }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              style={{ transformOrigin: "-10px 70px" }}
             >
-              {/* Arm */}
+              {/* Upper arm */}
               <ellipse
-                cx="6"
-                cy="60"
-                rx="10"
-                ry="6"
+                cx="-15"
+                cy="70"
+                rx="18"
+                ry="8"
                 fill="hsl(160, 84%, 39%)"
               />
-              {/* Hand */}
+              {/* Forearm */}
+              <ellipse
+                cx="5"
+                cy="70"
+                rx="14"
+                ry="7"
+                fill="hsl(160, 84%, 42%)"
+              />
+              {/* Hand - bigger and rounder */}
               <motion.circle
-                cx="0"
-                cy="60"
-                r="7"
+                cx="18"
+                cy="70"
+                r="10"
                 fill="hsl(160, 84%, 48%)"
                 animate={step >= 1 ? { scale: [1, 1.1, 1] } : {}}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.4 }}
               />
               {/* Fingers */}
-              <circle cx="-4" cy="56" r="2.5" fill="hsl(160, 84%, 48%)" />
-              <circle cx="-5" cy="60" r="2.5" fill="hsl(160, 84%, 48%)" />
-              <circle cx="-4" cy="64" r="2.5" fill="hsl(160, 84%, 48%)" />
+              <circle cx="26" cy="64" r="3.5" fill="hsl(160, 84%, 48%)" />
+              <circle cx="28" cy="70" r="3.5" fill="hsl(160, 84%, 48%)" />
+              <circle cx="26" cy="76" r="3.5" fill="hsl(160, 84%, 48%)" />
+              <circle cx="22" cy="80" r="3" fill="hsl(160, 84%, 48%)" />
             </motion.g>
 
             {/* Little feet */}
@@ -191,29 +206,33 @@ const HeroAnimationCompact = () => {
             <ellipse cx="65" cy="108" rx="10" ry="5" fill="hsl(160, 84%, 32%)" />
           </motion.svg>
 
-          {/* Scan effect overlay */}
-          <AnimatePresence>
-            {step === 2 && (
+          {/* Scan effect overlay - longer and smoother */}
+          {step >= 1 && (
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
               <motion.div
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div
-                  className="absolute w-20 h-0.5 bg-primary rounded-full"
-                  initial={{ y: -30, opacity: 0 }}
-                  animate={{ y: [-30, 30], opacity: [0, 1, 1, 0] }}
-                  transition={{ duration: 0.6, ease: "linear" }}
-                  style={{ boxShadow: "0 0 15px hsl(var(--primary))" }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+                className="absolute w-24 h-1 bg-primary rounded-full"
+                animate={{ 
+                  y: [-45, 45, -45],
+                  opacity: [0.3, 1, 1, 0.3]
+                }}
+                transition={{ 
+                  duration: 2,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                  repeatType: "loop"
+                }}
+                style={{ boxShadow: "0 0 20px hsl(var(--primary)), 0 0 40px hsl(var(--primary))" }}
+              />
+            </motion.div>
+          )}
           
           {/* Label */}
           <motion.span
-            className="block text-center text-[9px] font-medium text-muted-foreground mt-1"
+            className="block text-center text-[10px] font-medium text-muted-foreground mt-1"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -222,44 +241,42 @@ const HeroAnimationCompact = () => {
           </motion.span>
         </motion.div>
 
-        {/* Arrow/Flow indicator */}
+        {/* Arrow/Flow indicator - always visible after first appearance */}
         <motion.div
           initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: step >= 1 ? 1 : 0, scale: step >= 1 ? 1 : 0 }}
-          transition={{ duration: 0.2 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
           className="flex flex-col items-center gap-1"
         >
           <motion.div
             animate={{ x: [0, 4, 0] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
+            transition={{ duration: 0.8, repeat: Infinity }}
             className="flex items-center"
           >
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Sparkles className="w-5 h-5 text-primary" />
           </motion.div>
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: step >= 2 ? 20 : 0 }}
+            animate={{ width: 24 }}
+            transition={{ delay: 0.8, duration: 0.3 }}
             className="h-0.5 bg-gradient-to-r from-primary to-primary/30 rounded-full"
           />
-          <span className="text-[8px] text-primary font-medium">AI</span>
+          <span className="text-[9px] text-primary font-semibold">AI</span>
         </motion.div>
 
-        {/* Recipe Cards */}
+        {/* Recipe Cards - always visible after first appearance */}
         <motion.div
           initial={{ opacity: 0, x: 15, scale: 0.9 }}
-          animate={{ 
-            opacity: step >= 2 ? 1 : 0, 
-            x: step >= 2 ? 0 : 15,
-            scale: step >= 2 ? 1 : 0.9
-          }}
-          transition={{ duration: 0.25, type: "spring", stiffness: 200 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 1, type: "spring", stiffness: 150 }}
           className="relative"
         >
           {/* Background card */}
           <motion.div
             className="absolute top-1 left-1 w-20 h-24 bg-card/50 border border-border/50 rounded-xl"
             initial={{ opacity: 0 }}
-            animate={{ opacity: step >= 2 ? 0.5 : 0 }}
+            animate={{ opacity: 0.5 }}
+            transition={{ delay: 1.2 }}
           />
           
           {/* Main recipe card */}
@@ -288,26 +305,28 @@ const HeroAnimationCompact = () => {
               </div>
             </div>
             
-            {/* Success badge */}
-            <AnimatePresence>
-              {step >= 3 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-[10px] text-primary-foreground font-bold">✓</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Success badge - pulses */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, delay: 1.5 }}
+              className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg"
+            >
+              <motion.span 
+                className="text-[10px] text-primary-foreground font-bold"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                ✓
+              </motion.span>
+            </motion.div>
           </div>
           
           {/* Second recipe peek */}
           <motion.div
             initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: step >= 3 ? 1 : 0, y: step >= 3 ? 0 : 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.8 }}
             className="mt-1.5 w-20 p-1.5 bg-card border border-border rounded-lg"
           >
             <div className="flex items-center gap-1">
@@ -318,10 +337,10 @@ const HeroAnimationCompact = () => {
           
           {/* Label */}
           <motion.span
-            className="block text-center text-[9px] font-medium text-muted-foreground mt-1"
+            className="block text-center text-[10px] font-medium text-muted-foreground mt-1"
             initial={{ opacity: 0 }}
-            animate={{ opacity: step >= 2 ? 1 : 0 }}
-            transition={{ delay: 0.1 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.3 }}
           >
             Rezepte
           </motion.span>
