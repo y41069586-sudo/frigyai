@@ -34,7 +34,7 @@ import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
 import { WheelPicker } from "./WheelPicker";
 import { MacroRing } from "./MacroRing";
-import HeroAnimation from "./HeroAnimation";
+import HeroAnimationCompact from "./HeroAnimationCompact";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -1716,7 +1716,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
               >
-                <HeroAnimation />
+                <HeroAnimationCompact />
               </motion.div>
               
               <motion.p 
