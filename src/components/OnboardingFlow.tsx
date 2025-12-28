@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -9,7 +10,7 @@ import {
   Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
   Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding, Bike,
   GraduationCap, Medal, Crown, Armchair, Footprints, Carrot, CupSoda,
-  Droplets, Coffee, Mail, Lock, Eye, EyeOff, Save
+  Droplets, Coffee, Mail, Lock, Eye, EyeOff, Save, Beef, Cherry
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -134,6 +135,7 @@ const AnalysisProgress = () => {
 };
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
+  const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const { user, signUp, signIn } = useAuth();
@@ -565,40 +567,92 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "success-stats":
         const stats = [
-          { value: 94, suffix: "%", label: t.onboardingReachGoals, color: "from-green-500 to-emerald-500" },
-          { value: 2.5, suffix: "kg", label: t.onboardingAvgWeightLoss, color: "from-blue-500 to-cyan-500" },
-          { value: 15, suffix: "min", label: t.onboardingTimeSaved, color: "from-purple-500 to-pink-500" },
+          { value: 94, suffix: "%", label: t.onboardingReachGoals, color: "bg-primary" },
+          { value: 2.5, suffix: "kg", label: t.onboardingAvgWeightLoss, color: "bg-blue-500" },
+          { value: 15, suffix: "min", label: t.onboardingTimeSaved, color: "bg-purple-500" },
         ];
         return (
           <StepCard step="success-stats">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="text-5xl mb-4">
-                📊
+              {/* Animated Bar Chart */}
+              <motion.div 
+                className="relative w-full max-w-xs h-40 flex items-end justify-center gap-4 mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {[
+                  { height: 60, color: "bg-primary/70", delay: 0.2 },
+                  { height: 85, color: "bg-primary/85", delay: 0.4 },
+                  { height: 100, color: "bg-primary", delay: 0.6 },
+                ].map((bar, i) => (
+                  <motion.div
+                    key={i}
+                    className={`w-12 rounded-t-xl ${bar.color} relative overflow-hidden`}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${bar.height}%` }}
+                    transition={{ 
+                      delay: bar.delay, 
+                      duration: 0.8, 
+                      ease: [0.34, 1.56, 0.64, 1] 
+                    }}
+                  >
+                    {/* Shimmer effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent"
+                      initial={{ y: "100%" }}
+                      animate={{ y: "-100%" }}
+                      transition={{ delay: bar.delay + 0.5, duration: 0.6 }}
+                    />
+                  </motion.div>
+                ))}
+                
+                {/* Trend arrow */}
+                <motion.div
+                  className="absolute -right-2 top-2"
+                  initial={{ opacity: 0, x: -20, y: 20 }}
+                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  transition={{ delay: 1.2, duration: 0.4 }}
+                >
+                  <TrendingUp className="w-8 h-8 text-primary" />
+                </motion.div>
               </motion.div>
               
-              <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
+              <motion.h1 
+                className="text-2xl font-bold mb-1" 
+                initial={{ opacity: 0, y: 15 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.8, duration: 0.3 }}
+              >
                 {t.onboardingRealResults}
               </motion.h1>
-              <motion.p className="text-muted-foreground/50 text-xs mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
+              <motion.p 
+                className="text-muted-foreground/50 text-xs mb-6" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.9, duration: 0.3 }}
+              >
                 {t.onboardingBasedOnData}
               </motion.p>
               
-              <div className="w-full max-w-sm space-y-4">
+              <div className="w-full max-w-sm space-y-3">
                 {stats.map((stat, i) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1, duration: 0.3 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.0 + i * 0.15, duration: 0.4 }}
                     className="relative p-4 rounded-2xl bg-card border border-border overflow-hidden"
                   >
-                    <motion.div 
-                      className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0`}
-                      animate={{ opacity: 0.08 }}
-                      transition={{ delay: 0.5 + i * 0.1, duration: 0.5 }}
-                    />
-                    <div className="relative flex items-center gap-4">
-                      <span className="text-3xl font-bold text-primary">{stat.value}{stat.suffix}</span>
+                    <div className="flex items-center gap-4">
+                      <motion.span 
+                        className="text-2xl font-bold text-primary"
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1.2 + i * 0.15, duration: 0.3, ease: "backOut" }}
+                      >
+                        {stat.value}{stat.suffix}
+                      </motion.span>
                       <span className="text-sm text-muted-foreground/60">{stat.label}</span>
                     </div>
                   </motion.div>
@@ -1635,75 +1689,143 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "fridge-intro":
+        // Preview recipes for after fridge scan
+        const previewRecipes = [
+          { name: language === 'de' ? "Gemüse-Curry" : "Veggie Curry", time: "20 min", icon: Salad },
+          { name: language === 'de' ? "Hähnchen-Bowl" : "Chicken Bowl", time: "25 min", icon: Beef },
+          { name: language === 'de' ? "Frischer Salat" : "Fresh Salad", time: "10 min", icon: Cherry },
+        ];
+        
         return (
           <StepCard step="fridge-intro">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <h1 className="text-2xl font-bold mb-1">{t.letFridgeDecide}</h1>
-              <p className="text-muted-foreground/60 text-xs mb-8">{t.weBuildMeals}</p>
+              <p className="text-muted-foreground/60 text-xs mb-6">{t.weBuildMeals}</p>
               
-              {/* Animated Fridge */}
+              {/* Animated Fridge with Open Door */}
               <motion.div 
-                className="relative w-36 h-48"
-                animate={{ rotate: fridgeScan ? [0, -2, 2, -1, 1, 0] : 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                className="relative w-44 h-52 mb-4"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4 }}
               >
+                {/* Fridge Body */}
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-200 to-slate-300 rounded-2xl border-2 border-slate-400 shadow-2xl">
+                  {/* Fridge Handle */}
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-slate-500 rounded-full" />
+                  {/* Separator line */}
+                  <div className="absolute left-0 right-0 top-[38%] h-[2px] bg-slate-400" />
+                </div>
+                
+                {/* Open Door */}
                 <motion.div 
-                  className="absolute inset-0 bg-gradient-to-b from-slate-100 to-slate-200 rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden"
-                  animate={{ boxShadow: fridgeScan ? "0 0 30px rgba(34, 197, 94, 0.4)" : "0 10px 30px rgba(0,0,0,0.1)" }}
-                  transition={{ duration: 0.5 }}
+                  className="absolute top-0 bottom-0 left-0 w-[85%] origin-left bg-gradient-to-br from-slate-100 to-slate-200 rounded-l-2xl border-2 border-slate-300 shadow-xl"
+                  initial={{ rotateY: 0 }}
+                  animate={{ rotateY: fridgeOpen ? -50 : 0 }}
+                  transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+                  style={{ transformStyle: "preserve-3d", perspective: 1000 }}
                 >
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-slate-400 rounded-full" />
-                  <div className="absolute left-0 right-0 top-[35%] h-[2px] bg-slate-300" />
-                  
-                  {fridgeOpen && (
-                    <>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-slate-400 rounded-full" />
+                </motion.div>
+                
+                {/* Food items inside (visible when door opens) */}
+                {fridgeOpen && (
+                  <motion.div 
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-1 pt-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.3 }}
+                  >
+                    <div className="grid grid-cols-3 gap-2 px-4">
                       {[
-                        { icon: CupSoda, color: 'text-blue-400', pos: 'top-3 left-2' },
-                        { icon: Apple, color: 'text-red-400', pos: 'top-3 right-4' },
-                        { icon: Carrot, color: 'text-orange-400', pos: 'top-[40%] left-2' },
-                        { icon: Milk, color: 'text-yellow-400', pos: 'top-[40%] right-4' },
-                        { icon: Salad, color: 'text-green-400', pos: 'bottom-3 left-1/2 -translate-x-1/2' },
+                        { icon: Apple, color: 'text-red-500', bg: 'bg-red-100' },
+                        { icon: Carrot, color: 'text-orange-500', bg: 'bg-orange-100' },
+                        { icon: Milk, color: 'text-blue-400', bg: 'bg-blue-100' },
+                        { icon: Egg, color: 'text-yellow-500', bg: 'bg-yellow-100' },
+                        { icon: Salad, color: 'text-green-500', bg: 'bg-green-100' },
+                        { icon: Cherry, color: 'text-pink-500', bg: 'bg-pink-100' },
                       ].map((item, i) => {
                         const IconComponent = item.icon;
                         return (
                           <motion.div 
                             key={i}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 + i * 0.1, duration: 0.3 }}
-                            className={`absolute ${item.pos} ${item.color}`}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.9 + i * 0.1, duration: 0.3, ease: "backOut" }}
+                            className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center shadow-sm`}
                           >
-                            <IconComponent className="w-5 h-5" />
+                            <IconComponent className={`w-4 h-4 ${item.color}`} />
                           </motion.div>
                         );
                       })}
-                    </>
-                  )}
-                </motion.div>
+                    </div>
+                  </motion.div>
+                )}
                 
+                {/* Scan line effect */}
                 {fridgeScan && (
-                  <motion.div className="absolute inset-0 pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                  <motion.div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}>
                     <motion.div
                       className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
                       animate={{ top: ["10%", "90%", "10%"] }}
                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      style={{ boxShadow: "0 0 15px hsl(var(--primary))" }}
+                      style={{ boxShadow: "0 0 20px hsl(var(--primary))" }}
                     />
                   </motion.div>
                 )}
               </motion.div>
               
-              <motion.p className="text-xs text-muted-foreground/40 mt-6 mb-4 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.3 }}>
-                "{t.iHandlePlanning}"
+              {/* Recipe Preview - nicht klickbar */}
+              <motion.div 
+                className="w-full max-w-xs mb-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.8, duration: 0.4 }}
+              >
+                <p className="text-xs text-muted-foreground/50 mb-2">{language === 'de' ? 'Mögliche Rezepte:' : 'Possible recipes:'}</p>
+                <div className="flex gap-2">
+                  {previewRecipes.map((recipe, i) => {
+                    const IconComponent = recipe.icon;
+                    return (
+                      <motion.div
+                        key={recipe.name}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 0.7, scale: 1 }}
+                        transition={{ delay: 2.0 + i * 0.1, duration: 0.3 }}
+                        className="flex-1 p-2 rounded-xl bg-muted/50 border border-border/50 cursor-default"
+                      >
+                        <IconComponent className="w-5 h-5 text-primary/60 mx-auto mb-1" />
+                        <p className="text-[10px] font-medium text-muted-foreground/60 truncate">{recipe.name}</p>
+                        <p className="text-[8px] text-muted-foreground/40">{recipe.time}</p>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+              
+              <motion.p 
+                className="text-xs text-muted-foreground/40 mb-4 italic" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 2.4, duration: 0.3 }}
+              >
+                &quot;{t.iHandlePlanning}&quot;
               </motion.p>
               
               <div className="flex flex-col gap-3 w-full max-w-xs">
-                <Button onClick={goNext} className="w-full h-12 rounded-xl">
+                <Button 
+                  onClick={() => {
+                    // Save onboarding as complete and navigate to scan page
+                    localStorage.setItem("onboardingComplete", "true");
+                    navigate("/scan");
+                  }} 
+                  className="w-full h-12 rounded-xl"
+                >
                   <Camera className="w-5 h-5 mr-2" />
                   {t.onboardingScanFridgeNow}
                 </Button>
                 <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground/60 text-sm">
-                  {t.skipForNowBtn}
+                  {language === 'de' ? 'Weiter' : 'Continue'}
                 </Button>
               </div>
             </div>
