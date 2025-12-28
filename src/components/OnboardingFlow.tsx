@@ -1694,52 +1694,49 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.h1 
                 className="text-2xl font-bold mb-1" 
-                initial={{ opacity: 0, y: 15 }} 
+                initial={{ opacity: 0, y: 10 }} 
                 animate={{ opacity: 1, y: 0 }} 
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
               >
                 {t.letFridgeDecide}
               </motion.h1>
               <motion.p 
-                className="text-muted-foreground/60 text-xs mb-4" 
+                className="text-muted-foreground/60 text-xs mb-3" 
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
-                transition={{ delay: 0.1, duration: 0.3 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
               >
                 {t.weBuildMeals}
               </motion.p>
               
-              {/* Hero Animation */}
+              {/* Hero Animation - Compact */}
               <motion.div
-                className="w-full max-w-sm mb-4"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
+                className="w-full max-w-xs mb-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15, duration: 0.2 }}
               >
                 <HeroAnimationCompact />
               </motion.div>
               
               <motion.p 
-                className="text-xs text-muted-foreground/40 mb-4 italic" 
+                className="text-[11px] text-muted-foreground/50 mb-3 italic" 
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
-                transition={{ delay: 0.5, duration: 0.3 }}
+                transition={{ delay: 0.3, duration: 0.2 }}
               >
                 &quot;{t.iHandlePlanning}&quot;
               </motion.p>
               
-              <div className="flex flex-col gap-3 w-full max-w-xs">
+              <div className="flex flex-col gap-2 w-full max-w-xs">
                 <Button 
-                  onClick={() => {
-                    // Don't mark onboarding complete - just let them try the scan
-                    navigate("/scan");
-                  }} 
-                  className="w-full h-12 rounded-xl"
+                  onClick={() => navigate("/scan")} 
+                  className="w-full h-11 rounded-xl"
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   {t.onboardingScanFridgeNow}
                 </Button>
-                <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground/60 text-sm">
+                <Button onClick={goNext} variant="ghost" className="w-full h-9 text-muted-foreground/60 text-sm">
                   {language === 'de' ? 'Weiter' : 'Continue'}
                 </Button>
               </div>
