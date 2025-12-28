@@ -12,6 +12,11 @@ const HeroAnimationCompact = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // step 0: closed, arm at side
+  // step 1: arm reaches to handle
+  // step 2: door opens, scan starts
+  // step 3: recipes visible
+
   return (
     <div className="relative w-full h-52 flex items-center justify-center">
       {/* Background gradient */}
@@ -25,20 +30,16 @@ const HeroAnimationCompact = () => {
       {/* Main Container */}
       <div className="relative flex items-center justify-center gap-5 px-4">
         
-        {/* Frigy Mascot with animated door */}
+        {/* Frigy Mascot */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
           className="relative"
         >
-          <motion.svg
-            viewBox="0 0 100 130"
+          <svg
+            viewBox="0 0 110 130"
             className="w-28 h-36"
-            animate={{ 
-              rotate: step >= 1 ? [-1, 1, -1] : 0
-            }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
           >
             <defs>
               <linearGradient id="fridgeBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -50,6 +51,10 @@ const HeroAnimationCompact = () => {
                 <stop offset="0%" stopColor="hsl(158, 64%, 58%)" />
                 <stop offset="100%" stopColor="hsl(160, 84%, 45%)" />
               </linearGradient>
+              <linearGradient id="freezerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="hsl(158, 64%, 55%)" />
+                <stop offset="100%" stopColor="hsl(160, 84%, 42%)" />
+              </linearGradient>
               <filter id="softShadow">
                 <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.15"/>
               </filter>
@@ -57,7 +62,7 @@ const HeroAnimationCompact = () => {
 
             {/* Main Fridge Body */}
             <rect
-              x="15"
+              x="25"
               y="10"
               width="70"
               height="95"
@@ -69,163 +74,190 @@ const HeroAnimationCompact = () => {
             {/* Inside of fridge (visible when door opens) */}
             <motion.g
               initial={{ opacity: 0 }}
-              animate={{ opacity: step >= 1 ? 1 : 0 }}
+              animate={{ opacity: step >= 2 ? 1 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              <rect x="18" y="13" width="64" height="89" rx="7" fill="hsl(160, 20%, 96%)" />
-              {/* Shelf line - between freezer and fridge */}
-              <line x1="20" y1="55" x2="80" y2="55" stroke="hsl(160, 15%, 85%)" strokeWidth="2" />
-              {/* Food items inside - Freezer section (top) */}
-              <rect x="25" y="20" width="22" height="12" rx="3" fill="hsl(200, 70%, 75%)" /> {/* Ice cream */}
-              <rect x="52" y="18" width="18" height="15" rx="2" fill="hsl(40, 50%, 85%)" /> {/* Frozen pizza */}
-              <rect x="25" y="38" width="15" height="10" rx="2" fill="hsl(180, 40%, 70%)" /> {/* Frozen peas */}
-              <rect x="45" y="40" width="12" height="8" rx="2" fill="hsl(30, 60%, 65%)" /> {/* Nuggets */}
+              <rect x="28" y="40" width="64" height="62" rx="6" fill="hsl(160, 20%, 96%)" />
+              {/* Shelf line */}
+              <line x1="30" y1="70" x2="90" y2="70" stroke="hsl(160, 15%, 85%)" strokeWidth="2" />
               
-              {/* Food items inside - Fridge section (bottom) */}
-              <circle cx="32" cy="68" r="7" fill="hsl(25, 95%, 58%)" /> {/* Orange */}
-              <circle cx="52" cy="68" r="5" fill="hsl(0, 80%, 55%)" /> {/* Apple */}
-              <rect x="62" y="62" width="10" height="14" rx="2" fill="hsl(45, 85%, 55%)" /> {/* Cheese */}
-              <rect x="26" y="80" width="14" height="18" rx="3" fill="hsl(200, 65%, 60%)" /> {/* Milk */}
-              <circle cx="58" cy="88" r="6" fill="hsl(120, 55%, 50%)" /> {/* Lettuce */}
-              <circle cx="72" cy="80" r="5" fill="hsl(50, 85%, 55%)" /> {/* Lemon */}
+              {/* Food items inside fridge */}
+              <circle cx="40" cy="52" r="6" fill="hsl(25, 95%, 58%)" /> {/* Orange */}
+              <circle cx="58" cy="52" r="5" fill="hsl(0, 80%, 55%)" /> {/* Apple */}
+              <rect x="70" y="46" width="10" height="14" rx="2" fill="hsl(45, 85%, 55%)" /> {/* Cheese */}
+              <rect x="34" y="76" width="12" height="18" rx="3" fill="hsl(200, 65%, 60%)" /> {/* Milk */}
+              <circle cx="60" cy="82" r="5" fill="hsl(120, 55%, 50%)" /> {/* Lettuce */}
+              <circle cx="76" cy="85" r="6" fill="hsl(50, 85%, 55%)" /> {/* Lemon */}
             </motion.g>
 
-            {/* Fridge Door - animated opening */}
+            {/* Freezer door (top) - stays closed */}
+            <rect
+              x="25"
+              y="10"
+              width="70"
+              height="28"
+              rx="10"
+              fill="url(#freezerGradient)"
+            />
+            {/* Fix bottom corners of freezer */}
+            <rect x="25" y="28" width="70" height="10" fill="url(#freezerGradient)" />
+            {/* Freezer handle */}
+            <rect x="85" y="18" width="5" height="10" rx="2.5" fill="hsl(160, 50%, 70%)" />
+
+            {/* Fridge Door (bottom) - animated opening */}
             <motion.g
-              style={{ transformOrigin: "85px 57px" }}
+              style={{ transformOrigin: "95px 70px" }}
               animate={{
-                rotateY: step >= 1 ? -75 : 0,
-                x: step >= 1 ? -30 : 0,
-                scaleX: step >= 1 ? 0.25 : 1
+                rotateY: step >= 2 ? -70 : 0,
+                x: step >= 2 ? -28 : 0,
+                scaleX: step >= 2 ? 0.3 : 1
               }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
               <rect
-                x="15"
-                y="10"
+                x="25"
+                y="38"
                 width="70"
-                height="95"
+                height="67"
                 rx="10"
                 fill="url(#fridgeDoorGradient)"
               />
-              {/* Freezer/Fridge divider line - in the middle */}
-              <line x1="18" y1="55" x2="82" y2="55" stroke="hsl(160, 64%, 35%)" strokeWidth="2" />
+              {/* Fix top corners */}
+              <rect x="25" y="38" width="70" height="10" fill="url(#fridgeDoorGradient)" />
               
-              {/* Door handles */}
-              <rect x="75" y="65" width="5" height="16" rx="2.5" fill="hsl(160, 50%, 70%)" />
-              <rect x="75" y="28" width="5" height="12" rx="2.5" fill="hsl(160, 50%, 70%)" />
+              {/* Door handle */}
+              <rect x="85" y="60" width="5" height="18" rx="2.5" fill="hsl(160, 50%, 70%)" />
 
-              {/* Frigy's cute face - in the freezer section (top half) */}
+              {/* Frigy's cute face on the fridge door */}
               {/* Eyes */}
-              <ellipse cx="38" cy="32" rx="7" ry="8" fill="white" />
-              <ellipse cx="62" cy="32" rx="7" ry="8" fill="white" />
+              <ellipse cx="48" cy="58" rx="7" ry="8" fill="white" />
+              <ellipse cx="72" cy="58" rx="7" ry="8" fill="white" />
               <motion.ellipse
-                cx="40"
-                cy="34"
+                cx="50"
+                cy="60"
                 rx="3.5"
                 ry="4"
                 fill="hsl(220, 20%, 20%)"
-                animate={{ cx: [40, 41, 40, 39, 40] }}
+                animate={{ cx: [50, 51, 50, 49, 50] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
               <motion.ellipse
-                cx="64"
-                cy="34"
+                cx="74"
+                cy="60"
                 rx="3.5"
                 ry="4"
                 fill="hsl(220, 20%, 20%)"
-                animate={{ cx: [64, 65, 64, 63, 64] }}
+                animate={{ cx: [74, 75, 74, 73, 74] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
-              <circle cx="43" cy="31" r="1.5" fill="white" />
-              <circle cx="67" cy="31" r="1.5" fill="white" />
+              <circle cx="53" cy="57" r="1.5" fill="white" />
+              <circle cx="77" cy="57" r="1.5" fill="white" />
               
               {/* Smile - bigger when door opens */}
               <motion.path
-                d="M 42 46 Q 50 54 58 46"
+                d="M 52 75 Q 60 84 68 75"
                 fill="none"
                 stroke="hsl(220, 20%, 20%)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 animate={{
-                  d: step >= 1 
-                    ? ["M 40 44 Q 50 58 60 44", "M 40 45 Q 50 60 60 45", "M 40 44 Q 50 58 60 44"]
-                    : ["M 42 46 Q 50 54 58 46", "M 42 47 Q 50 56 58 47", "M 42 46 Q 50 54 58 46"]
+                  d: step >= 2 
+                    ? ["M 50 73 Q 60 88 70 73", "M 50 74 Q 60 90 70 74", "M 50 73 Q 60 88 70 73"]
+                    : ["M 52 75 Q 60 84 68 75", "M 52 76 Q 60 86 68 76", "M 52 75 Q 60 84 68 75"]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
               
               {/* Blush */}
-              <ellipse cx="30" cy="42" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
-              <ellipse cx="70" cy="42" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
+              <ellipse cx="40" cy="70" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
+              <ellipse cx="80" cy="70" rx="5" ry="2.5" fill="hsl(350, 80%, 80%)" opacity="0.6" />
             </motion.g>
 
-            {/* Frigy's arm coming from the left to open door */}
+            {/* Arm attached to the left side of fridge body */}
             <motion.g
+              style={{ transformOrigin: "25px 65px" }}
               animate={{
-                x: step >= 1 ? 35 : 0,
-                rotate: step >= 1 ? 15 : 0,
+                rotate: step === 0 ? 0 : step === 1 ? 25 : 45,
               }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              style={{ transformOrigin: "-10px 70px" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              {/* Upper arm */}
+              {/* Shoulder connection to fridge */}
               <ellipse
-                cx="-15"
-                cy="70"
-                rx="18"
-                ry="8"
+                cx="22"
+                cy="65"
+                rx="8"
+                ry="10"
                 fill="hsl(160, 84%, 39%)"
               />
-              {/* Forearm */}
-              <ellipse
-                cx="5"
-                cy="70"
-                rx="14"
-                ry="7"
+              
+              {/* Upper arm */}
+              <motion.ellipse
+                cx="12"
+                cy="68"
+                rx="10"
+                ry="6"
                 fill="hsl(160, 84%, 42%)"
-              />
-              {/* Hand - bigger and rounder */}
-              <motion.circle
-                cx="18"
-                cy="70"
-                r="10"
-                fill="hsl(160, 84%, 48%)"
-                animate={step >= 1 ? { scale: [1, 1.1, 1] } : {}}
+                animate={{
+                  cx: step === 0 ? 12 : step === 1 ? 18 : 22,
+                  cy: step === 0 ? 68 : step === 1 ? 62 : 55,
+                }}
                 transition={{ duration: 0.4 }}
               />
-              {/* Fingers */}
-              <circle cx="26" cy="64" r="3.5" fill="hsl(160, 84%, 48%)" />
-              <circle cx="28" cy="70" r="3.5" fill="hsl(160, 84%, 48%)" />
-              <circle cx="26" cy="76" r="3.5" fill="hsl(160, 84%, 48%)" />
-              <circle cx="22" cy="80" r="3" fill="hsl(160, 84%, 48%)" />
+              
+              {/* Hand */}
+              <motion.g
+                animate={{
+                  x: step === 0 ? 0 : step === 1 ? 55 : 60,
+                  y: step === 0 ? 0 : step === 1 ? -8 : -12,
+                }}
+                transition={{ duration: 0.4 }}
+              >
+                <circle
+                  cx="5"
+                  cy="68"
+                  r="8"
+                  fill="hsl(160, 84%, 48%)"
+                />
+                {/* Fingers - curl around handle when grabbing */}
+                <motion.g
+                  animate={{
+                    rotate: step >= 1 ? -30 : 0,
+                  }}
+                  style={{ transformOrigin: "5px 68px" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <circle cx="11" cy="63" r="3" fill="hsl(160, 84%, 48%)" />
+                  <circle cx="13" cy="68" r="3" fill="hsl(160, 84%, 48%)" />
+                  <circle cx="11" cy="73" r="3" fill="hsl(160, 84%, 48%)" />
+                </motion.g>
+              </motion.g>
             </motion.g>
 
             {/* Little feet */}
-            <ellipse cx="35" cy="108" rx="10" ry="5" fill="hsl(160, 84%, 32%)" />
-            <ellipse cx="65" cy="108" rx="10" ry="5" fill="hsl(160, 84%, 32%)" />
-          </motion.svg>
+            <ellipse cx="45" cy="108" rx="10" ry="5" fill="hsl(160, 84%, 32%)" />
+            <ellipse cx="75" cy="108" rx="10" ry="5" fill="hsl(160, 84%, 32%)" />
+          </svg>
 
-          {/* Scan effect overlay - longer and smoother */}
-          {step >= 1 && (
+          {/* Scan effect overlay */}
+          {step >= 2 && (
             <motion.div
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
               <motion.div
-                className="absolute w-24 h-1 bg-primary rounded-full"
+                className="absolute w-20 h-1 bg-primary rounded-full"
+                style={{ left: '25%' }}
                 animate={{ 
-                  y: [-45, 45, -45],
-                  opacity: [0.3, 1, 1, 0.3]
+                  y: [-20, 40, -20],
+                  opacity: [0.4, 1, 1, 0.4]
                 }}
                 transition={{ 
                   duration: 2,
                   ease: "easeInOut",
                   repeat: Infinity,
-                  repeatType: "loop"
                 }}
-                style={{ boxShadow: "0 0 20px hsl(var(--primary)), 0 0 40px hsl(var(--primary))" }}
+                initial={{ boxShadow: "0 0 20px hsl(var(--primary)), 0 0 40px hsl(var(--primary))" }}
               />
             </motion.div>
           )}
@@ -241,7 +273,7 @@ const HeroAnimationCompact = () => {
           </motion.span>
         </motion.div>
 
-        {/* Arrow/Flow indicator - always visible after first appearance */}
+        {/* Arrow/Flow indicator - always visible */}
         <motion.div
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -264,7 +296,7 @@ const HeroAnimationCompact = () => {
           <span className="text-[9px] text-primary font-semibold">AI</span>
         </motion.div>
 
-        {/* Recipe Cards - always visible after first appearance */}
+        {/* Recipe Cards - always visible */}
         <motion.div
           initial={{ opacity: 0, x: 15, scale: 0.9 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -305,7 +337,7 @@ const HeroAnimationCompact = () => {
               </div>
             </div>
             
-            {/* Success badge - pulses */}
+            {/* Success badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
