@@ -1691,55 +1691,57 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "fridge-intro":
         return (
           <StepCard step="fridge-intro">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.h1 
-                className="text-2xl font-bold mb-1" 
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ duration: 0.2 }}
-              >
-                {t.letFridgeDecide}
-              </motion.h1>
-              <motion.p 
-                className="text-muted-foreground/60 text-xs mb-3" 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                transition={{ delay: 0.1, duration: 0.2 }}
-              >
-                {t.weBuildMeals}
-              </motion.p>
-              
-              {/* Hero Animation - Compact */}
+            <div className="flex flex-col items-center justify-center text-center px-4 w-full min-h-[60vh]">
+              {/* Hero Animation - Full width */}
               <motion.div
-                className="w-full max-w-xs mb-3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.15, duration: 0.2 }}
+                className="w-full max-w-sm mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
                 <HeroAnimationCompact />
               </motion.div>
               
+              <motion.h1 
+                className="text-xl font-bold mb-2" 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                {t.letFridgeDecide}
+              </motion.h1>
+              
               <motion.p 
-                className="text-[11px] text-muted-foreground/50 mb-3 italic" 
+                className="text-muted-foreground/70 text-sm mb-6 max-w-xs" 
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
-                transition={{ delay: 0.3, duration: 0.2 }}
+                transition={{ delay: 0.15, duration: 0.2 }}
               >
-                &quot;{t.iHandlePlanning}&quot;
+                {t.weBuildMeals}
               </motion.p>
               
-              <div className="flex flex-col gap-2 w-full max-w-xs">
+              <div className="flex flex-col gap-3 w-full max-w-xs">
                 <Button 
                   onClick={() => navigate("/scan")} 
-                  className="w-full h-11 rounded-xl"
+                  className="w-full h-12 rounded-xl text-base font-semibold"
+                  size="lg"
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   {t.onboardingScanFridgeNow}
                 </Button>
-                <Button onClick={goNext} variant="ghost" className="w-full h-9 text-muted-foreground/60 text-sm">
-                  {language === 'de' ? 'Weiter' : 'Continue'}
+                <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground/60">
+                  {language === 'de' ? 'Später scannen' : 'Scan later'}
                 </Button>
               </div>
+              
+              <motion.p 
+                className="text-[11px] text-muted-foreground/40 mt-6 italic max-w-xs" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.4, duration: 0.2 }}
+              >
+                &quot;{t.iHandlePlanning}&quot;
+              </motion.p>
             </div>
           </StepCard>
         );
