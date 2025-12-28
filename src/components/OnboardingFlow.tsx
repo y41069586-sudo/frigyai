@@ -1731,7 +1731,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <div className="flex flex-col gap-3 w-full max-w-xs">
                 <Button 
                   onClick={() => {
-                    localStorage.setItem("onboardingComplete", "true");
+                    // Don't mark onboarding complete - just let them try the scan
                     navigate("/scan");
                   }} 
                   className="w-full h-12 rounded-xl"
