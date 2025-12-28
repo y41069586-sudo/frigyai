@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import CookingPrefsSelector from "@/components/CookingPrefsSelector";
 import { Card } from "@/components/ui/card";
 import { useShoppingListSync } from "@/hooks/useShoppingListSync";
+import { useAICache } from "@/hooks/useAICache";
+import { checkImageQuality, ImageQualityResult } from "@/utils/imageQualityCheck";
 
 const FREE_SCAN_LIMIT = 2;
 
@@ -36,8 +38,10 @@ const ScanPage = () => {
   const [showPrefsSelector, setShowPrefsSelector] = useState(false);
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
   const [syncedItems, setSyncedItems] = useState<string[]>([]);
+  const [imageQualityIssue, setImageQualityIssue] = useState<ImageQualityResult | null>(null);
 
   const { syncWithScannedIngredients } = useShoppingListSync();
+  const { getCached, setCached, cacheHits } = useAICache();
 
   const isPremium = subscriptionStatus?.subscribed;
 
@@ -83,6 +87,9 @@ const ScanPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset quality issue
+    setImageQualityIssue(null);
+
     // Check if user is logged in
     if (!user) {
       toast({
@@ -105,24 +112,50 @@ const ScanPage = () => {
       return;
     }
 
+    // Convert image to base64
+    const base64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+
     // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setImagePreview(base64);
+
+    // Check image quality before proceeding
+    const qualityCheck = await checkImageQuality(base64);
+    if (!qualityCheck.isGoodQuality) {
+      setImageQualityIssue(qualityCheck);
+      toast({
+        title: qualityCheck.message,
+        description: qualityCheck.suggestion,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check cache first - save API costs!
+    const cachedResult = getCached(base64);
+    if (cachedResult) {
+      console.log('[SCAN] Using cached result');
+      setIngredients(cachedResult.ingredients || []);
+      
+      if (cachedResult.ingredients && cachedResult.ingredients.length > 0) {
+        const syncResult = syncWithScannedIngredients(cachedResult.ingredients);
+        setSyncedItems(syncResult.matchedItems);
+      }
+      
+      toast({
+        title: t.ingredientsRecognized,
+        description: `${cachedResult.ingredients?.length || 0} ${t.ingredientsFound}. (aus Cache)`,
+      });
+      return;
+    }
 
     setUploading(true);
     setAnalyzing(true);
 
     try {
-      // Convert image to base64
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-
       // Call edge function to analyze image
       const { data, error } = await supabase.functions.invoke(
         "analyze-ingredients",
@@ -159,6 +192,9 @@ const ScanPage = () => {
         setImagePreview(null);
         return;
       }
+
+      // Cache the result for future use
+      setCached(base64, data);
 
       setIngredients(data.ingredients || []);
       
@@ -355,6 +391,44 @@ const ScanPage = () => {
                   >
                     <Crown className="h-4 w-4 mr-2" />
                     {t.upgradeToPremium}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Image Quality Warning - Friendly message for dark/bright images */}
+          {imageQualityIssue && !imageQualityIssue.isGoodQuality && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20"
+            >
+              <div className="flex items-start gap-3">
+                {imageQualityIssue.issue === 'too_dark' ? (
+                  <Moon className="h-6 w-6 text-amber-500 mt-0.5" />
+                ) : (
+                  <Sun className="h-6 w-6 text-amber-500 mt-0.5" />
+                )}
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-600 dark:text-amber-400">
+                    {imageQualityIssue.message}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {imageQualityIssue.suggestion}
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setImagePreview(null);
+                      setImageQualityIssue(null);
+                      document.getElementById("imageInput")?.click();
+                    }}
+                    className="mt-3"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Neues Foto machen
                   </Button>
                 </div>
               </div>
