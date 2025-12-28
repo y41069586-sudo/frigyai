@@ -113,10 +113,10 @@ export const onboardingSteps: OnboardingStep[] = [
   // Phase 2: Social Proof & Trust
   "social-proof",
   "success-stats",
-  "tracker-intro",
   
-  // Phase 3: Fridge Scan Demo
+  // Phase 3: Fridge Scan Demo (before personalization)
   "fridge-intro",
+  "tracker-intro",
   
   // Phase 4: Body Data Collection
   "body-basics",
