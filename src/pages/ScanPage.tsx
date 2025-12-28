@@ -90,16 +90,7 @@ const ScanPage = () => {
     // Reset quality issue
     setImageQualityIssue(null);
 
-    // Check if user is logged in
-    if (!user) {
-      toast({
-        title: t.loginRequired,
-        description: t.loginToUseScanner,
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
+    // Guest users can scan without login - no auth check required
 
     // Check scan limit for free users
     if (!isPremium && scansRemaining !== null && scansRemaining <= 0) {
