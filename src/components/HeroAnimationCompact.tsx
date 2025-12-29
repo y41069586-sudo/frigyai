@@ -2,219 +2,129 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
 const HeroAnimationCompact = () => {
-  const [phase, setPhase] = useState(0);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPhase((p) => (p + 1) % 4);
-    }, 2500);
+    const cycle = () => {
+      setScanning(true);
+      setTimeout(() => setScanning(false), 2000);
+    };
+    
+    cycle();
+    const interval = setInterval(cycle, 4000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="h-full min-h-[280px] bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex items-center justify-center rounded-2xl overflow-hidden relative">
+    <div className="h-full min-h-[280px] bg-gradient-to-b from-muted/50 to-background flex items-center justify-center rounded-2xl overflow-hidden relative">
       
-      {/* Abstract Background Shapes */}
+      {/* Ambient Glow */}
       <motion.div
         animate={{
-          scale: [1, 1.2, 1],
-          rotate: [0, 180, 360],
+          opacity: scanning ? 0.6 : 0.2,
+          scale: scanning ? 1.1 : 1,
         }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute w-[400px] h-[400px] rounded-full bg-gradient-to-r from-primary/10 to-transparent blur-3xl"
+        transition={{ duration: 0.5 }}
+        className="absolute w-48 h-48 bg-primary/30 rounded-full blur-3xl"
       />
-      
-      {/* Floating Orbs */}
-      {[...Array(5)].map((_, i) => (
-        <motion.div
-          key={i}
-          animate={{
-            y: [0, -20, 0],
-            x: [0, i % 2 === 0 ? 10 : -10, 0],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 3 + i * 0.5,
-            repeat: Infinity,
-            delay: i * 0.3,
-          }}
-          className="absolute rounded-full bg-primary/20"
-          style={{
-            width: 20 + i * 15,
-            height: 20 + i * 15,
-            left: `${15 + i * 18}%`,
-            top: `${20 + (i % 3) * 25}%`,
-          }}
-        />
-      ))}
 
-      {/* Main Frigy Character - Geometric Style */}
+      {/* Fridge Container */}
       <div className="relative z-10">
         
-        {/* Character Container */}
+        {/* Modern Fridge */}
         <motion.div
-          animate={{
-            y: [0, -8, 0],
-          }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ scale: scanning ? 1.02 : 1 }}
+          transition={{ duration: 0.3 }}
           className="relative"
         >
-          {/* Body - Rounded Rectangle */}
-          <motion.div
-            animate={{
-              scale: phase === 2 ? 1.05 : 1,
-            }}
-            transition={{ duration: 0.4 }}
-            className="w-28 h-36 bg-gradient-to-b from-card to-muted rounded-3xl shadow-2xl relative overflow-hidden border border-border/50"
-          >
-            {/* Shine Effect */}
-            <motion.div
-              animate={{
-                x: phase === 1 ? ["-100%", "200%"] : "-100%",
-              }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
-            />
+          {/* Fridge Body */}
+          <div className="w-32 h-48 bg-gradient-to-b from-card via-card to-muted/80 rounded-2xl shadow-2xl border border-border/50 overflow-hidden relative">
             
-            {/* Top Section - Freezer */}
-            <div className="h-10 bg-muted-foreground/5 border-b border-border/30 flex items-center justify-center">
-              <div className="w-8 h-1 bg-border/50 rounded-full" />
-            </div>
+            {/* Glass Reflection */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent rounded-2xl" />
             
-            {/* Face Area */}
-            <div className="flex flex-col items-center justify-center h-20 gap-3">
-              {/* Eyes */}
-              <div className="flex gap-4">
-                <motion.div
-                  animate={{
-                    scaleY: phase === 3 ? [1, 0.1, 1] : 1,
-                  }}
-                  transition={{ duration: 0.15 }}
-                  className="w-3 h-3 rounded-full bg-foreground"
-                />
-                <motion.div
-                  animate={{
-                    scaleY: phase === 3 ? [1, 0.1, 1] : 1,
-                  }}
-                  transition={{ duration: 0.15, delay: 0.05 }}
-                  className="w-3 h-3 rounded-full bg-foreground"
-                />
+            {/* Freezer Section */}
+            <div className="h-14 border-b border-border/40 relative">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-6 bg-border/60 rounded-full" />
+              {/* Freezer Vent Lines */}
+              <div className="absolute left-4 top-4 flex flex-col gap-1">
+                <div className="w-8 h-0.5 bg-border/30 rounded-full" />
+                <div className="w-6 h-0.5 bg-border/30 rounded-full" />
+                <div className="w-7 h-0.5 bg-border/30 rounded-full" />
               </div>
-              
-              {/* Mouth */}
-              <motion.div
-                animate={{
-                  width: phase === 2 ? 16 : 10,
-                  height: phase === 2 ? 8 : 4,
-                }}
-                transition={{ duration: 0.3 }}
-                className="bg-foreground/80 rounded-full"
-              />
             </div>
             
-            {/* Handle */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1 h-10 bg-border/60 rounded-full" />
+            {/* Main Section */}
+            <div className="h-[132px] relative">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-12 bg-border/60 rounded-full" />
+              
+              {/* Food Items Inside (visible through glass effect) */}
+              <div className="absolute inset-3 flex flex-wrap gap-1.5 opacity-40">
+                <div className="w-4 h-6 bg-orange-400/60 rounded-sm" />
+                <div className="w-5 h-4 bg-green-400/60 rounded-sm" />
+                <div className="w-3 h-5 bg-yellow-400/60 rounded-sm" />
+                <div className="w-4 h-3 bg-red-400/60 rounded-sm" />
+                <div className="w-6 h-4 bg-blue-300/60 rounded-sm" />
+              </div>
+            </div>
+
+            {/* Scan Line */}
+            {scanning && (
+              <motion.div
+                initial={{ top: 0 }}
+                animate={{ top: "100%" }}
+                transition={{ duration: 1.8, ease: "easeInOut" }}
+                className="absolute left-0 right-0 h-1 bg-gradient-to-b from-primary via-primary to-transparent shadow-[0_0_20px_4px] shadow-primary/50"
+              />
+            )}
+          </div>
+
+          {/* Scan Frame Corners */}
+          <motion.div
+            animate={{ opacity: scanning ? 1 : 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute -inset-3 pointer-events-none"
+          >
+            {/* Top Left */}
+            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary rounded-tl-lg" />
+            {/* Top Right */}
+            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary rounded-tr-lg" />
+            {/* Bottom Left */}
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl-lg" />
+            {/* Bottom Right */}
+            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br-lg" />
           </motion.div>
 
-          {/* Arms */}
-          <motion.div
-            animate={{
-              rotate: phase === 1 ? -20 : phase === 2 ? 15 : 0,
-            }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="absolute -left-4 top-16 w-4 h-12 bg-gradient-to-b from-card to-muted rounded-full origin-top border border-border/50"
-          />
-          <motion.div
-            animate={{
-              rotate: phase === 1 ? 20 : phase === 2 ? -15 : 0,
-            }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="absolute -right-4 top-16 w-4 h-12 bg-gradient-to-b from-card to-muted rounded-full origin-top border border-border/50"
-          />
-          
-          {/* Feet */}
-          <div className="flex justify-center gap-6 -mt-1">
+          {/* Scan Pulse Ring */}
+          {scanning && (
             <motion.div
-              animate={{ y: phase === 0 ? [0, -3, 0] : 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-6 h-4 bg-gradient-to-b from-card to-muted rounded-b-xl border border-border/50 border-t-0"
+              initial={{ scale: 0.9, opacity: 0.8 }}
+              animate={{ scale: 1.3, opacity: 0 }}
+              transition={{ duration: 1.5, repeat: 1 }}
+              className="absolute -inset-4 border-2 border-primary/50 rounded-3xl"
             />
-            <motion.div
-              animate={{ y: phase === 0 ? [0, -3, 0] : 0 }}
-              transition={{ duration: 0.3, delay: 0.15 }}
-              className="w-6 h-4 bg-gradient-to-b from-card to-muted rounded-b-xl border border-border/50 border-t-0"
-            />
-          </div>
+          )}
         </motion.div>
 
-        {/* Floating Food Items */}
+        {/* Status Indicator */}
         <motion.div
           animate={{
-            opacity: phase >= 2 ? 1 : 0,
-            scale: phase >= 2 ? 1 : 0.5,
-            y: phase >= 2 ? 0 : 20,
+            opacity: scanning ? 1 : 0.6,
           }}
-          transition={{ duration: 0.4 }}
-          className="absolute -top-8 -right-6 text-2xl"
+          className="mt-4 flex items-center justify-center gap-2"
         >
-          🥕
+          <motion.div
+            animate={{
+              scale: scanning ? [1, 1.2, 1] : 1,
+            }}
+            transition={{ duration: 0.6, repeat: scanning ? Infinity : 0 }}
+            className="w-2 h-2 rounded-full bg-primary"
+          />
+          <span className="text-xs text-muted-foreground font-medium tracking-wide">
+            {scanning ? "Scanning..." : "Ready"}
+          </span>
         </motion.div>
-        <motion.div
-          animate={{
-            opacity: phase >= 2 ? 1 : 0,
-            scale: phase >= 2 ? 1 : 0.5,
-            y: phase >= 2 ? 0 : 20,
-          }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="absolute -top-4 -left-8 text-2xl"
-        >
-          🥦
-        </motion.div>
-        <motion.div
-          animate={{
-            opacity: phase >= 2 ? 1 : 0,
-            scale: phase >= 2 ? 1 : 0.5,
-            y: phase >= 2 ? 0 : 20,
-          }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="absolute top-4 -right-10 text-xl"
-        >
-          🍎
-        </motion.div>
-
-        {/* Sparkle Effects */}
-        {phase === 3 && (
-          <>
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5] }}
-              transition={{ duration: 0.6 }}
-              className="absolute -top-12 left-1/2 -translate-x-1/2 text-xl"
-            >
-              ✨
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5] }}
-              transition={{ duration: 0.6, delay: 0.15 }}
-              className="absolute -top-8 -left-4 text-lg"
-            >
-              ⭐
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5] }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-              className="absolute -top-6 right-0 text-lg"
-            >
-              ✨
-            </motion.div>
-          </>
-        )}
       </div>
-
-      {/* Bottom Gradient Fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
     </div>
   );
 };
