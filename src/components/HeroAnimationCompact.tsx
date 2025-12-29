@@ -55,35 +55,45 @@ const HeroAnimationCompact = () => {
             />
 
             {/* Fridge Body */}
-            <div className="w-32 h-48 bg-white rounded-2xl shadow-lg relative overflow-hidden border border-slate-200/60">
+            <div className="w-36 h-52 bg-gradient-to-b from-slate-100 to-slate-200 rounded-3xl shadow-xl relative overflow-hidden border-2 border-slate-300/50">
               
-              {/* Freezer Section */}
-              <div className="h-12 border-b border-slate-100 p-2 flex items-center justify-center gap-2">
-                <span className="text-sm">🧊</span>
-                <span className="text-sm">🍦</span>
+              {/* Top Highlight */}
+              <div className="absolute top-0 left-2 right-2 h-2 bg-gradient-to-b from-white/60 to-transparent rounded-t-3xl" />
+              
+              {/* Freezer Door */}
+              <div className="h-16 mx-1 mt-1 bg-gradient-to-b from-white to-slate-50 rounded-t-2xl rounded-b-lg shadow-sm border border-slate-200/80 p-2 flex items-center justify-center gap-3">
+                <span className="text-lg">🧊</span>
+                <span className="text-lg">🍦</span>
+                <span className="text-lg">🥶</span>
               </div>
               
-              {/* Main Section with Food */}
-              <div className="p-2">
+              {/* Gap between doors */}
+              <div className="h-1 bg-slate-300/40" />
+              
+              {/* Main Door */}
+              <div className="mx-1 mb-1 h-[130px] bg-gradient-to-b from-white to-slate-50 rounded-t-lg rounded-b-2xl shadow-sm border border-slate-200/80 p-2">
                 {/* Shelf 1 */}
-                <div className="flex justify-around mb-1.5 pb-1.5 border-b border-slate-100/60">
-                  <span className="text-base">🥛</span>
-                  <span className="text-base">🧀</span>
-                  <span className="text-base">🧈</span>
+                <div className="flex justify-around mb-2 pb-2 border-b border-slate-200/50">
+                  <span className="text-lg">🥛</span>
+                  <span className="text-lg">🧀</span>
+                  <span className="text-lg">🧈</span>
                 </div>
                 {/* Shelf 2 */}
-                <div className="flex justify-around mb-1.5 pb-1.5 border-b border-slate-100/60">
-                  <span className="text-base">🥚</span>
-                  <span className="text-base">🍅</span>
-                  <span className="text-base">🥕</span>
+                <div className="flex justify-around mb-2 pb-2 border-b border-slate-200/50">
+                  <span className="text-lg">🥚</span>
+                  <span className="text-lg">🍅</span>
+                  <span className="text-lg">🥕</span>
                 </div>
-                {/* Shelf 3 */}
-                <div className="flex justify-around">
-                  <span className="text-base">🥬</span>
-                  <span className="text-base">🍎</span>
-                  <span className="text-base">🫐</span>
+                {/* Drawer */}
+                <div className="flex justify-around bg-slate-100/50 rounded-lg py-1">
+                  <span className="text-lg">🥬</span>
+                  <span className="text-lg">🍎</span>
+                  <span className="text-lg">🫐</span>
                 </div>
               </div>
+              
+              {/* Side shadow for depth */}
+              <div className="absolute top-0 right-0 w-2 h-full bg-gradient-to-l from-slate-300/30 to-transparent" />
 
               {/* Scan Line */}
               {phase === "scanning" && (
