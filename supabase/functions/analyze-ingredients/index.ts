@@ -76,7 +76,9 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    console.log("[ANALYZE-INGREDIENTS] Scanning with shopping list:", shoppingList?.length || 0, "items");
+    console.log("[ANALYZE-INGREDIENTS] Starting scan for user:", userId);
+    console.log("[ANALYZE-INGREDIENTS] Shopping list items:", shoppingList?.length || 0);
+    console.log("[ANALYZE-INGREDIENTS] Image size:", Math.round(image.length / 1024), "KB");
 
     const systemPrompt = `Du bist ein EXTREM PRÄZISER Lebensmittel-Scanner im TIEFENANALYSE-MODUS.
 
@@ -115,30 +117,71 @@ AUSGABE: JSON mit dieser Struktur:
   "confidenceLevel": "high/medium/low"
 }`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: [
-            { type: "text", text: "Analysiere dieses Bild im Detail und liste ALLE erkennbaren Lebensmittel auf:" },
-            { type: "image_url", image_url: { url: image, detail: "high" } }
-          ]}
-        ],
-        max_tokens: 1000,
-      }),
-    });
+    const startTime = Date.now();
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout (edge function limit is 60s)
 
-    if (!response.ok) {
-      console.error("[ANALYZE-INGREDIENTS] AI error:", response.status);
-      throw new Error(`AI error: ${response.status}`);
+    let aiResponse: Response;
+    try {
+      console.log("[ANALYZE-INGREDIENTS] Calling OpenAI Vision API...");
+      
+      aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: [
+              { type: "text", text: "Analysiere dieses Bild im Detail und liste ALLE erkennbaren Lebensmittel auf:" },
+              { type: "image_url", image_url: { url: image, detail: "low" } } // "low" for faster response
+            ]}
+          ],
+          max_tokens: 800,
+        }),
+      });
+
+      clearTimeout(timeoutId);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error("[ANALYZE-INGREDIENTS] Request timed out after 55s");
+        return new Response(JSON.stringify({ 
+          error: "timeout", 
+          message: "Analyse dauerte zu lange. Bitte mit besserem Licht erneut versuchen.",
+          ingredients: [],
+          ingredientsWithQuantity: [],
+          confidenceLevel: "low"
+        }), { status: 408, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      
+      throw fetchError;
     }
 
-    const data = await response.json();
+    const elapsed = Date.now() - startTime;
+    console.log("[ANALYZE-INGREDIENTS] OpenAI response in", elapsed, "ms, status:", aiResponse.status);
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("[ANALYZE-INGREDIENTS] AI error:", aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: "rate_limit", 
+          message: "Zu viele Anfragen. Bitte warte kurz." 
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      
+      throw new Error(`AI error: ${aiResponse.status}`);
+    }
+
+    const data = await aiResponse.json();
     const content = data.choices?.[0]?.message?.content || "{}";
-    console.log("[ANALYZE-INGREDIENTS] Response:", content.substring(0, 200));
+    console.log("[ANALYZE-INGREDIENTS] AI Content:", content.substring(0, 300));
 
     let ingredients: string[] = [];
     let ingredientsWithQuantity: any[] = [];
@@ -151,8 +194,10 @@ AUSGABE: JSON mit dieser Struktur:
         ingredients = parsed.ingredients || [];
         ingredientsWithQuantity = parsed.ingredientsWithQuantity || [];
         confidenceLevel = parsed.confidenceLevel || "medium";
+        console.log("[ANALYZE-INGREDIENTS] Parsed", ingredients.length, "ingredients");
       }
     } catch (e) {
+      console.log("[ANALYZE-INGREDIENTS] JSON parse failed, trying fallback...");
       // Fallback: Parse as simple array
       const arrayMatch = content.match(/\[.*\]/s);
       if (arrayMatch) {
@@ -160,6 +205,7 @@ AUSGABE: JSON mit dieser Struktur:
       } else {
         ingredients = content.replace(/[\[\]"]/g, "").split(",").map((s: string) => s.trim()).filter((s: string) => s);
       }
+      console.log("[ANALYZE-INGREDIENTS] Fallback found", ingredients.length, "ingredients");
     }
 
     // Einkaufslisten-Abgleich
