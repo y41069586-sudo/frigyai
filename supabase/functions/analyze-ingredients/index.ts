@@ -80,48 +80,16 @@ serve(async (req) => {
     console.log("[ANALYZE-INGREDIENTS] Shopping list items:", shoppingList?.length || 0);
     console.log("[ANALYZE-INGREDIENTS] Image size:", Math.round(image.length / 1024), "KB");
 
-    const systemPrompt = `Du bist ein EXTREM PRÄZISER Lebensmittel-Scanner im TIEFENANALYSE-MODUS.
-
-AUFGABE: Analysiere das Bild und liste JEDES EINZELNE Lebensmittel auf.
-
-ERKENNUNGSREGELN:
-1. SCHAUE GENAU HIN - auch teilweise verdeckte Produkte zählen
-2. LIES ALLE ETIKETTEN und Markennamen (z.B. "Philadelphia Frischkäse" statt nur "Frischkäse")
-3. ERKENNE VERPACKUNGSTYPEN:
-   - Flaschen (Saft, Milch, Sauce, Öl, Wasser)
-   - Dosen (Tomaten, Bohnen, Mais, Thunfisch)
-   - Gläser (Marmelade, Senf, Gewürze, Pesto)
-   - Tüten (Nudeln, Reis, Chips, Brot)
-   - Boxen/Kartons (Eier, Milch, Müsli)
-   - Plastikschalen (Fleisch, Wurst, Käse, Salat)
-   - Frischware ohne Verpackung (Obst, Gemüse)
-4. KATEGORISIERE ALLES:
-   - Proteine: Fleisch, Fisch, Eier, Tofu, Wurst
-   - Milchprodukte: Milch, Butter, Käse, Joghurt, Sahne, Quark
-   - Gemüse: Tomaten, Paprika, Zwiebeln, Knoblauch, Karotten, Gurken, Salat
-   - Obst: Äpfel, Bananen, Orangen, Beeren
-   - Kohlenhydrate: Nudeln, Reis, Brot, Kartoffeln
-   - Saucen/Gewürze: Ketchup, Senf, Mayo, Pesto, Öl, Essig
-   - Getränke: Saft, Milch, Wasser
-5. SCHÄTZE MENGEN ein (z.B. "ca. 500g", "1 Packung", "3 Stück")
-6. UNSICHERE Produkte mit "(evtl.)" markieren
-
-AUSGABE: JSON mit dieser Struktur:
-{
-  "ingredients": ["Zutat 1", "Zutat 2"],
-  "ingredientsWithQuantity": [
-    {"name": "Hähnchenbrust", "quantity": "ca. 400g", "confidence": "high"},
-    {"name": "Paprika rot", "quantity": "2 Stück", "confidence": "high"},
-    {"name": "Sahne", "quantity": "1 Becher", "confidence": "medium"}
-  ],
-  "confidenceLevel": "high/medium/low"
-}`;
+    // Kompakter Prompt für schnellere Antwort
+    const systemPrompt = `Lebensmittel-Scanner. Liste ALLE Lebensmittel im Bild auf.
+Format JSON: {"ingredients":["Zutat1","Zutat2"],"confidenceLevel":"high/medium/low"}
+Kurze Namen, deutsch.`;
 
     const startTime = Date.now();
     
-    // Create AbortController for timeout
+    // 15 Sekunden Timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout (edge function limit is 60s)
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     let aiResponse: Response;
     try {
@@ -136,11 +104,11 @@ AUSGABE: JSON mit dieser Struktur:
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: [
-              { type: "text", text: "Analysiere dieses Bild im Detail und liste ALLE erkennbaren Lebensmittel auf:" },
-              { type: "image_url", image_url: { url: image, detail: "low" } } // "low" for faster response
+              { type: "text", text: "Liste alle Lebensmittel:" },
+              { type: "image_url", image_url: { url: image, detail: "low" } }
             ]}
           ],
-          max_tokens: 800,
+          max_tokens: 300,
         }),
       });
 
@@ -184,7 +152,6 @@ AUSGABE: JSON mit dieser Struktur:
     console.log("[ANALYZE-INGREDIENTS] AI Content:", content.substring(0, 300));
 
     let ingredients: string[] = [];
-    let ingredientsWithQuantity: any[] = [];
     let confidenceLevel = "medium";
     
     try {
@@ -192,7 +159,6 @@ AUSGABE: JSON mit dieser Struktur:
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         ingredients = parsed.ingredients || [];
-        ingredientsWithQuantity = parsed.ingredientsWithQuantity || [];
         confidenceLevel = parsed.confidenceLevel || "medium";
         console.log("[ANALYZE-INGREDIENTS] Parsed", ingredients.length, "ingredients");
       }
@@ -232,11 +198,10 @@ AUSGABE: JSON mit dieser Struktur:
 
     return new Response(JSON.stringify({ 
       ingredients, 
-      ingredientsWithQuantity,
       confidenceLevel,
       scansRemaining, 
       isPremium,
-      shoppingListMatches, // Gefundene Einkaufslisten-Items
+      shoppingListMatches,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("[ANALYZE-INGREDIENTS] Error:", error);
