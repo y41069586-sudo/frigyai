@@ -7,9 +7,9 @@ const HeroAnimationCompact = () => {
 
   useEffect(() => {
     // Auto-open after delay
-    const openTimer = setTimeout(() => setOpen(true), 800);
+    const openTimer = setTimeout(() => setOpen(true), 1000);
     // Show recipe after door opens
-    const recipeTimer = setTimeout(() => setShowRecipe(true), 2000);
+    const recipeTimer = setTimeout(() => setShowRecipe(true), 2500);
     
     return () => {
       clearTimeout(openTimer);
@@ -20,148 +20,149 @@ const HeroAnimationCompact = () => {
   return (
     <div className="relative w-full h-56 flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-b from-background to-muted/30 rounded-2xl"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      />
+      <div className="absolute inset-0 bg-gradient-to-b from-background to-muted/20 rounded-2xl" />
 
       {/* Main Scene Container */}
-      <div className="relative flex items-end justify-center gap-4 px-4">
+      <div className="relative flex items-center justify-center px-4">
         
-        {/* Frigy Character with Fridge */}
-        <div className="relative w-[180px] h-[220px]">
+        {/* SCENE */}
+        <div className="relative" style={{ width: 180, height: 260 }}>
           
-          {/* FRIGY HEAD */}
+          {/* FRIGY HEAD - on top with subtle bounce */}
           <motion.div
-            initial={{ y: -30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 120, delay: 0.2 }}
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-[80px] h-[80px] rounded-full z-[3]"
-            style={{ background: "hsl(var(--primary))" }}
-          >
-            {/* Eyes */}
-            <motion.div 
-              className="absolute w-2 h-2 rounded-full bg-primary-foreground"
-              style={{ top: 28, left: 22 }}
-              animate={{ scaleY: [1, 0.2, 1] }}
-              transition={{ repeat: Infinity, duration: 3, delay: 1.5 }}
-            />
-            <motion.div 
-              className="absolute w-2 h-2 rounded-full bg-primary-foreground"
-              style={{ top: 28, right: 22 }}
-              animate={{ scaleY: [1, 0.2, 1] }}
-              transition={{ repeat: Infinity, duration: 3, delay: 1.5 }}
-            />
-            {/* Smile - grows when open */}
-            <motion.div
-              animate={{ 
-                scaleX: open ? 1.2 : 0.8,
-                scaleY: open ? 1 : 0.6
-              }}
-              transition={{ duration: 0.4 }}
-              className="absolute w-6 h-3 border-b-2 border-primary-foreground rounded-b-full"
-              style={{ bottom: 20, left: '50%', transform: 'translateX(-50%)' }}
-            />
-          </motion.div>
-
-          {/* ARM - attached to body, reaches for handle */}
-          <motion.div
-            initial={{ rotate: 20, x: -45 }}
-            animate={{
-              rotate: open ? -30 : 20,
-              x: open ? -30 : -45,
-              y: open ? 15 : 0,
-            }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            className="absolute z-[2]"
-            style={{
-              top: 82,
-              left: '50%',
-              transformOrigin: "top center",
+            animate={{ y: [0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            className="absolute left-1/2 -translate-x-1/2 w-[80px] h-[80px] rounded-full z-[5]"
+            style={{ 
+              top: -14,
+              background: "hsl(var(--primary))"
             }}
           >
-            {/* Upper arm */}
+            {/* Eyes on head */}
             <div 
-              className="w-[14px] h-[55px] rounded-xl"
-              style={{ background: "hsl(var(--primary))" }}
+              className="absolute w-[7px] h-[7px] rounded-full bg-primary-foreground"
+              style={{ top: 32, left: 24 }}
             />
-            {/* Hand */}
-            <motion.div
-              animate={{ rotate: open ? 25 : 0 }}
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full"
-              style={{ background: "hsl(var(--primary))" }}
+            <div 
+              className="absolute w-[7px] h-[7px] rounded-full bg-primary-foreground"
+              style={{ top: 32, right: 24 }}
+            />
+            {/* Smile */}
+            <div
+              className="absolute w-5 h-2.5 border-b-2 border-primary-foreground rounded-b-full"
+              style={{ bottom: 18, left: '50%', transform: 'translateX(-50%)' }}
             />
           </motion.div>
 
           {/* FRIDGE BODY */}
           <div
-            className="absolute bottom-0 w-full h-[140px] rounded-2xl overflow-hidden border-2 border-primary/20"
-            style={{ background: "hsl(var(--muted))" }}
+            className="absolute bottom-0 w-full rounded-[16px] overflow-hidden"
+            style={{ 
+              height: 200,
+              background: "hsl(var(--muted))"
+            }}
           >
-            {/* Interior shelves (visible when door opens) */}
-            <div className="absolute inset-0 p-2 flex flex-col justify-around">
-              <div className="h-[1px] bg-border rounded mt-4" />
-              <div className="h-[1px] bg-border rounded" />
-              <div className="h-[1px] bg-border rounded mb-4" />
+            {/* FREEZER SECTION WITH BLINKING EYES */}
+            <div
+              className="flex items-center justify-center gap-3"
+              style={{ 
+                height: 56,
+                background: "hsl(var(--muted-foreground) / 0.1)"
+              }}
+            >
+              <motion.div
+                animate={{ scaleY: [1, 0.15, 1] }}
+                transition={{ repeat: Infinity, duration: 4 }}
+                className="w-[7px] h-[7px] rounded-full bg-foreground/70"
+              />
+              <motion.div
+                animate={{ scaleY: [1, 0.15, 1] }}
+                transition={{ repeat: Infinity, duration: 4, delay: 0.15 }}
+                className="w-[7px] h-[7px] rounded-full bg-foreground/70"
+              />
             </div>
 
-            {/* Food items inside */}
+            {/* Food items inside (visible when open) */}
             <motion.div 
-              className="absolute inset-0 p-3 flex flex-wrap gap-1.5 items-center justify-center"
+              className="absolute inset-0 pt-14 p-3 flex flex-wrap gap-1.5 items-start justify-center content-start"
               animate={{ opacity: open ? 1 : 0 }}
-              transition={{ delay: 0.4, duration: 0.3 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
             >
-              <div className="w-4 h-6 rounded bg-red-400" />
-              <div className="w-6 h-4 rounded bg-yellow-400" />
-              <div className="w-4 h-7 rounded bg-green-500" />
-              <div className="w-5 h-5 rounded-full bg-orange-400" />
-              <div className="w-5 h-6 rounded bg-blue-300" />
-              <div className="w-6 h-4 rounded bg-purple-300" />
+              <div className="w-4 h-5 rounded bg-red-400/80" />
+              <div className="w-5 h-4 rounded bg-yellow-400/80" />
+              <div className="w-3 h-6 rounded bg-green-500/80" />
+              <div className="w-4 h-4 rounded-full bg-orange-400/80" />
+              <div className="w-4 h-5 rounded bg-blue-300/80" />
+              <div className="w-5 h-3 rounded bg-purple-300/80" />
+              <div className="w-3 h-4 rounded bg-pink-300/80" />
+              <div className="w-4 h-3 rounded bg-amber-400/80" />
             </motion.div>
 
-            {/* DOOR */}
+            {/* DOOR + ARM GROUP - arm attached to door */}
             <motion.div
               onClick={() => setOpen(!open)}
-              animate={{ rotateY: open ? -75 : 0 }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
-              className="absolute left-0 top-0 w-full h-full cursor-pointer"
+              animate={{ rotateY: open ? -70 : 0 }}
+              transition={{ duration: 0.9, ease: "easeInOut" }}
+              className="absolute bottom-0 w-full cursor-pointer"
               style={{
+                height: 144,
                 background: "hsl(var(--card))",
                 transformOrigin: "left center",
                 transformStyle: "preserve-3d",
-                boxShadow: open ? "8px 0 16px rgba(0,0,0,0.08)" : "none",
+                boxShadow: open ? "8px 0 20px rgba(0,0,0,0.08)" : "none",
               }}
             >
-              {/* Door surface */}
-              <div className="absolute inset-2 border border-border/50 rounded-lg" />
+              {/* Door border detail */}
+              <div className="absolute inset-1.5 border border-border/40 rounded-lg" />
               
               {/* HANDLE */}
               <div
-                className="absolute right-2.5 rounded bg-muted-foreground/40"
+                className="absolute right-2.5 rounded bg-muted-foreground/50"
                 style={{
-                  width: 6,
+                  width: 5,
                   height: 28,
                   top: "40%",
                 }}
               />
+
+              {/* ARM ATTACHED TO DOOR - moves with door */}
+              <div
+                className="absolute rounded-xl"
+                style={{
+                  left: -12,
+                  top: 36,
+                  width: 12,
+                  height: 70,
+                  background: "hsl(var(--primary))",
+                }}
+              />
+
+              {/* HAND */}
+              <div
+                className="absolute rounded-full"
+                style={{
+                  left: -17,
+                  top: 95,
+                  width: 24,
+                  height: 18,
+                  background: "hsl(var(--primary))",
+                }}
+              />
             </motion.div>
 
-            {/* SCAN EFFECT */}
+            {/* SCAN LIGHT */}
             {open && (
               <motion.div
-                initial={{ y: -140 }}
-                animate={{ y: 140 }}
+                initial={{ y: -144 }}
+                animate={{ y: 144 }}
                 transition={{ 
                   repeat: Infinity, 
-                  duration: 1.8, 
-                  ease: "linear",
-                  repeatDelay: 0.2
+                  duration: 1.5, 
+                  ease: "linear" 
                 }}
-                className="absolute w-full h-8 pointer-events-none z-10"
+                className="absolute bottom-0 w-full h-8 pointer-events-none"
                 style={{
-                  background: "linear-gradient(180deg, transparent, hsl(var(--primary) / 0.4), transparent)",
+                  background: "linear-gradient(180deg, transparent, hsl(var(--primary) / 0.35), transparent)",
                 }}
               />
             )}
@@ -170,23 +171,22 @@ const HeroAnimationCompact = () => {
 
         {/* Recipe Card - appears after scan */}
         <motion.div
-          initial={{ opacity: 0, x: 20, scale: 0.9 }}
+          initial={{ opacity: 0, x: 30, scale: 0.9 }}
           animate={{ 
             opacity: showRecipe ? 1 : 0, 
-            x: showRecipe ? 0 : 20,
+            x: showRecipe ? 0 : 30,
             scale: showRecipe ? 1 : 0.9
           }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-24 p-2 rounded-xl bg-card border border-border shadow-lg"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-20 p-2 rounded-xl bg-card border border-border shadow-lg"
         >
-          <div className="w-full h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 mb-1.5 flex items-center justify-center">
-            <span className="text-lg">🍳</span>
+          <div className="w-full h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 mb-1.5 flex items-center justify-center">
+            <span className="text-sm">🍳</span>
           </div>
-          <div className="h-1.5 w-16 bg-muted rounded mb-1" />
-          <div className="h-1 w-12 bg-muted/60 rounded" />
+          <div className="h-1.5 w-12 bg-muted rounded mb-1" />
+          <div className="h-1 w-10 bg-muted/60 rounded" />
           <div className="flex gap-1 mt-1.5">
-            <div className="text-[8px] px-1 py-0.5 rounded bg-primary/10 text-primary font-medium">AI</div>
-            <div className="text-[8px] text-muted-foreground">Rezept</div>
+            <div className="text-[7px] px-1 py-0.5 rounded bg-primary/10 text-primary font-medium">AI</div>
           </div>
         </motion.div>
 
@@ -196,16 +196,16 @@ const HeroAnimationCompact = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
-              transition={{ repeat: Infinity, duration: 2.5, delay: 0 }}
-              className="absolute top-8 right-6 text-primary"
+              transition={{ repeat: Infinity, duration: 2.5 }}
+              className="absolute top-6 right-4 text-primary text-sm"
             >
               ✦
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
-              transition={{ repeat: Infinity, duration: 2.5, delay: 0.8 }}
-              className="absolute top-20 right-0 text-sm text-primary/70"
+              transition={{ repeat: Infinity, duration: 2.5, delay: 0.7 }}
+              className="absolute top-16 right-0 text-xs text-primary/60"
             >
               ✦
             </motion.div>
