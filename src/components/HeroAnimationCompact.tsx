@@ -1,200 +1,220 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
 const HeroAnimationCompact = () => {
-  const [phase, setPhase] = useState<"idle" | "peek" | "open" | "scan" | "done">("idle");
+  const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    const sequence = async () => {
-      await new Promise(r => setTimeout(r, 800));
-      setPhase("peek");
-      await new Promise(r => setTimeout(r, 600));
-      setPhase("open");
-      await new Promise(r => setTimeout(r, 900));
-      setPhase("scan");
-      await new Promise(r => setTimeout(r, 2000));
-      setPhase("done");
-      await new Promise(r => setTimeout(r, 2000));
-      setPhase("idle");
-    };
-    
-    sequence();
-    const interval = setInterval(sequence, 7000);
+    const interval = setInterval(() => {
+      setPhase((p) => (p + 1) % 4);
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
-  const isOpen = phase === "open" || phase === "scan" || phase === "done";
-
   return (
-    <div className="h-full min-h-[280px] bg-gradient-to-b from-background to-muted/30 flex items-center justify-center rounded-2xl overflow-hidden">
-      <div className="relative w-[180px] h-[260px]">
+    <div className="h-full min-h-[280px] bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex items-center justify-center rounded-2xl overflow-hidden relative">
+      
+      {/* Abstract Background Shapes */}
+      <motion.div
+        animate={{
+          scale: [1, 1.2, 1],
+          rotate: [0, 180, 360],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        className="absolute w-[400px] h-[400px] rounded-full bg-gradient-to-r from-primary/10 to-transparent blur-3xl"
+      />
+      
+      {/* Floating Orbs */}
+      {[...Array(5)].map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{
+            y: [0, -20, 0],
+            x: [0, i % 2 === 0 ? 10 : -10, 0],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 3 + i * 0.5,
+            repeat: Infinity,
+            delay: i * 0.3,
+          }}
+          className="absolute rounded-full bg-primary/20"
+          style={{
+            width: 20 + i * 15,
+            height: 20 + i * 15,
+            left: `${15 + i * 18}%`,
+            top: `${20 + (i % 3) * 25}%`,
+          }}
+        />
+      ))}
+
+      {/* Main Frigy Character - Geometric Style */}
+      <div className="relative z-10">
         
-        {/* Frigy Head - peeks from behind */}
+        {/* Character Container */}
         <motion.div
           animate={{
-            y: phase === "idle" ? 10 : 0,
-            scale: phase === "done" ? 1.05 : 1,
+            y: [0, -8, 0],
           }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="absolute -top-6 left-1/2 -translate-x-1/2 z-10"
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="relative"
         >
-          <div className="w-20 h-20 rounded-full bg-primary relative">
-            {/* Eyes */}
+          {/* Body - Rounded Rectangle */}
+          <motion.div
+            animate={{
+              scale: phase === 2 ? 1.05 : 1,
+            }}
+            transition={{ duration: 0.4 }}
+            className="w-28 h-36 bg-gradient-to-b from-card to-muted rounded-3xl shadow-2xl relative overflow-hidden border border-border/50"
+          >
+            {/* Shine Effect */}
             <motion.div
               animate={{
-                scaleY: phase === "scan" ? [1, 0.1, 1] : 1,
-                x: isOpen ? 2 : 0,
+                x: phase === 1 ? ["-100%", "200%"] : "-100%",
               }}
-              transition={{ duration: 0.15, repeat: phase === "scan" ? 2 : 0, repeatDelay: 0.8 }}
-              className="absolute top-8 left-5 w-2.5 h-2.5 rounded-full bg-primary-foreground"
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
             />
-            <motion.div
-              animate={{
-                scaleY: phase === "scan" ? [1, 0.1, 1] : 1,
-                x: isOpen ? 2 : 0,
-              }}
-              transition={{ duration: 0.15, delay: 0.05, repeat: phase === "scan" ? 2 : 0, repeatDelay: 0.8 }}
-              className="absolute top-8 right-5 w-2.5 h-2.5 rounded-full bg-primary-foreground"
-            />
-            {/* Happy expression when done */}
-            <AnimatePresence>
-              {phase === "done" && (
+            
+            {/* Top Section - Freezer */}
+            <div className="h-10 bg-muted-foreground/5 border-b border-border/30 flex items-center justify-center">
+              <div className="w-8 h-1 bg-border/50 rounded-full" />
+            </div>
+            
+            {/* Face Area */}
+            <div className="flex flex-col items-center justify-center h-20 gap-3">
+              {/* Eyes */}
+              <div className="flex gap-4">
                 <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0 }}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 w-6 h-3 border-b-2 border-primary-foreground rounded-b-full"
+                  animate={{
+                    scaleY: phase === 3 ? [1, 0.1, 1] : 1,
+                  }}
+                  transition={{ duration: 0.15 }}
+                  className="w-3 h-3 rounded-full bg-foreground"
                 />
-              )}
-            </AnimatePresence>
+                <motion.div
+                  animate={{
+                    scaleY: phase === 3 ? [1, 0.1, 1] : 1,
+                  }}
+                  transition={{ duration: 0.15, delay: 0.05 }}
+                  className="w-3 h-3 rounded-full bg-foreground"
+                />
+              </div>
+              
+              {/* Mouth */}
+              <motion.div
+                animate={{
+                  width: phase === 2 ? 16 : 10,
+                  height: phase === 2 ? 8 : 4,
+                }}
+                transition={{ duration: 0.3 }}
+                className="bg-foreground/80 rounded-full"
+              />
+            </div>
+            
+            {/* Handle */}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1 h-10 bg-border/60 rounded-full" />
+          </motion.div>
+
+          {/* Arms */}
+          <motion.div
+            animate={{
+              rotate: phase === 1 ? -20 : phase === 2 ? 15 : 0,
+            }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="absolute -left-4 top-16 w-4 h-12 bg-gradient-to-b from-card to-muted rounded-full origin-top border border-border/50"
+          />
+          <motion.div
+            animate={{
+              rotate: phase === 1 ? 20 : phase === 2 ? -15 : 0,
+            }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="absolute -right-4 top-16 w-4 h-12 bg-gradient-to-b from-card to-muted rounded-full origin-top border border-border/50"
+          />
+          
+          {/* Feet */}
+          <div className="flex justify-center gap-6 -mt-1">
+            <motion.div
+              animate={{ y: phase === 0 ? [0, -3, 0] : 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-6 h-4 bg-gradient-to-b from-card to-muted rounded-b-xl border border-border/50 border-t-0"
+            />
+            <motion.div
+              animate={{ y: phase === 0 ? [0, -3, 0] : 0 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
+              className="w-6 h-4 bg-gradient-to-b from-card to-muted rounded-b-xl border border-border/50 border-t-0"
+            />
           </div>
         </motion.div>
 
-        {/* Fridge Body */}
-        <div className="absolute bottom-0 w-full h-[200px] bg-muted rounded-xl overflow-hidden shadow-lg">
-          
-          {/* Freezer Section */}
-          <div className="h-14 bg-muted-foreground/10 border-b border-border/50 flex items-center justify-center">
-            <div className="w-12 h-1.5 bg-border/60 rounded-full" />
-          </div>
+        {/* Floating Food Items */}
+        <motion.div
+          animate={{
+            opacity: phase >= 2 ? 1 : 0,
+            scale: phase >= 2 ? 1 : 0.5,
+            y: phase >= 2 ? 0 : 20,
+          }}
+          transition={{ duration: 0.4 }}
+          className="absolute -top-8 -right-6 text-2xl"
+        >
+          🥕
+        </motion.div>
+        <motion.div
+          animate={{
+            opacity: phase >= 2 ? 1 : 0,
+            scale: phase >= 2 ? 1 : 0.5,
+            y: phase >= 2 ? 0 : 20,
+          }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="absolute -top-4 -left-8 text-2xl"
+        >
+          🥦
+        </motion.div>
+        <motion.div
+          animate={{
+            opacity: phase >= 2 ? 1 : 0,
+            scale: phase >= 2 ? 1 : 0.5,
+            y: phase >= 2 ? 0 : 20,
+          }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="absolute top-4 -right-10 text-xl"
+        >
+          🍎
+        </motion.div>
 
-          {/* Fridge Interior (visible when open) */}
-          <div className="relative h-[144px] bg-muted-foreground/5">
-            {/* Shelves */}
-            <div className="absolute top-10 w-full h-0.5 bg-border/40" />
-            <div className="absolute top-20 w-full h-0.5 bg-border/40" />
-            
-            {/* Food Items */}
-            <AnimatePresence>
-              {isOpen && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ delay: 0.2 }}
-                    className="absolute top-2 left-3 w-6 h-8 bg-orange-400 rounded-md"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ delay: 0.3 }}
-                    className="absolute top-2 right-4 w-5 h-7 bg-green-400 rounded-full"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ delay: 0.4 }}
-                    className="absolute top-12 left-6 w-8 h-5 bg-yellow-300 rounded-sm"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ delay: 0.35 }}
-                    className="absolute top-12 right-3 w-4 h-6 bg-red-400 rounded-md"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ delay: 0.45 }}
-                    className="absolute top-[88px] left-4 w-7 h-4 bg-blue-300 rounded-sm"
-                  />
-                </>
-              )}
-            </AnimatePresence>
-
-            {/* Scan Line */}
-            <AnimatePresence>
-              {phase === "scan" && (
-                <motion.div
-                  initial={{ top: 0 }}
-                  animate={{ top: "100%" }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                  className="absolute left-0 w-full h-8 bg-gradient-to-b from-primary/40 via-primary/20 to-transparent pointer-events-none"
-                />
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Door */}
-          <motion.div
-            animate={{
-              rotateY: isOpen ? -70 : phase === "peek" ? -8 : 0,
-            }}
-            transition={{
-              duration: phase === "peek" ? 0.3 : 0.7,
-              ease: [0.4, 0, 0.2, 1],
-            }}
-            style={{ transformOrigin: "left center", transformStyle: "preserve-3d" }}
-            className="absolute top-14 left-0 w-full h-[144px] bg-card rounded-b-xl shadow-md"
-          >
-            {/* Handle */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-border rounded-full" />
-            
-            {/* Frigy Arm on door */}
+        {/* Sparkle Effects */}
+        {phase === 3 && (
+          <>
             <motion.div
-              animate={{
-                x: phase === "peek" ? -3 : 0,
-                rotate: isOpen ? -15 : 0,
-              }}
-              transition={{ duration: 0.3 }}
-              className="absolute -left-3 top-8 w-3 h-16 bg-primary rounded-lg origin-top"
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5] }}
+              transition={{ duration: 0.6 }}
+              className="absolute -top-12 left-1/2 -translate-x-1/2 text-xl"
             >
-              {/* Hand */}
-              <div className="absolute -bottom-2 -left-1 w-5 h-4 bg-primary rounded-full" />
+              ✨
             </motion.div>
-          </motion.div>
-        </div>
-
-        {/* Success Sparkles */}
-        <AnimatePresence>
-          {phase === "done" && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, scale: 0, y: 0 }}
-                animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5], y: -20 }}
-                transition={{ duration: 0.8 }}
-                className="absolute -top-10 left-4 text-lg"
-              >
-                ✨
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0, y: 0 }}
-                animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5], y: -15 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="absolute -top-8 right-6 text-lg"
-              >
-                ✨
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5] }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="absolute -top-8 -left-4 text-lg"
+            >
+              ⭐
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: [0, 1, 0], scale: [0, 1, 0.5] }}
+              transition={{ duration: 0.6, delay: 0.25 }}
+              className="absolute -top-6 right-0 text-lg"
+            >
+              ✨
+            </motion.div>
+          </>
+        )}
       </div>
+
+      {/* Bottom Gradient Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
     </div>
   );
 };
