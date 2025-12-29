@@ -1,127 +1,155 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
 const HeroAnimationCompact = () => {
-  const [scanning, setScanning] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "scan" | "recipes">("idle");
 
   useEffect(() => {
-    const cycle = () => {
-      setScanning(true);
-      setTimeout(() => setScanning(false), 2000);
+    const cycle = async () => {
+      setPhase("idle");
+      await new Promise(r => setTimeout(r, 1000));
+      setPhase("scan");
+      await new Promise(r => setTimeout(r, 2000));
+      setPhase("recipes");
+      await new Promise(r => setTimeout(r, 2500));
     };
     
     cycle();
-    const interval = setInterval(cycle, 4000);
+    const interval = setInterval(cycle, 6000);
     return () => clearInterval(interval);
   }, []);
 
+  const recipes = [
+    { name: "Pasta", emoji: "🍝" },
+    { name: "Salat", emoji: "🥗" },
+    { name: "Smoothie", emoji: "🥤" },
+  ];
+
   return (
-    <div className="h-full min-h-[280px] bg-gradient-to-b from-muted/50 to-background flex items-center justify-center rounded-2xl overflow-hidden relative">
+    <div className="h-full min-h-[280px] bg-gradient-to-b from-background to-muted/20 flex items-center justify-center rounded-2xl overflow-hidden relative">
       
-      {/* Ambient Glow */}
+      {/* Soft Glow */}
       <motion.div
         animate={{
-          opacity: scanning ? 0.6 : 0.2,
-          scale: scanning ? 1.1 : 1,
+          opacity: phase === "scan" ? 0.5 : 0.15,
         }}
-        transition={{ duration: 0.5 }}
-        className="absolute w-48 h-48 bg-primary/30 rounded-full blur-3xl"
+        transition={{ duration: 0.4 }}
+        className="absolute w-56 h-56 bg-primary/20 rounded-full blur-3xl"
       />
 
-      {/* Fridge Container */}
-      <div className="relative z-10">
+      <div className="relative z-10 flex items-center gap-6">
         
-        {/* Modern Fridge */}
+        {/* Fridge */}
         <motion.div
-          animate={{ scale: scanning ? 1.02 : 1 }}
-          transition={{ duration: 0.3 }}
+          animate={{ 
+            scale: phase === "scan" ? 1.02 : 1,
+            x: phase === "recipes" ? -20 : 0,
+          }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
           className="relative"
         >
           {/* Fridge Body */}
-          <div className="w-32 h-48 bg-gradient-to-b from-card via-card to-muted/80 rounded-2xl shadow-2xl border border-border/50 overflow-hidden relative">
+          <div className="w-28 h-40 bg-gradient-to-b from-white to-slate-50 dark:from-slate-100 dark:to-slate-200 rounded-2xl shadow-xl relative overflow-hidden">
             
-            {/* Glass Reflection */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent rounded-2xl" />
+            {/* Subtle Shine */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-transparent rounded-2xl" />
             
-            {/* Freezer Section */}
-            <div className="h-14 border-b border-border/40 relative">
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-6 bg-border/60 rounded-full" />
-              {/* Freezer Vent Lines */}
-              <div className="absolute left-4 top-4 flex flex-col gap-1">
-                <div className="w-8 h-0.5 bg-border/30 rounded-full" />
-                <div className="w-6 h-0.5 bg-border/30 rounded-full" />
-                <div className="w-7 h-0.5 bg-border/30 rounded-full" />
-              </div>
+            {/* Freezer */}
+            <div className="h-12 border-b border-slate-200/80 p-2 flex items-center justify-center">
+              <div className="text-lg">🧊</div>
             </div>
             
-            {/* Main Section */}
-            <div className="h-[132px] relative">
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-12 bg-border/60 rounded-full" />
-              
-              {/* Food Items Inside (visible through glass effect) */}
-              <div className="absolute inset-3 flex flex-wrap gap-1.5 opacity-40">
-                <div className="w-4 h-6 bg-orange-400/60 rounded-sm" />
-                <div className="w-5 h-4 bg-green-400/60 rounded-sm" />
-                <div className="w-3 h-5 bg-yellow-400/60 rounded-sm" />
-                <div className="w-4 h-3 bg-red-400/60 rounded-sm" />
-                <div className="w-6 h-4 bg-blue-300/60 rounded-sm" />
-              </div>
+            {/* Main Section with Food */}
+            <div className="p-2 grid grid-cols-3 gap-1">
+              <div className="text-base text-center">🥛</div>
+              <div className="text-base text-center">🧀</div>
+              <div className="text-base text-center">🥚</div>
+              <div className="text-base text-center">🥕</div>
+              <div className="text-base text-center">🍅</div>
+              <div className="text-base text-center">🥬</div>
+              <div className="text-base text-center">🍎</div>
+              <div className="text-base text-center">🧈</div>
+              <div className="text-base text-center">🫐</div>
             </div>
 
             {/* Scan Line */}
-            {scanning && (
-              <motion.div
-                initial={{ top: 0 }}
-                animate={{ top: "100%" }}
-                transition={{ duration: 1.8, ease: "easeInOut" }}
-                className="absolute left-0 right-0 h-1 bg-gradient-to-b from-primary via-primary to-transparent shadow-[0_0_20px_4px] shadow-primary/50"
-              />
-            )}
+            <AnimatePresence>
+              {phase === "scan" && (
+                <motion.div
+                  initial={{ top: 0, opacity: 0 }}
+                  animate={{ top: "100%", opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.6, ease: "easeInOut" }}
+                  className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_12px_3px] shadow-primary/60"
+                />
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Scan Frame Corners */}
-          <motion.div
-            animate={{ opacity: scanning ? 1 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute -inset-3 pointer-events-none"
-          >
-            {/* Top Left */}
-            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary rounded-tl-lg" />
-            {/* Top Right */}
-            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary rounded-tr-lg" />
-            {/* Bottom Left */}
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl-lg" />
-            {/* Bottom Right */}
-            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br-lg" />
-          </motion.div>
-
-          {/* Scan Pulse Ring */}
-          {scanning && (
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0.8 }}
-              animate={{ scale: 1.3, opacity: 0 }}
-              transition={{ duration: 1.5, repeat: 1 }}
-              className="absolute -inset-4 border-2 border-primary/50 rounded-3xl"
-            />
-          )}
+          {/* Scan Frame */}
+          <AnimatePresence>
+            {phase === "scan" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute -inset-2 pointer-events-none"
+              >
+                <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary rounded-tl" />
+                <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary rounded-tr" />
+                <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary rounded-bl" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary rounded-br" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* Status Indicator */}
+        {/* Recipe Cards */}
+        <AnimatePresence>
+          {phase === "recipes" && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-2"
+            >
+              {recipes.map((recipe, i) => (
+                <motion.div
+                  key={recipe.name}
+                  initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ delay: i * 0.12, duration: 0.3 }}
+                  className="flex items-center gap-2 bg-card/90 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg border border-border/50"
+                >
+                  <span className="text-lg">{recipe.emoji}</span>
+                  <span className="text-xs font-medium text-foreground">{recipe.name}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Status */}
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center">
         <motion.div
-          animate={{
-            opacity: scanning ? 1 : 0.6,
-          }}
-          className="mt-4 flex items-center justify-center gap-2"
+          animate={{ opacity: phase === "idle" ? 0.5 : 1 }}
+          className="flex items-center gap-1.5"
         >
           <motion.div
             animate={{
-              scale: scanning ? [1, 1.2, 1] : 1,
+              scale: phase === "scan" ? [1, 1.3, 1] : 1,
+              backgroundColor: phase === "recipes" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
             }}
-            transition={{ duration: 0.6, repeat: scanning ? Infinity : 0 }}
-            className="w-2 h-2 rounded-full bg-primary"
+            transition={{ duration: 0.5, repeat: phase === "scan" ? Infinity : 0 }}
+            className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
           />
-          <span className="text-xs text-muted-foreground font-medium tracking-wide">
-            {scanning ? "Scanning..." : "Ready"}
+          <span className="text-[10px] text-muted-foreground font-medium">
+            {phase === "idle" && "Bereit"}
+            {phase === "scan" && "Scanne..."}
+            {phase === "recipes" && "3 Rezepte gefunden"}
           </span>
         </motion.div>
       </div>
