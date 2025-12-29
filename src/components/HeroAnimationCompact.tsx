@@ -2,49 +2,67 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
 const HeroAnimationCompact = () => {
-  const [open, setOpen] = useState(false);
-  const [showRecipe, setShowRecipe] = useState(false);
+  const [phase, setPhase] = useState<'idle' | 'reaching' | 'opening' | 'scanning' | 'done'>('idle');
 
   useEffect(() => {
-    // Auto-open after delay
-    const openTimer = setTimeout(() => setOpen(true), 1000);
-    // Show recipe after door opens
-    const recipeTimer = setTimeout(() => setShowRecipe(true), 2500);
+    // Choreographed sequence
+    const timers = [
+      setTimeout(() => setPhase('reaching'), 600),      // Hand starts moving
+      setTimeout(() => setPhase('opening'), 1100),      // Door starts opening (after 0.5s hand movement)
+      setTimeout(() => setPhase('scanning'), 2300),     // Scan starts (after door fully open)
+      setTimeout(() => setPhase('done'), 4000),         // Recipe appears
+    ];
     
-    return () => {
-      clearTimeout(openTimer);
-      clearTimeout(recipeTimer);
-    };
+    return () => timers.forEach(clearTimeout);
   }, []);
+
+  const isOpening = phase === 'opening' || phase === 'scanning' || phase === 'done';
+  const isScanning = phase === 'scanning';
+  const isDone = phase === 'done';
 
   return (
     <div className="relative w-full h-56 flex items-center justify-center overflow-hidden">
-      {/* Background gradient */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background to-muted/20 rounded-2xl" />
 
-      {/* Main Scene Container */}
+      {/* Main Scene */}
       <div className="relative flex items-center justify-center px-4">
         
-        {/* SCENE */}
         <div className="relative" style={{ width: 180, height: 260 }}>
           
-          {/* FRIGY HEAD - on top with subtle bounce */}
+          {/* FRIGY HEAD - looks down at door, stops bouncing during action */}
           <motion.div
-            animate={{ y: [0, -3, 0] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            animate={{ 
+              y: phase === 'idle' ? [0, -3, 0] : 0,
+              rotate: isOpening ? 3 : 0, // Slight tilt to watch the door
+            }}
+            transition={{ 
+              y: { repeat: phase === 'idle' ? Infinity : 0, duration: 2, ease: "easeInOut" },
+              rotate: { duration: 0.4, ease: "easeOut" }
+            }}
             className="absolute left-1/2 -translate-x-1/2 w-[80px] h-[80px] rounded-full z-[5]"
             style={{ 
               top: -14,
               background: "hsl(var(--primary))"
             }}
           >
-            {/* Eyes on head */}
-            <div 
+            {/* Eyes - look toward door when opening */}
+            <motion.div 
               className="absolute w-[7px] h-[7px] rounded-full bg-primary-foreground"
+              animate={{ 
+                x: isOpening ? 2 : 0,
+                y: isOpening ? 2 : 0 
+              }}
+              transition={{ duration: 0.3 }}
               style={{ top: 32, left: 24 }}
             />
-            <div 
+            <motion.div 
               className="absolute w-[7px] h-[7px] rounded-full bg-primary-foreground"
+              animate={{ 
+                x: isOpening ? 2 : 0,
+                y: isOpening ? 2 : 0 
+              }}
+              transition={{ duration: 0.3 }}
               style={{ top: 32, right: 24 }}
             />
             {/* Smile */}
@@ -62,7 +80,7 @@ const HeroAnimationCompact = () => {
               background: "hsl(var(--muted))"
             }}
           >
-            {/* FREEZER SECTION WITH BLINKING EYES */}
+            {/* FREEZER SECTION WITH EYES */}
             <div
               className="flex items-center justify-center gap-3"
               style={{ 
@@ -70,23 +88,45 @@ const HeroAnimationCompact = () => {
                 background: "hsl(var(--muted-foreground) / 0.1)"
               }}
             >
+              {/* Left eye - looks at door, surprise blink on open */}
               <motion.div
-                animate={{ scaleY: [1, 0.15, 1] }}
-                transition={{ repeat: Infinity, duration: 4 }}
+                animate={{ 
+                  x: phase === 'reaching' ? 3 : isOpening ? 5 : 0,
+                  scaleY: phase === 'opening' ? [1, 0.1, 1, 1] : (phase === 'idle' ? [1, 1, 1, 0.1, 1] : 1),
+                  scaleX: phase === 'opening' ? [1, 1.3, 1, 1] : 1,
+                }}
+                transition={{ 
+                  x: { duration: 0.3 },
+                  scaleY: phase === 'opening' 
+                    ? { duration: 0.4, times: [0, 0.2, 0.4, 1] }
+                    : { repeat: phase === 'idle' ? Infinity : 0, duration: 4, times: [0, 0.45, 0.5, 0.55, 1] },
+                  scaleX: { duration: 0.3 }
+                }}
                 className="w-[7px] h-[7px] rounded-full bg-foreground/70"
               />
+              {/* Right eye */}
               <motion.div
-                animate={{ scaleY: [1, 0.15, 1] }}
-                transition={{ repeat: Infinity, duration: 4, delay: 0.15 }}
+                animate={{ 
+                  x: phase === 'reaching' ? 3 : isOpening ? 5 : 0,
+                  scaleY: phase === 'opening' ? [1, 0.1, 1, 1] : (phase === 'idle' ? [1, 1, 1, 0.1, 1] : 1),
+                  scaleX: phase === 'opening' ? [1, 1.3, 1, 1] : 1,
+                }}
+                transition={{ 
+                  x: { duration: 0.3 },
+                  scaleY: phase === 'opening' 
+                    ? { duration: 0.4, times: [0, 0.2, 0.4, 1], delay: 0.05 }
+                    : { repeat: phase === 'idle' ? Infinity : 0, duration: 4, times: [0, 0.45, 0.5, 0.55, 1], delay: 0.1 },
+                  scaleX: { duration: 0.3, delay: 0.05 }
+                }}
                 className="w-[7px] h-[7px] rounded-full bg-foreground/70"
               />
             </div>
 
-            {/* Food items inside (visible when open) */}
+            {/* Food items inside */}
             <motion.div 
               className="absolute inset-0 pt-14 p-3 flex flex-wrap gap-1.5 items-start justify-center content-start"
-              animate={{ opacity: open ? 1 : 0 }}
-              transition={{ delay: 0.5, duration: 0.3 }}
+              animate={{ opacity: isOpening ? 1 : 0 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
             >
               <div className="w-4 h-5 rounded bg-red-400/80" />
               <div className="w-5 h-4 rounded bg-yellow-400/80" />
@@ -94,39 +134,42 @@ const HeroAnimationCompact = () => {
               <div className="w-4 h-4 rounded-full bg-orange-400/80" />
               <div className="w-4 h-5 rounded bg-blue-300/80" />
               <div className="w-5 h-3 rounded bg-purple-300/80" />
-              <div className="w-3 h-4 rounded bg-pink-300/80" />
-              <div className="w-4 h-3 rounded bg-amber-400/80" />
             </motion.div>
 
-            {/* DOOR + ARM GROUP - arm attached to door */}
+            {/* DOOR + ARM - arm moves first, then door follows */}
             <motion.div
-              onClick={() => setOpen(!open)}
-              animate={{ rotateY: open ? -70 : 0 }}
-              transition={{ duration: 0.9, ease: "easeInOut" }}
-              className="absolute bottom-0 w-full cursor-pointer"
+              animate={{ 
+                rotateY: isOpening ? -70 : 0 
+              }}
+              transition={{ 
+                duration: 1.0,
+                ease: [0.4, 0, 0.2, 1], // Slow start, faster end
+                delay: isOpening ? 0.25 : 0, // Pause after hand reaches
+              }}
+              className="absolute bottom-0 w-full"
               style={{
                 height: 144,
                 background: "hsl(var(--card))",
                 transformOrigin: "left center",
                 transformStyle: "preserve-3d",
-                boxShadow: open ? "8px 0 20px rgba(0,0,0,0.08)" : "none",
+                boxShadow: isOpening ? "8px 0 20px rgba(0,0,0,0.08)" : "none",
               }}
             >
-              {/* Door border detail */}
               <div className="absolute inset-1.5 border border-border/40 rounded-lg" />
               
               {/* HANDLE */}
               <div
                 className="absolute right-2.5 rounded bg-muted-foreground/50"
-                style={{
-                  width: 5,
-                  height: 28,
-                  top: "40%",
-                }}
+                style={{ width: 5, height: 28, top: "40%" }}
               />
 
-              {/* ARM ATTACHED TO DOOR - moves with door */}
-              <div
+              {/* ARM - moves slightly before door opens */}
+              <motion.div
+                animate={{ 
+                  x: phase === 'reaching' ? 4 : 0,
+                  rotate: phase === 'reaching' ? -5 : 0,
+                }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="absolute rounded-xl"
                 style={{
                   left: -12,
@@ -134,11 +177,18 @@ const HeroAnimationCompact = () => {
                   width: 12,
                   height: 70,
                   background: "hsl(var(--primary))",
+                  transformOrigin: "top center",
                 }}
               />
 
-              {/* HAND */}
-              <div
+              {/* HAND - reaches toward handle */}
+              <motion.div
+                animate={{ 
+                  x: phase === 'reaching' ? 8 : 0,
+                  y: phase === 'reaching' ? -3 : 0,
+                  rotate: phase === 'reaching' ? 10 : 0,
+                }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="absolute rounded-full"
                 style={{
                   left: -17,
@@ -146,36 +196,37 @@ const HeroAnimationCompact = () => {
                   width: 24,
                   height: 18,
                   background: "hsl(var(--primary))",
+                  transformOrigin: "center",
                 }}
               />
             </motion.div>
 
-            {/* SCAN LIGHT */}
-            {open && (
+            {/* SCAN LIGHT - single clean sweep, starts after door fully open */}
+            {isScanning && (
               <motion.div
-                initial={{ y: -144 }}
-                animate={{ y: 144 }}
+                initial={{ y: -144, opacity: 0 }}
+                animate={{ y: 144, opacity: [0, 1, 1, 0] }}
                 transition={{ 
-                  repeat: Infinity, 
-                  duration: 1.5, 
-                  ease: "linear" 
+                  duration: 1.2, 
+                  ease: "linear",
+                  opacity: { duration: 1.2, times: [0, 0.1, 0.9, 1] }
                 }}
                 className="absolute bottom-0 w-full h-8 pointer-events-none"
                 style={{
-                  background: "linear-gradient(180deg, transparent, hsl(var(--primary) / 0.35), transparent)",
+                  background: "linear-gradient(180deg, transparent, hsl(var(--primary) / 0.4), transparent)",
                 }}
               />
             )}
           </div>
         </div>
 
-        {/* Recipe Card - appears after scan */}
+        {/* Recipe Card - appears after scan completes */}
         <motion.div
           initial={{ opacity: 0, x: 30, scale: 0.9 }}
           animate={{ 
-            opacity: showRecipe ? 1 : 0, 
-            x: showRecipe ? 0 : 30,
-            scale: showRecipe ? 1 : 0.9
+            opacity: isDone ? 1 : 0, 
+            x: isDone ? 0 : 30,
+            scale: isDone ? 1 : 0.9
           }}
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="absolute right-2 top-1/2 -translate-y-1/2 w-20 p-2 rounded-xl bg-card border border-border shadow-lg"
@@ -190,8 +241,8 @@ const HeroAnimationCompact = () => {
           </div>
         </motion.div>
 
-        {/* AI Sparkles */}
-        {showRecipe && (
+        {/* AI Sparkles - only after recipe appears */}
+        {isDone && (
           <>
             <motion.div
               initial={{ opacity: 0, scale: 0 }}
