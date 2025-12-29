@@ -58,13 +58,31 @@ const HeroAnimationCompact = () => {
             <div className="w-32 h-48 bg-white rounded-2xl shadow-lg relative overflow-hidden border border-slate-200/60">
               
               {/* Freezer Section */}
-              <div className="h-14 border-b border-slate-100 flex items-center justify-center">
-                <div className="w-10 h-1 bg-slate-200 rounded-full" />
+              <div className="h-12 border-b border-slate-100 p-2 flex items-center justify-center gap-2">
+                <span className="text-sm">🧊</span>
+                <span className="text-sm">🍦</span>
               </div>
               
-              {/* Main Section */}
-              <div className="h-[120px] flex items-center justify-center">
-                <div className="w-12 h-1 bg-slate-200 rounded-full" />
+              {/* Main Section with Food */}
+              <div className="p-2">
+                {/* Shelf 1 */}
+                <div className="flex justify-around mb-1.5 pb-1.5 border-b border-slate-100/60">
+                  <span className="text-base">🥛</span>
+                  <span className="text-base">🧀</span>
+                  <span className="text-base">🧈</span>
+                </div>
+                {/* Shelf 2 */}
+                <div className="flex justify-around mb-1.5 pb-1.5 border-b border-slate-100/60">
+                  <span className="text-base">🥚</span>
+                  <span className="text-base">🍅</span>
+                  <span className="text-base">🥕</span>
+                </div>
+                {/* Shelf 3 */}
+                <div className="flex justify-around">
+                  <span className="text-base">🥬</span>
+                  <span className="text-base">🍎</span>
+                  <span className="text-base">🫐</span>
+                </div>
               </div>
 
               {/* Scan Line */}
