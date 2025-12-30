@@ -232,9 +232,9 @@ Regeln:
 
     console.log(`[SCAN] Found ${ingredients.length} ingredients | Total: ${Date.now() - startTotal}ms`);
 
-    // Get remaining scans for free users
+    // Get remaining scans for free users (only if logged in)
     let scansRemaining = null;
-    if (!isPremium) {
+    if (!isPremium && userId) {
       const weekStart = getWeekStart();
       const { data: usageData } = await supabase
         .from('scan_usage')
