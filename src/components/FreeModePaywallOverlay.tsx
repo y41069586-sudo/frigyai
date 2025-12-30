@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Lock, Crown } from "lucide-react";
+import { Lock, Crown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -8,15 +8,28 @@ interface FreeModePaywallOverlayProps {
   description?: string;
   showBlurredContent?: boolean;
   className?: string;
+  /** If true, shows re-engagement messaging for cancelled users */
+  isCancelledUser?: boolean;
 }
 
 export const FreeModePaywallOverlay = ({ 
-  title = "Premium freischalten",
-  description = "Plane deine Woche automatisch",
+  title,
+  description,
   showBlurredContent = true,
-  className = ""
+  className = "",
+  isCancelledUser = false
 }: FreeModePaywallOverlayProps) => {
   const navigate = useNavigate();
+  
+  // Check if user was previously subscribed (cancelled)
+  const hasCancellationDate = !!localStorage.getItem('frig_cancellation_date');
+  const showCancelledUI = isCancelledUser || hasCancellationDate;
+  
+  // Dynamic messaging based on user state
+  const displayTitle = title || (showCancelledUI ? "Bereit weiterzumachen?" : "Premium freischalten");
+  const displayDescription = description || (showCancelledUI 
+    ? "Deine Planung wartet noch auf dich." 
+    : "Plane deine Woche automatisch");
   
   return (
     <motion.div 
@@ -37,12 +50,16 @@ export const FreeModePaywallOverlay = ({
         className="relative flex flex-col items-center text-center p-6 z-10"
       >
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 shadow-lg shadow-primary/10">
-          <Lock className="w-10 h-10 text-primary" />
+          {showCancelledUI ? (
+            <ArrowRight className="w-10 h-10 text-primary" />
+          ) : (
+            <Lock className="w-10 h-10 text-primary" />
+          )}
         </div>
         
-        <h3 className="text-xl font-bold mb-2">{title}</h3>
+        <h3 className="text-xl font-bold mb-2">{displayTitle}</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-[250px]">
-          {description}
+          {displayDescription}
         </p>
         
         <Button 
@@ -54,9 +71,11 @@ export const FreeModePaywallOverlay = ({
           Premium freischalten
         </Button>
         
-        <p className="text-xs text-muted-foreground mt-3">
-          7 Tage kostenlos testen
-        </p>
+        {!showCancelledUI && (
+          <p className="text-xs text-muted-foreground mt-3">
+            7 Tage kostenlos testen
+          </p>
+        )}
       </motion.div>
     </motion.div>
   );
