@@ -28,32 +28,10 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Auth check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Auth erforderlich" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-
-    const { data: userData, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    
-    if (authError || !userData.user) {
-      return new Response(JSON.stringify({ error: "Ungültiger Token" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-
-    const userId = userData.user.id;
-    console.log(`[SCAN] User: ${userId} | Auth: ${Date.now() - startTotal}ms`);
-
-    // Parse request
+    // Parse request first
     const body = await req.json();
     const image = body.image;
+    const isOnboarding = body.isOnboarding === true; // Flag for onboarding scan
     
     if (!image || typeof image !== 'string') {
       return new Response(JSON.stringify({ error: "Kein Bild" }), { 
@@ -62,61 +40,87 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[SCAN] Image: ${Math.round(image.length / 1024)}KB`);
+    console.log(`[SCAN] Image: ${Math.round(image.length / 1024)}KB | Onboarding: ${isOnboarding}`);
 
-    // FAST Premium check - from cache first, then Stripe
+    // Auth check - OPTIONAL for onboarding
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
     let isPremium = false;
-    const { data: cacheData } = await supabase
-      .from('subscription_cache')
-      .select('subscribed, subscription_end')
-      .eq('user_id', userId)
-      .maybeSingle();
 
-    if (cacheData?.subscribed && cacheData.subscription_end) {
-      isPremium = new Date(cacheData.subscription_end) > new Date();
-    }
-
-    console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
-
-    // Limit check for free users
-    if (!isPremium) {
-      const weekStart = getWeekStart();
-      const { data: usageData } = await supabase
-        .from('scan_usage')
-        .select('scan_count')
-        .eq('user_id', userId)
-        .eq('week_start', weekStart)
-        .maybeSingle();
+    if (authHeader && authHeader !== "Bearer null" && authHeader !== "Bearer undefined") {
+      const { data: userData, error: authError } = await supabase.auth.getUser(
+        authHeader.replace("Bearer ", "")
+      );
       
-      const currentCount = usageData?.scan_count || 0;
+      if (!authError && userData.user) {
+        userId = userData.user.id;
+        console.log(`[SCAN] Logged in user: ${userId} | Auth: ${Date.now() - startTotal}ms`);
 
-      if (currentCount >= FREE_SCAN_LIMIT) {
-        return new Response(JSON.stringify({ 
-          error: "scan_limit_exceeded", 
-          message: "Wöchentlicher Scan erreicht. Premium für unbegrenzte Scans!",
-          scansUsed: currentCount,
-          scansLimit: FREE_SCAN_LIMIT 
-        }), { 
-          status: 429, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        });
-      }
-
-      // Increment usage
-      if (usageData) {
-        await supabase.from('scan_usage')
-          .update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() })
+        // Check premium status for logged-in users
+        const { data: cacheData } = await supabase
+          .from('subscription_cache')
+          .select('subscribed, subscription_end')
           .eq('user_id', userId)
-          .eq('week_start', weekStart);
-      } else {
-        await supabase.from('scan_usage').insert({ 
-          user_id: userId, 
-          scan_date: new Date().toISOString().split('T')[0], 
-          week_start: weekStart, 
-          scan_count: 1 
-        });
+          .maybeSingle();
+
+        if (cacheData?.subscribed && cacheData.subscription_end) {
+          isPremium = new Date(cacheData.subscription_end) > new Date();
+        }
+
+        console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
+
+        // Limit check for logged-in free users (not during onboarding)
+        if (!isPremium && !isOnboarding) {
+          const weekStart = getWeekStart();
+          const { data: usageData } = await supabase
+            .from('scan_usage')
+            .select('scan_count')
+            .eq('user_id', userId)
+            .eq('week_start', weekStart)
+            .maybeSingle();
+          
+          const currentCount = usageData?.scan_count || 0;
+
+          if (currentCount >= FREE_SCAN_LIMIT) {
+            return new Response(JSON.stringify({ 
+              error: "scan_limit_exceeded", 
+              message: "Wöchentlicher Scan erreicht. Premium für unbegrenzte Scans!",
+              scansUsed: currentCount,
+              scansLimit: FREE_SCAN_LIMIT 
+            }), { 
+              status: 429, 
+              headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            });
+          }
+
+          // Increment usage
+          if (usageData) {
+            await supabase.from('scan_usage')
+              .update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() })
+              .eq('user_id', userId)
+              .eq('week_start', weekStart);
+          } else {
+            await supabase.from('scan_usage').insert({ 
+              user_id: userId, 
+              scan_date: new Date().toISOString().split('T')[0], 
+              week_start: weekStart, 
+              scan_count: 1 
+            });
+          }
+        }
       }
     }
+
+    // Guest onboarding scan - allowed without login
+    if (!userId && !isOnboarding) {
+      return new Response(JSON.stringify({ error: "Auth erforderlich" }), { 
+        status: 401, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
+    console.log(`[SCAN] Mode: ${isOnboarding ? 'ONBOARDING (FREE)' : userId ? 'USER' : 'GUEST'}`);
+
 
     // OpenAI Vision - OPTIMIZED
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
