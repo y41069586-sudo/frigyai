@@ -19,15 +19,17 @@ const AuthPage = () => {
   const { signIn, signUp, signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Check if coming from onboarding
+  // Check where user is coming from
   const searchParams = new URLSearchParams(window.location.search);
-  const isFromOnboarding = searchParams.get('from') === 'onboarding';
+  const fromParam = searchParams.get('from');
+  const isFromOnboarding = fromParam === 'onboarding';
+  const isFromPremiumPricing = fromParam === 'premium-pricing';
 
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      if (isFromOnboarding) {
-        // Onboarding conversion: always show paywall after auth
+      // Coming from onboarding or premium-pricing: go to paywall
+      if (isFromOnboarding || isFromPremiumPricing) {
         navigate('/premium-pricing', { replace: true });
         return;
       }
@@ -40,7 +42,7 @@ const AuthPage = () => {
         navigate('/');
       }
     }
-  }, [user, loading, navigate, isFromOnboarding]);
+  }, [user, loading, navigate, isFromOnboarding, isFromPremiumPricing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +52,8 @@ const AuthPage = () => {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (!error) {
-          if (isFromOnboarding) {
+          // Coming from onboarding or premium-pricing: go to paywall
+          if (isFromOnboarding || isFromPremiumPricing) {
             navigate('/premium-pricing', { replace: true });
             return;
           }
@@ -64,8 +67,9 @@ const AuthPage = () => {
           }
         }
       } else {
-        const redirectTo = isFromOnboarding
-          ? `${window.location.origin}/email-confirmation?confirmed=true&from=onboarding&next=/premium-pricing`
+        const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;
+        const redirectTo = shouldGoToPricing
+          ? `${window.location.origin}/email-confirmation?confirmed=true&from=premium&next=/premium-pricing`
           : `${window.location.origin}/email-confirmation?confirmed=true`;
 
         const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
@@ -74,8 +78,8 @@ const AuthPage = () => {
           // Otherwise, show the email confirmation page.
           const params = new URLSearchParams();
           params.set('email', email);
-          if (isFromOnboarding) {
-            params.set('from', 'onboarding');
+          if (shouldGoToPricing) {
+            params.set('from', 'premium');
             params.set('next', '/premium-pricing');
           }
           navigate(`/email-confirmation?${params.toString()}`, { replace: true });
