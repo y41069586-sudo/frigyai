@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, ArrowLeft, Crown } from "lucide-react";
+import { Check, Sparkles, Crown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import frigLogo from "@/assets/frig-logo.png";
+
 
 const PremiumPricingPage = () => {
   const { t } = useLanguage();
@@ -73,18 +73,6 @@ const PremiumPricingPage = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen flex flex-col bg-background safe-area-inset"
     >
-      {/* Header */}
-      <div className="p-4 flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/plan-selection')}
-          className="h-10 w-10"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <img src={frigLogo} alt="FrigBuddy" className="h-8 w-8 rounded-lg" />
-      </div>
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-6">
