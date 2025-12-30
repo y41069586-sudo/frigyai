@@ -22,8 +22,9 @@ const EmailConfirmationPage = () => {
         setIsConfirmed(true);
         // Redirect after showing success for 2 seconds
         setTimeout(() => {
-          const fromOnboarding = searchParams.get('from') === 'onboarding';
-          const next = searchParams.get('next') || (fromOnboarding ? '/premium-pricing' : '/');
+          const fromParam = searchParams.get('from');
+          const shouldGoToPricing = fromParam === 'onboarding' || fromParam === 'premium';
+          const next = searchParams.get('next') || (shouldGoToPricing ? '/premium-pricing' : '/');
           navigate(next, { replace: true });
         }, 2000);
       }
@@ -37,8 +38,9 @@ const EmailConfirmationPage = () => {
       if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
         setIsConfirmed(true);
         setTimeout(() => {
-          const fromOnboarding = searchParams.get('from') === 'onboarding';
-          const next = searchParams.get('next') || (fromOnboarding ? '/premium-pricing' : '/');
+          const fromParam = searchParams.get('from');
+          const shouldGoToPricing = fromParam === 'onboarding' || fromParam === 'premium';
+          const next = searchParams.get('next') || (shouldGoToPricing ? '/premium-pricing' : '/');
           navigate(next, { replace: true });
         }, 2000);
       }
