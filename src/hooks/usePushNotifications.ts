@@ -55,46 +55,65 @@ export const usePushNotifications = () => {
       const browserSupported = isBrowserNotificationSupported();
       setIsBrowserSupported(browserSupported);
 
-      // Try to load Capacitor plugins
+      // Check if we're in a native Capacitor environment (not web)
+      const isNativeApp = typeof (window as any).Capacitor !== 'undefined' && 
+                          (window as any).Capacitor.isNativePlatform?.();
+
+      if (!isNativeApp) {
+        // Web environment - use browser notifications only
+        if (browserSupported) {
+          setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
+          const registration = await registerServiceWorker();
+          if (registration) {
+            setSwRegistration(registration);
+          }
+        }
+        return;
+      }
+
+      // Try to load Capacitor plugins (only in native app)
       const capacitorAvailable = await loadCapacitorPlugins();
       setIsCapacitor(capacitorAvailable && (PushNotifications || LocalNotifications));
 
-      if (capacitorAvailable && PushNotifications) {
-        // Capacitor Push Notifications
-        const status = await PushNotifications.checkPermissions();
-        setPermissionStatus(status.receive);
+      try {
+        if (capacitorAvailable && PushNotifications) {
+          // Capacitor Push Notifications
+          const status = await PushNotifications.checkPermissions();
+          setPermissionStatus(status.receive);
 
-        PushNotifications.addListener("registration", (token: any) => {
-          console.log("Push registration token:", token.value);
-          setToken(token.value);
-        });
-
-        PushNotifications.addListener("registrationError", (error: any) => {
-          console.error("Push registration error:", error);
-        });
-
-        PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
-          console.log("Push notification received:", notification);
-          toast({
-            title: notification.title || "Fridgie",
-            description: notification.body,
+          PushNotifications.addListener("registration", (token: any) => {
+            console.log("Push registration token:", token.value);
+            setToken(token.value);
           });
-        });
 
-        PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
-          console.log("Push notification action:", notification);
-        });
-      } else if (capacitorAvailable && LocalNotifications) {
-        const status = await LocalNotifications.checkPermissions();
-        setPermissionStatus(status.display);
-      } else if (browserSupported) {
-        // Browser notifications - register service worker
-        setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
-        
-        // Register service worker for better notification handling
-        const registration = await registerServiceWorker();
-        if (registration) {
-          setSwRegistration(registration);
+          PushNotifications.addListener("registrationError", (error: any) => {
+            console.error("Push registration error:", error);
+          });
+
+          PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
+            console.log("Push notification received:", notification);
+            toast({
+              title: notification.title || "Fridgie",
+              description: notification.body,
+            });
+          });
+
+          PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
+            console.log("Push notification action:", notification);
+          });
+        } else if (capacitorAvailable && LocalNotifications) {
+          const status = await LocalNotifications.checkPermissions();
+          setPermissionStatus(status.display);
+        }
+      } catch (error) {
+        // Fallback to browser notifications if Capacitor fails
+        console.log("[Fridgie] Capacitor plugins not available, using browser notifications");
+        if (browserSupported) {
+          setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
+          const registration = await registerServiceWorker();
+          if (registration) {
+            setSwRegistration(registration);
+          }
         }
       }
     };
