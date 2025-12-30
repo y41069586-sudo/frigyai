@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -6,10 +6,28 @@ import { Card } from '@/components/ui/card';
 import { X, Crown, CheckCircle2, Calendar, ShoppingCart, UtensilsCrossed, Clock, AlertCircle, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const REMINDER_DISMISSED_KEY = 'frig_trial_reminder_dismissed';
+const PUSH_SENT_KEY = 'frig_trial_push_sent';
 
 type ReminderType = 'day5' | 'day6' | 'day7' | 'freeMode' | null;
+
+// Push notification content for each reminder type
+const PUSH_CONTENT: Record<Exclude<ReminderType, 'freeMode' | null>, { title: string; body: string }> = {
+  day5: {
+    title: 'Dein Free Trial endet bald ⏳',
+    body: 'In 2 Tagen endet dein kostenloser Test. Behalte Wochenplan, Rezepte & Scans.',
+  },
+  day6: {
+    title: 'Letzter Tag deines Free Trials',
+    body: 'Morgen wird Premium aktiviert (4,99 €/Monat). Du kannst jederzeit kündigen.',
+  },
+  day7: {
+    title: 'Free Trial endet heute',
+    body: 'Heute ist dein letzter kostenloser Tag. Danach: 4,99 €/Monat (jährlich).',
+  },
+};
 
 interface FreeTrialReminderProps {
   variant?: 'banner' | 'modal';
@@ -17,10 +35,45 @@ interface FreeTrialReminderProps {
 
 export const FreeTrialReminder = ({ variant = 'banner' }: FreeTrialReminderProps) => {
   const { subscriptionStatus, isPremium, isFreeMode, user, session } = useAuth();
+  const { permissionStatus, sendLocalNotification } = usePushNotifications();
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const [reminderType, setReminderType] = useState<ReminderType>(null);
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
+  const pushSentRef = useRef(false);
+
+  // Send push notification for trial reminders (only once per day per reminder type)
+  useEffect(() => {
+    if (!reminderType || reminderType === 'freeMode' || pushSentRef.current) return;
+    if (permissionStatus !== 'granted') return;
+
+    // Check if push was already sent today for this reminder type
+    const getPushSentToday = (type: string) => {
+      const sentData = localStorage.getItem(PUSH_SENT_KEY);
+      if (!sentData) return false;
+      try {
+        const sent = JSON.parse(sentData);
+        return sent[type] === new Date().toDateString();
+      } catch {
+        return false;
+      }
+    };
+
+    if (!getPushSentToday(reminderType)) {
+      const content = PUSH_CONTENT[reminderType];
+      sendLocalNotification(content.title, content.body, { 
+        type: 'trial-reminder',
+        url: '/premium-pricing' 
+      });
+      
+      // Mark as sent
+      const sentData = localStorage.getItem(PUSH_SENT_KEY);
+      const sent = sentData ? JSON.parse(sentData) : {};
+      sent[reminderType] = new Date().toDateString();
+      localStorage.setItem(PUSH_SENT_KEY, JSON.stringify(sent));
+      pushSentRef.current = true;
+    }
+  }, [reminderType, permissionStatus, sendLocalNotification]);
 
   useEffect(() => {
     if (!user) return;
