@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -136,11 +136,17 @@ const AnalysisProgress = () => {
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const { user, signUp, signIn } = useAuth();
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("language-select");
+  
+  // Check if returning from scan with feedback request
+  const showScanFeedback = location.state?.showScanFeedback === true;
+  const initialStep: OnboardingStep = showScanFeedback ? "scan-feedback" : "language-select";
+  
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -1746,6 +1752,178 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "scan-feedback":
+        const feedbackReasons = [
+          { id: 'not-enough', label: language === 'de' ? 'Zu wenige Zutaten erkannt' : 'Too few ingredients detected' },
+          { id: 'wrong-items', label: language === 'de' ? 'Falsche Zutaten erkannt' : 'Wrong ingredients detected' },
+          { id: 'too-slow', label: language === 'de' ? 'Zu langsam' : 'Too slow' },
+          { id: 'other', label: language === 'de' ? 'Sonstiges' : 'Other' },
+        ];
+        
+        const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
+        const [selectedReason, setSelectedReason] = useState<string | null>(null);
+        
+        const handleFeedbackContinue = () => {
+          // Save feedback to localStorage for analytics
+          localStorage.setItem('scanFeedback', JSON.stringify({
+            positive: scanFeedback === 'positive',
+            reason: selectedReason,
+            timestamp: new Date().toISOString()
+          }));
+          goNext();
+        };
+        
+        return (
+          <StepCard step="scan-feedback">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Mascot */}
+              <motion.div
+                initial={{ scale: 0, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ duration: 0.5, type: "spring" }}
+                className="mb-6"
+              >
+                <AnimatedFrigyMascot size={120} animate={true} />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {language === 'de' ? 'Hat der Scan gefallen?' : 'Did you like the scan?'}
+              </motion.h1>
+              
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {language === 'de' ? 'Dein Feedback hilft uns besser zu werden' : 'Your feedback helps us improve'}
+              </motion.p>
+              
+              {/* Feedback buttons */}
+              {!scanFeedback && (
+                <motion.div 
+                  className="flex gap-4 w-full max-w-xs"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setScanFeedback('positive')}
+                    className="flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border bg-card hover:border-primary/50 transition-all"
+                  >
+                    <span className="text-4xl">👍</span>
+                    <span className="font-semibold text-lg">{language === 'de' ? 'Ja!' : 'Yes!'}</span>
+                  </motion.button>
+                  
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setScanFeedback('negative')}
+                    className="flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border bg-card hover:border-destructive/50 transition-all"
+                  >
+                    <span className="text-4xl">👎</span>
+                    <span className="font-semibold text-lg">{language === 'de' ? 'Nein' : 'No'}</span>
+                  </motion.button>
+                </motion.div>
+              )}
+              
+              {/* Positive feedback - show continue */}
+              {scanFeedback === 'positive' && (
+                <motion.div 
+                  className="w-full max-w-xs"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="flex flex-col items-center gap-4 mb-6">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200 }}
+                      className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center"
+                    >
+                      <Check className="w-10 h-10 text-primary" />
+                    </motion.div>
+                    <p className="text-lg font-semibold text-primary">
+                      {language === 'de' ? 'Super, danke! 🎉' : 'Great, thanks! 🎉'}
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleFeedbackContinue}
+                    className="w-full h-14 text-lg font-semibold rounded-2xl"
+                  >
+                    {language === 'de' ? 'Weiter' : 'Continue'} <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
+              )}
+              
+              {/* Negative feedback - show reasons */}
+              {scanFeedback === 'negative' && (
+                <motion.div 
+                  className="w-full max-w-xs"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {language === 'de' ? 'Was war das Problem?' : 'What was the issue?'}
+                  </p>
+                  
+                  <div className="space-y-2 mb-6">
+                    {feedbackReasons.map((reason, index) => (
+                      <motion.button
+                        key={reason.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSelectedReason(reason.id)}
+                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                          selectedReason === reason.id 
+                            ? 'border-primary bg-primary/10' 
+                            : 'border-border bg-card hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{reason.label}</span>
+                          {selectedReason === reason.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                  
+                  <Button 
+                    onClick={handleFeedbackContinue}
+                    disabled={!selectedReason}
+                    className="w-full h-14 text-lg font-semibold rounded-2xl"
+                  >
+                    {language === 'de' ? 'Weiter' : 'Continue'} <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
+              )}
+              
+              {/* Skip option if user didn't scan */}
+              {!scanFeedback && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  onClick={goNext}
+                  className="mt-6 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  {language === 'de' ? 'Ich habe nicht gescannt' : 'I didn\'t scan'}
+                </motion.button>
+              )}
+            </div>
+          </StepCard>
+        );
+
       case "permissions":
         const requestCameraPermission = async () => {
           try {
@@ -2753,7 +2931,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Bottom button */}
-      {!["language-select", "name-input", "fridge-intro", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing"].includes(currentStep) && (
+      {!["language-select", "name-input", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ opacity: 0, y: 20 }}
