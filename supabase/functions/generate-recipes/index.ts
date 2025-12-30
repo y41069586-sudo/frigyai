@@ -12,6 +12,7 @@ const requestSchema = z.object({
   ingredients: z.array(z.string().min(1).max(100)).min(1).max(50),
   cookingTime: z.number().optional().default(20),
   mood: z.enum(['tired', 'normal', 'motivated']).optional().default('normal'),
+  isOnboarding: z.boolean().optional().default(false), // NEU: Onboarding-Flag
   // NEU: Erweiterte Kontext-Parameter
   macroBudget: z.object({
     remainingCalories: z.number(),
@@ -31,17 +32,32 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Auth required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Invalid auth' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    const parseResult = requestSchema.safeParse(await req.json());
+    // Parse request first to check isOnboarding flag
+    const body = await req.json();
+    const parseResult = requestSchema.safeParse(body);
     if (!parseResult.success) return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
-    const { ingredients, cookingTime, mood, macroBudget, userProfile, mealToReplace } = parseResult.data;
+    const { ingredients, cookingTime, mood, isOnboarding, macroBudget, userProfile, mealToReplace } = parseResult.data;
+    
+    // Auth check - optional for onboarding
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | null = null;
+    
+    if (authHeader && authHeader !== 'Bearer null' && authHeader !== 'Bearer undefined') {
+      const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+      const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+      if (!authError && user) {
+        userId = user.id;
+      }
+    }
+    
+    // Block non-onboarding guests
+    if (!userId && !isOnboarding) {
+      return new Response(JSON.stringify({ error: 'Auth required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    
+    console.log("[GENERATE-RECIPES] Mode:", isOnboarding ? 'ONBOARDING (FREE)' : 'USER');
+    
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 

@@ -71,6 +71,10 @@ const RecipesPage = () => {
   const macroBudget = location.state?.macroBudget;
   const userProfile = location.state?.userProfile;
   const mealToReplace = location.state?.mealToReplace;
+  
+  // Check if user is in onboarding mode
+  const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
+    localStorage.getItem('onboardingScanUsed') !== 'true';
 
   useEffect(() => {
     if (ingredients.length === 0) {
@@ -98,6 +102,7 @@ const RecipesPage = () => {
           macroBudget,
           userProfile,
           mealToReplace,
+          isOnboarding: isOnboardingMode,
         },
       });
 
