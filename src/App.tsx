@@ -13,7 +13,7 @@ import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
 import { MealPlanGeneratingOverlay } from "@/components/MealPlanGeneratingOverlay";
 import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
-
+import { FreeTrialReminder } from "@/components/FreeTrialReminder";
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const ScanPage = lazy(() => import("./pages/ScanPage"));
@@ -67,6 +67,7 @@ const AppContent = () => {
     <>
       <OfflineIndicator />
       <GlobalMealPlanOverlay />
+      <FreeTrialReminder />
       <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<Index />} />
