@@ -94,10 +94,10 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://frig-ai.lovable.app";
     
     // Select price based on billing interval
-    // Monthly: €11.99/month, Yearly: €59.88/year (€4.99/month)
+    // Monthly: €9.99/month, Yearly: €59.88/year (€4.99/month)
     const priceId = billingInterval === 'yearly' 
       ? "price_1SfkFAGj66h7dQy6P5peqTIA" // Yearly price €59.88/year
-      : "price_1SfkDXGj66h7dQy6Yp5Strwk"; // Monthly price €11.99/month
+      : "price_1SfkDXGj66h7dQy6Yp5Strwk"; // Monthly price €9.99/month
     
     logStep("Selected price", { priceId, billingInterval });
     
