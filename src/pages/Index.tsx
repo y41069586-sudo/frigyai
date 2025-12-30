@@ -260,10 +260,16 @@ const Index = () => {
       window.location.reload();
       return;
     }
-    // After onboarding slides, mark complete and go to auth page
+
+    // After onboarding slides, mark complete and go to paywall (if logged in) or auth
     setShowOnboarding(false);
     setOnboardingComplete(true);
-    navigate('/auth?from=onboarding');
+
+    if (user) {
+      navigate('/premium-pricing', { replace: true });
+    } else {
+      navigate('/auth?from=onboarding', { replace: true });
+    }
   };
 
   const handleManageSubscription = async () => {

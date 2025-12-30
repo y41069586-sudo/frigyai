@@ -19,7 +19,11 @@ interface AuthContextType {
   isFreeMode: boolean;
   /** True when user has premium access (subscribed or in trial) */
   isPremium: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    options?: { emailRedirectTo?: string }
+  ) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -228,10 +232,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    // Redirect to email confirmation page after email is confirmed
-    const redirectUrl = `${window.location.origin}/email-confirmation?confirmed=true`;
-    
+  const signUp = async (
+    email: string,
+    password: string,
+    options?: { emailRedirectTo?: string }
+  ) => {
+    // Redirect target for email confirmation flow (used when email confirmation is enabled)
+    const defaultRedirectUrl = `${window.location.origin}/email-confirmation?confirmed=true`;
+    const redirectUrl = options?.emailRedirectTo ?? defaultRedirectUrl;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -247,9 +256,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive",
       });
     } else {
+      // If email auto-confirm is enabled, users are logged in immediately.
       toast({
         title: "Registrierung erfolgreich!",
-        description: "Bitte bestätige deine E-Mail-Adresse.",
+        description: "Du kannst jetzt fortfahren.",
       });
     }
 

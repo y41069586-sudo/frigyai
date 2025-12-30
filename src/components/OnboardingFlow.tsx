@@ -2369,7 +2369,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           setIsAuthLoading(true);
           try {
             if (authMode === 'signup') {
-              const { error } = await signUp(authEmail, authPassword);
+              const redirectTo = `${window.location.origin}/email-confirmation?confirmed=true&from=onboarding&next=/premium-pricing`;
+              const { error } = await signUp(authEmail, authPassword, { emailRedirectTo: redirectTo });
               if (error) {
                 toast({
                   title: t.onboardingRegistrationFailed,
