@@ -76,13 +76,15 @@ const ProfilePage = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
-        <div className="text-center">
-          <p className="text-muted-foreground">{t.notLoggedIn}</p>
-          <Button onClick={() => navigate("/auth")} className="mt-4">
-            {t.login}
-          </Button>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+        <img src={frigLogo} alt="Fridgie" className="h-16 w-16 rounded-2xl mb-6" />
+        <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
+        <p className="text-sm text-muted-foreground text-center mb-6">
+          Melde dich an, um dein Profil zu sehen
+        </p>
+        <Button onClick={() => navigate("/auth")} className="w-full max-w-xs">
+          {t.login}
+        </Button>
       </div>
     );
   }

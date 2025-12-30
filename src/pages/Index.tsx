@@ -324,6 +324,22 @@ const Index = () => {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
+  // If not logged in and onboarding is done, show login prompt
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+        <img src={frigLogo} alt="Fridgie" className="h-16 w-16 rounded-2xl mb-6" />
+        <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
+        <p className="text-sm text-muted-foreground text-center mb-6">
+          Melde dich an, um dein Dashboard zu sehen
+        </p>
+        <Button onClick={() => navigate("/auth")} className="w-full max-w-xs">
+          {t.login}
+        </Button>
+      </div>
+    );
+  }
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t.goodMorning : hour < 18 ? t.goodAfternoon : t.goodEvening;
   const displayName = userName || (user?.email?.split('@')[0]) || '';
