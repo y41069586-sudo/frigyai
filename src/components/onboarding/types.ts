@@ -10,6 +10,7 @@ export type OnboardingStep =
   | "social-proof"
   | "success-stats"
   | "fridge-intro"
+  | "scan-feedback"  // NEU: Feedback nach Scan
   | "permissions"
   | "notification-prefs"
   | "weekly-plan"
@@ -116,6 +117,7 @@ export const onboardingSteps: OnboardingStep[] = [
   
   // Phase 3: Fridge Scan Demo (before personalization)
   "fridge-intro",
+  "scan-feedback",  // NEU: Feedback nach Scan
   "tracker-intro",
   
   // Phase 4: Body Data Collection

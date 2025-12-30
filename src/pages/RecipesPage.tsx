@@ -175,6 +175,16 @@ const RecipesPage = () => {
 
   const handleAddToMealPlan = () => {
     if (!selectedRecipe) return;
+    
+    // Onboarding mode: Go to feedback screen instead of meal plan dialog
+    if (isOnboardingMode) {
+      // Store selected recipe for later use
+      localStorage.setItem('onboardingSelectedRecipe', JSON.stringify(selectedRecipe));
+      // Navigate back to onboarding with scan-feedback step
+      navigate('/', { state: { returnToOnboarding: true, showScanFeedback: true } });
+      return;
+    }
+    
     setShowMealDialog(true);
   };
 
@@ -455,7 +465,7 @@ const RecipesPage = () => {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 space-y-3">
             <Button onClick={handleAddToMealPlan} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
-              Los geht's! 🍳
+              {isOnboardingMode ? 'Weiter' : 'Los geht\'s! 🍳'}
             </Button>
             {userProfile?.goalMode && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
