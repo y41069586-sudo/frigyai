@@ -304,16 +304,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "language-select":
         return (
           <StepCard step="language-select">
-            <div className="flex flex-col items-center text-center px-6 w-full">
+            <div className="flex flex-col items-center text-center px-6 w-full pt-20">
               <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, type: "spring" }}
+                className="mb-4"
               >
-                <Globe className="w-8 h-8 text-primary" />
+                <Globe className="w-12 h-12 text-primary" />
               </motion.div>
               
               <motion.h1 className="text-2xl font-bold mb-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 {t.chooseLanguage}
               </motion.h1>
-              <motion.p className="text-muted-foreground/50 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.3 }}>
+              <motion.p className="text-muted-foreground/60 text-sm mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.3 }}>
                 Select your preferred language
               </motion.p>
               

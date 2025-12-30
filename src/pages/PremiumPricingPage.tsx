@@ -18,13 +18,8 @@ const PremiumPricingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
 
-  useEffect(() => {
-    if (!user && !isPreview) {
-      // After successful auth, come back here (avoid bouncing back to onboarding/home)
-      localStorage.setItem('redirectAfterAuth', '/premium-pricing');
-      navigate('/auth?from=premium-pricing', { replace: true });
-    }
-  }, [user, navigate, isPreview]);
+  // Note: We allow unauthenticated users to view the pricing page
+  // They will be redirected to auth when they try to checkout
 
   // If user already has premium, redirect to home or show message
   useEffect(() => {
@@ -38,8 +33,11 @@ const PremiumPricingPage = () => {
   }, [subscriptionStatus, navigate, isPreview]);
 
   const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
+    // If not logged in, redirect to auth first
     if (!session) {
-      toast({ title: "Fehler", description: "Bitte anmelden", variant: "destructive" });
+      localStorage.setItem('redirectAfterAuth', '/premium-pricing');
+      localStorage.setItem('selectedPlan', billingInterval);
+      navigate('/auth?from=premium-pricing', { replace: true });
       return;
     }
 
