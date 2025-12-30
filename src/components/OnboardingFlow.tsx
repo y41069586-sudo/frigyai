@@ -226,6 +226,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     lightTap(); // Haptic feedback on navigation
     let nextIndex = currentIndex + 1;
     
+    // Check if user already used their free onboarding scan (persists across sessions)
+    const scanUsed = localStorage.getItem('onboardingScanUsed') === 'true';
+    
+    // Skip fridge-intro if scan was already used in a previous session
+    if (scanUsed && onboardingSteps[nextIndex] === "fridge-intro") {
+      nextIndex++; // Skip fridge-intro
+    }
+    
     // Skip scan-feedback if user didn't actually scan (no showScanFeedback state)
     const didScan = location.state?.showScanFeedback === true;
     if (onboardingSteps[nextIndex] === "scan-feedback" && !didScan) {
