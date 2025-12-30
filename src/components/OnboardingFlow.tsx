@@ -224,7 +224,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const goNext = () => {
     lightTap(); // Haptic feedback on navigation
-    const nextIndex = currentIndex + 1;
+    let nextIndex = currentIndex + 1;
+    
+    // Skip scan-feedback if user didn't actually scan (no showScanFeedback state)
+    const didScan = location.state?.showScanFeedback === true;
+    if (onboardingSteps[nextIndex] === "scan-feedback" && !didScan) {
+      nextIndex++; // Skip to next step after scan-feedback
+    }
+    
     if (nextIndex < onboardingSteps.length) {
       setCurrentStep(onboardingSteps[nextIndex]);
     } else {
