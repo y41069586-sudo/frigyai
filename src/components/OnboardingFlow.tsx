@@ -162,6 +162,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
+  // Scan feedback state (moved to top level to avoid hooks in switch)
+  const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [selectedFeedbackReason, setSelectedFeedbackReason] = useState<string | null>(null);
+  
   // Ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -1760,16 +1764,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           { id: 'other', label: language === 'de' ? 'Sonstiges' : 'Other' },
         ];
         
-        const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
-        const [selectedReason, setSelectedReason] = useState<string | null>(null);
-        
         const handleFeedbackContinue = () => {
           // Save feedback to localStorage for analytics
           localStorage.setItem('scanFeedback', JSON.stringify({
             positive: scanFeedback === 'positive',
-            reason: selectedReason,
+            reason: selectedFeedbackReason,
             timestamp: new Date().toISOString()
           }));
+          // Reset feedback state for next time
+          setScanFeedback(null);
+          setSelectedFeedbackReason(null);
           goNext();
         };
         
@@ -1881,16 +1885,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedReason(reason.id)}
+                        onClick={() => setSelectedFeedbackReason(reason.id)}
                         className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                          selectedReason === reason.id 
+                          selectedFeedbackReason === reason.id 
                             ? 'border-primary bg-primary/10' 
                             : 'border-border bg-card hover:border-primary/30'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{reason.label}</span>
-                          {selectedReason === reason.id && (
+                          {selectedFeedbackReason === reason.id && (
                             <Check className="w-5 h-5 text-primary" />
                           )}
                         </div>
@@ -1900,7 +1904,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   
                   <Button 
                     onClick={handleFeedbackContinue}
-                    disabled={!selectedReason}
+                    disabled={!selectedFeedbackReason}
                     className="w-full h-14 text-lg font-semibold rounded-2xl"
                   >
                     {language === 'de' ? 'Weiter' : 'Continue'} <ChevronRight className="w-5 h-5 ml-2" />
