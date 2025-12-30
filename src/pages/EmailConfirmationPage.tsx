@@ -22,13 +22,9 @@ const EmailConfirmationPage = () => {
         setIsConfirmed(true);
         // Redirect after showing success for 2 seconds
         setTimeout(() => {
-          const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
           const fromOnboarding = searchParams.get('from') === 'onboarding';
-          if (fromOnboarding && !hasSelectedPlan) {
-            navigate('/plan-selection', { replace: true });
-          } else {
-            navigate('/', { replace: true });
-          }
+          const next = searchParams.get('next') || (fromOnboarding ? '/premium-pricing' : '/');
+          navigate(next, { replace: true });
         }, 2000);
       }
     };
@@ -41,13 +37,9 @@ const EmailConfirmationPage = () => {
       if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
         setIsConfirmed(true);
         setTimeout(() => {
-          const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
           const fromOnboarding = searchParams.get('from') === 'onboarding';
-          if (fromOnboarding && !hasSelectedPlan) {
-            navigate('/plan-selection', { replace: true });
-          } else {
-            navigate('/', { replace: true });
-          }
+          const next = searchParams.get('next') || (fromOnboarding ? '/premium-pricing' : '/');
+          navigate(next, { replace: true });
         }, 2000);
       }
     });

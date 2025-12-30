@@ -26,20 +26,18 @@ const AuthPage = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      // Check if user has already selected a plan
-      const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
-      
-      if (isFromOnboarding && !hasSelectedPlan) {
-        // Coming from onboarding, go to plan selection
-        navigate('/plan-selection', { replace: true });
+      if (isFromOnboarding) {
+        // Onboarding conversion: always show paywall after auth
+        navigate('/premium-pricing', { replace: true });
+        return;
+      }
+
+      const redirectPath = localStorage.getItem('redirectAfterAuth');
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterAuth');
+        navigate(redirectPath);
       } else {
-        const redirectPath = localStorage.getItem('redirectAfterAuth');
-        if (redirectPath) {
-          localStorage.removeItem('redirectAfterAuth');
-          navigate(redirectPath);
-        } else {
-          navigate('/');
-        }
+        navigate('/');
       }
     }
   }, [user, loading, navigate, isFromOnboarding]);
@@ -47,33 +45,38 @@ const AuthPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (!error) {
-          // Check if user needs to select a plan
-          const hasSelectedPlan = localStorage.getItem('onboardingComplete') === 'true';
-          if (isFromOnboarding && !hasSelectedPlan) {
-            navigate('/plan-selection', { replace: true });
+          if (isFromOnboarding) {
+            navigate('/premium-pricing', { replace: true });
+            return;
+          }
+
+          const redirectPath = localStorage.getItem('redirectAfterAuth');
+          if (redirectPath) {
+            localStorage.removeItem('redirectAfterAuth');
+            navigate(redirectPath);
           } else {
-            const redirectPath = localStorage.getItem('redirectAfterAuth');
-            if (redirectPath) {
-              localStorage.removeItem('redirectAfterAuth');
-              navigate(redirectPath);
-            } else {
-              navigate('/');
-            }
+            navigate('/');
           }
         }
       } else {
-        const { error } = await signUp(email, password);
+        const redirectTo = isFromOnboarding
+          ? `${window.location.origin}/email-confirmation?confirmed=true&from=onboarding&next=/premium-pricing`
+          : `${window.location.origin}/email-confirmation?confirmed=true`;
+
+        const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
         if (!error) {
-          // After signup, redirect to email confirmation page
+          // If the user is auto-confirmed, they'll be redirected via the effect above.
+          // Otherwise, show the email confirmation page.
           const params = new URLSearchParams();
           params.set('email', email);
           if (isFromOnboarding) {
             params.set('from', 'onboarding');
+            params.set('next', '/premium-pricing');
           }
           navigate(`/email-confirmation?${params.toString()}`, { replace: true });
         }
