@@ -7,6 +7,7 @@ interface SubscriptionStatus {
   subscribed: boolean;
   product_id: string | null;
   subscription_end: string | null;
+  is_trial?: boolean;
 }
 
 interface AuthContextType {
@@ -14,6 +15,10 @@ interface AuthContextType {
   session: Session | null;
   subscriptionStatus: SubscriptionStatus | null;
   loading: boolean;
+  /** True when user is logged in but has no subscription and no active trial */
+  isFreeMode: boolean;
+  /** True when user has premium access (subscribed or in trial) */
+  isPremium: boolean;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -307,6 +312,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Computed values for free mode and premium access
+  const isPremium = subscriptionStatus?.subscribed || false;
+  const isFreeMode = !!user && !isPremium;
+
   return (
     <AuthContext.Provider
       value={{
@@ -314,6 +323,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         subscriptionStatus,
         loading,
+        isFreeMode,
+        isPremium,
         signUp,
         signIn,
         signInWithGoogle,

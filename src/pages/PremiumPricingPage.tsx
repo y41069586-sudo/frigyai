@@ -119,11 +119,11 @@ const PremiumPricingPage = () => {
             <div className="text-center">
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Monatlich</h3>
               <div className="mb-3">
-                <span className="text-3xl font-bold">€11,99</span>
+                <span className="text-3xl font-bold">€9,99</span>
                 <span className="text-muted-foreground text-sm">/Monat</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Monatlich abgerechnet
+                Monatlich kündbar
               </p>
             </div>
             
@@ -168,7 +168,7 @@ const PremiumPricingPage = () => {
                 €59,88/Jahr
               </p>
               <div className="inline-block bg-primary/15 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                58% SPAREN
+                SPARE 50%
               </div>
             </div>
             
@@ -276,7 +276,7 @@ const PremiumPricingPage = () => {
           <p className="text-center text-[10px] text-muted-foreground mt-2">
             {selectedPlan === 'yearly' 
               ? 'Nach der Testphase €59,88/Jahr. Jederzeit kündbar.' 
-              : '€11,99 wird sofort abgerechnet. Jederzeit kündbar.'}
+              : '€9,99 wird sofort abgerechnet. Jederzeit kündbar.'}
           </p>
         </motion.div>
       </div>

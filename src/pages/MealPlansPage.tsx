@@ -28,6 +28,7 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
+import { FreeModePaywallOverlay } from '@/components/FreeModePaywallOverlay';
 
 interface UserProfile {
   age: number;
@@ -136,7 +137,7 @@ const DEMO_MEAL_PLAN: DayPlan[] = [
 ];
 
 const MealPlansPage = () => {
-  const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
+  const { user, session, subscriptionStatus, loading, checkSubscription, isFreeMode, isPremium } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -223,8 +224,7 @@ const MealPlansPage = () => {
     }
   };
 
-  // Check if user is premium
-  const isPremium = subscriptionStatus?.subscribed || false;
+  // isPremium now comes from useAuth() hook above
 
   // Get meal plan generation count for free users
   const [mealPlanGenerationCount, setMealPlanGenerationCount] = useState(0);
@@ -521,116 +521,135 @@ const MealPlansPage = () => {
           </TabsContent>
 
           <TabsContent value="meals">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">{t.weeklyPlan}</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{t.tip}</p>
-                  {!hasGeneratedPlan && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Hinweis: Du siehst gerade einen Demo-Plan. Klicke auf „{t.generateNewPlan}", um deinen echten Plan zu laden.
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <ExportMealPlan mealPlan={mealPlan} />
-                  <div className="flex items-center gap-2">
-                    {!isPremium && (
-                      <span className="text-xs text-muted-foreground">
-                        {mealPlanGenerationCount}/{maxFreeGenerations} Generierungen
-                      </span>
+            <div className="relative">
+              {isFreeMode && (
+                <FreeModePaywallOverlay 
+                  title="Wochenplan"
+                  description="Plane deine Woche automatisch mit KI-generierten Mahlzeiten"
+                />
+              )}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className={isFreeMode ? "pointer-events-none select-none" : ""}
+              >
+                <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">{t.weeklyPlan}</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{t.tip}</p>
+                    {!hasGeneratedPlan && !isFreeMode && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Hinweis: Du siehst gerade einen Demo-Plan. Klicke auf „{t.generateNewPlan}", um deinen echten Plan zu laden.
+                      </p>
                     )}
-                    <Button 
-                      className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
-                      size="sm"
-                      onClick={generateMealPlan}
-                      disabled={globalIsGenerating || !canGenerateMealPlan}
-                    >
-                      {globalIsGenerating ? (() => {
-                        const expectedSeconds = 40;
-                        const remaining = Math.max(5, expectedSeconds - globalElapsedSeconds);
-                        const label = globalElapsedSeconds < expectedSeconds
-                          ? `Wird generiert… ca. ${remaining}s`
-                          : t.almostDone;
-
-                        return (
-                          <>
-                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                            <span>{label}</span>
-                          </>
-                        );
-                      })() : !canGenerateMealPlan ? (
-                        <>
-                          <Lock className="mr-1 h-4 w-4" />
-                          <span>Limit erreicht</span>
-                        </>
-                      ) : (
-                        <>
-                          <Calendar className="mr-1 h-4 w-4" />
-                          <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span>
-                          <span className="hidden sm:inline">{t.generateNewPlan}</span>
-                        </>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <ExportMealPlan mealPlan={mealPlan} />
+                    <div className="flex items-center gap-2">
+                      {!isPremium && !isFreeMode && (
+                        <span className="text-xs text-muted-foreground">
+                          {mealPlanGenerationCount}/{maxFreeGenerations} Generierungen
+                        </span>
                       )}
-                    </Button>
+                      <Button 
+                        className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
+                        size="sm"
+                        onClick={generateMealPlan}
+                        disabled={globalIsGenerating || !canGenerateMealPlan || isFreeMode}
+                      >
+                        {globalIsGenerating ? (() => {
+                          const expectedSeconds = 40;
+                          const remaining = Math.max(5, expectedSeconds - globalElapsedSeconds);
+                          const label = globalElapsedSeconds < expectedSeconds
+                            ? `Wird generiert… ca. ${remaining}s`
+                            : t.almostDone;
+
+                          return (
+                            <>
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              <span>{label}</span>
+                            </>
+                          );
+                        })() : !canGenerateMealPlan ? (
+                          <>
+                            <Lock className="mr-1 h-4 w-4" />
+                            <span>Limit erreicht</span>
+                          </>
+                        ) : (
+                          <>
+                            <Calendar className="mr-1 h-4 w-4" />
+                            <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span>
+                            <span className="hidden sm:inline">{t.generateNewPlan}</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-3 sm:space-y-4">
-                {mealPlan.map((day, index) => (
-                  <motion.div
-                    key={day.day}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Card className="p-3 sm:p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
-                      <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                        {day.meals.map((meal, mealIndex) => (
-                          <div
-                            key={mealIndex}
-                            onClick={() => openMealDetail(meal)}
-                            className="p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98]"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{meal.type}</p>
-                              <span className="text-[10px] sm:text-xs text-primary font-medium">{meal.calories}</span>
-                            </div>
-                            <p className="font-medium text-xs sm:text-sm line-clamp-2">{meal.name}</p>
-                            <div className="flex gap-1 sm:gap-2 mt-1 text-[10px] sm:text-xs text-muted-foreground">
-                              <span className="text-red-400">{meal.protein}P</span>
-                              <span className="text-amber-400">{meal.carbs}K</span>
-                              <span className="text-blue-400">{meal.fat}F</span>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full mt-1.5 sm:mt-2 h-6 sm:h-7 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
-                              onClick={(e) => addMealToTracker(meal, e)}
+                <div className="space-y-3 sm:space-y-4">
+                  {mealPlan.map((day, index) => (
+                    <motion.div
+                      key={day.day}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="p-3 sm:p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
+                        <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                          {day.meals.map((meal, mealIndex) => (
+                            <div
+                              key={mealIndex}
+                              onClick={() => !isFreeMode && openMealDetail(meal)}
+                              className="p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98]"
                             >
-                              <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
-                              {t.eaten}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{meal.type}</p>
+                                <span className="text-[10px] sm:text-xs text-primary font-medium">{meal.calories}</span>
+                              </div>
+                              <p className="font-medium text-xs sm:text-sm line-clamp-2">{meal.name}</p>
+                              <div className="flex gap-1 sm:gap-2 mt-1 text-[10px] sm:text-xs text-muted-foreground">
+                                <span className="text-red-400">{meal.protein}P</span>
+                                <span className="text-amber-400">{meal.carbs}K</span>
+                                <span className="text-blue-400">{meal.fat}F</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full mt-1.5 sm:mt-2 h-6 sm:h-7 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
+                                onClick={(e) => !isFreeMode && addMealToTracker(meal, e)}
+                                disabled={isFreeMode}
+                              >
+                                <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
+                                {t.eaten}
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
           </TabsContent>
 
           <TabsContent value="shopping">
             <div className="relative">
-              {!isPremium && (
+              {isFreeMode && (
+                <FreeModePaywallOverlay 
+                  title="Einkaufsliste"
+                  description="Erstelle automatisch Einkaufslisten aus deinem Wochenplan"
+                />
+              )}
+              {!isFreeMode && !isPremium && (
                 <PremiumLockOverlay 
                   title="Einkaufsliste"
                   description="Upgrade auf Premium um diese Funktion zu sehen"
                 />
               )}
-              <div className={!isPremium ? "pointer-events-none" : ""}>
+              <div className={(!isPremium || isFreeMode) ? "pointer-events-none" : ""}>
                 <ShoppingList mealPlan={mealPlan} />
               </div>
             </div>

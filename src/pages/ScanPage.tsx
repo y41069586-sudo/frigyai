@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +28,7 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, language } = useLanguage();
-  const { user, subscriptionStatus } = useAuth();
+  const { user, subscriptionStatus, isFreeMode, isPremium } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -43,12 +43,12 @@ const ScanPage = () => {
   const { syncWithScannedIngredients } = useShoppingListSync();
   const { getCached, setCached, cacheHits } = useAICache();
 
-  const isPremium = subscriptionStatus?.subscribed;
+  const isSubscribed = subscriptionStatus?.subscribed;
 
   // Load scan usage and recent dishes on mount
   useEffect(() => {
     const loadScanUsage = async () => {
-      if (!user || isPremium) {
+      if (!user || isSubscribed) {
         setScansRemaining(null);
         return;
       }
@@ -81,7 +81,7 @@ const ScanPage = () => {
 
     loadScanUsage();
     loadRecentDishes();
-  }, [user, isPremium]);
+  }, [user, isSubscribed]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,10 +90,19 @@ const ScanPage = () => {
     // Reset quality issue
     setImageQualityIssue(null);
 
-    // Guest users can scan without login - no auth check required
+    // Free mode users cannot scan - redirect to paywall
+    if (isFreeMode) {
+      toast({
+        title: "Premium Feature",
+        description: "Kühlschrank-Scan ist nur für Premium-Nutzer verfügbar",
+        variant: "destructive",
+      });
+      navigate('/premium-pricing');
+      return;
+    }
 
     // Check scan limit for free users
-    if (!isPremium && scansRemaining !== null && scansRemaining <= 0) {
+    if (!isSubscribed && scansRemaining !== null && scansRemaining <= 0) {
       setScanLimitReached(true);
       toast({
         title: t.scanLimitReached,
@@ -329,8 +338,8 @@ const ScanPage = () => {
             </h1>
           </div>
 
-          {/* Scan Counter */}
-          {user && !isPremium && scansRemaining !== null && (
+          {/* Scan Counter - only for non-free-mode users */}
+          {user && !isSubscribed && !isFreeMode && scansRemaining !== null && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -344,6 +353,18 @@ const ScanPage = () => {
               <span className="font-semibold">
                 {scansRemaining}/{FREE_SCAN_LIMIT}
               </span>
+            </motion.div>
+          )}
+
+          {/* Free mode badge */}
+          {isFreeMode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full bg-muted text-muted-foreground shrink-0 text-xs sm:text-sm"
+            >
+              <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="font-semibold hidden sm:inline">Free Mode</span>
             </motion.div>
           )}
 
