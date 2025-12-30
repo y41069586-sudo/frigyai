@@ -44,6 +44,10 @@ const ScanPage = () => {
   const { getCached, setCached, cacheHits } = useAICache();
 
   const isSubscribed = subscriptionStatus?.subscribed;
+  
+  // Check if user is in onboarding mode (free trial scan)
+  const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
+    localStorage.getItem('onboardingScanUsed') !== 'true';
 
   // Load scan usage and recent dishes on mount
   useEffect(() => {
@@ -90,8 +94,11 @@ const ScanPage = () => {
     // Reset quality issue
     setImageQualityIssue(null);
 
-    // Free mode users cannot scan - redirect to paywall
-    if (isFreeMode) {
+    // Allow onboarding users ONE free scan
+    const canScanAsOnboarding = isOnboardingMode && !user;
+    
+    // Free mode users cannot scan - redirect to paywall (unless onboarding)
+    if (isFreeMode && !canScanAsOnboarding) {
       toast({
         title: "Premium Feature",
         description: "Kühlschrank-Scan ist nur für Premium-Nutzer verfügbar",
@@ -101,8 +108,8 @@ const ScanPage = () => {
       return;
     }
 
-    // Check scan limit for free users
-    if (!isSubscribed && scansRemaining !== null && scansRemaining <= 0) {
+    // Check scan limit for logged-in free users (not onboarding)
+    if (!canScanAsOnboarding && !isSubscribed && scansRemaining !== null && scansRemaining <= 0) {
       setScanLimitReached(true);
       toast({
         title: t.scanLimitReached,
@@ -156,13 +163,24 @@ const ScanPage = () => {
     setAnalyzing(true);
 
     try {
+      // Determine if this is an onboarding scan
+      const isOnboardingScan = isOnboardingMode && !user;
+      
       // Call edge function to analyze image
       const { data, error } = await supabase.functions.invoke(
         "analyze-ingredients",
         {
-          body: { image: base64 },
+          body: { 
+            image: base64,
+            isOnboarding: isOnboardingScan 
+          },
         }
       );
+      
+      // Mark onboarding scan as used
+      if (isOnboardingScan && data?.ingredients?.length > 0) {
+        localStorage.setItem('onboardingScanUsed', 'true');
+      }
 
       if (error) {
         // Check for scan limit error
