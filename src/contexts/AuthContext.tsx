@@ -68,7 +68,8 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
       return {
         subscribed: data.subscribed,
         product_id: data.product_id,
-        subscription_end: data.subscription_end
+        subscription_end: data.subscription_end,
+        is_trial: data.is_trial || false
       };
     }
   } catch (e) {}
