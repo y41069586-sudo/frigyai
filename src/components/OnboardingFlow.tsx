@@ -241,7 +241,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const goBack = () => {
     lightTap(); // Haptic feedback on navigation
-    const prevIndex = currentIndex - 1;
+    let prevIndex = currentIndex - 1;
+    
+    // Check if user already used their free onboarding scan
+    const scanUsed = localStorage.getItem('onboardingScanUsed') === 'true';
+    
+    // If scan was used, prevent going back to fridge-intro step
+    if (scanUsed && prevIndex >= 0) {
+      const prevStep = onboardingSteps[prevIndex];
+      if (prevStep === "fridge-intro") {
+        // Skip fridge-intro and go to the step before it
+        prevIndex--;
+      }
+    }
+    
     if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
 
