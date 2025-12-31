@@ -117,13 +117,9 @@ export const FreeTrialReminder = ({ variant = 'banner' }: FreeTrialReminderProps
       }
     }
     
-    // Show reminder for free mode users (no trial, no subscription)
-    if (isFreeMode && !subscriptionStatus?.is_trial) {
-      if (!getDismissedToday('freeMode')) {
-        setReminderType('freeMode');
-        setIsVisible(true);
-      }
-    }
+    // NOTE: Free mode reminder is handled by ReEngagementBanner instead
+    // Don't show freeMode reminder here to avoid duplicate banners for old accounts
+    // The ReEngagementBanner has proper timing logic (7-14 days, 30 days, 45-60 days)
   }, [user, subscriptionStatus, isPremium, isFreeMode]);
 
   const handleDismiss = () => {
