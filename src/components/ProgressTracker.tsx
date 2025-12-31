@@ -162,8 +162,8 @@ export const ProgressTracker = () => {
           </div>
         )}
 
-        {/* Chart */}
-        {chartData.length > 1 && (
+        {/* Chart - show even with 1 entry */}
+        {chartData.length >= 1 && (
           <div className="h-52 mb-6">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
