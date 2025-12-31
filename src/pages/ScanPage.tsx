@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Loader2, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon, Lock } from "lucide-react";
+import { Upload, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -622,73 +622,73 @@ const ScanPage = () => {
                       alt={t.scanFridge}
                       className="w-full h-auto blur-[2px]"
                     />
-                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
-                      {/* Animated scanning line */}
+                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-6">
+                      {/* Scanning line - smooth 60fps */}
                       <motion.div
-                        className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
-                        initial={{ top: 0 }}
-                        animate={{ top: ['0%', '100%', '0%'] }}
+                        className="absolute left-0 right-0 h-0.5"
+                        style={{
+                          background: "linear-gradient(90deg, transparent, hsl(var(--primary)), transparent)",
+                          willChange: "transform",
+                        }}
+                        initial={{ top: "10%" }}
+                        animate={{ top: ["10%", "90%", "10%"] }}
                         transition={{ 
-                          duration: 2,
+                          duration: 2.5,
                           repeat: Infinity,
                           ease: "easeInOut"
                         }}
                       />
                       
-                      {/* Center content */}
+                      {/* Modern center content */}
                       <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="relative flex flex-col items-center"
-                      >
-                        <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150" />
-                        
-                        {/* Pulsing ring */}
-                        <motion.div
-                          className="absolute w-24 h-24 border-2 border-primary/50 rounded-full"
-                          animate={{ 
-                            scale: [1, 1.3, 1],
-                            opacity: [0.5, 0, 0.5]
-                          }}
-                          transition={{ 
-                            duration: 1.5,
-                            repeat: Infinity,
-                            ease: "easeOut"
-                          }}
-                        />
-                        
-                        <Loader2 className="h-16 w-16 animate-spin text-primary relative z-10" />
-                      </motion.div>
-                      
-                      <motion.p 
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-lg font-semibold text-white text-center px-4 mt-6"
+                        className="flex flex-col items-center gap-6"
                       >
-                        {t.aiAnalyzingIngredients}
-                      </motion.p>
-                      
-                      {/* Progress bar */}
-                      <div className="w-48 mt-4 relative">
-                        <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-primary rounded-full"
-                            initial={{ width: '0%' }}
-                            animate={{ width: `${Math.min(scanProgress, 100)}%` }}
-                            transition={{ duration: 0.3 }}
+                        {/* Icon with subtle glow */}
+                        <div className="relative">
+                          <div 
+                            className="absolute inset-0 bg-primary/30 blur-2xl rounded-full" 
+                            style={{ transform: "scale(2)" }}
                           />
+                          <motion.div
+                            animate={{ scale: [1, 1.05, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            className="relative w-16 h-16 rounded-2xl bg-primary/20 backdrop-blur-sm flex items-center justify-center border border-primary/30"
+                          >
+                            <Camera className="w-8 h-8 text-primary" />
+                          </motion.div>
                         </div>
-                      </div>
-                      
-                      {/* Percentage display - bottom right */}
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2"
-                      >
-                        <span className="text-2xl font-bold text-primary">
-                          {Math.round(Math.min(scanProgress, 100))}%
-                        </span>
+                        
+                        {/* Text */}
+                        <div className="text-center">
+                          <p className="text-lg font-semibold text-white">
+                            {t.aiAnalyzingIngredients}
+                          </p>
+                          <p className="text-sm text-white/60 mt-1">
+                            Frigy erkennt deine Zutaten...
+                          </p>
+                        </div>
+                        
+                        {/* Progress bar - wider, cleaner */}
+                        <div className="w-56">
+                          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ 
+                                background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                                willChange: "width",
+                              }}
+                              initial={{ width: "0%" }}
+                              animate={{ width: `${Math.min(scanProgress, 100)}%` }}
+                              transition={{ duration: 0.2, ease: "linear" }}
+                            />
+                          </div>
+                          {/* Percentage below bar */}
+                          <p className="text-center text-white/80 text-sm font-medium mt-2">
+                            {Math.round(Math.min(scanProgress, 100))}%
+                          </p>
+                        </div>
                       </motion.div>
                     </div>
                   </>
