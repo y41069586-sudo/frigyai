@@ -20,6 +20,7 @@ import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
+import { EditMacroGoalsDialog } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
@@ -114,6 +115,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
     name: string;
     calories: number;
@@ -885,16 +887,48 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           variant="ghost"
           size="sm"
           className="w-full text-xs text-muted-foreground hover:text-primary"
-          onClick={() => {
-            localStorage.removeItem('userProfile');
-            setStep('onboarding');
-            setOnboardingStep(0);
-          }}
+          onClick={() => setShowEditGoalsDialog(true)}
         >
           <Pencil className="h-3 w-3 mr-1.5" />
           {t.changeGoal}
         </Button>
       </div>
+
+      {/* Edit Macro Goals Dialog */}
+      <EditMacroGoalsDialog
+        open={showEditGoalsDialog}
+        onOpenChange={setShowEditGoalsDialog}
+        currentGoals={{
+          dailyCalories: profile?.dailyCalories || 2000,
+          dailyProtein: profile?.dailyProtein || 150,
+          dailyCarbs: profile?.dailyCarbs || 200,
+          dailyFat: profile?.dailyFat || 70,
+        }}
+        onSave={async (goals) => {
+          // Update profile state
+          const newProfile = {
+            ...profile!,
+            dailyCalories: goals.dailyCalories,
+            dailyProtein: goals.dailyProtein,
+            dailyCarbs: goals.dailyCarbs,
+            dailyFat: goals.dailyFat,
+          };
+          setProfile(newProfile);
+
+          // Save to database
+          await saveTrackerSettings({
+            age: age,
+            weight: weight,
+            targetWeight: targetWeight,
+            goalMode: goalMode,
+            weeklyGoal: weeklyLossRate,
+            dailyCalories: goals.dailyCalories,
+            dailyProtein: goals.dailyProtein,
+            dailyCarbs: goals.dailyCarbs,
+            dailyFat: goals.dailyFat,
+          });
+        }}
+      />
 
       {/* Add Food - Improved UX */}
       <Card className="p-4 bg-card border-border/30">
