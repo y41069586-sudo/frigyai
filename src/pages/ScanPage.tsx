@@ -451,7 +451,7 @@ const ScanPage = () => {
                     onClick={() => {
                       setImagePreview(null);
                       setImageQualityIssue(null);
-                      document.getElementById("imageInput")?.click();
+                      document.getElementById("cameraInput")?.click();
                     }}
                     className="mt-3"
                     variant="outline"
@@ -474,12 +474,8 @@ const ScanPage = () => {
                 className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all bg-card ${
                   scanLimitReached && !isPremium
                     ? 'border-muted cursor-not-allowed opacity-50'
-                    : 'border-primary/50 hover:border-primary cursor-pointer'
+                    : 'border-primary/50'
                 }`}
-                onClick={() => {
-                  if (scanLimitReached && !isPremium) return;
-                  document.getElementById("imageInput")?.click();
-                }}
               >
                 <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
                 <h2 className="text-xl sm:text-2xl font-semibold mb-2">
@@ -488,17 +484,53 @@ const ScanPage = () => {
                 <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
                   {t.takePhotoOrSelect}
                 </p>
-                <Button 
-                  className="gradient-neon text-black font-semibold glow-button w-full sm:w-auto touch-target"
-                  disabled={scanLimitReached && !isPremium}
-                >
-                  {t.selectImage}
-                </Button>
+                
+                {/* Two buttons: Camera and Gallery */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  {/* Camera Button */}
+                  <Button 
+                    className="gradient-neon text-black font-semibold glow-button touch-target flex-1 sm:flex-none"
+                    disabled={scanLimitReached && !isPremium}
+                    onClick={() => {
+                      if (scanLimitReached && !isPremium) return;
+                      document.getElementById("cameraInput")?.click();
+                    }}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    {language === 'de' ? 'Foto aufnehmen' : language === 'fr' ? 'Prendre une photo' : 'Take Photo'}
+                  </Button>
+                  
+                  {/* Gallery Button */}
+                  <Button 
+                    variant="outline"
+                    className="touch-target flex-1 sm:flex-none"
+                    disabled={scanLimitReached && !isPremium}
+                    onClick={() => {
+                      if (scanLimitReached && !isPremium) return;
+                      document.getElementById("galleryInput")?.click();
+                    }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {language === 'de' ? 'Aus Galerie wählen' : language === 'fr' ? 'Choisir de la galerie' : 'Choose from Gallery'}
+                  </Button>
+                </div>
+                
+                {/* Hidden Camera Input - opens camera directly */}
                 <input
-                  id="imageInput"
+                  id="cameraInput"
                   type="file"
                   accept="image/*"
                   capture="environment"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={scanLimitReached && !isPremium}
+                />
+                
+                {/* Hidden Gallery Input - opens photo library */}
+                <input
+                  id="galleryInput"
+                  type="file"
+                  accept="image/*"
                   onChange={handleImageUpload}
                   className="hidden"
                   disabled={scanLimitReached && !isPremium}
