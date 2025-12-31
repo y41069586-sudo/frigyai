@@ -63,8 +63,9 @@ serve(async (req) => {
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (cacheData?.subscribed && cacheData.subscription_end) {
-          isPremium = new Date(cacheData.subscription_end) > new Date();
+        // Premium if subscribed is true AND (no end date OR end date is in the future)
+        if (cacheData?.subscribed) {
+          isPremium = !cacheData.subscription_end || new Date(cacheData.subscription_end) > new Date();
         }
 
         console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
