@@ -43,7 +43,9 @@ const ProfilePage = () => {
       });
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, "_blank");
+        // On mobile/in-app browsers, window.open can be blocked.
+        // Using same-tab navigation makes "Abo kündigen" reliably reachable.
+        window.location.href = data.url;
       }
     } catch (error: any) {
       toast({ title: t.error, description: error.message, variant: "destructive" });

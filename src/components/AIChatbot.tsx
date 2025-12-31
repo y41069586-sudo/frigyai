@@ -116,18 +116,18 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
 
   return (
     <>
-      {/* Floating Chat Button - positioned above bottom nav with safe spacing */}
+      {/* Floating Chat Button - always above bottom nav, easy to tap */}
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[88px] right-4 z-40 p-3 rounded-full bg-primary hover:bg-primary/90 shadow-lg ring-2 ring-primary/20"
-        whileHover={{ scale: 1.05 }}
+        className="fixed right-4 bottom-[96px] md:bottom-24 z-[60] p-4 rounded-full bg-primary hover:bg-primary/90 shadow-xl ring-4 ring-primary/20"
+        whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
         transition={{ duration: 0.2 }}
       >
-        <Bot className="h-5 w-5 text-primary-foreground" />
-        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background animate-pulse" />
+        <Bot className="h-6 w-6 text-primary-foreground" />
+        <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
       </motion.button>
 
       {/* Chat Panel */}
@@ -138,7 +138,7 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-x-4 bottom-4 top-20 z-50 flex flex-col md:inset-auto md:right-4 md:bottom-4 md:w-96 md:h-[500px]"
+            className="fixed inset-x-4 bottom-[88px] top-20 z-50 flex flex-col md:inset-auto md:right-4 md:bottom-4 md:w-96 md:h-[500px]"
           >
             <Card className="flex flex-col h-full bg-card/95 backdrop-blur-xl border-primary/30 overflow-hidden">
               {/* Header */}

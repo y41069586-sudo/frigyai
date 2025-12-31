@@ -77,7 +77,7 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
           key={item.id}
           onPointerDown={() => handleNavClick(item)}
           type="button"
-          className="relative -mt-3 z-10 touch-none select-none"
+          className="relative -mt-2 z-10 touch-none select-none"
           whileTap={{ scale: 0.97 }}
         >
           <div className={cn(
@@ -137,8 +137,8 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
   };
 
   return (
-    <nav className="fixed bottom-4 left-4 right-4 z-50 safe-bottom">
-      <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg px-2 py-2">
+    <nav className="fixed inset-x-4 bottom-0 z-50 safe-bottom">
+      <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-md px-2 py-2">
         <div className="flex items-center justify-between">
           {/* Left items */}
           {leftItems.map((item) => renderNavItem(item))}
