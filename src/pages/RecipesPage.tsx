@@ -9,6 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MealReplacementDialog from "@/components/MealReplacementDialog";
+import MealPlanSuccessOverlay from "@/components/MealPlanSuccessOverlay";
 
 interface Recipe {
   id: string;
@@ -63,6 +64,8 @@ const RecipesPage = () => {
   const [showDetail, setShowDetail] = useState(false);
   const [budgetAfterMeal, setBudgetAfterMeal] = useState<RecipesResponse['budgetAfterMeal'] | null>(null);
   const [showMealDialog, setShowMealDialog] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [successInfo, setSuccessInfo] = useState({ recipeName: '', mealType: '', dayLabel: '' });
   
   // Kontext aus Navigation
   const cookingTime = location.state?.cookingTime || 20;
@@ -302,16 +305,23 @@ const RecipesPage = () => {
         localStorage.setItem('weeklyMealPlan', JSON.stringify(updatedPlan));
       }
       
-      const dayLabel = dayOffset === 0 ? 'heute' : dayOffset === 1 ? 'morgen' : 'übermorgen';
+      const dayLabel = dayOffset === 0 ? 'Heute' : dayOffset === 1 ? 'Morgen' : 'Übermorgen';
       
-      toast({
-        title: "Im Wochenplan gespeichert! 📅",
-        description: `${selectedRecipe.title} → ${mealType} (${dayLabel})`,
+      // Show success overlay with animation
+      setSuccessInfo({
+        recipeName: selectedRecipe.title,
+        mealType,
+        dayLabel,
       });
+      setShowSuccessOverlay(true);
     } catch (e) {
       console.error('Error updating meal plan:', e);
+      navigate("/");
     }
-    
+  };
+
+  const handleSuccessComplete = () => {
+    setShowSuccessOverlay(false);
     navigate("/");
   };
 
@@ -710,6 +720,15 @@ const RecipesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Success Overlay */}
+      <MealPlanSuccessOverlay
+        isVisible={showSuccessOverlay}
+        recipeName={successInfo.recipeName}
+        mealType={successInfo.mealType}
+        dayLabel={successInfo.dayLabel}
+        onComplete={handleSuccessComplete}
+      />
     </div>
   );
 };
