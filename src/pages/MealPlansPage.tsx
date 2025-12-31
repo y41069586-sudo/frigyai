@@ -149,7 +149,18 @@ const MealPlansPage = () => {
     generateMealPlan: globalGenerateMealPlan 
   } = useMealPlanGeneration();
   
-  const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
+  const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
+    // Initialize from localStorage immediately to prevent flash of demo plan
+    const saved = localStorage.getItem('weeklyMealPlan');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return DEMO_MEAL_PLAN;
+      }
+    }
+    return DEMO_MEAL_PLAN;
+  });
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
