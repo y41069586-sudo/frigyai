@@ -11,9 +11,8 @@ const corsHeaders = {
 const requestSchema = z.object({
   ingredients: z.array(z.string().min(1).max(100)).min(1).max(50),
   cookingTime: z.number().optional().default(20),
-  mood: z.enum(['tired', 'normal', 'motivated']).optional().default('normal'),
-  isOnboarding: z.boolean().optional().default(false), // NEU: Onboarding-Flag
-  // NEU: Erweiterte Kontext-Parameter
+  mood: z.enum(['tired', 'normal', 'motivated', 'stressed']).optional().default('normal'),
+  isOnboarding: z.boolean().optional().default(false),
   macroBudget: z.object({
     remainingCalories: z.number(),
     remainingProtein: z.number(),
@@ -25,7 +24,7 @@ const requestSchema = z.object({
     age: z.number().optional(),
     weight: z.number().optional(),
   }).optional(),
-  mealToReplace: z.string().optional(), // z.B. "Mittagessen", "Abendessen"
+  mealToReplace: z.string().optional(),
 });
 
 serve(async (req) => {
