@@ -77,19 +77,19 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
           key={item.id}
           onPointerDown={() => handleNavClick(item)}
           type="button"
-          className="relative -mt-6 z-10 touch-none select-none"
-          whileTap={{ scale: 0.95 }}
+          className="relative -mt-3 z-10 touch-none select-none"
+          whileTap={{ scale: 0.97 }}
         >
           <div className={cn(
-            "w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all",
+            "w-12 h-12 rounded-xl flex items-center justify-center shadow-md transition-all",
             "bg-primary",
-            isActive && "shadow-[0_0_20px_hsla(var(--primary),0.5)]"
+            isActive && "shadow-[0_0_15px_hsla(var(--primary),0.4)]"
           )}>
-            <item.icon className="h-6 w-6 text-primary-foreground" />
+            <item.icon className="h-5 w-5 text-primary-foreground" />
           </div>
           {isActive && (
             <motion.div 
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary"
+              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
               layoutId="activeIndicator"
             />
           )}
