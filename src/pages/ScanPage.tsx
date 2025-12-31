@@ -39,6 +39,7 @@ const ScanPage = () => {
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
   const [syncedItems, setSyncedItems] = useState<string[]>([]);
   const [imageQualityIssue, setImageQualityIssue] = useState<ImageQualityResult | null>(null);
+  const [scanProgress, setScanProgress] = useState(0);
 
   const { syncWithScannedIngredients } = useShoppingListSync();
   const { getCached, setCached, cacheHits } = useAICache();
@@ -161,6 +162,18 @@ const ScanPage = () => {
 
     setUploading(true);
     setAnalyzing(true);
+    setScanProgress(0);
+
+    // Simulate progress animation during scan
+    const progressInterval = setInterval(() => {
+      setScanProgress(prev => {
+        // Slowly increase, but never reach 100% until actual completion
+        if (prev < 85) {
+          return prev + Math.random() * 8 + 2;
+        }
+        return prev + Math.random() * 1;
+      });
+    }, 300);
 
     try {
       // Determine if this is an onboarding scan
@@ -239,8 +252,13 @@ const ScanPage = () => {
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
-      setAnalyzing(false);
+      clearInterval(progressInterval);
+      setScanProgress(100);
+      setTimeout(() => {
+        setUploading(false);
+        setAnalyzing(false);
+        setScanProgress(0);
+      }, 300);
     }
   };
 
@@ -594,24 +612,76 @@ const ScanPage = () => {
                     <img
                       src={imagePreview}
                       alt={t.scanFridge}
-                      className="w-full h-auto"
+                      className="w-full h-auto blur-[2px]"
                     />
-                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center">
+                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
+                      {/* Animated scanning line */}
+                      <motion.div
+                        className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
+                        initial={{ top: 0 }}
+                        animate={{ top: ['0%', '100%', '0%'] }}
+                        transition={{ 
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      />
+                      
+                      {/* Center content */}
                       <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="relative"
+                        className="relative flex flex-col items-center"
                       >
-                        <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full" />
-                        <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-primary relative z-10" />
+                        <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150" />
+                        
+                        {/* Pulsing ring */}
+                        <motion.div
+                          className="absolute w-24 h-24 border-2 border-primary/50 rounded-full"
+                          animate={{ 
+                            scale: [1, 1.3, 1],
+                            opacity: [0.5, 0, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeOut"
+                          }}
+                        />
+                        
+                        <Loader2 className="h-16 w-16 animate-spin text-primary relative z-10" />
                       </motion.div>
+                      
                       <motion.p 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-xl font-semibold text-white text-center px-4"
+                        className="text-lg font-semibold text-white text-center px-4 mt-6"
                       >
                         {t.aiAnalyzingIngredients}
                       </motion.p>
+                      
+                      {/* Progress bar */}
+                      <div className="w-48 mt-4 relative">
+                        <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-primary rounded-full"
+                            initial={{ width: '0%' }}
+                            animate={{ width: `${Math.min(scanProgress, 100)}%` }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Percentage display - bottom right */}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2"
+                      >
+                        <span className="text-2xl font-bold text-primary">
+                          {Math.round(Math.min(scanProgress, 100))}%
+                        </span>
+                      </motion.div>
                     </div>
                   </>
                 ) : (
