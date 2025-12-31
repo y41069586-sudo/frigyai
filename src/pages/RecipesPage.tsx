@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChefHat, Clock, Zap, RefreshCw, Check, Target, TrendingDown, TrendingUp, Calendar } from "lucide-react";
+import { ArrowLeft, ChefHat, Clock, Zap, RefreshCw, Check, Target, TrendingDown, TrendingUp, Calendar, UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -186,6 +186,61 @@ const RecipesPage = () => {
     }
     
     setShowMealDialog(true);
+  };
+
+  const handleAddToTracker = () => {
+    if (!selectedRecipe) return;
+    
+    // Get current date
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Create food entry from recipe
+    const foodEntry = {
+      id: crypto.randomUUID(),
+      name: selectedRecipe.title,
+      calories: selectedRecipe.calories,
+      protein: selectedRecipe.protein,
+      carbs: selectedRecipe.carbs,
+      fat: selectedRecipe.fat,
+      portion: '1 Portion',
+      meal_type: 'lunch',
+      date: today,
+    };
+    
+    // Save to localStorage food entries
+    try {
+      const stored = localStorage.getItem('foodEntries');
+      const entries = stored ? JSON.parse(stored) : [];
+      entries.push(foodEntry);
+      localStorage.setItem('foodEntries', JSON.stringify(entries));
+      
+      // Also update today's macros
+      const storedMacros = localStorage.getItem('todayMacros');
+      const todayMacros = storedMacros ? JSON.parse(storedMacros) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      
+      const updatedMacros = {
+        calories: todayMacros.calories + selectedRecipe.calories,
+        protein: todayMacros.protein + selectedRecipe.protein,
+        carbs: todayMacros.carbs + selectedRecipe.carbs,
+        fat: todayMacros.fat + selectedRecipe.fat,
+      };
+      localStorage.setItem('todayMacros', JSON.stringify(updatedMacros));
+      
+      toast({
+        title: "Zum Tracker hinzugefügt! ✅",
+        description: `${selectedRecipe.title} - ${selectedRecipe.calories} kcal`,
+      });
+      
+      // Navigate to tracker
+      navigate('/meal-plans?tab=tracker');
+    } catch (e) {
+      console.error('Error adding to tracker:', e);
+      toast({
+        title: "Fehler",
+        description: "Konnte nicht zum Tracker hinzufügen",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleMealPlanConfirm = (mealType: string, dayOffset: number) => {
@@ -464,9 +519,22 @@ const RecipesPage = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 space-y-3">
-            <Button onClick={handleAddToMealPlan} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
-              {isOnboardingMode ? 'Weiter' : 'Los geht\'s! 🍳'}
-            </Button>
+            {isOnboardingMode ? (
+              <Button onClick={handleAddToMealPlan} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
+                Weiter
+              </Button>
+            ) : (
+              <>
+                <Button onClick={handleAddToTracker} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
+                  <UtensilsCrossed className="h-5 w-5 mr-2" />
+                  Zu meinen Mahlzeiten hinzufügen
+                </Button>
+                <Button onClick={() => setShowDetail(false)} variant="outline" className="w-full h-12">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Zurück zur Auswahl
+                </Button>
+              </>
+            )}
             {userProfile?.goalMode && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 {userProfile.goalMode === 'lose' ? (
