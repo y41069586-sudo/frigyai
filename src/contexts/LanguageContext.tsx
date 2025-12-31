@@ -798,7 +798,7 @@ const translations: Record<Language, Translations> = {
     tipText: "Scanne deinen Kühlschrank und erhalte sofort kalorienarme Rezepte mit nur 3-4 Zutaten.",
     dailyGoal: "Dein Tagesziel",
     protein: "Protein",
-    carbs: "Carbs",
+    carbs: "Kohlenhydrate",
     fat: "Fett",
     unlockPremium: "Premium freischalten",
     premiumFeatures: "Tracker • Wochenpläne • Einkaufslisten",
