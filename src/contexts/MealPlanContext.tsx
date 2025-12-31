@@ -56,20 +56,20 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [mealPlan, setMealPlan] = useState<DayPlan[] | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Load saved meal plan on mount
-  useEffect(() => {
+  const [mealPlan, setMealPlan] = useState<DayPlan[] | null>(() => {
+    // Initialize from localStorage immediately to prevent flash of empty state
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
       try {
-        setMealPlan(JSON.parse(saved));
+        return JSON.parse(saved);
       } catch (e) {
-        console.error('Failed to load saved meal plan');
+        console.error('Failed to parse saved meal plan');
+        return null;
       }
     }
-  }, []);
+    return null;
+  });
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Timer for elapsed seconds
   useEffect(() => {
