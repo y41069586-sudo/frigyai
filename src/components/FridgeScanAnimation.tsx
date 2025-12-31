@@ -132,7 +132,7 @@ export default function FridgeScanAnimation({
           />
         </motion.div>
 
-        {/* SCAN EFFECT */}
+      {/* SCAN EFFECT - 60 FPS optimized */}
         {open && (
           <motion.div
             initial={{ y: -220 }}
@@ -146,6 +146,8 @@ export default function FridgeScanAnimation({
             className="absolute w-full h-10 pointer-events-none z-10"
             style={{
               background: "linear-gradient(180deg, transparent, rgba(126,214,167,0.5), transparent)",
+              willChange: "transform",
+              transform: "translateZ(0)",
             }}
           />
         )}
