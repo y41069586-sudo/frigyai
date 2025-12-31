@@ -1,4 +1,4 @@
-import { Calendar, ShoppingCart, Target, Droplets, TrendingDown, Lock, NotebookPen } from "lucide-react";
+import { Calendar, ShoppingCart, Target, Droplets, BarChart3, Lock, NotebookPen } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -32,7 +32,7 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
   
   const rightItems = [
     { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: false, requiresTracker: false },
-    { id: "progress", label: t.navStats, icon: TrendingDown, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
+    { id: "progress", label: t.navStats, icon: BarChart3, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
   ];
 
   const handleNavClick = (item: typeof leftItems[0]) => {
