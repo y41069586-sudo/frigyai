@@ -23,12 +23,14 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
   const isOnMealPlansPage = location.pathname === '/meal-plans';
   
   // Items split: left side, center (elevated), right side
+  // ALL features except water tracker require premium for free users
   const leftItems = [
-    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: false, requiresTracker: true },
+    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: true, requiresTracker: true },
     { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-primary", requiresPremium: true, requiresTracker: true },
   ];
   
-  const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", requiresPremium: false, requiresTracker: false };
+  // Tracker (Tagebuch) now requires premium
+  const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", requiresPremium: true, requiresTracker: false };
   
   const rightItems = [
     { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: false, requiresTracker: false },
@@ -36,10 +38,14 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
   ];
 
   const handleNavClick = (item: typeof leftItems[0]) => {
+    const isLockedPremium = item.requiresPremium && !isPremium;
     const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
     
-    // For premium-locked features (shopping, progress), still navigate to show blurred preview
-    // Don't redirect to paywall - let the page show the overlay
+    // Free users -> redirect to paywall for premium features
+    if (isLockedPremium) {
+      navigate('/premium-pricing');
+      return;
+    }
     
     if (isLockedTracker) {
       toast({

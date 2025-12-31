@@ -14,7 +14,7 @@ import { useShoppingListSync } from "@/hooks/useShoppingListSync";
 import { useAICache } from "@/hooks/useAICache";
 import { checkImageQuality, ImageQualityResult } from "@/utils/imageQualityCheck";
 
-const FREE_SCAN_LIMIT = 2;
+const FREE_SCAN_LIMIT = 0;
 
 interface RecentDish {
   id: string;
@@ -49,6 +49,14 @@ const ScanPage = () => {
   // Check if user is in onboarding mode (free trial scan)
   const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
     localStorage.getItem('onboardingScanUsed') !== 'true';
+
+  // Redirect free users to paywall immediately (unless onboarding guest)
+  useEffect(() => {
+    const canScanAsOnboarding = isOnboardingMode && !user;
+    if (isFreeMode && !canScanAsOnboarding) {
+      navigate('/premium-pricing');
+    }
+  }, [isFreeMode, isOnboardingMode, user, navigate]);
 
   // Load scan usage and recent dishes on mount
   useEffect(() => {

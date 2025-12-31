@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FREE_SCAN_LIMIT = 1;
+const FREE_SCAN_LIMIT = 0;
 
 const getWeekStart = (): string => {
   const now = new Date();
