@@ -188,6 +188,8 @@ const RecipesPage = () => {
     setShowMealDialog(true);
   };
 
+  const [showAddToMealPlanOption, setShowAddToMealPlanOption] = useState(false);
+
   const handleAddToTracker = () => {
     if (!selectedRecipe) return;
     
@@ -231,8 +233,8 @@ const RecipesPage = () => {
         description: `${selectedRecipe.title} - ${selectedRecipe.calories} kcal`,
       });
       
-      // Navigate to tracker
-      navigate('/meal-plans?tab=tracker');
+      // Show option to add to meal plan
+      setShowAddToMealPlanOption(true);
     } catch (e) {
       console.error('Error adding to tracker:', e);
       toast({
@@ -523,6 +525,23 @@ const RecipesPage = () => {
               <Button onClick={handleAddToMealPlan} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
                 Weiter
               </Button>
+            ) : showAddToMealPlanOption ? (
+              <>
+                <div className="text-center mb-3">
+                  <Check className="h-8 w-8 mx-auto text-primary mb-2" />
+                  <p className="text-sm text-muted-foreground">Mahlzeit wurde zum Tracker hinzugefügt!</p>
+                </div>
+                <Button onClick={() => setShowMealDialog(true)} className="w-full gradient-neon text-black font-semibold h-14 text-lg">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Im Wochenplan ersetzen
+                </Button>
+                <Button onClick={() => navigate('/meal-plans?tab=tracker')} variant="outline" className="w-full h-12">
+                  Zum Tracker
+                </Button>
+                <Button onClick={() => navigate('/')} variant="ghost" className="w-full h-10 text-muted-foreground">
+                  Zurück zum Dashboard
+                </Button>
+              </>
             ) : (
               <>
                 <Button onClick={handleAddToTracker} className="w-full gradient-neon text-black font-semibold h-14 text-lg">

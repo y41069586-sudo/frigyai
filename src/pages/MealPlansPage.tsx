@@ -548,11 +548,6 @@ const MealPlansPage = () => {
                   <div>
                     <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">{t.weeklyPlan}</h2>
                     <p className="text-xs sm:text-sm text-muted-foreground">{t.tip}</p>
-                    {!hasGeneratedPlan && !isFreeMode && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Hinweis: Du siehst gerade einen Demo-Plan. Klicke auf „{t.generateNewPlan}", um deinen echten Plan zu laden.
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <ExportMealPlan mealPlan={mealPlan} />
