@@ -11,8 +11,6 @@ import { MealPlanProvider } from "@/contexts/MealPlanContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
-import { MealPlanGeneratingOverlay } from "@/components/MealPlanGeneratingOverlay";
-import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
 import { FreeTrialReminder } from "@/components/FreeTrialReminder";
 import { ReEngagementBanner } from "@/components/ReEngagementBanner";
 
@@ -50,30 +48,11 @@ const queryClient = new QueryClient({
   },
 });
 
-// Global overlay component that uses the context
-const GlobalMealPlanOverlay = () => {
-  const navigate = useNavigate();
-  const { isGenerating, isMinimized, elapsedSeconds, setMinimized } = useMealPlanGeneration();
-
-  return (
-    <MealPlanGeneratingOverlay
-      isGenerating={isGenerating}
-      isMinimized={isMinimized}
-      elapsedSeconds={elapsedSeconds}
-      onMinimize={() => setMinimized(true)}
-      onBack={() => {
-        setMinimized(true);
-        navigate('/');
-      }}
-    />
-  );
-};
 
 const AppContent = () => {
   return (
     <>
       <OfflineIndicator />
-      <GlobalMealPlanOverlay />
       <FreeTrialReminder />
       <ReEngagementBanner />
       <Suspense fallback={null}>
