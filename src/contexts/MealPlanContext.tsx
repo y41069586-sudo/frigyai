@@ -91,6 +91,70 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [isGenerating]);
 
+  // Load persisted meal plan from backend on login (and migrate any existing local plan)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      // Read current local plan (if any)
+      let localPlan: DayPlan[] | null = null;
+      const localSaved = localStorage.getItem('weeklyMealPlan');
+      if (localSaved) {
+        try {
+          localPlan = JSON.parse(localSaved) as DayPlan[];
+        } catch {
+          localPlan = null;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('weekly_meal_plans')
+        .select('plan')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('Error loading weekly meal plan:', error);
+        return;
+      }
+
+      const dbPlan = (data as any)?.plan as DayPlan[] | undefined;
+
+      // Prefer DB if available
+      if (Array.isArray(dbPlan) && dbPlan.length > 0) {
+        setMealPlan(dbPlan);
+        localStorage.setItem('weeklyMealPlan', JSON.stringify(dbPlan));
+        return;
+      }
+
+      // Otherwise, if user has a local plan from onboarding/previous sessions, persist it once
+      if (Array.isArray(localPlan) && localPlan.length > 0) {
+        await supabase
+          .from('weekly_meal_plans')
+          .upsert(
+            [
+              {
+                user_id: session.user.id,
+                plan: localPlan as any,
+                updated_at: new Date().toISOString(),
+              },
+            ],
+            { onConflict: 'user_id' }
+          );
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
   const generateMealPlan = useCallback(async (settings: {
     dailyCalories: number;
     dailyProtein: number;
@@ -125,9 +189,24 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const newPlan = (data as any).mealPlan;
         setMealPlan(newPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
-        toast({ 
-          title: '✅ Wochenplan generiert!', 
-          description: `Plan mit ${settings.dailyCalories} kcal pro Tag` 
+
+        // Persist for this user so it never auto-regenerates after login
+        await supabase
+          .from('weekly_meal_plans')
+          .upsert(
+            [
+              {
+                user_id: session.user.id,
+                plan: newPlan as any,
+                updated_at: new Date().toISOString(),
+              },
+            ],
+            { onConflict: 'user_id' }
+          );
+
+        toast({
+          title: '✅ Wochenplan generiert!',
+          description: `Plan mit ${settings.dailyCalories} kcal pro Tag`
         });
         return true;
       } else {
@@ -164,7 +243,12 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const clearMealPlan = useCallback(() => {
     setMealPlan(null);
     localStorage.removeItem('weeklyMealPlan');
-  }, []);
+
+    // Best-effort: also clear persisted plan for the logged in user
+    if (session?.user?.id) {
+      supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
+    }
+  }, [session?.user?.id]);
 
   return (
     <MealPlanContext.Provider value={{

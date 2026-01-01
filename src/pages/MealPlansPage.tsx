@@ -211,28 +211,8 @@ const MealPlansPage = () => {
     }
   }, [globalMealPlan]);
 
-  // Auto-generate meal plan when premium user has tracker setup but no plan
-  useEffect(() => {
-    const hasNoPlan = mealPlan.length === 0;
-    const canAutoGenerate = isPremium && trackerSetup && trackerSettings && session && !globalIsGenerating && hasNoPlan;
-    
-    if (canAutoGenerate) {
-      console.log('[MEAL-PLAN] Auto-generating plan for premium user...');
-      const dailyCalories = trackerSettings.dailyCalories || 1600;
-      const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
-      const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
-      const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
-      
-      globalGenerateMealPlan({
-        dailyCalories,
-        dailyProtein,
-        dailyCarbs,
-        dailyFat,
-      });
-    }
-  }, [isPremium, trackerSetup, trackerSettings, session, globalIsGenerating, mealPlan.length]);
+  // Auto-generate meal plan on login was removed: plans are persisted and should never regenerate automatically.
 
-  // Elapsed time now comes from global context (globalElapsedSeconds)
 
   // Listen for tracker setup changes - reload settings from DB
   const handleTrackerSetup = () => {

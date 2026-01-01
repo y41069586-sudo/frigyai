@@ -8,6 +8,7 @@ interface MealPlanGeneratingOverlayProps {
   isGenerating: boolean;
   elapsedSeconds: number;
   onMinimize?: () => void;
+  onBack?: () => void;
   isMinimized?: boolean;
 }
 
@@ -82,6 +83,7 @@ export const MealPlanGeneratingOverlay = ({
   isGenerating, 
   elapsedSeconds,
   onMinimize,
+  onBack,
   isMinimized = false
 }: MealPlanGeneratingOverlayProps) => {
   const { t } = useLanguage();
@@ -215,11 +217,15 @@ export const MealPlanGeneratingOverlay = ({
           {/* Very light gradient overlay for modern feel */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 via-white/20 to-teal-50/40 dark:from-emerald-900/20 dark:via-transparent dark:to-teal-900/20" />
 
-          {/* Zurück (wie vorher das X): minimiert das Overlay */}
-          {onMinimize && (
+          {/* Zurück: direkt zum Dashboard (Generation läuft im Hintergrund) */}
+          {(onBack || onMinimize) && (
             <motion.button
               data-mealplan-overlay-card="true"
-              onClick={onMinimize}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                (onBack ?? onMinimize)?.();
+              }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
