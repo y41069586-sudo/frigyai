@@ -92,8 +92,12 @@ export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
 
       if (error) throw error;
 
+      // Edge function returns { message: ... }
+      const aiResponse = data?.message || data?.response || '';
+      if (!aiResponse) throw new Error('Leere Antwort');
+
       // Process any actions in the response
-      const processedResponse = processActions(data.response);
+      const processedResponse = processActions(aiResponse);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
