@@ -11,7 +11,7 @@ interface WheelPickerProps {
 
 const triggerHaptic = () => {
   if ('vibrate' in navigator) {
-    navigator.vibrate(5);
+    navigator.vibrate(3);
   }
 };
 
@@ -24,11 +24,11 @@ export const WheelPicker = ({
   unit = ''
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
   const lastValueRef = useRef(value);
   const rafRef = useRef<number | null>(null);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const isUserScrolling = useRef(false);
   
   const itemHeight = 48;
   const visibleItems = 3;
@@ -46,7 +46,6 @@ export const WheelPicker = ({
     
     const index = items.indexOf(value);
     if (index >= 0) {
-      // Use requestAnimationFrame for smoother initial positioning
       requestAnimationFrame(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = index * itemHeight;
@@ -57,9 +56,9 @@ export const WheelPicker = ({
     }
   }, [value, items, itemHeight, isInitialized]);
 
-  // Sync scroll when value changes externally (not from scrolling)
+  // Sync scroll when value changes externally (not from user scrolling)
   useEffect(() => {
-    if (!scrollRef.current || !isInitialized || isScrollingRef.current) return;
+    if (!scrollRef.current || !isInitialized || isUserScrolling.current) return;
     
     const index = items.indexOf(value);
     if (index >= 0 && value !== lastValueRef.current) {
@@ -68,58 +67,69 @@ export const WheelPicker = ({
     }
   }, [value, items, itemHeight, isInitialized]);
 
-  const snapToValue = useCallback(() => {
+  // Get current value based on scroll position
+  const getValueFromScroll = useCallback(() => {
+    if (!scrollRef.current) return value;
+    
+    const scrollTop = scrollRef.current.scrollTop;
+    const index = Math.round(scrollTop / itemHeight);
+    const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+    return items[clampedIndex];
+  }, [items, itemHeight, value]);
+
+  // Snap to nearest value after scroll ends
+  const snapToNearestValue = useCallback(() => {
     if (!scrollRef.current) return;
     
     const scrollTop = scrollRef.current.scrollTop;
     const index = Math.round(scrollTop / itemHeight);
     const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
     const targetScrollTop = clampedIndex * itemHeight;
-    const newValue = items[clampedIndex];
     
-    // Smooth snap to position
+    // Smooth snap to exact position
     scrollRef.current.scrollTo({
       top: targetScrollTop,
       behavior: 'smooth'
     });
     
-    // Update value if changed
-    if (newValue !== lastValueRef.current) {
-      triggerHaptic();
-      lastValueRef.current = newValue;
-      onChange(newValue);
-    }
-    
-    isScrollingRef.current = false;
-  }, [items, onChange, itemHeight]);
+    isUserScrolling.current = false;
+  }, [items, itemHeight]);
 
+  // Live update on every scroll frame - iOS native behavior
   const handleScroll = useCallback(() => {
-    isScrollingRef.current = true;
+    isUserScrolling.current = true;
     
-    // Cancel any pending RAF
+    // Cancel previous animation frame
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
     }
     
-    // Clear previous timeout
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
+    // Clear previous snap timeout
+    if (snapTimeoutRef.current) {
+      clearTimeout(snapTimeoutRef.current);
     }
     
-    // Use longer timeout for iOS to ensure scroll momentum has finished
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const scrollEndDelay = isIOS ? 150 : 100;
+    // Update value immediately during scroll
+    rafRef.current = requestAnimationFrame(() => {
+      const newValue = getValueFromScroll();
+      
+      if (newValue !== lastValueRef.current) {
+        triggerHaptic();
+        lastValueRef.current = newValue;
+        onChange(newValue);
+      }
+    });
     
-    scrollTimeoutRef.current = setTimeout(() => {
-      rafRef.current = requestAnimationFrame(snapToValue);
-    }, scrollEndDelay);
-  }, [snapToValue]);
+    // Schedule snap after scroll ends
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    snapTimeoutRef.current = setTimeout(snapToNearestValue, isIOS ? 120 : 80);
+  }, [getValueFromScroll, onChange, snapToNearestValue]);
 
   // Cleanup
   useEffect(() => {
     return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+      if (snapTimeoutRef.current) {
+        clearTimeout(snapTimeoutRef.current);
       }
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
@@ -131,7 +141,7 @@ export const WheelPicker = ({
     const index = items.indexOf(item);
     if (scrollRef.current && index >= 0) {
       triggerHaptic();
-      isScrollingRef.current = true;
+      isUserScrolling.current = true;
       scrollRef.current.scrollTo({
         top: index * itemHeight,
         behavior: 'smooth'
@@ -139,28 +149,25 @@ export const WheelPicker = ({
       lastValueRef.current = item;
       onChange(item);
       
-      // Reset scrolling flag after animation
       setTimeout(() => {
-        isScrollingRef.current = false;
+        isUserScrolling.current = false;
       }, 300);
     }
   }, [items, itemHeight, onChange]);
 
-  // Handle touch end for iOS - ensure snap happens
+  // Force snap on touch end (for iOS momentum)
   const handleTouchEnd = useCallback(() => {
-    // Clear existing timeout and set a new one
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
+    if (snapTimeoutRef.current) {
+      clearTimeout(snapTimeoutRef.current);
     }
-    
-    // Longer delay for touch end to handle momentum
-    scrollTimeoutRef.current = setTimeout(() => {
-      rafRef.current = requestAnimationFrame(snapToValue);
-    }, 200);
-  }, [snapToValue]);
-  
+    snapTimeoutRef.current = setTimeout(snapToNearestValue, 150);
+  }, [snapToNearestValue]);
+
   const containerHeight = visibleItems * itemHeight;
-  const currentIndex = items.indexOf(value);
+  
+  // Calculate visual state based on scroll position for live preview
+  const currentScrollValue = getValueFromScroll();
+  const currentIndex = items.indexOf(currentScrollValue);
   
   return (
     <div className="relative mx-auto w-full" style={{ height: containerHeight }}>
@@ -191,7 +198,7 @@ export const WheelPicker = ({
         }}
       />
       
-      {/* Scroll container - iOS optimized */}
+      {/* Scroll container - iOS native feel */}
       <div
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide"
@@ -209,14 +216,14 @@ export const WheelPicker = ({
         
         {/* Items */}
         {items.map((item, index) => {
-          const isSelected = item === value;
+          const isSelected = index === currentIndex;
           const distanceFromSelected = Math.abs(index - currentIndex);
           const opacity = distanceFromSelected === 0 ? 1 : distanceFromSelected === 1 ? 0.5 : 0.25;
           
           return (
             <div
               key={item}
-              className={`flex items-center justify-center select-none cursor-pointer gap-1 ${
+              className={`flex items-center justify-center select-none cursor-pointer gap-1 transition-all duration-75 ${
                 isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
               }`}
               style={{ 
@@ -225,7 +232,6 @@ export const WheelPicker = ({
                 fontSize: isSelected ? '1.5rem' : '1rem',
                 opacity,
                 transform: isSelected ? 'scale(1.05)' : 'scale(0.9)',
-                transition: 'opacity 0.15s ease-out, transform 0.15s ease-out'
               }}
               onClick={() => handleItemClick(item)}
             >
