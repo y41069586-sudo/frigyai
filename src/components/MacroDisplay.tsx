@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { MacroRing } from './MacroRing';
-import { Flame } from 'lucide-react';
+import { Flame, Pencil } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
 
 interface MacroDisplayProps {
   calories: { current: number; target: number };
@@ -10,6 +11,10 @@ interface MacroDisplayProps {
   fat: { current: number; target: number };
   variant?: 'full' | 'compact' | 'rings-only';
   showCalorieBar?: boolean;
+  onEditCalories?: () => void;
+  onEditProtein?: () => void;
+  onEditCarbs?: () => void;
+  onEditFat?: () => void;
 }
 
 export const MacroDisplay = ({
@@ -19,6 +24,10 @@ export const MacroDisplay = ({
   fat,
   variant = 'full',
   showCalorieBar = true,
+  onEditCalories,
+  onEditProtein,
+  onEditCarbs,
+  onEditFat,
 }: MacroDisplayProps) => {
   const { t } = useLanguage();
   const caloriePercentage = Math.min((calories.current / calories.target) * 100, 100);
@@ -114,7 +123,7 @@ export const MacroDisplay = ({
     );
   }
 
-  // Full variant - Compact & Modern
+  // Full variant - Compact & Modern with Edit Buttons
   return (
     <motion.div 
       className="p-4 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/30 shadow-lg"
@@ -137,12 +146,24 @@ export const MacroDisplay = ({
         </p>
       </div>
 
-      {/* Calories Display - Compact */}
-      <div className="flex items-baseline gap-1 mb-2">
-        <span className={`text-3xl font-bold tracking-tight ${isOverCalories ? 'text-red-400' : 'text-foreground'}`}>
-          {calories.current}
-        </span>
-        <span className="text-base text-muted-foreground">/ {calories.target} kcal</span>
+      {/* Calories Display - Compact with Edit Button */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-baseline gap-1">
+          <span className={`text-3xl font-bold tracking-tight ${isOverCalories ? 'text-red-400' : 'text-foreground'}`}>
+            {calories.current}
+          </span>
+          <span className="text-base text-muted-foreground">/ {calories.target} kcal</span>
+        </div>
+        {onEditCalories && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full hover:bg-primary/10"
+            onClick={onEditCalories}
+          >
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+          </Button>
+        )}
       </div>
 
       {/* Slim Progress Bar */}
@@ -161,29 +182,65 @@ export const MacroDisplay = ({
         </div>
       )}
 
-      {/* Compact Macro Row */}
+      {/* Compact Macro Row with Edit Buttons */}
       <div className="grid grid-cols-3 gap-3">
-        <MacroRing
-          value={protein.current}
-          max={protein.target}
-          label={t.protein}
-          color="protein"
-          size="sm"
-        />
-        <MacroRing
-          value={carbs.current}
-          max={carbs.target}
-          label={t.carbs}
-          color="carbs"
-          size="sm"
-        />
-        <MacroRing
-          value={fat.current}
-          max={fat.target}
-          label={t.fat}
-          color="fat"
-          size="sm"
-        />
+        <div className="relative">
+          <MacroRing
+            value={protein.current}
+            max={protein.target}
+            label={t.protein}
+            color="protein"
+            size="sm"
+          />
+          {onEditProtein && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-background/80 hover:bg-primary/10 border border-border/50"
+              onClick={onEditProtein}
+            >
+              <Pencil className="h-2.5 w-2.5 text-muted-foreground hover:text-primary" />
+            </Button>
+          )}
+        </div>
+        <div className="relative">
+          <MacroRing
+            value={carbs.current}
+            max={carbs.target}
+            label={t.carbs}
+            color="carbs"
+            size="sm"
+          />
+          {onEditCarbs && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-background/80 hover:bg-primary/10 border border-border/50"
+              onClick={onEditCarbs}
+            >
+              <Pencil className="h-2.5 w-2.5 text-muted-foreground hover:text-primary" />
+            </Button>
+          )}
+        </div>
+        <div className="relative">
+          <MacroRing
+            value={fat.current}
+            max={fat.target}
+            label={t.fat}
+            color="fat"
+            size="sm"
+          />
+          {onEditFat && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-background/80 hover:bg-primary/10 border border-border/50"
+              onClick={onEditFat}
+            >
+              <Pencil className="h-2.5 w-2.5 text-muted-foreground hover:text-primary" />
+            </Button>
+          )}
+        </div>
       </div>
     </motion.div>
   );

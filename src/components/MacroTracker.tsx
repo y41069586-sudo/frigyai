@@ -882,12 +882,19 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           carbs={{ current: totalCarbs, target: profile?.dailyCarbs || 0 }}
           fat={{ current: totalFat, target: profile?.dailyFat || 0 }}
           variant="full"
+          onEditCalories={() => setShowEditGoalsDialog(true)}
+          onEditProtein={() => setShowEditGoalsDialog(true)}
+          onEditCarbs={() => setShowEditGoalsDialog(true)}
+          onEditFat={() => setShowEditGoalsDialog(true)}
         />
         <Button
           variant="ghost"
           size="sm"
           className="w-full text-xs text-muted-foreground hover:text-primary"
-          onClick={() => setShowEditGoalsDialog(true)}
+          onClick={() => {
+            setStep('onboarding');
+            setOnboardingStep(0);
+          }}
         >
           <Pencil className="h-3 w-3 mr-1.5" />
           {t.changeGoal}
