@@ -20,7 +20,7 @@ import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
-import { EditMacroGoalsDialog } from './EditMacroGoalsDialog';
+import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
@@ -116,6 +116,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
+  const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
     name: string;
     calories: number;
@@ -882,10 +883,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           carbs={{ current: totalCarbs, target: profile?.dailyCarbs || 0 }}
           fat={{ current: totalFat, target: profile?.dailyFat || 0 }}
           variant="full"
-          onEditCalories={() => setShowEditGoalsDialog(true)}
-          onEditProtein={() => setShowEditGoalsDialog(true)}
-          onEditCarbs={() => setShowEditGoalsDialog(true)}
-          onEditFat={() => setShowEditGoalsDialog(true)}
+          onEditCalories={() => { setFocusMacro('calories'); setShowEditGoalsDialog(true); }}
+          onEditProtein={() => { setFocusMacro('protein'); setShowEditGoalsDialog(true); }}
+          onEditCarbs={() => { setFocusMacro('carbs'); setShowEditGoalsDialog(true); }}
+          onEditFat={() => { setFocusMacro('fat'); setShowEditGoalsDialog(true); }}
         />
         <Button
           variant="ghost"
@@ -904,13 +905,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       {/* Edit Macro Goals Dialog */}
       <EditMacroGoalsDialog
         open={showEditGoalsDialog}
-        onOpenChange={setShowEditGoalsDialog}
+        onOpenChange={(open) => {
+          setShowEditGoalsDialog(open);
+          if (!open) setFocusMacro(null);
+        }}
         currentGoals={{
           dailyCalories: profile?.dailyCalories || 2000,
           dailyProtein: profile?.dailyProtein || 150,
           dailyCarbs: profile?.dailyCarbs || 200,
           dailyFat: profile?.dailyFat || 70,
         }}
+        focusMacro={focusMacro}
         onSave={async (goals) => {
           // Update profile state
           const newProfile = {
