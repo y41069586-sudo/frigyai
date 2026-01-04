@@ -17,6 +17,26 @@ interface MacroDisplayProps {
   onEditFat?: () => void;
 }
 
+const EditButton = ({ onClick, size = 'sm' }: { onClick?: () => void; size?: 'sm' | 'xs' }) => {
+  if (!onClick) return null;
+  
+  const sizeClasses = size === 'sm' 
+    ? 'h-6 w-6' 
+    : 'h-5 w-5';
+  const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-2.5 w-2.5';
+  
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={`${sizeClasses} rounded-full hover:bg-primary/10 transition-colors`}
+      onClick={onClick}
+    >
+      <Pencil className={`${iconSize} text-muted-foreground hover:text-primary`} />
+    </Button>
+  );
+};
+
 export const MacroDisplay = ({
   calories,
   protein,
