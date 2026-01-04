@@ -25,10 +25,9 @@ export const WheelPicker = ({
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef(value);
-  const rafRef = useRef<number | null>(null);
-  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const isUserScrolling = useRef(false);
+  const isScrollingRef = useRef(false);
+  const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProgrammaticScrollRef = useRef(false);
   
   const itemHeight = 48;
   const visibleItems = 3;
@@ -40,134 +39,124 @@ export const WheelPicker = ({
     items.push(i);
   }
 
-  // Initial scroll position - only once
-  useEffect(() => {
-    if (!scrollRef.current || isInitialized) return;
-    
-    const index = items.indexOf(value);
-    if (index >= 0) {
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = index * itemHeight;
-          lastValueRef.current = value;
-          setIsInitialized(true);
-        }
-      });
-    }
-  }, [value, items, itemHeight, isInitialized]);
+  // Get index from value
+  const getIndexFromValue = useCallback((val: number) => {
+    const idx = items.indexOf(val);
+    return idx >= 0 ? idx : 0;
+  }, [items]);
 
-  // Sync scroll when value changes externally (not from user scrolling)
-  useEffect(() => {
-    if (!scrollRef.current || !isInitialized || isUserScrolling.current) return;
-    
-    const index = items.indexOf(value);
-    if (index >= 0 && value !== lastValueRef.current) {
-      scrollRef.current.scrollTop = index * itemHeight;
-      lastValueRef.current = value;
-    }
-  }, [value, items, itemHeight, isInitialized]);
-
-  // Get current value based on scroll position
-  const getValueFromScroll = useCallback(() => {
-    if (!scrollRef.current) return value;
-    
-    const scrollTop = scrollRef.current.scrollTop;
+  // Get value from scroll position
+  const getValueFromScrollPosition = useCallback((scrollTop: number) => {
     const index = Math.round(scrollTop / itemHeight);
     const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
     return items[clampedIndex];
-  }, [items, itemHeight, value]);
-
-  // Snap to nearest value after scroll ends
-  const snapToNearestValue = useCallback(() => {
-    if (!scrollRef.current) return;
-    
-    const scrollTop = scrollRef.current.scrollTop;
-    const index = Math.round(scrollTop / itemHeight);
-    const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
-    const targetScrollTop = clampedIndex * itemHeight;
-    
-    // Smooth snap to exact position
-    scrollRef.current.scrollTo({
-      top: targetScrollTop,
-      behavior: 'smooth'
-    });
-    
-    isUserScrolling.current = false;
   }, [items, itemHeight]);
 
-  // Live update on every scroll frame - iOS native behavior
+  // Scroll to specific index without triggering onChange
+  const scrollToIndex = useCallback((index: number, smooth = false) => {
+    if (!scrollRef.current) return;
+    
+    isProgrammaticScrollRef.current = true;
+    const targetTop = index * itemHeight;
+    
+    if (smooth) {
+      scrollRef.current.scrollTo({ top: targetTop, behavior: 'smooth' });
+    } else {
+      scrollRef.current.scrollTop = targetTop;
+    }
+    
+    // Reset flag after scroll completes
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, smooth ? 300 : 50);
+  }, [itemHeight]);
+
+  // Initialize scroll position
+  useEffect(() => {
+    const index = getIndexFromValue(value);
+    scrollToIndex(index, false);
+    lastValueRef.current = value;
+  }, []); // Only on mount
+
+  // Sync when value changes externally
+  useEffect(() => {
+    if (isScrollingRef.current) return;
+    
+    if (value !== lastValueRef.current) {
+      const index = getIndexFromValue(value);
+      scrollToIndex(index, false);
+      lastValueRef.current = value;
+    }
+  }, [value, getIndexFromValue, scrollToIndex]);
+
+  // Handle scroll with debounced end detection
   const handleScroll = useCallback(() => {
-    isUserScrolling.current = true;
+    if (isProgrammaticScrollRef.current) return;
+    if (!scrollRef.current) return;
     
-    // Cancel previous animation frame
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
+    isScrollingRef.current = true;
+    
+    // Clear existing timeout
+    if (scrollEndTimeoutRef.current) {
+      clearTimeout(scrollEndTimeoutRef.current);
     }
     
-    // Clear previous snap timeout
-    if (snapTimeoutRef.current) {
-      clearTimeout(snapTimeoutRef.current);
+    // Get current value from scroll position
+    const scrollTop = scrollRef.current.scrollTop;
+    const newValue = getValueFromScrollPosition(scrollTop);
+    
+    // Only trigger onChange if value actually changed
+    if (newValue !== lastValueRef.current) {
+      triggerHaptic();
+      lastValueRef.current = newValue;
+      onChange(newValue);
     }
     
-    // Update value immediately during scroll
-    rafRef.current = requestAnimationFrame(() => {
-      const newValue = getValueFromScroll();
+    // Detect scroll end and snap
+    scrollEndTimeoutRef.current = setTimeout(() => {
+      if (!scrollRef.current) return;
       
-      if (newValue !== lastValueRef.current) {
-        triggerHaptic();
-        lastValueRef.current = newValue;
-        onChange(newValue);
+      const currentScrollTop = scrollRef.current.scrollTop;
+      const nearestIndex = Math.round(currentScrollTop / itemHeight);
+      const targetScrollTop = nearestIndex * itemHeight;
+      
+      // Snap to nearest if not already aligned
+      if (Math.abs(currentScrollTop - targetScrollTop) > 1) {
+        isProgrammaticScrollRef.current = true;
+        scrollRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+        
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+          isScrollingRef.current = false;
+        }, 200);
+      } else {
+        isScrollingRef.current = false;
       }
-    });
-    
-    // Schedule snap after scroll ends
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    snapTimeoutRef.current = setTimeout(snapToNearestValue, isIOS ? 120 : 80);
-  }, [getValueFromScroll, onChange, snapToNearestValue]);
+    }, 100);
+  }, [getValueFromScrollPosition, onChange, itemHeight]);
+
+  // Handle direct item click
+  const handleItemClick = useCallback((item: number) => {
+    const index = items.indexOf(item);
+    if (index >= 0) {
+      triggerHaptic();
+      lastValueRef.current = item;
+      onChange(item);
+      scrollToIndex(index, true);
+    }
+  }, [items, onChange, scrollToIndex]);
 
   // Cleanup
   useEffect(() => {
     return () => {
-      if (snapTimeoutRef.current) {
-        clearTimeout(snapTimeoutRef.current);
-      }
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
+      if (scrollEndTimeoutRef.current) {
+        clearTimeout(scrollEndTimeoutRef.current);
       }
     };
   }, []);
-  
-  const handleItemClick = useCallback((item: number) => {
-    const index = items.indexOf(item);
-    if (scrollRef.current && index >= 0) {
-      triggerHaptic();
-      isUserScrolling.current = true;
-      scrollRef.current.scrollTo({
-        top: index * itemHeight,
-        behavior: 'smooth'
-      });
-      lastValueRef.current = item;
-      onChange(item);
-      
-      setTimeout(() => {
-        isUserScrolling.current = false;
-      }, 300);
-    }
-  }, [items, itemHeight, onChange]);
-
-  // Force snap on touch end (for iOS momentum)
-  const handleTouchEnd = useCallback(() => {
-    if (snapTimeoutRef.current) {
-      clearTimeout(snapTimeoutRef.current);
-    }
-    snapTimeoutRef.current = setTimeout(snapToNearestValue, 150);
-  }, [snapToNearestValue]);
 
   const containerHeight = visibleItems * itemHeight;
-  
-  // Calculate visual state based on scroll position for live preview
-  const currentScrollValue = getValueFromScroll();
-  const currentIndex = items.indexOf(currentScrollValue);
+  const currentIndex = getIndexFromValue(lastValueRef.current);
   
   return (
     <div className="relative mx-auto w-full" style={{ height: containerHeight }}>
@@ -198,32 +187,30 @@ export const WheelPicker = ({
         }}
       />
       
-      {/* Scroll container - iOS native feel */}
+      {/* Scroll container */}
       <div
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide"
         style={{ 
           scrollSnapType: 'y mandatory',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain',
-          touchAction: 'pan-y'
+          overscrollBehavior: 'contain'
         }}
         onScroll={handleScroll}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Top padding */}
         <div style={{ height: paddingItems * itemHeight }} />
         
         {/* Items */}
         {items.map((item, index) => {
-          const isSelected = index === currentIndex;
+          const isSelected = item === lastValueRef.current;
           const distanceFromSelected = Math.abs(index - currentIndex);
           const opacity = distanceFromSelected === 0 ? 1 : distanceFromSelected === 1 ? 0.5 : 0.25;
           
           return (
             <div
               key={item}
-              className={`flex items-center justify-center select-none cursor-pointer gap-1 transition-all duration-75 ${
+              className={`flex items-center justify-center select-none cursor-pointer gap-1 ${
                 isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
               }`}
               style={{ 
