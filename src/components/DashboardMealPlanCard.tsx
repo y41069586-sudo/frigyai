@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,6 +25,7 @@ export const DashboardMealPlanCard = () => {
   const navigate = useNavigate();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [todayPlan, setTodayPlan] = useState<DayPlan | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('weeklyMealPlan');
@@ -40,6 +41,8 @@ export const DashboardMealPlanCard = () => {
         console.error('Failed to load meal plan preview');
       }
     }
+    // Trigger fade-in after data loads
+    setTimeout(() => setIsVisible(true), 100);
   }, []);
 
   const handleClick = () => {
@@ -48,6 +51,7 @@ export const DashboardMealPlanCard = () => {
 
   const totalCalories = todayPlan?.meals.reduce((sum, m) => sum + m.calories, 0) || 0;
   const hasMealPlan = mealPlan.length > 0;
+  const todayMeals = todayPlan?.meals?.slice(0, 2) || [];
 
   return (
     <motion.div
@@ -70,39 +74,73 @@ export const DashboardMealPlanCard = () => {
         
         <p className="text-sm font-semibold text-foreground mb-0.5">Wochenplan</p>
         
-        {hasMealPlan ? (
-          <>
-            <p className="text-xs text-muted-foreground mb-3">
-              {totalCalories > 0 ? `${totalCalories} kcal heute` : 'Plan erstellt'}
-            </p>
-            
-            {/* Week indicator dots */}
-            <div className="flex gap-1.5">
-              {DAYS_SHORT.map((day, index) => {
-                const isToday = index === getCurrentDayIndex();
-                const hasMeals = mealPlan[index]?.meals?.length > 0;
-                
-                return (
-                  <div
-                    key={day}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      isToday 
-                        ? 'bg-emerald-500 ring-2 ring-emerald-500/30 ring-offset-1 ring-offset-background' 
-                        : hasMeals 
-                          ? 'bg-emerald-500/40' 
-                          : 'bg-muted/30'
-                    }`}
-                  />
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center gap-1.5 mt-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-            <p className="text-xs text-muted-foreground">Jetzt erstellen</p>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {hasMealPlan ? (
+            <motion.div
+              key="has-plan"
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 5 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Today's meal preview */}
+              {todayMeals.length > 0 && (
+                <div className="mb-2 space-y-1">
+                  {todayMeals.map((meal, idx) => (
+                    <motion.p
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 + 0.2 }}
+                      className="text-xs text-muted-foreground truncate"
+                    >
+                      <span className="text-emerald-500">{meal.type}:</span> {meal.name}
+                    </motion.p>
+                  ))}
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground mb-3">
+                {totalCalories > 0 ? `${totalCalories} kcal heute` : 'Plan erstellt'}
+              </p>
+              
+              {/* Week indicator dots */}
+              <div className="flex gap-1.5">
+                {DAYS_SHORT.map((day, index) => {
+                  const isToday = index === getCurrentDayIndex();
+                  const hasMeals = mealPlan[index]?.meals?.length > 0;
+                  
+                  return (
+                    <motion.div
+                      key={day}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: index * 0.05 + 0.3 }}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        isToday 
+                          ? 'bg-emerald-500 ring-2 ring-emerald-500/30 ring-offset-1 ring-offset-background' 
+                          : hasMeals 
+                            ? 'bg-emerald-500/40' 
+                            : 'bg-muted/30'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="no-plan"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-1.5 mt-1"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+              <p className="text-xs text-muted-foreground">Jetzt erstellen</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

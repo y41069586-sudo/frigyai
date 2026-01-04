@@ -502,17 +502,31 @@ const Index = () => {
             className="grid grid-cols-2 gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.25 }}
+            viewport={{ once: true }}
           >
-            <DashboardMealPlanCard />
-            <DashboardShoppingCard />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <DashboardMealPlanCard />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.35 }}
+            >
+              <DashboardShoppingCard />
+            </motion.div>
           </motion.section>
           
           {/* Today's Meals */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ delay: 0.1, duration: 0.4 }}
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-foreground">{t.eaten} {t.today.toLowerCase()}</h2>
@@ -529,6 +543,10 @@ const Index = () => {
                 className="p-6 bg-card/50 rounded-2xl border border-dashed border-border/50 text-center cursor-pointer"
                 onClick={() => navigate('/meal-plans?tab=tracker')}
                 whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.15 }}
               >
                 <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
                   <Plus className="w-7 h-7 text-muted-foreground/50" />
@@ -542,9 +560,10 @@ const Index = () => {
                   <motion.div 
                     key={i} 
                     className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border/20"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 * i }}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.1 * i, duration: 0.3 }}
                   >
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-lg">
                       🍽️
@@ -558,12 +577,16 @@ const Index = () => {
                   </motion.div>
                 ))}
                 {todayMeals.length > 3 && (
-                  <button 
+                  <motion.button 
                     className="w-full py-2 text-xs text-primary font-medium"
                     onClick={() => navigate('/meal-plans?tab=tracker')}
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.3 }}
                   >
                     + {todayMeals.length - 3} {t.more}
-                  </button>
+                  </motion.button>
                 )}
               </div>
             )}
@@ -574,8 +597,9 @@ const Index = () => {
           {!subscriptionStatus?.subscribed && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ delay: 0.1, duration: 0.4 }}
             >
               <motion.div 
                 onClick={() => user ? navigate('/premium') : navigate('/auth?from=premium')}
@@ -600,8 +624,9 @@ const Index = () => {
           {!user && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ delay: 0.15, duration: 0.4 }}
             >
               <NavLink to="/auth">
                 <Button variant="outline" className="w-full h-12 rounded-2xl">

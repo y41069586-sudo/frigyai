@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ArrowRight, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -14,8 +14,7 @@ export const DashboardShoppingCard = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState(0);
 
-  useEffect(() => {
-    // Load shopping list from meal plan
+  const loadShoppingData = useCallback(() => {
     const savedPlan = localStorage.getItem('weeklyMealPlan');
     const savedItems = localStorage.getItem('shoppingListItems');
     
@@ -46,11 +45,33 @@ export const DashboardShoppingCard = () => {
         });
         
         setTotalItems(ingredientSet.size);
+        setPurchasedItems(0);
       } catch (e) {
         console.error('Failed to parse meal plan');
       }
     }
   }, []);
+
+  useEffect(() => {
+    loadShoppingData();
+    
+    // Listen for storage changes (realtime sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'shoppingListItems' || e.key === 'weeklyMealPlan') {
+        loadShoppingData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Poll for same-tab updates
+    const interval = setInterval(loadShoppingData, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [loadShoppingData]);
 
   const handleClick = () => {
     navigate('/meal-plans?tab=shopping');
