@@ -882,22 +882,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           carbs={{ current: totalCarbs, target: profile?.dailyCarbs || 0 }}
           fat={{ current: totalFat, target: profile?.dailyFat || 0 }}
           variant="full"
-          onEditCalories={() => {
-            setStep('onboarding');
-            setOnboardingStep(5); // Speed step - affects calories
-          }}
-          onEditProtein={() => {
-            setStep('onboarding');
-            setOnboardingStep(0); // Body data - weight affects protein
-          }}
-          onEditCarbs={() => {
-            setStep('onboarding');
-            setOnboardingStep(5); // Speed step - affects carbs via calories
-          }}
-          onEditFat={() => {
-            setStep('onboarding');
-            setOnboardingStep(0); // Body data - weight affects fat
-          }}
+          onEditCalories={() => setShowEditGoalsDialog(true)}
+          onEditProtein={() => setShowEditGoalsDialog(true)}
+          onEditCarbs={() => setShowEditGoalsDialog(true)}
+          onEditFat={() => setShowEditGoalsDialog(true)}
         />
         <Button
           variant="ghost"
