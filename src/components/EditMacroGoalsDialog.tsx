@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,14 @@ interface MacroGoals {
   dailyFat: number;
 }
 
+export type FocusMacro = 'calories' | 'protein' | 'carbs' | 'fat' | null;
+
 interface EditMacroGoalsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentGoals: MacroGoals;
   onSave: (goals: MacroGoals) => void;
+  focusMacro?: FocusMacro;
 }
 
 export const EditMacroGoalsDialog = ({
@@ -27,12 +30,15 @@ export const EditMacroGoalsDialog = ({
   onOpenChange,
   currentGoals,
   onSave,
+  focusMacro = null,
 }: EditMacroGoalsDialogProps) => {
   const { t, language } = useLanguage();
   const [calories, setCalories] = useState(currentGoals.dailyCalories);
   const [protein, setProtein] = useState(currentGoals.dailyProtein);
   const [carbs, setCarbs] = useState(currentGoals.dailyCarbs);
   const [fat, setFat] = useState(currentGoals.dailyFat);
+  
+  const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Sync state when dialog opens with new values
   useEffect(() => {
@@ -41,8 +47,19 @@ export const EditMacroGoalsDialog = ({
       setProtein(currentGoals.dailyProtein);
       setCarbs(currentGoals.dailyCarbs);
       setFat(currentGoals.dailyFat);
+      
+      // Focus the specific macro input after dialog opens
+      if (focusMacro) {
+        setTimeout(() => {
+          const input = inputRefs.current[focusMacro];
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        }, 100);
+      }
     }
-  }, [open, currentGoals]);
+  }, [open, currentGoals, focusMacro]);
 
   const handleSave = () => {
     if (calories < 800 || calories > 10000) {
@@ -79,6 +96,7 @@ export const EditMacroGoalsDialog = ({
       icon: Flame,
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
+      highlightBorder: 'ring-2 ring-orange-500 ring-offset-2',
       min: 800,
       max: 10000,
     },
@@ -91,6 +109,7 @@ export const EditMacroGoalsDialog = ({
       icon: Dumbbell,
       color: 'text-red-500',
       bgColor: 'bg-red-500/10',
+      highlightBorder: 'ring-2 ring-red-500 ring-offset-2',
       min: 0,
       max: 500,
     },
@@ -103,6 +122,7 @@ export const EditMacroGoalsDialog = ({
       icon: Wheat,
       color: 'text-amber-500',
       bgColor: 'bg-amber-500/10',
+      highlightBorder: 'ring-2 ring-amber-500 ring-offset-2',
       min: 0,
       max: 1000,
     },
@@ -115,6 +135,7 @@ export const EditMacroGoalsDialog = ({
       icon: Droplets,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
+      highlightBorder: 'ring-2 ring-blue-500 ring-offset-2',
       min: 0,
       max: 500,
     },
@@ -132,13 +153,20 @@ export const EditMacroGoalsDialog = ({
         <div className="space-y-4 py-4">
           {macros.map((macro, index) => {
             const Icon = macro.icon;
+            const isHighlighted = focusMacro === macro.key;
             return (
               <motion.div
                 key={macro.key}
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  scale: isHighlighted ? 1.02 : 1,
+                }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-3"
+                className={`flex items-center gap-3 p-2 rounded-xl transition-all ${
+                  isHighlighted ? `${macro.highlightBorder} bg-muted/50` : ''
+                }`}
               >
                 <div className={`p-2.5 rounded-xl ${macro.bgColor}`}>
                   <Icon className={`h-5 w-5 ${macro.color}`} />
@@ -147,12 +175,13 @@ export const EditMacroGoalsDialog = ({
                   <Label className="text-sm font-medium">{macro.label}</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
+                      ref={(el) => { inputRefs.current[macro.key] = el; }}
                       type="number"
                       value={macro.value}
                       onChange={(e) => macro.setValue(Number(e.target.value))}
                       min={macro.min}
                       max={macro.max}
-                      className="h-10"
+                      className={`h-10 ${isHighlighted ? 'border-primary' : ''}`}
                     />
                     <span className="text-sm text-muted-foreground w-10">{macro.unit}</span>
                   </div>
