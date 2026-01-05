@@ -2498,6 +2498,423 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "tutorial-intro":
+        return (
+          <StepCard step="tutorial-intro">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div 
+                initial={{ scale: 0, rotate: -10 }} 
+                animate={{ scale: 1, rotate: 0 }} 
+                transition={{ duration: 0.5, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <span className="text-4xl">📓</span>
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialIntroTitle}
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                {t.tutorialIntroSubtitle}
+              </motion.p>
+              
+              <motion.div
+                className="w-full max-w-sm space-y-3 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {[
+                  { icon: "📸", label: t.tutorialScanTitle, step: 1 },
+                  { icon: "👨‍🍳", label: t.tutorialRecipesTitle, step: 2 },
+                  { icon: "📅", label: t.tutorialMealplanTitle, step: 3 },
+                  { icon: "🛒", label: t.tutorialShoppingTitle, step: 4 },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.step}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-xs text-muted-foreground">{t.tutorialPageIndicator} {item.step}</span>
+                      <p className="font-medium">{item.label}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground/40" />
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              <motion.p 
+                className="text-muted-foreground/60 text-xs mb-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+              >
+                {t.tutorialIntroDesc}
+              </motion.p>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
+      case "tutorial-scan":
+        return (
+          <StepCard step="tutorial-scan">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Step indicator */}
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+              >
+                {t.tutorialScanStep}
+              </motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <Camera className="w-10 h-10 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialScanTitle}
+              </motion.h1>
+              
+              <motion.div
+                className="w-full max-w-sm space-y-4 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {[t.tutorialScanDesc1, t.tutorialScanDesc2, t.tutorialScanDesc3].map((desc, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.15 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
+                  >
+                    <span className="text-lg">{desc}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              {/* Visual representation */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border mb-6"
+              >
+                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-2 border-dashed border-primary/30 flex items-center justify-center">
+                  <div className="text-center">
+                    <Camera className="w-12 h-12 text-primary/50 mx-auto mb-2" />
+                    <span className="text-xs text-muted-foreground">📸 → 🥦🥕🥛🧀</span>
+                  </div>
+                </div>
+              </motion.div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
+      case "tutorial-recipes":
+        return (
+          <StepCard step="tutorial-recipes">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+              >
+                {t.tutorialRecipesStep}
+              </motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <ChefHat className="w-10 h-10 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialRecipesTitle}
+              </motion.h1>
+              
+              <motion.div
+                className="w-full max-w-sm space-y-4 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {[t.tutorialRecipesDesc1, t.tutorialRecipesDesc2, t.tutorialRecipesDesc3].map((desc, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.15 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
+                  >
+                    <span className="text-lg">{desc}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              {/* Visual: Recipe cards preview */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="w-full max-w-xs grid grid-cols-2 gap-2 mb-6"
+              >
+                {[
+                  { name: "Salat Bowl", kcal: "320", icon: "🥗" },
+                  { name: "Omelette", kcal: "280", icon: "🍳" },
+                ].map((recipe, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + i * 0.1 }}
+                    className="p-3 rounded-xl bg-card border border-border"
+                  >
+                    <span className="text-2xl block mb-1">{recipe.icon}</span>
+                    <p className="text-xs font-medium">{recipe.name}</p>
+                    <p className="text-[10px] text-primary">{recipe.kcal} kcal</p>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
+      case "tutorial-mealplan":
+        return (
+          <StepCard step="tutorial-mealplan">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+              >
+                {t.tutorialMealplanStep}
+              </motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <Calendar className="w-10 h-10 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialMealplanTitle}
+              </motion.h1>
+              
+              <motion.div
+                className="w-full max-w-sm space-y-4 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {[t.tutorialMealplanDesc1, t.tutorialMealplanDesc2, t.tutorialMealplanDesc3].map((desc, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.15 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
+                  >
+                    <span className="text-lg">{desc}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              {/* Visual: Week calendar preview */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="w-full max-w-xs p-3 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border mb-6"
+              >
+                <div className="flex gap-1 justify-center">
+                  {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day, i) => (
+                    <motion.div
+                      key={day}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 + i * 0.05 }}
+                      className={`flex-1 p-2 rounded-lg text-center ${i === 0 ? 'bg-primary text-primary-foreground' : 'bg-card'}`}
+                    >
+                      <span className="text-[10px] font-medium">{day}</span>
+                      <div className="mt-1 space-y-0.5">
+                        <div className="h-1.5 w-full rounded-full bg-emerald-400/60" />
+                        <div className="h-1.5 w-full rounded-full bg-amber-400/60" />
+                        <div className="h-1.5 w-full rounded-full bg-blue-400/60" />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
+      case "tutorial-shopping":
+        return (
+          <StepCard step="tutorial-shopping">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+              >
+                {t.tutorialShoppingStep}
+              </motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <ShoppingCart className="w-10 h-10 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialShoppingTitle}
+              </motion.h1>
+              
+              <motion.div
+                className="w-full max-w-sm space-y-4 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {[t.tutorialShoppingDesc1, t.tutorialShoppingDesc2, t.tutorialShoppingDesc3].map((desc, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.15 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
+                  >
+                    <span className="text-lg">{desc}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              {/* Visual: Shopping list preview */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="w-full max-w-xs p-3 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border mb-6"
+              >
+                <div className="space-y-2">
+                  {[
+                    { item: "Tomaten", checked: true },
+                    { item: "Mozzarella", checked: true },
+                    { item: "Basilikum", checked: false },
+                    { item: "Olivenöl", checked: false },
+                  ].map((item, i) => (
+                    <motion.div
+                      key={item.item}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + i * 0.1 }}
+                      className={`flex items-center gap-2 p-2 rounded-lg ${item.checked ? 'bg-primary/10' : 'bg-card'}`}
+                    >
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
+                        {item.checked && <Check className="w-3 h-3 text-primary-foreground" />}
+                      </div>
+                      <span className={`text-sm ${item.checked ? 'line-through text-muted-foreground' : ''}`}>{item.item}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+              
+              {/* Cycle hint */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 mb-4"
+              >
+                <span className="text-xl">🔁</span>
+                <span className="text-xs text-primary font-medium">
+                  {t.tutorialShoppingDesc3}
+                </span>
+              </motion.div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
       case "save-progress":
         const handleAuth = async () => {
           if (!authEmail || !authPassword) {
