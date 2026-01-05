@@ -167,6 +167,32 @@ interface Translations {
   onboardingHowItWorksStep3Title: string;
   onboardingHowItWorksStep3Desc: string;
   onboardingHowItWorksTip: string;
+  
+  // Tutorial steps (multi-page explanation)
+  tutorialIntroTitle: string;
+  tutorialIntroSubtitle: string;
+  tutorialIntroDesc: string;
+  tutorialScanTitle: string;
+  tutorialScanStep: string;
+  tutorialScanDesc1: string;
+  tutorialScanDesc2: string;
+  tutorialScanDesc3: string;
+  tutorialRecipesTitle: string;
+  tutorialRecipesStep: string;
+  tutorialRecipesDesc1: string;
+  tutorialRecipesDesc2: string;
+  tutorialRecipesDesc3: string;
+  tutorialMealplanTitle: string;
+  tutorialMealplanStep: string;
+  tutorialMealplanDesc1: string;
+  tutorialMealplanDesc2: string;
+  tutorialMealplanDesc3: string;
+  tutorialShoppingTitle: string;
+  tutorialShoppingStep: string;
+  tutorialShoppingDesc1: string;
+  tutorialShoppingDesc2: string;
+  tutorialShoppingDesc3: string;
+  tutorialPageIndicator: string;
   onboardingSaveProgress: string;
   onboardingCreateAccount: string;
   onboardingSignInToContinue: string;
@@ -1492,6 +1518,33 @@ const translations: Record<Language, Translations> = {
     onboardingHowItWorksStep3Title: "🔄 Die Verbindung",
     onboardingHowItWorksStep3Desc: "Nach dem Einkauf scannst du → Gekaufte Zutaten werden abgehakt",
     onboardingHowItWorksTip: "Pro-Tipp: Scan-Rezepte können Wochenplan-Mahlzeiten ersetzen!",
+    
+    // Tutorial steps (multi-page explanation)
+    tutorialIntroTitle: "So funktioniert Frig AI",
+    tutorialIntroSubtitle: "In 4 einfachen Schritten",
+    tutorialIntroDesc: "Lass dir Schritt für Schritt zeigen, wie alles zusammenhängt",
+    tutorialScanTitle: "Kühlschrank scannen",
+    tutorialScanStep: "Schritt 1 von 4",
+    tutorialScanDesc1: "📸 Öffne deinen Kühlschrank und mach ein Foto",
+    tutorialScanDesc2: "🤖 Die KI erkennt automatisch alle Zutaten",
+    tutorialScanDesc3: "✨ Du siehst sofort, was du hast",
+    tutorialRecipesTitle: "Rezepte erhalten",
+    tutorialRecipesStep: "Schritt 2 von 4",
+    tutorialRecipesDesc1: "👨‍🍳 Basierend auf deinen Zutaten erstellt die KI Rezepte",
+    tutorialRecipesDesc2: "🎯 Abgestimmt auf deine Kalorienziele",
+    tutorialRecipesDesc3: "⏱️ Mit deiner bevorzugten Kochzeit",
+    tutorialMealplanTitle: "Wochenplan erstellen",
+    tutorialMealplanStep: "Schritt 3 von 4",
+    tutorialMealplanDesc1: "📅 Erstelle einen kompletten 7-Tage Essensplan",
+    tutorialMealplanDesc2: "🔄 Tausche einzelne Mahlzeiten aus",
+    tutorialMealplanDesc3: "📊 Makros werden automatisch berechnet",
+    tutorialShoppingTitle: "Einkaufsliste",
+    tutorialShoppingStep: "Schritt 4 von 4",
+    tutorialShoppingDesc1: "🛒 Alle fehlenden Zutaten werden aufgelistet",
+    tutorialShoppingDesc2: "✅ Hake ab, was du schon hast oder kaufst",
+    tutorialShoppingDesc3: "🔁 Nach dem Einkauf → wieder scannen!",
+    tutorialPageIndicator: "Seite",
+    
     onboardingSaveProgress: "Speichere deinen Fortschritt",
     onboardingCreateAccount: "Erstelle ein Konto um deinen Plan zu sichern",
     onboardingSignInToContinue: "Melde dich an um fortzufahren",
@@ -2260,6 +2313,33 @@ const translations: Record<Language, Translations> = {
     onboardingHowItWorksStep3Title: "🔄 The connection",
     onboardingHowItWorksStep3Desc: "After shopping, scan → Purchased items get checked off",
     onboardingHowItWorksTip: "Pro tip: Scan recipes can replace weekly plan meals!",
+    
+    // Tutorial steps (multi-page explanation)
+    tutorialIntroTitle: "How Frig AI works",
+    tutorialIntroSubtitle: "In 4 simple steps",
+    tutorialIntroDesc: "Let us show you step by step how everything connects",
+    tutorialScanTitle: "Scan your fridge",
+    tutorialScanStep: "Step 1 of 4",
+    tutorialScanDesc1: "📸 Open your fridge and take a photo",
+    tutorialScanDesc2: "🤖 AI automatically recognizes all ingredients",
+    tutorialScanDesc3: "✨ You instantly see what you have",
+    tutorialRecipesTitle: "Get recipes",
+    tutorialRecipesStep: "Step 2 of 4",
+    tutorialRecipesDesc1: "👨‍🍳 Based on your ingredients, AI creates recipes",
+    tutorialRecipesDesc2: "🎯 Tailored to your calorie goals",
+    tutorialRecipesDesc3: "⏱️ With your preferred cooking time",
+    tutorialMealplanTitle: "Create weekly plan",
+    tutorialMealplanStep: "Step 3 of 4",
+    tutorialMealplanDesc1: "📅 Create a complete 7-day meal plan",
+    tutorialMealplanDesc2: "🔄 Swap individual meals",
+    tutorialMealplanDesc3: "📊 Macros are calculated automatically",
+    tutorialShoppingTitle: "Shopping list",
+    tutorialShoppingStep: "Step 4 of 4",
+    tutorialShoppingDesc1: "🛒 All missing ingredients are listed",
+    tutorialShoppingDesc2: "✅ Check off what you have or buy",
+    tutorialShoppingDesc3: "🔁 After shopping → scan again!",
+    tutorialPageIndicator: "Page",
+    
     onboardingSaveProgress: "Save your progress",
     onboardingCreateAccount: "Create an account to save your plan",
     onboardingSignInToContinue: "Sign in to continue",
@@ -3028,6 +3108,33 @@ const translations: Record<Language, Translations> = {
     onboardingHowItWorksStep3Title: "🔄 La connexion",
     onboardingHowItWorksStep3Desc: "Après les courses, scanne → Les articles achetés sont cochés",
     onboardingHowItWorksTip: "Astuce: Les recettes scannées peuvent remplacer les repas du plan!",
+    
+    // Tutorial steps (multi-page explanation)
+    tutorialIntroTitle: "Comment fonctionne Frig AI",
+    tutorialIntroSubtitle: "En 4 étapes simples",
+    tutorialIntroDesc: "Laisse-nous te montrer étape par étape comment tout fonctionne",
+    tutorialScanTitle: "Scanner ton frigo",
+    tutorialScanStep: "Étape 1 sur 4",
+    tutorialScanDesc1: "📸 Ouvre ton frigo et prends une photo",
+    tutorialScanDesc2: "🤖 L'IA reconnaît automatiquement tous les ingrédients",
+    tutorialScanDesc3: "✨ Tu vois instantanément ce que tu as",
+    tutorialRecipesTitle: "Recevoir des recettes",
+    tutorialRecipesStep: "Étape 2 sur 4",
+    tutorialRecipesDesc1: "👨‍🍳 L'IA crée des recettes basées sur tes ingrédients",
+    tutorialRecipesDesc2: "🎯 Adaptées à tes objectifs caloriques",
+    tutorialRecipesDesc3: "⏱️ Avec ton temps de cuisson préféré",
+    tutorialMealplanTitle: "Créer un plan hebdo",
+    tutorialMealplanStep: "Étape 3 sur 4",
+    tutorialMealplanDesc1: "📅 Crée un plan de repas complet sur 7 jours",
+    tutorialMealplanDesc2: "🔄 Échange des repas individuels",
+    tutorialMealplanDesc3: "📊 Les macros sont calculés automatiquement",
+    tutorialShoppingTitle: "Liste de courses",
+    tutorialShoppingStep: "Étape 4 sur 4",
+    tutorialShoppingDesc1: "🛒 Tous les ingrédients manquants sont listés",
+    tutorialShoppingDesc2: "✅ Coche ce que tu as ou achètes",
+    tutorialShoppingDesc3: "🔁 Après les courses → scanne à nouveau!",
+    tutorialPageIndicator: "Page",
+    
     onboardingSaveProgress: "Sauvegarde ta progression",
     onboardingCreateAccount: "Crée un compte pour sauvegarder ton plan",
     onboardingSignInToContinue: "Connecte-toi pour continuer",

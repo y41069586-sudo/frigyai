@@ -10,13 +10,18 @@ export type OnboardingStep =
   | "social-proof"
   | "success-stats"
   | "fridge-intro"
-  | "scan-feedback"  // NEU: Feedback nach Scan
-  | "how-it-works"   // NEU: Erklärt Scan + Wochenplan Zusammenhang
+  | "scan-feedback"
+  | "how-it-works"
   | "permissions"
   | "notification-prefs"
   | "weekly-plan"
   | "comparison"
   | "transformation"
+  | "tutorial-intro"
+  | "tutorial-scan"
+  | "tutorial-recipes"
+  | "tutorial-mealplan"
+  | "tutorial-shopping"
   | "tracker-intro"
   | "body-basics"
   | "gender"
@@ -140,9 +145,17 @@ export const onboardingSteps: OnboardingStep[] = [
   "analyzing",
   "macro-preview",
   
-  // Phase 7: Your Plan with Frigy
+// Phase 7: Your Plan with Frigy
   "comparison",
   "transformation",
+  
+  // Phase 7b: Tutorial - So funktioniert Frig AI (Step by Step)
+  "tutorial-intro",      // Notebook intro: "So funktioniert Frig AI"
+  "tutorial-scan",       // Step 1: Kühlschrank scannen
+  "tutorial-recipes",    // Step 2: Rezepte werden generiert
+  "tutorial-mealplan",   // Step 3: Wochenplan erstellen
+  "tutorial-shopping",   // Step 4: Einkaufsliste
+  
   "weekly-plan",
   
   // Phase 8: Features & Setup
