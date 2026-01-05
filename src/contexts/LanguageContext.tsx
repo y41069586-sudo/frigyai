@@ -157,6 +157,16 @@ interface Translations {
   onboardingYourTransformation: string;
   onboardingWhatToExpect: string;
   onboardingMoreEnergy: string;
+  // How it works step
+  onboardingHowItWorks: string;
+  onboardingHowItWorksSubtitle: string;
+  onboardingHowItWorksStep1Title: string;
+  onboardingHowItWorksStep1Desc: string;
+  onboardingHowItWorksStep2Title: string;
+  onboardingHowItWorksStep2Desc: string;
+  onboardingHowItWorksStep3Title: string;
+  onboardingHowItWorksStep3Desc: string;
+  onboardingHowItWorksTip: string;
   onboardingSaveProgress: string;
   onboardingCreateAccount: string;
   onboardingSignInToContinue: string;
@@ -1472,6 +1482,16 @@ const translations: Record<Language, Translations> = {
     onboardingYourTransformation: "Deine Transformation",
     onboardingWhatToExpect: "Was dich mit Frigy erwartet",
     onboardingMoreEnergy: "Mehr Energie",
+    // How it works step
+    onboardingHowItWorks: "So funktioniert's",
+    onboardingHowItWorksSubtitle: "Zwei Features, ein System",
+    onboardingHowItWorksStep1Title: "📷 Kühlschrank scannen",
+    onboardingHowItWorksStep1Desc: "Scanne was du hast → Bekomme sofort Rezepte aus deinen Zutaten",
+    onboardingHowItWorksStep2Title: "📅 Wochenplan",
+    onboardingHowItWorksStep2Desc: "KI erstellt 7-Tage-Plan → Generiert automatisch Einkaufsliste",
+    onboardingHowItWorksStep3Title: "🔄 Die Verbindung",
+    onboardingHowItWorksStep3Desc: "Nach dem Einkauf scannst du → Gekaufte Zutaten werden abgehakt",
+    onboardingHowItWorksTip: "Pro-Tipp: Scan-Rezepte können Wochenplan-Mahlzeiten ersetzen!",
     onboardingSaveProgress: "Speichere deinen Fortschritt",
     onboardingCreateAccount: "Erstelle ein Konto um deinen Plan zu sichern",
     onboardingSignInToContinue: "Melde dich an um fortzufahren",
@@ -2230,6 +2250,16 @@ const translations: Record<Language, Translations> = {
     onboardingYourTransformation: "Your Transformation",
     onboardingWhatToExpect: "What to expect with Frigy",
     onboardingMoreEnergy: "More Energy",
+    // How it works step
+    onboardingHowItWorks: "How it works",
+    onboardingHowItWorksSubtitle: "Two features, one system",
+    onboardingHowItWorksStep1Title: "📷 Scan fridge",
+    onboardingHowItWorksStep1Desc: "Scan what you have → Get instant recipes from your ingredients",
+    onboardingHowItWorksStep2Title: "📅 Weekly plan",
+    onboardingHowItWorksStep2Desc: "AI creates 7-day plan → Automatically generates shopping list",
+    onboardingHowItWorksStep3Title: "🔄 The connection",
+    onboardingHowItWorksStep3Desc: "After shopping, scan → Purchased items get checked off",
+    onboardingHowItWorksTip: "Pro tip: Scan recipes can replace weekly plan meals!",
     onboardingSaveProgress: "Save your progress",
     onboardingCreateAccount: "Create an account to save your plan",
     onboardingSignInToContinue: "Sign in to continue",
@@ -2988,6 +3018,16 @@ const translations: Record<Language, Translations> = {
     onboardingYourTransformation: "Ta Transformation",
     onboardingWhatToExpect: "Ce qui t'attend avec Frigy",
     onboardingMoreEnergy: "Plus d'énergie",
+    // How it works step
+    onboardingHowItWorks: "Comment ça marche",
+    onboardingHowItWorksSubtitle: "Deux fonctionnalités, un système",
+    onboardingHowItWorksStep1Title: "📷 Scanner le frigo",
+    onboardingHowItWorksStep1Desc: "Scanne ce que tu as → Obtiens des recettes instantanées",
+    onboardingHowItWorksStep2Title: "📅 Plan hebdomadaire",
+    onboardingHowItWorksStep2Desc: "L'IA crée un plan 7 jours → Génère la liste de courses",
+    onboardingHowItWorksStep3Title: "🔄 La connexion",
+    onboardingHowItWorksStep3Desc: "Après les courses, scanne → Les articles achetés sont cochés",
+    onboardingHowItWorksTip: "Astuce: Les recettes scannées peuvent remplacer les repas du plan!",
     onboardingSaveProgress: "Sauvegarde ta progression",
     onboardingCreateAccount: "Crée un compte pour sauvegarder ton plan",
     onboardingSignInToContinue: "Connecte-toi pour continuer",
