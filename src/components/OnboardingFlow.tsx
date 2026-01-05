@@ -1960,6 +1960,124 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "how-it-works":
+        return (
+          <StepCard step="how-it-works">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Icon */}
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.5, type: "spring" }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg"
+              >
+                <Zap className="w-8 h-8 text-primary-foreground" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.onboardingHowItWorks}
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground/60 text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                {t.onboardingHowItWorksSubtitle}
+              </motion.p>
+              
+              {/* Steps */}
+              <div className="w-full max-w-sm space-y-4">
+                {/* Step 1: Scan */}
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="relative p-4 rounded-2xl border-2 border-border bg-card text-left"
+                >
+                  <div className="flex gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Camera className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{t.onboardingHowItWorksStep1Title}</p>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">{t.onboardingHowItWorksStep1Desc}</p>
+                    </div>
+                  </div>
+                  {/* Arrow down */}
+                  <motion.div 
+                    className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-primary"
+                    animate={{ y: [0, 4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <ChevronRight className="w-5 h-5 rotate-90" />
+                  </motion.div>
+                </motion.div>
+                
+                {/* Step 2: Weekly Plan */}
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                  className="relative p-4 rounded-2xl border-2 border-border bg-card text-left"
+                >
+                  <div className="flex gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+                      <Calendar className="w-6 h-6 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{t.onboardingHowItWorksStep2Title}</p>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">{t.onboardingHowItWorksStep2Desc}</p>
+                    </div>
+                  </div>
+                  {/* Arrow down */}
+                  <motion.div 
+                    className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-primary"
+                    animate={{ y: [0, 4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                  >
+                    <ChevronRight className="w-5 h-5 rotate-90" />
+                  </motion.div>
+                </motion.div>
+                
+                {/* Step 3: Connection */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="p-4 rounded-2xl border-2 border-primary/30 bg-primary/5 text-left"
+                >
+                  <div className="flex gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <ShoppingCart className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{t.onboardingHowItWorksStep3Title}</p>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">{t.onboardingHowItWorksStep3Desc}</p>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                {/* Pro Tip */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="flex items-start gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20"
+                >
+                  <Sparkles className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">{t.onboardingHowItWorksTip}</p>
+                </motion.div>
+              </div>
+            </div>
+          </StepCard>
+        );
+
       case "permissions":
         const requestCameraPermission = async () => {
           try {
