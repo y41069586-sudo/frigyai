@@ -10,7 +10,8 @@ import {
   Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
   Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding, Bike,
   GraduationCap, Medal, Crown, Armchair, Footprints, Carrot, CupSoda,
-  Droplets, Coffee, Mail, Lock, Eye, EyeOff, Save, Beef, Cherry
+  Droplets, Coffee, Mail, Lock, Eye, EyeOff, Save, Beef, Cherry,
+  Bot, MessageCircle, BookOpen, ArrowRight, RefreshCw, ListChecks
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -2508,7 +2509,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ duration: 0.5, type: "spring" }} 
                 className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-xl"
               >
-                <span className="text-4xl">📓</span>
+                <BookOpen className="w-10 h-10 text-white" />
               </motion.div>
               
               <motion.h1 
@@ -2535,10 +2536,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.3 }}
               >
                 {[
-                  { icon: "📸", label: t.tutorialScanTitle, step: 1 },
-                  { icon: "👨‍🍳", label: t.tutorialRecipesTitle, step: 2 },
-                  { icon: "📅", label: t.tutorialMealplanTitle, step: 3 },
-                  { icon: "🛒", label: t.tutorialShoppingTitle, step: 4 },
+                  { Icon: Camera, label: t.tutorialScanTitle, step: 1, color: "from-cyan-500 to-blue-500" },
+                  { Icon: ChefHat, label: t.tutorialRecipesTitle, step: 2, color: "from-emerald-500 to-green-500" },
+                  { Icon: Calendar, label: t.tutorialMealplanTitle, step: 3, color: "from-violet-500 to-purple-500" },
+                  { Icon: ShoppingCart, label: t.tutorialShoppingTitle, step: 4, color: "from-pink-500 to-rose-500" },
+                  { Icon: Bot, label: t.tutorialChatbotTitle, step: 5, color: "from-indigo-500 to-blue-600" },
                 ].map((item, i) => (
                   <motion.div
                     key={item.step}
@@ -2547,8 +2549,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.4 + i * 0.1 }}
                     className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl">
-                      {item.icon}
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center`}>
+                      <item.Icon className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 text-left">
                       <span className="text-xs text-muted-foreground">{t.tutorialPageIndicator} {item.step}</span>
@@ -2563,7 +2565,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="text-muted-foreground/60 text-xs mb-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
+                transition={{ delay: 0.9 }}
               >
                 {t.tutorialIntroDesc}
               </motion.p>
@@ -2608,12 +2610,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.h1>
               
               <motion.div
-                className="w-full max-w-sm space-y-4 mb-6"
+                className="w-full max-w-sm space-y-3 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                {[t.tutorialScanDesc1, t.tutorialScanDesc2, t.tutorialScanDesc3].map((desc, i) => (
+                {[
+                  { Icon: Camera, desc: t.tutorialScanDesc1, color: "text-cyan-500" },
+                  { Icon: Brain, desc: t.tutorialScanDesc2, color: "text-violet-500" },
+                  { Icon: Sparkles, desc: t.tutorialScanDesc3, color: "text-amber-500" },
+                ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
@@ -2621,7 +2627,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.3 + i * 0.15 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
-                    <span className="text-lg">{desc}</span>
+                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
+                    <span className="text-sm">{item.desc}</span>
                   </motion.div>
                 ))}
               </motion.div>
@@ -2636,7 +2643,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-2 border-dashed border-primary/30 flex items-center justify-center">
                   <div className="text-center">
                     <Camera className="w-12 h-12 text-primary/50 mx-auto mb-2" />
-                    <span className="text-xs text-muted-foreground">📸 → 🥦🥕🥛🧀</span>
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <ArrowRight className="w-4 h-4" />
+                      <Carrot className="w-5 h-5 text-orange-500" />
+                      <Milk className="w-5 h-5 text-blue-300" />
+                      <Egg className="w-5 h-5 text-amber-400" />
+                      <Salad className="w-5 h-5 text-green-500" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -2680,12 +2693,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.h1>
               
               <motion.div
-                className="w-full max-w-sm space-y-4 mb-6"
+                className="w-full max-w-sm space-y-3 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                {[t.tutorialRecipesDesc1, t.tutorialRecipesDesc2, t.tutorialRecipesDesc3].map((desc, i) => (
+                {[
+                  { Icon: ChefHat, desc: t.tutorialRecipesDesc1, color: "text-emerald-500" },
+                  { Icon: Target, desc: t.tutorialRecipesDesc2, color: "text-primary" },
+                  { Icon: Clock, desc: t.tutorialRecipesDesc3, color: "text-amber-500" },
+                ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
@@ -2693,7 +2710,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.3 + i * 0.15 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
-                    <span className="text-lg">{desc}</span>
+                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
+                    <span className="text-sm">{item.desc}</span>
                   </motion.div>
                 ))}
               </motion.div>
@@ -2706,8 +2724,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="w-full max-w-xs grid grid-cols-2 gap-2 mb-6"
               >
                 {[
-                  { name: "Salat Bowl", kcal: "320", icon: "🥗" },
-                  { name: "Omelette", kcal: "280", icon: "🍳" },
+                  { name: "Salat Bowl", kcal: "320", Icon: Salad, color: "text-green-500" },
+                  { name: "Omelette", kcal: "280", Icon: Egg, color: "text-amber-500" },
                 ].map((recipe, i) => (
                   <motion.div
                     key={i}
@@ -2716,7 +2734,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.7 + i * 0.1 }}
                     className="p-3 rounded-xl bg-card border border-border"
                   >
-                    <span className="text-2xl block mb-1">{recipe.icon}</span>
+                    <recipe.Icon className={`w-6 h-6 ${recipe.color} mb-1`} />
                     <p className="text-xs font-medium">{recipe.name}</p>
                     <p className="text-[10px] text-primary">{recipe.kcal} kcal</p>
                   </motion.div>

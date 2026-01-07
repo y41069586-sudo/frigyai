@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -12,23 +11,23 @@ const tools = [
     type: "function",
     function: {
       name: "get_weight_entries",
-      description: "Holt Gewichtseinträge des Nutzers",
-      parameters: { type: "object", properties: { limit: { type: "number" } } }
+      description: "Holt Gewichtseinträge des Nutzers aus der Datenbank",
+      parameters: { type: "object", properties: { limit: { type: "number", description: "Anzahl der Einträge" } } }
     }
   },
   {
     type: "function",
     function: {
       name: "add_weight_entry",
-      description: "Fügt Gewichtseintrag hinzu",
-      parameters: { type: "object", properties: { weight: { type: "number" } }, required: ["weight"] }
+      description: "Fügt einen neuen Gewichtseintrag hinzu",
+      parameters: { type: "object", properties: { weight: { type: "number", description: "Gewicht in kg" } }, required: ["weight"] }
     }
   },
   {
     type: "function",
     function: {
       name: "delete_weight_entry",
-      description: "Löscht Gewichtseintrag",
+      description: "Löscht einen Gewichtseintrag",
       parameters: { type: "object", properties: { entry_id: { type: "string" } }, required: ["entry_id"] }
     }
   },
@@ -36,7 +35,7 @@ const tools = [
     type: "function",
     function: {
       name: "get_water_intake",
-      description: "Holt heutige Wasseraufnahme",
+      description: "Holt die heutige Wasseraufnahme des Nutzers",
       parameters: { type: "object", properties: {} }
     }
   },
@@ -44,15 +43,15 @@ const tools = [
     type: "function",
     function: {
       name: "add_water",
-      description: "Fügt Wasser hinzu",
-      parameters: { type: "object", properties: { glasses: { type: "number" } } }
+      description: "Fügt Wassergläser zum heutigen Tracker hinzu",
+      parameters: { type: "object", properties: { glasses: { type: "number", description: "Anzahl Gläser (1 Glas = 250ml)" } } }
     }
   },
   {
     type: "function",
     function: {
       name: "get_streaks",
-      description: "Holt Streak-Daten",
+      description: "Holt die aktuelle Streak des Nutzers",
       parameters: { type: "object", properties: {} }
     }
   },
@@ -60,7 +59,7 @@ const tools = [
     type: "function",
     function: {
       name: "get_badges",
-      description: "Holt Badges",
+      description: "Holt alle Badges/Abzeichen des Nutzers",
       parameters: { type: "object", properties: {} }
     }
   },
@@ -68,7 +67,23 @@ const tools = [
     type: "function",
     function: {
       name: "reset_tracker",
-      description: "Setzt Makro-Tracker zurück",
+      description: "Setzt den Makro-Tracker für heute zurück",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_todays_food",
+      description: "Holt die heute gegessenen Mahlzeiten",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_daily_macros",
+      description: "Holt die heutigen Makronährstoffe (Kalorien, Protein, Kohlenhydrate, Fett)",
       parameters: { type: "object", properties: {} }
     }
   }
@@ -92,7 +107,7 @@ async function executeTool(
         .limit((args.limit as number) || 10);
       
       if (!data?.length) return "Keine Gewichtseinträge gefunden.";
-      return `Gewicht:\n${(data as any[]).map(e => `${new Date(e.recorded_at).toLocaleDateString('de-DE')}: ${e.weight}kg`).join('\n')}`;
+      return `Gewichtsverlauf:\n${(data as any[]).map(e => `${new Date(e.recorded_at).toLocaleDateString('de-DE')}: ${e.weight}kg`).join('\n')}`;
     }
     
     case 'add_weight_entry': {
@@ -125,7 +140,7 @@ async function executeTool(
         .maybeSingle();
       
       const glasses = (data as any)?.glasses || 0;
-      return `Heute: ${glasses} Gläser (${glasses * 250}ml) 💧`;
+      return `Heute: ${glasses} Gläser Wasser (${glasses * 250}ml) 💧`;
     }
     
     case 'add_water': {
@@ -154,7 +169,7 @@ async function executeTool(
         .maybeSingle();
       
       if (!data) return "Noch keine Streak. Starte heute! 🔥";
-      return `🔥 Aktuell: ${(data as any).current_streak} Tage | 🏆 Längste: ${(data as any).longest_streak} Tage`;
+      return `🔥 Aktuelle Streak: ${(data as any).current_streak} Tage | 🏆 Längste: ${(data as any).longest_streak} Tage`;
     }
     
     case 'get_badges': {
@@ -164,12 +179,42 @@ async function executeTool(
         .eq('user_id', userId)
         .order('earned_at', { ascending: false });
       
-      if (!data?.length) return "Noch keine Badges. Weiter so! 🎯";
-      return `Badges: ${(data as any[]).map(b => `🏅 ${b.badge_name}`).join(', ')}`;
+      if (!data?.length) return "Noch keine Badges verdient. Weiter so! 🎯";
+      return `Deine Badges: ${(data as any[]).map(b => `🏅 ${b.badge_name}`).join(', ')}`;
     }
     
     case 'reset_tracker':
       return "[ACTION:RESET_TRACKER] Tracker wird zurückgesetzt!";
+    
+    case 'get_todays_food': {
+      const { data } = await supabase
+        .from('food_entries')
+        .select('name, calories, protein, carbs, fat, meal_type')
+        .eq('user_id', userId)
+        .eq('date', today);
+      
+      if (!data?.length) return "Heute noch nichts gegessen eingetragen.";
+      const total = (data as any[]).reduce((acc, e) => ({
+        cal: acc.cal + e.calories,
+        prot: acc.prot + e.protein,
+        carb: acc.carb + e.carbs,
+        fat: acc.fat + e.fat
+      }), { cal: 0, prot: 0, carb: 0, fat: 0 });
+      
+      return `Heute gegessen:\n${(data as any[]).map(e => `• ${e.name} (${e.calories} kcal)`).join('\n')}\n\nGesamt: ${total.cal} kcal | ${total.prot}g Protein | ${total.carb}g Carbs | ${total.fat}g Fett`;
+    }
+    
+    case 'get_daily_macros': {
+      const { data } = await supabase
+        .from('daily_macros')
+        .select('calories, protein, carbs, fat')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .maybeSingle();
+      
+      if (!data) return "Heute noch keine Makros getrackt.";
+      return `Heute: ${(data as any).calories} kcal | ${(data as any).protein}g Protein | ${(data as any).carbs}g Carbs | ${(data as any).fat}g Fett`;
+    }
     
     default:
       return "Unbekannte Aktion.";
@@ -184,27 +229,46 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Auth required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Authentifizierung erforderlich' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid auth' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Ungültige Authentifizierung' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
     const { message, userProfile, history = [] } = await req.json();
     if (!message) {
-      return new Response(JSON.stringify({ error: 'Message required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Nachricht erforderlich' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const userContext = userProfile ? `Ziele: ${userProfile.dailyCalories}kcal, ${userProfile.dailyProtein}g P` : '';
+    const userContext = userProfile 
+      ? `Nutzer-Ziele: ${userProfile.dailyCalories}kcal pro Tag, ${userProfile.dailyProtein}g Protein, ${userProfile.dailyCarbs}g Kohlenhydrate, ${userProfile.dailyFat}g Fett. Aktuelles Gewicht: ${userProfile.weight}kg, Zielgewicht: ${userProfile.targetWeight}kg.` 
+      : '';
 
-    const systemPrompt = `Du bist Fridgie, Ernährungsassistent. ${userContext} Kurze Antworten, deutsch, motivierend.`;
+    const systemPrompt = `Du bist Frigy, der freundliche KI-Ernährungsassistent in der Frig AI App. 
+
+ÜBER DIE APP:
+- Frig AI ist eine Ernährungs-App zum Kühlschrank scannen, Rezepte generieren und Wochenpläne erstellen
+- Nutzer können ihren Kühlschrank fotografieren → KI erkennt Zutaten → generiert passende Rezepte
+- Die App erstellt personalisierte Wochenpläne mit automatischer Einkaufsliste
+- Es gibt Makro-Tracking (Kalorien, Protein, Kohlenhydrate, Fett), Wasser-Tracker und Gewichtsverlauf
+
+DEINE FÄHIGKEITEN:
+- Du kannst echte Aktionen in der App ausführen: Wasser hinzufügen, Gewicht tracken, Daten abrufen
+- Du siehst die Ziele und den Fortschritt des Nutzers
+- Gib konkrete, personalisierte Ernährungstipps basierend auf den Nutzerdaten
+- Sei motivierend, kurz und freundlich (max 2-3 Sätze)
+- Antworte auf Deutsch
+
+${userContext}
+
+Nutze die verfügbaren Tools um echte Aktionen auszuführen wenn der Nutzer darum bittet!`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -212,14 +276,15 @@ serve(async (req) => {
       { role: 'user', content: message },
     ];
 
-    let response = await fetch('https://api.openai.com/v1/chat/completions', {
+    let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, tools, tool_choice: 'auto', max_tokens: 200 }),
+      headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
     });
 
     if (!response.ok) {
-      if (response.status === 429) return new Response(JSON.stringify({ error: 'Zu viele Anfragen.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (response.status === 429) return new Response(JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte kurz.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (response.status === 402) return new Response(JSON.stringify({ error: 'Credits aufgebraucht.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       throw new Error(`AI error: ${response.status}`);
     }
 
@@ -233,10 +298,10 @@ serve(async (req) => {
         toolResults.push({ role: 'tool', tool_call_id: tc.id, content: result });
       }
       
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 200 }),
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
       });
       
       if (!response.ok) throw new Error(`AI error: ${response.status}`);
