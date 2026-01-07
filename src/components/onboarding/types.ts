@@ -22,6 +22,7 @@ export type OnboardingStep =
   | "tutorial-recipes"
   | "tutorial-mealplan"
   | "tutorial-shopping"
+  | "tutorial-chatbot"
   | "tracker-intro"
   | "body-basics"
   | "gender"
@@ -155,6 +156,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "tutorial-recipes",    // Step 2: Rezepte werden generiert
   "tutorial-mealplan",   // Step 3: Wochenplan erstellen
   "tutorial-shopping",   // Step 4: Einkaufsliste
+  "tutorial-chatbot",    // Step 5: KI-Chatbot erklärt
   
   "weekly-plan",
   
