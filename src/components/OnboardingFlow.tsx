@@ -2540,7 +2540,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   { Icon: ChefHat, label: t.tutorialRecipesTitle, step: 2, color: "from-emerald-500 to-green-500" },
                   { Icon: Calendar, label: t.tutorialMealplanTitle, step: 3, color: "from-violet-500 to-purple-500" },
                   { Icon: ShoppingCart, label: t.tutorialShoppingTitle, step: 4, color: "from-pink-500 to-rose-500" },
-                  { Icon: Bot, label: t.tutorialChatbotTitle, step: 5, color: "from-indigo-500 to-blue-600" },
+                  { Icon: RefreshCw, label: t.tutorialCycleTitle, step: 5, color: "from-amber-500 to-orange-500" },
+                  { Icon: Bot, label: t.tutorialChatbotTitle, step: 6, color: "from-indigo-500 to-blue-600" },
                 ].map((item, i) => (
                   <motion.div
                     key={item.step}
@@ -2780,12 +2781,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.h1>
               
               <motion.div
-                className="w-full max-w-sm space-y-4 mb-6"
+                className="w-full max-w-sm space-y-3 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                {[t.tutorialMealplanDesc1, t.tutorialMealplanDesc2, t.tutorialMealplanDesc3].map((desc, i) => (
+                {[
+                  { Icon: Calendar, desc: t.tutorialMealplanDesc1, color: "text-violet-500" },
+                  { Icon: RefreshCw, desc: t.tutorialMealplanDesc2, color: "text-amber-500" },
+                  { Icon: BarChart3, desc: t.tutorialMealplanDesc3, color: "text-emerald-500" },
+                ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
@@ -2793,7 +2798,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.3 + i * 0.15 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
-                    <span className="text-lg">{desc}</span>
+                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
+                    <span className="text-sm">{item.desc}</span>
                   </motion.div>
                 ))}
               </motion.div>
@@ -2864,12 +2870,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.h1>
               
               <motion.div
-                className="w-full max-w-sm space-y-4 mb-6"
+                className="w-full max-w-sm space-y-3 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                {[t.tutorialShoppingDesc1, t.tutorialShoppingDesc2, t.tutorialShoppingDesc3].map((desc, i) => (
+                {[
+                  { Icon: ListChecks, desc: t.tutorialShoppingDesc1, color: "text-pink-500" },
+                  { Icon: Check, desc: t.tutorialShoppingDesc2, color: "text-emerald-500" },
+                  { Icon: RefreshCw, desc: t.tutorialShoppingDesc3, color: "text-amber-500" },
+                ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
@@ -2877,7 +2887,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     transition={{ delay: 0.3 + i * 0.15 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
-                    <span className="text-lg">{desc}</span>
+                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
+                    <span className="text-sm">{item.desc}</span>
                   </motion.div>
                 ))}
               </motion.div>
@@ -2919,9 +2930,269 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 1 }}
                 className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 mb-4"
               >
-                <span className="text-xl">🔁</span>
+                <RefreshCw className="w-5 h-5 text-primary" />
                 <span className="text-xs text-primary font-medium">
                   {t.tutorialShoppingDesc3}
+                </span>
+              </motion.div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
+      case "tutorial-cycle":
+        return (
+          <StepCard step="tutorial-cycle">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+              >
+                {t.tutorialCycleStep}
+              </motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <RefreshCw className="w-10 h-10 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialCycleTitle}
+              </motion.h1>
+              
+              <motion.p 
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                {t.tutorialCycleDesc1}
+              </motion.p>
+              
+              {/* Visual Cycle Diagram */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="w-full max-w-xs mb-6"
+              >
+                <div className="relative aspect-square">
+                  {/* Center circle */}
+                  <div className="absolute inset-1/4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-dashed border-primary/30 flex items-center justify-center">
+                    <span className="text-xs font-medium text-primary">Frig AI</span>
+                  </div>
+                  
+                  {/* Scan - Top */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
+                      <Camera className="w-7 h-7 text-white" />
+                    </div>
+                    <span className="text-xs font-medium mt-1">{t.tutorialCycleHave}</span>
+                  </motion.div>
+                  
+                  {/* Meal Plan - Right */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg">
+                      <Calendar className="w-7 h-7 text-white" />
+                    </div>
+                    <span className="text-xs font-medium mt-1">{t.tutorialCycleEat}</span>
+                  </motion.div>
+                  
+                  {/* Shopping - Bottom */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg">
+                      <ShoppingCart className="w-7 h-7 text-white" />
+                    </div>
+                    <span className="text-xs font-medium mt-1">{t.tutorialCycleNeed}</span>
+                  </motion.div>
+                  
+                  {/* Arrows */}
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                    <motion.path
+                      d="M 50 22 Q 72 30 72 50"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-primary/40"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ delay: 0.6, duration: 0.4 }}
+                    />
+                    <motion.path
+                      d="M 72 50 Q 65 72 50 78"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-primary/40"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ delay: 0.7, duration: 0.4 }}
+                    />
+                    <motion.path
+                      d="M 50 78 Q 30 65 28 50 Q 30 35 50 22"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-primary/40"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ delay: 0.8, duration: 0.6 }}
+                    />
+                  </svg>
+                </div>
+              </motion.div>
+              
+              {/* Explanations */}
+              <motion.div
+                className="w-full max-w-sm space-y-2 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                {[
+                  { Icon: Camera, desc: t.tutorialCycleExplain1, color: "text-cyan-500" },
+                  { Icon: Calendar, desc: t.tutorialCycleExplain2, color: "text-violet-500" },
+                  { Icon: ShoppingCart, desc: t.tutorialCycleExplain3, color: "text-pink-500" },
+                  { Icon: RefreshCw, desc: t.tutorialCycleExplain4, color: "text-amber-500" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1 + i * 0.1 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left"
+                  >
+                    <item.Icon className={`w-4 h-4 ${item.color} shrink-0`} />
+                    <span className="text-xs">{item.desc}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
+                <ChevronRight className="w-5 h-5 mr-2" />
+                {t.continueBtn}
+              </Button>
+            </div>
+          </StepCard>
+        );
+
+      case "tutorial-chatbot":
+        return (
+          <StepCard step="tutorial-chatbot">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+              >
+                {t.tutorialChatbotStep}
+              </motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center mb-4 shadow-xl"
+              >
+                <Bot className="w-10 h-10 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-2xl font-bold mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t.tutorialChatbotTitle}
+              </motion.h1>
+              
+              <motion.div
+                className="w-full max-w-sm space-y-3 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {[
+                  { Icon: MessageCircle, desc: t.tutorialChatbotDesc1, color: "text-indigo-500" },
+                  { Icon: Eye, desc: t.tutorialChatbotDesc2, color: "text-violet-500" },
+                  { Icon: Zap, desc: t.tutorialChatbotDesc3, color: "text-amber-500" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.15 }}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
+                  >
+                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
+                    <span className="text-sm">{item.desc}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              
+              {/* Visual: Chat preview */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-blue-500/10 border border-indigo-500/20 mb-4"
+              >
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-start">
+                    <div className="p-1.5 rounded-full bg-muted shrink-0">
+                      <User className="w-3 h-3" />
+                    </div>
+                    <div className="text-xs bg-muted p-2 rounded-lg rounded-tl-sm">"Füg 2 Gläser Wasser hinzu"</div>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <div className="p-1.5 rounded-full bg-indigo-500/20 shrink-0">
+                      <Bot className="w-3 h-3 text-indigo-500" />
+                    </div>
+                    <div className="text-xs bg-indigo-500/10 p-2 rounded-lg rounded-tl-sm text-left">
+                      +2 Gläser! Gesamt: 5 💧
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+                className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4"
+              >
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <span className="text-xs text-amber-600 font-medium">
+                  {t.tutorialChatbotHint}
                 </span>
               </motion.div>
               
