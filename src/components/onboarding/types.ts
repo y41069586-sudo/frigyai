@@ -17,13 +17,6 @@ export type OnboardingStep =
   | "weekly-plan"
   | "comparison"
   | "transformation"
-  | "tutorial-intro"
-  | "tutorial-scan"
-  | "tutorial-recipes"
-  | "tutorial-mealplan"
-  | "tutorial-shopping"
-  | "tutorial-cycle"
-  | "tutorial-chatbot"
   | "tracker-intro"
   | "body-basics"
   | "gender"
@@ -37,6 +30,13 @@ export type OnboardingStep =
   | "planning-setup"
   | "analyzing"
   | "macro-preview"
+  // App Mode Choice (nach Macro-Preview)
+  | "app-mode-choice"
+  | "spontan-mode-1"
+  | "spontan-mode-2"
+  | "structured-mode-1"
+  | "structured-mode-2"
+  | "structured-mode-3"
   | "save-progress"
   | "premium-hint"
   | "community"
@@ -147,20 +147,10 @@ export const onboardingSteps: OnboardingStep[] = [
   "analyzing",
   "macro-preview",
   
-// Phase 7: Your Plan with Frigy
-  "comparison",
-  "transformation",
-  
-  // Phase 7b: Tutorial - So funktioniert Frig AI (Step by Step)
-  "tutorial-intro",      // Notebook intro: "So funktioniert Frig AI"
-  "tutorial-scan",       // Step 1: Kühlschrank scannen
-  "tutorial-recipes",    // Step 2: Rezepte werden generiert
-  "tutorial-mealplan",   // Step 3: Wochenplan erstellen
-  "tutorial-shopping",   // Step 4: Einkaufsliste
-  "tutorial-cycle",      // Step 5: Der Kreislauf erklärt
-  "tutorial-chatbot",    // Step 6: KI-Chatbot erklärt
-  
-  "weekly-plan",
+  // Phase 7: App Mode Choice - Spontan vs Strukturiert
+  "app-mode-choice",
+  // Note: spontan-mode-1/2 and structured-mode-1/2/3 are conditional
+  // They will be navigated to based on user choice in app-mode-choice
   
   // Phase 8: Features & Setup
   "permissions",
