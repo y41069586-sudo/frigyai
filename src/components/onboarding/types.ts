@@ -125,8 +125,8 @@ export const onboardingSteps: OnboardingStep[] = [
   
   // Phase 3: Fridge Scan Demo (before personalization)
   "fridge-intro",
-  "scan-feedback",  // NEU: Feedback nach Scan
-  "how-it-works",   // NEU: Erklärt Scan + Wochenplan Zusammenhang
+  "scan-feedback",
+  "how-it-works",
   "tracker-intro",
   
   // Phase 4: Body Data Collection
@@ -147,16 +147,20 @@ export const onboardingSteps: OnboardingStep[] = [
   "analyzing",
   "macro-preview",
   
-  // Phase 7: App Mode Choice - Spontan vs Strukturiert
+  // Phase 7: Your Plan with Frigy - Echte Ergebnisse
+  "comparison",
+  "transformation",
+  
+  // Phase 8: App Mode Choice - Spontan vs Strukturiert
   "app-mode-choice",
   // Note: spontan-mode-1/2 and structured-mode-1/2/3 are conditional
-  // They will be navigated to based on user choice in app-mode-choice
+  // Spontan: permissions → fridge scan → spontan slides
+  // Strukturiert: structured slides → permissions
   
-  // Phase 8: Features & Setup
-  "permissions",
+  // Phase 9: Notifications (after mode explanation)
   "notification-prefs",
   
-  // Phase 9: Save & Finish
+  // Phase 10: Save & Finish
   "save-progress",
   "premium-hint",
   "community",
