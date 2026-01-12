@@ -225,6 +225,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const goNext = () => {
     lightTap(); // Haptic feedback on navigation
+    
+    // Handle conditional navigation for app-mode steps
+    if (currentStep === "spontan-mode-1") {
+      setCurrentStep("spontan-mode-2");
+      return;
+    }
+    if (currentStep === "structured-mode-1") {
+      setCurrentStep("structured-mode-2");
+      return;
+    }
+    if (currentStep === "structured-mode-2") {
+      setCurrentStep("structured-mode-3");
+      return;
+    }
+    
     let nextIndex = currentIndex + 1;
     
     // Check if user already used their free onboarding scan (persists across sessions)
@@ -2499,116 +2514,128 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "tutorial-intro":
+      case "app-mode-choice":
         return (
-          <StepCard step="tutorial-intro">
+          <StepCard step="app-mode-choice">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div 
-                initial={{ scale: 0, rotate: -10 }} 
-                animate={{ scale: 1, rotate: 0 }} 
-                transition={{ duration: 0.5, type: "spring" }} 
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-xl"
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }} 
+                transition={{ duration: 0.4, type: "spring" }} 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center mb-4 shadow-xl"
               >
-                <BookOpen className="w-10 h-10 text-white" />
+                <Sparkles className="w-10 h-10 text-white" />
               </motion.div>
               
               <motion.h1 
-                className="text-2xl font-bold mb-1"
+                className="text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {t.tutorialIntroTitle}
+                {language === 'de' ? 'Wie möchtest du kochen?' : language === 'fr' ? 'Comment veux-tu cuisiner ?' : 'How do you want to cook?'}
               </motion.h1>
               <motion.p 
-                className="text-muted-foreground text-sm mb-6"
+                className="text-muted-foreground text-sm mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.15 }}
               >
-                {t.tutorialIntroSubtitle}
+                {language === 'de' ? 'Wähle deinen Stil – du kannst ihn später ändern' : language === 'fr' ? 'Choisis ton style – tu peux le changer plus tard' : 'Choose your style – you can change it later'}
               </motion.p>
               
-              <motion.div
-                className="w-full max-w-sm space-y-3 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                {[
-                  { Icon: Camera, label: t.tutorialScanTitle, step: 1, color: "from-cyan-500 to-blue-500" },
-                  { Icon: ChefHat, label: t.tutorialRecipesTitle, step: 2, color: "from-emerald-500 to-green-500" },
-                  { Icon: Calendar, label: t.tutorialMealplanTitle, step: 3, color: "from-violet-500 to-purple-500" },
-                  { Icon: ShoppingCart, label: t.tutorialShoppingTitle, step: 4, color: "from-pink-500 to-rose-500" },
-                  { Icon: RefreshCw, label: t.tutorialCycleTitle, step: 5, color: "from-amber-500 to-orange-500" },
-                  { Icon: Bot, label: t.tutorialChatbotTitle, step: 6, color: "from-indigo-500 to-blue-600" },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.step}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + i * 0.1 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border"
-                  >
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center`}>
-                      <item.Icon className="w-5 h-5 text-white" />
+              <div className="w-full max-w-sm space-y-4">
+                {/* Option 1: Spontan */}
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setCurrentStep("spontan-mode-1")}
+                  className="w-full p-5 rounded-2xl border-2 border-border bg-card hover:border-primary/50 transition-all text-left group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0">
+                      <Camera className="w-7 h-7 text-white" />
                     </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-xs text-muted-foreground">{t.tutorialPageIndicator} {item.step}</span>
-                      <p className="font-medium">{item.label}</p>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">
+                        {language === 'de' ? '🎲 Spontan & Flexibel' : language === 'fr' ? '🎲 Spontané & Flexible' : '🎲 Spontaneous & Flexible'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {language === 'de' ? 'Scanne deinen Kühlschrank, wähle deine Stimmung – bekomme passende Rezepte' : language === 'fr' ? 'Scanne ton frigo, choisis ton humeur – reçois des recettes adaptées' : 'Scan your fridge, choose your mood – get matching recipes'}
+                      </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground/40" />
-                  </motion.div>
-                ))}
-              </motion.div>
-              
-              <motion.p 
-                className="text-muted-foreground/60 text-xs mb-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-              >
-                {t.tutorialIntroDesc}
-              </motion.p>
-              
-              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
-                <ChevronRight className="w-5 h-5 mr-2" />
-                {t.continueBtn}
-              </Button>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors mt-4" />
+                  </div>
+                </motion.button>
+                
+                {/* Option 2: Strukturiert */}
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setCurrentStep("structured-mode-1")}
+                  className="w-full p-5 rounded-2xl border-2 border-border bg-card hover:border-primary/50 transition-all text-left group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
+                      <Calendar className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">
+                        {language === 'de' ? '📋 Strukturiert & Geplant' : language === 'fr' ? '📋 Structuré & Planifié' : '📋 Structured & Planned'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {language === 'de' ? 'Wochenplan der täglich deine Makros trifft + automatische Einkaufsliste' : language === 'fr' ? 'Plan hebdomadaire qui atteint tes macros + liste de courses automatique' : 'Weekly plan that hits your daily macros + automatic shopping list'}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors mt-4" />
+                  </div>
+                </motion.button>
+              </div>
             </div>
           </StepCard>
         );
 
-      case "tutorial-scan":
+      case "spontan-mode-1":
         return (
-          <StepCard step="tutorial-scan">
+          <StepCard step="spontan-mode-1">
             <div className="flex flex-col items-center text-center px-6 w-full">
-              {/* Step indicator */}
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+                className="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium mb-4"
               >
-                {t.tutorialScanStep}
+                {language === 'de' ? 'Schritt 1 von 2' : language === 'fr' ? 'Étape 1 sur 2' : 'Step 1 of 2'}
               </motion.div>
               
               <motion.div 
                 initial={{ scale: 0 }} 
                 animate={{ scale: 1 }} 
                 transition={{ duration: 0.4, type: "spring" }} 
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-4 shadow-xl"
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-4 shadow-xl"
               >
                 <Camera className="w-10 h-10 text-white" />
               </motion.div>
               
               <motion.h1 
-                className="text-2xl font-bold mb-6"
+                className="text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {t.tutorialScanTitle}
+                {language === 'de' ? 'Kühlschrank scannen' : language === 'fr' ? 'Scanne ton frigo' : 'Scan Your Fridge'}
               </motion.h1>
+              <motion.p 
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                {language === 'de' ? 'Zeig uns was du hast – wir machen Rezepte draus' : language === 'fr' ? 'Montre-nous ce que tu as – on en fait des recettes' : 'Show us what you have – we\'ll make recipes from it'}
+              </motion.p>
               
               <motion.div
                 className="w-full max-w-sm space-y-3 mb-6"
@@ -2617,15 +2644,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: Camera, desc: t.tutorialScanDesc1, color: "text-cyan-500" },
-                  { Icon: Brain, desc: t.tutorialScanDesc2, color: "text-violet-500" },
-                  { Icon: Sparkles, desc: t.tutorialScanDesc3, color: "text-amber-500" },
+                  { Icon: Camera, desc: language === 'de' ? 'Mach ein Foto von deinem Kühlschrank' : language === 'fr' ? 'Prends une photo de ton frigo' : 'Take a photo of your fridge', color: "text-amber-500" },
+                  { Icon: Brain, desc: language === 'de' ? 'KI erkennt automatisch alle Zutaten' : language === 'fr' ? 'L\'IA reconnaît automatiquement tous les ingrédients' : 'AI automatically recognizes all ingredients', color: "text-violet-500" },
+                  { Icon: Sparkles, desc: language === 'de' ? 'In Sekunden – keine manuelle Eingabe' : language === 'fr' ? 'En quelques secondes – pas de saisie manuelle' : 'In seconds – no manual input', color: "text-emerald-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.15 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
                     <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
@@ -2634,22 +2661,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </motion.div>
               
-              {/* Visual representation */}
+              {/* Visual */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 }}
-                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border mb-6"
+                transition={{ delay: 0.5 }}
+                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 mb-6"
               >
-                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-2 border-dashed border-primary/30 flex items-center justify-center">
+                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-dashed border-amber-500/30 flex items-center justify-center">
                   <div className="text-center">
-                    <Camera className="w-12 h-12 text-primary/50 mx-auto mb-2" />
+                    <Camera className="w-12 h-12 text-amber-500/50 mx-auto mb-2" />
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <ArrowRight className="w-4 h-4" />
                       <Carrot className="w-5 h-5 text-orange-500" />
                       <Milk className="w-5 h-5 text-blue-300" />
                       <Egg className="w-5 h-5 text-amber-400" />
-                      <Salad className="w-5 h-5 text-green-500" />
                     </div>
                   </div>
                 </div>
@@ -2663,35 +2689,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "tutorial-recipes":
+      case "spontan-mode-2":
         return (
-          <StepCard step="tutorial-recipes">
+          <StepCard step="spontan-mode-2">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+                className="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium mb-4"
               >
-                {t.tutorialRecipesStep}
+                {language === 'de' ? 'Schritt 2 von 2' : language === 'fr' ? 'Étape 2 sur 2' : 'Step 2 of 2'}
               </motion.div>
               
               <motion.div 
                 initial={{ scale: 0 }} 
                 animate={{ scale: 1 }} 
                 transition={{ duration: 0.4, type: "spring" }} 
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center mb-4 shadow-xl"
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-4 shadow-xl"
               >
-                <ChefHat className="w-10 h-10 text-white" />
+                <Heart className="w-10 h-10 text-white" />
               </motion.div>
               
               <motion.h1 
-                className="text-2xl font-bold mb-6"
+                className="text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {t.tutorialRecipesTitle}
+                {language === 'de' ? 'Wie fühlst du dich?' : language === 'fr' ? 'Comment te sens-tu ?' : 'How are you feeling?'}
               </motion.h1>
+              <motion.p 
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                {language === 'de' ? 'Deine Stimmung bestimmt die Rezept-Komplexität' : language === 'fr' ? 'Ton humeur détermine la complexité des recettes' : 'Your mood determines recipe complexity'}
+              </motion.p>
               
               <motion.div
                 className="w-full max-w-sm space-y-3 mb-6"
@@ -2700,85 +2734,85 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: ChefHat, desc: t.tutorialRecipesDesc1, color: "text-emerald-500" },
-                  { Icon: Target, desc: t.tutorialRecipesDesc2, color: "text-primary" },
-                  { Icon: Clock, desc: t.tutorialRecipesDesc3, color: "text-amber-500" },
+                  { emoji: "😴", label: language === 'de' ? 'Müde' : language === 'fr' ? 'Fatigué' : 'Tired', desc: language === 'de' ? 'Super einfache 5-Minuten Rezepte' : language === 'fr' ? 'Recettes super simples de 5 minutes' : 'Super simple 5-minute recipes', color: "from-blue-400 to-indigo-500" },
+                  { emoji: "😊", label: language === 'de' ? 'Normal' : language === 'fr' ? 'Normal' : 'Normal', desc: language === 'de' ? 'Ausgewogene 15-20 Minuten Gerichte' : language === 'fr' ? 'Plats équilibrés de 15-20 minutes' : 'Balanced 15-20 minute dishes', color: "from-emerald-400 to-green-500" },
+                  { emoji: "🔥", label: language === 'de' ? 'Motiviert' : language === 'fr' ? 'Motivé' : 'Motivated', desc: language === 'de' ? 'Anspruchsvollere Kreationen' : language === 'fr' ? 'Créations plus élaborées' : 'More challenging creations', color: "from-orange-400 to-red-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.15 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border text-left"
                   >
-                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
-                    <span className="text-sm">{item.desc}</span>
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-2xl`}>
+                      {item.emoji}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
                   </motion.div>
                 ))}
               </motion.div>
               
-              {/* Visual: Recipe cards preview */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="w-full max-w-xs grid grid-cols-2 gap-2 mb-6"
+                className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 mb-4 w-full max-w-sm"
               >
-                {[
-                  { name: "Salat Bowl", kcal: "320", Icon: Salad, color: "text-green-500" },
-                  { name: "Omelette", kcal: "280", Icon: Egg, color: "text-amber-500" },
-                ].map((recipe, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 + i * 0.1 }}
-                    className="p-3 rounded-xl bg-card border border-border"
-                  >
-                    <recipe.Icon className={`w-6 h-6 ${recipe.color} mb-1`} />
-                    <p className="text-xs font-medium">{recipe.name}</p>
-                    <p className="text-[10px] text-primary">{recipe.kcal} kcal</p>
-                  </motion.div>
-                ))}
+                <ChefHat className="w-5 h-5 text-primary shrink-0" />
+                <span className="text-xs text-primary font-medium text-left">
+                  {language === 'de' ? 'Du bekommst 3 personalisierte Rezepte basierend auf deinen Zutaten + Stimmung' : language === 'fr' ? 'Tu reçois 3 recettes personnalisées basées sur tes ingrédients + humeur' : 'You get 3 personalized recipes based on your ingredients + mood'}
+                </span>
               </motion.div>
               
-              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
-                <ChevronRight className="w-5 h-5 mr-2" />
-                {t.continueBtn}
+              <Button onClick={() => setCurrentStep("permissions")} className="w-full max-w-xs h-12 rounded-xl">
+                <Check className="w-5 h-5 mr-2" />
+                {language === 'de' ? 'Verstanden!' : language === 'fr' ? 'Compris !' : 'Got it!'}
               </Button>
             </div>
           </StepCard>
         );
 
-      case "tutorial-mealplan":
+      case "structured-mode-1":
         return (
-          <StepCard step="tutorial-mealplan">
+          <StepCard step="structured-mode-1">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+                className="px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium mb-4"
               >
-                {t.tutorialMealplanStep}
+                {language === 'de' ? 'Schritt 1 von 3' : language === 'fr' ? 'Étape 1 sur 3' : 'Step 1 of 3'}
               </motion.div>
               
               <motion.div 
                 initial={{ scale: 0 }} 
                 animate={{ scale: 1 }} 
                 transition={{ duration: 0.4, type: "spring" }} 
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center mb-4 shadow-xl"
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-xl"
               >
                 <Calendar className="w-10 h-10 text-white" />
               </motion.div>
               
               <motion.h1 
-                className="text-2xl font-bold mb-6"
+                className="text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {t.tutorialMealplanTitle}
+                {language === 'de' ? 'Dein Wochenplan' : language === 'fr' ? 'Ton plan hebdomadaire' : 'Your Weekly Plan'}
               </motion.h1>
+              <motion.p 
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                {language === 'de' ? '7 Tage perfekt auf deine Makros abgestimmt' : language === 'fr' ? '7 jours parfaitement adaptés à tes macros' : '7 days perfectly matched to your macros'}
+              </motion.p>
               
               <motion.div
                 className="w-full max-w-sm space-y-3 mb-6"
@@ -2787,15 +2821,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: Calendar, desc: t.tutorialMealplanDesc1, color: "text-violet-500" },
-                  { Icon: RefreshCw, desc: t.tutorialMealplanDesc2, color: "text-amber-500" },
-                  { Icon: BarChart3, desc: t.tutorialMealplanDesc3, color: "text-emerald-500" },
+                  { Icon: Target, desc: language === 'de' ? 'Jeder Tag trifft exakt deine Kalorien & Makros' : language === 'fr' ? 'Chaque jour atteint exactement tes calories & macros' : 'Every day hits your exact calories & macros', color: "text-violet-500" },
+                  { Icon: ChefHat, desc: language === 'de' ? '5 Mahlzeiten pro Tag – Frühstück bis Abendessen' : language === 'fr' ? '5 repas par jour – du petit-déjeuner au dîner' : '5 meals per day – breakfast to dinner', color: "text-emerald-500" },
+                  { Icon: RefreshCw, desc: language === 'de' ? 'Einzelne Mahlzeiten jederzeit austauschen' : language === 'fr' ? 'Échanger des repas individuels à tout moment' : 'Swap individual meals anytime', color: "text-amber-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.15 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
                     <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
@@ -2804,12 +2838,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </motion.div>
               
-              {/* Visual: Week calendar preview */}
+              {/* Week preview */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 }}
-                className="w-full max-w-xs p-3 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border mb-6"
+                transition={{ delay: 0.5 }}
+                className="w-full max-w-xs p-3 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20 mb-6"
               >
                 <div className="flex gap-1 justify-center">
                   {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day, i) => (
@@ -2817,8 +2851,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       key={day}
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.7 + i * 0.05 }}
-                      className={`flex-1 p-2 rounded-lg text-center ${i === 0 ? 'bg-primary text-primary-foreground' : 'bg-card'}`}
+                      transition={{ delay: 0.6 + i * 0.05 }}
+                      className={`flex-1 p-2 rounded-lg text-center ${i === 0 ? 'bg-violet-500 text-white' : 'bg-card'}`}
                     >
                       <span className="text-[10px] font-medium">{day}</span>
                       <div className="mt-1 space-y-0.5">
@@ -2839,16 +2873,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "tutorial-shopping":
+      case "structured-mode-2":
         return (
-          <StepCard step="tutorial-shopping">
+          <StepCard step="structured-mode-2">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+                className="px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium mb-4"
               >
-                {t.tutorialShoppingStep}
+                {language === 'de' ? 'Schritt 2 von 3' : language === 'fr' ? 'Étape 2 sur 3' : 'Step 2 of 3'}
               </motion.div>
               
               <motion.div 
@@ -2861,13 +2895,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.div>
               
               <motion.h1 
-                className="text-2xl font-bold mb-6"
+                className="text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {t.tutorialShoppingTitle}
+                {language === 'de' ? 'Automatische Einkaufsliste' : language === 'fr' ? 'Liste de courses automatique' : 'Automatic Shopping List'}
               </motion.h1>
+              <motion.p 
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                {language === 'de' ? 'Alles was du für die Woche brauchst' : language === 'fr' ? 'Tout ce dont tu as besoin pour la semaine' : 'Everything you need for the week'}
+              </motion.p>
               
               <motion.div
                 className="w-full max-w-sm space-y-3 mb-6"
@@ -2876,15 +2918,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: ListChecks, desc: t.tutorialShoppingDesc1, color: "text-pink-500" },
-                  { Icon: Check, desc: t.tutorialShoppingDesc2, color: "text-emerald-500" },
-                  { Icon: RefreshCw, desc: t.tutorialShoppingDesc3, color: "text-amber-500" },
+                  { Icon: ListChecks, desc: language === 'de' ? 'Liste wird aus Wochenplan generiert' : language === 'fr' ? 'Liste générée à partir du plan hebdomadaire' : 'List is generated from weekly plan', color: "text-pink-500" },
+                  { Icon: Check, desc: language === 'de' ? 'Abhaken beim Einkaufen' : language === 'fr' ? 'Cocher en faisant les courses' : 'Check off while shopping', color: "text-emerald-500" },
+                  { Icon: Camera, desc: language === 'de' ? 'Scan aktualisiert deine Liste automatisch' : language === 'fr' ? 'Le scan met à jour ta liste automatiquement' : 'Scan automatically updates your list', color: "text-amber-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.15 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
                     className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
                   >
                     <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
@@ -2893,12 +2935,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </motion.div>
               
-              {/* Visual: Shopping list preview */}
+              {/* Shopping list preview */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 }}
-                className="w-full max-w-xs p-3 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border mb-6"
+                transition={{ delay: 0.5 }}
+                className="w-full max-w-xs p-3 rounded-2xl bg-gradient-to-br from-pink-500/10 to-rose-500/10 border border-pink-500/20 mb-6"
               >
                 <div className="space-y-2">
                   {[
@@ -2906,34 +2948,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     { item: "Mozzarella", checked: true },
                     { item: "Basilikum", checked: false },
                     { item: "Olivenöl", checked: false },
-                  ].map((item, i) => (
+                  ].map((listItem, i) => (
                     <motion.div
-                      key={item.item}
+                      key={listItem.item}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 + i * 0.1 }}
-                      className={`flex items-center gap-2 p-2 rounded-lg ${item.checked ? 'bg-primary/10' : 'bg-card'}`}
+                      transition={{ delay: 0.6 + i * 0.08 }}
+                      className={`flex items-center gap-2 p-2 rounded-lg ${listItem.checked ? 'bg-primary/10' : 'bg-card'}`}
                     >
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
-                        {item.checked && <Check className="w-3 h-3 text-primary-foreground" />}
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${listItem.checked ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
+                        {listItem.checked && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      <span className={`text-sm ${item.checked ? 'line-through text-muted-foreground' : ''}`}>{item.item}</span>
+                      <span className={`text-sm ${listItem.checked ? 'line-through text-muted-foreground' : ''}`}>{listItem.item}</span>
                     </motion.div>
                   ))}
                 </div>
-              </motion.div>
-              
-              {/* Cycle hint */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-                className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 mb-4"
-              >
-                <RefreshCw className="w-5 h-5 text-primary" />
-                <span className="text-xs text-primary font-medium">
-                  {t.tutorialShoppingDesc3}
-                </span>
               </motion.div>
               
               <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
@@ -2944,16 +2973,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
-      case "tutorial-cycle":
+      case "structured-mode-3":
         return (
-          <StepCard step="tutorial-cycle">
+          <StepCard step="structured-mode-3">
             <div className="flex flex-col items-center text-center px-6 w-full">
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
+                className="px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium mb-4"
               >
-                {t.tutorialCycleStep}
+                {language === 'de' ? 'Schritt 3 von 3' : language === 'fr' ? 'Étape 3 sur 3' : 'Step 3 of 3'}
               </motion.div>
               
               <motion.div 
@@ -2971,216 +3000,72 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {t.tutorialCycleTitle}
+                {language === 'de' ? 'Der Kreislauf' : language === 'fr' ? 'Le cycle' : 'The Cycle'}
               </motion.h1>
-              
               <motion.p 
                 className="text-muted-foreground text-sm mb-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {t.tutorialCycleDesc1}
+                {language === 'de' ? 'Scan → Plan → Einkaufen → Wiederholen' : language === 'fr' ? 'Scan → Plan → Courses → Répéter' : 'Scan → Plan → Shop → Repeat'}
               </motion.p>
               
-              {/* Visual Cycle Diagram */}
+              {/* Cycle diagram */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
                 className="w-full max-w-xs mb-6"
               >
-                <div className="relative aspect-square">
-                  {/* Center circle */}
-                  <div className="absolute inset-1/4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-dashed border-primary/30 flex items-center justify-center">
-                    <span className="text-xs font-medium text-primary">Frig AI</span>
+                <div className="relative">
+                  {/* Circle items */}
+                  <div className="flex justify-center gap-2 flex-wrap">
+                    {[
+                      { Icon: Camera, label: language === 'de' ? 'Scannen' : language === 'fr' ? 'Scanner' : 'Scan', color: "from-cyan-500 to-blue-500" },
+                      { Icon: Calendar, label: language === 'de' ? 'Planen' : language === 'fr' ? 'Planifier' : 'Plan', color: "from-violet-500 to-purple-500" },
+                      { Icon: ShoppingCart, label: language === 'de' ? 'Einkaufen' : language === 'fr' ? 'Courses' : 'Shop', color: "from-pink-500 to-rose-500" },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 + i * 0.15 }}
+                        className="flex flex-col items-center gap-2"
+                      >
+                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg`}>
+                          <item.Icon className="w-8 h-8 text-white" />
+                        </div>
+                        <span className="text-xs font-medium">{item.label}</span>
+                        {i < 2 && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 + i * 0.1 }}
+                            className="absolute"
+                            style={{ left: `${33 + i * 33}%`, top: '30%' }}
+                          >
+                            <ArrowRight className="w-5 h-5 text-muted-foreground/40" />
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    ))}
                   </div>
                   
-                  {/* Scan - Top */}
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
-                      <Camera className="w-7 h-7 text-white" />
-                    </div>
-                    <span className="text-xs font-medium mt-1">{t.tutorialCycleHave}</span>
-                  </motion.div>
-                  
-                  {/* Meal Plan - Right */}
-                  <motion.div 
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg">
-                      <Calendar className="w-7 h-7 text-white" />
-                    </div>
-                    <span className="text-xs font-medium mt-1">{t.tutorialCycleEat}</span>
-                  </motion.div>
-                  
-                  {/* Shopping - Bottom */}
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg">
-                      <ShoppingCart className="w-7 h-7 text-white" />
-                    </div>
-                    <span className="text-xs font-medium mt-1">{t.tutorialCycleNeed}</span>
-                  </motion.div>
-                  
-                  {/* Arrows */}
-                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                    <motion.path
-                      d="M 50 22 Q 72 30 72 50"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-primary/40"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ delay: 0.6, duration: 0.4 }}
-                    />
-                    <motion.path
-                      d="M 72 50 Q 65 72 50 78"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-primary/40"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ delay: 0.7, duration: 0.4 }}
-                    />
-                    <motion.path
-                      d="M 50 78 Q 30 65 28 50 Q 30 35 50 22"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-primary/40"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ delay: 0.8, duration: 0.6 }}
-                    />
-                  </svg>
-                </div>
-              </motion.div>
-              
-              {/* Explanations */}
-              <motion.div
-                className="w-full max-w-sm space-y-2 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 }}
-              >
-                {[
-                  { Icon: Camera, desc: t.tutorialCycleExplain1, color: "text-cyan-500" },
-                  { Icon: Calendar, desc: t.tutorialCycleExplain2, color: "text-violet-500" },
-                  { Icon: ShoppingCart, desc: t.tutorialCycleExplain3, color: "text-pink-500" },
-                  { Icon: RefreshCw, desc: t.tutorialCycleExplain4, color: "text-amber-500" },
-                ].map((item, i) => (
+                  {/* Cycle arrow */}
                   <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 1 + i * 0.1 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="flex justify-center mt-4"
                   >
-                    <item.Icon className={`w-4 h-4 ${item.color} shrink-0`} />
-                    <span className="text-xs">{item.desc}</span>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+                      <RefreshCw className="w-4 h-4 text-primary" />
+                      <span className="text-xs text-primary font-medium">
+                        {language === 'de' ? 'Jede Woche neu' : language === 'fr' ? 'Chaque semaine' : 'Every week'}
+                      </span>
+                    </div>
                   </motion.div>
-                ))}
-              </motion.div>
-              
-              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
-                <ChevronRight className="w-5 h-5 mr-2" />
-                {t.continueBtn}
-              </Button>
-            </div>
-          </StepCard>
-        );
-
-      case "tutorial-chatbot":
-        return (
-          <StepCard step="tutorial-chatbot">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4"
-              >
-                {t.tutorialChatbotStep}
-              </motion.div>
-              
-              <motion.div 
-                initial={{ scale: 0 }} 
-                animate={{ scale: 1 }} 
-                transition={{ duration: 0.4, type: "spring" }} 
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center mb-4 shadow-xl"
-              >
-                <Bot className="w-10 h-10 text-white" />
-              </motion.div>
-              
-              <motion.h1 
-                className="text-2xl font-bold mb-6"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                {t.tutorialChatbotTitle}
-              </motion.h1>
-              
-              <motion.div
-                className="w-full max-w-sm space-y-3 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {[
-                  { Icon: MessageCircle, desc: t.tutorialChatbotDesc1, color: "text-indigo-500" },
-                  { Icon: Eye, desc: t.tutorialChatbotDesc2, color: "text-violet-500" },
-                  { Icon: Zap, desc: t.tutorialChatbotDesc3, color: "text-amber-500" },
-                ].map((item, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.15 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border text-left"
-                  >
-                    <item.Icon className={`w-5 h-5 ${item.color} shrink-0`} />
-                    <span className="text-sm">{item.desc}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-              
-              {/* Visual: Chat preview */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 }}
-                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-blue-500/10 border border-indigo-500/20 mb-4"
-              >
-                <div className="space-y-2">
-                  <div className="flex gap-2 items-start">
-                    <div className="p-1.5 rounded-full bg-muted shrink-0">
-                      <User className="w-3 h-3" />
-                    </div>
-                    <div className="text-xs bg-muted p-2 rounded-lg rounded-tl-sm">"Füg 2 Gläser Wasser hinzu"</div>
-                  </div>
-                  <div className="flex gap-2 items-start">
-                    <div className="p-1.5 rounded-full bg-indigo-500/20 shrink-0">
-                      <Bot className="w-3 h-3 text-indigo-500" />
-                    </div>
-                    <div className="text-xs bg-indigo-500/10 p-2 rounded-lg rounded-tl-sm text-left">
-                      +2 Gläser! Gesamt: 5 💧
-                    </div>
-                  </div>
                 </div>
               </motion.div>
               
@@ -3188,17 +3073,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9 }}
-                className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4"
+                className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-4 w-full max-w-sm"
               >
-                <Sparkles className="w-5 h-5 text-amber-500" />
-                <span className="text-xs text-amber-600 font-medium">
-                  {t.tutorialChatbotHint}
+                <Target className="w-5 h-5 text-emerald-500 shrink-0" />
+                <span className="text-xs text-emerald-600 font-medium text-left">
+                  {language === 'de' ? 'Dein Kühlschrank-Scan aktualisiert automatisch was du noch brauchst' : language === 'fr' ? 'Ton scan de frigo met à jour automatiquement ce dont tu as besoin' : 'Your fridge scan automatically updates what you still need'}
                 </span>
               </motion.div>
               
-              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
-                <ChevronRight className="w-5 h-5 mr-2" />
-                {t.continueBtn}
+              <Button onClick={() => setCurrentStep("permissions")} className="w-full max-w-xs h-12 rounded-xl">
+                <Check className="w-5 h-5 mr-2" />
+                {language === 'de' ? 'Verstanden!' : language === 'fr' ? 'Compris !' : 'Got it!'}
               </Button>
             </div>
           </StepCard>
