@@ -2600,6 +2600,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "spontan-mode-1":
+        // Camera permission step for spontan mode
+        const requestCameraPermissionSpontan = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            setUserData({ ...userData, cameraPermission: true });
+            // Navigate to fridge scan
+            navigate('/scan', { state: { fromOnboarding: true, returnToOnboarding: true, nextStep: 'spontan-mode-2' } });
+          } catch (err) {
+            console.log('Camera permission denied');
+            // Still allow to continue but without scan
+            setCurrentStep("spontan-mode-2");
+          }
+        };
+        
         return (
           <StepCard step="spontan-mode-1">
             <div className="flex flex-col items-center text-center px-6 w-full">
@@ -2608,7 +2623,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium mb-4"
               >
-                {language === 'de' ? 'Schritt 1 von 2' : language === 'fr' ? 'Étape 1 sur 2' : 'Step 1 of 2'}
+                {language === 'de' ? 'Spontan-Modus' : language === 'fr' ? 'Mode Spontané' : 'Spontaneous Mode'}
               </motion.div>
               
               <motion.div 
@@ -2646,7 +2661,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {[
                   { Icon: Camera, desc: language === 'de' ? 'Mach ein Foto von deinem Kühlschrank' : language === 'fr' ? 'Prends une photo de ton frigo' : 'Take a photo of your fridge', color: "text-amber-500" },
                   { Icon: Brain, desc: language === 'de' ? 'KI erkennt automatisch alle Zutaten' : language === 'fr' ? 'L\'IA reconnaît automatiquement tous les ingrédients' : 'AI automatically recognizes all ingredients', color: "text-violet-500" },
-                  { Icon: Sparkles, desc: language === 'de' ? 'In Sekunden – keine manuelle Eingabe' : language === 'fr' ? 'En quelques secondes – pas de saisie manuelle' : 'In seconds – no manual input', color: "text-emerald-500" },
+                  { Icon: ChefHat, desc: language === 'de' ? 'Bekomme 3 Rezepte basierend auf deiner Stimmung' : language === 'fr' ? 'Reçois 3 recettes selon ton humeur' : 'Get 3 recipes based on your mood', color: "text-emerald-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -2661,30 +2676,32 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 ))}
               </motion.div>
               
-              {/* Visual */}
+              {/* Camera access hint */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="w-full max-w-xs p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 mb-6"
+                className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 mb-4 w-full max-w-sm"
               >
-                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-dashed border-amber-500/30 flex items-center justify-center">
-                  <div className="text-center">
-                    <Camera className="w-12 h-12 text-amber-500/50 mx-auto mb-2" />
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <ArrowRight className="w-4 h-4" />
-                      <Carrot className="w-5 h-5 text-orange-500" />
-                      <Milk className="w-5 h-5 text-blue-300" />
-                      <Egg className="w-5 h-5 text-amber-400" />
-                    </div>
-                  </div>
-                </div>
+                <Camera className="w-5 h-5 text-primary shrink-0" />
+                <span className="text-xs text-primary font-medium text-left">
+                  {language === 'de' ? 'Wir benötigen Kamera-Zugriff für den Scan' : language === 'fr' ? 'Nous avons besoin d\'accéder à la caméra pour le scan' : 'We need camera access for scanning'}
+                </span>
               </motion.div>
               
-              <Button onClick={goNext} className="w-full max-w-xs h-12 rounded-xl">
-                <ChevronRight className="w-5 h-5 mr-2" />
-                {t.continueBtn}
-              </Button>
+              <div className="w-full max-w-xs space-y-3">
+                <Button onClick={requestCameraPermissionSpontan} className="w-full h-12 rounded-xl">
+                  <Camera className="w-5 h-5 mr-2" />
+                  {language === 'de' ? 'Jetzt scannen' : language === 'fr' ? 'Scanner maintenant' : 'Scan Now'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setCurrentStep("spontan-mode-2")}
+                  className="w-full h-10 text-muted-foreground"
+                >
+                  {language === 'de' ? 'Später scannen' : language === 'fr' ? 'Scanner plus tard' : 'Scan Later'}
+                </Button>
+              </div>
             </div>
           </StepCard>
         );
@@ -2768,7 +2785,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </span>
               </motion.div>
               
-              <Button onClick={() => setCurrentStep("permissions")} className="w-full max-w-xs h-12 rounded-xl">
+              <Button onClick={() => setCurrentStep("notification-prefs")} className="w-full max-w-xs h-12 rounded-xl">
                 <Check className="w-5 h-5 mr-2" />
                 {language === 'de' ? 'Verstanden!' : language === 'fr' ? 'Compris !' : 'Got it!'}
               </Button>
@@ -3081,7 +3098,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </span>
               </motion.div>
               
-              <Button onClick={() => setCurrentStep("permissions")} className="w-full max-w-xs h-12 rounded-xl">
+              <Button onClick={() => setCurrentStep("notification-prefs")} className="w-full max-w-xs h-12 rounded-xl">
                 <Check className="w-5 h-5 mr-2" />
                 {language === 'de' ? 'Verstanden!' : language === 'fr' ? 'Compris !' : 'Got it!'}
               </Button>
