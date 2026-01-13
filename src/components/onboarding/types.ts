@@ -124,11 +124,8 @@ export const onboardingSteps: OnboardingStep[] = [
   "social-proof",
   "success-stats",
   
-  // Phase 3: Fridge Scan Demo (before personalization)
-  "fridge-intro",
-  "scan-feedback",
-  "how-it-works",
-  "tracker-intro",
+  // Phase 3: Interactive Tutorial (replaces how-it-works)
+  "tutorial",
   
   // Phase 4: Body Data Collection
   "body-basics",
@@ -152,10 +149,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "comparison",
   "transformation",
   
-  // Phase 8: Interactive Tutorial (7 slides)
-  "tutorial",
-  
-  // Phase 9: Notifications (after tutorial)
+  // Phase 8: Notifications
   "notification-prefs",
   
   // Phase 10: Save & Finish
