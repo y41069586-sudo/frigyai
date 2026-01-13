@@ -36,6 +36,7 @@ import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboar
 import { WheelPicker } from "./WheelPicker";
 import { MacroRing } from "./MacroRing";
 import HeroAnimationCompact from "./HeroAnimationCompact";
+import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -2512,6 +2513,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </div>
             </div>
           </StepCard>
+        );
+
+      case "tutorial":
+        return (
+          <InteractiveTutorial 
+            onComplete={goNext} 
+            onSkip={() => setCurrentStep("notification-prefs")} 
+          />
         );
 
       case "app-mode-choice":
