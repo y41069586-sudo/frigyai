@@ -17,6 +17,7 @@ export type OnboardingStep =
   | "weekly-plan"
   | "comparison"
   | "transformation"
+  | "tutorial"  // Interactive tutorial (7 slides)
   | "tracker-intro"
   | "body-basics"
   | "gender"
@@ -30,7 +31,7 @@ export type OnboardingStep =
   | "planning-setup"
   | "analyzing"
   | "macro-preview"
-  // App Mode Choice (nach Macro-Preview)
+  // App Mode Choice (nach Macro-Preview) - kept for backwards compat
   | "app-mode-choice"
   | "spontan-mode-1"
   | "spontan-mode-2"
@@ -151,13 +152,10 @@ export const onboardingSteps: OnboardingStep[] = [
   "comparison",
   "transformation",
   
-  // Phase 8: App Mode Choice - Spontan vs Strukturiert
-  "app-mode-choice",
-  // Note: spontan-mode-1/2 and structured-mode-1/2/3 are conditional
-  // Spontan: permissions → fridge scan → spontan slides
-  // Strukturiert: structured slides → permissions
+  // Phase 8: Interactive Tutorial (7 slides)
+  "tutorial",
   
-  // Phase 9: Notifications (after mode explanation)
+  // Phase 9: Notifications (after tutorial)
   "notification-prefs",
   
   // Phase 10: Save & Finish
