@@ -3659,51 +3659,60 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
       {/* Progress Bar at Top */}
-      {currentStep !== 'language-select' && currentStep !== 'analyzing' && (
+      {currentStep !== 'language-select' && currentStep !== 'analyzing' && currentStep !== 'tutorial' && (
         <OnboardingProgressBar 
           currentStep={currentIndex + 1} 
           totalSteps={totalSteps} 
         />
       )}
 
-      {/* Header */}
-      <div className={`flex items-center justify-between p-4 ${currentStep === 'language-select' ? 'mt-0' : 'mt-12'} ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
-        {currentIndex > 0 ? (
-          <motion.button
-            onClick={goBack}
-            whileTap={{ scale: 0.95 }}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
-          >
-            <ChevronRight className="w-5 h-5 rotate-180 text-muted-foreground" />
-          </motion.button>
-        ) : (
-          <div className="w-10" />
-        )}
-        
-        {/* Progress bar only - no dots */}
+      {/* Header - hidden for tutorial */}
+      {currentStep !== 'tutorial' && (
+        <div className={`flex items-center justify-between p-4 ${currentStep === 'language-select' ? 'mt-0' : 'mt-12'} ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
+          {currentIndex > 0 ? (
+            <motion.button
+              onClick={goBack}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 rotate-180 text-muted-foreground" />
+            </motion.button>
+          ) : (
+            <div className="w-10" />
+          )}
+          
+          {/* Progress bar only - no dots */}
 
-        <button 
-          onClick={handleSkip} 
-          className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1"
-        >
-          {t.skip || "Überspringen"}
-        </button>
-      </div>
+          <button 
+            onClick={handleSkip} 
+            className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1"
+          >
+            {t.skip || "Überspringen"}
+          </button>
+        </div>
+      )}
 
       {/* Main content */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-6"
-      >
-        <AnimatePresence mode="wait">
-          <motion.div key={currentStep} className="w-full max-w-md">
-            {renderStepContent()}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      {currentStep === 'tutorial' ? (
+        // Tutorial renders fullscreen
+        <div className="flex-1 min-h-0">
+          {renderStepContent()}
+        </div>
+      ) : (
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-6"
+        >
+          <AnimatePresence mode="wait">
+            <motion.div key={currentStep} className="w-full max-w-md">
+              {renderStepContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Bottom button */}
-      {!["language-select", "name-input", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing"].includes(currentStep) && (
+      {!["language-select", "name-input", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ opacity: 0, y: 20 }}
