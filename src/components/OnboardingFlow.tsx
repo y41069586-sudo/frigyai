@@ -2519,7 +2519,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         return (
           <InteractiveTutorial 
             onComplete={goNext} 
-            onSkip={() => setCurrentStep("notification-prefs")} 
+            onSkip={() => setCurrentStep("tracker-intro")} 
           />
         );
 
