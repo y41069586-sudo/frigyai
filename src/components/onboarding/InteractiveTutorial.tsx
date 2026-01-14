@@ -15,7 +15,7 @@ import {
   ScanLine,
   ChefHat
 } from "lucide-react";
-import frigyMascot from "@/assets/frigy-mascot.png";
+import { AnimatedVectorFrigy, VectorFrigyMascot } from "@/components/VectorFrigyMascot";
 
 interface InteractiveTutorialProps {
   onComplete: () => void;
@@ -104,12 +104,7 @@ const SlideWrapper = ({ children }: { children: React.ReactNode }) => (
 // INTRO SLIDE
 const IntroSlide = ({ onStart, onSkip }: { onStart: () => void; onSkip: () => void }) => (
   <SlideWrapper>
-    <motion.div
-      animate={{ scale: [1, 1.05, 1] }}
-      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-    >
-      <img src={frigyMascot} alt="Frigy" className="w-32 h-32 object-contain" />
-    </motion.div>
+    <AnimatedVectorFrigy size={144} />
     
     <div className="space-y-2">
       <h1 className="text-2xl font-bold text-foreground">So funktioniert Frigy</h1>
@@ -490,12 +485,12 @@ const FinishSlide = ({ onComplete }: { onComplete: () => void }) => (
   <SlideWrapper>
     <motion.div
       animate={{ 
-        y: [0, -10, 0],
-        rotate: [-3, 3, -3]
+        y: [0, -15, 0],
+        rotate: [-5, 5, -5]
       }}
       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
     >
-      <img src={frigyMascot} alt="Frigy" className="w-40 h-40 object-contain" />
+      <VectorFrigyMascot size={160} animate={true} />
     </motion.div>
     
     <motion.div
