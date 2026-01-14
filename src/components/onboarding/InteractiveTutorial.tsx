@@ -102,25 +102,134 @@ const SlideWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 // INTRO SLIDE
-const IntroSlide = ({ onStart, onSkip }: { onStart: () => void; onSkip: () => void }) => (
-  <SlideWrapper>
-    <AnimatedVectorFrigy size={144} />
-    
-    <div className="space-y-2">
-      <h1 className="text-2xl font-bold text-foreground">So funktioniert Frigy</h1>
-      <p className="text-muted-foreground">Ein kurzes Tutorial – dauert weniger als 1 Minute</p>
-    </div>
+const IntroSlide = ({ onStart, onSkip }: { onStart: () => void; onSkip: () => void }) => {
+  const features = [
+    { icon: Camera, label: "Kühlschrank scannen" },
+    { icon: UtensilsCrossed, label: "Rezepte erhalten" },
+    { icon: Calendar, label: "Woche planen" },
+  ];
 
-    <div className="flex flex-col gap-3 w-full">
-      <Button onClick={onStart} size="lg" className="w-full">
-        Tutorial starten
-      </Button>
-      <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
-        Überspringen
-      </Button>
-    </div>
-  </SlideWrapper>
-);
+  return (
+    <SlideWrapper>
+      {/* Animated mascot with glow effect */}
+      <div className="relative">
+        {/* Ambient glow */}
+        <motion.div
+          className="absolute inset-0 bg-primary/20 rounded-full blur-3xl"
+          animate={{ 
+            scale: [1, 1.3, 1],
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+        
+        {/* Floating sparkles */}
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute"
+            style={{
+              left: `${20 + i * 15}%`,
+              top: `${10 + (i % 2) * 80}%`,
+            }}
+            animate={{
+              y: [-10, 10, -10],
+              opacity: [0.3, 1, 0.3],
+              scale: [0.8, 1.2, 0.8],
+            }}
+            transition={{
+              duration: 2 + i * 0.3,
+              repeat: Infinity,
+              delay: i * 0.2,
+            }}
+          >
+            <Sparkles className="w-4 h-4 text-primary/60" />
+          </motion.div>
+        ))}
+        
+        <AnimatedVectorFrigy size={160} />
+      </div>
+      
+      {/* Title with gradient effect */}
+      <div className="space-y-3">
+        <motion.h1 
+          className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          So funktioniert Frigy
+        </motion.h1>
+        <motion.p 
+          className="text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          Ein kurzes Tutorial – weniger als 1 Minute
+        </motion.p>
+      </div>
+
+      {/* Feature pills */}
+      <motion.div 
+        className="flex flex-wrap justify-center gap-2"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        {features.map((feature, i) => (
+          <motion.div
+            key={i}
+            className="flex items-center gap-2 px-3 py-2 rounded-full bg-primary/10 border border-primary/20"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 + i * 0.1 }}
+            whileHover={{ scale: 1.05, backgroundColor: "hsl(var(--primary) / 0.2)" }}
+          >
+            <feature.icon className="w-4 h-4 text-primary" />
+            <span className="text-xs font-medium text-foreground">{feature.label}</span>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* CTA buttons with enhanced styling */}
+      <motion.div 
+        className="flex flex-col gap-3 w-full"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Button 
+            onClick={onStart} 
+            size="lg" 
+            className="w-full relative overflow-hidden group"
+          >
+            <motion.span
+              className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+            />
+            <span className="relative flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Tutorial starten
+            </span>
+          </Button>
+        </motion.div>
+        <Button 
+          variant="ghost" 
+          onClick={onSkip} 
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Überspringen
+        </Button>
+      </motion.div>
+    </SlideWrapper>
+  );
+};
 
 // SLIDE 1 - Problem
 const ProblemSlide = ({ onNext }: { onNext: () => void }) => {
