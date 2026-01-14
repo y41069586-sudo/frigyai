@@ -128,6 +128,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "tutorial",
   
   // Phase 4: Body Data Collection
+  "tracker-intro",
   "body-basics",
   "gender",
   "goal-mode",
