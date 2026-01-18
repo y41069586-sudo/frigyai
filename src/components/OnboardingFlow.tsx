@@ -721,6 +721,138 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "tutorial-transition":
+        return (
+          <div className="fixed inset-0 bg-background flex flex-col overflow-hidden">
+            {/* Animated background gradient */}
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8 }}
+            />
+            
+            <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
+              {/* Animated Frigy mascot appearing */}
+              <motion.div
+                className="relative mb-6"
+                initial={{ y: 100, opacity: 0, scale: 0.5 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+              >
+                {/* Glow effect behind mascot */}
+                <motion.div
+                  className="absolute inset-0 bg-primary/20 rounded-full blur-3xl"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1.5 }}
+                  transition={{ delay: 0.3, duration: 0.8 }}
+                />
+                <AnimatedFrigyMascot size={140} animate={true} />
+              </motion.div>
+              
+              {/* Personalized greeting */}
+              <motion.div
+                className="text-center mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                <motion.p 
+                  className="text-muted-foreground/60 text-sm mb-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.3 }}
+                >
+                  {t.onboardingPerfect}, {userData.name}! 🎉
+                </motion.p>
+                <motion.h1 
+                  className="text-2xl font-bold"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6, duration: 0.3 }}
+                >
+                  <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    {t.onboardingIKnowWhatYouWant}
+                  </span>
+                </motion.h1>
+              </motion.div>
+              
+              {/* Goal summary card */}
+              <motion.div
+                className="w-full max-w-sm bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-4 mb-6"
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.4 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                    <Target className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground/60">{t.onboardingYourGoalMode}</p>
+                    <p className="font-semibold text-foreground">
+                      {userData.goal === 'lose' && t.onboardingLoseWeight}
+                      {userData.goal === 'gain' && t.onboardingGainMuscle}
+                      {userData.goal === 'maintain' && t.onboardingMaintainWeight}
+                      {userData.goal === 'health' && t.onboardingEatHealthier}
+                      {!userData.goal && t.onboardingEatHealthier}
+                    </p>
+                  </div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1, duration: 0.3, type: "spring" }}
+                  >
+                    <Check className="w-6 h-6 text-primary" />
+                  </motion.div>
+                </div>
+              </motion.div>
+              
+              {/* Transition text */}
+              <motion.p
+                className="text-center text-muted-foreground/70 text-sm max-w-xs mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9, duration: 0.4 }}
+              >
+                {t.onboardingLetMeShowYou} 
+                <motion.span
+                  className="inline-block ml-1"
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.2 }}
+                >
+                  →
+                </motion.span>
+              </motion.p>
+            </div>
+            
+            {/* Bottom CTA */}
+            <motion.div
+              className="px-6 pb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.1, duration: 0.4 }}
+            >
+              <Button
+                onClick={goNext}
+                size="lg"
+                className="w-full h-14 text-lg font-semibold rounded-2xl relative overflow-hidden group"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  {t.onboardingShowMeHow} 
+                  <Sparkles className="w-5 h-5" />
+                </span>
+                {/* Shine effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"
+                  animate={{ x: ["100%", "-100%"] }}
+                  transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}
+                />
+              </Button>
+            </motion.div>
+          </div>
+        );
+
       case "tracker-intro":
         return (
           <StepCard step="tracker-intro">

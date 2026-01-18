@@ -168,6 +168,12 @@ interface Translations {
   onboardingHowItWorksStep3Desc: string;
   onboardingHowItWorksTip: string;
   
+  // Tutorial transition step
+  onboardingPerfect: string;
+  onboardingIKnowWhatYouWant: string;
+  onboardingLetMeShowYou: string;
+  onboardingShowMeHow: string;
+  
   // Tutorial steps (multi-page explanation)
   tutorialIntroTitle: string;
   tutorialIntroSubtitle: string;
@@ -1535,6 +1541,12 @@ const translations: Record<Language, Translations> = {
     onboardingHowItWorksStep3Desc: "Nach dem Einkauf scannst du → Gekaufte Zutaten werden abgehakt",
     onboardingHowItWorksTip: "Pro-Tipp: Scan-Rezepte können Wochenplan-Mahlzeiten ersetzen!",
     
+    // Tutorial transition step
+    onboardingPerfect: "Perfekt",
+    onboardingIKnowWhatYouWant: "Ich weiß, was du willst",
+    onboardingLetMeShowYou: "Lass mich dir zeigen, wie Frigy dir dabei hilft!",
+    onboardingShowMeHow: "Zeig mir wie",
+    
     // Tutorial steps (multi-page explanation)
     tutorialIntroTitle: "So funktioniert Frig AI",
     tutorialIntroSubtitle: "In 6 einfachen Schritten",
@@ -2346,6 +2358,12 @@ const translations: Record<Language, Translations> = {
     onboardingHowItWorksStep3Desc: "After shopping, scan → Purchased items get checked off",
     onboardingHowItWorksTip: "Pro tip: Scan recipes can replace weekly plan meals!",
     
+    // Tutorial transition step
+    onboardingPerfect: "Perfect",
+    onboardingIKnowWhatYouWant: "I know what you want",
+    onboardingLetMeShowYou: "Let me show you how Frigy can help!",
+    onboardingShowMeHow: "Show me how",
+    
     // Tutorial steps (multi-page explanation)
     tutorialIntroTitle: "How Frig AI works",
     tutorialIntroSubtitle: "In 6 simple steps",
@@ -3156,6 +3174,12 @@ const translations: Record<Language, Translations> = {
     onboardingHowItWorksStep3Title: "🔄 La connexion",
     onboardingHowItWorksStep3Desc: "Après les courses, scanne → Les articles achetés sont cochés",
     onboardingHowItWorksTip: "Astuce: Les recettes scannées peuvent remplacer les repas du plan!",
+    
+    // Tutorial transition step
+    onboardingPerfect: "Parfait",
+    onboardingIKnowWhatYouWant: "Je sais ce que tu veux",
+    onboardingLetMeShowYou: "Laisse-moi te montrer comment Frigy peut t'aider!",
+    onboardingShowMeHow: "Montre-moi comment",
     
     // Tutorial steps (multi-page explanation)
     tutorialIntroTitle: "Comment fonctionne Frig AI",
