@@ -9,6 +9,7 @@ export type OnboardingStep =
   | "motivation"
   | "social-proof"
   | "success-stats"
+  | "tutorial-transition"  // Smooth transition before tutorial
   | "fridge-intro"
   | "scan-feedback"
   | "how-it-works"
@@ -123,6 +124,9 @@ export const onboardingSteps: OnboardingStep[] = [
   // Phase 2: Social Proof & Trust
   "social-proof",
   "success-stats",
+  
+  // Phase 2.5: Tutorial Transition (smooth bridge)
+  "tutorial-transition",
   
   // Phase 3: Interactive Tutorial (replaces how-it-works)
   "tutorial",
