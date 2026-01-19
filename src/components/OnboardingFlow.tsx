@@ -3261,7 +3261,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           setIsAuthLoading(true);
           try {
             if (authMode === 'signup') {
-              const redirectTo = `${window.location.origin}/trial-intro`;
+              const redirectTo = `${window.location.origin}/email-confirmation?confirmed=true&from=onboarding&next=/premium-pricing`;
               const { error } = await signUp(authEmail, authPassword, { emailRedirectTo: redirectTo });
               if (error) {
                 toast({
@@ -3280,8 +3280,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   description: t.onboardingProgressSavedMsg,
                 });
                 saveOnboardingData(userData);
-                // Navigate directly to trial intro page
-                navigate('/trial-intro', { replace: true });
+                goNext();
               }
             } else {
               const { error } = await signIn(authEmail, authPassword);
@@ -3297,8 +3296,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   description: t.onboardingProgressLoaded,
                 });
                 saveOnboardingData(userData);
-                // Navigate directly to trial intro page
-                navigate('/trial-intro', { replace: true });
+                goNext();
               }
             }
           } finally {

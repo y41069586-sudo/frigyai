@@ -33,13 +33,11 @@ const PremiumPricingPage = () => {
   }, [subscriptionStatus, navigate, isPreview]);
 
   const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
-    // User must be logged in at this point (coming from trial-intro or onboarding)
+    // If not logged in, redirect to auth first
     if (!session) {
-      toast({
-        title: "Bitte melde dich an",
-        description: "Du musst angemeldet sein, um fortzufahren.",
-        variant: "destructive",
-      });
+      localStorage.setItem('redirectAfterAuth', '/premium-pricing');
+      localStorage.setItem('selectedPlan', billingInterval);
+      navigate('/auth?from=premium-pricing', { replace: true });
       return;
     }
 
