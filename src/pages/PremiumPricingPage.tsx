@@ -33,11 +33,11 @@ const PremiumPricingPage = () => {
   }, [subscriptionStatus, navigate, isPreview]);
 
   const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
-    // If not logged in, redirect to auth first
+    // If not logged in, redirect back to onboarding to complete authentication
     if (!session) {
-      localStorage.setItem('redirectAfterAuth', '/premium-pricing');
       localStorage.setItem('selectedPlan', billingInterval);
-      navigate('/auth?from=premium-pricing', { replace: true });
+      // Go back to onboarding - user must complete "save-progress" step first
+      navigate('/?showOnboarding=save-progress', { replace: true });
       return;
     }
 

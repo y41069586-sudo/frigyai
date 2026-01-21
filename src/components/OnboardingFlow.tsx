@@ -304,6 +304,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "goal": return userData.goal !== null;
       case "gender": return userData.gender !== null;
       case "planning-setup": return userData.activityLevel !== null;
+      case "save-progress": return !!user; // User must be logged in to proceed
       default: return true;
     }
   };
@@ -3878,7 +3879,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Bottom button */}
-      {!["language-select", "name-input", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial"].includes(currentStep) && (
+      {!["language-select", "name-input", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ opacity: 0, y: 20 }}
