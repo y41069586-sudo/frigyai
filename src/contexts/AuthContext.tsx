@@ -45,7 +45,9 @@ const getCachedSubscription = (): SubscriptionStatus | null => {
         return parsed.data;
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Auth] Failed to load cached subscription:', e);
+  }
   return null;
 };
 
@@ -56,7 +58,9 @@ const setCachedSubscription = (data: SubscriptionStatus | null) => {
     } else {
       localStorage.removeItem(SUBSCRIPTION_CACHE_KEY);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Auth] Failed to cache subscription:', e);
+  }
 };
 
 // Fast DB cache load (much faster than Stripe API)
@@ -67,7 +71,7 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
       .select('subscribed, product_id, subscription_end, is_trial')
       .eq('user_id', userId)
       .single();
-    
+
     if (data) {
       return {
         subscribed: data.subscribed,
@@ -76,7 +80,9 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
         is_trial: data.is_trial || false
       };
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Auth] Failed to load subscription from DB cache:', e);
+  }
   return null;
 };
 
