@@ -439,84 +439,114 @@ const Index = () => {
             </motion.button>
           </motion.section>
           
-          {/* Water Widget - Full Width */}
+          {/* Water & Progress Grid */}
           <motion.section
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.15 }}
           >
-            <DashboardWaterWidget 
-              waterGlasses={waterGlasses} 
-              onWaterUpdate={setWaterGlasses} 
-            />
-          </motion.section>
-          
-          {/* Progress/Verlauf Section */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-purple-500" />
+            {/* Water Widget */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
+              <DashboardWaterWidget
+                waterGlasses={waterGlasses}
+                onWaterUpdate={setWaterGlasses}
+              />
+            </motion.div>
+
+            {/* Progress/Weight History */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.25, duration: 0.3 }}
+            >
+              <Dialog>
+                <DialogTrigger asChild>
+                  <motion.div
+                    className="relative overflow-hidden rounded-3xl cursor-pointer group h-full min-h-[240px]"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/15 via-purple-500/5 to-transparent border border-purple-500/20" />
+
+                    {/* Animated blob */}
+                    <motion.div
+                      className="absolute -top-8 -right-8 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl"
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                    />
+
+                    <div className="relative p-5 h-full flex flex-col">
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-white/30 dark:bg-white/5 rounded-xl backdrop-blur-sm">
+                            <TrendingUp className="w-5 h-5 text-foreground/80" />
+                          </div>
+                          <div className="flex flex-col">
+                            <p className="text-sm font-bold text-foreground">{t.weightHistory}</p>
+                            <p className="text-xs text-foreground/60">{t.tapForDetails}</p>
+                          </div>
+                        </div>
+                        <motion.div
+                          className="p-1.5 rounded-lg bg-white/20 dark:bg-white/5 backdrop-blur-sm"
+                          whileHover={{ x: 2 }}
+                        >
+                          <ChevronRight className="w-4 h-4 text-foreground/60" />
+                        </motion.div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{t.weightHistory}</p>
-                        <p className="text-xs text-muted-foreground">{t.tapForDetails}</p>
+
+                      {/* Chart Preview */}
+                      <div className="flex-1 flex items-end gap-1.5 pt-4">
+                        {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
+                          <motion.div
+                            key={i}
+                            className="flex-1 bg-gradient-to-t from-purple-500/60 to-purple-400/30 rounded-t-lg"
+                            initial={{ height: 0 }}
+                            animate={{ height: `${height}%` }}
+                            transition={{ delay: 0.25 + i * 0.05, duration: 0.5, ease: "easeOut" }}
+                            whileHover={{ opacity: 1, scale: 1.05 }}
+                          />
+                        ))}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-purple-500/50" />
+                  </motion.div>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <ProgressCharts />
                   </div>
-                  
-                  {/* Mini Chart Preview */}
-                  <div className="h-12 flex items-end gap-1">
-                    {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
-                      <motion.div
-                        key={i}
-                        className="flex-1 bg-gradient-to-t from-purple-500/40 to-purple-400/20 rounded-t-sm"
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ delay: 0.3 + i * 0.05, duration: 0.4, ease: "easeOut" }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4">
-                  <ProgressCharts />
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </motion.div>
           </motion.section>
-          
-          {/* Action Cards Grid */}
+
+          {/* Action Cards Grid - Meal Plan & Shopping */}
           <motion.section
-            className="grid grid-cols-2 gap-3"
+            className="grid grid-cols-2 gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.35, duration: 0.3 }}
             >
               <DashboardMealPlanCard />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.35 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
             >
               <DashboardShoppingCard />
             </motion.div>
