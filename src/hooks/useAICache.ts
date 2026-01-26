@@ -1,7 +1,20 @@
 import { useState, useCallback } from 'react';
 
+// AI Analysis result types
+interface FoodAnalysisResult {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  portion?: string;
+  confidence?: number;
+}
+
+type AIAnalysisResult = FoodAnalysisResult | Record<string, any>;
+
 interface CacheEntry {
-  result: any;
+  result: AIAnalysisResult;
   timestamp: number;
   imageHash: string;
 }
