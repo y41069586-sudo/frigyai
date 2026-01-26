@@ -72,6 +72,11 @@ export const useFoodEntries = () => {
       await updateDailyMacros(totals);
     } catch (error) {
       console.error('Error loading food entries:', error);
+      toast({
+        title: 'Fehler beim Laden',
+        description: 'Deine Mahlzeitseinträge konnten nicht geladen werden',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -101,6 +106,7 @@ export const useFoodEntries = () => {
       }
     } catch (error) {
       console.error('Error in updateDailyMacros:', error);
+      // Don't show toast for background updates
     }
   };
 
@@ -152,9 +158,13 @@ export const useFoodEntries = () => {
       await updateDailyMacros(newTotals);
 
       return typedEntry;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding food entry:', error);
-      toast({ title: 'Fehler beim Speichern', variant: 'destructive' });
+      toast({
+        title: 'Fehler beim Speichern',
+        description: error.message || 'Das Mahlzeitsjournal konnte nicht gespeichert werden',
+        variant: 'destructive'
+      });
       return null;
     }
   };
@@ -175,9 +185,13 @@ export const useFoodEntries = () => {
       // Reload entries to get updated totals
       await loadEntries();
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating food entry:', error);
-      toast({ title: 'Fehler beim Aktualisieren', variant: 'destructive' });
+      toast({
+        title: 'Fehler beim Aktualisieren',
+        description: error.message || 'Das Mahlzeitsjournal konnte nicht aktualisiert werden',
+        variant: 'destructive'
+      });
       return false;
     }
   };
@@ -214,9 +228,13 @@ export const useFoodEntries = () => {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting food entry:', error);
-      toast({ title: 'Fehler beim Löschen', variant: 'destructive' });
+      toast({
+        title: 'Fehler beim Löschen',
+        description: error.message || 'Das Mahlzeitsjournal konnte nicht gelöscht werden',
+        variant: 'destructive'
+      });
       return false;
     }
   };
@@ -240,8 +258,13 @@ export const useFoodEntries = () => {
       await updateDailyMacros(emptyTotals);
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error clearing food entries:', error);
+      toast({
+        title: 'Fehler beim Löschen',
+        description: error.message || 'Die Mahlzeitseinträge konnten nicht gelöscht werden',
+        variant: 'destructive'
+      });
       return false;
     }
   };
