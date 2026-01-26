@@ -77,13 +77,18 @@ const ProfilePage = () => {
         supabase.from('user_streaks').delete().eq('user_id', user.id),
         supabase.from('water_intake').delete().eq('user_id', user.id),
         supabase.from('onboarding_data').delete().eq('user_id', user.id),
+        supabase.from('subscription_cache').delete().eq('user_id', user.id),
       ]);
 
-      // Delete auth user
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+      // Delete auth user via server function
+      const { error: functionError } = await supabase.functions.invoke('delete-user', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      if (deleteError) {
-        throw deleteError;
+      if (functionError) {
+        throw functionError;
       }
 
       toast({
