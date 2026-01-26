@@ -58,12 +58,57 @@ const ProfilePage = () => {
   };
 
   const handleDeleteAccount = async () => {
-    // TODO: Implement account deletion with confirmation
-    toast({ 
-      title: t.deleteAccount, 
-      description: t.deleteAccountSoon,
-      variant: "destructive"
-    });
+    if (!user || !session) {
+      toast({
+        title: t.error,
+        description: "Benutzer nicht authentifiziert",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      // Delete user data from database
+      await Promise.all([
+        supabase.from('user_tracker_settings').delete().eq('user_id', user.id),
+        supabase.from('food_entries').delete().eq('user_id', user.id),
+        supabase.from('daily_macros').delete().eq('user_id', user.id),
+        supabase.from('user_streaks').delete().eq('user_id', user.id),
+        supabase.from('water_intake').delete().eq('user_id', user.id),
+        supabase.from('onboarding_data').delete().eq('user_id', user.id),
+      ]);
+
+      // Delete auth user
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      toast({
+        title: "Konto gelöscht",
+        description: "Dein Konto wurde erfolgreich gelöscht",
+        variant: "default"
+      });
+
+      // Clear local storage and logout
+      localStorage.clear();
+      await signOut();
+
+      // Redirect to auth page
+      navigate('/auth');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: t.error,
+        description: error.message || "Fehler beim Löschen des Kontos",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialogOpen(false);
+    }
   };
 
   const handleResetOnboarding = () => {
