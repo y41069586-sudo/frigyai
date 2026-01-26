@@ -149,55 +149,27 @@ const Index = () => {
     
     fetchDailyMacros();
     
-    // Subscribe to realtime updates
+    // Periodic refresh instead of real-time subscription (more stable)
     if (user) {
-      try {
+      const intervalId = setInterval(async () => {
+        console.log('[DASHBOARD] Refreshing macro data...');
         const today = new Date().toISOString().split('T')[0];
-        const channel = supabase
-          .channel(`dashboard-macros-${user.id}`, {
-            config: { broadcast: { self: false } }
-          })
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'daily_macros',
-            },
-            (payload: any) => {
-              try {
-                // Filter client-side for current user
-                const payloadUserId = payload.new?.user_id || payload.old?.user_id;
-                if (payloadUserId !== user.id) {
-                  return;
-                }
+        const { data } = await supabase
+          .from('daily_macros')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle();
 
-                console.log('[DASHBOARD] Macro update received:', payload);
-                if (payload.new && (payload.new as any).date === today) {
-                  const newData = payload.new as any;
-                  setCaloriesEaten(newData.calories || 0);
-                  setProteinEaten(newData.protein || 0);
-                  setCarbsEaten(newData.carbs || 0);
-                  setFatEaten(newData.fat || 0);
-                }
-              } catch (error) {
-                console.error('[DASHBOARD] Error processing payload:', error);
-              }
-            }
-          )
-          .subscribe((status, err) => {
-            if (err) {
-              console.error('[DASHBOARD] Subscription error:', err);
-            }
-          });
+        if (data) {
+          setCaloriesEaten(data.calories || 0);
+          setProteinEaten(data.protein || 0);
+          setCarbsEaten(data.carbs || 0);
+          setFatEaten(data.fat || 0);
+        }
+      }, 30000);
 
-        return () => {
-          supabase.removeChannel(channel);
-        };
-      } catch (error) {
-        console.error('[DASHBOARD] Error setting up subscription:', error);
-        return () => {};
-      }
+      return () => clearInterval(intervalId);
     }
   }, [user]);
   
