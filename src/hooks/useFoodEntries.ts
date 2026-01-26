@@ -255,26 +255,40 @@ export const useFoodEntries = () => {
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
-      .channel('food-entries-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'food_entries',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          // Reload entries on any change
-          loadEntries();
-        }
-      )
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel(`food-entries-${user.id}`, {
+          config: { broadcast: { self: false } }
+        })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'food_entries',
+          },
+          (payload: any) => {
+            // Filter client-side for current user
+            const payloadUserId = payload.new?.user_id || payload.old?.user_id;
+            if (payloadUserId === user.id) {
+              // Reload entries on any change
+              loadEntries();
+            }
+          }
+        )
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('[FOOD-SYNC] Subscription error:', err);
+          }
+        });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (error) {
+      console.error('[FOOD-SYNC] Error setting up subscription:', error);
+      return () => {};
+    }
   }, [user, loadEntries]);
 
   return {
