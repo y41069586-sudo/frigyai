@@ -251,44 +251,16 @@ export const useFoodEntries = () => {
     loadEntries();
   }, [loadEntries]);
 
-  // Realtime subscription
+  // Periodic refresh instead of real-time subscription (more stable)
   useEffect(() => {
     if (!user) return;
 
-    try {
-      const channel = supabase
-        .channel(`food-entries-${user.id}`, {
-          config: { broadcast: { self: false } }
-        })
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'food_entries',
-          },
-          (payload: any) => {
-            // Filter client-side for current user
-            const payloadUserId = payload.new?.user_id || payload.old?.user_id;
-            if (payloadUserId === user.id) {
-              // Reload entries on any change
-              loadEntries();
-            }
-          }
-        )
-        .subscribe((status, err) => {
-          if (err) {
-            console.error('[FOOD-SYNC] Subscription error:', err);
-          }
-        });
+    // Refresh every 30 seconds to catch updates from other devices
+    const intervalId = setInterval(() => {
+      loadEntries();
+    }, 30000);
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    } catch (error) {
-      console.error('[FOOD-SYNC] Error setting up subscription:', error);
-      return () => {};
-    }
+    return () => clearInterval(intervalId);
   }, [user, loadEntries]);
 
   return {
