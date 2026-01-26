@@ -111,12 +111,20 @@ export const useOfflineMode = () => {
     }
   }, [getCachedData]);
 
-  const addPendingAction = useCallback((action: any) => {
-    const pending = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
-    const newAction = { ...action, timestamp: new Date().toISOString(), id: Date.now() };
-    pending.push(newAction);
-    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending));
-    setPendingSync(pending);
+  const addPendingAction = useCallback((action: Omit<PendingAction, 'id' | 'timestamp'>) => {
+    try {
+      const pending: PendingAction[] = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      const newAction: PendingAction = {
+        ...action,
+        timestamp: new Date().toISOString(),
+        id: Date.now()
+      };
+      pending.push(newAction);
+      localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending));
+      setPendingSync(pending);
+    } catch (e) {
+      console.error("Failed to add pending action:", e);
+    }
   }, []);
 
   const syncPendingData = useCallback(async () => {
