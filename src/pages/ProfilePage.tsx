@@ -320,14 +320,50 @@ const ProfilePage = () => {
             {t.logout}
           </Button>
 
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleDeleteAccount}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t.deleteAccount}
-          </Button>
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t.deleteAccount}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten werden permanent gelöscht:
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+                  <li>Deine Mahlzeitseinträge</li>
+                  <li>Deine Makro-Ziele</li>
+                  <li>Dein Profil</li>
+                  <li>Alle Einstellungen</li>
+                </ul>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={deleteLoading}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                  className="flex-1"
+                >
+                  {deleteLoading ? "Wird gelöscht..." : "Konto löschen"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Dev/Test: Reset Onboarding */}
           <Button
