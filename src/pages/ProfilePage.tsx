@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3, FileText, Shield, Scale, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ const ProfilePage = () => {
   const { t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleRefreshSubscription = async () => {
     setRefreshing(true);
