@@ -45,7 +45,9 @@ const getCachedSubscription = (): SubscriptionStatus | null => {
         return parsed.data;
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Auth] Failed to load cached subscription:', e);
+  }
   return null;
 };
 
@@ -56,7 +58,9 @@ const setCachedSubscription = (data: SubscriptionStatus | null) => {
     } else {
       localStorage.removeItem(SUBSCRIPTION_CACHE_KEY);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Auth] Failed to cache subscription:', e);
+  }
 };
 
 // Fast DB cache load (much faster than Stripe API)
@@ -67,7 +71,7 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
       .select('subscribed, product_id, subscription_end, is_trial')
       .eq('user_id', userId)
       .single();
-    
+
     if (data) {
       return {
         subscribed: data.subscribed,
@@ -76,7 +80,9 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
         is_trial: data.is_trial || false
       };
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[Auth] Failed to load subscription from DB cache:', e);
+  }
   return null;
 };
 
@@ -108,6 +114,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!error && data) {
         updateSubscriptionStatus(data);
       }
+    }).catch((err) => {
+      console.warn('[Auth] Background subscription refresh failed:', err);
     });
   };
 
@@ -175,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Initial session check
     supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
       if (!mounted) return;
-      
+
       // If there's a session error or invalid session, clear everything
       if (error) {
         console.log('[Auth] Session error:', error.message);
@@ -187,15 +195,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
         return;
       }
-      
+
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       setLoading(false);
-      
+
       // Load subscription fast: DB cache first, then Stripe in background
       if (initialSession?.user) {
         loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
       }
+    }).catch((err) => {
+      if (!mounted) return;
+      console.error('[Auth] Failed to check initial session:', err);
+      setLoading(false);
     });
 
     // Re-check subscription when window regains focus (e.g., returning from Stripe)
@@ -208,7 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log('[Auth] Session refresh failed on visibility change');
             return;
           }
-          
+
           supabase.functions.invoke('check-subscription', {
             headers: {
               Authorization: `Bearer ${refreshedSession.access_token}`,
@@ -217,7 +229,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (!error && mounted) {
               updateSubscriptionStatus(data);
             }
+          }).catch((err) => {
+            console.warn('[Auth] Subscription check on visibility change failed:', err);
           });
+        }).catch((err) => {
+          console.warn('[Auth] Session refresh on visibility change failed:', err);
         });
       }
     };

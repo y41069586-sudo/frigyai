@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3, FileText, Shield, Scale, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ const ProfilePage = () => {
   const { t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleRefreshSubscription = async () => {
     setRefreshing(true);
@@ -55,12 +58,62 @@ const ProfilePage = () => {
   };
 
   const handleDeleteAccount = async () => {
-    // TODO: Implement account deletion with confirmation
-    toast({ 
-      title: t.deleteAccount, 
-      description: t.deleteAccountSoon,
-      variant: "destructive"
-    });
+    if (!user || !session) {
+      toast({
+        title: t.error,
+        description: "Benutzer nicht authentifiziert",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      // Delete user data from database
+      await Promise.all([
+        supabase.from('user_tracker_settings').delete().eq('user_id', user.id),
+        supabase.from('food_entries').delete().eq('user_id', user.id),
+        supabase.from('daily_macros').delete().eq('user_id', user.id),
+        supabase.from('user_streaks').delete().eq('user_id', user.id),
+        supabase.from('water_intake').delete().eq('user_id', user.id),
+        supabase.from('onboarding_data').delete().eq('user_id', user.id),
+        supabase.from('subscription_cache').delete().eq('user_id', user.id),
+      ]);
+
+      // Delete auth user via server function
+      const { error: functionError } = await supabase.functions.invoke('delete-user', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (functionError) {
+        throw functionError;
+      }
+
+      toast({
+        title: "Konto gelöscht",
+        description: "Dein Konto wurde erfolgreich gelöscht",
+        variant: "default"
+      });
+
+      // Clear local storage and logout
+      localStorage.clear();
+      await signOut();
+
+      // Redirect to auth page
+      navigate('/auth');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: t.error,
+        description: error.message || "Fehler beim Löschen des Kontos",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialogOpen(false);
+    }
   };
 
   const handleResetOnboarding = () => {
@@ -272,14 +325,50 @@ const ProfilePage = () => {
             {t.logout}
           </Button>
 
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleDeleteAccount}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t.deleteAccount}
-          </Button>
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t.deleteAccount}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten werden permanent gelöscht:
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+                  <li>Deine Mahlzeitseinträge</li>
+                  <li>Deine Makro-Ziele</li>
+                  <li>Dein Profil</li>
+                  <li>Alle Einstellungen</li>
+                </ul>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={deleteLoading}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                  className="flex-1"
+                >
+                  {deleteLoading ? "Wird gelöscht..." : "Konto löschen"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Dev/Test: Reset Onboarding */}
           <Button

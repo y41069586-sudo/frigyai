@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface TrackerSettings {
   age: number;
@@ -22,7 +21,6 @@ export const useTrackerSettings = () => {
   const [settings, setSettings] = useState<TrackerSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Parse database row to settings
   const parseDbSettings = (data: any): TrackerSettings => ({
@@ -162,74 +160,17 @@ export const useTrackerSettings = () => {
     loadSettings();
   }, [loadSettings]);
 
-  // Real-time subscription for cross-device sync
+  // Periodic refresh instead of real-time subscription (more stable)
   useEffect(() => {
-    if (!user) {
-      // Clean up channel if user logs out
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      return;
-    }
+    if (!user) return;
 
-    // Small delay to ensure auth is fully established
-    const setupChannel = () => {
-      // Subscribe to real-time changes without filter to avoid bindings mismatch
-      const channel = supabase
-        .channel(`tracker-settings-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_tracker_settings',
-          },
-          (payload) => {
-            // Filter client-side for the current user
-            const payloadUserId = (payload.new as any)?.user_id || (payload.old as any)?.user_id;
-            if (payloadUserId !== user.id) return;
-            
-            console.log('[TRACKER-SYNC] Real-time update received:', payload.eventType);
-            
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const newSettings = parseDbSettings(payload.new);
-              setSettings(newSettings);
-              setIsConfigured(newSettings.dailyCalories > 0);
-              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newSettings));
-            } else if (payload.eventType === 'DELETE') {
-              setSettings(null);
-              setIsConfigured(false);
-              localStorage.removeItem(LOCAL_STORAGE_KEY);
-            }
-          }
-        )
-        .subscribe((status, err) => {
-          console.log('[TRACKER-SYNC] Subscription status:', status);
-          if (err) {
-            console.error('[TRACKER-SYNC] Subscription error:', err);
-          }
-          
-          // If subscription fails, still load from DB
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.log('[TRACKER-SYNC] Falling back to manual refresh');
-          }
-        });
+    // Refresh every 30 seconds to catch updates from other devices
+    const intervalId = setInterval(() => {
+      loadSettings();
+    }, 30000);
 
-      channelRef.current = channel;
-    };
-
-    // Delay subscription setup slightly to ensure auth is ready
-    const timeoutId = setTimeout(setupChannel, 500);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [user]);
+    return () => clearInterval(intervalId);
+  }, [user, loadSettings]);
 
   return {
     settings,

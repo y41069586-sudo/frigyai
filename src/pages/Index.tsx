@@ -149,35 +149,27 @@ const Index = () => {
     
     fetchDailyMacros();
     
-    // Subscribe to realtime updates
+    // Periodic refresh instead of real-time subscription (more stable)
     if (user) {
-      const today = new Date().toISOString().split('T')[0];
-      const channel = supabase
-        .channel('dashboard-macros')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'daily_macros',
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log('[DASHBOARD] Macro update received:', payload);
-            if (payload.new && (payload.new as any).date === today) {
-              const newData = payload.new as any;
-              setCaloriesEaten(newData.calories || 0);
-              setProteinEaten(newData.protein || 0);
-              setCarbsEaten(newData.carbs || 0);
-              setFatEaten(newData.fat || 0);
-            }
-          }
-        )
-        .subscribe();
-      
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      const intervalId = setInterval(async () => {
+        console.log('[DASHBOARD] Refreshing macro data...');
+        const today = new Date().toISOString().split('T')[0];
+        const { data } = await supabase
+          .from('daily_macros')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle();
+
+        if (data) {
+          setCaloriesEaten(data.calories || 0);
+          setProteinEaten(data.protein || 0);
+          setCarbsEaten(data.carbs || 0);
+          setFatEaten(data.fat || 0);
+        }
+      }, 30000);
+
+      return () => clearInterval(intervalId);
     }
   }, [user]);
   
@@ -195,7 +187,7 @@ const Index = () => {
   
   // Initialize states - check if user already completed onboarding
   // TESTMODUS: Onboarding wird bei jeder Session angezeigt (Login bleibt möglich)
-  const ONBOARDING_TEST_MODE = true; // Testmodus aktiviert für Onboarding-Test
+  const ONBOARDING_TEST_MODE = false; // Testmodus deaktiviert - Onboarding geht zum Dashboard
   
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
