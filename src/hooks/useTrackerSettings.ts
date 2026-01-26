@@ -176,7 +176,7 @@ export const useTrackerSettings = () => {
     // Small delay to ensure auth is fully established
     const setupChannel = () => {
       try {
-        // Subscribe to real-time changes with user filter
+        // Subscribe to real-time changes without server filter to avoid binding mismatches
         const channel = supabase
           .channel(`tracker-settings-${user.id}`)
           .on(
@@ -185,9 +185,12 @@ export const useTrackerSettings = () => {
               event: '*',
               schema: 'public',
               table: 'user_tracker_settings',
-              filter: `user_id=eq.${user.id}`,
             },
             (payload) => {
+              // Filter client-side for the current user
+              const payloadUserId = (payload.new as any)?.user_id || (payload.old as any)?.user_id;
+              if (payloadUserId !== user.id) return;
+
               console.log('[TRACKER-SYNC] Real-time update received:', payload.eventType);
 
               if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
