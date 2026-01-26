@@ -21,7 +21,6 @@ export const useTrackerSettings = () => {
   const [settings, setSettings] = useState<TrackerSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Parse database row to settings
   const parseDbSettings = (data: any): TrackerSettings => ({
