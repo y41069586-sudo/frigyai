@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Sparkles, ArrowRight, Utensils, Clock } from 'lucide-react';
+import { Calendar, ChefHat, Clock, ArrowRight, Sparkles, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Meal {
@@ -15,13 +15,23 @@ interface DayPlan {
 }
 
 const DAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const MEAL_EMOJIS: Record<string, string> = {
+
+const MEAL_ICONS: Record<string, any> = {
   'Frühstück': '🍳',
   'Mittagessen': '🍝',
   'Abendessen': '🍽️',
   'Snack': '🥗',
   'Vormittagssnack': '🍎',
   'Nachmittagssnack': '🍪',
+};
+
+const MEAL_COLORS: Record<string, string> = {
+  'Frühstück': 'from-orange-500/20 to-amber-500/10',
+  'Mittagessen': 'from-red-500/20 to-orange-500/10',
+  'Abendessen': 'from-purple-500/20 to-pink-500/10',
+  'Snack': 'from-green-500/20 to-emerald-500/10',
+  'Vormittagssnack': 'from-yellow-500/20 to-orange-500/10',
+  'Nachmittagssnack': 'from-blue-500/20 to-cyan-500/10',
 };
 
 const getCurrentDayIndex = () => {
@@ -67,135 +77,160 @@ export const DashboardMealPlanCard = () => {
   const totalCalories = todayPlan?.meals.reduce((sum, m) => sum + m.calories, 0) || 0;
   const hasMealPlan = mealPlan.length > 0;
   const nextMeal = todayPlan?.meals ? getNextMeal(todayPlan.meals) : null;
-  const mealEmoji = nextMeal ? (MEAL_EMOJIS[nextMeal.type] || '🍽️') : '🍽️';
+  const mealEmoji = nextMeal ? (MEAL_ICONS[nextMeal.type] || '🍽️') : '🍽️';
+  const gradientColor = nextMeal ? (MEAL_COLORS[nextMeal.type] || 'from-emerald-500/20 to-emerald-500/10') : 'from-emerald-500/20 to-emerald-500/10';
 
   return (
-    <motion.div
+    <motion.button
       onClick={handleClick}
-      className="relative overflow-hidden p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent rounded-2xl border border-emerald-500/20 cursor-pointer group min-h-[140px]"
-      whileHover={{ scale: 1.02, y: -2 }}
+      className="w-full relative overflow-hidden rounded-3xl cursor-pointer group text-left transition-all active:scale-95"
+      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
     >
-      {/* Animated gradient blob */}
+      {/* Background gradient based on meal */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradientColor} border border-foreground/5`} />
+      
+      {/* Animated decorative element */}
       <motion.div 
-        className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl"
+        className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl"
         animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0.3, 0.2]
+          scale: [1, 1.15, 1],
+          opacity: [0.15, 0.25, 0.15]
         }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ background: 'currentColor' }}
       />
       
-      <div className="relative">
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+      <div className="relative p-5 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/30 dark:bg-white/5 rounded-xl backdrop-blur-sm">
+              <ChefHat className="w-5 h-5 text-foreground/80" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-foreground">Mahlplan</p>
+              <p className="text-xs text-foreground/60">Heute</p>
+            </div>
           </div>
-          <ArrowRight className="w-4 h-4 text-emerald-500/50 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+          <motion.div
+            className="p-1.5 rounded-lg bg-white/20 dark:bg-white/5 backdrop-blur-sm"
+            whileHover={{ x: 2 }}
+          >
+            <ArrowRight className="w-4 h-4 text-foreground/60" />
+          </motion.div>
         </div>
-        
-        <p className="text-sm font-semibold text-foreground mb-1">Wochenplan</p>
-        
+
         <AnimatePresence mode="wait">
           {hasMealPlan && nextMeal ? (
             <motion.div
               key="has-plan"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 5 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 10 }}
               exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-2"
+              className="space-y-3"
             >
-              {/* Next meal highlight */}
+              {/* Next meal feature */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center gap-2 p-2 -mx-1 bg-emerald-500/10 rounded-xl"
+                className="flex items-center gap-3 p-3 bg-white/40 dark:bg-white/5 rounded-2xl backdrop-blur-sm border border-white/20 dark:border-white/10"
+                whileHover={{ scale: 1.05 }}
               >
                 <motion.span 
-                  className="text-xl"
-                  animate={{ rotate: [0, -5, 5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                  className="text-2xl flex-shrink-0"
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
                 >
                   {mealEmoji}
                 </motion.span>
+                
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
                     {nextMeal.type}
                   </p>
-                  <p className="text-xs font-medium text-foreground truncate">
+                  <p className="text-sm font-bold text-foreground truncate leading-tight mt-0.5">
                     {nextMeal.name}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                  {nextMeal.calories}
-                </span>
+                
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/50 dark:bg-white/10 rounded-lg flex-shrink-0">
+                  <Flame className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-xs font-bold text-foreground">
+                    {nextMeal.calories}
+                  </span>
+                </div>
               </motion.div>
               
-              {/* Week indicator dots */}
-              <div className="flex gap-1 pt-1">
-                {DAYS_SHORT.map((day, index) => {
-                  const isToday = index === getCurrentDayIndex();
-                  const hasMeals = mealPlan[index]?.meals?.length > 0;
-                  const isPast = index < getCurrentDayIndex();
-                  
-                  return (
-                    <motion.div
-                      key={day}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: index * 0.04 + 0.3 }}
-                      className="flex flex-col items-center gap-0.5"
-                    >
-                      <div
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          isToday 
-                            ? 'bg-emerald-500 ring-2 ring-emerald-500/30 ring-offset-1 ring-offset-background' 
-                            : isPast && hasMeals
-                              ? 'bg-emerald-500/60'
+              {/* Week overview dots */}
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide">Woche</p>
+                <div className="flex items-center justify-between gap-1">
+                  {DAYS_SHORT.map((day, index) => {
+                    const isToday = index === getCurrentDayIndex();
+                    const hasMeals = mealPlan[index]?.meals?.length > 0;
+                    const isPast = index < getCurrentDayIndex();
+                    
+                    return (
+                      <motion.button
+                        key={day}
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: index * 0.05 + 0.2 }}
+                        className="flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-lg transition-all"
+                        style={{
+                          background: isToday 
+                            ? 'rgba(255,255,255,0.3)' 
+                            : hasMeals 
+                              ? 'rgba(255,255,255,0.1)' 
+                              : 'transparent'
+                        }}
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full transition-all ${
+                            isToday 
+                              ? 'bg-foreground ring-2 ring-foreground/30' 
                               : hasMeals 
-                                ? 'bg-emerald-500/30' 
-                                : 'bg-muted/20'
-                        }`}
-                      />
-                      <span className={`text-[8px] ${isToday ? 'text-emerald-500 font-bold' : 'text-muted-foreground/50'}`}>
-                        {day}
-                      </span>
-                    </motion.div>
-                  );
-                })}
+                                ? 'bg-foreground/50' 
+                                : 'bg-foreground/20'
+                          }`}
+                        />
+                        <span className={`text-[10px] font-semibold ${isToday ? 'text-foreground' : 'text-foreground/60'}`}>
+                          {day}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
           ) : hasMealPlan ? (
             <motion.div
-              key="plan-no-meals"
+              key="plan-empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-xs text-muted-foreground"
+              className="text-center py-2"
             >
-              {totalCalories > 0 ? `${totalCalories} kcal heute` : 'Plan erstellt'}
+              <p className="text-sm font-semibold text-foreground/80">
+                {totalCalories > 0 ? `${totalCalories} kcal heute` : 'Plan bereit'}
+              </p>
             </motion.div>
           ) : (
             <motion.div
               key="no-plan"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2 mt-2"
+              className="flex items-center justify-center gap-2 py-2"
             >
               <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                animate={{ rotate: [0, 15, -15, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
               >
-                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <Sparkles className="w-4 h-4 text-foreground/60" />
               </motion.div>
-              <p className="text-xs text-muted-foreground">Jetzt erstellen</p>
+              <p className="text-sm font-semibold text-foreground/70">Jetzt erstellen</p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </motion.button>
   );
 };
