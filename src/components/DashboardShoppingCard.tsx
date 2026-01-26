@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight, Check } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Check, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ShoppingItem {
@@ -81,49 +81,84 @@ export const DashboardShoppingCard = () => {
   const hasItems = totalItems > 0;
 
   return (
-    <motion.div
+    <motion.button
       onClick={handleClick}
-      className="relative overflow-hidden p-4 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent rounded-2xl border border-violet-500/20 cursor-pointer group"
-      whileHover={{ scale: 1.02, y: -2 }}
+      className="w-full relative overflow-hidden rounded-3xl cursor-pointer group text-left transition-all active:scale-95"
+      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
     >
-      {/* Decorative gradient blob */}
-      <div className="absolute -top-6 -right-6 w-20 h-20 bg-violet-500/20 rounded-full blur-2xl group-hover:bg-violet-500/30 transition-colors" />
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/15 via-violet-500/5 to-transparent border border-foreground/5" />
       
-      <div className="relative">
-        <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+      {/* Animated decorative element */}
+      <motion.div 
+        className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl"
+        animate={{ 
+          scale: [1, 1.15, 1],
+          opacity: [0.15, 0.25, 0.15]
+        }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ background: 'currentColor' }}
+      />
+      
+      <div className="relative p-5 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/30 dark:bg-white/5 rounded-xl backdrop-blur-sm">
+              <ShoppingBag className="w-5 h-5 text-foreground/80" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-foreground">Einkaufen</p>
+              <p className="text-xs text-foreground/60">Für die Woche</p>
+            </div>
           </div>
-          <ArrowRight className="w-4 h-4 text-violet-500/50 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
+          <motion.div
+            className="p-1.5 rounded-lg bg-white/20 dark:bg-white/5 backdrop-blur-sm"
+            whileHover={{ x: 2 }}
+          >
+            <ArrowRight className="w-4 h-4 text-foreground/60" />
+          </motion.div>
         </div>
-        
-        <p className="text-sm font-semibold text-foreground mb-0.5">Einkaufsliste</p>
-        
+
         {hasItems ? (
           <>
-            <p className="text-xs text-muted-foreground mb-3">
-              {purchasedItems}/{totalItems} erledigt
-            </p>
+            {/* Stats */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs text-foreground/60 font-medium uppercase tracking-wide">Fortschritt</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-foreground">{purchasedItems}</span>
+                  <span className="text-xs text-foreground/60">/ {totalItems}</span>
+                </div>
+              </div>
+              <div className="text-right space-y-1">
+                <p className="text-xs text-foreground/60 font-medium uppercase tracking-wide">Fertig</p>
+                <p className="text-lg font-bold text-violet-600 dark:text-violet-400">
+                  {Math.round(progressPercent)}%
+                </p>
+              </div>
+            </div>
             
             {/* Progress bar */}
-            <div className="h-1.5 bg-violet-500/15 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-violet-200/30 dark:bg-violet-800/30 rounded-full overflow-hidden">
               <motion.div 
-                className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full"
+                className="h-full bg-gradient-to-r from-violet-500 via-violet-400 to-purple-500 rounded-full shadow-lg shadow-violet-500/20"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                transition={{ type: "spring", stiffness: 120, damping: 20 }}
               />
             </div>
           </>
         ) : (
-          <div className="flex items-center gap-1.5 mt-1">
-            <Check className="w-3.5 h-3.5 text-violet-400" />
-            <p className="text-xs text-muted-foreground">Aus Wochenplan</p>
+          <div className="flex items-center justify-center py-3 space-x-2">
+            <div className="p-2 bg-white/20 dark:bg-white/10 rounded-lg">
+              <Package className="w-4 h-4 text-foreground/60" />
+            </div>
+            <p className="text-sm font-semibold text-foreground/70">Bereit zum Einkaufen</p>
           </div>
         )}
       </div>
-    </motion.div>
+    </motion.button>
   );
 };
