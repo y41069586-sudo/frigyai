@@ -262,6 +262,7 @@ const Index = () => {
     }
 
     // After onboarding slides, mark complete and go to paywall (if logged in) or auth
+    localStorage.setItem('onboardingComplete', 'true');
     setShowOnboarding(false);
     setOnboardingComplete(true);
 
