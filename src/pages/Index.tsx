@@ -195,7 +195,7 @@ const Index = () => {
   
   // Initialize states - check if user already completed onboarding
   // TESTMODUS: Onboarding wird bei jeder Session angezeigt (Login bleibt möglich)
-  const ONBOARDING_TEST_MODE = true; // Testmodus aktiviert für Onboarding-Test
+  const ONBOARDING_TEST_MODE = false; // Testmodus deaktiviert - Onboarding geht zum Dashboard
   
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
