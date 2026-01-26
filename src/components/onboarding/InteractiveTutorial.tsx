@@ -38,8 +38,7 @@ export const InteractiveTutorial = ({ onComplete, onSkip }: InteractiveTutorialP
     if (nextIndex < slideOrder.length) {
       setCurrentSlide(slideOrder[nextIndex]);
     } else {
-      // Loop back to intro
-      setCurrentSlide("intro");
+      onComplete();
     }
   };
 
@@ -633,7 +632,7 @@ const FinishSlide = ({ onComplete }: { onComplete: () => void }) => (
     </div>
 
     <Button onClick={onComplete} size="lg" className="w-full">
-      Tutorial neustarten
+      Los geht's
     </Button>
   </SlideWrapper>
 );
