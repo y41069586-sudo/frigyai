@@ -51,9 +51,10 @@ const PENDING_SYNC_KEY = "frigai_pending_sync";
 
 export const useOfflineMode = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingSync, setPendingSync] = useState<any[]>(() => {
+  const [pendingSync, setPendingSync] = useState<PendingAction[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      const data = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
