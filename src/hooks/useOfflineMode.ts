@@ -91,16 +91,31 @@ export const useOfflineMode = () => {
   const getCachedData = useCallback((): CachedData | null => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch {
+      if (!cached) return null;
+
+      const parsed = JSON.parse(cached);
+      // Validate structure
+      if (parsed && typeof parsed === 'object') {
+        return parsed as CachedData;
+      }
+      return null;
+    } catch (e) {
+      console.error("Failed to parse cached data:", e);
       return null;
     }
   }, []);
 
   const cacheData = useCallback((data: Partial<CachedData>) => {
     try {
-      const existing = getCachedData() || {};
-      const updated = {
+      const existing: CachedData = getCachedData() || {
+        userProfile: null,
+        mealPlan: null,
+        foodLog: [],
+        waterIntake: null,
+        trackerSettings: null,
+        lastSync: new Date().toISOString(),
+      };
+      const updated: CachedData = {
         ...existing,
         ...data,
         lastSync: new Date().toISOString(),
