@@ -151,33 +151,53 @@ const Index = () => {
     
     // Subscribe to realtime updates
     if (user) {
-      const today = new Date().toISOString().split('T')[0];
-      const channel = supabase
-        .channel('dashboard-macros')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'daily_macros',
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log('[DASHBOARD] Macro update received:', payload);
-            if (payload.new && (payload.new as any).date === today) {
-              const newData = payload.new as any;
-              setCaloriesEaten(newData.calories || 0);
-              setProteinEaten(newData.protein || 0);
-              setCarbsEaten(newData.carbs || 0);
-              setFatEaten(newData.fat || 0);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const channel = supabase
+          .channel(`dashboard-macros-${user.id}`, {
+            config: { broadcast: { self: false } }
+          })
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'daily_macros',
+            },
+            (payload: any) => {
+              try {
+                // Filter client-side for current user
+                const payloadUserId = payload.new?.user_id || payload.old?.user_id;
+                if (payloadUserId !== user.id) {
+                  return;
+                }
+
+                console.log('[DASHBOARD] Macro update received:', payload);
+                if (payload.new && (payload.new as any).date === today) {
+                  const newData = payload.new as any;
+                  setCaloriesEaten(newData.calories || 0);
+                  setProteinEaten(newData.protein || 0);
+                  setCarbsEaten(newData.carbs || 0);
+                  setFatEaten(newData.fat || 0);
+                }
+              } catch (error) {
+                console.error('[DASHBOARD] Error processing payload:', error);
+              }
             }
-          }
-        )
-        .subscribe();
-      
-      return () => {
-        supabase.removeChannel(channel);
-      };
+          )
+          .subscribe((status, err) => {
+            if (err) {
+              console.error('[DASHBOARD] Subscription error:', err);
+            }
+          });
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      } catch (error) {
+        console.error('[DASHBOARD] Error setting up subscription:', error);
+        return () => {};
+      }
     }
   }, [user]);
   
