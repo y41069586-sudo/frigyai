@@ -176,19 +176,26 @@ export const useTrackerSettings = () => {
     // Small delay to ensure auth is fully established
     const setupChannel = () => {
       try {
-        // Subscribe to real-time changes for the current user
+        // Subscribe to real-time changes without problematic filters
         const channel = supabase
-          .channel(`tracker-settings-${user.id}`)
+          .channel(`tracker-settings-${user.id}`, {
+            config: { broadcast: { self: false } }
+          })
           .on(
             'postgres_changes',
             {
               event: '*',
               schema: 'public',
               table: 'user_tracker_settings',
-              filter: `user_id=eq.${user.id}`,
             },
-            (payload) => {
+            (payload: any) => {
               try {
+                // Filter client-side for the current user to avoid processing irrelevant updates
+                const payloadUserId = payload.new?.user_id || payload.old?.user_id;
+                if (payloadUserId !== user.id) {
+                  return;
+                }
+
                 console.log('[TRACKER-SYNC] Real-time update received:', payload.eventType);
 
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -212,7 +219,7 @@ export const useTrackerSettings = () => {
               console.error('[TRACKER-SYNC] Subscription error:', err);
             }
 
-            // If subscription fails, still load from DB
+            // If subscription fails, continue without real-time sync
             if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
               console.log('[TRACKER-SYNC] Falling back to manual refresh');
             }
