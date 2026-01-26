@@ -122,26 +122,40 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
 
     // Subscribe to realtime updates for daily_macros
     if (user) {
-      const channel = supabase
-        .channel('week-progress-macros')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'daily_macros',
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            console.log('[WEEK-PROGRESS] Macro update received, refreshing...');
-            fetchWeekData();
-          }
-        )
-        .subscribe();
+      try {
+        const channel = supabase
+          .channel(`week-progress-${user.id}`, {
+            config: { broadcast: { self: false } }
+          })
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'daily_macros',
+            },
+            (payload: any) => {
+              // Filter client-side for current user
+              const payloadUserId = payload.new?.user_id || payload.old?.user_id;
+              if (payloadUserId === user.id) {
+                console.log('[WEEK-PROGRESS] Macro update received, refreshing...');
+                fetchWeekData();
+              }
+            }
+          )
+          .subscribe((status, err) => {
+            if (err) {
+              console.error('[WEEK-PROGRESS] Subscription error:', err);
+            }
+          });
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      } catch (error) {
+        console.error('[WEEK-PROGRESS] Error setting up subscription:', error);
+        return () => {};
+      }
     }
   }, [user, targetCalories]);
 
