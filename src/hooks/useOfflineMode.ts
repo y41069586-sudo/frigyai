@@ -128,41 +128,45 @@ export const useOfflineMode = () => {
   }, []);
 
   const syncPendingData = useCallback(async () => {
-    const pending = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
-    if (pending.length === 0) return;
+    try {
+      const pending: PendingAction[] = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      if (pending.length === 0) return;
 
-    let syncedCount = 0;
-    const failedActions: any[] = [];
+      let syncedCount = 0;
+      const failedActions: PendingAction[] = [];
 
-    // Process pending actions
-    for (const action of pending) {
-      try {
-        // Here you would sync each action to the server
-        console.log("Syncing action:", action);
-        syncedCount++;
-      } catch (e) {
-        console.error("Failed to sync action:", e);
-        failedActions.push(action);
+      // Process pending actions
+      for (const action of pending) {
+        try {
+          // Here you would sync each action to the server
+          console.log("Syncing action:", action);
+          syncedCount++;
+        } catch (e) {
+          console.error("Failed to sync action:", e);
+          failedActions.push(action);
+        }
       }
-    }
 
-    // Keep only failed actions for retry
-    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(failedActions));
-    setPendingSync(failedActions);
+      // Keep only failed actions for retry
+      localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(failedActions));
+      setPendingSync(failedActions);
 
-    if (syncedCount > 0) {
-      toast({
-        title: "✅ Synchronisiert!",
-        description: `${syncedCount} Änderungen wurden gespeichert.`,
-      });
-    }
+      if (syncedCount > 0) {
+        toast({
+          title: "✅ Synchronisiert!",
+          description: `${syncedCount} Änderungen wurden gespeichert.`,
+        });
+      }
 
-    if (failedActions.length > 0) {
-      toast({
-        title: "⚠️ Einige Änderungen konnten nicht synchronisiert werden",
-        description: `${failedActions.length} Änderungen werden beim nächsten Versuch erneut synchronisiert.`,
-        variant: "destructive",
-      });
+      if (failedActions.length > 0) {
+        toast({
+          title: "⚠️ Einige Änderungen konnten nicht synchronisiert werden",
+          description: `${failedActions.length} Änderungen werden beim nächsten Versuch erneut synchronisiert.`,
+          variant: "destructive",
+        });
+      }
+    } catch (e) {
+      console.error("Error syncing pending data:", e);
     }
   }, []);
 
