@@ -1,13 +1,49 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface MealPlan {
+  id: string;
+  date: string;
+  meals: string[];
+}
+
+interface FoodLog {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  date: string;
+}
+
+interface TrackerSettings {
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}
+
 interface CachedData {
-  userProfile: any;
-  mealPlan: any;
-  foodLog: any[];
-  waterIntake: any;
-  trackerSettings: any;
+  userProfile: UserProfile | null;
+  mealPlan: MealPlan | null;
+  foodLog: FoodLog[];
+  waterIntake: number | null;
+  trackerSettings: TrackerSettings | null;
   lastSync: string;
+}
+
+interface PendingAction {
+  id: number;
+  type: 'add_food' | 'update_food' | 'delete_food' | 'update_water' | 'other';
+  data: Record<string, any>;
+  timestamp: string;
 }
 
 const CACHE_KEY = "frigai_offline_cache";
