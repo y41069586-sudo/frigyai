@@ -162,87 +162,17 @@ export const useTrackerSettings = () => {
     loadSettings();
   }, [loadSettings]);
 
-  // Real-time subscription for cross-device sync
+  // Periodic refresh instead of real-time subscription (more stable)
   useEffect(() => {
-    if (!user) {
-      // Clean up channel if user logs out
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      return;
-    }
+    if (!user) return;
 
-    // Small delay to ensure auth is fully established
-    const setupChannel = () => {
-      try {
-        // Subscribe to real-time changes without problematic filters
-        const channel = supabase
-          .channel(`tracker-settings-${user.id}`, {
-            config: { broadcast: { self: false } }
-          })
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'user_tracker_settings',
-            },
-            (payload: any) => {
-              try {
-                // Filter client-side for the current user to avoid processing irrelevant updates
-                const payloadUserId = payload.new?.user_id || payload.old?.user_id;
-                if (payloadUserId !== user.id) {
-                  return;
-                }
+    // Refresh every 30 seconds to catch updates from other devices
+    const intervalId = setInterval(() => {
+      loadSettings();
+    }, 30000);
 
-                console.log('[TRACKER-SYNC] Real-time update received:', payload.eventType);
-
-                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                  const newSettings = parseDbSettings(payload.new);
-                  setSettings(newSettings);
-                  setIsConfigured(newSettings.dailyCalories > 0);
-                  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newSettings));
-                } else if (payload.eventType === 'DELETE') {
-                  setSettings(null);
-                  setIsConfigured(false);
-                  localStorage.removeItem(LOCAL_STORAGE_KEY);
-                }
-              } catch (error) {
-                console.error('[TRACKER-SYNC] Error processing payload:', error);
-              }
-            }
-          )
-          .subscribe((status, err) => {
-            console.log('[TRACKER-SYNC] Subscription status:', status);
-            if (err) {
-              console.error('[TRACKER-SYNC] Subscription error:', err);
-            }
-
-            // If subscription fails, continue without real-time sync
-            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              console.log('[TRACKER-SYNC] Falling back to manual refresh');
-            }
-          });
-
-        channelRef.current = channel;
-      } catch (error) {
-        console.error('[TRACKER-SYNC] Error setting up channel:', error);
-        // Continue without real-time sync if setup fails
-      }
-    };
-
-    // Delay subscription setup slightly to ensure auth is ready
-    const timeoutId = setTimeout(setupChannel, 500);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [user]);
+    return () => clearInterval(intervalId);
+  }, [user, loadSettings]);
 
   return {
     settings,
