@@ -49,6 +49,9 @@ export const usePushNotifications = () => {
   const [token, setToken] = useState<string | null>(null);
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
+  // Track reminder timeouts for cleanup
+  const reminderTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
   useEffect(() => {
     const init = async () => {
       // Check browser support first
