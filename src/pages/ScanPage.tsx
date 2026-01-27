@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { useShoppingListSync } from "@/hooks/useShoppingListSync";
 import { useAICache } from "@/hooks/useAICache";
 import { checkImageQuality, ImageQualityResult } from "@/utils/imageQualityCheck";
+import { validateImageFileSize, VALIDATION_RULES } from "@/utils/validation";
 
 const FREE_SCAN_LIMIT = 0;
 
