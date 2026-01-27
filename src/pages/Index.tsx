@@ -47,6 +47,7 @@ const Index = () => {
   const [proteinEaten, setProteinEaten] = useState(0);
   const [carbsEaten, setCarbsEaten] = useState(0);
   const [fatEaten, setFatEaten] = useState(0);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   
   useEffect(() => {
     const localName = localStorage.getItem('userName');
