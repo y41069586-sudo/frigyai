@@ -319,9 +319,19 @@ export const usePushNotifications = () => {
       await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
       console.log(`Cancelled ${type} reminder`);
     } else {
-      // Browser: Remove from localStorage
+      // Browser: Remove from localStorage and cancel scheduled timeouts
       const reminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
-      const filtered = reminders.filter((r: any) => r.type !== type);
+      const filtered = reminders.filter((r: any) => {
+        // Cancel timeout if it exists for this reminder
+        if (r.type === type && r.id) {
+          const timeoutId = reminderTimeouts.current.get(r.id);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            reminderTimeouts.current.delete(r.id);
+          }
+        }
+        return r.type !== type;
+      });
       localStorage.setItem('fridgie_reminders', JSON.stringify(filtered));
       console.log(`Browser: Cancelled ${type} reminder`);
     }
