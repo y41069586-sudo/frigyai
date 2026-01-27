@@ -463,6 +463,7 @@ interface Translations {
   noDataYet: string;
   current: string;
   lost: string;
+  gained: string;
   progressToGoal: string;
   goalAchieved: string;
   invalidWeight: string;
