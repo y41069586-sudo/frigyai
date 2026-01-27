@@ -323,30 +323,32 @@ JSON-Schema:
       return base;
     };
 
-    const validatePlanStructure = (plan: any) => {
+    const validatePlanStructure = (plan: unknown) => {
       const issues: string[] = [];
+      const planObj = plan as Record<string, unknown>;
 
-      if (!Array.isArray(plan?.mealPlan) || plan.mealPlan.length !== 7) {
+      if (!Array.isArray(planObj?.mealPlan) || planObj.mealPlan.length !== 7) {
         issues.push('mealPlan muss ein Array mit 7 Tagen sein');
         return { ok: false, issues };
       }
 
-      for (const day of plan.mealPlan) {
-        const dayName = String(day?.day ?? 'Unbekannt');
-        const meals = Array.isArray(day?.meals) ? day.meals : [];
+      for (const day of planObj.mealPlan) {
+        const dayObj = day as Record<string, unknown>;
+        const dayName = String(dayObj?.day ?? 'Unbekannt');
+        const meals = Array.isArray(dayObj?.meals) ? dayObj.meals : [];
         if (meals.length !== 5) {
           issues.push(`${dayName}: muss genau 5 Mahlzeiten haben`);
           continue;
         }
 
         for (let i = 0; i < meals.length; i++) {
-          const m = meals[i];
+          const m = meals[i] as Record<string, unknown>;
           if (!m?.name) issues.push(`${dayName}: Mahlzeit ${i + 1} hat keinen Namen`);
           if (!Array.isArray(m?.ingredients) || m.ingredients.length === 0) {
-            issues.push(`${dayName}: ${m?.name ?? `Mahlzeit ${i + 1}`}: keine Zutaten`);
+            issues.push(`${dayName}: ${String(m?.name ?? `Mahlzeit ${i + 1}`)}: keine Zutaten`);
           }
           if (!Array.isArray(m?.instructions) || m.instructions.length === 0) {
-            issues.push(`${dayName}: ${m?.name ?? `Mahlzeit ${i + 1}`}: keine Steps`);
+            issues.push(`${dayName}: ${String(m?.name ?? `Mahlzeit ${i + 1}`)}: keine Steps`);
           }
         }
       }
