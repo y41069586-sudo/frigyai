@@ -186,42 +186,48 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     document.documentElement.scrollTop = 0;
   }, [currentStep]);
 
-  // Step-specific effects
+  // Step-specific effects - with proper cleanup to avoid setState on unmounted component
   useEffect(() => {
+    const timeouts: NodeJS.Timeout[] = [];
+
     if (currentStep === "fridge-intro") {
-      setTimeout(() => setFridgeOpen(true), 300);
-      setTimeout(() => setFridgeScan(true), 800);
+      timeouts.push(setTimeout(() => setFridgeOpen(true), 300));
+      timeouts.push(setTimeout(() => setFridgeScan(true), 800));
     }
     if (currentStep === "macro-preview") {
-      setTimeout(() => setMacroAnimate(true), 300);
+      timeouts.push(setTimeout(() => setMacroAnimate(true), 300));
     }
     if (currentStep === "comparison") {
-      setTimeout(() => setChartAnimate(true), 400);
+      timeouts.push(setTimeout(() => setChartAnimate(true), 400));
     }
     if (currentStep === "analyzing") {
-      setTimeout(() => setCurrentStep("macro-preview"), 9000);
+      timeouts.push(setTimeout(() => setCurrentStep("macro-preview"), 9000));
     }
     if (currentStep === "celebration") {
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         confetti({
           particleCount: 120,
           spread: 80,
           origin: { y: 0.4 },
           colors: ["#22c55e", "#4ade80", "#86efac", "#fbbf24", "#fb7185"]
         });
-      }, 600);
+      }, 600));
     }
     if (currentStep === "done") {
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         confetti({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.6 },
           colors: ["hsl(142, 76%, 36%)", "hsl(142, 69%, 58%)", "hsl(43, 96%, 56%)"]
         });
-      }, 400);
+      }, 400));
     }
-    
+
+    // Cleanup: clear all timeouts when component unmounts or step changes
+    return () => {
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
   }, [currentStep]);
 
   const goNext = () => {
