@@ -473,18 +473,21 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
       throw new Error('Wochenplan konnte nach mehreren Versuchen nicht erstellt werden');
     };
 
-    const finalizePlan = (plan: any) => {
-      const normalized = enforceMacroTargets(plan);
+    const finalizePlan = (plan: unknown) => {
+      const normalized = enforceMacroTargets(plan) as Record<string, unknown>;
 
       // Final strict validation (must match exact targets)
-      for (const day of normalized?.mealPlan ?? []) {
-        const meals = Array.isArray(day?.meals) ? day.meals : [];
+      const mealPlan = Array.isArray(normalized?.mealPlan) ? normalized.mealPlan : [];
+      for (const day of mealPlan) {
+        const dayObj = day as Record<string, unknown>;
+        const meals = Array.isArray(dayObj?.meals) ? dayObj.meals : [];
         const totals = meals.reduce(
-          (acc: any, m: any) => {
-            acc.calories += Number(m?.calories) || 0;
-            acc.protein += Number(m?.protein) || 0;
-            acc.carbs += Number(m?.carbs) || 0;
-            acc.fat += Number(m?.fat) || 0;
+          (acc: Record<string, number>, m: unknown) => {
+            const meal = m as Record<string, unknown>;
+            acc.calories += Number(meal?.calories) || 0;
+            acc.protein += Number(meal?.protein) || 0;
+            acc.carbs += Number(meal?.carbs) || 0;
+            acc.fat += Number(meal?.fat) || 0;
             return acc;
           },
           { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -500,7 +503,7 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
         for (const [k, v] of checks) {
           const r = ranges[k];
           if (v < r.min || v > r.max) {
-            throw new Error(`${String(day?.day ?? 'Tag')}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
+            throw new Error(`${String(dayObj?.day ?? 'Tag')}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
           }
         }
       }
