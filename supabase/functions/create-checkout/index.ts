@@ -48,21 +48,15 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No auth header - user needs to login");
-      return new Response(JSON.stringify({ error: "Bitte melde dich zuerst an" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+      return errorResponse("auth_required", "Authentifizierung erforderlich", 401);
     }
-    
+
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
-    
+
     if (authError || !data.user?.email) {
       logStep("Auth failed - session expired", { error: authError?.message });
-      return new Response(JSON.stringify({ error: "Sitzung abgelaufen. Bitte erneut anmelden." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+      return errorResponse("session_expired", "Deine Session ist abgelaufen. Bitte melde dich neu an.", 401);
     }
     
     const user = data.user;
