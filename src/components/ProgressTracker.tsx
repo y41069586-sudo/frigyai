@@ -150,10 +150,10 @@ export const ProgressTracker = () => {
             <p className="text-xs text-muted-foreground">{t.current} ({t.kg})</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
-            <p className="text-2xl font-bold text-green-500">
-              {weightLost !== null ? `-${weightLost.toFixed(1)}` : '--'}
+            <p className={`text-2xl font-bold ${weightChangeColor}`}>
+              {weightChange !== null ? `${weightChangeSign}${weightChange.toFixed(1)}` : '--'}
             </p>
-            <p className="text-xs text-muted-foreground">{t.lost} ({t.kg})</p>
+            <p className="text-xs text-muted-foreground">{weightChangeLabel} ({t.kg})</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <p className="text-2xl font-bold">{targetWeight?.toFixed(1) || '--'}</p>
