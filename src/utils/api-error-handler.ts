@@ -1,9 +1,16 @@
 import { ApiError, ERROR_CODES, ERROR_MESSAGES, ErrorCode } from '@/types/api-error';
 
 /**
+ * Type guard to check if error is an object with code property
+ */
+const isApiErrorObject = (error: unknown): error is Record<string, unknown> & { code: unknown } => {
+  return error !== null && typeof error === 'object' && 'code' in error;
+};
+
+/**
  * Parse error response from Supabase function
  */
-export const parseApiError = (error: any): ApiError => {
+export const parseApiError = (error: unknown): ApiError => {
   // If it's already an ApiError object
   if (error && typeof error === 'object' && 'code' in error) {
     return {
