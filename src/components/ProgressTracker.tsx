@@ -7,6 +7,7 @@ import { TrendingDown, Plus, Trash2, Target, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGamification } from '@/hooks/useGamification';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -21,6 +22,7 @@ export const ProgressTracker = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { recordActivity, checkAndAwardBadge } = useGamification();
+  const { settings: trackerSettings } = useTrackerSettings();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,15 +32,25 @@ export const ProgressTracker = () => {
   useEffect(() => {
     if (user) {
       loadEntries();
-      loadProfile();
     }
   }, [user]);
+
+  // Update weights when trackerSettings changes
+  useEffect(() => {
+    if (trackerSettings) {
+      setStartWeight(trackerSettings.weight);
+      setTargetWeight(trackerSettings.targetWeight);
+    } else {
+      // Fallback to localStorage if settings not loaded yet
+      loadProfile();
+    }
+  }, [trackerSettings]);
 
   const loadProfile = () => {
     const profile = localStorage.getItem('userProfile');
     if (profile) {
       const data = JSON.parse(profile);
-      // MacroTracker saves: weight (current) and targetWeight (goal)
+      // MacroTracker saves: weight (current), targetWeight (goal), and goalMode
       setStartWeight(data.weight);
       setTargetWeight(data.targetWeight);
     }
@@ -107,8 +119,29 @@ export const ProgressTracker = () => {
   }));
 
   const currentWeight = entries.length > 0 ? entries[entries.length - 1].weight : startWeight;
-  const weightLost = startWeight && currentWeight && entries.length > 0 ? Math.max(0, startWeight - currentWeight) : null;
-  const progress = startWeight && targetWeight && currentWeight 
+  const goalMode = trackerSettings?.goalMode || 'lose';
+
+  // Calculate weight change based on goal mode
+  let weightChange = null;
+  let weightChangeLabel = t.lost;
+  let weightChangeSign = '-';
+  let weightChangeColor = 'text-green-500';
+
+  if (startWeight && currentWeight && entries.length > 0) {
+    if (goalMode === 'gain') {
+      weightChange = Math.max(0, currentWeight - startWeight);
+      weightChangeLabel = t.gained;
+      weightChangeSign = '+';
+      weightChangeColor = 'text-blue-500';
+    } else {
+      weightChange = Math.max(0, startWeight - currentWeight);
+      weightChangeLabel = t.lost;
+      weightChangeSign = '-';
+      weightChangeColor = 'text-green-500';
+    }
+  }
+
+  const progress = startWeight && targetWeight && currentWeight
     ? Math.min(100, Math.max(0, ((startWeight - currentWeight) / (startWeight - targetWeight)) * 100))
     : 0;
 
@@ -127,10 +160,10 @@ export const ProgressTracker = () => {
             <p className="text-xs text-muted-foreground">{t.current} ({t.kg})</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
-            <p className="text-2xl font-bold text-green-500">
-              {weightLost !== null ? `-${weightLost.toFixed(1)}` : '--'}
+            <p className={`text-2xl font-bold ${weightChangeColor}`}>
+              {weightChange !== null ? `${weightChangeSign}${weightChange.toFixed(1)}` : '--'}
             </p>
-            <p className="text-xs text-muted-foreground">{t.lost} ({t.kg})</p>
+            <p className="text-xs text-muted-foreground">{weightChangeLabel} ({t.kg})</p>
           </div>
           <div className="text-center p-3 bg-background/50 rounded-xl">
             <p className="text-2xl font-bold">{targetWeight?.toFixed(1) || '--'}</p>

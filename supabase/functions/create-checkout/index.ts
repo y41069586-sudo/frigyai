@@ -12,6 +12,14 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// Structured error response
+const errorResponse = (code: string, message: string, status: number = 400) => {
+  return new Response(
+    JSON.stringify({ code, message, status }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,21 +48,15 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No auth header - user needs to login");
-      return new Response(JSON.stringify({ error: "Bitte melde dich zuerst an" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+      return errorResponse("auth_required", "Authentifizierung erforderlich", 401);
     }
-    
+
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
-    
+
     if (authError || !data.user?.email) {
       logStep("Auth failed - session expired", { error: authError?.message });
-      return new Response(JSON.stringify({ error: "Sitzung abgelaufen. Bitte erneut anmelden." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+      return errorResponse("session_expired", "Deine Session ist abgelaufen. Bitte melde dich neu an.", 401);
     }
     
     const user = data.user;
@@ -84,10 +86,7 @@ serve(async (req) => {
       
       if (subscriptions.data.length > 0) {
         logStep("User already has active subscription");
-        return new Response(JSON.stringify({ error: "Du hast bereits ein aktives Abonnement" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        });
+        return errorResponse("subscription_exists", "Du hast bereits ein aktives Abonnement", 400);
       }
     }
 
@@ -128,9 +127,6 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in create-checkout", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return errorResponse("payment_error", "Zahlungsfehler. Bitte überprüfe deine Zahlungsinformationen.", 500);
   }
 });

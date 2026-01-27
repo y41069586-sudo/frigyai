@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { motion } from "framer-motion";
 
 interface BottomNavigationProps {
@@ -15,61 +16,57 @@ interface BottomNavigationProps {
 
 export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoading = false, onTabChange }: BottomNavigationProps) => {
   const { t } = useLanguage();
-  const { subscriptionStatus } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const isPremium = subscriptionStatus?.subscribed;
+  const { canAccessFeature, isPremium } = useFeatureAccess();
+
   const isOnMealPlansPage = location.pathname === '/meal-plans';
-  
+
   // Items split: left side, center (elevated), right side
-  // ALL features except water tracker require premium for free users
   const leftItems = [
-    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", requiresPremium: true, requiresTracker: true },
-    { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-primary", requiresPremium: true, requiresTracker: true },
-  ];
-  
-  // Tracker (Tagebuch) now requires premium
-  const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", requiresPremium: true, requiresTracker: false };
-  
-  const rightItems = [
-    { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", requiresPremium: false, requiresTracker: false },
-    { id: "progress", label: t.navStats, icon: BarChart3, color: "text-purple-400", requiresPremium: true, requiresTracker: true },
+    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", feature: 'meal_plans' as const },
+    { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-primary", feature: 'shopping_list' as const },
   ];
 
-  const handleNavClick = (item: typeof leftItems[0]) => {
-    const isLockedPremium = item.requiresPremium && !isPremium;
-    const isLockedTracker = item.requiresTracker && !trackerSetup && isPremium;
-    
-    // Free users -> redirect to paywall for premium features
-    if (isLockedPremium) {
-      navigate('/premium-pricing');
-      return;
-    }
-    
-    if (isLockedTracker) {
-      toast({
-        title: t.setupTracker || "Tracker einrichten",
-        description: t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
-      });
-      if (onTabChange) {
-        onTabChange('tracker');
+  // Tracker (Tagebuch) now requires premium
+  const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", feature: 'tracker_full' as const };
+
+  const rightItems = [
+    { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", feature: 'water' as const },
+    { id: "progress", label: t.navStats, icon: BarChart3, color: "text-purple-400", feature: 'progress' as const },
+  ];
+
+  const handleNavClick = (item: typeof leftItems[0] | typeof centerItem | typeof rightItems[0]) => {
+    const access = canAccessFeature(item.feature);
+
+    if (!access.canAccess) {
+      if (access.lockReason === 'not_premium') {
+        navigate('/premium-pricing');
+        return;
       }
-      navigate('/meal-plans?tab=tracker', { replace: isOnMealPlansPage });
-      return;
+      if (access.lockReason === 'tracker_not_setup') {
+        toast({
+          title: t.setupTracker || "Tracker einrichten",
+          description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
+        });
+        if (onTabChange) {
+          onTabChange('tracker');
+        }
+        navigate('/meal-plans?tab=tracker', { replace: isOnMealPlansPage });
+        return;
+      }
     }
-    
+
     if (onTabChange) {
       onTabChange(item.id);
     }
     navigate(`/meal-plans?tab=${item.id}`, { replace: isOnMealPlansPage });
   };
 
-  const renderNavItem = (item: typeof leftItems[0], isCenter = false) => {
+  const renderNavItem = (item: typeof leftItems[0] | typeof centerItem | typeof rightItems[0], isCenter = false) => {
     const isActive = activeTab === item.id;
-    const isLockedPremium = item.requiresPremium && !isPremium;
-    const isLockedTracker = !trackerLoading && item.requiresTracker && !trackerSetup && isPremium;
-    const isLocked = isLockedPremium || isLockedTracker;
+    const access = canAccessFeature(item.feature);
+    const isLocked = !access.canAccess;
     
     if (isCenter) {
       return (

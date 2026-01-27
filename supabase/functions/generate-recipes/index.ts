@@ -196,10 +196,26 @@ Bei zu wenigen Zutaten:
 
     let result;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      result = jsonMatch ? JSON.parse(jsonMatch[0]) : { type: "clarification", message: "Konnte nicht analysieren.", suggestion: null };
-    } catch {
-      result = { type: "clarification", message: "Fehler beim Parsen.", suggestion: null };
+      // Try direct parse first
+      try {
+        result = JSON.parse(content);
+      } catch (e) {
+        // Safer extraction: find first { and last }
+        const trimmed = content.trim();
+        const startIdx = trimmed.indexOf('{');
+        const endIdx = trimmed.lastIndexOf('}');
+
+        if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
+          console.warn('[GENERATE-RECIPES] Cannot find JSON boundaries');
+          result = { type: "clarification", message: "Konnte Antwort nicht verarbeiten.", suggestion: null };
+        } else {
+          const jsonStr = trimmed.substring(startIdx, endIdx + 1);
+          result = JSON.parse(jsonStr);
+        }
+      }
+    } catch (error) {
+      console.error('[GENERATE-RECIPES] Parse error:', error);
+      result = { type: "clarification", message: "Fehler beim Parsen der Rezepte.", suggestion: null };
     }
 
     if (result.type === "recipes" && result.recipes) {

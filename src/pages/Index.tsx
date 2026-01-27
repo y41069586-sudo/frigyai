@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan, Sparkles } from "lucide-react";
+import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -383,7 +383,7 @@ const Index = () => {
                   whileTap={{ scale: 0.95 }}
                   title="AI Chatbot"
                 >
-                  <Sparkles className="w-4 h-4 text-primary" />
+                  <Bot className="w-4 h-4 text-primary" />
                 </motion.button>
               )}
 

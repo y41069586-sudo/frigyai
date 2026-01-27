@@ -186,19 +186,32 @@ Beachte Mengen. Kalorien auf 5er runden. Deutsche Namen.`;
 
     let foodData;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        foodData = JSON.parse(jsonMatch[0]);
-        foodData.source = 'ai';
-        if (imageUrl) {
-          foodData.image_url = imageUrl;
+      // Try direct parse first
+      try {
+        foodData = JSON.parse(content);
+      } catch (e) {
+        // Safer extraction: find first { and last }
+        const trimmed = content.trim();
+        const startIdx = trimmed.indexOf('{');
+        const endIdx = trimmed.lastIndexOf('}');
+
+        if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
+          console.error('[ANALYZE-FOOD] Cannot find JSON boundaries');
+          throw new Error('No valid JSON found in response');
         }
-      } else {
-        throw new Error('No JSON found');
+
+        const jsonStr = trimmed.substring(startIdx, endIdx + 1);
+        foodData = JSON.parse(jsonStr);
+      }
+
+      foodData.source = 'ai';
+      if (imageUrl) {
+        foodData.image_url = imageUrl;
       }
     } catch (parseError) {
       console.error('[ANALYZE-FOOD] Parse error:', parseError);
-      throw new Error('Failed to parse food data');
+      console.error('[ANALYZE-FOOD] Raw content:', content.substring(0, 500));
+      throw new Error(`Failed to parse food data: ${parseError instanceof Error ? parseError.message : 'unknown'}`);
     }
 
     console.log('[ANALYZE-FOOD] Done:', foodData.name);

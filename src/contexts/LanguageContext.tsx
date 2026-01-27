@@ -463,6 +463,7 @@ interface Translations {
   noDataYet: string;
   current: string;
   lost: string;
+  gained: string;
   progressToGoal: string;
   goalAchieved: string;
   invalidWeight: string;
@@ -1046,6 +1047,7 @@ const translations: Record<Language, Translations> = {
     noDataYet: "Noch keine Daten",
     current: "Aktuell",
     lost: "Verloren",
+    gained: "Gewonnen",
     progressToGoal: "Fortschritt zum Ziel",
     goalAchieved: "Ziel erreicht!",
     invalidWeight: "Ungültiges Gewicht",
@@ -1863,6 +1865,7 @@ const translations: Record<Language, Translations> = {
     noDataYet: "No data yet",
     current: "Current",
     lost: "Lost",
+    gained: "Gained",
     progressToGoal: "Progress to goal",
     goalAchieved: "Goal achieved!",
     invalidWeight: "Invalid weight",
@@ -2680,6 +2683,7 @@ const translations: Record<Language, Translations> = {
     noDataYet: "Pas encore de données",
     current: "Actuel",
     lost: "Perdu",
+    gained: "Gagné",
     progressToGoal: "Progression vers l'objectif",
     goalAchieved: "Objectif atteint!",
     invalidWeight: "Poids invalide",

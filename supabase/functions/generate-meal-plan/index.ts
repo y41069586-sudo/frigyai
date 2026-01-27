@@ -259,17 +259,36 @@ JSON-Schema:
       const content = choice?.message?.content || '';
 
       console.log('[GENERATE-MEAL-PLAN] OpenAI finish_reason:', finishReason, 'content_length:', content.length);
-      console.log('[GENERATE-MEAL-PLAN] Raw response (first 500 chars):', content.substring(0, 500));
 
       if (!content.trim()) throw new Error('Leere Antwort von OpenAI');
       if (finishReason === 'length') throw new Error('OpenAI Antwort wurde abgeschnitten (zu lang)');
 
+      // Try direct JSON parse first (best case - response is pure JSON)
       try {
         return JSON.parse(content);
-      } catch (_e) {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('No JSON found in response');
-        return JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.log('[GENERATE-MEAL-PLAN] Direct parse failed, attempting safer extraction');
+      }
+
+      // Safer extraction: find the first { and match it with the last }
+      const trimmed = content.trim();
+      const startIdx = trimmed.indexOf('{');
+      const endIdx = trimmed.lastIndexOf('}');
+
+      if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
+        console.error('[GENERATE-MEAL-PLAN] Cannot find JSON boundaries in response');
+        console.error('[GENERATE-MEAL-PLAN] Response:', content.substring(0, 1000));
+        throw new Error('Cannot extract JSON from OpenAI response - invalid format');
+      }
+
+      const jsonStr = trimmed.substring(startIdx, endIdx + 1);
+
+      try {
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.error('[GENERATE-MEAL-PLAN] JSON parse failed after extraction');
+        console.error('[GENERATE-MEAL-PLAN] Extracted:', jsonStr.substring(0, 500));
+        throw new Error(`Invalid JSON in response: ${e instanceof Error ? e.message : 'unknown'}`);
       }
     };
 
