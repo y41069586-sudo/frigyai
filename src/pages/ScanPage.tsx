@@ -101,12 +101,23 @@ const ScanPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file size before processing
+    const fileSizeValidation = validateImageFileSize(file.size);
+    if (!fileSizeValidation.valid) {
+      toast({
+        title: "Datei zu groß",
+        description: fileSizeValidation.error || VALIDATION_RULES.IMAGE_FILE_SIZE.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Reset quality issue
     setImageQualityIssue(null);
 
     // Allow onboarding users ONE free scan
     const canScanAsOnboarding = isOnboardingMode && !user;
-    
+
     // Free mode users cannot scan - redirect to paywall (unless onboarding)
     if (isFreeMode && !canScanAsOnboarding) {
       toast({
