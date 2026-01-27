@@ -667,7 +667,11 @@ const Index = () => {
 
       {/* AI Chatbot - Only for subscribed users */}
       {user && subscriptionStatus?.subscribed && onboardingComplete && (
-        <AIChatbot userProfile={trackerSettings} />
+        <AIChatbot
+          userProfile={trackerSettings}
+          isOpen={isChatbotOpen}
+          setIsOpen={setIsChatbotOpen}
+        />
       )}
     </div>
   );
