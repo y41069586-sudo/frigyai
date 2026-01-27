@@ -25,12 +25,18 @@ interface AIChatbotProps {
     targetWeight: number;
   } | null;
   onResetTracker?: () => void;
+  isOpen?: boolean;
+  setIsOpen?: (open: boolean) => void;
 }
 
-export const AIChatbot = ({ userProfile, onResetTracker }: AIChatbotProps) => {
+export const AIChatbot = ({ userProfile, onResetTracker, isOpen: externalIsOpen, setIsOpen: externalSetIsOpen }: AIChatbotProps) => {
   const { session, subscriptionStatus } = useAuth();
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
+  const [localIsOpen, setLocalIsOpen] = useState(false);
+
+  // Use external state if provided, otherwise use local state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
+  const setIsOpen = externalSetIsOpen || setLocalIsOpen;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
