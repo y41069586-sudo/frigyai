@@ -372,7 +372,7 @@ const Index = () => {
             
             <div className="flex items-center gap-2 flex-shrink-0">
               {currentStreak > 0 && (
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 rounded-full"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -382,8 +382,20 @@ const Index = () => {
                   <span className="text-xs font-bold text-amber-600">{currentStreak}</span>
                 </motion.div>
               )}
-              
-              <motion.button 
+
+              {/* AI Chatbot Button - Only for Premium users */}
+              {subscriptionStatus?.subscribed && (
+                <motion.button
+                  onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+                  className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center hover:bg-card/80 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                  title="AI Chatbot"
+                >
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </motion.button>
+              )}
+
+              <motion.button
                 onClick={() => navigate('/profile')}
                 className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center"
                 whileTap={{ scale: 0.95 }}
