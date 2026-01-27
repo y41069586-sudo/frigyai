@@ -7,6 +7,7 @@ import { TrendingDown, Plus, Trash2, Target, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGamification } from '@/hooks/useGamification';
 import { useLanguage } from '@/contexts/LanguageContext';
