@@ -207,22 +207,37 @@ Regeln:
     const content = data.choices?.[0]?.message?.content || "";
     console.log(`[SCAN] Response: ${content.substring(0, 200)}`);
 
-    // Parse ingredients
+    // Parse ingredients with safer JSON extraction
     let ingredients: string[] = [];
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : [];
-      }
+      // Try direct parse first
+      const parsed = JSON.parse(content);
+      ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : [];
     } catch (e) {
-      // Fallback: extract anything that looks like a list
-      const listMatch = content.match(/\[([^\]]+)\]/);
-      if (listMatch) {
-        ingredients = listMatch[1]
-          .split(',')
-          .map((s: string) => s.replace(/["\s]/g, '').trim())
-          .filter((s: string) => s.length > 0);
+      // Safer extraction: find first { and last }
+      const trimmed = content.trim();
+      const startIdx = trimmed.indexOf('{');
+      const endIdx = trimmed.lastIndexOf('}');
+
+      if (startIdx !== -1 && endIdx !== -1 && startIdx < endIdx) {
+        try {
+          const jsonStr = trimmed.substring(startIdx, endIdx + 1);
+          const parsed = JSON.parse(jsonStr);
+          ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : [];
+        } catch (jsonErr) {
+          console.warn(`[SCAN] JSON parse failed:`, jsonErr);
+        }
+      }
+
+      // If JSON parsing failed, try to extract ingredients from list format
+      if (ingredients.length === 0) {
+        const listMatch = content.match(/\[([^\]]+)\]/);
+        if (listMatch) {
+          ingredients = listMatch[1]
+            .split(',')
+            .map((s: string) => s.replace(/["\s]/g, '').trim())
+            .filter((s: string) => s.length > 0);
+        }
       }
     }
 
