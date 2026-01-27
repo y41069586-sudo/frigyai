@@ -3421,20 +3421,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 
                 {/* Email input */}
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
+                  <label htmlFor="auth-email" className="sr-only">{t.emailAddressPlaceholder}</label>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" aria-hidden="true" />
                   <Input
+                    id="auth-email"
                     type="email"
                     placeholder={t.emailAddressPlaceholder}
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
                     className="pl-11 h-12 rounded-xl bg-card border-border"
+                    aria-label={t.emailAddressPlaceholder}
                   />
                 </div>
-                
+
                 {/* Password input */}
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
+                  <label htmlFor="auth-password" className="sr-only">{t.passwordPlaceholder}</label>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" aria-hidden="true" />
                   <Input
+                    id="auth-password"
                     type={showPassword ? "text" : "password"}
                     placeholder={t.passwordPlaceholder}
                     value={authPassword}
