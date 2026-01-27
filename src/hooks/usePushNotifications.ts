@@ -56,7 +56,7 @@ export const usePushNotifications = () => {
       setIsBrowserSupported(browserSupported);
 
       // Check if we're in a native Capacitor environment (not web)
-      const isNativeApp = typeof (window as any).Capacitor !== 'undefined' && 
+      const isNativeApp = typeof (window as any).Capacitor !== 'undefined' &&
                           (window as any).Capacitor.isNativePlatform?.();
 
       if (!isNativeApp) {
@@ -119,6 +119,16 @@ export const usePushNotifications = () => {
     };
 
     init();
+
+    // Cleanup: Remove all Capacitor listeners when component unmounts
+    return () => {
+      if (PushNotifications && typeof PushNotifications.removeAllListeners === 'function') {
+        PushNotifications.removeAllListeners();
+      }
+      if (LocalNotifications && typeof LocalNotifications.removeAllListeners === 'function') {
+        LocalNotifications.removeAllListeners();
+      }
+    };
   }, []);
 
   const requestPermission = useCallback(async () => {
