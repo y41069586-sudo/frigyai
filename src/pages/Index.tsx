@@ -451,75 +451,79 @@ const Index = () => {
             />
           </motion.section>
           
-          {/* Action Cards Grid - Wochenplan & Shopping */}
+          {/* Wochenplan Widget - Full Width */}
           <motion.section
-            className="grid grid-cols-2 gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             viewport={{ once: true }}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <DashboardMealPlanCard />
-            </motion.div>
+            <DashboardMealPlanCard />
+          </motion.section>
+
+          {/* Progress & Shopping Grid */}
+          <motion.section
+            className="grid grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            viewport={{ once: true }}
+          >
+            {/* Progress/Verlauf Section */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.35 }}
             >
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform h-full">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{t.weightHistory}</p>
+                          <p className="text-xs text-muted-foreground">{t.tapForDetails}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-purple-500/50" />
+                    </div>
+
+                    {/* Mini Chart Preview */}
+                    <div className="h-12 flex items-end gap-1">
+                      {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
+                        <motion.div
+                          key={i}
+                          className="flex-1 bg-gradient-to-t from-purple-500/40 to-purple-400/20 rounded-t-sm"
+                          initial={{ height: 0 }}
+                          animate={{ height: `${height}%` }}
+                          transition={{ delay: 0.3 + i * 0.05, duration: 0.4, ease: "easeOut" }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <ProgressCharts />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </motion.div>
+
+            {/* Shopping List Widget */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+            >
               <DashboardShoppingCard />
             </motion.div>
-          </motion.section>
-
-          {/* Progress/Verlauf Section */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{t.weightHistory}</p>
-                        <p className="text-xs text-muted-foreground">{t.tapForDetails}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-purple-500/50" />
-                  </div>
-
-                  {/* Mini Chart Preview */}
-                  <div className="h-12 flex items-end gap-1">
-                    {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
-                      <motion.div
-                        key={i}
-                        className="flex-1 bg-gradient-to-t from-purple-500/40 to-purple-400/20 rounded-t-sm"
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ delay: 0.3 + i * 0.05, duration: 0.4, ease: "easeOut" }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4">
-                  <ProgressCharts />
-                </div>
-              </DialogContent>
-            </Dialog>
           </motion.section>
           
           {/* Today's Meals */}
