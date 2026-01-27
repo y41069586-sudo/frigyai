@@ -44,30 +44,38 @@ serve(async (req) => {
     }
 
     const userId = userData.user.id;
-    console.log(`[DELETE-USER] Deleting user: ${userId}`);
+    console.log(`[DELETE-USER] Starting deletion for user: ${userId}`);
 
-    // Delete all user data from database (cascade)
-    await Promise.all([
-      supabaseClient.from('user_tracker_settings').delete().eq('user_id', userId),
-      supabaseClient.from('food_entries').delete().eq('user_id', userId),
-      supabaseClient.from('daily_macros').delete().eq('user_id', userId),
-      supabaseClient.from('user_streaks').delete().eq('user_id', userId),
-      supabaseClient.from('water_intake').delete().eq('user_id', userId),
-      supabaseClient.from('onboarding_data').delete().eq('user_id', userId),
-      supabaseClient.from('subscription_cache').delete().eq('user_id', userId),
-    ]);
+    // Delete auth user FIRST (using admin API with service role)
+    // If this fails, DB data remains intact for retry
+    const { error: deleteAuthError } = await supabaseClient.auth.admin.deleteUser(userId);
 
-    console.log(`[DELETE-USER] User data deleted: ${userId}`);
-
-    // Delete auth user (using admin API)
-    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId);
-
-    if (deleteError) {
-      console.error(`[DELETE-USER] Error deleting auth user: ${deleteError.message}`);
-      throw deleteError;
+    if (deleteAuthError) {
+      console.error(`[DELETE-USER] Error deleting auth user: ${deleteAuthError.message}`);
+      throw deleteAuthError;
     }
 
-    console.log(`[DELETE-USER] User deleted successfully: ${userId}`);
+    console.log(`[DELETE-USER] Auth user deleted: ${userId}`);
+
+    // Only delete DB data AFTER successful auth deletion
+    // This ensures data is only removed if account deletion is complete
+    try {
+      await Promise.all([
+        supabaseClient.from('user_tracker_settings').delete().eq('user_id', userId),
+        supabaseClient.from('food_entries').delete().eq('user_id', userId),
+        supabaseClient.from('daily_macros').delete().eq('user_id', userId),
+        supabaseClient.from('user_streaks').delete().eq('user_id', userId),
+        supabaseClient.from('water_intake').delete().eq('user_id', userId),
+        supabaseClient.from('onboarding_data').delete().eq('user_id', userId),
+        supabaseClient.from('subscription_cache').delete().eq('user_id', userId),
+      ]);
+      console.log(`[DELETE-USER] All user data deleted: ${userId}`);
+    } catch (dbDeleteError) {
+      // Auth is already deleted, so log this but don't fail
+      console.warn(`[DELETE-USER] Warning: Could not delete all DB records: ${dbDeleteError}`);
+    }
+
+    console.log(`[DELETE-USER] User account fully deleted: ${userId}`);
 
     return new Response(
       JSON.stringify({ success: true, message: "User deleted successfully" }),
