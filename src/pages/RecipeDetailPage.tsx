@@ -5,6 +5,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import ShareRecipeDialog from "@/components/ShareRecipeDialog";
 import OrderIngredientsDialog from "@/components/OrderIngredientsDialog";
+import { safeJsonParse } from "@/lib/utils";
 
 interface Recipe {
   id: string;
