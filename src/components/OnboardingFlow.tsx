@@ -3379,7 +3379,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   onClick={async () => {
                     setIsAuthLoading(true);
                     try {
-                      await signInWithGoogle();
+                      const { error } = await signInWithGoogle();
+                      if (error) {
+                        toast({
+                          title: t.error,
+                          description: error.message || 'Google sign-in failed. Please try again.',
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (err) {
+                      toast({
+                        title: t.error,
+                        description: 'An unexpected error occurred during Google sign-in.',
+                        variant: "destructive",
+                      });
                     } finally {
                       setIsAuthLoading(false);
                     }
