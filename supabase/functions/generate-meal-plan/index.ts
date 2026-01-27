@@ -253,10 +253,11 @@ JSON-Schema:
       }
     }
 
-    const parsePlanFromOpenAI = (data: any) => {
-      const choice = data?.choices?.[0];
+    const parsePlanFromOpenAI = (data: unknown): Record<string, unknown> => {
+      const response = data as Record<string, unknown>;
+      const choice = (response?.choices as Array<any>)?.[0];
       const finishReason = choice?.finish_reason;
-      const content = choice?.message?.content || '';
+      const content = (choice?.message?.content as string) || '';
 
       console.log('[GENERATE-MEAL-PLAN] OpenAI finish_reason:', finishReason, 'content_length:', content.length);
 
@@ -265,7 +266,11 @@ JSON-Schema:
 
       // Try direct JSON parse first (best case - response is pure JSON)
       try {
-        return JSON.parse(content);
+        const parsed = JSON.parse(content);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed as Record<string, unknown>;
+        }
+        throw new Error('Parsed JSON is not an object');
       } catch (e) {
         console.log('[GENERATE-MEAL-PLAN] Direct parse failed, attempting safer extraction');
       }
@@ -284,7 +289,11 @@ JSON-Schema:
       const jsonStr = trimmed.substring(startIdx, endIdx + 1);
 
       try {
-        return JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed as Record<string, unknown>;
+        }
+        throw new Error('Parsed JSON is not an object');
       } catch (e) {
         console.error('[GENERATE-MEAL-PLAN] JSON parse failed after extraction');
         console.error('[GENERATE-MEAL-PLAN] Extracted:', jsonStr.substring(0, 500));
