@@ -8,6 +8,15 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// SECURITY WARNING: JWT tokens are stored in localStorage which is vulnerable to XSS attacks.
+// This is a known limitation of browser-based authentication. Mitigation strategies:
+// 1. Implement strict Content Security Policy (CSP) headers
+// 2. Sanitize all user inputs to prevent XSS
+// 3. Use security headers: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+// 4. Consider implementing refresh token rotation
+// 5. Use httpOnly cookies if backend infrastructure supports it (requires server-side changes)
+// For production, consider implementing token refresh with server-side validation.
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
