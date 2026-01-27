@@ -357,18 +357,20 @@ JSON-Schema:
     };
 
     // Enforce "perfect" daily macro totals deterministically (names/ingredients remain as generated)
-    const enforceMacroTargets = (plan: any) => {
-      if (!plan || !Array.isArray(plan.mealPlan)) return plan;
+    const enforceMacroTargets = (plan: unknown) => {
+      const planObj = plan as Record<string, unknown>;
+      if (!planObj || !Array.isArray(planObj.mealPlan)) return planObj;
 
       const proteinAlloc = allocateByShares(targetProtein, MEAL_SHARES);
       const fatAlloc = allocateByShares(targetFat, MEAL_SHARES);
       const carbsAlloc = allocateByShares(targetCarbs, MEAL_SHARES);
 
-      for (const day of plan.mealPlan) {
-        if (!Array.isArray(day?.meals) || day.meals.length !== 5) continue;
+      for (const day of planObj.mealPlan) {
+        const dayObj = day as Record<string, unknown>;
+        if (!Array.isArray(dayObj?.meals) || dayObj.meals.length !== 5) continue;
 
         for (let i = 0; i < 5; i++) {
-          const meal = day.meals[i];
+          const meal = dayObj.meals[i] as Record<string, unknown>;
           const protein = Math.max(0, Math.round(proteinAlloc[i] || 0));
           const fat = Math.max(0, Math.round(fatAlloc[i] || 0));
           const carbs = Math.max(0, Math.round(carbsAlloc[i] || 0));
@@ -382,7 +384,7 @@ JSON-Schema:
         }
       }
 
-      return plan;
+      return planObj;
     };
 
     const callOpenAI = async (userInstruction: string) => {
