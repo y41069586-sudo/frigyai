@@ -12,6 +12,14 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// Structured error response
+const errorResponse = (code: string, message: string, status: number = 400) => {
+  return new Response(
+    JSON.stringify({ code, message, status }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
