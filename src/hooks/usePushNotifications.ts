@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 
 // For Capacitor notifications
-let PushNotifications: any = null;
-let LocalNotifications: any = null;
+let PushNotifications: unknown = null;
+let LocalNotifications: unknown = null;
 
 // Dynamic imports for Capacitor
 const loadCapacitorPlugins = async () => {
