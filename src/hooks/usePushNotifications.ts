@@ -288,17 +288,23 @@ export const usePushNotifications = () => {
         });
         localStorage.setItem('fridgie_reminders', JSON.stringify(reminders));
 
-        // Schedule the notification
-        setTimeout(() => {
+        // Schedule the notification and track the timeout ID for cleanup
+        const timeoutId = setTimeout(() => {
           sendLocalNotification(title, body, { type });
-          
+
           // Remove from storage after sending (if not recurring)
           if (!recurring) {
             const updatedReminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
             const filtered = updatedReminders.filter((r: any) => r.id !== reminderId);
             localStorage.setItem('fridgie_reminders', JSON.stringify(filtered));
           }
+
+          // Clean up timeout from tracking map
+          reminderTimeouts.current.delete(reminderId);
         }, delay);
+
+        // Store timeout ID for later cancellation
+        reminderTimeouts.current.set(reminderId, timeoutId);
         
         console.log(`Browser: Scheduled ${type} reminder for ${time.toISOString()}`);
         return true;
