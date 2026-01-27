@@ -123,8 +123,15 @@ export const usePushNotifications = () => {
 
     init();
 
-    // Cleanup: Remove all Capacitor listeners when component unmounts
+    // Cleanup: Remove all Capacitor listeners and pending timeouts when component unmounts
     return () => {
+      // Clear all pending reminder timeouts
+      reminderTimeouts.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      reminderTimeouts.current.clear();
+
+      // Remove all Capacitor listeners
       if (PushNotifications && typeof PushNotifications.removeAllListeners === 'function') {
         PushNotifications.removeAllListeners();
       }
