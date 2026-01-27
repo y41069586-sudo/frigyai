@@ -33,17 +33,19 @@ const RecipeDetailPage = () => {
   useEffect(() => {
     // Try to get recipe from navigation state first
     let recipeData = location.state?.recipe;
-    
+
     // If not in state, try to get from localStorage
     if (!recipeData && id) {
-      const recipes = JSON.parse(localStorage.getItem("recipeDetails") || "{}");
-      recipeData = recipes[id];
+      const recipes = safeJsonParse<Record<string, Recipe>>(localStorage.getItem("recipeDetails"), {});
+      if (typeof recipes === "object" && recipes !== null) {
+        recipeData = recipes[id];
+      }
     }
 
     if (recipeData) {
       setRecipe(recipeData);
-      const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-      setIsFavorite(favorites.includes(recipeData.id));
+      const favorites = safeJsonParse<string[]>(localStorage.getItem("favorites"), []);
+      setIsFavorite(Array.isArray(favorites) && favorites.includes(recipeData.id));
     } else {
       navigate("/");
     }
@@ -51,9 +53,14 @@ const RecipeDetailPage = () => {
 
   const toggleFavorite = () => {
     if (!recipe) return;
-    
-    const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-    
+
+    const favorites = safeJsonParse<string[]>(localStorage.getItem("favorites"), []);
+
+    if (!Array.isArray(favorites)) {
+      console.warn("Favorites data is corrupted, resetting to empty array");
+      return;
+    }
+
     if (isFavorite) {
       const newFavorites = favorites.filter((favId: string) => favId !== recipe.id);
       localStorage.setItem("favorites", JSON.stringify(newFavorites));
@@ -61,12 +68,14 @@ const RecipeDetailPage = () => {
     } else {
       favorites.push(recipe.id);
       localStorage.setItem("favorites", JSON.stringify(favorites));
-      
+
       // Store recipe details
-      const recipes = JSON.parse(localStorage.getItem("recipeDetails") || "{}");
-      recipes[recipe.id] = recipe;
-      localStorage.setItem("recipeDetails", JSON.stringify(recipes));
-      
+      const recipes = safeJsonParse<Record<string, Recipe>>(localStorage.getItem("recipeDetails"), {});
+      if (typeof recipes === "object" && recipes !== null) {
+        (recipes as any)[recipe.id] = recipe;
+        localStorage.setItem("recipeDetails", JSON.stringify(recipes));
+      }
+
       setIsFavorite(true);
     }
   };
