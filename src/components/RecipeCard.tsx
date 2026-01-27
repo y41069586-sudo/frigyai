@@ -30,14 +30,20 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-    setIsFavorite(favorites.includes(recipe.id));
+    const favorites = safeJsonParse<string[]>(localStorage.getItem("favorites"), []);
+    setIsFavorite(Array.isArray(favorites) && favorites.includes(recipe.id));
   }, [recipe.id]);
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-    
+    const favorites = safeJsonParse<string[]>(localStorage.getItem("favorites"), []);
+
+    if (!Array.isArray(favorites)) {
+      console.warn("Favorites data is corrupted, resetting to empty array");
+      setIsFavorite(false);
+      return;
+    }
+
     if (isFavorite) {
       const newFavorites = favorites.filter((id: string) => id !== recipe.id);
       localStorage.setItem("favorites", JSON.stringify(newFavorites));
@@ -45,12 +51,14 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
     } else {
       favorites.push(recipe.id);
       localStorage.setItem("favorites", JSON.stringify(favorites));
-      
+
       // Store recipe details
-      const recipes = JSON.parse(localStorage.getItem("recipeDetails") || "{}");
-      recipes[recipe.id] = recipe;
-      localStorage.setItem("recipeDetails", JSON.stringify(recipes));
-      
+      const recipes = safeJsonParse<Record<string, unknown>>(localStorage.getItem("recipeDetails"), {});
+      if (typeof recipes === "object" && recipes !== null) {
+        (recipes as any)[recipe.id] = recipe;
+        localStorage.setItem("recipeDetails", JSON.stringify(recipes));
+      }
+
       setIsFavorite(true);
     }
   };
