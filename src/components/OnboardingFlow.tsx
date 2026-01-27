@@ -3250,6 +3250,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "save-progress":
         const handleAuth = async () => {
+          // Validate email and password
           if (!authEmail || !authPassword) {
             toast({
               title: t.error,
@@ -3258,7 +3259,28 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             });
             return;
           }
-          
+
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(authEmail)) {
+            toast({
+              title: t.error,
+              description: "Ungültige E-Mail-Adresse",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Validate password length
+          if (authPassword.length < 8) {
+            toast({
+              title: t.error,
+              description: "Passwort muss mindestens 8 Zeichen lang sein",
+              variant: "destructive",
+            });
+            return;
+          }
+
           setIsAuthLoading(true);
           try {
             if (authMode === 'signup') {
