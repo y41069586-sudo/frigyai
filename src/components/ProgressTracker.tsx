@@ -32,9 +32,19 @@ export const ProgressTracker = () => {
   useEffect(() => {
     if (user) {
       loadEntries();
-      loadProfile();
     }
   }, [user]);
+
+  // Update weights when trackerSettings changes
+  useEffect(() => {
+    if (trackerSettings) {
+      setStartWeight(trackerSettings.weight);
+      setTargetWeight(trackerSettings.targetWeight);
+    } else {
+      // Fallback to localStorage if settings not loaded yet
+      loadProfile();
+    }
+  }, [trackerSettings]);
 
   const loadProfile = () => {
     const profile = localStorage.getItem('userProfile');
