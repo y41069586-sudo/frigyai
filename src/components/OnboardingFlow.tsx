@@ -3536,13 +3536,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (selectedPlanOption === 'free') {
             goNext();
           } else if (selectedPlanOption === 'premium') {
-            // Save onboarding data and go to premium pricing
+            // Save onboarding data and navigate using react-router
             saveOnboardingData(userData);
+            // Use navigate from react-router to avoid SPA routing conflicts
+            // onComplete will handle the state callback if needed
             onComplete();
-            // Small delay to ensure navigation happens after onComplete
-            setTimeout(() => {
-              window.location.href = '/premium-pricing';
-            }, 100);
+            navigate('/premium-pricing');
           }
         };
         
