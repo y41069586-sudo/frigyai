@@ -22,6 +22,7 @@ export const ProgressTracker = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { recordActivity, checkAndAwardBadge } = useGamification();
+  const { settings: trackerSettings } = useTrackerSettings();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
   const [isLoading, setIsLoading] = useState(false);
