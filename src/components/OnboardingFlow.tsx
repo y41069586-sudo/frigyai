@@ -180,8 +180,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
-    // Also scroll window as fallback
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Also scroll window as fallback (use 'auto' - 'instant' is not valid)
+    window.scrollTo({ top: 0, behavior: 'auto' });
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
   }, [currentStep]);
