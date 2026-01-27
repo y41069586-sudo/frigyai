@@ -81,24 +81,24 @@ export const usePushNotifications = () => {
           const status = await PushNotifications.checkPermissions();
           setPermissionStatus(status.receive);
 
-          PushNotifications.addListener("registration", (token: any) => {
+          PushNotifications.addListener("registration", (token: Record<string, unknown>) => {
             console.log("Push registration token:", token.value);
-            setToken(token.value);
+            setToken(token.value as string);
           });
 
-          PushNotifications.addListener("registrationError", (error: any) => {
+          PushNotifications.addListener("registrationError", (error: Record<string, unknown>) => {
             console.error("Push registration error:", error);
           });
 
-          PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
+          PushNotifications.addListener("pushNotificationReceived", (notification: Record<string, unknown>) => {
             console.log("Push notification received:", notification);
             toast({
-              title: notification.title || "Fridgie",
-              description: notification.body,
+              title: (notification.title as string) || "Fridgie",
+              description: notification.body as string,
             });
           });
 
-          PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
+          PushNotifications.addListener("pushNotificationActionPerformed", (notification: Record<string, unknown>) => {
             console.log("Push notification action:", notification);
           });
         } else if (capacitorAvailable && LocalNotifications) {
