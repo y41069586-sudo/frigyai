@@ -122,7 +122,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
-      const dbPlan = (data as any)?.plan as DayPlan[] | undefined;
+      // Type-safe extraction of plan from query result
+      const dbPlan = (data as Record<string, unknown> | null)?.plan as DayPlan[] | undefined;
 
       // Prefer DB if available
       if (Array.isArray(dbPlan) && dbPlan.length > 0) {
