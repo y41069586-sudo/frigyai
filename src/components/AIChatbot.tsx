@@ -126,19 +126,21 @@ export const AIChatbot = ({ userProfile, onResetTracker, isOpen: externalIsOpen,
 
   return (
     <>
-      {/* Floating Chat Button - always above bottom nav, easy to tap */}
-      <motion.button
-        onClick={() => setIsOpen(true)}
-        className="fixed right-4 bottom-[96px] md:bottom-24 z-[60] p-4 rounded-full bg-primary hover:bg-primary/90 shadow-xl ring-4 ring-primary/20"
-        whileHover={{ scale: 1.06 }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Bot className="h-6 w-6 text-primary-foreground" />
-        <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
-      </motion.button>
+      {/* Floating Chat Button - only show if not using external state */}
+      {externalIsOpen === undefined && (
+        <motion.button
+          onClick={() => setIsOpen(true)}
+          className="fixed right-4 bottom-[96px] md:bottom-24 z-[60] p-4 rounded-full bg-primary hover:bg-primary/90 shadow-xl ring-4 ring-primary/20"
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Bot className="h-6 w-6 text-primary-foreground" />
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
+        </motion.button>
+      )}
 
       {/* Chat Panel */}
       <AnimatePresence>
