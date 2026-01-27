@@ -40,7 +40,7 @@ export const ProgressTracker = () => {
     const profile = localStorage.getItem('userProfile');
     if (profile) {
       const data = JSON.parse(profile);
-      // MacroTracker saves: weight (current) and targetWeight (goal)
+      // MacroTracker saves: weight (current), targetWeight (goal), and goalMode
       setStartWeight(data.weight);
       setTargetWeight(data.targetWeight);
     }
