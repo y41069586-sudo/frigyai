@@ -2683,6 +2683,7 @@ const translations: Record<Language, Translations> = {
     noDataYet: "Pas encore de données",
     current: "Actuel",
     lost: "Perdu",
+    gained: "Gagné",
     progressToGoal: "Progression vers l'objectif",
     goalAchieved: "Objectif atteint!",
     invalidWeight: "Poids invalide",
