@@ -451,11 +451,35 @@ const Index = () => {
             />
           </motion.section>
           
+          {/* Action Cards Grid - Wochenplan & Shopping */}
+          <motion.section
+            className="grid grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            viewport={{ once: true }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <DashboardMealPlanCard />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.35 }}
+            >
+              <DashboardShoppingCard />
+            </motion.div>
+          </motion.section>
+
           {/* Progress/Verlauf Section */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.3 }}
           >
             <Dialog>
               <DialogTrigger asChild>
@@ -472,7 +496,7 @@ const Index = () => {
                     </div>
                     <ChevronRight className="w-4 h-4 text-purple-500/50" />
                   </div>
-                  
+
                   {/* Mini Chart Preview */}
                   <div className="h-12 flex items-end gap-1">
                     {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
@@ -496,30 +520,6 @@ const Index = () => {
                 </div>
               </DialogContent>
             </Dialog>
-          </motion.section>
-          
-          {/* Action Cards Grid */}
-          <motion.section
-            className="grid grid-cols-2 gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            viewport={{ once: true }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <DashboardMealPlanCard />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.35 }}
-            >
-              <DashboardShoppingCard />
-            </motion.div>
           </motion.section>
           
           {/* Today's Meals */}
