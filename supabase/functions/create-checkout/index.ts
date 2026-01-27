@@ -86,10 +86,7 @@ serve(async (req) => {
       
       if (subscriptions.data.length > 0) {
         logStep("User already has active subscription");
-        return new Response(JSON.stringify({ error: "Du hast bereits ein aktives Abonnement" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        });
+        return errorResponse("subscription_exists", "Du hast bereits ein aktives Abonnement", 400);
       }
     }
 
