@@ -1,13 +1,49 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface MealPlan {
+  id: string;
+  date: string;
+  meals: string[];
+}
+
+interface FoodLog {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  date: string;
+}
+
+interface TrackerSettings {
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}
+
 interface CachedData {
-  userProfile: any;
-  mealPlan: any;
-  foodLog: any[];
-  waterIntake: any;
-  trackerSettings: any;
+  userProfile: UserProfile | null;
+  mealPlan: MealPlan | null;
+  foodLog: FoodLog[];
+  waterIntake: number | null;
+  trackerSettings: TrackerSettings | null;
   lastSync: string;
+}
+
+interface PendingAction {
+  id: number;
+  type: 'add_food' | 'update_food' | 'delete_food' | 'update_water' | 'other';
+  data: Record<string, any>;
+  timestamp: string;
 }
 
 const CACHE_KEY = "frigai_offline_cache";
@@ -15,9 +51,10 @@ const PENDING_SYNC_KEY = "frigai_pending_sync";
 
 export const useOfflineMode = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingSync, setPendingSync] = useState<any[]>(() => {
+  const [pendingSync, setPendingSync] = useState<PendingAction[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      const data = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
@@ -54,16 +91,31 @@ export const useOfflineMode = () => {
   const getCachedData = useCallback((): CachedData | null => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch {
+      if (!cached) return null;
+
+      const parsed = JSON.parse(cached);
+      // Validate structure
+      if (parsed && typeof parsed === 'object') {
+        return parsed as CachedData;
+      }
+      return null;
+    } catch (e) {
+      console.error("Failed to parse cached data:", e);
       return null;
     }
   }, []);
 
   const cacheData = useCallback((data: Partial<CachedData>) => {
     try {
-      const existing = getCachedData() || {};
-      const updated = {
+      const existing: CachedData = getCachedData() || {
+        userProfile: null,
+        mealPlan: null,
+        foodLog: [],
+        waterIntake: null,
+        trackerSettings: null,
+        lastSync: new Date().toISOString(),
+      };
+      const updated: CachedData = {
         ...existing,
         ...data,
         lastSync: new Date().toISOString(),
@@ -74,50 +126,62 @@ export const useOfflineMode = () => {
     }
   }, [getCachedData]);
 
-  const addPendingAction = useCallback((action: any) => {
-    const pending = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
-    const newAction = { ...action, timestamp: new Date().toISOString(), id: Date.now() };
-    pending.push(newAction);
-    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending));
-    setPendingSync(pending);
+  const addPendingAction = useCallback((action: Omit<PendingAction, 'id' | 'timestamp'>) => {
+    try {
+      const pending: PendingAction[] = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      const newAction: PendingAction = {
+        ...action,
+        timestamp: new Date().toISOString(),
+        id: Date.now()
+      };
+      pending.push(newAction);
+      localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending));
+      setPendingSync(pending);
+    } catch (e) {
+      console.error("Failed to add pending action:", e);
+    }
   }, []);
 
   const syncPendingData = useCallback(async () => {
-    const pending = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
-    if (pending.length === 0) return;
+    try {
+      const pending: PendingAction[] = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || "[]");
+      if (pending.length === 0) return;
 
-    let syncedCount = 0;
-    const failedActions: any[] = [];
+      let syncedCount = 0;
+      const failedActions: PendingAction[] = [];
 
-    // Process pending actions
-    for (const action of pending) {
-      try {
-        // Here you would sync each action to the server
-        console.log("Syncing action:", action);
-        syncedCount++;
-      } catch (e) {
-        console.error("Failed to sync action:", e);
-        failedActions.push(action);
+      // Process pending actions
+      for (const action of pending) {
+        try {
+          // Here you would sync each action to the server
+          console.log("Syncing action:", action);
+          syncedCount++;
+        } catch (e) {
+          console.error("Failed to sync action:", e);
+          failedActions.push(action);
+        }
       }
-    }
 
-    // Keep only failed actions for retry
-    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(failedActions));
-    setPendingSync(failedActions);
+      // Keep only failed actions for retry
+      localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(failedActions));
+      setPendingSync(failedActions);
 
-    if (syncedCount > 0) {
-      toast({
-        title: "✅ Synchronisiert!",
-        description: `${syncedCount} Änderungen wurden gespeichert.`,
-      });
-    }
+      if (syncedCount > 0) {
+        toast({
+          title: "✅ Synchronisiert!",
+          description: `${syncedCount} Änderungen wurden gespeichert.`,
+        });
+      }
 
-    if (failedActions.length > 0) {
-      toast({
-        title: "⚠️ Einige Änderungen konnten nicht synchronisiert werden",
-        description: `${failedActions.length} Änderungen werden beim nächsten Versuch erneut synchronisiert.`,
-        variant: "destructive",
-      });
+      if (failedActions.length > 0) {
+        toast({
+          title: "⚠️ Einige Änderungen konnten nicht synchronisiert werden",
+          description: `${failedActions.length} Änderungen werden beim nächsten Versuch erneut synchronisiert.`,
+          variant: "destructive",
+        });
+      }
+    } catch (e) {
+      console.error("Error syncing pending data:", e);
     }
   }, []);
 

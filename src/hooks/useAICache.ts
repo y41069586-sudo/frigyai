@@ -1,7 +1,20 @@
 import { useState, useCallback } from 'react';
 
+// AI Analysis result types
+interface FoodAnalysisResult {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  portion?: string;
+  confidence?: number;
+}
+
+type AIAnalysisResult = FoodAnalysisResult | Record<string, any>;
+
 interface CacheEntry {
-  result: any;
+  result: AIAnalysisResult;
   timestamp: number;
   imageHash: string;
 }
@@ -69,33 +82,41 @@ export const useAICache = () => {
   }, []);
 
   // Ergebnis aus Cache holen
-  const getCached = useCallback((imageBase64: string): any | null => {
-    const hash = hashImage(imageBase64);
-    const cache = getCache();
-    const entry = cache.get(hash);
+  const getCached = useCallback((imageBase64: string): AIAnalysisResult | null => {
+    try {
+      const hash = hashImage(imageBase64);
+      const cache = getCache();
+      const entry = cache.get(hash);
 
-    if (entry && Date.now() - entry.timestamp < CACHE_DURATION) {
-      console.log('[AI-CACHE] Cache hit for hash:', hash.substring(0, 20));
-      setCacheHits(prev => prev + 1);
-      return entry.result;
+      if (entry && Date.now() - entry.timestamp < CACHE_DURATION) {
+        console.log('[AI-CACHE] Cache hit for hash:', hash.substring(0, 20));
+        setCacheHits(prev => prev + 1);
+        return entry.result;
+      }
+    } catch (e) {
+      console.error('[AI-CACHE] Error retrieving cached result:', e);
     }
 
     return null;
   }, [getCache]);
 
   // Ergebnis im Cache speichern
-  const setCached = useCallback((imageBase64: string, result: any) => {
-    const hash = hashImage(imageBase64);
-    const cache = getCache();
+  const setCached = useCallback((imageBase64: string, result: AIAnalysisResult) => {
+    try {
+      const hash = hashImage(imageBase64);
+      const cache = getCache();
 
-    cache.set(hash, {
-      result,
-      timestamp: Date.now(),
-      imageHash: hash,
-    });
+      cache.set(hash, {
+        result,
+        timestamp: Date.now(),
+        imageHash: hash,
+      });
 
-    saveCache(cache);
-    console.log('[AI-CACHE] Cached result for hash:', hash.substring(0, 20));
+      saveCache(cache);
+      console.log('[AI-CACHE] Cached result for hash:', hash.substring(0, 20));
+    } catch (e) {
+      console.error('[AI-CACHE] Error caching result:', e);
+    }
   }, [getCache, saveCache]);
 
   // Cache leeren

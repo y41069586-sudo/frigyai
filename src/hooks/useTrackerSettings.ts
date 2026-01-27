@@ -160,9 +160,17 @@ export const useTrackerSettings = () => {
     loadSettings();
   }, [loadSettings]);
 
-  // Note: Real-time subscriptions disabled due to Supabase binding mismatch issues
-  // Data is loaded from DB on mount and can be manually refreshed
-  // This approach is stable and doesn't require real-time capabilities
+  // Periodic refresh instead of real-time subscription (more stable)
+  useEffect(() => {
+    if (!user) return;
+
+    // Refresh every 30 seconds to catch updates from other devices
+    const intervalId = setInterval(() => {
+      loadSettings();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [user, loadSettings]);
 
   return {
     settings,

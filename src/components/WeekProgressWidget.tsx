@@ -120,28 +120,14 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
 
     fetchWeekData();
 
-    // Subscribe to realtime updates for daily_macros
+    // Periodic refresh instead of real-time subscription (more stable)
     if (user) {
-      const channel = supabase
-        .channel('week-progress-macros')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'daily_macros',
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            console.log('[WEEK-PROGRESS] Macro update received, refreshing...');
-            fetchWeekData();
-          }
-        )
-        .subscribe();
+      const intervalId = setInterval(() => {
+        console.log('[WEEK-PROGRESS] Refreshing weekly data...');
+        fetchWeekData();
+      }, 30000);
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => clearInterval(intervalId);
     }
   }, [user, targetCalories]);
 

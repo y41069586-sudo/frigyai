@@ -593,7 +593,7 @@ const ShoppingSlide = ({ onNext }: { onNext: () => void }) => {
 const FinishSlide = ({ onComplete }: { onComplete: () => void }) => (
   <SlideWrapper>
     <motion.div
-      animate={{ 
+      animate={{
         y: [0, -15, 0],
         rotate: [-5, 5, -5]
       }}
@@ -601,7 +601,7 @@ const FinishSlide = ({ onComplete }: { onComplete: () => void }) => (
     >
       <VectorFrigyMascot size={160} animate={true} />
     </motion.div>
-    
+
     <motion.div
       className="flex gap-2"
       initial={{ opacity: 0 }}
@@ -611,14 +611,14 @@ const FinishSlide = ({ onComplete }: { onComplete: () => void }) => (
       {[...Array(3)].map((_, i) => (
         <motion.div
           key={i}
-          animate={{ 
+          animate={{
             y: [0, -8, 0],
             opacity: [0.5, 1, 0.5]
           }}
-          transition={{ 
-            duration: 1.5, 
-            repeat: Infinity, 
-            delay: i * 0.2 
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            delay: i * 0.2
           }}
         >
           <Sparkles className="w-6 h-6 text-yellow-500" />
