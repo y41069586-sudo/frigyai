@@ -66,11 +66,17 @@ const setCachedSubscription = (data: SubscriptionStatus | null) => {
 // Fast DB cache load (much faster than Stripe API)
 const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | null> => {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('subscription_cache')
       .select('subscribed, product_id, subscription_end, is_trial')
       .eq('user_id', userId)
       .single();
+
+    // Handle query errors (no rows found, multiple rows, etc.)
+    if (error) {
+      console.warn('[Auth] Database query error for subscription cache:', error);
+      return null;
+    }
 
     if (data) {
       return {
