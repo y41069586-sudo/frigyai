@@ -134,33 +134,33 @@ export const DashboardMealPlanCard = () => {
                 </span>
               </motion.div>
               
-              {/* Week indicator dots */}
-              <div className="flex gap-1 pt-1">
+              {/* Week indicator dots - Full width */}
+              <div className="flex gap-1.5 pt-2 -mx-1">
                 {DAYS_SHORT.map((day, index) => {
                   const isToday = index === getCurrentDayIndex();
                   const hasMeals = mealPlan[index]?.meals?.length > 0;
                   const isPast = index < getCurrentDayIndex();
-                  
+
                   return (
                     <motion.div
                       key={day}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: index * 0.04 + 0.3 }}
-                      className="flex flex-col items-center gap-0.5"
+                      className="flex-1 flex flex-col items-center gap-1.5"
                     >
                       <div
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          isToday 
-                            ? 'bg-emerald-500 ring-2 ring-emerald-500/30 ring-offset-1 ring-offset-background' 
+                        className={`w-3.5 h-3.5 rounded-full transition-all ${
+                          isToday
+                            ? 'bg-emerald-500 ring-2 ring-emerald-500/30 ring-offset-1 ring-offset-background'
                             : isPast && hasMeals
                               ? 'bg-emerald-500/60'
-                              : hasMeals 
-                                ? 'bg-emerald-500/30' 
+                              : hasMeals
+                                ? 'bg-emerald-500/30'
                                 : 'bg-muted/20'
                         }`}
                       />
-                      <span className={`text-[8px] ${isToday ? 'text-emerald-500 font-bold' : 'text-muted-foreground/50'}`}>
+                      <span className={`text-[10px] font-semibold ${isToday ? 'text-emerald-500' : 'text-muted-foreground/50'}`}>
                         {day}
                       </span>
                     </motion.div>

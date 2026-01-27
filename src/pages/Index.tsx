@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan } from "lucide-react";
+import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,7 @@ const Index = () => {
   const [proteinEaten, setProteinEaten] = useState(0);
   const [carbsEaten, setCarbsEaten] = useState(0);
   const [fatEaten, setFatEaten] = useState(0);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   
   useEffect(() => {
     const localName = localStorage.getItem('userName');
@@ -187,7 +188,7 @@ const Index = () => {
   
   // Initialize states - check if user already completed onboarding
   // TESTMODUS: Onboarding wird bei jeder Session angezeigt (Login bleibt möglich)
-  const ONBOARDING_TEST_MODE = false; // Testmodus deaktiviert - Onboarding geht zum Dashboard
+  const ONBOARDING_TEST_MODE = false; // Testmodus deaktiviert
   
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
@@ -254,6 +255,7 @@ const Index = () => {
     }
 
     // After onboarding slides, mark complete and go to paywall (if logged in) or auth
+    localStorage.setItem('onboardingComplete', 'true');
     setShowOnboarding(false);
     setOnboardingComplete(true);
 
@@ -362,7 +364,7 @@ const Index = () => {
             
             <div className="flex items-center gap-2 flex-shrink-0">
               {currentStreak > 0 && (
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 rounded-full"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -372,8 +374,20 @@ const Index = () => {
                   <span className="text-xs font-bold text-amber-600">{currentStreak}</span>
                 </motion.div>
               )}
-              
-              <motion.button 
+
+              {/* AI Chatbot Button - Only for Premium users */}
+              {subscriptionStatus?.subscribed && (
+                <motion.button
+                  onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+                  className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center hover:bg-card/80 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                  title="AI Chatbot"
+                >
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </motion.button>
+              )}
+
+              <motion.button
                 onClick={() => navigate('/profile')}
                 className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center"
                 whileTap={{ scale: 0.95 }}
@@ -442,72 +456,76 @@ const Index = () => {
             />
           </motion.section>
           
-          {/* Progress/Verlauf Section */}
+          {/* Wochenplan Widget - Full Width */}
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{t.weightHistory}</p>
-                        <p className="text-xs text-muted-foreground">{t.tapForDetails}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-purple-500/50" />
-                  </div>
-                  
-                  {/* Mini Chart Preview */}
-                  <div className="h-12 flex items-end gap-1">
-                    {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
-                      <motion.div
-                        key={i}
-                        className="flex-1 bg-gradient-to-t from-purple-500/40 to-purple-400/20 rounded-t-sm"
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ delay: 0.3 + i * 0.05, duration: 0.4, ease: "easeOut" }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4">
-                  <ProgressCharts />
-                </div>
-              </DialogContent>
-            </Dialog>
-          </motion.section>
-          
-          {/* Action Cards Grid */}
-          <motion.section
-            className="grid grid-cols-2 gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             viewport={{ once: true }}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <DashboardMealPlanCard />
-            </motion.div>
+            <DashboardMealPlanCard />
+          </motion.section>
+
+          {/* Progress & Shopping Grid */}
+          <motion.section
+            className="grid grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            viewport={{ once: true }}
+          >
+            {/* Progress/Verlauf Section */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.35 }}
+            >
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform h-full">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center flex-shrink-0">
+                          <TrendingUp className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{t.weightHistory}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t.tapForDetails}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-purple-500/50 flex-shrink-0" />
+                    </div>
+
+                    {/* Mini Chart Preview */}
+                    <div className="h-12 flex items-end gap-1">
+                      {[65, 45, 70, 55, 80, 60, 75].map((height, i) => (
+                        <motion.div
+                          key={i}
+                          className="flex-1 bg-gradient-to-t from-purple-500/40 to-purple-400/20 rounded-t-sm"
+                          initial={{ height: 0 }}
+                          animate={{ height: `${height}%` }}
+                          transition={{ delay: 0.3 + i * 0.05, duration: 0.4, ease: "easeOut" }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold">{t.progressTracker}</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <ProgressCharts />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </motion.div>
+
+            {/* Shopping List Widget */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
             >
               <DashboardShoppingCard />
             </motion.div>
@@ -641,7 +659,11 @@ const Index = () => {
 
       {/* AI Chatbot - Only for subscribed users */}
       {user && subscriptionStatus?.subscribed && onboardingComplete && (
-        <AIChatbot userProfile={trackerSettings} />
+        <AIChatbot
+          userProfile={trackerSettings}
+          isOpen={isChatbotOpen}
+          setIsOpen={setIsChatbotOpen}
+        />
       )}
     </div>
   );
