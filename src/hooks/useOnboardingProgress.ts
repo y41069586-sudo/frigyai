@@ -68,10 +68,12 @@ export const useOnboardingProgress = () => {
   // Save onboarding progress to database
   const saveProgress = useCallback(async (data: Partial<OnboardingProgress>) => {
     if (!user) {
-      // Not logged in - save to localStorage only
+      // Not logged in - save to localStorage and update state
       if (data.onboarding_complete) {
         localStorage.setItem('onboardingComplete', 'true');
       }
+      // Update in-memory state to keep UI in sync
+      setProgress(prev => prev ? { ...prev, ...data } : { onboarding_complete: false, ...data });
       return;
     }
 
