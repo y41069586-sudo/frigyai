@@ -479,16 +479,16 @@ const Index = () => {
                 <DialogTrigger asChild>
                   <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent rounded-2xl border border-purple-500/20 cursor-pointer active:scale-[0.98] transition-transform h-full">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center flex-shrink-0">
                           <TrendingUp className="w-5 h-5 text-purple-500" />
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{t.weightHistory}</p>
-                          <p className="text-xs text-muted-foreground">{t.tapForDetails}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{t.weightHistory}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t.tapForDetails}</p>
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-purple-500/50" />
+                      <ChevronRight className="w-4 h-4 text-purple-500/50 flex-shrink-0" />
                     </div>
 
                     {/* Mini Chart Preview */}
