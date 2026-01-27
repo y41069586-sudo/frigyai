@@ -107,7 +107,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         parsed.forEach(item => {
           purchasedMap.set(item.name.toLowerCase(), item.purchased);
         });
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Failed to parse cached shopping list:', e);
+      }
     }
 
     // Merge: Behalte purchased-Status aus Cache
