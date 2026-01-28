@@ -11,7 +11,6 @@ import ProgressCharts from "@/components/ProgressCharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
-import { AIChatbot } from "@/components/AIChatbot";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
@@ -47,8 +46,7 @@ const Index = () => {
   const [proteinEaten, setProteinEaten] = useState(0);
   const [carbsEaten, setCarbsEaten] = useState(0);
   const [fatEaten, setFatEaten] = useState(0);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-  
+
   useEffect(() => {
     const localName = localStorage.getItem('userName');
     if (localName) {
@@ -419,28 +417,37 @@ const Index = () => {
               />
             </div>
             
-            {/* Scan Fridge Button */}
+            {/* Scan Fridge Button - Mobile Optimized */}
             <motion.button
               onClick={() => navigate('/scan')}
-              className="w-full mt-4 py-4 px-4 
-                         bg-gradient-to-r from-emerald-500 to-teal-500
-                         hover:from-emerald-600 hover:to-teal-600
-                         rounded-2xl shadow-lg shadow-emerald-500/25
-                         flex items-center justify-center gap-3
-                         text-white font-semibold text-base
-                         active:scale-[0.98] transition-all"
+              className="w-full mt-4 py-3 sm:py-4 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 text-white font-semibold sm:text-base active:scale-[0.98] transition-all"
               whileTap={{ scale: 0.97 }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
+              {/* Mobile: Icon with Scan Badge Overlay */}
               <motion.div
+                className="sm:hidden relative"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Scan className="w-6 h-6" />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-sm flex items-center justify-center border border-emerald-500 shadow-md">
+                  <Scan className="w-1.5 h-1.5 text-emerald-500" />
+                </div>
+              </motion.div>
+
+              {/* Desktop: Icon + Text */}
+              <motion.div
+                className="hidden sm:block"
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <Scan className="w-5 h-5" />
               </motion.div>
-              {t.scanFridge}
+              <span className="hidden sm:inline text-base">{t.scanFridge}</span>
+              <span className="sm:hidden text-xs">Scan</span>
             </motion.button>
           </motion.section>
           
@@ -657,14 +664,6 @@ const Index = () => {
         />
       )}
 
-      {/* AI Chatbot - Only for subscribed users */}
-      {user && subscriptionStatus?.subscribed && onboardingComplete && (
-        <AIChatbot
-          userProfile={trackerSettings}
-          isOpen={isChatbotOpen}
-          setIsOpen={setIsChatbotOpen}
-        />
-      )}
     </div>
   );
 };

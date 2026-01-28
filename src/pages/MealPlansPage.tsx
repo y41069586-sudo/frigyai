@@ -23,7 +23,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import StreakBadge from '@/components/StreakBadge';
-import { AIChatbot } from '@/components/AIChatbot';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
@@ -616,9 +615,6 @@ const MealPlansPage = () => {
         open={showSuccessDialog} 
         onClose={() => setShowSuccessDialog(false)} 
       />
-
-      {/* AI Chatbot */}
-      <AIChatbot userProfile={trackerSettings} onResetTracker={handleResetTracker} />
 
       {/* Bottom Navigation */}
       <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} trackerLoading={trackerLoading} onTabChange={setActiveTab} />
