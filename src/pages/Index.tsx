@@ -433,9 +433,6 @@ const Index = () => {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <Scan className="w-6 h-6" />
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-sm flex items-center justify-center border border-emerald-500 shadow-md">
-                  <Scan className="w-1.5 h-1.5 text-emerald-500" />
-                </div>
               </motion.div>
 
               {/* Desktop: Icon + Text */}
