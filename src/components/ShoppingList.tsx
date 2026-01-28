@@ -157,6 +157,18 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     );
   };
 
+  const toggleCategory = (category: IngredientCategory) => {
+    setExpandedCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
+
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
   const purchasedPrice = items
     .filter((i) => i.purchased)
