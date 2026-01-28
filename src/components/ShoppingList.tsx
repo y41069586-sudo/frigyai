@@ -205,7 +205,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
 
       {/* Summary Card */}
       <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-primary/20">
               <ShoppingCart className="h-5 w-5 text-primary" />
@@ -224,6 +224,28 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             </p>
           </div>
         </div>
+
+        {/* Expand/Collapse All Controls */}
+        {items.length > 0 && (
+          <div className="flex gap-2 mb-3 text-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandedCategories(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']))}
+              className="h-7 text-xs"
+            >
+              Alle anzeigen
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandedCategories(new Set())}
+              className="h-7 text-xs"
+            >
+              Alle minimieren
+            </Button>
+          </div>
+        )}
         
         {/* Progress bar */}
         <div className="mt-3 h-2 bg-background/50 rounded-full overflow-hidden">
