@@ -447,7 +447,7 @@ const Index = () => {
                 <Scan className="w-5 h-5" />
               </motion.div>
               <span className="hidden sm:inline text-base">{t.scanFridge}</span>
-              <span className="sm:hidden text-xs">Scan</span>
+              <span className="sm:hidden text-xs">Kühlschrank scannen</span>
             </motion.button>
           </motion.section>
           
