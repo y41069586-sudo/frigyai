@@ -515,12 +515,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <p className="text-muted-foreground">{t.generateMealPlanForList}</p>
         </Card>
       )}
-
-      <OrderIngredientsDialog
-        ingredients={unpurchasedItems}
-        open={showOrderDialog}
-        onOpenChange={setShowOrderDialog}
-      />
     </div>
   );
 };
