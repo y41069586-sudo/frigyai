@@ -173,6 +173,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const purchasedPrice = items
     .filter((i) => i.purchased)
     .reduce((sum, item) => sum + item.price, 0);
+  const remainingPrice = totalPrice - purchasedPrice;
   const purchasedCount = items.filter((i) => i.purchased).length;
   const progressPct = items.length ? (purchasedCount / items.length) * 100 : 0;
 
