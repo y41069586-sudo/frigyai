@@ -342,7 +342,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           {/* Fridge Scan Button */}
           {items.length > 0 && (
             <Button
-              className="flex-1 gap-2"
+              className="sm:flex-1 gap-2 text-sm sm:text-base px-3 sm:px-4"
               onClick={handleFridgeScan}
               variant="default"
             >
