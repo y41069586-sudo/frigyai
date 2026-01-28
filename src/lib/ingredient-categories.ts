@@ -60,12 +60,8 @@ export function categorizeIngredient(ingredientName: string): IngredientCategory
 }
 
 /**
- * Group ingredients by category
+ * Shopping item with all metadata
  */
-export interface GroupedIngredients {
-  [key in IngredientCategory]?: ShoppingItem[];
-}
-
 export interface ShoppingItem {
   id: string;
   name: string;
@@ -73,6 +69,13 @@ export interface ShoppingItem {
   price: number;
   purchased: boolean;
 }
+
+/**
+ * Type for grouped ingredients by category
+ */
+export type GroupedIngredients = {
+  [key in IngredientCategory]?: ShoppingItem[];
+};
 
 export function groupByCategory(items: ShoppingItem[]): Array<{
   category: IngredientCategory;
