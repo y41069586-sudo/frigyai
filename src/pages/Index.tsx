@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
