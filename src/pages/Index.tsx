@@ -427,7 +427,7 @@ const Index = () => {
                          hover:from-emerald-600 hover:to-teal-600
                          rounded-2xl shadow-lg shadow-emerald-500/25
                          flex items-center justify-center gap-2 sm:gap-3
-                         text-white font-semibold sm:text-base text-sm
+                         text-white font-semibold sm:text-base text-xs sm:py-4 py-2.5
                          active:scale-[0.98] transition-all"
               whileTap={{ scale: 0.97 }}
               initial={{ opacity: 0, y: 10 }}
@@ -435,24 +435,11 @@ const Index = () => {
               transition={{ delay: 0.2 }}
             >
               <motion.div
-                className="relative flex items-center justify-center"
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                {/* Fridge Icon */}
-                <div className="sm:block hidden">
-                  <Scan className="w-5 h-5" />
-                </div>
-                {/* Mobile: Icon with Scan Badge Overlay */}
-                <div className="sm:hidden block relative">
-                  <Scan className="w-4 h-4" />
-                  {/* Scan Badge Overlay */}
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-sm flex items-center justify-center border border-emerald-500">
-                    <Scan className="w-2 h-2 text-emerald-500" />
-                  </div>
-                </div>
+                <Scan className="w-5 h-5 sm:w-5 sm:h-5" />
               </motion.div>
-              {/* Text - Hidden on mobile, shown on desktop */}
               <span className="hidden sm:inline">{t.scanFridge}</span>
               <span className="sm:hidden">Scan</span>
             </motion.button>
