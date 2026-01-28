@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Truck, WifiOff, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Check, Truck, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { OrderIngredientsDialog } from './OrderIngredientsDialog';
 import { toast } from '@/hooks/use-toast';
+import { groupByCategory, getCategoryColor, getCategoryEmoji, IngredientCategory } from '@/lib/ingredient-categories';
 
 interface Ingredient {
   name: string;
