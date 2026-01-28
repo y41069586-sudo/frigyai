@@ -33,6 +33,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
 
   // Offline-Status überwachen
   useEffect(() => {
