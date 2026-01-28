@@ -2611,6 +2611,9 @@ const translations: Record<Language, Translations> = {
     noAccount: "Pas encore de compte? Inscrivez-vous",
     alreadyHaveAccount: "Déjà un compte? Connectez-vous",
     forgotPassword: "Mot de passe oublié?",
+    invalidEmail: "Adresse e-mail invalide",
+    passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères",
+    enterEmailAndPassword: "Veuillez entrer l'e-mail et le mot de passe",
     
     // Tracker
     age: "Âge",
