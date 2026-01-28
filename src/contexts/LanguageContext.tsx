@@ -969,6 +969,9 @@ const translations: Record<Language, Translations> = {
     noAccount: "Noch kein Konto? Jetzt registrieren",
     alreadyHaveAccount: "Bereits registriert? Jetzt anmelden",
     forgotPassword: "Passwort vergessen?",
+    invalidEmail: "Ungültige E-Mail-Adresse",
+    passwordTooShort: "Passwort muss mindestens 8 Zeichen lang sein",
+    enterEmailAndPassword: "Bitte gib E-Mail und Passwort ein",
     
     // Tracker
     age: "Alter",
