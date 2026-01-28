@@ -220,9 +220,12 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-primary">€{totalPrice.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">
-              €{purchasedPrice.toFixed(2)} {t.spent}
-            </p>
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              <p>€{purchasedPrice.toFixed(2)} {t.spent}</p>
+              {remainingPrice > 0 && (
+                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} noch nötig</p>
+              )}
+            </div>
           </div>
         </div>
 
