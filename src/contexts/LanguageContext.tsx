@@ -1790,6 +1790,9 @@ const translations: Record<Language, Translations> = {
     noAccount: "No account yet? Sign up now",
     alreadyHaveAccount: "Already have an account? Sign in",
     forgotPassword: "Forgot password?",
+    invalidEmail: "Invalid email address",
+    passwordTooShort: "Password must be at least 8 characters long",
+    enterEmailAndPassword: "Please enter email and password",
     
     // Tracker
     age: "Age",
