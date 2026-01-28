@@ -231,8 +231,39 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   }, [currentStep]);
 
   const goNext = () => {
+    // Check if user can proceed from current step before allowing navigation
+    if (!canProceed()) {
+      // Show user-friendly error message based on failed step
+      if (currentStep === "goal") {
+        toast({
+          title: t.error,
+          description: t.pleaseSelectGoal || "Please select a goal",
+          variant: "destructive",
+        });
+      } else if (currentStep === "gender") {
+        toast({
+          title: t.error,
+          description: t.pleaseSelectGender || "Please select your gender",
+          variant: "destructive",
+        });
+      } else if (currentStep === "planning-setup") {
+        toast({
+          title: t.error,
+          description: t.pleaseSelectActivityLevel || "Please select your activity level",
+          variant: "destructive",
+        });
+      } else if (currentStep === "save-progress") {
+        toast({
+          title: t.error,
+          description: t.onboardingPleaseLoginToProceed || "Please log in to continue",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
     lightTap(); // Haptic feedback on navigation
-    
+
     // Handle conditional navigation for app-mode steps
     if (currentStep === "spontan-mode-1") {
       setCurrentStep("spontan-mode-2");
@@ -246,23 +277,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       setCurrentStep("structured-mode-3");
       return;
     }
-    
+
     let nextIndex = currentIndex + 1;
-    
+
     // Check if user already used their free onboarding scan (persists across sessions)
     const scanUsed = localStorage.getItem('onboardingScanUsed') === 'true';
-    
+
     // Skip fridge-intro if scan was already used in a previous session
     if (scanUsed && onboardingSteps[nextIndex] === "fridge-intro") {
       nextIndex++; // Skip fridge-intro
     }
-    
+
     // Skip scan-feedback if user didn't actually scan (no showScanFeedback state)
     const didScan = location.state?.showScanFeedback === true;
     if (onboardingSteps[nextIndex] === "scan-feedback" && !didScan) {
       nextIndex++; // Skip to next step after scan-feedback
     }
-    
+
     if (nextIndex < onboardingSteps.length) {
       setCurrentStep(onboardingSteps[nextIndex]);
     } else {
