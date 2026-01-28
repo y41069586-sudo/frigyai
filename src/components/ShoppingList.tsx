@@ -347,7 +347,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               variant="default"
             >
               <Scan className="h-4 w-4" />
-              Kühlschrank scannen
+              <span className="hidden sm:inline">Kühlschrank scannen</span>
             </Button>
           )}
         </div>
