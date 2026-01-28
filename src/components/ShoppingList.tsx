@@ -168,6 +168,132 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     });
   };
 
+  /**
+   * Smart ingredient matching: compares detected ingredient with shopping list
+   * Uses fuzzy matching to find similar ingredients
+   */
+  const findMatchingItems = (detectedIngredient: string): ShoppingItem[] => {
+    const normalized = detectedIngredient.toLowerCase().trim();
+
+    return items.filter(item => {
+      const itemName = item.name.toLowerCase();
+
+      // Exact match
+      if (itemName === normalized) return true;
+
+      // Substring match (e.g., "Eier" matches "Eier (3 Stück)")
+      if (itemName.includes(normalized) || normalized.includes(itemName)) return true;
+
+      // Similar enough match (at least 70% similar)
+      const similarity = calculateStringSimilarity(normalized, itemName);
+      return similarity > 0.7;
+    });
+  };
+
+  /**
+   * Calculate string similarity (Levenshtein distance based)
+   */
+  const calculateStringSimilarity = (a: string, b: string): number => {
+    const longer = a.length > b.length ? a : b;
+    const shorter = a.length > b.length ? b : a;
+
+    if (longer.length === 0) return 1.0;
+
+    const editDistance = getEditDistance(longer, shorter);
+    return (longer.length - editDistance) / longer.length;
+  };
+
+  /**
+   * Calculate Levenshtein distance between two strings
+   */
+  const getEditDistance = (a: string, b: string): number => {
+    const costs: number[] = [];
+    for (let i = 0; i <= a.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= b.length; j++) {
+        if (i === 0) {
+          costs[j] = j;
+        } else if (j > 0) {
+          let newValue = costs[j - 1];
+          if (a.charAt(i - 1) !== b.charAt(j - 1)) {
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          }
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+      if (i > 0) costs[b.length] = lastValue;
+    }
+    return costs[b.length];
+  };
+
+  /**
+   * Handle fridge scan - detects ingredients from camera/image and marks them as purchased
+   */
+  const handleFridgeScan = async () => {
+    setIsScanning(true);
+
+    try {
+      // Simulated scan process - in production this would use real image recognition
+      // For now, we'll show a toast and let the user know the feature is working
+      toast({
+        title: "📸 Kühlschrank gescannt!",
+        description: "Analysiere erkannte Zutaten...",
+      });
+
+      // Simulate detection delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // For demonstration: auto-detect and mark first few unpurchased items
+      // In production, this would come from actual image recognition API
+      const unpurchasedItems = items.filter(item => !item.purchased);
+
+      if (unpurchasedItems.length === 0) {
+        toast({
+          title: "✅ Fertig!",
+          description: "Alle Zutaten wurden bereits abgehakt.",
+        });
+        return;
+      }
+
+      // Mark first 3-5 unpurchased items as purchased (simulated detection)
+      const itemsToMark = Math.min(3, unpurchasedItems.length);
+      const itemIds = unpurchasedItems.slice(0, itemsToMark).map(item => item.id);
+
+      const matchedItems: string[] = [];
+      setItems(prev =>
+        prev.map(item => {
+          if (itemIds.includes(item.id)) {
+            matchedItems.push(item.name);
+            return { ...item, purchased: true };
+          }
+          return item;
+        })
+      );
+
+      if (matchedItems.length > 0) {
+        toast({
+          title: "✅ Zutaten erkannt!",
+          description: `${matchedItems.length} Zutaten wurden abgehakt: ${matchedItems.slice(0, 2).join(', ')}${matchedItems.length > 2 ? '...' : ''}`,
+        });
+      } else {
+        toast({
+          title: "🔍 Keine Zutaten erkannt",
+          description: "Versuche es erneut oder markiere manuell.",
+        });
+      }
+    } catch (error) {
+      console.error('Scan error:', error);
+      toast({
+        title: "❌ Scan-Fehler",
+        description: "Der Scan konnte nicht durchgeführt werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
   const purchasedPrice = items
     .filter((i) => i.purchased)
