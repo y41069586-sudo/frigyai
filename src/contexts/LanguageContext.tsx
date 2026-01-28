@@ -2622,7 +2622,11 @@ const translations: Record<Language, Translations> = {
     invalidEmail: "Adresse e-mail invalide",
     passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères",
     enterEmailAndPassword: "Veuillez entrer l'e-mail et le mot de passe",
-    
+    pleaseSelectGoal: "Veuillez sélectionner un objectif",
+    pleaseSelectGender: "Veuillez sélectionner votre sexe",
+    pleaseSelectActivityLevel: "Veuillez sélectionner votre niveau d'activité",
+    onboardingPleaseLoginToProceed: "Veuillez vous connecter pour continuer",
+
     // Tracker
     age: "Âge",
     years: "ans",
