@@ -1797,7 +1797,11 @@ const translations: Record<Language, Translations> = {
     invalidEmail: "Invalid email address",
     passwordTooShort: "Password must be at least 8 characters long",
     enterEmailAndPassword: "Please enter email and password",
-    
+    pleaseSelectGoal: "Please select a goal",
+    pleaseSelectGender: "Please select your gender",
+    pleaseSelectActivityLevel: "Please select your activity level",
+    onboardingPleaseLoginToProceed: "Please log in to continue",
+
     // Tracker
     age: "Age",
     years: "years",
