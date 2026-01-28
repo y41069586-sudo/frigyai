@@ -11,7 +11,6 @@ import ProgressCharts from "@/components/ProgressCharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
-import { AIChatbot } from "@/components/AIChatbot";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
