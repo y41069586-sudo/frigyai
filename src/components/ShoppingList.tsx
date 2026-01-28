@@ -342,13 +342,12 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           {/* Fridge Scan Button */}
           {items.length > 0 && (
             <Button
-              className="sm:flex-1 gap-2 px-2 sm:px-4 h-10 sm:h-auto"
+              className="flex-1 gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
               onClick={handleFridgeScan}
               variant="default"
-              size="sm"
             >
-              <Scan className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Kühlschrank Scan</span>
+              <Scan className="h-4 w-4" />
+              Kühlschrank scannen
             </Button>
           )}
         </div>
