@@ -3260,7 +3260,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (!authEmail || !authPassword) {
             toast({
               title: t.error,
-              description: t.onboardingEnterEmailPassword,
+              description: t.enterEmailAndPassword,
               variant: "destructive",
             });
             return;
@@ -3271,7 +3271,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (!emailRegex.test(authEmail)) {
             toast({
               title: t.error,
-              description: "Ungültige E-Mail-Adresse",
+              description: t.invalidEmail,
               variant: "destructive",
             });
             return;
@@ -3281,7 +3281,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (authPassword.length < 8) {
             toast({
               title: t.error,
-              description: "Passwort muss mindestens 8 Zeichen lang sein",
+              description: t.passwordTooShort,
               variant: "destructive",
             });
             return;
