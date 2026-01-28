@@ -31,7 +31,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
