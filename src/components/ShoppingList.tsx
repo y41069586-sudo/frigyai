@@ -268,49 +268,93 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         )}
       </Card>
 
-      {/* Items List */}
-      <div className="space-y-2">
-        {items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.03 }}
-          >
-            <Card 
-              className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
-                item.purchased 
-                  ? 'bg-primary/10 border-primary/30' 
-                  : 'bg-card/60 border-primary/10 hover:border-primary/30'
-              }`}
-              onPointerUp={() => toggleItem(item.id)}
-            >
-              <div className="flex items-center gap-3">
-                <Checkbox 
-                  checked={item.purchased}
-                  onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                />
-                <div className="flex-1">
-                  <p className={`font-medium ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
-                    {item.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{item.amount}</p>
+      {/* Items List - Grouped by Category */}
+      <div className="space-y-4">
+        {groupByCategory(items).map((group) => {
+          const isExpanded = expandedCategories.has(group.category);
+          const categoryPurchasedCount = group.items.filter(i => i.purchased).length;
+          const categoryTotalPrice = group.items.reduce((sum, item) => sum + item.price, 0);
+
+          return (
+            <div key={group.category} className="space-y-2">
+              {/* Category Header */}
+              <button
+                onClick={() => toggleCategory(group.category)}
+                className={`w-full p-3 rounded-lg border transition-all duration-200 flex items-center justify-between ${getCategoryColor(group.category)}`}
+              >
+                <div className="flex items-center gap-3 flex-1 text-left">
+                  <span className="text-xl">{getCategoryEmoji(group.category)}</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">{group.category}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {categoryPurchasedCount} von {group.items.length} • €{categoryTotalPrice.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>
-                    €{item.price.toFixed(2)}
-                  </span>
-                  {item.purchased && (
-                    <Check className="h-4 w-4 text-primary" />
-                  )}
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+                <motion.div
+                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </motion.div>
+              </button>
+
+              {/* Category Items */}
+              <motion.div
+                initial={false}
+                animate={{
+                  height: isExpanded ? 'auto' : 0,
+                  opacity: isExpanded ? 1 : 0,
+                  marginBottom: isExpanded ? 16 : 0
+                }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden space-y-2"
+              >
+                {group.items.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.02 }}
+                  >
+                    <Card
+                      className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
+                        item.purchased
+                          ? 'bg-primary/10 border-primary/30'
+                          : 'bg-card/60 border-primary/10 hover:border-primary/30'
+                      }`}
+                      onPointerUp={() => toggleItem(item.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={item.purchased}
+                          onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <div className="flex-1">
+                          <p className={`font-medium text-sm ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{item.amount}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold text-sm ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>
+                            €{item.price.toFixed(2)}
+                          </span>
+                          {item.purchased && (
+                            <Check className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          );
+        })}
       </div>
 
       {items.length === 0 && (
