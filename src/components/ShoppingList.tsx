@@ -345,11 +345,10 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             <Button
               className="flex-1 gap-2"
               onClick={handleFridgeScan}
-              disabled={isScanning || isOffline}
               variant="default"
             >
               <Scan className="h-4 w-4" />
-              {isScanning ? 'Scanne...' : 'Kühlschrank Scan'}
+              Kühlschrank Scan
             </Button>
           )}
         </div>
