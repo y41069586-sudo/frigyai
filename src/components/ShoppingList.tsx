@@ -346,7 +346,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               onClick={handleFridgeScan}
               variant="default"
             >
-              <Scan className="h-4 w-4" />
+              <Refrigerator className="h-4 w-4" />
               <span className="hidden sm:inline">Kühlschrank scannen</span>
             </Button>
           )}
