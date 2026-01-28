@@ -972,7 +972,11 @@ const translations: Record<Language, Translations> = {
     invalidEmail: "Ungültige E-Mail-Adresse",
     passwordTooShort: "Passwort muss mindestens 8 Zeichen lang sein",
     enterEmailAndPassword: "Bitte gib E-Mail und Passwort ein",
-    
+    pleaseSelectGoal: "Bitte wähle ein Ziel aus",
+    pleaseSelectGender: "Bitte wähle dein Geschlecht aus",
+    pleaseSelectActivityLevel: "Bitte wähle dein Aktivitätslevel aus",
+    onboardingPleaseLoginToProceed: "Bitte melde dich an, um fortzufahren",
+
     // Tracker
     age: "Alter",
     years: "Jahre",
