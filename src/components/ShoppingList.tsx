@@ -389,7 +389,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         {/* Action Buttons */}
         <div className="mt-4 flex gap-2">
           {/* Offline Sync Button */}
-          <Button 
+          <Button
             variant="outline"
             className="flex-1 gap-2"
             onClick={forceSync}
@@ -398,15 +398,16 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             Für Offline speichern
           </Button>
 
-          {/* Order Button */}
-          {unpurchasedItems.length > 0 && (
-            <Button 
+          {/* Fridge Scan Button */}
+          {items.length > 0 && (
+            <Button
               className="flex-1 gap-2"
-              onClick={() => setShowOrderDialog(true)}
-              disabled={isOffline}
+              onClick={handleFridgeScan}
+              disabled={isScanning || isOffline}
+              variant="default"
             >
-              <Truck className="h-4 w-4" />
-              {t.orderIngredients}
+              <Scan className="h-4 w-4" />
+              {isScanning ? 'Scanne...' : 'Kühlschrank Scan'}
             </Button>
           )}
         </div>
