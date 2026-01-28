@@ -230,70 +230,10 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   };
 
   /**
-   * Handle fridge scan - detects ingredients from camera/image and marks them as purchased
+   * Handle fridge scan - navigates to camera/scan page with OpenAI-powered ingredient detection
    */
-  const handleFridgeScan = async () => {
-    setIsScanning(true);
-
-    try {
-      // Simulated scan process - in production this would use real image recognition
-      // For now, we'll show a toast and let the user know the feature is working
-      toast({
-        title: "📸 Kühlschrank gescannt!",
-        description: "Analysiere erkannte Zutaten...",
-      });
-
-      // Simulate detection delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // For demonstration: auto-detect and mark first few unpurchased items
-      // In production, this would come from actual image recognition API
-      const unpurchasedItems = items.filter(item => !item.purchased);
-
-      if (unpurchasedItems.length === 0) {
-        toast({
-          title: "✅ Fertig!",
-          description: "Alle Zutaten wurden bereits abgehakt.",
-        });
-        return;
-      }
-
-      // Mark first 3-5 unpurchased items as purchased (simulated detection)
-      const itemsToMark = Math.min(3, unpurchasedItems.length);
-      const itemIds = unpurchasedItems.slice(0, itemsToMark).map(item => item.id);
-
-      const matchedItems: string[] = [];
-      setItems(prev =>
-        prev.map(item => {
-          if (itemIds.includes(item.id)) {
-            matchedItems.push(item.name);
-            return { ...item, purchased: true };
-          }
-          return item;
-        })
-      );
-
-      if (matchedItems.length > 0) {
-        toast({
-          title: "✅ Zutaten erkannt!",
-          description: `${matchedItems.length} Zutaten wurden abgehakt: ${matchedItems.slice(0, 2).join(', ')}${matchedItems.length > 2 ? '...' : ''}`,
-        });
-      } else {
-        toast({
-          title: "🔍 Keine Zutaten erkannt",
-          description: "Versuche es erneut oder markiere manuell.",
-        });
-      }
-    } catch (error) {
-      console.error('Scan error:', error);
-      toast({
-        title: "❌ Scan-Fehler",
-        description: "Der Scan konnte nicht durchgeführt werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsScanning(false);
-    }
+  const handleFridgeScan = () => {
+    navigate('/scan');
   };
 
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
