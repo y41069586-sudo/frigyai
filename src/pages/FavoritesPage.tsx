@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import RecipeCard from "@/components/RecipeCard";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { safeJsonParse } from "@/lib/utils";
 
 interface Recipe {
   id: string;
@@ -26,14 +27,16 @@ const FavoritesPage = () => {
   const [favorites, setFavorites] = useState<Recipe[]>([]);
 
   useEffect(() => {
-    const favoriteIds = JSON.parse(localStorage.getItem("favorites") || "[]");
-    const recipeDetails = JSON.parse(localStorage.getItem("recipeDetails") || "{}");
-    
-    const favoriteRecipes = favoriteIds
-      .map((id: string) => recipeDetails[id])
-      .filter((recipe: Recipe | undefined) => recipe !== undefined);
-    
-    setFavorites(favoriteRecipes);
+    const favoriteIds = safeJsonParse<string[]>(localStorage.getItem("favorites"), []);
+    const recipeDetails = safeJsonParse<Record<string, Recipe>>(localStorage.getItem("recipeDetails"), {});
+
+    if (Array.isArray(favoriteIds) && typeof recipeDetails === "object") {
+      const favoriteRecipes = favoriteIds
+        .map((id: string) => recipeDetails[id])
+        .filter((recipe: Recipe | undefined) => recipe !== undefined);
+
+      setFavorites(favoriteRecipes);
+    }
   }, []);
 
   return (

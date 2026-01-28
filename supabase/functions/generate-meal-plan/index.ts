@@ -253,10 +253,11 @@ JSON-Schema:
       }
     }
 
-    const parsePlanFromOpenAI = (data: any) => {
-      const choice = data?.choices?.[0];
+    const parsePlanFromOpenAI = (data: unknown): Record<string, unknown> => {
+      const response = data as Record<string, unknown>;
+      const choice = (response?.choices as Array<any>)?.[0];
       const finishReason = choice?.finish_reason;
-      const content = choice?.message?.content || '';
+      const content = (choice?.message?.content as string) || '';
 
       console.log('[GENERATE-MEAL-PLAN] OpenAI finish_reason:', finishReason, 'content_length:', content.length);
 
@@ -265,7 +266,11 @@ JSON-Schema:
 
       // Try direct JSON parse first (best case - response is pure JSON)
       try {
-        return JSON.parse(content);
+        const parsed = JSON.parse(content);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed as Record<string, unknown>;
+        }
+        throw new Error('Parsed JSON is not an object');
       } catch (e) {
         console.log('[GENERATE-MEAL-PLAN] Direct parse failed, attempting safer extraction');
       }
@@ -284,7 +289,11 @@ JSON-Schema:
       const jsonStr = trimmed.substring(startIdx, endIdx + 1);
 
       try {
-        return JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed as Record<string, unknown>;
+        }
+        throw new Error('Parsed JSON is not an object');
       } catch (e) {
         console.error('[GENERATE-MEAL-PLAN] JSON parse failed after extraction');
         console.error('[GENERATE-MEAL-PLAN] Extracted:', jsonStr.substring(0, 500));
@@ -314,30 +323,32 @@ JSON-Schema:
       return base;
     };
 
-    const validatePlanStructure = (plan: any) => {
+    const validatePlanStructure = (plan: unknown) => {
       const issues: string[] = [];
+      const planObj = plan as Record<string, unknown>;
 
-      if (!Array.isArray(plan?.mealPlan) || plan.mealPlan.length !== 7) {
+      if (!Array.isArray(planObj?.mealPlan) || planObj.mealPlan.length !== 7) {
         issues.push('mealPlan muss ein Array mit 7 Tagen sein');
         return { ok: false, issues };
       }
 
-      for (const day of plan.mealPlan) {
-        const dayName = String(day?.day ?? 'Unbekannt');
-        const meals = Array.isArray(day?.meals) ? day.meals : [];
+      for (const day of planObj.mealPlan) {
+        const dayObj = day as Record<string, unknown>;
+        const dayName = String(dayObj?.day ?? 'Unbekannt');
+        const meals = Array.isArray(dayObj?.meals) ? dayObj.meals : [];
         if (meals.length !== 5) {
           issues.push(`${dayName}: muss genau 5 Mahlzeiten haben`);
           continue;
         }
 
         for (let i = 0; i < meals.length; i++) {
-          const m = meals[i];
+          const m = meals[i] as Record<string, unknown>;
           if (!m?.name) issues.push(`${dayName}: Mahlzeit ${i + 1} hat keinen Namen`);
           if (!Array.isArray(m?.ingredients) || m.ingredients.length === 0) {
-            issues.push(`${dayName}: ${m?.name ?? `Mahlzeit ${i + 1}`}: keine Zutaten`);
+            issues.push(`${dayName}: ${String(m?.name ?? `Mahlzeit ${i + 1}`)}: keine Zutaten`);
           }
           if (!Array.isArray(m?.instructions) || m.instructions.length === 0) {
-            issues.push(`${dayName}: ${m?.name ?? `Mahlzeit ${i + 1}`}: keine Steps`);
+            issues.push(`${dayName}: ${String(m?.name ?? `Mahlzeit ${i + 1}`)}: keine Steps`);
           }
         }
       }
@@ -346,18 +357,20 @@ JSON-Schema:
     };
 
     // Enforce "perfect" daily macro totals deterministically (names/ingredients remain as generated)
-    const enforceMacroTargets = (plan: any) => {
-      if (!plan || !Array.isArray(plan.mealPlan)) return plan;
+    const enforceMacroTargets = (plan: unknown) => {
+      const planObj = plan as Record<string, unknown>;
+      if (!planObj || !Array.isArray(planObj.mealPlan)) return planObj;
 
       const proteinAlloc = allocateByShares(targetProtein, MEAL_SHARES);
       const fatAlloc = allocateByShares(targetFat, MEAL_SHARES);
       const carbsAlloc = allocateByShares(targetCarbs, MEAL_SHARES);
 
-      for (const day of plan.mealPlan) {
-        if (!Array.isArray(day?.meals) || day.meals.length !== 5) continue;
+      for (const day of planObj.mealPlan) {
+        const dayObj = day as Record<string, unknown>;
+        if (!Array.isArray(dayObj?.meals) || dayObj.meals.length !== 5) continue;
 
         for (let i = 0; i < 5; i++) {
-          const meal = day.meals[i];
+          const meal = dayObj.meals[i] as Record<string, unknown>;
           const protein = Math.max(0, Math.round(proteinAlloc[i] || 0));
           const fat = Math.max(0, Math.round(fatAlloc[i] || 0));
           const carbs = Math.max(0, Math.round(carbsAlloc[i] || 0));
@@ -371,7 +384,7 @@ JSON-Schema:
         }
       }
 
-      return plan;
+      return planObj;
     };
 
     const callOpenAI = async (userInstruction: string) => {
@@ -460,18 +473,21 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
       throw new Error('Wochenplan konnte nach mehreren Versuchen nicht erstellt werden');
     };
 
-    const finalizePlan = (plan: any) => {
-      const normalized = enforceMacroTargets(plan);
+    const finalizePlan = (plan: unknown) => {
+      const normalized = enforceMacroTargets(plan) as Record<string, unknown>;
 
       // Final strict validation (must match exact targets)
-      for (const day of normalized?.mealPlan ?? []) {
-        const meals = Array.isArray(day?.meals) ? day.meals : [];
+      const mealPlan = Array.isArray(normalized?.mealPlan) ? normalized.mealPlan : [];
+      for (const day of mealPlan) {
+        const dayObj = day as Record<string, unknown>;
+        const meals = Array.isArray(dayObj?.meals) ? dayObj.meals : [];
         const totals = meals.reduce(
-          (acc: any, m: any) => {
-            acc.calories += Number(m?.calories) || 0;
-            acc.protein += Number(m?.protein) || 0;
-            acc.carbs += Number(m?.carbs) || 0;
-            acc.fat += Number(m?.fat) || 0;
+          (acc: Record<string, number>, m: unknown) => {
+            const meal = m as Record<string, unknown>;
+            acc.calories += Number(meal?.calories) || 0;
+            acc.protein += Number(meal?.protein) || 0;
+            acc.carbs += Number(meal?.carbs) || 0;
+            acc.fat += Number(meal?.fat) || 0;
             return acc;
           },
           { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -487,7 +503,7 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
         for (const [k, v] of checks) {
           const r = ranges[k];
           if (v < r.min || v > r.max) {
-            throw new Error(`${String(day?.day ?? 'Tag')}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
+            throw new Error(`${String(dayObj?.day ?? 'Tag')}: ${k}=${Math.round(v)} (erlaubt ${r.min}–${r.max})`);
           }
         }
       }

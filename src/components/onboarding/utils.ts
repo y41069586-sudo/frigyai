@@ -48,6 +48,13 @@ export const calculateMacros = (userData: UserData) => {
 // Calculate weeks to reach goal
 export const calculateWeeksToGoal = (userData: UserData) => {
   const weightDiff = Math.abs(userData.targetWeight - userData.weight);
+
+  // Guard against division by zero
+  if (!userData.weeklyGoal || userData.weeklyGoal <= 0) {
+    console.warn('calculateWeeksToGoal: Invalid weekly goal value, returning Infinity');
+    return Infinity;
+  }
+
   return Math.ceil(weightDiff / userData.weeklyGoal);
 };
 

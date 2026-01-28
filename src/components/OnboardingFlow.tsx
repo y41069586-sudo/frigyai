@@ -180,53 +180,90 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
-    // Also scroll window as fallback
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Also scroll window as fallback (use 'auto' - 'instant' is not valid)
+    window.scrollTo({ top: 0, behavior: 'auto' });
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
   }, [currentStep]);
 
-  // Step-specific effects
+  // Step-specific effects - with proper cleanup to avoid setState on unmounted component
   useEffect(() => {
+    const timeouts: NodeJS.Timeout[] = [];
+
     if (currentStep === "fridge-intro") {
-      setTimeout(() => setFridgeOpen(true), 300);
-      setTimeout(() => setFridgeScan(true), 800);
+      timeouts.push(setTimeout(() => setFridgeOpen(true), 300));
+      timeouts.push(setTimeout(() => setFridgeScan(true), 800));
     }
     if (currentStep === "macro-preview") {
-      setTimeout(() => setMacroAnimate(true), 300);
+      timeouts.push(setTimeout(() => setMacroAnimate(true), 300));
     }
     if (currentStep === "comparison") {
-      setTimeout(() => setChartAnimate(true), 400);
+      timeouts.push(setTimeout(() => setChartAnimate(true), 400));
     }
     if (currentStep === "analyzing") {
-      setTimeout(() => setCurrentStep("macro-preview"), 9000);
+      timeouts.push(setTimeout(() => setCurrentStep("macro-preview"), 9000));
     }
     if (currentStep === "celebration") {
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         confetti({
           particleCount: 120,
           spread: 80,
           origin: { y: 0.4 },
           colors: ["#22c55e", "#4ade80", "#86efac", "#fbbf24", "#fb7185"]
         });
-      }, 600);
+      }, 600));
     }
     if (currentStep === "done") {
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         confetti({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.6 },
           colors: ["hsl(142, 76%, 36%)", "hsl(142, 69%, 58%)", "hsl(43, 96%, 56%)"]
         });
-      }, 400);
+      }, 400));
     }
-    
+
+    // Cleanup: clear all timeouts when component unmounts or step changes
+    return () => {
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
   }, [currentStep]);
 
   const goNext = () => {
+    // Check if user can proceed from current step before allowing navigation
+    if (!canProceed()) {
+      // Show user-friendly error message based on failed step
+      if (currentStep === "goal") {
+        toast({
+          title: t.error,
+          description: t.pleaseSelectGoal || "Please select a goal",
+          variant: "destructive",
+        });
+      } else if (currentStep === "gender") {
+        toast({
+          title: t.error,
+          description: t.pleaseSelectGender || "Please select your gender",
+          variant: "destructive",
+        });
+      } else if (currentStep === "planning-setup") {
+        toast({
+          title: t.error,
+          description: t.pleaseSelectActivityLevel || "Please select your activity level",
+          variant: "destructive",
+        });
+      } else if (currentStep === "save-progress") {
+        toast({
+          title: t.error,
+          description: t.onboardingPleaseLoginToProceed || "Please log in to continue",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
     lightTap(); // Haptic feedback on navigation
-    
+
     // Handle conditional navigation for app-mode steps
     if (currentStep === "spontan-mode-1") {
       setCurrentStep("spontan-mode-2");
@@ -240,23 +277,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       setCurrentStep("structured-mode-3");
       return;
     }
-    
+
     let nextIndex = currentIndex + 1;
-    
+
     // Check if user already used their free onboarding scan (persists across sessions)
     const scanUsed = localStorage.getItem('onboardingScanUsed') === 'true';
-    
+
     // Skip fridge-intro if scan was already used in a previous session
     if (scanUsed && onboardingSteps[nextIndex] === "fridge-intro") {
       nextIndex++; // Skip fridge-intro
     }
-    
+
     // Skip scan-feedback if user didn't actually scan (no showScanFeedback state)
     const didScan = location.state?.showScanFeedback === true;
     if (onboardingSteps[nextIndex] === "scan-feedback" && !didScan) {
       nextIndex++; // Skip to next step after scan-feedback
     }
-    
+
     if (nextIndex < onboardingSteps.length) {
       setCurrentStep(onboardingSteps[nextIndex]);
     } else {
@@ -3254,7 +3291,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (!authEmail || !authPassword) {
             toast({
               title: t.error,
-              description: t.onboardingEnterEmailPassword,
+              description: t.enterEmailAndPassword,
               variant: "destructive",
             });
             return;
@@ -3265,7 +3302,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (!emailRegex.test(authEmail)) {
             toast({
               title: t.error,
-              description: "Ungültige E-Mail-Adresse",
+              description: t.invalidEmail,
               variant: "destructive",
             });
             return;
@@ -3275,7 +3312,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (authPassword.length < 8) {
             toast({
               title: t.error,
-              description: "Passwort muss mindestens 8 Zeichen lang sein",
+              description: t.passwordTooShort,
               variant: "destructive",
             });
             return;
@@ -3373,7 +3410,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   onClick={async () => {
                     setIsAuthLoading(true);
                     try {
-                      await signInWithGoogle();
+                      const { error } = await signInWithGoogle();
+                      if (error) {
+                        toast({
+                          title: t.error,
+                          description: error.message || 'Google sign-in failed. Please try again.',
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (err) {
+                      toast({
+                        title: t.error,
+                        description: 'An unexpected error occurred during Google sign-in.',
+                        variant: "destructive",
+                      });
                     } finally {
                       setIsAuthLoading(false);
                     }
@@ -3402,20 +3452,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 
                 {/* Email input */}
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
+                  <label htmlFor="auth-email" className="sr-only">{t.emailAddressPlaceholder}</label>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" aria-hidden="true" />
                   <Input
+                    id="auth-email"
                     type="email"
                     placeholder={t.emailAddressPlaceholder}
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
                     className="pl-11 h-12 rounded-xl bg-card border-border"
+                    aria-label={t.emailAddressPlaceholder}
                   />
                 </div>
-                
+
                 {/* Password input */}
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" />
+                  <label htmlFor="auth-password" className="sr-only">{t.passwordPlaceholder}</label>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" aria-hidden="true" />
                   <Input
+                    id="auth-password"
                     type={showPassword ? "text" : "password"}
                     placeholder={t.passwordPlaceholder}
                     value={authPassword}
@@ -3530,13 +3585,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           if (selectedPlanOption === 'free') {
             goNext();
           } else if (selectedPlanOption === 'premium') {
-            // Save onboarding data and go to premium pricing
+            // Save onboarding data and navigate using react-router
             saveOnboardingData(userData);
+            // Use navigate from react-router to avoid SPA routing conflicts
+            // onComplete will handle the state callback if needed
             onComplete();
-            // Small delay to ensure navigation happens after onComplete
-            setTimeout(() => {
-              window.location.href = '/premium-pricing';
-            }, 100);
+            navigate('/premium-pricing');
           }
         };
         

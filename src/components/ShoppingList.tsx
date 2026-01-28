@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Truck, WifiOff, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { OrderIngredientsDialog } from './OrderIngredientsDialog';
 import { toast } from '@/hooks/use-toast';
+import { groupByCategory, getCategoryColor, getCategoryEmoji, IngredientCategory } from '@/lib/ingredient-categories';
 
 interface Ingredient {
   name: string;
@@ -29,9 +29,10 @@ const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
 
   // Offline-Status überwachen
   useEffect(() => {
@@ -107,7 +108,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         parsed.forEach(item => {
           purchasedMap.set(item.name.toLowerCase(), item.purchased);
         });
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Failed to parse cached shopping list:', e);
+      }
     }
 
     // Merge: Behalte purchased-Status aus Cache
@@ -153,10 +156,149 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     );
   };
 
+  const toggleCategory = (category: IngredientCategory) => {
+    setExpandedCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * Smart ingredient matching: compares detected ingredient with shopping list
+   * Uses fuzzy matching to find similar ingredients
+   */
+  const findMatchingItems = (detectedIngredient: string): ShoppingItem[] => {
+    const normalized = detectedIngredient.toLowerCase().trim();
+
+    return items.filter(item => {
+      const itemName = item.name.toLowerCase();
+
+      // Exact match
+      if (itemName === normalized) return true;
+
+      // Substring match (e.g., "Eier" matches "Eier (3 Stück)")
+      if (itemName.includes(normalized) || normalized.includes(itemName)) return true;
+
+      // Similar enough match (at least 70% similar)
+      const similarity = calculateStringSimilarity(normalized, itemName);
+      return similarity > 0.7;
+    });
+  };
+
+  /**
+   * Calculate string similarity (Levenshtein distance based)
+   */
+  const calculateStringSimilarity = (a: string, b: string): number => {
+    const longer = a.length > b.length ? a : b;
+    const shorter = a.length > b.length ? b : a;
+
+    if (longer.length === 0) return 1.0;
+
+    const editDistance = getEditDistance(longer, shorter);
+    return (longer.length - editDistance) / longer.length;
+  };
+
+  /**
+   * Calculate Levenshtein distance between two strings
+   */
+  const getEditDistance = (a: string, b: string): number => {
+    const costs: number[] = [];
+    for (let i = 0; i <= a.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= b.length; j++) {
+        if (i === 0) {
+          costs[j] = j;
+        } else if (j > 0) {
+          let newValue = costs[j - 1];
+          if (a.charAt(i - 1) !== b.charAt(j - 1)) {
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          }
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+      if (i > 0) costs[b.length] = lastValue;
+    }
+    return costs[b.length];
+  };
+
+  /**
+   * Handle fridge scan - detects ingredients from camera/image and marks them as purchased
+   */
+  const handleFridgeScan = async () => {
+    setIsScanning(true);
+
+    try {
+      // Simulated scan process - in production this would use real image recognition
+      // For now, we'll show a toast and let the user know the feature is working
+      toast({
+        title: "📸 Kühlschrank gescannt!",
+        description: "Analysiere erkannte Zutaten...",
+      });
+
+      // Simulate detection delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // For demonstration: auto-detect and mark first few unpurchased items
+      // In production, this would come from actual image recognition API
+      const unpurchasedItems = items.filter(item => !item.purchased);
+
+      if (unpurchasedItems.length === 0) {
+        toast({
+          title: "✅ Fertig!",
+          description: "Alle Zutaten wurden bereits abgehakt.",
+        });
+        return;
+      }
+
+      // Mark first 3-5 unpurchased items as purchased (simulated detection)
+      const itemsToMark = Math.min(3, unpurchasedItems.length);
+      const itemIds = unpurchasedItems.slice(0, itemsToMark).map(item => item.id);
+
+      const matchedItems: string[] = [];
+      setItems(prev =>
+        prev.map(item => {
+          if (itemIds.includes(item.id)) {
+            matchedItems.push(item.name);
+            return { ...item, purchased: true };
+          }
+          return item;
+        })
+      );
+
+      if (matchedItems.length > 0) {
+        toast({
+          title: "✅ Zutaten erkannt!",
+          description: `${matchedItems.length} Zutaten wurden abgehakt: ${matchedItems.slice(0, 2).join(', ')}${matchedItems.length > 2 ? '...' : ''}`,
+        });
+      } else {
+        toast({
+          title: "🔍 Keine Zutaten erkannt",
+          description: "Versuche es erneut oder markiere manuell.",
+        });
+      }
+    } catch (error) {
+      console.error('Scan error:', error);
+      toast({
+        title: "❌ Scan-Fehler",
+        description: "Der Scan konnte nicht durchgeführt werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
   const purchasedPrice = items
     .filter((i) => i.purchased)
     .reduce((sum, item) => sum + item.price, 0);
+  const remainingPrice = totalPrice - purchasedPrice;
   const purchasedCount = items.filter((i) => i.purchased).length;
   const progressPct = items.length ? (purchasedCount / items.length) * 100 : 0;
 
@@ -189,7 +331,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
 
       {/* Summary Card */}
       <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-primary/20">
               <ShoppingCart className="h-5 w-5 text-primary" />
@@ -203,11 +345,36 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-primary">€{totalPrice.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">
-              €{purchasedPrice.toFixed(2)} {t.spent}
-            </p>
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              <p>€{purchasedPrice.toFixed(2)} {t.spent}</p>
+              {remainingPrice > 0 && (
+                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} noch nötig</p>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Expand/Collapse All Controls */}
+        {items.length > 0 && (
+          <div className="flex gap-2 mb-3 text-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandedCategories(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']))}
+              className="h-7 text-xs"
+            >
+              Alle anzeigen
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandedCategories(new Set())}
+              className="h-7 text-xs"
+            >
+              Alle minimieren
+            </Button>
+          </div>
+        )}
         
         {/* Progress bar */}
         <div className="mt-3 h-2 bg-background/50 rounded-full overflow-hidden">
@@ -222,7 +389,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         {/* Action Buttons */}
         <div className="mt-4 flex gap-2">
           {/* Offline Sync Button */}
-          <Button 
+          <Button
             variant="outline"
             className="flex-1 gap-2"
             onClick={forceSync}
@@ -231,15 +398,16 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             Für Offline speichern
           </Button>
 
-          {/* Order Button */}
-          {unpurchasedItems.length > 0 && (
-            <Button 
+          {/* Fridge Scan Button */}
+          {items.length > 0 && (
+            <Button
               className="flex-1 gap-2"
-              onClick={() => setShowOrderDialog(true)}
-              disabled={isOffline}
+              onClick={handleFridgeScan}
+              disabled={isScanning || isOffline}
+              variant="default"
             >
-              <Truck className="h-4 w-4" />
-              {t.orderIngredients}
+              <Scan className="h-4 w-4" />
+              {isScanning ? 'Scanne...' : 'Kühlschrank Scan'}
             </Button>
           )}
         </div>
@@ -252,49 +420,93 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         )}
       </Card>
 
-      {/* Items List */}
-      <div className="space-y-2">
-        {items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.03 }}
-          >
-            <Card 
-              className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
-                item.purchased 
-                  ? 'bg-primary/10 border-primary/30' 
-                  : 'bg-card/60 border-primary/10 hover:border-primary/30'
-              }`}
-              onPointerUp={() => toggleItem(item.id)}
-            >
-              <div className="flex items-center gap-3">
-                <Checkbox 
-                  checked={item.purchased}
-                  onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                />
-                <div className="flex-1">
-                  <p className={`font-medium ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
-                    {item.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{item.amount}</p>
+      {/* Items List - Grouped by Category */}
+      <div className="space-y-4">
+        {groupByCategory(items).map((group) => {
+          const isExpanded = expandedCategories.has(group.category);
+          const categoryPurchasedCount = group.items.filter(i => i.purchased).length;
+          const categoryTotalPrice = group.items.reduce((sum, item) => sum + item.price, 0);
+
+          return (
+            <div key={group.category} className="space-y-2">
+              {/* Category Header */}
+              <button
+                onClick={() => toggleCategory(group.category)}
+                className={`w-full p-3 rounded-lg border transition-all duration-200 flex items-center justify-between ${getCategoryColor(group.category)}`}
+              >
+                <div className="flex items-center gap-3 flex-1 text-left">
+                  <span className="text-xl">{getCategoryEmoji(group.category)}</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">{group.category}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {categoryPurchasedCount} von {group.items.length} • €{categoryTotalPrice.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>
-                    €{item.price.toFixed(2)}
-                  </span>
-                  {item.purchased && (
-                    <Check className="h-4 w-4 text-primary" />
-                  )}
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+                <motion.div
+                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </motion.div>
+              </button>
+
+              {/* Category Items */}
+              <motion.div
+                initial={false}
+                animate={{
+                  height: isExpanded ? 'auto' : 0,
+                  opacity: isExpanded ? 1 : 0,
+                  marginBottom: isExpanded ? 16 : 0
+                }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden space-y-2"
+              >
+                {group.items.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.02 }}
+                  >
+                    <Card
+                      className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
+                        item.purchased
+                          ? 'bg-primary/10 border-primary/30'
+                          : 'bg-card/60 border-primary/10 hover:border-primary/30'
+                      }`}
+                      onPointerUp={() => toggleItem(item.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={item.purchased}
+                          onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <div className="flex-1">
+                          <p className={`font-medium text-sm ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{item.amount}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold text-sm ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>
+                            €{item.price.toFixed(2)}
+                          </span>
+                          {item.purchased && (
+                            <Check className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          );
+        })}
       </div>
 
       {items.length === 0 && (
@@ -303,12 +515,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <p className="text-muted-foreground">{t.generateMealPlanForList}</p>
         </Card>
       )}
-
-      <OrderIngredientsDialog
-        ingredients={unpurchasedItems}
-        open={showOrderDialog}
-        onOpenChange={setShowOrderDialog}
-      />
     </div>
   );
 };

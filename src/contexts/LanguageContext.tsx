@@ -969,7 +969,14 @@ const translations: Record<Language, Translations> = {
     noAccount: "Noch kein Konto? Jetzt registrieren",
     alreadyHaveAccount: "Bereits registriert? Jetzt anmelden",
     forgotPassword: "Passwort vergessen?",
-    
+    invalidEmail: "Ungültige E-Mail-Adresse",
+    passwordTooShort: "Passwort muss mindestens 8 Zeichen lang sein",
+    enterEmailAndPassword: "Bitte gib E-Mail und Passwort ein",
+    pleaseSelectGoal: "Bitte wähle ein Ziel aus",
+    pleaseSelectGender: "Bitte wähle dein Geschlecht aus",
+    pleaseSelectActivityLevel: "Bitte wähle dein Aktivitätslevel aus",
+    onboardingPleaseLoginToProceed: "Bitte melde dich an, um fortzufahren",
+
     // Tracker
     age: "Alter",
     years: "Jahre",
@@ -1787,7 +1794,14 @@ const translations: Record<Language, Translations> = {
     noAccount: "No account yet? Sign up now",
     alreadyHaveAccount: "Already have an account? Sign in",
     forgotPassword: "Forgot password?",
-    
+    invalidEmail: "Invalid email address",
+    passwordTooShort: "Password must be at least 8 characters long",
+    enterEmailAndPassword: "Please enter email and password",
+    pleaseSelectGoal: "Please select a goal",
+    pleaseSelectGender: "Please select your gender",
+    pleaseSelectActivityLevel: "Please select your activity level",
+    onboardingPleaseLoginToProceed: "Please log in to continue",
+
     // Tracker
     age: "Age",
     years: "years",
@@ -2605,7 +2619,14 @@ const translations: Record<Language, Translations> = {
     noAccount: "Pas encore de compte? Inscrivez-vous",
     alreadyHaveAccount: "Déjà un compte? Connectez-vous",
     forgotPassword: "Mot de passe oublié?",
-    
+    invalidEmail: "Adresse e-mail invalide",
+    passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères",
+    enterEmailAndPassword: "Veuillez entrer l'e-mail et le mot de passe",
+    pleaseSelectGoal: "Veuillez sélectionner un objectif",
+    pleaseSelectGender: "Veuillez sélectionner votre sexe",
+    pleaseSelectActivityLevel: "Veuillez sélectionner votre niveau d'activité",
+    onboardingPleaseLoginToProceed: "Veuillez vous connecter pour continuer",
+
     // Tracker
     age: "Âge",
     years: "ans",

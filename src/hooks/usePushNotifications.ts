@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 
 // For Capacitor notifications
-let PushNotifications: any = null;
-let LocalNotifications: any = null;
+let PushNotifications: unknown = null;
+let LocalNotifications: unknown = null;
 
 // Dynamic imports for Capacitor
 const loadCapacitorPlugins = async () => {
@@ -49,6 +49,9 @@ export const usePushNotifications = () => {
   const [token, setToken] = useState<string | null>(null);
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
+  // Track reminder timeouts for cleanup
+  const reminderTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
   useEffect(() => {
     const init = async () => {
       // Check browser support first
@@ -56,7 +59,7 @@ export const usePushNotifications = () => {
       setIsBrowserSupported(browserSupported);
 
       // Check if we're in a native Capacitor environment (not web)
-      const isNativeApp = typeof (window as any).Capacitor !== 'undefined' && 
+      const isNativeApp = typeof (window as any).Capacitor !== 'undefined' &&
                           (window as any).Capacitor.isNativePlatform?.();
 
       if (!isNativeApp) {
@@ -81,24 +84,24 @@ export const usePushNotifications = () => {
           const status = await PushNotifications.checkPermissions();
           setPermissionStatus(status.receive);
 
-          PushNotifications.addListener("registration", (token: any) => {
+          PushNotifications.addListener("registration", (token: Record<string, unknown>) => {
             console.log("Push registration token:", token.value);
-            setToken(token.value);
+            setToken(token.value as string);
           });
 
-          PushNotifications.addListener("registrationError", (error: any) => {
+          PushNotifications.addListener("registrationError", (error: Record<string, unknown>) => {
             console.error("Push registration error:", error);
           });
 
-          PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
+          PushNotifications.addListener("pushNotificationReceived", (notification: Record<string, unknown>) => {
             console.log("Push notification received:", notification);
             toast({
-              title: notification.title || "Fridgie",
-              description: notification.body,
+              title: (notification.title as string) || "Fridgie",
+              description: notification.body as string,
             });
           });
 
-          PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
+          PushNotifications.addListener("pushNotificationActionPerformed", (notification: Record<string, unknown>) => {
             console.log("Push notification action:", notification);
           });
         } else if (capacitorAvailable && LocalNotifications) {
@@ -119,6 +122,23 @@ export const usePushNotifications = () => {
     };
 
     init();
+
+    // Cleanup: Remove all Capacitor listeners and pending timeouts when component unmounts
+    return () => {
+      // Clear all pending reminder timeouts
+      reminderTimeouts.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      reminderTimeouts.current.clear();
+
+      // Remove all Capacitor listeners
+      if (PushNotifications && typeof PushNotifications.removeAllListeners === 'function') {
+        PushNotifications.removeAllListeners();
+      }
+      if (LocalNotifications && typeof LocalNotifications.removeAllListeners === 'function') {
+        LocalNotifications.removeAllListeners();
+      }
+    };
   }, []);
 
   const requestPermission = useCallback(async () => {
@@ -275,17 +295,23 @@ export const usePushNotifications = () => {
         });
         localStorage.setItem('fridgie_reminders', JSON.stringify(reminders));
 
-        // Schedule the notification
-        setTimeout(() => {
+        // Schedule the notification and track the timeout ID for cleanup
+        const timeoutId = setTimeout(() => {
           sendLocalNotification(title, body, { type });
-          
+
           // Remove from storage after sending (if not recurring)
           if (!recurring) {
             const updatedReminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
             const filtered = updatedReminders.filter((r: any) => r.id !== reminderId);
             localStorage.setItem('fridgie_reminders', JSON.stringify(filtered));
           }
+
+          // Clean up timeout from tracking map
+          reminderTimeouts.current.delete(reminderId);
         }, delay);
+
+        // Store timeout ID for later cancellation
+        reminderTimeouts.current.set(reminderId, timeoutId);
         
         console.log(`Browser: Scheduled ${type} reminder for ${time.toISOString()}`);
         return true;
@@ -300,9 +326,19 @@ export const usePushNotifications = () => {
       await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
       console.log(`Cancelled ${type} reminder`);
     } else {
-      // Browser: Remove from localStorage
+      // Browser: Remove from localStorage and cancel scheduled timeouts
       const reminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
-      const filtered = reminders.filter((r: any) => r.type !== type);
+      const filtered = reminders.filter((r: any) => {
+        // Cancel timeout if it exists for this reminder
+        if (r.type === type && r.id) {
+          const timeoutId = reminderTimeouts.current.get(r.id);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            reminderTimeouts.current.delete(r.id);
+          }
+        }
+        return r.type !== type;
+      });
       localStorage.setItem('fridgie_reminders', JSON.stringify(filtered));
       console.log(`Browser: Cancelled ${type} reminder`);
     }

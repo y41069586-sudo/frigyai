@@ -49,16 +49,37 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Validate URL to prevent open redirects
+function isValidAppUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  try {
+    // Only allow relative paths (starting with /) or same-origin URLs
+    if (url.startsWith('/')) {
+      return true;
+    }
+
+    // For absolute URLs, check if they're from the same origin
+    const parsedUrl = new URL(url, self.location.origin);
+    return parsedUrl.origin === self.location.origin;
+  } catch (e) {
+    console.warn('[Fridgie SW] Invalid URL in notification:', url);
+    return false;
+  }
+}
+
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
   console.log('[Fridgie SW] Notification clicked:', event);
-  
+
   event.notification.close();
-  
+
   if (event.action === 'dismiss') {
     return;
   }
-  
+
   // Open or focus the app
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -69,9 +90,12 @@ self.addEventListener('notificationclick', (event) => {
             return client.focus();
           }
         }
-        // Otherwise open new window
+        // Otherwise open new window with validated URL
         if (self.clients.openWindow) {
-          const url = event.notification.data?.url || '/';
+          // Validate the URL from notification data
+          const notificationUrl = event.notification.data?.url;
+          const url = isValidAppUrl(notificationUrl) ? notificationUrl : '/';
+          console.log('[Fridgie SW] Opening URL:', url);
           return self.clients.openWindow(url);
         }
       })

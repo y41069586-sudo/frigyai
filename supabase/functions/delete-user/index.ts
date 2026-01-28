@@ -71,8 +71,20 @@ serve(async (req) => {
       ]);
       console.log(`[DELETE-USER] All user data deleted: ${userId}`);
     } catch (dbDeleteError) {
-      // Auth is already deleted, so log this but don't fail
-      console.warn(`[DELETE-USER] Warning: Could not delete all DB records: ${dbDeleteError}`);
+      // DB deletion failed after auth deletion - return error status
+      // This informs the client that the deletion was incomplete
+      console.error(`[DELETE-USER] Error: Could not delete DB records: ${dbDeleteError}`);
+      return new Response(
+        JSON.stringify({
+          error: "Database cleanup failed - auth deleted but data remains",
+          userId: userId,
+          message: "Please retry deletion or contact support"
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
     }
 
     console.log(`[DELETE-USER] User account fully deleted: ${userId}`);

@@ -1,9 +1,16 @@
 import { ApiError, ERROR_CODES, ERROR_MESSAGES, ErrorCode } from '@/types/api-error';
 
 /**
+ * Type guard to check if error is an object with code property
+ */
+const isApiErrorObject = (error: unknown): error is Record<string, unknown> & { code: unknown } => {
+  return error !== null && typeof error === 'object' && 'code' in error;
+};
+
+/**
  * Parse error response from Supabase function
  */
-export const parseApiError = (error: any): ApiError => {
+export const parseApiError = (error: unknown): ApiError => {
   // If it's already an ApiError object
   if (error && typeof error === 'object' && 'code' in error) {
     return {
@@ -55,7 +62,7 @@ export const parseApiError = (error: any): ApiError => {
 /**
  * Get user-friendly error message
  */
-export const getErrorMessage = (error: any): string => {
+export const getErrorMessage = (error: unknown): string => {
   const parsed = parseApiError(error);
   return parsed.message;
 };
@@ -63,7 +70,7 @@ export const getErrorMessage = (error: any): string => {
 /**
  * Get error code
  */
-export const getErrorCode = (error: any): ErrorCode => {
+export const getErrorCode = (error: unknown): ErrorCode => {
   const parsed = parseApiError(error);
   return parsed.code as ErrorCode;
 };
@@ -71,9 +78,9 @@ export const getErrorCode = (error: any): ErrorCode => {
 /**
  * Check if error is due to quota/limit exceeded
  */
-export const isQuotaError = (error: any): boolean => {
+export const isQuotaError = (error: unknown): boolean => {
   const code = getErrorCode(error);
-  return code === ERROR_CODES.PLAN_LIMIT_EXCEEDED || 
+  return code === ERROR_CODES.PLAN_LIMIT_EXCEEDED ||
          code === ERROR_CODES.SCAN_LIMIT_EXCEEDED ||
          code === ERROR_CODES.RATE_LIMIT_EXCEEDED;
 };
@@ -81,9 +88,9 @@ export const isQuotaError = (error: any): boolean => {
 /**
  * Check if error is due to auth
  */
-export const isAuthError = (error: any): boolean => {
+export const isAuthError = (error: unknown): boolean => {
   const code = getErrorCode(error);
-  return code === ERROR_CODES.AUTH_REQUIRED || 
+  return code === ERROR_CODES.AUTH_REQUIRED ||
          code === ERROR_CODES.INVALID_TOKEN ||
          code === ERROR_CODES.SESSION_EXPIRED;
 };
@@ -92,7 +99,7 @@ export const isAuthError = (error: any): boolean => {
  * Handle function invoke error and return parsed ApiError
  */
 export const handleFunctionError = (
-  error: any,
+  error: unknown,
   defaultMessage: string = ERROR_MESSAGES[ERROR_CODES.UNKNOWN_ERROR]
 ): ApiError => {
   // Supabase function error structure
