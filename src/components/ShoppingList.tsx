@@ -29,6 +29,7 @@ const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
