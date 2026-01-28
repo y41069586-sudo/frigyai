@@ -616,9 +616,6 @@ const MealPlansPage = () => {
         onClose={() => setShowSuccessDialog(false)} 
       />
 
-      {/* AI Chatbot */}
-      <AIChatbot userProfile={trackerSettings} onResetTracker={handleResetTracker} />
-
       {/* Bottom Navigation */}
       <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} trackerLoading={trackerLoading} onTabChange={setActiveTab} />
     </div>
