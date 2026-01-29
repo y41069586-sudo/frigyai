@@ -117,25 +117,33 @@ const MealPlansPage = () => {
     const subscriptionParam = searchParams.get('subscription');
     if (subscriptionParam === 'success') {
       setIsActivatingSubscription(true);
-      
+
       // Poll for subscription activation every 2 seconds
       let attempts = 0;
       const maxAttempts = 15; // Max 30 seconds
-      
+
       const pollSubscription = setInterval(async () => {
         attempts++;
         await checkSubscription();
-        
+
         if (subscriptionStatus?.subscribed || attempts >= maxAttempts) {
           clearInterval(pollSubscription);
           setIsActivatingSubscription(false);
           setShowSuccessDialog(true);
+
+          // Show chatbot intro if not shown before
+          if (!localStorage.getItem('chatbotIntroShown')) {
+            setTimeout(() => {
+              setShowChatbotIntro(true);
+            }, 1500);
+          }
+
           // Clean up URL
           searchParams.delete('subscription');
           setSearchParams(searchParams, { replace: true });
         }
       }, 2000);
-      
+
       return () => clearInterval(pollSubscription);
     }
   }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
