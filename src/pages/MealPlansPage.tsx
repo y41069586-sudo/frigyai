@@ -28,6 +28,7 @@ import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
 import { FreeModePaywallOverlay } from '@/components/FreeModePaywallOverlay';
+import { ChatbotIntro } from '@/components/ChatbotIntro';
 
 interface UserProfile {
   age: number;
@@ -94,6 +95,7 @@ const MealPlansPage = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
   const [showWeeklySummary, setShowWeeklySummary] = useState(false);
+  const [showChatbotIntro, setShowChatbotIntro] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
@@ -114,25 +116,33 @@ const MealPlansPage = () => {
     const subscriptionParam = searchParams.get('subscription');
     if (subscriptionParam === 'success') {
       setIsActivatingSubscription(true);
-      
+
       // Poll for subscription activation every 2 seconds
       let attempts = 0;
       const maxAttempts = 15; // Max 30 seconds
-      
+
       const pollSubscription = setInterval(async () => {
         attempts++;
         await checkSubscription();
-        
+
         if (subscriptionStatus?.subscribed || attempts >= maxAttempts) {
           clearInterval(pollSubscription);
           setIsActivatingSubscription(false);
           setShowSuccessDialog(true);
+
+          // Show chatbot intro if not shown before
+          if (!localStorage.getItem('chatbotIntroShown')) {
+            setTimeout(() => {
+              setShowChatbotIntro(true);
+            }, 1500);
+          }
+
           // Clean up URL
           searchParams.delete('subscription');
           setSearchParams(searchParams, { replace: true });
         }
       }, 2000);
-      
+
       return () => clearInterval(pollSubscription);
     }
   }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
@@ -362,7 +372,13 @@ const MealPlansPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-primary safe-area-inset">
+      {/* Chatbot Intro Overlay */}
+      <ChatbotIntro
+        isVisible={showChatbotIntro}
+        onComplete={() => setShowChatbotIntro(false)}
+      />
+
+      <div className={`min-h-screen bg-gradient-primary safe-area-inset ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center">

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown, Refrigerator } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -342,12 +342,12 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           {/* Fridge Scan Button */}
           {items.length > 0 && (
             <Button
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
               onClick={handleFridgeScan}
               variant="default"
             >
-              <Scan className="h-4 w-4" />
-              Kühlschrank Scan
+              <Refrigerator className="h-4 w-4" />
+              <span className="hidden sm:inline">Kühlschrank scannen</span>
             </Button>
           )}
         </div>

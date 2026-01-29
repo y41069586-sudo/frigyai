@@ -18,9 +18,12 @@ import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
 import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
 import { DashboardWaterWidget } from "@/components/DashboardWaterWidget";
+import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
 import { useReminders } from "@/hooks/useReminders";
 
 import frigLogo from "@/assets/frig-logo.png";
+import { ChatbotIntro } from "@/components/ChatbotIntro";
+import { AIChatbot } from "@/components/AIChatbot";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
@@ -28,7 +31,9 @@ const Index = () => {
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
-  
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [showChatbotIntro, setShowChatbotIntro] = useState(false);
+
   // Initialize reminders system
   useReminders();
   
@@ -219,6 +224,17 @@ const Index = () => {
     }
   }, [isFromSubscription, navigate]);
 
+  // Show chatbot intro for new premium users
+  useEffect(() => {
+    if (subscriptionStatus?.subscribed && !localStorage.getItem('chatbotIntroShown')) {
+      // Delay to let the page settle
+      const timer = setTimeout(() => {
+        setShowChatbotIntro(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [subscriptionStatus?.subscribed]);
+
   // Fetch daily scan usage for free users
   useEffect(() => {
     const fetchScanUsage = async () => {
@@ -338,11 +354,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Chatbot Intro Overlay */}
+      <ChatbotIntro
+        isVisible={showChatbotIntro}
+        onComplete={() => setShowChatbotIntro(false)}
+      />
+
       {/* Subtle background */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/3 via-transparent to-transparent pointer-events-none" />
-      
+
       {/* Main Content */}
-      <main className="relative flex-1 flex flex-col px-5 pb-32 pt-8 safe-top">
+      <main className={`relative flex-1 flex flex-col px-5 pb-32 pt-8 safe-top ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
         <div className="flex-1 flex flex-col max-w-md mx-auto w-full space-y-6">
           
           {/* Header - Clean & Modern */}
@@ -433,9 +455,6 @@ const Index = () => {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <Scan className="w-6 h-6" />
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-sm flex items-center justify-center border border-emerald-500 shadow-md">
-                  <Scan className="w-1.5 h-1.5 text-emerald-500" />
-                </div>
               </motion.div>
 
               {/* Desktop: Icon + Text */}
@@ -447,7 +466,7 @@ const Index = () => {
                 <Scan className="w-5 h-5" />
               </motion.div>
               <span className="hidden sm:inline text-base">{t.scanFridge}</span>
-              <span className="sm:hidden text-xs">Scan</span>
+              <span className="sm:hidden text-xs">Kühlschrank scannen</span>
             </motion.button>
           </motion.section>
           
@@ -457,17 +476,26 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <DashboardWaterWidget 
-              waterGlasses={waterGlasses} 
-              onWaterUpdate={setWaterGlasses} 
+            <DashboardWaterWidget
+              waterGlasses={waterGlasses}
+              onWaterUpdate={setWaterGlasses}
             />
           </motion.section>
-          
-          {/* Wochenplan Widget - Full Width */}
+
+          {/* Weight Tracker Widget - Full Width */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
+          >
+            <DashboardWeightWidget />
+          </motion.section>
+
+          {/* Wochenplan Widget - Full Width */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
             viewport={{ once: true }}
           >
             <DashboardMealPlanCard />
@@ -657,12 +685,26 @@ const Index = () => {
 
       {/* Bottom Navigation - Show for all logged in users */}
       {user && onboardingComplete && (
-        <BottomNavigation 
+        <BottomNavigation
           trackerSetup={trackerSetup}
           trackerLoading={trackerLoading}
           onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
         />
       )}
+
+      {/* AI Chatbot - Premium Only */}
+      <AIChatbot
+        isOpen={isChatbotOpen}
+        setIsOpen={setIsChatbotOpen}
+        userProfile={trackerSettings ? {
+          dailyCalories: trackerSettings.dailyCalories,
+          dailyProtein: trackerSettings.dailyProtein,
+          dailyCarbs: trackerSettings.dailyCarbs,
+          dailyFat: trackerSettings.dailyFat,
+          weight: 0, // Will be loaded from DB in chatbot
+          targetWeight: 0,
+        } : null}
+      />
 
     </div>
   );
