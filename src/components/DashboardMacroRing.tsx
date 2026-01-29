@@ -226,18 +226,18 @@ export const DashboardMacroRing = ({
       
       {/* Macro bars */}
       <div className="flex gap-4 mt-5 pt-4 border-t border-border/20">
-        <MacroPill
-          value={proteinEaten}
-          max={targetProtein}
-          label="Protein"
+        <MacroPill 
+          value={proteinEaten} 
+          max={targetProtein} 
+          label="Protein" 
           color="bg-emerald-500"
           bgColor="bg-emerald-500/15"
           delay={0.4}
         />
-        <MacroPill
-          value={carbsEaten}
-          max={targetCarbs}
-          label="Carbs"
+        <MacroPill 
+          value={carbsEaten} 
+          max={targetCarbs} 
+          label="Carbs" 
           color="bg-emerald-500"
           bgColor="bg-emerald-500/15"
           delay={0.5}
@@ -296,8 +296,8 @@ export const DashboardMacroRing = ({
                   
                   {/* Day label */}
                   <span className={`mt-1 text-[9px] font-medium ${
-                    day.isToday
-                      ? 'text-emerald-600 dark:text-emerald-400'
+                    day.isToday 
+                      ? 'text-emerald-600 dark:text-emerald-400' 
                       : 'text-muted-foreground/30'
                   }`}>
                     {day.isToday ? 'Heute' : day.dayShort}
