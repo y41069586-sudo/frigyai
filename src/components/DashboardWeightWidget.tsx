@@ -24,6 +24,7 @@ interface WeightEntry {
 export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: DashboardWeightWidgetProps) => {
   const { user } = useAuth();
   const { settings } = useTrackerSettings();
+  const navigate = useNavigate();
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const [inputWeight, setInputWeight] = useState('');
