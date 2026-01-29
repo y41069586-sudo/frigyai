@@ -226,20 +226,20 @@ export const DashboardMacroRing = ({
       
       {/* Macro bars */}
       <div className="flex gap-4 mt-5 pt-4 border-t border-border/20">
-        <MacroPill 
-          value={proteinEaten} 
-          max={targetProtein} 
-          label="Protein" 
-          color="bg-blue-500"
-          bgColor="bg-blue-500/15"
+        <MacroPill
+          value={proteinEaten}
+          max={targetProtein}
+          label="Protein"
+          color="bg-emerald-500"
+          bgColor="bg-emerald-500/15"
           delay={0.4}
         />
-        <MacroPill 
-          value={carbsEaten} 
-          max={targetCarbs} 
-          label="Carbs" 
-          color="bg-orange-500"
-          bgColor="bg-orange-500/15"
+        <MacroPill
+          value={carbsEaten}
+          max={targetCarbs}
+          label="Carbs"
+          color="bg-emerald-500"
+          bgColor="bg-emerald-500/15"
           delay={0.5}
         />
         <MacroPill 
