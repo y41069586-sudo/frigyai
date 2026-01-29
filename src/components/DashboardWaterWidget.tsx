@@ -86,9 +86,9 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
       {/* Compact horizontal water widget */}
       <div className={`
         relative overflow-hidden rounded-2xl p-4
-        bg-gradient-to-r from-sky-50/80 via-white/90 to-sky-50/80
-        dark:from-sky-950/40 dark:via-slate-900/60 dark:to-sky-950/40
-        border border-sky-200/40 dark:border-sky-800/30
+        bg-gradient-to-r from-emerald-50/80 via-white/90 to-emerald-50/80
+        dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-emerald-950/40
+        border border-emerald-200/40 dark:border-emerald-800/30
         ${isComplete ? 'ring-1 ring-emerald-400/40' : ''}
         transition-all duration-300
       `}>
