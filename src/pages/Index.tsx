@@ -493,23 +493,23 @@ const Index = () => {
             <DashboardMealPlanCard />
           </motion.section>
 
-          {/* Weight Tracker Widget - Full Width */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <DashboardWeightWidget targetWeight={trackerSettings?.targetWeight} />
-          </motion.section>
-
           {/* Shopping List Widget - Full Width */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
+            transition={{ delay: 0.3 }}
             viewport={{ once: true }}
           >
             <DashboardShoppingCard />
+          </motion.section>
+
+          {/* Weight Tracker Widget - Full Width */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <DashboardWeightWidget targetWeight={trackerSettings?.targetWeight} />
           </motion.section>
           
           {/* Today's Meals */}
