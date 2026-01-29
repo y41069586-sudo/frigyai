@@ -212,10 +212,10 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
               onPointerDown={() => handlePressStart(1)}
               onPointerUp={handlePressEnd}
               onPointerLeave={handlePressEnd}
-              className="w-10 h-10 rounded-xl bg-sky-500 dark:bg-sky-600
+              className="w-10 h-10 rounded-xl bg-emerald-500 dark:bg-emerald-600
                          flex items-center justify-center
-                         active:bg-sky-600 dark:active:bg-sky-700
-                         transition-colors shadow-sm shadow-sky-500/30 touch-none"
+                         active:bg-emerald-600 dark:active:bg-emerald-700
+                         transition-colors shadow-sm shadow-emerald-500/30 touch-none"
             >
               <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
             </motion.button>
