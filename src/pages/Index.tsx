@@ -224,6 +224,17 @@ const Index = () => {
     }
   }, [isFromSubscription, navigate]);
 
+  // Show chatbot intro for new premium users
+  useEffect(() => {
+    if (subscriptionStatus?.subscribed && !localStorage.getItem('chatbotIntroShown')) {
+      // Delay to let the page settle
+      const timer = setTimeout(() => {
+        setShowChatbotIntro(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [subscriptionStatus?.subscribed]);
+
   // Fetch daily scan usage for free users
   useEffect(() => {
     const fetchScanUsage = async () => {
