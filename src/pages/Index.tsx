@@ -488,7 +488,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
           >
-            <DashboardWeightWidget />
+            <DashboardWeightWidget targetWeight={trackerSettings?.targetWeight} />
           </motion.section>
 
           {/* Wochenplan Widget - Full Width */}
