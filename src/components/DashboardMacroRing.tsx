@@ -277,8 +277,8 @@ export const DashboardMacroRing = ({
                 >
                   {/* Day circle - only for today */}
                   {day.isToday ? (
-                    <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center">
-                      <span className="text-sm font-bold text-primary">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                         {day.percentAchieved}%
                       </span>
                     </div>
