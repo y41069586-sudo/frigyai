@@ -123,7 +123,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   };
 
   const weightChange = currentWeight && previousWeight ? currentWeight - previousWeight : null;
+  const isWeightGain = weightChange !== null && weightChange > 0;
   const isWeightLoss = weightChange !== null && weightChange < 0;
+  const progressToGoal = currentWeight && goal ? ((goal - currentWeight) / goal) * 100 : 0;
 
   return (
     <motion.div
@@ -132,56 +134,82 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       viewport={{ once: true, margin: "-30px" }}
       transition={{ delay: 0.15, duration: 0.4 }}
     >
-      <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
-              <Scale className="h-5 w-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">Gewichtsverlauf</p>
-              <p className="text-xs text-muted-foreground">
-                {lastUpdated ? new Date(lastUpdated).toLocaleDateString('de-DE') : 'Kein Eintrag'}
-              </p>
-            </div>
+      <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20">
+        {/* Header with Icon */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30">
+            <Scale className="h-5 w-5 text-blue-500" />
           </div>
+          <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
+        </div>
 
+        {/* Top Section: Current Weight + Goal + Change */}
+        <div className="flex items-start justify-between mb-4">
+          {/* Left: Current Weight & Goal */}
+          {currentWeight !== null ? (
+            <div className="flex gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Aktuell</p>
+                <p className="text-3xl font-bold text-blue-600">{currentWeight}<span className="text-sm">kg</span></p>
+              </div>
+              <div className="border-l border-blue-300/50" />
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Ziel</p>
+                <p className="text-3xl font-bold text-muted-foreground">{goal}<span className="text-sm">kg</span></p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Noch kein Gewicht eingetragen</p>
+          )}
+
+          {/* Right: Change Indicator with Animation */}
           {currentWeight && weightChange !== null && (
             <motion.div
-              className={`text-right ${isWeightLoss ? 'text-green-600' : 'text-red-600'}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+              className="text-right"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, type: 'spring' }}
             >
-              <div className="flex items-center gap-1 justify-end">
-                <TrendingDown className="h-4 w-4" />
+              <motion.div
+                className={`flex items-center justify-end gap-1 mb-2 ${isWeightGain ? 'text-red-500' : 'text-green-600'}`}
+                animate={isWeightGain ? { y: [0, -6, 0] } : { y: 0 }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <motion.div
+                  animate={isWeightGain ? { y: -4 } : { y: 0 }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <ArrowUp className={`h-4 w-4 ${isWeightGain ? 'text-blue-500' : 'text-green-600'}`} />
+                </motion.div>
                 <span className="font-semibold text-sm">
-                  {isWeightLoss ? '-' : '+'}{Math.abs(weightChange).toFixed(1)}kg
+                  {isWeightGain ? '+' : '-'}{Math.abs(weightChange).toFixed(1)}kg
                 </span>
-              </div>
+              </motion.div>
+              <p className="text-xs text-muted-foreground">
+                {lastUpdated ? new Date(lastUpdated).toLocaleDateString('de-DE') : ''}
+              </p>
             </motion.div>
           )}
         </div>
 
-        {/* Current Weight Display */}
-        {currentWeight !== null ? (
-          <motion.div
-            className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            <p className="text-xs text-muted-foreground mb-1">Aktuelles Gewicht</p>
-            <p className="text-2xl font-bold text-primary">{currentWeight}kg</p>
-          </motion.div>
-        ) : (
-          <motion.div
-            className="mb-4 p-3 rounded-xl bg-muted/30 border border-border/50"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-          >
-            <p className="text-sm text-muted-foreground">Noch kein Gewicht eingetragen</p>
-          </motion.div>
+        {/* Progress Bar */}
+        {currentWeight !== null && (
+          <div className="mb-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Fortschritt zum Ziel</span>
+              <span className="text-xs font-semibold text-blue-600">
+                {Math.abs((goal - currentWeight).toFixed(1))}kg verbleibend
+              </span>
+            </div>
+            <div className="h-2 bg-background/50 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(Math.abs(progressToGoal), 100)}%` }}
+                transition={{ duration: 0.8 }}
+              />
+            </div>
+          </div>
         )}
 
         {/* Input Form */}
@@ -207,7 +235,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               <Button
                 onClick={handleAddWeight}
                 disabled={!inputWeight}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
                 size="sm"
               >
                 Speichern
@@ -228,8 +256,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
         ) : (
           <Button
             onClick={() => setIsAdding(true)}
-            variant="outline"
-            className="w-full gap-2"
+            className="w-full gap-2 bg-blue-500 hover:bg-blue-600 text-white"
             size="sm"
           >
             <Plus className="h-4 w-4" />
