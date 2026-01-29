@@ -354,11 +354,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Chatbot Intro Overlay */}
+      <ChatbotIntro
+        isVisible={showChatbotIntro}
+        onComplete={() => setShowChatbotIntro(false)}
+      />
+
       {/* Subtle background */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/3 via-transparent to-transparent pointer-events-none" />
-      
+
       {/* Main Content */}
-      <main className="relative flex-1 flex flex-col px-5 pb-32 pt-8 safe-top">
+      <main className={`relative flex-1 flex flex-col px-5 pb-32 pt-8 safe-top ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
         <div className="flex-1 flex flex-col max-w-md mx-auto w-full space-y-6">
           
           {/* Header - Clean & Modern */}
