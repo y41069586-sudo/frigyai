@@ -214,28 +214,53 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           )}
         </div>
 
-        {/* Mini Weight Chart */}
-        {weightHistory.length > 0 && (
-          <div className="mb-4">
+        {/* Mini Weight Chart with Fade Out */}
+        {weightHistory.length > 1 && (
+          <div className="mb-4 relative">
             <p className="text-xs text-muted-foreground mb-2">Verlauf</p>
-            <div className="h-12 flex items-end gap-1 justify-start">
-              {weightHistory.slice(-7).map((weight, i) => {
-                const minWeight = Math.min(...weightHistory);
-                const maxWeight = Math.max(...weightHistory);
-                const range = maxWeight - minWeight || 1;
-                const height = ((weight - minWeight) / range) * 100;
-                const isBelow = weight < (initialWeight || minWeight);
+            <div className="h-20 relative overflow-hidden rounded-lg">
+              {/* Fade out overlay on both sides */}
+              <div className="absolute inset-0 bg-gradient-to-r from-card via-transparent to-card pointer-events-none z-10" />
 
-                return (
-                  <motion.div
-                    key={i}
-                    className={`flex-1 rounded-t-sm ${isBelow ? 'bg-red-500/30' : 'bg-blue-500/30'}`}
-                    initial={{ height: 0 }}
-                    animate={{ height: `${Math.max(20, height)}%` }}
-                    transition={{ delay: i * 0.05, duration: 0.3 }}
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={weightHistory.map((weight, i) => ({
+                    index: i,
+                    weight,
+                  }))}
+                  margin={{ top: 5, right: 0, left: -25, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="dashWeightGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="index"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={false}
+                    margin={0}
                   />
-                );
-              })}
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={false}
+                    domain={['dataMin - 1', 'dataMax + 1']}
+                    width={0}
+                  />
+                  <Area
+                    type="natural"
+                    dataKey="weight"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fill="url(#dashWeightGradient)"
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}
