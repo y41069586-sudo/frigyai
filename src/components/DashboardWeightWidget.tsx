@@ -198,7 +198,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
             <div className="flex justify-between mb-2">
               <span className="text-xs text-muted-foreground">Fortschritt zum Ziel</span>
               <span className="text-xs font-semibold text-blue-600">
-                {Math.abs((goal - currentWeight).toFixed(1))}kg verbleibend
+                {Math.abs(goal - currentWeight).toFixed(1)}kg verbleibend
               </span>
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
