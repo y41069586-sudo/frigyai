@@ -156,11 +156,11 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       transition={{ delay: 0.15, duration: 0.4 }}
       onClick={handleCardClick}
     >
-      <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20 cursor-pointer active:scale-[0.99] transition-transform">
+      <Card className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 cursor-pointer active:scale-[0.99] transition-transform">
         {/* Header with Icon */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30">
-            <Scale className="h-5 w-5 text-blue-500" />
+          <div className="p-2.5 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
+            <Scale className="h-5 w-5 text-emerald-500" />
           </div>
           <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
         </div>
@@ -172,9 +172,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
             <div className="flex gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Aktuell</p>
-                <p className="text-3xl font-bold text-blue-600">{currentWeight}<span className="text-sm">kg</span></p>
+                <p className="text-3xl font-bold text-emerald-600">{currentWeight}<span className="text-sm">kg</span></p>
               </div>
-              <div className="border-l border-blue-300/50" />
+              <div className="border-l border-emerald-300/50" />
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Ziel</p>
                 <p className="text-3xl font-bold text-muted-foreground">{goal}<span className="text-sm">kg</span></p>
@@ -240,8 +240,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                 >
                   <defs>
                     <linearGradient id="dashWeightGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -260,7 +260,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                   <Area
                     type="natural"
                     dataKey="weight"
-                    stroke="#3b82f6"
+                    stroke="#10b981"
                     strokeWidth={2}
                     fill="url(#dashWeightGradient)"
                     dot={false}
@@ -277,13 +277,13 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           <div className="mb-4">
             <div className="flex justify-between mb-2">
               <span className="text-xs text-muted-foreground">Fortschritt zum Ziel</span>
-              <span className="text-xs font-semibold text-blue-600">
+              <span className="text-xs font-semibold text-emerald-600">
                 {Math.abs(goal - currentWeight).toFixed(1)}kg verbleibend
               </span>
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(Math.abs(progressToGoal), 100)}%` }}
                 transition={{ duration: 0.8 }}
@@ -319,7 +319,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                   handleAddWeight();
                 }}
                 disabled={!inputWeight}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 text-white"
                 size="sm"
               >
                 Speichern
@@ -344,7 +344,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               e.stopPropagation();
               setIsAdding(true);
             }}
-            className="w-full gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+            className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
             size="sm"
           >
             <Plus className="h-4 w-4" />

@@ -86,9 +86,9 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
       {/* Compact horizontal water widget */}
       <div className={`
         relative overflow-hidden rounded-2xl p-4
-        bg-gradient-to-r from-sky-50/80 via-white/90 to-sky-50/80
-        dark:from-sky-950/40 dark:via-slate-900/60 dark:to-sky-950/40
-        border border-sky-200/40 dark:border-sky-800/30
+        bg-gradient-to-r from-emerald-50/80 via-white/90 to-emerald-50/80
+        dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-emerald-950/40
+        border border-emerald-200/40 dark:border-emerald-800/30
         ${isComplete ? 'ring-1 ring-emerald-400/40' : ''}
         transition-all duration-300
       `}>
@@ -108,19 +108,19 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
           {/* Water glass visual */}
           <div className="relative w-14 h-16 flex-shrink-0">
             {/* Glass container */}
-            <div className="absolute inset-0 rounded-b-2xl rounded-t-lg border-2 border-sky-300/50 dark:border-sky-600/40 bg-sky-50/30 dark:bg-sky-950/30 overflow-hidden">
+            <div className="absolute inset-0 rounded-b-2xl rounded-t-lg border-2 border-emerald-300/50 dark:border-emerald-600/40 bg-emerald-50/30 dark:bg-emerald-950/30 overflow-hidden">
               {/* Water fill */}
               <motion.div
                 className="absolute bottom-0 left-0 right-0"
                 animate={{ height: `${fillPercent}%` }}
                 transition={{ type: "spring", stiffness: 150, damping: 20 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-sky-500/70 via-cyan-400/50 to-sky-300/30 dark:from-sky-500/60 dark:via-cyan-400/40 dark:to-sky-300/20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/70 via-emerald-400/50 to-emerald-300/30 dark:from-emerald-500/60 dark:via-emerald-400/40 dark:to-emerald-300/20" />
                 
                 {/* Wave */}
                 <svg className="absolute -top-1.5 left-0 w-full h-3" viewBox="0 0 60 10" preserveAspectRatio="none">
                   <motion.path
-                    fill="rgba(56, 189, 248, 0.5)"
+                    fill="rgba(16, 185, 129, 0.5)"
                     animate={{
                       d: [
                         "M0 5 Q 15 2, 30 5 T 60 5 L 60 10 L 0 10 Z",
@@ -159,7 +159,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
           {/* Info section */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Droplets className="w-4 h-4 text-sky-500" />
+              <Droplets className="w-4 h-4 text-emerald-500" />
               <span className="text-xs font-medium text-muted-foreground">Wasser</span>
               {isComplete && (
                 <motion.div
@@ -212,10 +212,10 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
               onPointerDown={() => handlePressStart(1)}
               onPointerUp={handlePressEnd}
               onPointerLeave={handlePressEnd}
-              className="w-10 h-10 rounded-xl bg-sky-500 dark:bg-sky-600
+              className="w-10 h-10 rounded-xl bg-emerald-500 dark:bg-emerald-600
                          flex items-center justify-center
-                         active:bg-sky-600 dark:active:bg-sky-700
-                         transition-colors shadow-sm shadow-sky-500/30 touch-none"
+                         active:bg-emerald-600 dark:active:bg-emerald-700
+                         transition-colors shadow-sm shadow-emerald-500/30 touch-none"
             >
               <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
             </motion.button>
@@ -223,9 +223,9 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
         </div>
         
         {/* Progress bar */}
-        <div className="mt-3 h-1.5 bg-sky-100 dark:bg-sky-900/50 rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-sky-400 to-cyan-400 rounded-full"
+            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
             animate={{ width: `${fillPercent}%` }}
             transition={{ type: "spring", stiffness: 150, damping: 20 }}
           />

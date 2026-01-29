@@ -183,8 +183,8 @@ export const DashboardMacroRing = ({
             />
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="hsl(160, 100%, 50%)" />
-                <stop offset="100%" stopColor="hsl(140, 100%, 40%)" />
+                <stop offset="0%" stopColor="hsl(142, 71%, 45%)" />
+                <stop offset="100%" stopColor="hsl(142, 71%, 35%)" />
               </linearGradient>
             </defs>
           </svg>
@@ -230,16 +230,16 @@ export const DashboardMacroRing = ({
           value={proteinEaten} 
           max={targetProtein} 
           label="Protein" 
-          color="bg-blue-500"
-          bgColor="bg-blue-500/15"
+          color="bg-emerald-500"
+          bgColor="bg-emerald-500/15"
           delay={0.4}
         />
         <MacroPill 
           value={carbsEaten} 
           max={targetCarbs} 
           label="Carbs" 
-          color="bg-orange-500"
-          bgColor="bg-orange-500/15"
+          color="bg-emerald-500"
+          bgColor="bg-emerald-500/15"
           delay={0.5}
         />
         <MacroPill 
@@ -277,8 +277,8 @@ export const DashboardMacroRing = ({
                 >
                   {/* Day circle - only for today */}
                   {day.isToday ? (
-                    <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center">
-                      <span className="text-sm font-bold text-primary">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                         {day.percentAchieved}%
                       </span>
                     </div>
@@ -297,7 +297,7 @@ export const DashboardMacroRing = ({
                   {/* Day label */}
                   <span className={`mt-1 text-[9px] font-medium ${
                     day.isToday 
-                      ? 'text-primary' 
+                      ? 'text-emerald-600 dark:text-emerald-400' 
                       : 'text-muted-foreground/30'
                   }`}>
                     {day.isToday ? 'Heute' : day.dayShort}

@@ -83,20 +83,20 @@ export const DashboardShoppingCard = () => {
   return (
     <motion.div
       onClick={handleClick}
-      className="relative overflow-hidden p-4 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent rounded-2xl border border-violet-500/20 cursor-pointer group"
+      className="relative overflow-hidden p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent rounded-2xl border border-emerald-500/20 cursor-pointer group"
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
       {/* Decorative gradient blob */}
-      <div className="absolute -top-6 -right-6 w-20 h-20 bg-violet-500/20 rounded-full blur-2xl group-hover:bg-violet-500/30 transition-colors" />
+      <div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-colors" />
       
       <div className="relative">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <ArrowRight className="w-4 h-4 text-violet-500/50 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
+          <ArrowRight className="w-4 h-4 text-emerald-500/50 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
         </div>
         
         <p className="text-sm font-semibold text-foreground mb-0.5">Einkaufsliste</p>
@@ -108,9 +108,9 @@ export const DashboardShoppingCard = () => {
             </p>
             
             {/* Progress bar */}
-            <div className="h-1.5 bg-violet-500/15 rounded-full overflow-hidden">
-              <motion.div 
-                className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full"
+            <div className="h-1.5 bg-emerald-500/15 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
