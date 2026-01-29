@@ -172,9 +172,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
             <div className="flex gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Aktuell</p>
-                <p className="text-3xl font-bold text-blue-600">{currentWeight}<span className="text-sm">kg</span></p>
+                <p className="text-3xl font-bold text-emerald-600">{currentWeight}<span className="text-sm">kg</span></p>
               </div>
-              <div className="border-l border-blue-300/50" />
+              <div className="border-l border-emerald-300/50" />
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Ziel</p>
                 <p className="text-3xl font-bold text-muted-foreground">{goal}<span className="text-sm">kg</span></p>
