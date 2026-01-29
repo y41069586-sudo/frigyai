@@ -131,7 +131,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
 
   const handleCardClick = () => {
     if (!isAdding) {
-      navigate('/weight');
+      navigate('/meal-plans?tab=progress');
     }
   };
 
