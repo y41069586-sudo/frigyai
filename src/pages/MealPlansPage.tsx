@@ -373,7 +373,13 @@ const MealPlansPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-primary safe-area-inset">
+      {/* Chatbot Intro Overlay */}
+      <ChatbotIntro
+        isVisible={showChatbotIntro}
+        onComplete={() => setShowChatbotIntro(false)}
+      />
+
+      <div className={`min-h-screen bg-gradient-primary safe-area-inset ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center">
