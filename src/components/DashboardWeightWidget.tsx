@@ -218,17 +218,25 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
         {weightHistory.length > 1 && (
           <div className="mb-4 relative">
             <p className="text-xs text-muted-foreground mb-2">Verlauf</p>
-            <div className="h-20 relative overflow-hidden rounded-lg">
+            <div className="h-28 relative overflow-hidden rounded-lg">
               {/* Fade out overlay on both sides */}
               <div className="absolute inset-0 bg-gradient-to-r from-card via-transparent to-card pointer-events-none z-10" />
 
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={weightHistory.map((weight, i) => ({
-                    index: i,
-                    weight,
-                  }))}
-                  margin={{ top: 5, right: 0, left: -25, bottom: 0 }}
+                  data={weightHistory.map((weight, index, arr) => {
+                    let date = '';
+                    if (index < arr.length) {
+                      const d = new Date();
+                      d.setDate(d.getDate() - (arr.length - 1 - index));
+                      date = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+                    }
+                    return {
+                      date,
+                      weight,
+                    };
+                  })}
+                  margin={{ top: 10, right: 10, left: -15, bottom: 20 }}
                 >
                   <defs>
                     <linearGradient id="dashWeightGradient" x1="0" y1="0" x2="0" y2="1">
@@ -237,18 +245,17 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                     </linearGradient>
                   </defs>
                   <XAxis
-                    dataKey="index"
+                    dataKey="date"
                     axisLine={false}
                     tickLine={false}
-                    tick={false}
-                    margin={0}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={false}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                    width={35}
                     domain={['dataMin - 1', 'dataMax + 1']}
-                    width={0}
                   />
                   <Area
                     type="natural"
