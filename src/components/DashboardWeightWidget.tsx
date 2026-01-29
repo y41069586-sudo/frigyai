@@ -129,14 +129,21 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const isWeightLoss = weightChange !== null && weightChange < 0;
   const progressToGoal = currentWeight && goal ? Math.max(0, 100 - (Math.abs(goal - currentWeight) / Math.abs(goal)) * 100) : 0;
 
+  const handleCardClick = () => {
+    if (!isAdding) {
+      navigate('/weight');
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-30px" }}
       transition={{ delay: 0.15, duration: 0.4 }}
+      onClick={handleCardClick}
     >
-      <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20">
+      <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20 cursor-pointer active:scale-[0.99] transition-transform">
         {/* Header with Icon */}
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30">
