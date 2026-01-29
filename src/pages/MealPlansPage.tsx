@@ -96,6 +96,7 @@ const MealPlansPage = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
   const [showWeeklySummary, setShowWeeklySummary] = useState(false);
+  const [showChatbotIntro, setShowChatbotIntro] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
