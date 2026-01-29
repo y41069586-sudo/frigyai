@@ -3,13 +3,15 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Scale, TrendingDown, Plus } from 'lucide-react';
+import { Scale, ArrowUp, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { toast } from '@/hooks/use-toast';
 
 interface DashboardWeightWidgetProps {
   onWeightUpdate?: (weight: number) => void;
+  targetWeight?: number;
 }
 
 interface WeightEntry {
