@@ -159,8 +159,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       <Card className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 cursor-pointer active:scale-[0.99] transition-transform">
         {/* Header with Icon */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30">
-            <Scale className="h-5 w-5 text-blue-500" />
+          <div className="p-2.5 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
+            <Scale className="h-5 w-5 text-emerald-500" />
           </div>
           <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
         </div>
