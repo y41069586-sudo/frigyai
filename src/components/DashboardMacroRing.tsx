@@ -183,8 +183,8 @@ export const DashboardMacroRing = ({
             />
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="hsl(160, 100%, 50%)" />
-                <stop offset="100%" stopColor="hsl(140, 100%, 40%)" />
+                <stop offset="0%" stopColor="hsl(142, 71%, 45%)" />
+                <stop offset="100%" stopColor="hsl(142, 71%, 35%)" />
               </linearGradient>
             </defs>
           </svg>
