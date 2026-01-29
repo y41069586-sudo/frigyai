@@ -31,7 +31,9 @@ const Index = () => {
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
-  
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [showChatbotIntro, setShowChatbotIntro] = useState(false);
+
   // Initialize reminders system
   useReminders();
   
