@@ -192,18 +192,18 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               transition={{ duration: 0.5, type: 'spring' }}
             >
               <motion.div
-                className={`flex items-center justify-end gap-1 mb-2 ${isWeightGain ? 'text-red-500' : 'text-green-600'}`}
-                animate={isWeightGain ? { y: [0, -6, 0] } : { y: 0 }}
+                className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`}
+                animate={isBelowInitial ? { y: [0, -6, 0] } : { y: 0 }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <motion.div
-                  animate={isWeightGain ? { y: -4 } : { y: 0 }}
+                  animate={isBelowInitial ? { y: -4 } : { y: 0 }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <ArrowUp className={`h-4 w-4 ${isWeightGain ? 'text-blue-500' : 'text-green-600'}`} />
+                  <ArrowUp className={`h-4 w-4 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`} />
                 </motion.div>
                 <span className="font-semibold text-sm">
-                  {isWeightGain ? '+' : '-'}{Math.abs(weightChange).toFixed(1)}kg
+                  {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg
                 </span>
               </motion.div>
               <p className="text-xs text-muted-foreground">
