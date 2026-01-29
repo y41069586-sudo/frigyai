@@ -260,7 +260,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                   <Area
                     type="natural"
                     dataKey="weight"
-                    stroke="#3b82f6"
+                    stroke="#10b981"
                     strokeWidth={2}
                     fill="url(#dashWeightGradient)"
                     dot={false}
