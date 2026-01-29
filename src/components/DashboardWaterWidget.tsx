@@ -108,7 +108,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
           {/* Water glass visual */}
           <div className="relative w-14 h-16 flex-shrink-0">
             {/* Glass container */}
-            <div className="absolute inset-0 rounded-b-2xl rounded-t-lg border-2 border-sky-300/50 dark:border-sky-600/40 bg-sky-50/30 dark:bg-sky-950/30 overflow-hidden">
+            <div className="absolute inset-0 rounded-b-2xl rounded-t-lg border-2 border-emerald-300/50 dark:border-emerald-600/40 bg-emerald-50/30 dark:bg-emerald-950/30 overflow-hidden">
               {/* Water fill */}
               <motion.div
                 className="absolute bottom-0 left-0 right-0"
