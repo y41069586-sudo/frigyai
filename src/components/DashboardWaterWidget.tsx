@@ -159,7 +159,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
           {/* Info section */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Droplets className="w-4 h-4 text-sky-500" />
+              <Droplets className="w-4 h-4 text-emerald-500" />
               <span className="text-xs font-medium text-muted-foreground">Wasser</span>
               {isComplete && (
                 <motion.div
