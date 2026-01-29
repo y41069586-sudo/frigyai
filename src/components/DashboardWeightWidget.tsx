@@ -156,7 +156,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       transition={{ delay: 0.15, duration: 0.4 }}
       onClick={handleCardClick}
     >
-      <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20 cursor-pointer active:scale-[0.99] transition-transform">
+      <Card className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 cursor-pointer active:scale-[0.99] transition-transform">
         {/* Header with Icon */}
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30">
