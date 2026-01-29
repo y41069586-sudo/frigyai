@@ -29,7 +29,6 @@ import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
 import { FreeModePaywallOverlay } from '@/components/FreeModePaywallOverlay';
 import { ChatbotIntro } from '@/components/ChatbotIntro';
-import { useState } from 'react';
 
 interface UserProfile {
   age: number;
