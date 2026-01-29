@@ -125,7 +125,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const weightChange = currentWeight && previousWeight ? currentWeight - previousWeight : null;
   const isWeightGain = weightChange !== null && weightChange > 0;
   const isWeightLoss = weightChange !== null && weightChange < 0;
-  const progressToGoal = currentWeight && goal ? ((goal - currentWeight) / goal) * 100 : 0;
+  const progressToGoal = currentWeight && goal ? (Math.abs(goal - currentWeight) / Math.abs(goal)) * 100 : 0;
 
   return (
     <motion.div
