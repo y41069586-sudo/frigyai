@@ -115,7 +115,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
                 animate={{ height: `${fillPercent}%` }}
                 transition={{ type: "spring", stiffness: 150, damping: 20 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-sky-500/70 via-cyan-400/50 to-sky-300/30 dark:from-sky-500/60 dark:via-cyan-400/40 dark:to-sky-300/20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/70 via-emerald-400/50 to-emerald-300/30 dark:from-emerald-500/60 dark:via-emerald-400/40 dark:to-emerald-300/20" />
                 
                 {/* Wave */}
                 <svg className="absolute -top-1.5 left-0 w-full h-3" viewBox="0 0 60 10" preserveAspectRatio="none">
