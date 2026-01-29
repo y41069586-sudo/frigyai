@@ -20,14 +20,17 @@ interface WeightEntry {
   recorded_at: string;
 }
 
-export const DashboardWeightWidget = ({ onWeightUpdate }: DashboardWeightWidgetProps) => {
+export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: DashboardWeightWidgetProps) => {
   const { user } = useAuth();
+  const { settings } = useTrackerSettings();
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const [inputWeight, setInputWeight] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  const goal = targetWeight || settings?.targetWeight || 70;
 
   // Load weight entries on mount
   useEffect(() => {
