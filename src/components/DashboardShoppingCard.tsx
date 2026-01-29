@@ -93,10 +93,10 @@ export const DashboardShoppingCard = () => {
       
       <div className="relative">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <ArrowRight className="w-4 h-4 text-violet-500/50 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
+          <ArrowRight className="w-4 h-4 text-emerald-500/50 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
         </div>
         
         <p className="text-sm font-semibold text-foreground mb-0.5">Einkaufsliste</p>
