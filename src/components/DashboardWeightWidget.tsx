@@ -115,6 +115,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       setLastUpdated(new Date().toISOString());
       setInputWeight('');
 
+      // Add to weight history
+      setWeightHistory([...weightHistory, weight]);
+
       onWeightUpdate?.(weight);
 
       toast({
