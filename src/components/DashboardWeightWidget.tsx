@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 interface DashboardWeightWidgetProps {
   onWeightUpdate?: (weight: number) => void;
