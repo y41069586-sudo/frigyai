@@ -47,8 +47,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           .from('weight_entries')
           .select('*')
           .eq('user_id', user.id)
-          .order('recorded_at', { ascending: false })
-          .limit(2);
+          .order('recorded_at', { ascending: true });
 
         if (error) {
           console.error('Error loading weight entries:', error);
@@ -56,12 +55,19 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
         }
 
         if (data && data.length > 0) {
-          const latest = data[0] as WeightEntry;
+          const weights = data.map((entry: WeightEntry) => entry.weight);
+          setWeightHistory(weights);
+
+          // Set initial weight (oldest entry)
+          setInitialWeight(weights[0]);
+
+          // Set current weight (newest entry)
+          const latest = data[data.length - 1] as WeightEntry;
           setCurrentWeight(latest.weight);
           setLastUpdated(latest.recorded_at);
-          
+
           if (data.length > 1) {
-            const previous = data[1] as WeightEntry;
+            const previous = data[data.length - 2] as WeightEntry;
             setPreviousWeight(previous.weight);
           }
         }
