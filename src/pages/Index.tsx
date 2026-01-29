@@ -427,7 +427,7 @@ const Index = () => {
               className="p-6 bg-card rounded-3xl border border-border/30 cursor-pointer active:scale-[0.99] transition-transform"
               onClick={() => navigate('/meal-plans?tab=tracker')}
             >
-              {/* <DashboardMacroRing
+              <DashboardMacroRing
                 caloriesEaten={caloriesEaten}
                 targetCalories={targetCalories}
                 proteinEaten={proteinEaten}
@@ -436,7 +436,7 @@ const Index = () => {
                 targetCarbs={targetCarbs}
                 fatEaten={fatEaten}
                 targetFat={targetFat}
-              /> */}
+              />
             </div>
             
             {/* Scan Fridge Button - Mobile Optimized */}
