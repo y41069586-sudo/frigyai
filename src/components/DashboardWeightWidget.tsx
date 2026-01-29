@@ -213,6 +213,32 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           )}
         </div>
 
+        {/* Mini Weight Chart */}
+        {weightHistory.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs text-muted-foreground mb-2">Verlauf</p>
+            <div className="h-12 flex items-end gap-1 justify-start">
+              {weightHistory.slice(-7).map((weight, i) => {
+                const minWeight = Math.min(...weightHistory);
+                const maxWeight = Math.max(...weightHistory);
+                const range = maxWeight - minWeight || 1;
+                const height = ((weight - minWeight) / range) * 100;
+                const isBelow = weight < (initialWeight || minWeight);
+
+                return (
+                  <motion.div
+                    key={i}
+                    className={`flex-1 rounded-t-sm ${isBelow ? 'bg-red-500/30' : 'bg-blue-500/30'}`}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${Math.max(20, height)}%` }}
+                    transition={{ delay: i * 0.05, duration: 0.3 }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Progress Bar */}
         {currentWeight !== null && (
           <div className="mb-4">
