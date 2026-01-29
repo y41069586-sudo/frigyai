@@ -108,9 +108,9 @@ export const DashboardShoppingCard = () => {
             </p>
             
             {/* Progress bar */}
-            <div className="h-1.5 bg-violet-500/15 rounded-full overflow-hidden">
-              <motion.div 
-                className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full"
+            <div className="h-1.5 bg-emerald-500/15 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
