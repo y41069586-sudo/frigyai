@@ -228,6 +228,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
+            onClick={(e) => e.stopPropagation()}
           >
             <Input
               type="number"
@@ -242,7 +243,10 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
             />
             <div className="flex gap-2">
               <Button
-                onClick={handleAddWeight}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddWeight();
+                }}
                 disabled={!inputWeight}
                 className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
                 size="sm"
@@ -250,7 +254,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                 Speichern
               </Button>
               <Button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsAdding(false);
                   setInputWeight('');
                 }}
@@ -264,7 +269,10 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           </motion.div>
         ) : (
           <Button
-            onClick={() => setIsAdding(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsAdding(true);
+            }}
             className="w-full gap-2 bg-blue-500 hover:bg-blue-600 text-white"
             size="sm"
           >
