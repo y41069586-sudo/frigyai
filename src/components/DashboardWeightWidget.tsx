@@ -319,7 +319,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                   handleAddWeight();
                 }}
                 disabled={!inputWeight}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 text-white"
                 size="sm"
               >
                 Speichern
