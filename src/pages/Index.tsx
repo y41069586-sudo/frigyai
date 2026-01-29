@@ -676,12 +676,26 @@ const Index = () => {
 
       {/* Bottom Navigation - Show for all logged in users */}
       {user && onboardingComplete && (
-        <BottomNavigation 
+        <BottomNavigation
           trackerSetup={trackerSetup}
           trackerLoading={trackerLoading}
           onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
         />
       )}
+
+      {/* AI Chatbot - Premium Only */}
+      <AIChatbot
+        isOpen={isChatbotOpen}
+        setIsOpen={setIsChatbotOpen}
+        userProfile={trackerSettings ? {
+          dailyCalories: trackerSettings.dailyCalories,
+          dailyProtein: trackerSettings.dailyProtein,
+          dailyCarbs: trackerSettings.dailyCarbs,
+          dailyFat: trackerSettings.dailyFat,
+          weight: 0, // Will be loaded from DB in chatbot
+          targetWeight: 0,
+        } : null}
+      />
 
     </div>
   );
