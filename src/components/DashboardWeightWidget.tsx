@@ -344,7 +344,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               e.stopPropagation();
               setIsAdding(true);
             }}
-            className="w-full gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+            className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
             size="sm"
           >
             <Plus className="h-4 w-4" />
