@@ -477,12 +477,21 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <DashboardWaterWidget 
-              waterGlasses={waterGlasses} 
-              onWaterUpdate={setWaterGlasses} 
+            <DashboardWaterWidget
+              waterGlasses={waterGlasses}
+              onWaterUpdate={setWaterGlasses}
             />
           </motion.section>
-          
+
+          {/* Weight Tracker Widget - Full Width */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
+            <DashboardWeightWidget />
+          </motion.section>
+
           {/* Wochenplan Widget - Full Width */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
