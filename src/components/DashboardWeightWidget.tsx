@@ -136,8 +136,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   };
 
   const weightChange = currentWeight && previousWeight ? currentWeight - previousWeight : null;
-  const isWeightGain = weightChange !== null && weightChange > 0;
-  const isWeightLoss = weightChange !== null && weightChange < 0;
+  // Only show red if below initial weight, only show green if above/equal to initial weight
+  const isBelowInitial = currentWeight && initialWeight ? currentWeight < initialWeight : false;
+  const isAboveInitial = currentWeight && initialWeight ? currentWeight >= initialWeight : false;
   const progressToGoal = currentWeight && goal ? Math.max(0, 100 - (Math.abs(goal - currentWeight) / Math.abs(goal)) * 100) : 0;
 
   const handleCardClick = () => {
