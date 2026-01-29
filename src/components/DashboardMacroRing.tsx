@@ -296,8 +296,8 @@ export const DashboardMacroRing = ({
                   
                   {/* Day label */}
                   <span className={`mt-1 text-[9px] font-medium ${
-                    day.isToday 
-                      ? 'text-primary' 
+                    day.isToday
+                      ? 'text-emerald-600 dark:text-emerald-400'
                       : 'text-muted-foreground/30'
                   }`}>
                     {day.isToday ? 'Heute' : day.dayShort}
