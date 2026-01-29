@@ -488,7 +488,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
           >
-            <DashboardWeightWidget />
+            <DashboardWeightWidget targetWeight={trackerSettings?.targetWeight} />
           </motion.section>
 
           {/* Wochenplan Widget - Full Width */}
@@ -574,8 +574,17 @@ const Index = () => {
             transition={{ delay: 0.1, duration: 0.4 }}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground">{t.eaten} {t.today.toLowerCase()}</h2>
-              <button 
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-foreground">{t.eaten} {t.today.toLowerCase()}</h2>
+                <button
+                  onClick={() => navigate('/meal-plans?tab=tracker')}
+                  className="p-1 hover:bg-primary/10 rounded-lg transition-colors"
+                  title="Mahlzeit hinzufügen"
+                >
+                  <Plus className="w-4 h-4 text-primary" />
+                </button>
+              </div>
+              <button
                 className="text-xs text-primary font-medium"
                 onClick={() => navigate('/meal-plans?tab=tracker')}
               >
