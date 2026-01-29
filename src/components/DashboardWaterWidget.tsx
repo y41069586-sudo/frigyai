@@ -120,7 +120,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
                 {/* Wave */}
                 <svg className="absolute -top-1.5 left-0 w-full h-3" viewBox="0 0 60 10" preserveAspectRatio="none">
                   <motion.path
-                    fill="rgba(56, 189, 248, 0.5)"
+                    fill="rgba(16, 185, 129, 0.5)"
                     animate={{
                       d: [
                         "M0 5 Q 15 2, 30 5 T 60 5 L 60 10 L 0 10 Z",
