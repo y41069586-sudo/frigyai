@@ -223,9 +223,9 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
         </div>
         
         {/* Progress bar */}
-        <div className="mt-3 h-1.5 bg-sky-100 dark:bg-sky-900/50 rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-sky-400 to-cyan-400 rounded-full"
+            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
             animate={{ width: `${fillPercent}%` }}
             transition={{ type: "spring", stiffness: 150, damping: 20 }}
           />
