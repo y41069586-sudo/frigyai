@@ -31,6 +31,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [initialWeight, setInitialWeight] = useState<number | null>(null);
+  const [weightHistory, setWeightHistory] = useState<number[]>([]);
 
   const goal = targetWeight || settings?.targetWeight || 70;
 
