@@ -283,7 +283,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(Math.abs(progressToGoal), 100)}%` }}
                 transition={{ duration: 0.8 }}
