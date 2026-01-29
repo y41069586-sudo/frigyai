@@ -23,7 +23,6 @@ import { useReminders } from "@/hooks/useReminders";
 import frigLogo from "@/assets/frig-logo.png";
 import { ChatbotIntro } from "@/components/ChatbotIntro";
 import { AIChatbot } from "@/components/AIChatbot";
-import { useState } from "react";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
