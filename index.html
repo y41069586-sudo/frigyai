@@ -41,13 +41,34 @@
     <script>
       (function () {
         const FLAG = "fb_sw_recovered";
+        const MAX_RECOVERY_ATTEMPTS = 2;
+        let recoveryAttempts = parseInt(sessionStorage.getItem("fb_recovery_count") || "0");
+
+        // Check if we've already tried recovering
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("recovered")) {
+          const recoveredTime = parseInt(urlParams.get("recovered") || "0");
+          if (Date.now() - recoveredTime < 15000) {
+            // We recovered recently, don't try again
+            console.log("[Fridgie] Recent recovery detected, skipping further recovery attempts");
+            return;
+          }
+        }
 
         async function recover(reason) {
           try {
             if (sessionStorage.getItem(FLAG)) return;
+
+            recoveryAttempts++;
+            if (recoveryAttempts > MAX_RECOVERY_ATTEMPTS) {
+              console.error("[Fridgie] Max recovery attempts reached");
+              return;
+            }
+
+            sessionStorage.setItem("fb_recovery_count", String(recoveryAttempts));
             sessionStorage.setItem(FLAG, "1");
 
-            console.warn("[Fridgie] Cache-Recovery gestartet:", reason);
+            console.warn("[Fridgie] Cache-Recovery gestartet (Versuch " + recoveryAttempts + "):", reason);
 
             if ("serviceWorker" in navigator) {
               const regs = await navigator.serviceWorker.getRegistrations();
@@ -63,13 +84,20 @@
           } finally {
             const url = new URL(window.location.href);
             url.searchParams.set("recovered", String(Date.now()));
-            window.location.replace(url.toString());
+            setTimeout(() => {
+              window.location.replace(url.toString());
+            }, 2000);
           }
         }
 
         function shouldRecover(msg, source) {
           const m = String(msg || "");
           const s = String(source || "");
+
+          // Ignore Fast Refresh errors - they don't require recovery
+          if (/Fast Refresh/i.test(m) || /Could not Fast Refresh/i.test(m)) {
+            return false;
+          }
 
           // Common PWA/chunk mismatch messages across browsers
           const patterns = [
