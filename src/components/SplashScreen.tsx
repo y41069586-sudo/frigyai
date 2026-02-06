@@ -12,11 +12,17 @@ interface SplashScreenProps {
 
 export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onComplete();
-    }, 10000);
+    console.log('🎬 Splash Screen started - will show for 10 seconds');
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      console.log('🎬 Splash Screen ending after 10 seconds');
+      onComplete();
+    }, SPLASH_DURATION);
+
+    return () => {
+      clearTimeout(timer);
+      console.log('🎬 Splash Screen cleanup');
+    };
   }, [onComplete]);
 
   return (
