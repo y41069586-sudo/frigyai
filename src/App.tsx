@@ -89,9 +89,9 @@ const AppContent = () => {
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
-  const handleSplashComplete = () => {
+  const handleSplashComplete = useCallback(() => {
     setShowSplash(false);
-  };
+  }, []);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
