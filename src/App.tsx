@@ -94,24 +94,26 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-            <BrowserRouter>
-              <AuthProvider>
-                <MealPlanProvider>
-                  <AppContent />
-                </MealPlanProvider>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </LanguageProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AuthProvider>
+                  <MealPlanProvider>
+                    <AppContent />
+                  </MealPlanProvider>
+                </AuthProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </>
   );
 };
 
