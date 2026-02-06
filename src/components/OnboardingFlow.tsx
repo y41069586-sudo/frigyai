@@ -8,7 +8,7 @@ import {
   Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe,
   Zap, Clock, Rocket, TrendingUp, Flame, BarChart3, Activity, User,
   Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
-  Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding, Bike,
+  Milk, Egg, Bean, CircleCheck, ChefHat, Award, PersonStanding,
   GraduationCap, Medal, Crown, Armchair, Footprints, Carrot, CupSoda,
   Droplets, Coffee, Mail, Lock, Eye, EyeOff, Save, Beef, Cherry,
   Bot, MessageCircle, BookOpen, ArrowRight, RefreshCw, ListChecks
