@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import { AnimatedFrigyMascot } from './AnimatedFrigyMascot';
 import frigLogo from '@/assets/frig-logo.png';
 
+// Force cache bust with timestamp
+const SPLASH_DURATION = 10000; // 10 seconds
+
 interface SplashScreenProps {
   onComplete: () => void;
 }
