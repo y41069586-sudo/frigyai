@@ -11,7 +11,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onComplete();
-    }, 6000);
+    }, 10000);
 
     return () => clearTimeout(timer);
   }, [onComplete]);
