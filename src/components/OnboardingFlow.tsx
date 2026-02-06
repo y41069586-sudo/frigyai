@@ -832,7 +832,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       {userData.goal === 'lose' && t.onboardingLoseWeight}
                       {userData.goal === 'gain' && t.onboardingGainMuscle}
                       {userData.goal === 'maintain' && t.onboardingMaintainWeight}
-                      {userData.goal === 'health' && t.onboardingEatHealthier}
+                      {userData.goal === 'healthier' && t.onboardingEatHealthier}
                       {!userData.goal && t.onboardingEatHealthier}
                     </p>
                   </div>
