@@ -53,15 +53,15 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
         {/* Title */}
         <motion.div
-          className="text-center mb-6"
+          className="text-center mb-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent mb-2">
+          <h1 className="text-6xl font-black bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent mb-3 whitespace-nowrap">
             Frigy
           </h1>
-          <p className="text-green-600 text-sm font-medium">Dein smarter Kühlschrank-Buddy</p>
+          <p className="text-green-600 text-xs font-medium">Dein smarter Kühlschrank-Buddy</p>
         </motion.div>
 
         {/* Frigy Mascot */}
