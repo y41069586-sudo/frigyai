@@ -57,7 +57,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         transition={{ delay: 0.2, duration: 0.5 }}
       >
         <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent mb-2">
-          FrigBuddy
+          Frigy
         </h1>
         <p className="text-green-600 text-base font-semibold">Dein smarter Kühlschrank-Buddy</p>
       </motion.div>
