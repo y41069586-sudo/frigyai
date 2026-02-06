@@ -17,10 +17,10 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   return (
     <motion.div
-      className="fixed inset-0 bg-gradient-to-b from-green-50 to-green-100 flex flex-col items-center justify-center z-50"
+      className="fixed inset-0 top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-green-50 to-green-100 flex flex-col items-center justify-center z-50 w-screen h-screen"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.8, delay: 5.5 }}
+      transition={{ duration: 0.5 }}
     >
       {/* Frigy Mascot */}
       <motion.div
