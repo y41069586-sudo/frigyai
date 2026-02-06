@@ -20,7 +20,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       className="fixed inset-0 bg-gradient-to-b from-green-50 to-green-100 flex flex-col items-center justify-center z-50"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.6, delay: 4.2 }}
+      transition={{ duration: 0.8, delay: 5.5 }}
     >
       {/* Frigy Mascot */}
       <motion.div
