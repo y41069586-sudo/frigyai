@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 // Force rebuild to clear Vite cache
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,6 +13,7 @@ import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
 import { FreeTrialReminder } from "@/components/FreeTrialReminder";
 import { ReEngagementBanner } from "@/components/ReEngagementBanner";
+import { SplashScreen } from "@/components/SplashScreen";
 
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
