@@ -293,40 +293,34 @@ const MealPlansPage = () => {
     setDialogOpen(true);
   };
 
-  const addMealToTracker = (meal: Meal, e: React.MouseEvent) => {
+  const addMealToTracker = async (meal: Meal, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening meal detail
-    
-    // Get current food entries from localStorage
-    const saved = localStorage.getItem('todayFood');
-    let entries = [];
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (data.date === new Date().toDateString()) {
-        entries = data.entries;
+
+    try {
+      // Log meal to database via food entries hook
+      const result = await addEntry({
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        portion: `${meal.prepTime}min`,
+        meal_type: meal.type,
+      });
+
+      if (result) {
+        toast({
+          title: `${t.eaten}! ✓`,
+          description: `${meal.name} - ${meal.calories} kcal ${t.toastProductAdded}`
+        });
       }
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Konnte Mahlzeit nicht speichern',
+        variant: 'destructive'
+      });
     }
-    
-    // Add the meal
-    const newEntry = {
-      id: Date.now().toString(),
-      name: meal.name,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    entries.push(newEntry);
-    localStorage.setItem('todayFood', JSON.stringify({
-      date: new Date().toDateString(),
-      entries,
-    }));
-    
-    toast({ 
-      title: `${t.eaten}! ✓`, 
-      description: `${meal.name} - ${meal.calories} kcal ${t.toastProductAdded}` 
-    });
   };
 
   const handleTabChange = (value: string) => {
