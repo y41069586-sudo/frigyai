@@ -135,7 +135,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         </div>
 
         {/* Instructions */}
-        <div>
+        <div className="mb-6">
           <h4 className="font-semibold mb-2 text-primary">Zubereitung</h4>
           <ol className="space-y-3">
             {meal.instructions.map((step, idx) => (
@@ -147,6 +147,39 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               </li>
             ))}
           </ol>
+        </div>
+
+        {/* Log as eaten button */}
+        <div className="flex gap-2 mt-6 pt-4 border-t border-primary/20">
+          <Button
+            onClick={handleLogMeal}
+            disabled={isLogging || isLogged}
+            className="flex-1 bg-primary hover:bg-primary/90"
+          >
+            {isLogged ? (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                {t.toastFoodLogged || 'Gegessen!'}
+              </>
+            ) : isLogging ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Wird geloggt...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Als gegessen markieren
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => onOpenChange(false)}
+            variant="outline"
+            className="flex-1"
+          >
+            Schließen
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
