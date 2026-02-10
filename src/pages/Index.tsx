@@ -19,6 +19,7 @@ import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
 import { DashboardMacroRing } from "@/components/DashboardMacroRing";
 import { DashboardWaterWidget } from "@/components/DashboardWaterWidget";
 import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
+import { DashboardTodayMealsCard } from "@/components/DashboardTodayMealsCard";
 import { useReminders } from "@/hooks/useReminders";
 
 import frigLogo from "@/assets/frig-logo.png";
