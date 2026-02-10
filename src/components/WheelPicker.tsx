@@ -11,7 +11,7 @@ interface WheelPickerProps {
 
 const triggerHaptic = () => {
   if ('vibrate' in navigator) {
-    navigator.vibrate(3);
+    navigator.vibrate([5, 10, 5]); // More noticeable haptic pattern
   }
 };
 
@@ -28,11 +28,14 @@ export const WheelPicker = ({
   const isScrollingRef = useRef(false);
   const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProgrammaticScrollRef = useRef(false);
-  
+  const lastScrollTopRef = useRef(0);
+  const velocityRef = useRef(0);
+  const lastScrollTimeRef = useRef(Date.now());
+
   const itemHeight = 48;
   const visibleItems = 3;
   const paddingItems = Math.floor(visibleItems / 2);
-  
+
   // Generate items
   const items: number[] = [];
   for (let i = min; i <= max; i += step) {
@@ -55,20 +58,20 @@ export const WheelPicker = ({
   // Scroll to specific index without triggering onChange
   const scrollToIndex = useCallback((index: number, smooth = false) => {
     if (!scrollRef.current) return;
-    
+
     isProgrammaticScrollRef.current = true;
     const targetTop = index * itemHeight;
-    
+
     if (smooth) {
       scrollRef.current.scrollTo({ top: targetTop, behavior: 'smooth' });
     } else {
       scrollRef.current.scrollTop = targetTop;
     }
-    
-    // Reset flag after scroll completes
+
+    // Reset flag after scroll completes - shorter delay for Android
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, smooth ? 300 : 50);
+    }, smooth ? 250 : 30);
   }, [itemHeight]);
 
   // Initialize scroll position
@@ -81,7 +84,7 @@ export const WheelPicker = ({
   // Sync when value changes externally
   useEffect(() => {
     if (isScrollingRef.current) return;
-    
+
     if (value !== lastValueRef.current) {
       const index = getIndexFromValue(value);
       scrollToIndex(index, false);
@@ -89,50 +92,62 @@ export const WheelPicker = ({
     }
   }, [value, getIndexFromValue, scrollToIndex]);
 
-  // Handle scroll with debounced end detection
+  // Handle scroll with improved snapping
   const handleScroll = useCallback(() => {
     if (isProgrammaticScrollRef.current) return;
     if (!scrollRef.current) return;
-    
+
     isScrollingRef.current = true;
-    
+
     // Clear existing timeout
     if (scrollEndTimeoutRef.current) {
       clearTimeout(scrollEndTimeoutRef.current);
     }
-    
-    // Get current value from scroll position
+
+    // Calculate scroll velocity for better Android handling
+    const currentTime = Date.now();
+    const timeDelta = currentTime - lastScrollTimeRef.current;
     const scrollTop = scrollRef.current.scrollTop;
+    const scrollDelta = scrollTop - lastScrollTopRef.current;
+
+    if (timeDelta > 0) {
+      velocityRef.current = scrollDelta / timeDelta;
+    }
+
+    lastScrollTopRef.current = scrollTop;
+    lastScrollTimeRef.current = currentTime;
+
+    // Get current value from scroll position
     const newValue = getValueFromScrollPosition(scrollTop);
-    
+
     // Only trigger onChange if value actually changed
     if (newValue !== lastValueRef.current) {
       triggerHaptic();
       lastValueRef.current = newValue;
       onChange(newValue);
     }
-    
-    // Detect scroll end and snap
+
+    // Detect scroll end and snap with faster response time
     scrollEndTimeoutRef.current = setTimeout(() => {
       if (!scrollRef.current) return;
-      
+
       const currentScrollTop = scrollRef.current.scrollTop;
       const nearestIndex = Math.round(currentScrollTop / itemHeight);
       const targetScrollTop = nearestIndex * itemHeight;
-      
+
       // Snap to nearest if not already aligned
       if (Math.abs(currentScrollTop - targetScrollTop) > 1) {
         isProgrammaticScrollRef.current = true;
         scrollRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-        
+
         setTimeout(() => {
           isProgrammaticScrollRef.current = false;
           isScrollingRef.current = false;
-        }, 200);
+        }, 150);
       } else {
         isScrollingRef.current = false;
       }
-    }, 100);
+    }, 60); // Reduced from 100ms for snappier feel
   }, [getValueFromScrollPosition, onChange, itemHeight]);
 
   // Handle direct item click
