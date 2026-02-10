@@ -610,10 +610,17 @@ const MealPlansPage = () => {
         </Tabs>
       </div>
 
-      <MealDetailDialog 
-        meal={selectedMeal} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+      <MealDetailDialog
+        meal={selectedMeal}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onMealLogged={() => {
+          // Refresh food entries when meal is logged from dialog
+          toast({
+            title: `${t.eaten}! ✓`,
+            description: `Mahlzeit zu deinem Tracker hinzugefügt`
+          });
+        }}
       />
 
       {/* Weekly Summary Dialog */}
