@@ -1,6 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Flame, Beef, Wheat, Droplets } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, Flame, Beef, Wheat, Droplets, Check, Loader2 } from 'lucide-react';
+import { useFoodEntries } from '@/hooks/useFoodEntries';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from '@/hooks/use-toast';
 
 interface Ingredient {
   name: string;
@@ -24,9 +29,53 @@ interface MealDetailDialogProps {
   meal: Meal | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMealLogged?: () => void;
 }
 
-export const MealDetailDialog = ({ meal, open, onOpenChange }: MealDetailDialogProps) => {
+export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: MealDetailDialogProps) => {
+  const { t } = useLanguage();
+  const { addEntry } = useFoodEntries();
+  const [isLogging, setIsLogging] = useState(false);
+  const [isLogged, setIsLogged] = useState(false);
+
+  const handleLogMeal = async () => {
+    if (!meal) return;
+
+    setIsLogging(true);
+    try {
+      const result = await addEntry({
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        portion: `${meal.prepTime}min`,
+        meal_type: meal.type,
+      });
+
+      if (result) {
+        setIsLogged(true);
+        toast({
+          title: '✅ Gegessen geloggt',
+          description: `${meal.name} zu deinem Tracker hinzugefügt`,
+        });
+        onMealLogged?.();
+        setTimeout(() => {
+          onOpenChange(false);
+          setIsLogged(false);
+        }, 1000);
+      }
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Konnte Mahlzeit nicht speichern',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
   if (!meal) return null;
 
   return (
