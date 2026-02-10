@@ -70,12 +70,13 @@ const MealPlansPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { addEntry } = useFoodEntries();
   // Use global meal plan context for background generation
-  const { 
-    mealPlan: globalMealPlan, 
-    isGenerating: globalIsGenerating, 
+  const {
+    mealPlan: globalMealPlan,
+    isGenerating: globalIsGenerating,
     elapsedSeconds: globalElapsedSeconds,
-    generateMealPlan: globalGenerateMealPlan 
+    generateMealPlan: globalGenerateMealPlan
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
