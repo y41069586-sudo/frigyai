@@ -205,18 +205,18 @@ export const WheelPicker = ({
       {/* Scroll container - optimized for iOS and Android */}
       <div
         ref={scrollRef}
-        className="h-full overflow-y-scroll scrollbar-hide"
+        className="h-full overflow-y-scroll scrollbar-hide select-none"
         style={{
           scrollSnapType: 'y mandatory',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
           scrollBehavior: 'smooth',
-          '-webkit-user-select': 'none',
+          WebkitUserSelect: 'none',
           userSelect: 'none',
           // Better performance on Android
           willChange: 'scroll-position',
           transform: 'translateZ(0)', // GPU acceleration
-        }}
+        } as React.CSSProperties}
         onScroll={handleScroll}
       >
         {/* Top padding */}
