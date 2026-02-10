@@ -19,6 +19,7 @@ import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { WeeklySummary } from '@/components/WeeklySummary';
 import { useReminders } from '@/hooks/useReminders';
+import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
