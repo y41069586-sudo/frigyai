@@ -19,6 +19,7 @@ import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { WeeklySummary } from '@/components/WeeklySummary';
 import { useReminders } from '@/hooks/useReminders';
+import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -69,12 +70,13 @@ const MealPlansPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { addEntry } = useFoodEntries();
   // Use global meal plan context for background generation
-  const { 
-    mealPlan: globalMealPlan, 
-    isGenerating: globalIsGenerating, 
+  const {
+    mealPlan: globalMealPlan,
+    isGenerating: globalIsGenerating,
     elapsedSeconds: globalElapsedSeconds,
-    generateMealPlan: globalGenerateMealPlan 
+    generateMealPlan: globalGenerateMealPlan
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
@@ -291,40 +293,34 @@ const MealPlansPage = () => {
     setDialogOpen(true);
   };
 
-  const addMealToTracker = (meal: Meal, e: React.MouseEvent) => {
+  const addMealToTracker = async (meal: Meal, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening meal detail
-    
-    // Get current food entries from localStorage
-    const saved = localStorage.getItem('todayFood');
-    let entries = [];
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (data.date === new Date().toDateString()) {
-        entries = data.entries;
+
+    try {
+      // Log meal to database via food entries hook
+      const result = await addEntry({
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        portion: `${meal.prepTime}min`,
+        meal_type: meal.type,
+      });
+
+      if (result) {
+        toast({
+          title: `${t.eaten}! ✓`,
+          description: `${meal.name} - ${meal.calories} kcal ${t.toastProductAdded}`
+        });
       }
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Konnte Mahlzeit nicht speichern',
+        variant: 'destructive'
+      });
     }
-    
-    // Add the meal
-    const newEntry = {
-      id: Date.now().toString(),
-      name: meal.name,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    entries.push(newEntry);
-    localStorage.setItem('todayFood', JSON.stringify({
-      date: new Date().toDateString(),
-      entries,
-    }));
-    
-    toast({ 
-      title: `${t.eaten}! ✓`, 
-      description: `${meal.name} - ${meal.calories} kcal ${t.toastProductAdded}` 
-    });
   };
 
   const handleTabChange = (value: string) => {
@@ -614,10 +610,17 @@ const MealPlansPage = () => {
         </Tabs>
       </div>
 
-      <MealDetailDialog 
-        meal={selectedMeal} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+      <MealDetailDialog
+        meal={selectedMeal}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onMealLogged={() => {
+          // Refresh food entries when meal is logged from dialog
+          toast({
+            title: `${t.eaten}! ✓`,
+            description: `Mahlzeit zu deinem Tracker hinzugefügt`
+          });
+        }}
       />
 
       {/* Weekly Summary Dialog */}

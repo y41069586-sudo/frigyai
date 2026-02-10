@@ -4,78 +4,69 @@ interface SpeedIconProps {
   selected: boolean;
 }
 
-export const AnimatedBicycle = ({ selected }: SpeedIconProps) => (
-  <svg viewBox="0 0 80 60" className="w-16 h-12">
-    {/* Back wheel */}
-    <motion.circle
-      cx="18" cy="45" r="12"
-      fill="none" stroke="currentColor" strokeWidth="2.5"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "18px 45px" }}
-    />
-    
-    {/* Front wheel */}
-    <motion.circle
-      cx="62" cy="45" r="12"
-      fill="none" stroke="currentColor" strokeWidth="2.5"
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.8, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "62px 45px" }}
-    />
-    
-    {/* Bike frame */}
-    <path 
-      d="M18 45 L35 28 L50 28 L62 45 M35 28 L35 45 L50 45 M50 28 L48 20" 
-      stroke="currentColor" 
-      strokeWidth="2.5" 
-      fill="none" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    />
-    
-    {/* Handlebar */}
-    <path d="M48 20 L44 17 M48 20 L54 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    
-    {/* Seat */}
-    <rect x="30" y="25" width="10" height="3" rx="1.5" fill="currentColor" />
-    
-    {/* Pedal crank */}
-    <motion.g
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.6, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "35px 45px" }}
-    >
-      <circle cx="35" cy="45" r="3" fill="currentColor" />
-      <line x1="35" y1="40" x2="35" y2="50" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-    </motion.g>
-    
-    {/* Rider - simple stick figure */}
-    <motion.g 
-      animate={{ y: selected ? [0, -1, 0] : 0 }} 
-      transition={{ duration: 0.3, repeat: selected ? Infinity : 0 }}
-    >
+export const AnimatedWalker = ({ selected }: SpeedIconProps) => (
+  <svg viewBox="0 0 60 80" className="w-12 h-16">
+    <motion.g animate={{ x: selected ? [0, 2, -2, 0] : 0 }} transition={{ duration: 0.8, repeat: selected ? Infinity : 0 }}>
       {/* Head */}
-      <circle cx="42" cy="8" r="5" fill="currentColor" />
-      
+      <circle cx="30" cy="12" r="6" fill="currentColor" />
+
       {/* Body */}
-      <line x1="42" y1="13" x2="38" y2="25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      
-      {/* Arm to handlebar */}
-      <line x1="40" y1="17" x2="48" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </motion.g>
-    
-    {/* Legs - simple animated */}
-    <motion.g
-      animate={{ rotate: selected ? 360 : 0 }}
-      transition={{ duration: 0.6, repeat: selected ? Infinity : 0, ease: "linear" }}
-      style={{ transformOrigin: "35px 45px" }}
-    >
-      <line x1="35" y1="40" x2="38" y2="28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="35" y1="50" x2="38" y2="28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
+      <line x1="30" y1="18" x2="30" y2="38" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+
+      {/* Left Arm */}
+      <motion.line
+        x1="30" y1="24" x2="20" y2="35"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        animate={{ rotate: selected ? [20, -20, 20] : 0 }}
+        transition={{ duration: 0.8, repeat: selected ? Infinity : 0 }}
+        style={{ transformOrigin: "30px 24px" }}
+      />
+
+      {/* Right Arm */}
+      <motion.line
+        x1="30" y1="24" x2="40" y2="35"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        animate={{ rotate: selected ? [-20, 20, -20] : 0 }}
+        transition={{ duration: 0.8, repeat: selected ? Infinity : 0 }}
+        style={{ transformOrigin: "30px 24px" }}
+      />
+
+      {/* Left Leg - animated walking */}
+      <motion.line
+        x1="30" y1="38" x2="22" y2="60"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        animate={{ rotate: selected ? [20, -20, 20] : 0 }}
+        transition={{ duration: 0.8, repeat: selected ? Infinity : 0 }}
+        style={{ transformOrigin: "30px 38px" }}
+      />
+
+      {/* Right Leg - animated walking */}
+      <motion.line
+        x1="30" y1="38" x2="38" y2="60"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        animate={{ rotate: selected ? [-20, 20, -20] : 0 }}
+        transition={{ duration: 0.8, repeat: selected ? Infinity : 0 }}
+        style={{ transformOrigin: "30px 38px" }}
+      />
+
+      {/* Left Foot */}
+      <line x1="22" y1="60" x2="18" y2="68" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+
+      {/* Right Foot */}
+      <line x1="38" y1="60" x2="42" y2="68" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
     </motion.g>
   </svg>
 );
+
+export const AnimatedBicycle = AnimatedWalker;
 
 export const AnimatedCar = ({ selected }: SpeedIconProps) => (
   <svg viewBox="0 0 80 50" className="w-16 h-12">

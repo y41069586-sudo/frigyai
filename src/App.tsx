@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 // Force rebuild to clear Vite cache
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,6 +13,7 @@ import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
 import { FreeTrialReminder } from "@/components/FreeTrialReminder";
 import { ReEngagementBanner } from "@/components/ReEngagementBanner";
+import { SplashScreen } from "@/components/SplashScreen";
 
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -86,24 +87,33 @@ const AppContent = () => {
 };
 
 const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <MealPlanProvider>
-                  <AppContent />
-                </MealPlanProvider>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </LanguageProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AuthProvider>
+                  <MealPlanProvider>
+                    <AppContent />
+                  </MealPlanProvider>
+                </AuthProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </>
   );
 };
 

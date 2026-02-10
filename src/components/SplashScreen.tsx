@@ -1,95 +1,341 @@
-import { motion } from "framer-motion";
-import frigLogo from "@/assets/frig-logo.png";
+import { useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { AnimatedFrigyMascot } from './AnimatedFrigyMascot';
 
 interface SplashScreenProps {
   onComplete: () => void;
 }
 
-export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
+// Animated background grain texture
+const GrainTexture = () => (
+  <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
+    <defs>
+      <filter id="grain">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.8"
+          numOctaves="4"
+          seed="3"
+          result="noise"
+        />
+        <feColorMatrix in="noise" type="saturate" values="0" />
+        <feBlend in="SourceGraphic" in2="noise" mode="multiply" />
+      </filter>
+    </defs>
+    <rect width="100%" height="100%" fill="rgba(255,255,255,0.05)" filter="url(#grain)" />
+  </svg>
+);
+
+// Ambient background movement - very slow and subtle
+const AmbientBackground = () => {
   return (
-    <motion.div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      onAnimationComplete={() => {
-        setTimeout(onComplete, 1800);
-      }}
-    >
-      {/* Subtle ambient glow */}
+    <>
+      {/* Main gradient */}
       <motion.div
-        className="absolute w-96 h-96 rounded-full"
+        className="absolute inset-0"
         style={{
-          background: "radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%)",
-        }}
-        animate={{
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "easeInOut",
+          background: 'linear-gradient(135deg, #0a2818 0%, #155a3a 35%, #0d3d2a 70%, #051f15 100%)',
         }}
       />
 
-      {/* Logo container */}
+      {/* Subtle animated glow from top-right */}
       <motion.div
-        className="relative flex flex-col items-center gap-6"
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {/* Logo with subtle shadow */}
-        <motion.div
-          className="relative"
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute -top-64 -right-64 w-96 h-96 bg-green-500/10 rounded-full blur-3xl pointer-events-none"
+        animate={{
+          opacity: [0.3, 0.5, 0.3],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+
+      {/* Subtle animated glow from bottom-left */}
+      <motion.div
+        className="absolute -bottom-48 -left-48 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"
+        animate={{
+          opacity: [0.2, 0.4, 0.2],
+          scale: [1, 1.15, 1],
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: 0.5,
+        }}
+      />
+
+      {/* Grain overlay */}
+      <GrainTexture />
+
+      {/* Soft vignette */}
+      <div className="absolute inset-0 bg-radial from-transparent via-transparent to-black/10 pointer-events-none" />
+    </>
+  );
+};
+
+// Motion blur effect during movement
+const MotionBlur = () => (
+  <motion.div
+    className="absolute"
+    style={{
+      width: 100,
+      height: 100,
+      background: 'linear-gradient(90deg, rgba(74, 222, 128, 0.3) 0%, transparent 100%)',
+      filter: 'blur(24px)',
+      pointerEvents: 'none',
+    }}
+    animate={{
+      opacity: [0, 0.4, 0.2, 0],
+    }}
+    transition={{
+      duration: 2.2,
+      ease: 'easeOut',
+      times: [0, 0.3, 0.7, 1],
+    }}
+  />
+);
+
+// Minimal loading indicator - thin animated line
+const LoadingIndicator = ({ startDelay }: { startDelay: number }) => {
+  return (
+    <motion.div
+      className="w-16 h-0.5 bg-gradient-to-r from-transparent via-green-300 to-transparent rounded-full"
+      initial={{ opacity: 0, scaleX: 0 }}
+      animate={{ opacity: 1, scaleX: 1 }}
+      transition={{
+        delay: startDelay,
+        duration: 0.8,
+        ease: 'easeOut',
+      }}
+    >
+      {/* Animated flow */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400 to-transparent"
+        animate={{
+          x: ['-100%', '100%'],
+          opacity: [0, 0.6, 0],
+        }}
+        transition={{
+          delay: startDelay + 0.2,
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+    </motion.div>
+  );
+};
+
+// Logo letters - fade in one by one
+const LogoLetters = ({ startDelay }: { startDelay: number }) => {
+  const letters = 'Frigy'.split('');
+
+  return (
+    <motion.div className="flex justify-center gap-0">
+      {letters.map((letter, i) => (
+        <motion.span
+          key={i}
+          className="text-4xl font-black bg-gradient-to-b from-green-100 via-green-200 to-green-300 bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            delay: startDelay + i * 0.08,
+            duration: 0.6,
+            ease: [0.34, 1.56, 0.64, 1], // easeOutBack
+          }}
         >
-          <img 
-            src={frigLogo} 
-            alt="Frigy Logo" 
-            className="w-24 h-24 rounded-[22%] shadow-lg"
-          />
+          {letter}
+        </motion.span>
+      ))}
+    </motion.div>
+  );
+};
+
+export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
+  const handleComplete = useCallback(() => {
+    onComplete();
+  }, [onComplete]);
+
+  useEffect(() => {
+    // Cinematic duration: 4 seconds
+    const totalDuration = 4000;
+    const timer = setTimeout(() => {
+      handleComplete();
+    }, totalDuration);
+
+    return () => clearTimeout(timer);
+  }, [handleComplete]);
+
+  // Mascot enters from far left, moving diagonally across screen
+  const mascotVariants = {
+    initial: {
+      x: -200, // Far left, partially off-screen
+      y: 60, // Starts slightly lower
+      opacity: 0,
+      rotateZ: 0,
+    },
+    animate: {
+      x: 180, // Ends on right side but inside frame
+      y: -30, // Ends slightly higher (diagonal motion)
+      opacity: 1,
+      rotateZ: [0, -2, 0, -1, 0], // Subtle head tilt during movement
+      transition: {
+        x: {
+          duration: 2.2,
+          ease: [0.25, 0.1, 0.25, 1], // Custom ease - slow start, natural deceleration
+        },
+        y: {
+          duration: 2.2,
+          ease: [0.25, 0.1, 0.25, 1],
+        },
+        opacity: {
+          duration: 0.6,
+          ease: 'easeOut',
+        },
+        rotateZ: {
+          duration: 2.2,
+          ease: 'easeInOut',
+          times: [0, 0.3, 0.6, 0.8, 1],
+        },
+      },
+    },
+    rest: {
+      x: 180,
+      y: -30,
+      opacity: 1,
+      rotateZ: 0,
+      transition: {
+        duration: 0.8,
+        ease: 'easeOut',
+      },
+    },
+  };
+
+  // Blink animation during movement
+  const blinkVariants = {
+    open: { scaleY: 1 },
+    closed: { scaleY: 0.1 },
+  };
+
+  // Arm stretch forward animation
+  const armVariants = {
+    initial: { x: 0, rotateZ: 0 },
+    animate: {
+      x: [0, 8, 0],
+      rotateZ: [0, -15, 0],
+      transition: {
+        duration: 2.2,
+        ease: 'easeInOut',
+        times: [0, 0.4, 1],
+      },
+    },
+  };
+
+  // Container exit animation - soft crossfade
+  const containerVariants = {
+    initial: { opacity: 1 },
+    exit: {
+      opacity: 0,
+      transition: {
+        duration: 0.6,
+        delay: 3.4,
+        ease: 'easeOut',
+      },
+    },
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 flex flex-col items-center justify-center z-50 w-screen h-screen overflow-hidden"
+      variants={containerVariants}
+      initial="initial"
+      exit="exit"
+    >
+      {/* Animated background */}
+      <AmbientBackground />
+
+      {/* Main content */}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
+        {/* Motion blur following mascot */}
+        <motion.div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          initial={{ x: -200, y: 60 }}
+        >
+          <MotionBlur />
         </motion.div>
 
-        {/* App name with elegant typography */}
+        {/* Frigy Mascot */}
         <motion.div
-          className="flex flex-col items-center gap-2"
+          variants={mascotVariants}
+          initial="initial"
+          animate="animate"
+          className="relative"
+        >
+          <div className="relative w-40 h-40 flex items-center justify-center">
+            {/* Main mascot */}
+            <div className="relative z-20">
+              <AnimatedFrigyMascot size={160} animate={true} />
+            </div>
+
+            {/* Blink overlay (subtle) */}
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              variants={blinkVariants}
+              initial="open"
+              animate={{
+                scaleY: [1, 1, 1, 0.05, 1, 1],
+              }}
+              transition={{
+                duration: 2.2,
+                ease: 'easeInOut',
+                times: [0, 0.4, 0.5, 0.52, 0.54, 1],
+              }}
+            />
+          </div>
+        </motion.div>
+
+        {/* Logo - appears as mascot passes center */}
+        <motion.div
+          className="absolute top-1/2 translate-y-1/3 pointer-events-none"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+          transition={{ delay: 1.0, duration: 0.4 }}
         >
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Frigy
-          </h1>
-          <p className="text-sm text-muted-foreground font-medium">
-            Eat smarter. Not harder.
-          </p>
+          <LogoLetters startDelay={1.1} />
         </motion.div>
-      </motion.div>
 
-      {/* Modern progress bar at bottom */}
-      <motion.div
-        className="absolute bottom-24 w-32"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary rounded-full"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{
-              duration: 1.3,
-              delay: 0.5,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          />
-        </div>
-      </motion.div>
+        {/* Loading indicator below logo */}
+        <motion.div
+          className="absolute top-2/3 flex flex-col items-center gap-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.2, duration: 0.4 }}
+        >
+          <LoadingIndicator startDelay={2.2} />
+        </motion.div>
+
+        {/* Breathing animation after stop */}
+        <motion.div
+          className="absolute top-1/2 -translate-y-1/2 w-40 h-40 rounded-full pointer-events-none"
+          animate={{
+            scale: [1, 1.02, 1],
+            opacity: [0, 0.1, 0],
+          }}
+          transition={{
+            delay: 2.4,
+            duration: 1.2,
+            repeat: 2,
+            ease: 'easeInOut',
+          }}
+          style={{
+            background: 'radial-gradient(circle, rgba(74, 222, 128, 0.2) 0%, transparent 70%)',
+            filter: 'blur(20px)',
+          }}
+        />
+      </div>
     </motion.div>
   );
 };
