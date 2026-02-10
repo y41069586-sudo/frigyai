@@ -471,11 +471,20 @@ const Index = () => {
             </motion.button>
           </motion.section>
           
-          {/* Water Widget - Full Width */}
+          {/* Today's Meals Widget - Full Width */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
+          >
+            <DashboardTodayMealsCard />
+          </motion.section>
+
+          {/* Water Widget - Full Width */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
           >
             <DashboardWaterWidget
               waterGlasses={waterGlasses}
