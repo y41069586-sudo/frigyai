@@ -172,68 +172,77 @@ export const WheelPicker = ({
 
   const containerHeight = visibleItems * itemHeight;
   const currentIndex = getIndexFromValue(lastValueRef.current);
-  
+
   return (
     <div className="relative mx-auto w-full" style={{ height: containerHeight }}>
       {/* Top gradient */}
-      <div 
+      <div
         className="absolute inset-x-0 top-0 z-10 pointer-events-none"
-        style={{ 
+        style={{
           height: paddingItems * itemHeight,
           background: 'linear-gradient(to bottom, hsl(var(--card)) 0%, hsl(var(--card) / 0.5) 50%, transparent 100%)'
         }}
       />
-      
+
       {/* Bottom gradient */}
-      <div 
+      <div
         className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
-        style={{ 
+        style={{
           height: paddingItems * itemHeight,
           background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.5) 50%, transparent 100%)'
         }}
       />
-      
+
       {/* Selection indicator */}
-      <div 
+      <div
         className="absolute inset-x-2 z-0 pointer-events-none border-2 border-primary/50 bg-primary/10 rounded-xl"
-        style={{ 
+        style={{
           top: paddingItems * itemHeight,
-          height: itemHeight 
+          height: itemHeight
         }}
       />
-      
-      {/* Scroll container */}
+
+      {/* Scroll container - optimized for iOS and Android */}
       <div
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide"
-        style={{ 
+        style={{
           scrollSnapType: 'y mandatory',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
+          overscrollBehavior: 'contain',
+          scrollBehavior: 'smooth',
+          '-webkit-user-select': 'none',
+          userSelect: 'none',
+          // Better performance on Android
+          willChange: 'scroll-position',
+          transform: 'translateZ(0)', // GPU acceleration
         }}
         onScroll={handleScroll}
       >
         {/* Top padding */}
         <div style={{ height: paddingItems * itemHeight }} />
-        
+
         {/* Items */}
         {items.map((item, index) => {
           const isSelected = item === lastValueRef.current;
           const distanceFromSelected = Math.abs(index - currentIndex);
           const opacity = distanceFromSelected === 0 ? 1 : distanceFromSelected === 1 ? 0.5 : 0.25;
-          
+
           return (
             <div
               key={item}
-              className={`flex items-center justify-center select-none cursor-pointer gap-1 ${
+              className={`flex items-center justify-center select-none gap-1 transition-all duration-150 ${
                 isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
               }`}
-              style={{ 
+              style={{
                 height: itemHeight,
                 scrollSnapAlign: 'center',
                 fontSize: isSelected ? '1.5rem' : '1rem',
                 opacity,
                 transform: isSelected ? 'scale(1.05)' : 'scale(0.9)',
+                cursor: 'pointer',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
               }}
               onClick={() => handleItemClick(item)}
             >
@@ -244,7 +253,7 @@ export const WheelPicker = ({
             </div>
           );
         })}
-        
+
         {/* Bottom padding */}
         <div style={{ height: paddingItems * itemHeight }} />
       </div>
