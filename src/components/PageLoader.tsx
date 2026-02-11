@@ -11,7 +11,7 @@ export const PageLoader = () => {
       >
         <motion.img
           src={frigLogo}
-          alt="Fridgie"
+          alt="frigy"
           className="w-16 h-16"
           animate={{ 
             scale: [1, 1.1, 1],

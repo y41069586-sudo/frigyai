@@ -120,7 +120,7 @@ const ProfilePage = () => {
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
-        <img src={frigLogo} alt="Fridgie" className="h-16 w-16 rounded-2xl mb-6" />
+        <img src={frigLogo} alt="frigy" className="h-16 w-16 rounded-2xl mb-6" />
         <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
         <p className="text-sm text-muted-foreground text-center mb-6">
           Melde dich an, um dein Profil zu sehen
@@ -413,9 +413,9 @@ const ProfilePage = () => {
           transition={{ delay: 0.5 }}
           className="text-center py-4"
         >
-          <img src={frigLogo} alt="Fridgie" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
-          <p className="text-xs text-muted-foreground">Fridgie v1.0.0</p>
-          <p className="text-xs text-muted-foreground mt-1">© 2024 Fridgie</p>
+          <img src={frigLogo} alt="frigy" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
+          <p className="text-xs text-muted-foreground">frigy v1.0.0</p>
+          <p className="text-xs text-muted-foreground mt-1">© 2024 frigy</p>
         </motion.div>
       </div>
     </div>
