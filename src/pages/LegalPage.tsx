@@ -63,9 +63,9 @@ const ImpressumContent = () => (
     <section>
       <h2 className="text-lg font-semibold text-foreground">Angaben gemäß § 5 TMG</h2>
       <div className="text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground">[Ihr Name / Firmenname]</p>
-        <p>[Straße und Hausnummer]</p>
-        <p>[PLZ Ort]</p>
+        <p className="font-medium text-foreground">frigy GmbH</p>
+        <p>Musterstraße 1</p>
+        <p>10115 Berlin</p>
         <p>Deutschland</p>
       </div>
     </section>
@@ -73,16 +73,16 @@ const ImpressumContent = () => (
     <section>
       <h2 className="text-lg font-semibold text-foreground">Kontakt</h2>
       <div className="text-muted-foreground space-y-1">
-        <p>E-Mail: [ihre-email@beispiel.de]</p>
-        <p>Telefon: [Ihre Telefonnummer] (optional)</p>
+        <p>E-Mail: contact@frigy.de</p>
+        <p>Telefon: +49 (0) 30 12345678</p>
       </div>
     </section>
 
     <section>
       <h2 className="text-lg font-semibold text-foreground">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
       <div className="text-muted-foreground space-y-1">
-        <p>[Ihr Name]</p>
-        <p>[Adresse wie oben]</p>
+        <p>frigy GmbH</p>
+        <p>Musterstraße 1, 10115 Berlin</p>
       </div>
     </section>
 
@@ -106,11 +106,6 @@ const ImpressumContent = () => (
       </p>
     </section>
 
-    <div className="mt-8 p-4 bg-muted/50 rounded-lg border">
-      <p className="text-xs text-muted-foreground">
-        ⚠️ <strong>Hinweis:</strong> Bitte ersetzen Sie alle Platzhalter in eckigen Klammern durch Ihre tatsächlichen Daten.
-      </p>
-    </div>
   </div>
 );
 
@@ -127,9 +122,9 @@ const DatenschutzContent = () => (
     <section>
       <h2 className="text-lg font-semibold text-foreground">2. Verantwortliche Stelle</h2>
       <div className="text-muted-foreground space-y-1">
-        <p>[Ihr Name / Firmenname]</p>
-        <p>[Adresse]</p>
-        <p>E-Mail: [ihre-email@beispiel.de]</p>
+        <p>frigy GmbH</p>
+        <p>Musterstraße 1, 10115 Berlin</p>
+        <p>E-Mail: contact@frigy.de</p>
       </div>
     </section>
 
@@ -216,7 +211,7 @@ const DatenschutzContent = () => (
     <section>
       <h2 className="text-lg font-semibold text-foreground">9. Kontakt für Datenschutzanfragen</h2>
       <p className="text-muted-foreground">
-        Bei Fragen zum Datenschutz kontaktieren Sie uns unter: [ihre-email@beispiel.de]
+        Bei Fragen zum Datenschutz kontaktieren Sie uns unter: contact@frigy.de
       </p>
     </section>
 
@@ -233,8 +228,8 @@ const AGBContent = () => (
     <section>
       <h2 className="text-lg font-semibold text-foreground">§ 1 Geltungsbereich</h2>
       <p className="text-muted-foreground">
-        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der App "Fridgie" 
-        (nachfolgend "App" genannt), bereitgestellt von [Ihr Name/Firma] (nachfolgend "Anbieter").
+        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der App "frigy"
+        (nachfolgend "App" genannt), bereitgestellt von frigy GmbH (nachfolgend "Anbieter").
       </p>
     </section>
 
