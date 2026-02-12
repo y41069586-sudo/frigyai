@@ -187,9 +187,62 @@ All colors MUST be HSL.
   .mobile-card {
     @apply p-3 sm:p-4 rounded-xl sm:rounded-2xl;
   }
+
+  /* Responsive container for different screen sizes */
+  .responsive-container {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+  }
+
+  .responsive-max-width {
+    @apply max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl;
+  }
+
+  /* Font scaling for responsive design */
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  /* Grid responsive utilities */
+  .grid-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6;
+  }
   
   /* Pull to refresh prevention */
   .no-pull-refresh {
     overscroll-behavior-y: contain;
+  }
+
+  /* Landscape mode fixes */
+  @media (max-height: 600px) {
+    body {
+      font-size: 14px;
+    }
+
+    .touch-target {
+      min-height: 36px;
+      min-width: 36px;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .container-tablet {
+      max-width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  /* Large screen optimization */
+  @media (min-width: 1024px) {
+    .max-content-width {
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
   }
 }

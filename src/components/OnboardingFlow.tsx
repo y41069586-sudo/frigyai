@@ -488,7 +488,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "welcome":
         return (
-          <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
+          <div className="min-h-screen bg-background flex flex-col items-center justify-center px-3 sm:px-6 py-6 sm:py-8">
             {/* Animated Fridge Popup */}
             <motion.div
               key="welcome-mascot"
@@ -500,7 +500,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 stiffness: 100,
                 damping: 15
               }}
-              className="relative mb-8"
+              className="relative mb-6 sm:mb-8"
             >
               {/* Fridge Door Animation - using scale instead of rotateY */}
               <motion.div

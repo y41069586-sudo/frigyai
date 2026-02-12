@@ -365,8 +365,8 @@ const Index = () => {
       <div className="fixed inset-0 bg-gradient-to-b from-primary/3 via-transparent to-transparent pointer-events-none" />
 
       {/* Main Content */}
-      <main className={`relative flex-1 flex flex-col px-5 pb-32 pt-8 safe-top ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
-        <div className="flex-1 flex flex-col max-w-md mx-auto w-full space-y-6">
+      <main className={`relative flex-1 flex flex-col px-3 sm:px-5 pb-32 pt-6 sm:pt-8 safe-top ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
+        <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-4 sm:space-y-6">
           
           {/* Header - Clean & Modern */}
           <motion.header
