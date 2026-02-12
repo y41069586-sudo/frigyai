@@ -3,14 +3,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// Validate Supabase is properly initialized
-if (!supabase) {
-  throw new Error(
-    '[Auth] Supabase client is not initialized. ' +
-    'Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY environment variables are set.'
-  );
-}
-
 interface SubscriptionStatus {
   subscribed: boolean;
   product_id: string | null;
@@ -107,6 +99,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(getCachedSubscription);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Check if supabase is initialized
+  if (!supabase) {
+    console.error('[Auth] Supabase client is not initialized. Check your environment variables.');
+    // Return a fallback provider with null values
+    return (
+      <AuthContext.Provider value={{
+        user: null,
+        session: null,
+        subscriptionStatus: null,
+        loading: false,
+        isFreeMode: true,
+        isPremium: false,
+        signUp: async () => ({ error: new Error('Supabase not initialized') }),
+        signIn: async () => ({ error: new Error('Supabase not initialized') }),
+        signInWithGoogle: async () => ({ error: new Error('Supabase not initialized') }),
+        signOut: async () => {},
+        checkSubscription: async () => {},
+      }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   const updateSubscriptionStatus = (data: SubscriptionStatus | null) => {
     setSubscriptionStatus(data);
