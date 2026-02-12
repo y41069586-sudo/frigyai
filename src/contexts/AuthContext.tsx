@@ -3,6 +3,14 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Validate Supabase is properly initialized
+if (!supabase) {
+  throw new Error(
+    '[Auth] Supabase client is not initialized. ' +
+    'Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY environment variables are set.'
+  );
+}
+
 interface SubscriptionStatus {
   subscribed: boolean;
   product_id: string | null;
