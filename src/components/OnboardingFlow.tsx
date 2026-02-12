@@ -553,10 +553,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </span>
               </motion.div>
 
-              <h1 className="text-3xl font-bold text-foreground mb-3">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
                 {t.onboardingImFrigy}
               </h1>
-              <p className="text-muted-foreground text-lg max-w-xs mx-auto mb-8">
+              <p className="text-muted-foreground text-base sm:text-lg max-w-xs mx-auto mb-8">
                 {t.onboardingReadyToReachGoals}
               </p>
 
@@ -1160,8 +1160,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "target-weight":
-        const minTarget = userData.goalMode === 'lose' ? Math.max(40, userData.weight - 10) : userData.weight;
-        const maxTarget = userData.goalMode === 'lose' ? userData.weight - 1 : userData.weight + 20;
+        const minTarget = userData.goalMode === 'lose' ? Math.max(40, userData.weight - 50) : userData.weight;
+        const maxTarget = userData.goalMode === 'lose' ? userData.weight - 1 : userData.weight + 50;
         const weightDiff = Math.abs(userData.targetWeight - userData.weight);
         
         return (
