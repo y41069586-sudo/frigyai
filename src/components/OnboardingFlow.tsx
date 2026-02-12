@@ -427,7 +427,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
               <motion.h1
                 key="name-title"
-                className="text-2xl font-bold mb-2"
+                className="text-xl sm:text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05, duration: 0.3 }}
@@ -436,7 +436,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </motion.h1>
               <motion.p
                 key="name-subtitle"
-                className="text-muted-foreground/60 text-sm mb-8"
+                className="text-muted-foreground/60 text-xs sm:text-sm mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
