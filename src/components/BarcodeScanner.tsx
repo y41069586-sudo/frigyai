@@ -23,6 +23,9 @@ interface BarcodeScannerProps {
 // Check if native BarcodeDetector is available
 const hasNativeBarcodeDetector = 'BarcodeDetector' in window;
 
+// Local cache for scanned products
+const barcodeCache = new Map<string, NutritionInfo>();
+
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,28 +57,48 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, []);
 
-  // Open Food Facts lookup - kostenlos und gut für EU/DE Produkte
+  // Open Food Facts lookup - kostenlos und gut für EU/DE Produkte (mit Caching und Timeout)
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
     lastScannedRef.current = barcode;
-    
+
     setIsLoading(true);
     scanningRef.current = false;
 
     try {
       console.log('[Barcode] Looking up:', barcode);
-      
-      // Open Food Facts - kostenlose globale Datenbank mit vielen deutschen Produkten
+
+      // Check cache first
+      if (barcodeCache.has(barcode)) {
+        const cached = barcodeCache.get(barcode)!;
+        console.log('[Barcode] Found in cache:', cached.name);
+        onFoodScanned(cached);
+        toast({
+          title: "Produkt erkannt! 🎉",
+          description: `${cached.name} - ${cached.calories} kcal`,
+        });
+        stopCamera();
+        onClose();
+        return;
+      }
+
+      // API lookup with 1.5s timeout for fast response
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+
       const response = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
+        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+
       const data = await response.json();
 
       if (data.status === 1 && data.product) {
         const product = data.product;
         const nutriments = product.nutriments || {};
-        
+
         // Berechne pro Portion wenn vorhanden, sonst pro 100g
         const servingSize = product.serving_quantity || 100;
         const multiplier = servingSize / 100;
@@ -90,7 +113,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         };
 
         console.log('[Barcode] Found product:', nutritionInfo.name);
-        
+
+        // Cache for future scans
+        barcodeCache.set(barcode, nutritionInfo);
+
         onFoodScanned(nutritionInfo);
         toast({
           title: "Produkt erkannt! 🎉",
@@ -111,8 +137,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       lastScannedRef.current = null;
       scanningRef.current = true;
       setIsLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("[Barcode] Lookup error:", err);
+
+      // Handle timeout gracefully
+      if (err.name === 'AbortError') {
+        console.log('[Barcode] Lookup timeout, trying again...');
+        lastScannedRef.current = null;
+        scanningRef.current = true;
+        setIsLoading(false);
+        return;
+      }
+
       toast({
         title: "Fehler",
         description: "Produkt konnte nicht abgerufen werden.",
@@ -145,11 +181,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
 
     if (scanningRef.current) {
-      setTimeout(() => {
-        if (scanningRef.current) {
-          animationFrameRef.current = requestAnimationFrame(detectBarcodes);
-        }
-      }, 50);
+      // Optimized: Use requestAnimationFrame for faster scanning (no 50ms delay)
+      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
   }, [lookupBarcode]);
 

@@ -16,6 +16,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signIn, signUp, signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -47,11 +48,21 @@ const AuthPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
-        if (!error) {
+        if (error) {
+          // Better error messages for login
+          if (error.message?.includes('Invalid login credentials')) {
+            setError('Email oder Passwort ist falsch');
+          } else if (error.message?.includes('Email not confirmed')) {
+            setError('E-Mail bestätigung ausstehend. Bitte überprüfen Sie Ihren Posteingang');
+          } else {
+            setError(error.message || 'Login fehlgeschlagen');
+          }
+        } else {
           // Coming from onboarding or premium-pricing: go to paywall
           if (isFromOnboarding || isFromPremiumPricing) {
             navigate('/premium-pricing', { replace: true });
@@ -73,7 +84,18 @@ const AuthPage = () => {
           : `${window.location.origin}/email-confirmation?confirmed=true`;
 
         const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
-        if (!error) {
+        if (error) {
+          // Better error messages for signup
+          if (error.message?.includes('already registered')) {
+            setError('Dieses Konto existiert bereits. Bitte melden Sie sich an');
+          } else if (error.message?.includes('Password should be at least')) {
+            setError('Passwort muss mindestens 6 Zeichen lang sein');
+          } else if (error.message?.includes('Invalid email')) {
+            setError('Bitte geben Sie eine gültige E-Mail-Adresse ein');
+          } else {
+            setError(error.message || 'Registrierung fehlgeschlagen');
+          }
+        } else {
           // If the user is auto-confirmed, they'll be redirected via the effect above.
           // Otherwise, show the email confirmation page.
           const params = new URLSearchParams();
@@ -133,6 +155,16 @@ const AuthPage = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">
               {isLogin ? t.signIn : t.signUp}
             </h2>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 sm:p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div className="space-y-2">

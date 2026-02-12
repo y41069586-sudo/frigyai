@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { Check, Flame, Beef, Wheat, Droplets } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Check, Flame, Beef, Wheat, Droplets, Plus, Barcode } from 'lucide-react';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -15,6 +17,7 @@ interface LoggedMeal {
 
 export const DashboardTodayMealsCard = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const { entries, todayTotals } = useFoodEntries();
   const [todayMealPlan, setTodayMealPlan] = useState<LoggedMeal[]>([]);
 
@@ -97,7 +100,7 @@ export const DashboardTodayMealsCard = () => {
         </div>
 
         {/* Meals list */}
-        <div className="space-y-2">
+        <div className="space-y-2 mb-4">
           {entries.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-3">
               Noch keine Mahlzeiten gegessen heute
@@ -127,6 +130,23 @@ export const DashboardTodayMealsCard = () => {
             </div>
           )}
         </div>
+
+        {/* Add Food Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Button
+            onClick={() => navigate('/scan')}
+            variant="outline"
+            className="w-full h-10 flex items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/10 transition-all"
+          >
+            <Barcode className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
+            <span className="text-sm font-medium">Essen hinzufügen</span>
+          </Button>
+        </motion.div>
       </Card>
     </motion.div>
   );
