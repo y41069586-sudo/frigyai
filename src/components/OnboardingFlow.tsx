@@ -1765,7 +1765,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       </div>
                     </motion.div>
                     
-                    <motion.div 
+                    <motion.div
                       className="mt-4 flex items-center justify-center gap-4 text-primary-foreground/70 text-xs"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -1773,7 +1773,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     >
                       <span>{userData.weight}kg {t.now}</span>
                       <span className="text-primary-foreground/50">→</span>
-                      <span>{userData.weeklyGoal > 0 ? '-' : '+'}{Math.abs(userData.weeklyGoal)}kg/{t.weekLabel}</span>
+                      <span>{userData.goalMode === 'lose' ? '-' : '+'}{Math.abs(userData.weeklyGoal)}kg/{t.weekLabel}</span>
                       <span className="text-primary-foreground/50">→</span>
                       <span className="font-semibold text-primary-foreground">{userData.targetWeight}kg</span>
                     </motion.div>
