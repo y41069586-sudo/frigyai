@@ -561,26 +561,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <p className="text-muted-foreground mt-3 text-lg max-w-xs mx-auto">
                   {t.onboardingReadyToReachGoals}
                 </p>
+
+                <motion.div
+                  key="welcome-button"
+                  className="mt-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2, duration: 0.4 }}
+                >
+                  <Button
+                    onClick={goNext}
+                    className="w-full h-14 text-lg font-semibold rounded-2xl"
+                    size="lg"
+                  >
+                    {t.onboardingYesLetsGo} <ChevronRight className="w-5 h-5 ml-1" />
+                  </Button>
+                </motion.div>
               </motion.div>
 
             </div>
-
-            {/* Bottom CTA */}
-            <motion.div
-              key="welcome-cta"
-              className="px-6 pb-8 pt-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.4 }}
-            >
-              <Button
-                onClick={goNext}
-                className="w-full h-14 text-lg font-semibold rounded-2xl"
-                size="lg"
-              >
-                {t.onboardingYesLetsGo} <ChevronRight className="w-5 h-5 ml-1" />
-              </Button>
-            </motion.div>
           </div>
         );
 
