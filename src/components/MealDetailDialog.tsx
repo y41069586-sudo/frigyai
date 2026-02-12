@@ -2,7 +2,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Clock, Flame, Beef, Wheat, Droplets, Check, Loader2 } from 'lucide-react';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { useLanguage } from '@/contexts/LanguageContext';
