@@ -138,7 +138,7 @@ export const DashboardTodayMealsCard = () => {
           transition={{ delay: 0.4 }}
         >
           <Button
-            onClick={() => navigate('/scan')}
+            onClick={() => navigate('/meal-plans?tab=tracker')}
             variant="outline"
             className="w-full h-10 flex items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/10 transition-all"
           >
