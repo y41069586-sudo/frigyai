@@ -32,10 +32,10 @@ const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/sw-notifications.js');
-      console.log('[Fridgie] Service Worker registered:', registration.scope);
+      console.log('[frigy] Service Worker registered:', registration.scope);
       return registration;
     } catch (error) {
-      console.error('[Fridgie] Service Worker registration failed:', error);
+      console.error('[frigy] Service Worker registration failed:', error);
       return null;
     }
   }
@@ -96,7 +96,7 @@ export const usePushNotifications = () => {
           PushNotifications.addListener("pushNotificationReceived", (notification: Record<string, unknown>) => {
             console.log("Push notification received:", notification);
             toast({
-              title: (notification.title as string) || "Fridgie",
+              title: (notification.title as string) || "frigy",
               description: notification.body as string,
             });
           });
@@ -110,7 +110,7 @@ export const usePushNotifications = () => {
         }
       } catch (error) {
         // Fallback to browser notifications if Capacitor fails
-        console.log("[Fridgie] Capacitor plugins not available, using browser notifications");
+        console.log("[frigy] Capacitor plugins not available, using browser notifications");
         if (browserSupported) {
           setPermissionStatus(Notification.permission as "granted" | "denied" | "prompt");
           const registration = await registerServiceWorker();
@@ -215,7 +215,7 @@ export const usePushNotifications = () => {
           body,
           icon: "/pwa-192x192.png",
           badge: "/pwa-192x192.png",
-          tag: data?.type || 'fridgie-notification',
+          tag: data?.type || 'frigy-notification',
           data,
           requireInteraction: false,
         });
@@ -283,7 +283,7 @@ export const usePushNotifications = () => {
       const delay = time.getTime() - Date.now();
       if (delay > 0) {
         // Store reminder in localStorage for persistence
-        const reminders = JSON.parse(localStorage.getItem('fridgie_reminders') || '[]');
+        const reminders = JSON.parse(localStorage.getItem('frigy_reminders') || '[]');
         const reminderId = `${type}_${Date.now()}`;
         reminders.push({
           id: reminderId,
@@ -293,7 +293,7 @@ export const usePushNotifications = () => {
           body,
           recurring
         });
-        localStorage.setItem('fridgie_reminders', JSON.stringify(reminders));
+        localStorage.setItem('frigy_reminders', JSON.stringify(reminders));
 
         // Schedule the notification and track the timeout ID for cleanup
         const timeoutId = setTimeout(() => {

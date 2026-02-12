@@ -17,10 +17,34 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // 5. Use httpOnly cookies if backend infrastructure supports it (requires server-side changes)
 // For production, consider implementing token refresh with server-side validation.
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+// Validate environment variables
+if (!SUPABASE_URL) {
+  console.error('[Supabase] VITE_SUPABASE_URL is not set. Please configure your environment variables.');
+}
+
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  console.error('[Supabase] VITE_SUPABASE_PUBLISHABLE_KEY is not set. Please configure your environment variables.');
+}
+
+// Create client with validation
+let supabase;
+
+try {
+  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+    supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
+  } else {
+    throw new Error('Supabase configuration is missing. Check environment variables.');
   }
-});
+} catch (error) {
+  console.error('[Supabase] Failed to initialize client:', error);
+  // Create a placeholder that will show proper error messages
+  supabase = null as any;
+}
+
+export { supabase };

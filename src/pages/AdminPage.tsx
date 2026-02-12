@@ -30,7 +30,7 @@ const AdminPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
-        <img src={frigLogo} alt="Fridgie" className="h-12 w-12 rounded-xl animate-pulse" />
+        <img src={frigLogo} alt="frigy" className="h-12 w-12 rounded-xl animate-pulse" />
       </div>
     );
   }

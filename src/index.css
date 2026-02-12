@@ -187,9 +187,124 @@ All colors MUST be HSL.
   .mobile-card {
     @apply p-3 sm:p-4 rounded-xl sm:rounded-2xl;
   }
+
+  /* Responsive container for different screen sizes */
+  .responsive-container {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+  }
+
+  .responsive-max-width {
+    @apply max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl;
+  }
+
+  /* Font scaling for responsive design */
+  .text-responsive-lg {
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl;
+  }
+
+  /* Heading responsive sizing */
+  .heading-responsive-sm {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  .heading-responsive-md {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+
+  .heading-responsive-lg {
+    @apply text-3xl sm:text-4xl md:text-5xl;
+  }
+
+  /* Grid responsive utilities */
+  .grid-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6;
+  }
   
   /* Pull to refresh prevention */
   .no-pull-refresh {
     overscroll-behavior-y: contain;
+  }
+
+  /* Landscape mode fixes */
+  @media (max-height: 600px) {
+    body {
+      font-size: 14px;
+    }
+
+    .touch-target {
+      min-height: 36px;
+      min-width: 36px;
+    }
+  }
+
+  /* Large phone optimization (414px - 540px width) */
+  @media (min-width: 414px) and (max-width: 540px) {
+    body {
+      @apply text-base;
+    }
+
+    h1 {
+      @apply text-2xl sm:text-3xl;
+    }
+
+    h2 {
+      @apply text-xl sm:text-2xl;
+    }
+
+    h3 {
+      @apply text-lg sm:text-xl;
+    }
+
+    .text-responsive-lg {
+      @apply text-base sm:text-lg;
+    }
+
+    .text-responsive-xl {
+      @apply text-lg sm:text-xl;
+    }
+
+    /* Better spacing for large phones */
+    .space-y-4 {
+      @apply space-y-3;
+    }
+
+    .space-y-6 {
+      @apply space-y-4;
+    }
+
+    .space-y-8 {
+      @apply space-y-5;
+    }
+
+    /* Better padding */
+    .px-5 {
+      @apply px-4;
+    }
+
+    .px-6 {
+      @apply px-4;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .container-tablet {
+      max-width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  /* Large screen optimization */
+  @media (min-width: 1024px) {
+    .max-content-width {
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
   }
 }

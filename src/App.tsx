@@ -14,6 +14,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { FreeTrialReminder } from "@/components/FreeTrialReminder";
 import { ReEngagementBanner } from "@/components/ReEngagementBanner";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
 
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -103,11 +104,13 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <AuthProvider>
-                  <MealPlanProvider>
-                    <AppContent />
-                  </MealPlanProvider>
-                </AuthProvider>
+                <SupabaseErrorBoundary>
+                  <AuthProvider>
+                    <MealPlanProvider>
+                      <AppContent />
+                    </MealPlanProvider>
+                  </AuthProvider>
+                </SupabaseErrorBoundary>
               </BrowserRouter>
             </TooltipProvider>
           </LanguageProvider>
