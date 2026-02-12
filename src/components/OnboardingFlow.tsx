@@ -488,98 +488,94 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "welcome":
         return (
-          <div className="min-h-screen bg-background flex flex-col">
-            {/* Main content - centered vertically */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6">
-              {/* Animated Fridge Popup */}
+          <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
+            {/* Animated Fridge Popup */}
+            <motion.div
+              key="welcome-mascot"
+              initial={{ scale: 0, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{
+                duration: 0.6,
+                type: "spring",
+                stiffness: 100,
+                damping: 15
+              }}
+              className="relative mb-8"
+            >
+              {/* Fridge Door Animation - using scale instead of rotateY */}
               <motion.div
-                key="welcome-mascot"
-                initial={{ scale: 0, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{
-                  duration: 0.6,
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 15
-                }}
-                className="relative"
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
               >
-                {/* Fridge Door Animation - using scale instead of rotateY */}
-                <motion.div
-                  initial={{ scale: 0.95 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, duration: 0.4 }}
-                >
-                  <AnimatedFrigyMascot size={160} animate={true} />
-                </motion.div>
-
-                {/* Sparkle Effects */}
-                <motion.div
-                  key="sparkle-1"
-                  className="absolute -top-2 -right-2"
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.8, duration: 0.3 }}
-                >
-                  <Sparkles className="w-8 h-8 text-yellow-400" />
-                </motion.div>
-                <motion.div
-                  key="sparkle-2"
-                  className="absolute -top-4 left-0"
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.0, duration: 0.3 }}
-                >
-                  <Star className="w-5 h-5 text-primary fill-primary" />
-                </motion.div>
+                <AnimatedFrigyMascot size={160} animate={true} />
               </motion.div>
 
-              {/* Greeting with User's Name */}
+              {/* Sparkle Effects */}
               <motion.div
-                key="welcome-greeting"
-                className="text-center mt-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.4 }}
+                key="sparkle-1"
+                className="absolute -top-2 -right-2"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, duration: 0.3 }}
               >
-                <motion.div
-                  key="greeting-bubble"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.9, duration: 0.3 }}
-                >
-                  <span className="text-xl">👋</span>
-                  <span className="text-primary font-semibold">
-                    {language === 'de' ? 'Hallo' : language === 'fr' ? 'Salut' : 'Hello'}, {userData.name || 'du'}!
-                  </span>
-                </motion.div>
+                <Sparkles className="w-8 h-8 text-yellow-400" />
+              </motion.div>
+              <motion.div
+                key="sparkle-2"
+                className="absolute -top-4 left-0"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.0, duration: 0.3 }}
+              >
+                <Star className="w-5 h-5 text-primary fill-primary" />
+              </motion.div>
+            </motion.div>
 
-                <h1 className="text-3xl font-bold text-foreground">
-                  {t.onboardingImFrigy}
-                </h1>
-                <p className="text-muted-foreground mt-3 text-lg max-w-xs mx-auto">
-                  {t.onboardingReadyToReachGoals}
-                </p>
-
-                <motion.div
-                  key="welcome-button"
-                  className="mt-8"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.2, duration: 0.4 }}
-                >
-                  <Button
-                    onClick={goNext}
-                    className="w-full h-14 text-lg font-semibold rounded-2xl"
-                    size="lg"
-                  >
-                    {t.onboardingYesLetsGo} <ChevronRight className="w-5 h-5 ml-1" />
-                  </Button>
-                </motion.div>
+            {/* Greeting with User's Name */}
+            <motion.div
+              key="welcome-greeting"
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
+            >
+              <motion.div
+                key="greeting-bubble"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.9, duration: 0.3 }}
+              >
+                <span className="text-xl">👋</span>
+                <span className="text-primary font-semibold">
+                  {language === 'de' ? 'Hallo' : language === 'fr' ? 'Salut' : 'Hello'}, {userData.name || 'du'}!
+                </span>
               </motion.div>
 
-            </div>
+              <h1 className="text-3xl font-bold text-foreground mb-3">
+                {t.onboardingImFrigy}
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-xs mx-auto mb-8">
+                {t.onboardingReadyToReachGoals}
+              </p>
+
+              <motion.div
+                key="welcome-button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.4 }}
+                className="w-full max-w-sm"
+              >
+                <Button
+                  onClick={goNext}
+                  className="w-full h-14 text-lg font-semibold rounded-2xl"
+                  size="lg"
+                >
+                  {t.onboardingYesLetsGo} <ChevronRight className="w-5 h-5 ml-1" />
+                </Button>
+              </motion.div>
+            </motion.div>
           </div>
         );
 
@@ -3970,7 +3966,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Bottom button */}
-      {!["language-select", "name-input", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress"].includes(currentStep) && (
+      {!["language-select", "name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress"].includes(currentStep) && (
         <motion.div 
           className="p-6 pb-8"
           initial={{ opacity: 0, y: 20 }}
