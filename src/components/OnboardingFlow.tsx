@@ -408,38 +408,48 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "name-input":
         return (
           <StepCard step="name-input">
-            <div className="flex flex-col items-center text-center px-6 w-full">
+            <motion.div
+              key="name-input-content"
+              className="flex flex-col items-center text-center px-6 w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.4, type: "spring" }}
+                key="name-mascot"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
                 className="mb-4"
               >
                 <AnimatedFrigyMascot size={100} animate={false} />
               </motion.div>
-              
-              <motion.h1 
-                className="text-2xl font-bold mb-2" 
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: 0.1, duration: 0.3 }}
+
+              <motion.h1
+                key="name-title"
+                className="text-2xl font-bold mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05, duration: 0.3 }}
               >
                 {t.onboardingWhatsYourName}
               </motion.h1>
-              <motion.p 
-                className="text-muted-foreground/60 text-sm mb-8" 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                transition={{ delay: 0.15, duration: 0.3 }}
+              <motion.p
+                key="name-subtitle"
+                className="text-muted-foreground/60 text-sm mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
               >
                 {t.onboardingNameSubtitle}
               </motion.p>
-              
+
               <motion.div
+                key="name-input-wrapper"
                 className="w-full max-w-sm"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
               >
                 <input
                   type="text"
@@ -455,15 +465,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   }}
                 />
               </motion.div>
-              
+
               <motion.div
+                key="name-button-wrapper"
                 className="w-full max-w-sm mt-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.3 }}
+                transition={{ delay: 0.25, duration: 0.3 }}
               >
-                <Button 
-                  onClick={goNext} 
+                <Button
+                  onClick={goNext}
                   disabled={!userData.name.trim()}
                   className="w-full h-14 text-lg font-semibold rounded-2xl"
                   size="lg"
@@ -471,75 +482,79 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   {t.next} <ChevronRight className="w-5 h-5 ml-1" />
                 </Button>
               </motion.div>
-            </div>
+            </motion.div>
           </StepCard>
         );
 
       case "welcome":
         return (
-          <div className="fixed inset-0 bg-background flex flex-col">
+          <div className="min-h-screen bg-background flex flex-col">
             {/* Main content - centered vertically */}
             <div className="flex-1 flex flex-col items-center justify-center px-6">
               {/* Animated Fridge Popup */}
               <motion.div
-                initial={{ scale: 0, y: 100, rotateY: -90 }}
-                animate={{ scale: 1, y: 0, rotateY: 0 }}
-                transition={{ 
-                  duration: 0.8, 
-                  type: "spring", 
-                  stiffness: 120,
-                  damping: 12
+                key="welcome-mascot"
+                initial={{ scale: 0, y: 50 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{
+                  duration: 0.6,
+                  type: "spring",
+                  stiffness: 100,
+                  damping: 15
                 }}
                 className="relative"
               >
-                {/* Fridge Door Animation */}
+                {/* Fridge Door Animation - using scale instead of rotateY */}
                 <motion.div
-                  initial={{ rotateY: 0 }}
-                  animate={{ rotateY: [-20, 0] }}
-                  transition={{ delay: 0.8, duration: 0.5 }}
-                  style={{ transformStyle: 'preserve-3d' }}
+                  initial={{ scale: 0.95 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
                 >
                   <AnimatedFrigyMascot size={160} animate={true} />
                 </motion.div>
-                
+
                 {/* Sparkle Effects */}
                 <motion.div
+                  key="sparkle-1"
                   className="absolute -top-2 -right-2"
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.2, duration: 0.3 }}
+                  transition={{ delay: 0.8, duration: 0.3 }}
                 >
                   <Sparkles className="w-8 h-8 text-yellow-400" />
                 </motion.div>
                 <motion.div
+                  key="sparkle-2"
                   className="absolute -top-4 left-0"
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.4, duration: 0.3 }}
+                  transition={{ delay: 1.0, duration: 0.3 }}
                 >
                   <Star className="w-5 h-5 text-primary fill-primary" />
                 </motion.div>
               </motion.div>
-              
+
               {/* Greeting with User's Name */}
               <motion.div
+                key="welcome-greeting"
                 className="text-center mt-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.0, duration: 0.5 }}
+                transition={{ delay: 0.6, duration: 0.4 }}
               >
                 <motion.div
+                  key="greeting-bubble"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.2, duration: 0.3 }}
+                  transition={{ delay: 0.9, duration: 0.3 }}
                 >
                   <span className="text-xl">👋</span>
                   <span className="text-primary font-semibold">
                     {language === 'de' ? 'Hallo' : language === 'fr' ? 'Salut' : 'Hello'}, {userData.name || 'du'}!
                   </span>
                 </motion.div>
-                
+
                 <h1 className="text-3xl font-bold text-foreground">
                   {t.onboardingImFrigy}
                 </h1>
@@ -547,18 +562,19 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   {t.onboardingReadyToReachGoals}
                 </p>
               </motion.div>
-              
+
             </div>
-            
+
             {/* Bottom CTA */}
             <motion.div
+              key="welcome-cta"
               className="px-6 pb-8 pt-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.0, duration: 0.4 }}
+              transition={{ delay: 1.2, duration: 0.4 }}
             >
-              <Button 
-                onClick={goNext} 
+              <Button
+                onClick={goNext}
                 className="w-full h-14 text-lg font-semibold rounded-2xl"
                 size="lg"
               >
