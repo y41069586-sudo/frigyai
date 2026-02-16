@@ -28,36 +28,47 @@ export class SupabaseErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-primary p-4">
-          <Card className="w-full max-w-md p-6 bg-card/80 backdrop-blur-lg">
+        <div className="min-h-screen flex items-center justify-center gradient-bg p-4">
+          <Card className="w-full max-w-md p-6 glass-card shadow-card">
             <div className="flex items-center gap-4 mb-4">
-              <AlertCircle className="h-8 w-8 text-destructive flex-shrink-0" />
+              <div className="bg-destructive/10 p-2 rounded-full">
+                <AlertCircle className="h-8 w-8 text-destructive flex-shrink-0" />
+              </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">Configuration Error</h2>
-                <p className="text-sm text-muted-foreground">Supabase initialization failed</p>
+                <h2 className="text-xl font-bold text-foreground">Setup Erforderlich</h2>
+                <p className="text-sm text-muted-foreground">Supabase Konfiguration fehlt</p>
               </div>
             </div>
-            
-            <div className="bg-muted/50 rounded-lg p-4 mb-4 border border-destructive/20">
-              <p className="text-sm font-mono text-muted-foreground break-words">
-                {this.state.error?.message || 'Unknown error'}
+
+            <div className="bg-muted/50 rounded-lg p-4 mb-6 border border-destructive/20">
+              <p className="text-xs font-mono text-destructive break-words">
+                {this.state.error?.message || 'Unbekannter Fehler'}
               </p>
             </div>
 
-            <div className="space-y-3 text-sm text-muted-foreground mb-4">
-              <p>Please check the following:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>VITE_SUPABASE_URL is set in your environment</li>
-                <li>VITE_SUPABASE_PUBLISHABLE_KEY is set in your environment</li>
-                <li>The values are not empty or invalid</li>
-              </ul>
+            <div className="space-y-4 text-sm text-muted-foreground mb-6">
+              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                <p className="font-semibold text-foreground mb-2">Anleitung für Builder.io:</p>
+                <ol className="list-decimal list-inside space-y-2 text-xs">
+                  <li>Gehe zu <strong>Project Settings</strong> in Builder.io</li>
+                  <li>Scrolle zu <strong>Environment Variables</strong> (NICHT Secrets)</li>
+                  <li>Füge <code>VITE_SUPABASE_URL</code> hinzu</li>
+                  <li>Füge <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> hinzu</li>
+                  <li>Speichere und klicke auf <strong>Deploy</strong></li>
+                </ol>
+              </div>
+
+              <div className="text-xs space-y-1">
+                <p><strong>URL:</strong> https://zbvrhyyjlnmeqtjbvtwt.supabase.co</p>
+                <p className="truncate"><strong>Key:</strong> eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</p>
+              </div>
             </div>
 
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="w-full"
+            <Button
+              onClick={() => window.location.reload()}
+              className="w-full glow-button"
             >
-              Reload Page
+              Seite neu laden
             </Button>
           </Card>
         </div>

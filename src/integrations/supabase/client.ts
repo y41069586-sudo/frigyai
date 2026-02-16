@@ -18,19 +18,19 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // For production, consider implementing token refresh with server-side validation.
 
 // Validate environment variables
-if (!SUPABASE_URL) {
-  console.error('[Supabase] VITE_SUPABASE_URL is not set. Please configure your environment variables.');
+if (!SUPABASE_URL || SUPABASE_URL === 'undefined' || SUPABASE_URL === '') {
+  console.error('[Supabase] VITE_SUPABASE_URL is missing or empty. Please set it in your Environment Variables (not Secrets) in Builder.io.');
 }
 
-if (!SUPABASE_PUBLISHABLE_KEY) {
-  console.error('[Supabase] VITE_SUPABASE_PUBLISHABLE_KEY is not set. Please configure your environment variables.');
+if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY === 'undefined' || SUPABASE_PUBLISHABLE_KEY === '') {
+  console.error('[Supabase] VITE_SUPABASE_PUBLISHABLE_KEY is missing or empty. Please set it in your Environment Variables (not Secrets) in Builder.io.');
 }
 
 // Create client with validation
 let supabase;
 
 try {
-  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'undefined' && SUPABASE_PUBLISHABLE_KEY !== 'undefined') {
     supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         storage: localStorage,
@@ -39,11 +39,11 @@ try {
       }
     });
   } else {
-    throw new Error('Supabase configuration is missing. Check environment variables.');
+    console.warn('[Supabase] Client initialization deferred - environment variables missing.');
+    supabase = null as any;
   }
 } catch (error) {
   console.error('[Supabase] Failed to initialize client:', error);
-  // Create a placeholder that will show proper error messages
   supabase = null as any;
 }
 

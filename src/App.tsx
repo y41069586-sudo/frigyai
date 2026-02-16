@@ -95,7 +95,7 @@ const App = () => {
   }, []);
 
   return (
-    <>
+    <SupabaseErrorBoundary>
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
         <QueryClientProvider client={queryClient}>
@@ -104,19 +104,17 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <SupabaseErrorBoundary>
-                  <AuthProvider>
-                    <MealPlanProvider>
-                      <AppContent />
-                    </MealPlanProvider>
-                  </AuthProvider>
-                </SupabaseErrorBoundary>
+                <AuthProvider>
+                  <MealPlanProvider>
+                    <AppContent />
+                  </MealPlanProvider>
+                </AuthProvider>
               </BrowserRouter>
             </TooltipProvider>
           </LanguageProvider>
         </QueryClientProvider>
       </ThemeProvider>
-    </>
+    </SupabaseErrorBoundary>
   );
 };
 
