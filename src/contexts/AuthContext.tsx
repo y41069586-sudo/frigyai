@@ -95,7 +95,7 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Check if supabase is initialized before any hooks or logic
   if (!supabase) {
-    throw new Error('Supabase client is not initialized. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are set in your Environment Variables (not Secrets) in Builder.io.');
+    throw new Error('Supabase client is not initialized. Bitte stelle sicher, dass VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in den "Environment Variables" (NICHT Secrets) in den Project Settings eingetragen sind.');
   }
 
   const [user, setUser] = useState<User | null>(null);

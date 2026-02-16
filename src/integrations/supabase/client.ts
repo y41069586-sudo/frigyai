@@ -18,6 +18,9 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // For production, consider implementing token refresh with server-side validation.
 
 // Validate environment variables
+console.log('[Supabase] Initializing with URL:', SUPABASE_URL?.substring(0, 20), '...');
+console.log('[Supabase] Key present:', !!SUPABASE_PUBLISHABLE_KEY);
+
 if (!SUPABASE_URL || SUPABASE_URL === 'undefined' || SUPABASE_URL === '') {
   console.error('[Supabase] VITE_SUPABASE_URL is missing or empty. Please set it in your Environment Variables (not Secrets) in Builder.io.');
 }
@@ -30,7 +33,7 @@ if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY === 'undefined' || SUP
 let supabase;
 
 try {
-  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'undefined' && SUPABASE_PUBLISHABLE_KEY !== 'undefined') {
+  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'undefined' && SUPABASE_URL !== '' && SUPABASE_PUBLISHABLE_KEY !== 'undefined' && SUPABASE_PUBLISHABLE_KEY !== '') {
     supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         storage: localStorage,
