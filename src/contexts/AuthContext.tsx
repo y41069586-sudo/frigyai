@@ -102,25 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check if supabase is initialized
   if (!supabase) {
-    console.error('[Auth] Supabase client is not initialized. Check your environment variables.');
-    // Return a fallback provider with null values
-    return (
-      <AuthContext.Provider value={{
-        user: null,
-        session: null,
-        subscriptionStatus: null,
-        loading: false,
-        isFreeMode: true,
-        isPremium: false,
-        signUp: async () => ({ error: new Error('Supabase not initialized') }),
-        signIn: async () => ({ error: new Error('Supabase not initialized') }),
-        signInWithGoogle: async () => ({ error: new Error('Supabase not initialized') }),
-        signOut: async () => {},
-        checkSubscription: async () => {},
-      }}>
-        {children}
-      </AuthContext.Provider>
-    );
+    throw new Error('Supabase client is not initialized. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are set in your environment variables.');
   }
 
   const updateSubscriptionStatus = (data: SubscriptionStatus | null) => {
