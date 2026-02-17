@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AnimatedFrigyMascot } from './AnimatedFrigyMascot';
 
@@ -138,7 +138,7 @@ const LogoLetters = ({ startDelay }: { startDelay: number }) => {
       {letters.map((letter, i) => (
         <motion.span
           key={i}
-          className="text-4xl font-black bg-gradient-to-b from-green-100 via-green-200 to-green-300 bg-clip-text text-transparent"
+          className="text-3xl sm:text-4xl font-black bg-gradient-to-b from-green-100 via-green-200 to-green-300 bg-clip-text text-transparent"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
@@ -158,6 +158,16 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const handleComplete = useCallback(() => {
     onComplete();
   }, [onComplete]);
+
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const mascotSize = windowWidth < 640 ? 120 : 160;
 
   useEffect(() => {
     // Cinematic duration: 4 seconds
@@ -274,10 +284,10 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           animate="animate"
           className="relative"
         >
-          <div className="relative w-40 h-40 flex items-center justify-center">
+          <div className="relative flex items-center justify-center" style={{ width: mascotSize, height: mascotSize }}>
             {/* Main mascot */}
             <div className="relative z-20">
-              <AnimatedFrigyMascot size={160} animate={true} />
+              <AnimatedFrigyMascot size={mascotSize} animate={true} />
             </div>
 
             {/* Blink overlay (subtle) */}

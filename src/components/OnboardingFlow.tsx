@@ -3825,8 +3825,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 duration: 1
               }}
             >
-              <AnimatedFrigyMascot 
-                size={340} 
+              <AnimatedFrigyMascot
+                size={window.innerWidth < 640 ? 240 : 340} 
                 animate={false}
               />
             </motion.div>
