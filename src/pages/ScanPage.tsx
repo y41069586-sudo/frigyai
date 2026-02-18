@@ -10,12 +10,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CookingPrefsSelector from "@/components/CookingPrefsSelector";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useShoppingListSync } from "@/hooks/useShoppingListSync";
 import { useAICache } from "@/hooks/useAICache";
 import { checkImageQuality, ImageQualityResult } from "@/utils/imageQualityCheck";
 import { validateImageFileSize, VALIDATION_RULES } from "@/utils/validation";
 
-const FREE_SCAN_LIMIT = 0;
+const FREE_SCAN_LIMIT = 1;
+
+const getWeekStart = () => {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // ISO week (starts on Monday)
+  const monday = new Date(now.setDate(diff));
+  return monday.toISOString().split('T')[0];
+};
 
 interface RecentDish {
   id: string;
@@ -37,6 +46,8 @@ const ScanPage = () => {
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [scanLimitReached, setScanLimitReached] = useState(false);
   const [showPrefsSelector, setShowPrefsSelector] = useState(false);
+  const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<React.ChangeEvent<HTMLInputElement> | null>(null);
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
   const [syncedItems, setSyncedItems] = useState<string[]>([]);
   const [imageQualityIssue, setImageQualityIssue] = useState<ImageQualityResult | null>(null);
@@ -51,13 +62,17 @@ const ScanPage = () => {
   const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
     localStorage.getItem('onboardingScanUsed') !== 'true';
 
-  // Redirect free users to paywall immediately (unless onboarding guest)
+  // Redirect logic updated: Free users can stay if they have scans remaining
   useEffect(() => {
-    const canScanAsOnboarding = isOnboardingMode && !user;
-    if (isFreeMode && !canScanAsOnboarding) {
-      navigate('/premium-pricing');
+    // We only redirect if limit is definitely reached and they are not premium
+    if (isFreeMode && scanLimitReached && !isOnboardingMode) {
+      // Small delay to allow toast or state to settle if needed
+      const timer = setTimeout(() => {
+        navigate('/premium-pricing');
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [isFreeMode, isOnboardingMode, user, navigate]);
+  }, [isFreeMode, scanLimitReached, isOnboardingMode, navigate]);
 
   // Load scan usage and recent dishes on mount
   useEffect(() => {
@@ -67,16 +82,16 @@ const ScanPage = () => {
         return;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const weekStart = getWeekStart();
       const { data } = await supabase
         .from('scan_usage')
         .select('scan_count')
         .eq('user_id', user.id)
-        .eq('scan_date', today)
-        .single();
+        .eq('week_start', weekStart)
+        .maybeSingle();
 
       const usedScans = data?.scan_count || 0;
-      setScansRemaining(FREE_SCAN_LIMIT - usedScans);
+      setScansRemaining(Math.max(0, FREE_SCAN_LIMIT - usedScans));
       setScanLimitReached(usedScans >= FREE_SCAN_LIMIT);
     };
 
@@ -101,6 +116,29 @@ const ScanPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check if permissions have been granted (mocked one-time request)
+    const hasGrantedPermissions = localStorage.getItem('frig_scan_permissions_granted');
+    if (!hasGrantedPermissions) {
+      setPendingUpload(e);
+      setShowPermissionRequest(true);
+      return;
+    }
+
+    // Proceed with actual upload logic...
+    await processImageUpload(file);
+  };
+
+  const confirmPermissions = async () => {
+    localStorage.setItem('frig_scan_permissions_granted', 'true');
+    setShowPermissionRequest(false);
+    if (pendingUpload) {
+      const file = pendingUpload.target.files?.[0];
+      if (file) await processImageUpload(file);
+      setPendingUpload(null);
+    }
+  };
+
+  const processImageUpload = async (file: File) => {
     // Validate file size before processing
     const fileSizeValidation = validateImageFileSize(file.size);
     if (!fileSizeValidation.valid) {
@@ -134,9 +172,10 @@ const ScanPage = () => {
       setScanLimitReached(true);
       toast({
         title: t.scanLimitReached,
-        description: t.upgradeToPremium,
+        description: t.usedScansToday,
         variant: "destructive",
       });
+      navigate('/premium-pricing');
       return;
     }
 
@@ -394,20 +433,20 @@ const ScanPage = () => {
             </h1>
           </div>
 
-          {/* Scan Counter - only for non-free-mode users */}
-          {user && !isSubscribed && !isFreeMode && scansRemaining !== null && (
+          {/* Scan counter for free users */}
+          {user && !isSubscribed && scansRemaining !== null && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full shrink-0 text-xs sm:text-sm ${
-                scansRemaining > 0 
-                  ? 'bg-primary/10 text-primary' 
+                scansRemaining > 0
+                  ? 'bg-primary/10 text-primary'
                   : 'bg-destructive/10 text-destructive'
               }`}
             >
               <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="font-semibold">
-                {scansRemaining}/{FREE_SCAN_LIMIT}
+                {scansRemaining}/1 {language === 'de' ? 'Woche' : 'Week'}
               </span>
             </motion.div>
           )}
@@ -800,6 +839,44 @@ const ScanPage = () => {
           )}
         </div>
       </div>
+
+      {/* Permission Request Dialog */}
+      <Dialog open={showPermissionRequest} onOpenChange={setShowPermissionRequest}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-primary" />
+              {language === 'de' ? 'Kamera & Galerie Zugriff' : 'Camera & Gallery Access'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {language === 'de'
+                ? 'Um deinen Kühlschrank scannen zu können, benötigt Frigy Zugriff auf deine Kamera oder deine Fotogalerie. Deine Bilder werden nur zur Analyse verwendet.'
+                : 'To scan your fridge, Frigy needs access to your camera or photo gallery. Your images are only used for analysis.'}
+            </p>
+            <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
+              <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                {language === 'de'
+                  ? 'Wir speichern keine privaten Fotos dauerhaft ohne Grund.'
+                  : 'We do not store private photos permanently without reason.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => {
+              setShowPermissionRequest(false);
+              setPendingUpload(null);
+            }}>
+              {t.cancel}
+            </Button>
+            <Button className="flex-1" onClick={confirmPermissions}>
+              {language === 'de' ? 'Zulassen' : 'Allow'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

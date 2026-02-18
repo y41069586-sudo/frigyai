@@ -80,7 +80,7 @@ const PremiumPricingPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="rounded-full bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />

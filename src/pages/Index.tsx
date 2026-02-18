@@ -236,20 +236,24 @@ const Index = () => {
     }
   }, [subscriptionStatus?.subscribed]);
 
-  // Fetch daily scan usage for free users
+  // Fetch daily scan usage for free users - updated to weekly
   useEffect(() => {
     const fetchScanUsage = async () => {
       if (!user || subscriptionStatus?.subscribed) return;
-      
+
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const weekStart = new Date();
+        const day = weekStart.getDay();
+        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(weekStart.setDate(diff)).toISOString().split('T')[0];
+
         const { data, error } = await supabase
           .from('scan_usage')
           .select('scan_count')
           .eq('user_id', user.id)
-          .eq('scan_date', today)
+          .eq('week_start', monday)
           .maybeSingle();
-        
+
         if (!error && data) {
           setDailyScansUsed(data.scan_count);
         }
@@ -257,7 +261,7 @@ const Index = () => {
         console.error('Failed to fetch scan usage');
       }
     };
-    
+
     fetchScanUsage();
   }, [user, subscriptionStatus]);
   
@@ -306,7 +310,7 @@ const Index = () => {
     }
   };
 
-  const scansRemaining = 2 - dailyScansUsed;
+  const scansRemaining = Math.max(0, 1 - dailyScansUsed);
   const targetCalories = trackerSettings?.dailyCalories || 2000;
   const targetProtein = trackerSettings?.dailyProtein || 150;
   const targetCarbs = trackerSettings?.dailyCarbs || 200;
@@ -442,13 +446,26 @@ const Index = () => {
             
             {/* Scan Fridge Button - Mobile Optimized */}
             <motion.button
-              onClick={() => navigate('/scan')}
-              className="w-full mt-4 py-3 sm:py-4 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 text-white font-semibold sm:text-base active:scale-[0.98] transition-all"
+              onClick={() => {
+                if (scansRemaining <= 0 && !subscriptionStatus?.subscribed) {
+                  navigate('/premium-pricing');
+                } else {
+                  navigate('/scan');
+                }
+              }}
+              className="w-full mt-4 py-3 sm:py-4 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 text-white font-semibold sm:text-base active:scale-[0.98] transition-all relative overflow-hidden"
               whileTap={{ scale: 0.97 }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
+              {/* Premium indicator for free users */}
+              {!subscriptionStatus?.subscribed && (
+                <div className="absolute top-1 right-1 z-10">
+                  <Crown className="w-3 h-3 text-amber-300 fill-amber-300 -rotate-12 drop-shadow-sm" />
+                </div>
+              )}
+
               {/* Mobile: Icon with Scan Badge Overlay */}
               <motion.div
                 className="sm:hidden relative"

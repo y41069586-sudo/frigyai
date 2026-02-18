@@ -57,7 +57,7 @@ interface MacroTrackerProps {
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, subscriptionStatus, isPremium } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
@@ -945,24 +945,46 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       {/* Add Food - Improved UX */}
       <Card className="p-4 bg-card border-border/30">
         <p className="font-semibold text-sm mb-3">{t.addFood}</p>
-        
+
         {/* Quick Actions */}
         <div className="flex gap-2 mb-3">
           <motion.button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (!isPremium) {
+                navigate('/premium-pricing');
+              } else {
+                fileInputRef.current?.click();
+              }
+            }}
             disabled={isAnalyzing}
-            className="flex-1 flex items-center justify-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors relative overflow-hidden"
             whileTap={{ scale: 0.97 }}
           >
+            {!isPremium && (
+              <div className="absolute top-1 right-1">
+                <Crown className="w-2.5 h-2.5 text-primary fill-primary -rotate-12" />
+              </div>
+            )}
             <Camera className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium text-primary">Foto</span>
           </motion.button>
           <motion.button
-            onClick={() => setShowBarcodeScanner(true)}
+            onClick={() => {
+              if (!isPremium) {
+                navigate('/premium-pricing');
+              } else {
+                setShowBarcodeScanner(true);
+              }
+            }}
             disabled={isAnalyzing}
-            className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors relative overflow-hidden"
             whileTap={{ scale: 0.97 }}
           >
+            {!isPremium && (
+              <div className="absolute top-1 right-1">
+                <Crown className="w-2.5 h-2.5 text-amber-600 fill-amber-600 -rotate-12" />
+              </div>
+            )}
             <Barcode className="h-5 w-5 text-amber-600" />
             <span className="text-sm font-medium text-amber-600">Barcode</span>
           </motion.button>
