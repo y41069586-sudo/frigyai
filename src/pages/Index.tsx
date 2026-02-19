@@ -25,6 +25,7 @@ import { useReminders } from "@/hooks/useReminders";
 import frigLogo from "@/assets/frig-logo.png";
 import { ChatbotIntro } from "@/components/ChatbotIntro";
 import { AIChatbot } from "@/components/AIChatbot";
+import { FreeModePaywallOverlay } from "@/components/FreeModePaywallOverlay";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
@@ -513,7 +514,17 @@ const Index = () => {
             transition={{ delay: 0.3 }}
             viewport={{ once: true }}
           >
-            <DashboardMealPlanCard />
+            <div className="relative">
+              {!subscriptionStatus?.subscribed && (
+                <FreeModePaywallOverlay
+                  title="Wochenplan freischalten"
+                  description="Lass dir automatisch deine perfekte Woche zusammenstellen"
+                />
+              )}
+              <div className={!subscriptionStatus?.subscribed ? "pointer-events-none" : ""}>
+                <DashboardMealPlanCard />
+              </div>
+            </div>
           </motion.section>
 
           {/* Shopping List Widget - Full Width */}
@@ -523,7 +534,17 @@ const Index = () => {
             transition={{ delay: 0.3 }}
             viewport={{ once: true }}
           >
-            <DashboardShoppingCard />
+            <div className="relative">
+              {!subscriptionStatus?.subscribed && (
+                <FreeModePaywallOverlay
+                  title="Einkaufsliste freischalten"
+                  description="Deine personalisierte Einkaufsliste für deine Mahlzeiten"
+                />
+              )}
+              <div className={!subscriptionStatus?.subscribed ? "pointer-events-none" : ""}>
+                <DashboardShoppingCard />
+              </div>
+            </div>
           </motion.section>
 
           {/* Weight Tracker Widget - Full Width */}
