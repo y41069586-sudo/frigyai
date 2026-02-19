@@ -32,10 +32,10 @@ export const FreeModePaywallOverlay = ({
     : "Plane deine Woche automatisch");
   
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`absolute inset-0 z-20 flex flex-col items-center justify-center ${className}`}
+      className={`absolute inset-0 z-20 flex flex-col items-center justify-start pt-16 sm:justify-center sm:pt-0 ${className}`}
     >
       {/* Blur overlay background */}
       {showBlurredContent && (

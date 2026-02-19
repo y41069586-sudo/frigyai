@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight, Check } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Check, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ShoppingItem {
   name: string;
@@ -10,6 +11,7 @@ interface ShoppingItem {
 
 export const DashboardShoppingCard = () => {
   const navigate = useNavigate();
+  const { isFreeMode } = useAuth();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState(0);
@@ -88,6 +90,13 @@ export const DashboardShoppingCard = () => {
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
+      {/* Premium indicator for free users */}
+      {isFreeMode && (
+        <div className="absolute top-2 right-2 z-10 pointer-events-none">
+          <Crown className="w-4 h-4 text-amber-500 fill-amber-500 -rotate-12 drop-shadow-sm" />
+        </div>
+      )}
+
       {/* Decorative gradient blob */}
       <div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-colors" />
       

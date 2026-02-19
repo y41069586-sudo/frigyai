@@ -1091,13 +1091,13 @@ const translations: Record<Language, Translations> = {
     couldNotAnalyze: "Bild konnte nicht analysiert werden. Bitte versuche es erneut.",
     newPhoto: "Neues Foto",
     generateRecipes: "Rezepte generieren",
-    dailyScanLimitReached: "Tägliches Scan-Limit erreicht",
-    usedScansToday: "Du hast heute bereits 2 Scans verwendet. Mit Premium bekommst du unbegrenzte Scans!",
+    dailyScanLimitReached: "Wöchentliches Scan-Limit erreicht",
+    usedScansToday: "Du hast deinen kostenlosen wöchentlichen Scan bereits genutzt. Mit Premium bekommst du unbegrenzte Scans!",
     upgradeToPremium: "Upgrade auf Premium",
     unlimited: "Unbegrenzt",
     loginRequired: "Anmeldung erforderlich",
     loginToUseScanner: "Bitte melde dich an, um den Scanner zu nutzen.",
-    scanLimitReached: "Scan-Limit erreicht",
+    scanLimitReached: "Scan-Limit erreicht (1/Woche)",
     aiAnalyzingIngredients: "KI analysiert deine Zutaten...",
     
     // Recipes Page

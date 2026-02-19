@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, Crown } from "lucide-react";
+import { Check, Sparkles, Crown, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -71,6 +71,22 @@ const PremiumPricingPage = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen flex flex-col bg-background safe-area-inset"
     >
+      {/* Header with Back Button */}
+      <div className="w-full px-4 pt-6 pb-2 flex justify-start z-20">
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="rounded-full bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </motion.div>
+      </div>
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-6">

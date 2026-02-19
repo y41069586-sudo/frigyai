@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Sparkles, ArrowRight, Utensils, Clock } from 'lucide-react';
+import { Calendar, Sparkles, ArrowRight, Utensils, Clock, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Meal {
   type: string;
@@ -39,6 +40,7 @@ const getNextMeal = (meals: Meal[]): Meal | null => {
 
 export const DashboardMealPlanCard = () => {
   const navigate = useNavigate();
+  const { isFreeMode } = useAuth();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [todayPlan, setTodayPlan] = useState<DayPlan | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -77,6 +79,13 @@ export const DashboardMealPlanCard = () => {
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
+      {/* Premium indicator for free users */}
+      {isFreeMode && (
+        <div className="absolute top-2 right-2 z-10 pointer-events-none">
+          <Crown className="w-4 h-4 text-amber-500 fill-amber-500 -rotate-12 drop-shadow-sm" />
+        </div>
+      )}
+
       {/* Animated gradient blob */}
       <motion.div 
         className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl"
