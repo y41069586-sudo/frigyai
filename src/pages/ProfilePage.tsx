@@ -104,18 +104,6 @@ const ProfilePage = () => {
     }
   };
 
-  const handleResetOnboarding = () => {
-    localStorage.removeItem('onboardingComplete');
-    localStorage.removeItem('onboardingUserData');
-    toast({ 
-      title: t.resetOnboarding, 
-      description: t.onboardingResetMessage
-    });
-    // Reload to start onboarding
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1000);
-  };
 
   if (!user) {
     return (
@@ -358,15 +346,6 @@ const ProfilePage = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Dev/Test: Reset Onboarding */}
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-muted-foreground hover:text-foreground"
-            onClick={handleResetOnboarding}
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            {t.resetOnboarding}
-          </Button>
         </motion.div>
 
         {/* Legal Links */}

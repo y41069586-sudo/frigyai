@@ -11,7 +11,7 @@ interface ShoppingItem {
 
 export const DashboardShoppingCard = () => {
   const navigate = useNavigate();
-  const { isFreeMode } = useAuth();
+  const { isFreeMode, isPremium } = useAuth();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState(0);
@@ -90,8 +90,8 @@ export const DashboardShoppingCard = () => {
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Premium indicator for free users */}
-      {isFreeMode && (
+      {/* Premium indicator - only for premium users */}
+      {isPremium && (
         <div className="absolute top-2 right-2 z-10 pointer-events-none">
           <Crown className="w-4 h-4 text-amber-500 fill-amber-500 -rotate-12 drop-shadow-sm" />
         </div>
