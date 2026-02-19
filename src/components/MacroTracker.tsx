@@ -5,10 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
-import { 
-  User, Scale, Target, Flame, Camera, Plus, Trash2, 
+import {
+  User, Scale, Target, Flame, Camera, Plus, Trash2,
   ChevronRight, Sparkles, TrendingDown, Pencil, Barcode,
-  Armchair, Footprints, PersonStanding, Dumbbell
+  Armchair, Footprints, PersonStanding, Dumbbell, Crown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
