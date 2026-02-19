@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Scale, ArrowUp, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Scale, ArrowUp, Plus, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
@@ -23,9 +24,11 @@ interface WeightEntry {
 }
 
 export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: DashboardWeightWidgetProps) => {
-  const { user } = useAuth();
+  const { user, subscriptionStatus } = useAuth();
   const { settings } = useTrackerSettings();
   const navigate = useNavigate();
+  const [showPremiumOverlay, setShowPremiumOverlay] = useState(false);
+  const isPremium = subscriptionStatus?.subscribed;
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const [inputWeight, setInputWeight] = useState('');
@@ -144,7 +147,11 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
 
   const handleCardClick = () => {
     if (!isAdding) {
-      navigate('/meal-plans?tab=progress');
+      if (!isPremium) {
+        setShowPremiumOverlay(true);
+      } else {
+        navigate('/meal-plans?tab=progress');
+      }
     }
   };
 
@@ -155,14 +162,23 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       viewport={{ once: true, margin: "-30px" }}
       transition={{ delay: 0.15, duration: 0.4 }}
       onClick={handleCardClick}
+      className="relative"
     >
-      <Card className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 cursor-pointer active:scale-[0.99] transition-transform">
-        {/* Header with Icon */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
-            <Scale className="h-5 w-5 text-emerald-500" />
+      <Card className={`p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${!isPremium ? 'cursor-pointer' : 'cursor-pointer'} active:scale-[0.99] transition-transform ${showPremiumOverlay ? 'blur-sm' : ''}`}>
+        {/* Header with Icon and Premium Badge */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
+              <Scale className="h-5 w-5 text-emerald-500" />
+            </div>
+            <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
           </div>
-          <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
+          {!isPremium && (
+            <Badge className="bg-primary/20 text-primary border-primary/30">
+              <Crown className="h-3 w-3 mr-1" />
+              Premium
+            </Badge>
+          )}
         </div>
 
         {/* Top Section: Current Weight + Goal + Change */}
@@ -352,6 +368,49 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           </Button>
         )}
       </Card>
+
+      {/* Premium Overlay */}
+      {showPremiumOverlay && !isPremium && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 rounded-xl bg-black/60 backdrop-blur-md flex items-center justify-center z-50"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex flex-col items-center justify-center gap-4 px-6"
+          >
+            <Crown className="h-12 w-12 text-amber-400" />
+            <div className="text-center">
+              <h3 className="font-bold text-white text-lg mb-1">Gewichtsverlauf entsperren</h3>
+              <p className="text-sm text-white/70">
+                Upgrade zu Premium um deinen vollständigen Gewichtsverlauf zu sehen
+              </p>
+            </div>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/premium');
+              }}
+              className="w-full gradient-neon text-black font-semibold mt-2"
+            >
+              Zu Premium upgraden
+            </Button>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPremiumOverlay(false);
+              }}
+              variant="ghost"
+              className="text-white hover:text-white/80"
+            >
+              Abbrechen
+            </Button>
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

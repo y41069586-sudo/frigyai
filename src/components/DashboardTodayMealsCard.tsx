@@ -57,9 +57,6 @@ export const DashboardTodayMealsCard = () => {
       <Card className="p-4 bg-gradient-to-br from-primary/10 via-card to-primary/5 border-primary/20 hover:shadow-neon transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-foreground">Heute gegessen</h3>
-          <span className="text-sm font-medium text-primary">
-            {entries.length}/{todayMealPlan.length}
-          </span>
         </div>
 
         {/* Progress bar */}
