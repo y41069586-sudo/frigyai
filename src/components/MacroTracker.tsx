@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
@@ -24,6 +25,7 @@ import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
+import { FreeModePaywallOverlay } from './FreeModePaywallOverlay';
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedRabbit, AnimatedCheetah } from './AnimatedAnimals';
@@ -62,6 +64,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
   const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals } = useFoodEntries();
+  const { canAccessFeature } = useFeatureAccess();
   
   const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -116,6 +119,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
     name: string;
@@ -380,6 +384,24 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     recordActivity();
     checkAndAwardBadge('meal_logged');
     playSuccess();
+  };
+
+  const handleCameraClick = () => {
+    const access = canAccessFeature('scan');
+    if (!access.canAccess) {
+      setShowPaywall(true);
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleBarcodeClick = () => {
+    const access = canAccessFeature('scan');
+    if (!access.canAccess) {
+      setShowPaywall(true);
+      return;
+    }
+    setShowBarcodeScanner(true);
   };
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
@@ -949,9 +971,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         {/* Quick Actions */}
         <div className="flex gap-2 mb-3">
           <motion.button
-            onClick={() => {
-              fileInputRef.current?.click();
-            }}
+            onClick={handleCameraClick}
             disabled={isAnalyzing}
             className="flex-1 flex items-center justify-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors relative overflow-hidden"
             whileTap={{ scale: 0.97 }}
@@ -965,9 +985,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <span className="text-sm font-medium text-primary">Foto</span>
           </motion.button>
           <motion.button
-            onClick={() => {
-              setShowBarcodeScanner(true);
-            }}
+            onClick={handleBarcodeClick}
             disabled={isAnalyzing}
             className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors relative overflow-hidden"
             whileTap={{ scale: 0.97 }}
@@ -1187,6 +1205,24 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         fat={lastAnalyzedFood?.fat || 0}
         onComplete={() => setShowSuccessOverlay(false)}
       />
+
+      {/* Paywall Overlay for Premium Features */}
+      {showPaywall && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={() => setShowPaywall(false)}
+          className="fixed inset-0 z-50"
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <FreeModePaywallOverlay
+              title="Premium freischalten"
+              description="Nutze Foto und Barcode Scan für schnellere Erfassung"
+              className="relative"
+            />
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

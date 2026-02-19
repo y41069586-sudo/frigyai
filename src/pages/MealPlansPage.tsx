@@ -466,9 +466,16 @@ const MealPlansPage = () => {
 
           <TabsContent value="meals">
             <div className="relative">
+              {!isPremium && (
+                <FreeModePaywallOverlay
+                  title="Wochenplan freischalten"
+                  description="Lass dir automatisch deine perfekte Woche zusammenstellen"
+                />
+              )}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                className={!isPremium ? "pointer-events-none" : ""}
               >
                 <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <div>
@@ -483,8 +490,8 @@ const MealPlansPage = () => {
                           {mealPlanGenerationCount}/{maxFreeGenerations} Generierungen
                         </span>
                       )}
-                      <Button 
-                        className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
+                      <Button
+                        className="glow-button shrink-0 touch-target text-xs sm:text-sm"
                         size="sm"
                         onClick={generateMealPlan}
                         disabled={globalIsGenerating || !canGenerateMealPlan}
@@ -569,7 +576,13 @@ const MealPlansPage = () => {
 
           <TabsContent value="shopping">
             <div className="relative">
-              <div>
+              {!isPremium && (
+                <FreeModePaywallOverlay
+                  title="Einkaufsliste freischalten"
+                  description="Deine personalisierte Einkaufsliste für deine Mahlzeiten"
+                />
+              )}
+              <div className={!isPremium ? "pointer-events-none" : ""}>
                 <ShoppingList mealPlan={mealPlan} />
               </div>
             </div>
