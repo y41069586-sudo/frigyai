@@ -62,18 +62,6 @@ const ScanPage = () => {
   const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
     localStorage.getItem('onboardingScanUsed') !== 'true';
 
-  // Redirect logic updated: Free users can stay if they have scans remaining
-  useEffect(() => {
-    // We only redirect if limit is definitely reached and they are not premium
-    if (isFreeMode && scanLimitReached && !isOnboardingMode) {
-      // Small delay to allow toast or state to settle if needed
-      const timer = setTimeout(() => {
-        navigate('/premium-pricing');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isFreeMode, scanLimitReached, isOnboardingMode, navigate]);
-
   // Load scan usage and recent dishes on mount
   useEffect(() => {
     const loadScanUsage = async () => {
@@ -175,7 +163,6 @@ const ScanPage = () => {
         description: t.usedScansToday,
         variant: "destructive",
       });
-      navigate('/premium-pricing');
       return;
     }
 

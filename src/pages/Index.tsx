@@ -447,11 +447,7 @@ const Index = () => {
             {/* Scan Fridge Button - Mobile Optimized */}
             <motion.button
               onClick={() => {
-                if (scansRemaining <= 0 && !subscriptionStatus?.subscribed) {
-                  navigate('/premium-pricing');
-                } else {
-                  navigate('/scan');
-                }
+                navigate('/scan');
               }}
               className="w-full mt-4 py-3 sm:py-4 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 text-white font-semibold sm:text-base active:scale-[0.98] transition-all relative overflow-hidden"
               whileTap={{ scale: 0.97 }}

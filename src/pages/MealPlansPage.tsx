@@ -260,7 +260,6 @@ const MealPlansPage = () => {
         description: "Upgrade auf Premium für unbegrenzte Generierungen",
         variant: 'destructive',
       });
-      navigate('/premium-pricing');
       return;
     }
 
@@ -438,17 +437,11 @@ const MealPlansPage = () => {
 
           <TabsContent value="progress">
             <div className="relative">
-              {!isPremium && (
-                <PremiumLockOverlay 
-                  title="Stats & Makros"
-                  description="Upgrade auf Premium um diese Funktion zu sehen"
-                />
-              )}
-              <div className={!isPremium ? "pointer-events-none" : ""}>
+              <div>
                 <div className="flex justify-end mb-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowWeeklySummary(true)}
                     className="gap-2"
                   >
@@ -473,16 +466,9 @@ const MealPlansPage = () => {
 
           <TabsContent value="meals">
             <div className="relative">
-              {isFreeMode && (
-                <FreeModePaywallOverlay 
-                  title="Wochenplan"
-                  description="Plane deine Woche automatisch mit KI-generierten Mahlzeiten"
-                />
-              )}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={isFreeMode ? "pointer-events-none select-none" : ""}
               >
                 <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <div>
@@ -501,7 +487,7 @@ const MealPlansPage = () => {
                         className="glow-button shrink-0 touch-target text-xs sm:text-sm" 
                         size="sm"
                         onClick={generateMealPlan}
-                        disabled={globalIsGenerating || !canGenerateMealPlan || isFreeMode}
+                        disabled={globalIsGenerating || !canGenerateMealPlan}
                       >
                         {globalIsGenerating ? (() => {
                           const expectedSeconds = 40;
@@ -583,19 +569,7 @@ const MealPlansPage = () => {
 
           <TabsContent value="shopping">
             <div className="relative">
-              {isFreeMode && (
-                <FreeModePaywallOverlay 
-                  title="Einkaufsliste"
-                  description="Erstelle automatisch Einkaufslisten aus deinem Wochenplan"
-                />
-              )}
-              {!isFreeMode && !isPremium && (
-                <PremiumLockOverlay 
-                  title="Einkaufsliste"
-                  description="Upgrade auf Premium um diese Funktion zu sehen"
-                />
-              )}
-              <div className={(!isPremium || isFreeMode) ? "pointer-events-none" : ""}>
+              <div>
                 <ShoppingList mealPlan={mealPlan} />
               </div>
             </div>

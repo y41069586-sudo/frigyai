@@ -950,11 +950,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         <div className="flex gap-2 mb-3">
           <motion.button
             onClick={() => {
-              if (!isPremium) {
-                navigate('/premium-pricing');
-              } else {
-                fileInputRef.current?.click();
-              }
+              fileInputRef.current?.click();
             }}
             disabled={isAnalyzing}
             className="flex-1 flex items-center justify-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors relative overflow-hidden"
@@ -970,11 +966,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           </motion.button>
           <motion.button
             onClick={() => {
-              if (!isPremium) {
-                navigate('/premium-pricing');
-              } else {
-                setShowBarcodeScanner(true);
-              }
+              setShowBarcodeScanner(true);
             }}
             disabled={isAnalyzing}
             className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors relative overflow-hidden"
