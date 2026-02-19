@@ -171,62 +171,96 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsMinimized(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { 
-          preferences: '', 
-          dailyCalories: settings.dailyCalories, 
-          dailyProtein: settings.dailyProtein, 
-          dailyCarbs: settings.dailyCarbs, 
-          dailyFat: settings.dailyFat 
-        },
-      });
+      // Add timeout for Edge Function call
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      if (error) {
-        throw new Error(error.message || 'Fehler bei der Generierung');
-      }
-
-      if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
-        const newPlan = (data as any).mealPlan;
-        setMealPlan(newPlan);
-        localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
-
-        // Persist for this user so it never auto-regenerates after login
-        await supabase
-          .from('weekly_meal_plans')
-          .upsert(
-            [
-              {
-                user_id: session.user.id,
-                plan: newPlan as any,
-                updated_at: new Date().toISOString(),
-              },
-            ],
-            { onConflict: 'user_id' }
-          );
-
-        toast({
-          title: '✅ Wochenplan generiert!',
-          description: `Plan mit ${settings.dailyCalories} kcal pro Tag`
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: {
+            preferences: '',
+            dailyCalories: settings.dailyCalories,
+            dailyProtein: settings.dailyProtein,
+            dailyCarbs: settings.dailyCarbs,
+            dailyFat: settings.dailyFat
+          },
         });
-        return true;
-      } else {
-        throw new Error('Leerer Wochenplan erhalten');
+
+        clearTimeout(timeoutId);
+
+        if (error) {
+          console.error('Edge Function error:', error);
+          throw new Error(error.message || 'Fehler bei der Generierung');
+        }
+
+        if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
+          const newPlan = (data as any).mealPlan;
+          setMealPlan(newPlan);
+          localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
+
+          // Persist for this user so it never auto-regenerates after login
+          await supabase
+            .from('weekly_meal_plans')
+            .upsert(
+              [
+                {
+                  user_id: session.user.id,
+                  plan: newPlan as any,
+                  updated_at: new Date().toISOString(),
+                },
+              ],
+              { onConflict: 'user_id' }
+            );
+
+          toast({
+            title: '✅ Wochenplan generiert!',
+            description: `Plan mit ${settings.dailyCalories} kcal pro Tag`
+          });
+          return true;
+        } else {
+          throw new Error('Leerer Wochenplan erhalten');
+        }
+      } catch (innerError) {
+        clearTimeout(timeoutId);
+
+        // Better error handling for network issues
+        if (innerError instanceof Error && innerError.message.includes('AbortError')) {
+          throw new Error('Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.');
+        }
+
+        if (innerError instanceof TypeError && innerError.message.includes('Failed to fetch')) {
+          throw new Error('Netzwerkverbindung fehlgeschlagen. Bitte überprüfen Sie Ihre Verbindung.');
+        }
+
+        throw innerError;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('Error generating meal plan:', message);
-      
+
       if (message.includes('plan_limit_exceeded')) {
         toast({
           title: "Limit erreicht",
           description: "Upgrade auf Premium für unbegrenzte Pläne!",
           variant: 'destructive',
         });
+      } else if (message.includes('Netzwerkverbindung') || message.includes('Failed to send')) {
+        toast({
+          title: 'Verbindungsfehler',
+          description: 'Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+          variant: 'destructive',
+        });
+      } else if (message.includes('zu lange')) {
+        toast({
+          title: 'Zeitüberschreitung',
+          description: 'Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.',
+          variant: 'destructive',
+        });
       } else {
         toast({
           title: 'Fehler',
-          description: message,
+          description: message || 'Wochenplan konnte nicht generiert werden.',
           variant: 'destructive',
         });
       }

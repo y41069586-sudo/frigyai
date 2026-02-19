@@ -30,17 +30,22 @@ interface AIChatbotProps {
 }
 
 export const AIChatbot = ({ userProfile, onResetTracker, isOpen: externalIsOpen, setIsOpen: externalSetIsOpen }: AIChatbotProps) => {
+  // All hooks MUST be called unconditionally, before any conditional returns
   const { session, subscriptionStatus } = useAuth();
   const { t } = useLanguage();
   const [localIsOpen, setLocalIsOpen] = useState(false);
-
-  // Use external state if provided, otherwise use local state
-  const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
-  const setIsOpen = externalSetIsOpen || setLocalIsOpen;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Use external state if provided, otherwise use local state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
+  const setIsOpen = externalSetIsOpen || setLocalIsOpen;
 
   // Chatbot is Premium-only feature
   const isPremium = subscriptionStatus?.subscribed === true;
@@ -49,10 +54,6 @@ export const AIChatbot = ({ userProfile, onResetTracker, isOpen: externalIsOpen,
   if (!isPremium) {
     return null;
   }
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const processActions = (response: string): string => {
     // Check for reset tracker action
