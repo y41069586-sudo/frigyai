@@ -171,9 +171,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsMinimized(false);
 
     try {
-      // Add timeout for Edge Function call
+      // Add timeout for Edge Function call - increased to 180 seconds for faster generation
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 180 second timeout
 
       try {
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {

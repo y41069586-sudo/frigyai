@@ -160,14 +160,73 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   }, [onComplete]);
 
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      setWindowHeight(window.innerHeight);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const mascotSize = windowWidth < 640 ? 120 : 160;
+  const isMobile = windowWidth < 640;
+  const mascotSize = isMobile ? 120 : 160;
+
+  // Calculate responsive animation positions based on screen size
+  const getMascotVariants = () => {
+    const startX = isMobile ? -150 : -200;
+    const endX = isMobile ? 100 : 180;
+    const startY = isMobile ? 40 : 60;
+    const endY = isMobile ? -20 : -30;
+
+    return {
+      initial: {
+        x: startX,
+        y: startY,
+        opacity: 0,
+        rotateZ: 0,
+      },
+      animate: {
+        x: endX,
+        y: endY,
+        opacity: 1,
+        rotateZ: [0, -2, 0, -1, 0],
+        transition: {
+          x: {
+            duration: 2.2,
+            ease: [0.25, 0.1, 0.25, 1],
+          },
+          y: {
+            duration: 2.2,
+            ease: [0.25, 0.1, 0.25, 1],
+          },
+          opacity: {
+            duration: 0.6,
+            ease: 'easeOut',
+          },
+          rotateZ: {
+            duration: 2.2,
+            ease: 'easeInOut',
+            times: [0, 0.3, 0.6, 0.8, 1],
+          },
+        },
+      },
+      rest: {
+        x: endX,
+        y: endY,
+        opacity: 1,
+        rotateZ: 0,
+        transition: {
+          duration: 0.8,
+          ease: 'easeOut',
+        },
+      },
+    };
+  };
+
+  const mascotVariants = getMascotVariants();
 
   useEffect(() => {
     // Cinematic duration: 4 seconds
@@ -178,51 +237,6 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
     return () => clearTimeout(timer);
   }, [handleComplete]);
-
-  // Mascot enters from far left, moving diagonally across screen
-  const mascotVariants = {
-    initial: {
-      x: -200, // Far left, partially off-screen
-      y: 60, // Starts slightly lower
-      opacity: 0,
-      rotateZ: 0,
-    },
-    animate: {
-      x: 180, // Ends on right side but inside frame
-      y: -30, // Ends slightly higher (diagonal motion)
-      opacity: 1,
-      rotateZ: [0, -2, 0, -1, 0], // Subtle head tilt during movement
-      transition: {
-        x: {
-          duration: 2.2,
-          ease: [0.25, 0.1, 0.25, 1], // Custom ease - slow start, natural deceleration
-        },
-        y: {
-          duration: 2.2,
-          ease: [0.25, 0.1, 0.25, 1],
-        },
-        opacity: {
-          duration: 0.6,
-          ease: 'easeOut',
-        },
-        rotateZ: {
-          duration: 2.2,
-          ease: 'easeInOut',
-          times: [0, 0.3, 0.6, 0.8, 1],
-        },
-      },
-    },
-    rest: {
-      x: 180,
-      y: -30,
-      opacity: 1,
-      rotateZ: 0,
-      transition: {
-        duration: 0.8,
-        ease: 'easeOut',
-      },
-    },
-  };
 
   // Blink animation during movement
   const blinkVariants = {
