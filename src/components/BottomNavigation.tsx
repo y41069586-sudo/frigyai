@@ -40,10 +40,6 @@ export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoadi
     const access = canAccessFeature(item.feature);
 
     if (!access.canAccess) {
-      if (access.lockReason === 'not_premium') {
-        navigate('/premium-pricing');
-        return;
-      }
       if (access.lockReason === 'tracker_not_setup') {
         toast({
           title: t.setupTracker || "Tracker einrichten",
