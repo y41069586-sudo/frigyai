@@ -399,8 +399,8 @@ JSON-Schema:
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           response_format: { type: 'json_object' },
-          // Increased for 7 days x 5 meals with detailed instructions
-          max_tokens: 16000,
+          // Optimized for faster generation: 8000 tokens is sufficient for 7 days x 5 meals
+          max_tokens: 8000,
           temperature: 0.95,
           messages: [
             { role: 'system', content: systemPrompt },
