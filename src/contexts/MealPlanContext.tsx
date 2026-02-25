@@ -118,7 +118,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (cancelled) return;
 
       if (error) {
-        console.error('Error loading weekly meal plan:', error);
+        console.error('Error loading weekly meal plan:', error?.message || String(error));
         return;
       }
 
