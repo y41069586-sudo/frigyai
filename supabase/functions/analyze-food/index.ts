@@ -6,7 +6,9 @@ import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/b
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
 };
 
 const MAX_BASE64_SIZE = 6_700_000;
