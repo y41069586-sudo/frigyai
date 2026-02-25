@@ -130,14 +130,22 @@ serve(async (req) => {
 
     // Provide more specific error messages based on the error type
     let userMessage = "Zahlungsfehler. Bitte überprüfe deine Zahlungsinformationen.";
+    let statusCode = 500;
+
     if (errorMessage.includes("auth") || errorMessage.includes("Auth")) {
       userMessage = "Authentifizierungsfehler. Bitte melde dich erneut an.";
+      statusCode = 401;
     } else if (errorMessage.includes("price") || errorMessage.includes("Price")) {
       userMessage = "Preiskonfiguration fehlerhaft. Bitte wende dich an den Support.";
+      statusCode = 400;
     } else if (errorMessage.includes("customer") || errorMessage.includes("Customer")) {
       userMessage = "Fehler beim Erstellen des Stripe-Kontos. Bitte versuchen Sie es später erneut.";
+      statusCode = 502;
+    } else if (errorMessage.includes("Network") || errorMessage.includes("ECONNREFUSED")) {
+      userMessage = "Verbindungsfehler zu Zahlungsdienst. Bitte versuchen Sie es später erneut.";
+      statusCode = 503;
     }
 
-    return errorResponse("payment_error", userMessage, 500);
+    return errorResponse("payment_error", userMessage, statusCode);
   }
 });
