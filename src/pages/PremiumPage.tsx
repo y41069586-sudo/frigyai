@@ -58,8 +58,8 @@ const PremiumPage = () => {
 
       console.log('Checkout response:', response);
 
-      const errorMessage = response.error?.message || response.data?.error;
-      
+      const errorMessage = response.error?.message || response.data?.error || response.data?.message;
+
       if (errorMessage) {
         if (errorMessage.includes('401') || 
             errorMessage.includes('anmelden') || 
@@ -90,10 +90,11 @@ const PremiumPage = () => {
         throw new Error(t.noCheckoutUrl);
       }
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      const errorMessage = error?.message || error?.error?.message || String(error) || t.toastError;
+      console.error('Checkout error:', errorMessage);
       toast({
         title: t.error,
-        description: error.message || t.toastError,
+        description: errorMessage,
         variant: 'destructive',
       });
       setIsAutoCheckout(false);

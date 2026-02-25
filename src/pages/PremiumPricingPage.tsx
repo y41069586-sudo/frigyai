@@ -54,10 +54,11 @@ const PremiumPricingPage = () => {
         window.location.href = data.url;
       }
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      const errorMessage = error?.message || error?.error?.message || String(error) || "Checkout fehlgeschlagen";
+      console.error('Checkout error:', errorMessage);
       toast({
         title: "Fehler",
-        description: error.message || "Checkout fehlgeschlagen",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -118,7 +118,14 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (cancelled) return;
 
       if (error) {
-        console.error('Error loading weekly meal plan:', error);
+        const errorMsg = error?.message || String(error);
+        console.error('Error loading weekly meal plan:', errorMsg);
+
+        // If table doesn't exist, that's expected during initial setup - just log and continue
+        if (errorMsg.includes('weekly_meal_plans') || errorMsg.includes('schema cache')) {
+          console.warn('Weekly meal plans table not yet created - using local storage only');
+          return;
+        }
         return;
       }
 
@@ -200,18 +207,28 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
 
           // Persist for this user so it never auto-regenerates after login
-          await supabase
-            .from('weekly_meal_plans')
-            .upsert(
-              [
-                {
-                  user_id: session.user.id,
-                  plan: newPlan as any,
-                  updated_at: new Date().toISOString(),
-                },
-              ],
-              { onConflict: 'user_id' }
-            );
+          // If table doesn't exist yet, that's OK - just use localStorage
+          try {
+            await supabase
+              .from('weekly_meal_plans')
+              .upsert(
+                [
+                  {
+                    user_id: session.user.id,
+                    plan: newPlan as any,
+                    updated_at: new Date().toISOString(),
+                  },
+                ],
+                { onConflict: 'user_id' }
+              );
+          } catch (dbError) {
+            const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError);
+            if (dbErrorMsg.includes('weekly_meal_plans') || dbErrorMsg.includes('schema cache')) {
+              console.warn('Weekly meal plans table not available - using localStorage only');
+            } else {
+              console.error('Failed to persist meal plan:', dbErrorMsg);
+            }
+          }
 
           toast({
             title: '✅ Wochenplan generiert!',
