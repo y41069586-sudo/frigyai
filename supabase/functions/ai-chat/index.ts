@@ -3,7 +3,9 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
 };
 
 const tools = [
@@ -239,19 +241,19 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Ungültige Authentifizierung' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
 
     const { message, userProfile, history = [] } = await req.json();
     if (!message) {
       return new Response(JSON.stringify({ error: 'Nachricht erforderlich' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const userContext = userProfile 
-      ? `Nutzer-Ziele: ${userProfile.dailyCalories}kcal pro Tag, ${userProfile.dailyProtein}g Protein, ${userProfile.dailyCarbs}g Kohlenhydrate, ${userProfile.dailyFat}g Fett. Aktuelles Gewicht: ${userProfile.weight}kg, Zielgewicht: ${userProfile.targetWeight}kg.` 
+    const userContext = userProfile
+      ? `Nutzer-Ziele: ${userProfile.dailyCalories}kcal pro Tag, ${userProfile.dailyProtein}g Protein, ${userProfile.dailyCarbs}g Kohlenhydrate, ${userProfile.dailyFat}g Fett. Aktuelles Gewicht: ${userProfile.weight}kg, Zielgewicht: ${userProfile.targetWeight}kg.`
       : '';
 
-    const systemPrompt = `Du bist Frigy, der freundliche KI-Ernährungsassistent in der Frig AI App. 
+    const systemPrompt = `Du bist Frigy, der freundliche KI-Ernährungsassistent in der Frig AI App.
 
 ÜBER DIE APP:
 - Frig AI ist eine Ernährungs-App zum Kühlschrank scannen, Rezepte generieren und Wochenpläne erstellen
@@ -276,34 +278,34 @@ Nutze die verfügbaren Tools um echte Aktionen auszuführen wenn der Nutzer daru
       { role: 'user', content: message },
     ];
 
-    let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    let response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
     });
 
     if (!response.ok) {
       if (response.status === 429) return new Response(JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte kurz.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      if (response.status === 402) return new Response(JSON.stringify({ error: 'Credits aufgebraucht.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (response.status === 401) return new Response(JSON.stringify({ error: 'OpenAI API Key ungültig.' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       throw new Error(`AI error: ${response.status}`);
     }
 
     let data = await response.json();
     let assistantMessage = data.choices?.[0]?.message;
-    
+
     if (assistantMessage?.tool_calls?.length) {
       const toolResults = [];
       for (const tc of assistantMessage.tool_calls) {
         const result = await executeTool(tc.function.name, JSON.parse(tc.function.arguments || '{}'), user.id, supabase);
         toolResults.push({ role: 'tool', tool_call_id: tc.id, content: result });
       }
-      
-      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
       });
-      
+
       if (!response.ok) throw new Error(`AI error: ${response.status}`);
       data = await response.json();
       assistantMessage = data.choices?.[0]?.message;
