@@ -94,14 +94,63 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") || "https://frig-ai.lovable.app";
-    
-    // Select price based on billing interval
-    // Monthly: €9.99/month, Yearly: €59.88/year (€4.99/month)
-    const priceId = billingInterval === 'yearly' 
-      ? "price_1SfkFAGj66h7dQy6P5peqTIA" // Yearly price €59.88/year
-      : "price_1SfkDXGj66h7dQy6Yp5Strwk"; // Monthly price €9.99/month
-    
-    logStep("Selected price", { priceId, billingInterval });
+
+    // Find or create Stripe product
+    let productId: string;
+    try {
+      const products = await stripe.products.list({ limit: 100 });
+      const frigProduct = products.data.find(p => p.name === "Frigy Premium");
+
+      if (frigProduct) {
+        productId = frigProduct.id;
+        logStep("Found existing product", { productId });
+      } else {
+        const newProduct = await stripe.products.create({
+          name: "Frigy Premium",
+          description: "Premium access to Frigy AI features",
+        });
+        productId = newProduct.id;
+        logStep("Created new product", { productId });
+      }
+    } catch (e) {
+      throw new Error(`Product creation failed: ${String(e)}`);
+    }
+
+    // Find or create price for selected billing interval
+    let priceId: string;
+    try {
+      const prices = await stripe.prices.list({
+        product: productId,
+        active: true,
+        limit: 100,
+      });
+
+      const foundPrice = prices.data.find(p => {
+        if (billingInterval === 'yearly') return p.recurring?.interval === 'year';
+        if (billingInterval === 'monthly') return p.recurring?.interval === 'month';
+        return false;
+      });
+
+      if (foundPrice) {
+        priceId = foundPrice.id;
+        logStep("Found existing price", { priceId, billingInterval });
+      } else {
+        // Create new price
+        const amount = billingInterval === 'yearly' ? 5988 : 999; // in cents: €59.88 or €9.99
+        const newPrice = await stripe.prices.create({
+          product: productId,
+          unit_amount: amount,
+          currency: "eur",
+          recurring: {
+            interval: billingInterval === 'yearly' ? 'year' : 'month',
+          },
+        });
+        priceId = newPrice.id;
+        logStep("Created new price", { priceId, billingInterval, amount });
+      }
+    } catch (e) {
+      throw new Error(`Price lookup/creation failed: ${String(e)}`);
+    }
     
     // Create checkout session with 7-day trial
     const session = await stripe.checkout.sessions.create({
