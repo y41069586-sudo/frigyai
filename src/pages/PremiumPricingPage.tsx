@@ -51,7 +51,9 @@ const PremiumPricingPage = () => {
 
     const paymentLink = paymentLinks[billingInterval];
     console.log('[PREMIUM] Redirecting to Stripe:', paymentLink);
-    window.location.href = paymentLink;
+    // Use window.top to break out of iframe and redirect at top level
+    // This is required for Stripe Checkout to work
+    window.top!.location.href = paymentLink;
   };
 
   return (
