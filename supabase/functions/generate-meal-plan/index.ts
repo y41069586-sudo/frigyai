@@ -57,7 +57,7 @@ serve(async (req) => {
     console.log('User authenticated:', user.id);
 
     // Check premium status
-    let isPremium = user.email === 'yousef0089mohamed@gmail.com';
+    let isPremium = user.email?.toLowerCase() === 'yousef0089mohamed@gmail.com';
     const userEmail = user.email;
 
     // Check database cache first (it's much faster than Stripe API)
@@ -141,20 +141,7 @@ serve(async (req) => {
         );
       }
 
-      // Increment meal plan count for this week
-      if (usageData) {
-        await supabaseService
-          .from('meal_plan_usage')
-          .update({ generation_count: currentCount + 1, updated_at: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .eq('week_start', weekStart);
-      } else {
-        await supabaseService
-          .from('meal_plan_usage')
-          .insert({ user_id: user.id, week_start: weekStart, generation_count: 1 });
-      }
-
-      console.log(`User ${user.id} weekly meal plan count: ${currentCount + 1}/${FREE_PLAN_LIMIT}`);
+      console.log(`User ${user.id} weekly meal plan count: ${currentCount}/${FREE_PLAN_LIMIT}`);
     }
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -544,6 +531,32 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
     }
 
     console.log('[GENERATE-MEAL-PLAN] Successfully generated & validated meal plan');
+
+    // Increment meal plan count for free users ONLY after successful generation
+    if (!isPremium) {
+      const weekStart = getWeekStart();
+      const { data: usageData } = await supabaseService
+        .from('meal_plan_usage')
+        .select('generation_count')
+        .eq('user_id', user.id)
+        .eq('week_start', weekStart)
+        .single();
+
+      const currentCount = usageData?.generation_count || 0;
+
+      if (usageData) {
+        await supabaseService
+          .from('meal_plan_usage')
+          .update({ generation_count: currentCount + 1, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('week_start', weekStart);
+      } else {
+        await supabaseService
+          .from('meal_plan_usage')
+          .insert({ user_id: user.id, week_start: weekStart, generation_count: 1 });
+      }
+      console.log(`User ${user.id} usage incremented to ${currentCount + 1}`);
+    }
 
     return new Response(JSON.stringify(finalPlan), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
