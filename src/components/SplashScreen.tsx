@@ -278,9 +278,6 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       initial="initial"
       exit="exit"
     >
-      {/* Animated background */}
-      <AmbientBackground />
-
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
         {/* Motion blur following mascot */}
