@@ -384,9 +384,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           >
             <Crown className="h-12 w-12 text-amber-400" />
             <div className="text-center">
-              <h3 className="font-bold text-white text-lg mb-1">Gewichtsverlauf entsperren</h3>
+              <h3 className="font-bold text-white text-lg mb-1">Gewichtsverlauf freischalten</h3>
               <p className="text-sm text-white/70">
-                Upgrade zu Premium um deinen vollständigen Gewichtsverlauf zu sehen
+                Um den Gewichtsverlauf freizuschalten, kaufe Premium
               </p>
             </div>
             <Button
@@ -396,7 +396,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               }}
               className="w-full gradient-neon text-black font-semibold mt-2"
             >
-              Zu Premium upgraden
+              Zu Premium
             </Button>
             <Button
               onClick={(e) => {
