@@ -198,7 +198,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         if (error) {
           console.error('Edge Function error:', error);
-          throw new Error(error.message || 'Fehler bei der Generierung');
+          // Try to get more details if it's a FunctionsHttpError
+          const errorMessage = (error as any).context?.message || error.message || 'Fehler bei der Generierung';
+          throw new Error(errorMessage);
         }
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {

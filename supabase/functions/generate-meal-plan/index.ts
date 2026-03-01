@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,7 +85,6 @@ serve(async (req) => {
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
       if (stripeKey) {
         try {
-          const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
           const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
           const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
           if (customers.data.length > 0) {
