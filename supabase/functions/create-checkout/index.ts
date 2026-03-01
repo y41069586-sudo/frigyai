@@ -93,7 +93,15 @@ serve(async (req) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://frig-ai.lovable.app";
+    // Get proper origin from request
+    let origin = req.headers.get("origin");
+    if (!origin) {
+      origin = req.headers.get("referer")?.split('?')[0].split('#')[0] || "https://frigyai.vercel.app";
+    }
+    // Ensure origin is clean without trailing slash
+    origin = origin.replace(/\/$/, '');
+
+    logStep("Using origin", { origin });
 
     // Find or create Stripe product
     let productId: string;
@@ -166,8 +174,9 @@ serve(async (req) => {
       subscription_data: {
         trial_period_days: 7, // 7-day free trial
       },
-      success_url: `${origin}/premium?subscription=success`,
+      success_url: `${origin}/premium?session_id={CHECKOUT_SESSION_ID}&subscription=success`,
       cancel_url: `${origin}/premium-pricing?subscription=cancelled`,
+      allow_promotion_codes: true,
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
