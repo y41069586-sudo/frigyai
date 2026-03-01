@@ -16,6 +16,7 @@ const logStep = (step: string, details?: any) => {
 // Admin emails that can grant premium
 const ADMIN_EMAILS = [
   "yousef0087mohamed@gmail.com",
+  "yousef0089mohamed@gmail.com",
 ];
 
 serve(async (req) => {
