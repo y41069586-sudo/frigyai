@@ -32,8 +32,11 @@ const PremiumPricingPage = () => {
   }, [subscriptionStatus, navigate, isPreview]);
 
   const handleCheckout = (billingInterval: 'monthly' | 'yearly') => {
+    console.log('[PREMIUM] Checkout clicked', { billingInterval, hasSession: !!session });
+
     // If not logged in, redirect back to onboarding to complete authentication
     if (!session) {
+      console.log('[PREMIUM] No session, redirecting to onboarding');
       localStorage.setItem('selectedPlan', billingInterval);
       // Go back to onboarding - user must complete "save-progress" step first
       navigate('/?showOnboarding=save-progress', { replace: true });
@@ -47,6 +50,7 @@ const PremiumPricingPage = () => {
     };
 
     const paymentLink = paymentLinks[billingInterval];
+    console.log('[PREMIUM] Redirecting to Stripe:', paymentLink);
     window.location.href = paymentLink;
   };
 
