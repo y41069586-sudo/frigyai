@@ -4,7 +4,6 @@ import { Calendar, Sparkles, ArrowRight, Utensils, Clock, Crown } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Crown } from 'lucide-react';
 
 interface Meal {
   type: string;

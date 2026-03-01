@@ -59,8 +59,8 @@ export class SupabaseErrorBoundary extends React.Component<
               </div>
 
               <div className="text-xs space-y-1">
-                <p><strong>URL:</strong> https://zbvrhyyjlnmeqtjbvtwt.supabase.co</p>
-                <p className="truncate"><strong>Key:</strong> eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</p>
+                <p><strong>URL:</strong> {import.meta.env.VITE_SUPABASE_URL || 'Nicht konfiguriert'}</p>
+                <p className="truncate"><strong>Key:</strong> {import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ? 'Vorhanden' : 'Nicht konfiguriert'}</p>
               </div>
             </div>
 
