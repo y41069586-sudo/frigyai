@@ -5,7 +5,6 @@ import { Check, Sparkles, Crown, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 
@@ -32,7 +31,7 @@ const PremiumPricingPage = () => {
     }
   }, [subscriptionStatus, navigate, isPreview]);
 
-  const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
+  const handleCheckout = (billingInterval: 'monthly' | 'yearly') => {
     // If not logged in, redirect back to onboarding to complete authentication
     if (!session) {
       localStorage.setItem('selectedPlan', billingInterval);
@@ -41,29 +40,14 @@ const PremiumPricingPage = () => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { billing_interval: billingInterval },
-      });
+    // Direct Stripe Payment Links
+    const paymentLinks = {
+      monthly: 'https://buy.stripe.com/aFa6oH2Lu4JhdcudLx87K03',
+      yearly: 'https://buy.stripe.com/8x29AT99S3Fd3BUePB87K02'
+    };
 
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      const errorMessage = error?.message || error?.error?.message || String(error) || "Checkout fehlgeschlagen";
-      console.error('Checkout error:', errorMessage);
-      toast({
-        title: "Fehler",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    const paymentLink = paymentLinks[billingInterval];
+    window.location.href = paymentLink;
   };
 
   return (
