@@ -5,7 +5,6 @@ import { Check, Sparkles, Crown, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 
@@ -32,38 +31,29 @@ const PremiumPricingPage = () => {
     }
   }, [subscriptionStatus, navigate, isPreview]);
 
-  const handleCheckout = async (billingInterval: 'monthly' | 'yearly') => {
+  const handleCheckout = (billingInterval: 'monthly' | 'yearly') => {
+    console.log('[PREMIUM] Checkout clicked', { billingInterval, hasSession: !!session });
+
     // If not logged in, redirect back to onboarding to complete authentication
     if (!session) {
+      console.log('[PREMIUM] No session, redirecting to onboarding');
       localStorage.setItem('selectedPlan', billingInterval);
       // Go back to onboarding - user must complete "save-progress" step first
       navigate('/?showOnboarding=save-progress', { replace: true });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { billing_interval: billingInterval },
-      });
+    // Direct Stripe Payment Links
+    const paymentLinks = {
+      monthly: 'https://buy.stripe.com/aFa6oH2Lu4JhdcudLx87K03',
+      yearly: 'https://buy.stripe.com/8x29AT99S3Fd3BUePB87K02'
+    };
 
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      const errorMessage = error?.message || error?.error?.message || String(error) || "Checkout fehlgeschlagen";
-      console.error('Checkout error:', errorMessage);
-      toast({
-        title: "Fehler",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    const paymentLink = paymentLinks[billingInterval];
+    console.log('[PREMIUM] Redirecting to Stripe:', paymentLink);
+    // Use window.top to break out of iframe and redirect at top level
+    // This is required for Stripe Checkout to work
+    window.top!.location.href = paymentLink;
   };
 
   return (
