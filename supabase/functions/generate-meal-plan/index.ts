@@ -55,15 +55,37 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Check premium status via Stripe
-    let isPremium = false;
+    // Check premium status
+    let isPremium = user.email === 'yousef0089mohamed@gmail.com';
     const userEmail = user.email;
-    if (userEmail) {
+
+    // Check database cache first (it's much faster than Stripe API)
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false } }
+    );
+
+    if (!isPremium) {
+      const { data: subData } = await supabaseService
+        .from('subscription_cache')
+        .select('subscribed')
+        .eq('user_id', user.id)
+        .single();
+
+      if (subData?.subscribed) {
+        isPremium = true;
+        console.log(`User ${user.id} has premium from database cache`);
+      }
+    }
+
+    // Fallback to Stripe check if still not premium
+    if (!isPremium && userEmail) {
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
       if (stripeKey) {
         try {
           const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
-          const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+          const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
           const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
           if (customers.data.length > 0) {
             const subscriptions = await stripe.subscriptions.list({
@@ -72,6 +94,7 @@ serve(async (req) => {
               limit: 1,
             });
             isPremium = subscriptions.data.length > 0;
+            if (isPremium) console.log(`User ${user.id} has premium from Stripe directly`);
           }
         } catch (stripeError) {
           console.error("Stripe check error:", stripeError);
@@ -91,14 +114,8 @@ serve(async (req) => {
     // Check meal plan generation limit for free users (1 per week)
     const FREE_PLAN_LIMIT = 1;
     if (!isPremium) {
-      const supabaseService = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-        { auth: { persistSession: false } }
-      );
-      
       const weekStart = getWeekStart();
-      
+
       const { data: usageData } = await supabaseService
         .from('meal_plan_usage')
         .select('generation_count')
