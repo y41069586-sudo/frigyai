@@ -76,7 +76,8 @@ const MealPlansPage = () => {
     mealPlan: globalMealPlan,
     isGenerating: globalIsGenerating,
     elapsedSeconds: globalElapsedSeconds,
-    generateMealPlan: globalGenerateMealPlan
+    generateMealPlan: globalGenerateMealPlan,
+    generationCount: globalGenerationCount,
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
@@ -176,17 +177,9 @@ const MealPlansPage = () => {
 
   // isPremium now comes from useAuth() hook above
 
-  // Get meal plan generation count for free users
-  const [mealPlanGenerationCount, setMealPlanGenerationCount] = useState(0);
-  
-  useEffect(() => {
-    const count = parseInt(localStorage.getItem('mealPlanGenerationCount') || '0', 10);
-    setMealPlanGenerationCount(count);
-  }, []);
-
   // Free users: can regenerate meal plan only once after the onboarding plan
   const maxFreeGenerations = 1;
-  const canGenerateMealPlan = isPremium || mealPlanGenerationCount < maxFreeGenerations;
+  const canGenerateMealPlan = isPremium || globalGenerationCount < maxFreeGenerations;
 
   useEffect(() => {
     // Wait for auth to finish loading before redirecting
@@ -254,7 +247,7 @@ const MealPlansPage = () => {
     }
 
     // Check if free user has reached generation limit
-    if (!isPremium && mealPlanGenerationCount >= maxFreeGenerations) {
+    if (!isPremium && globalGenerationCount >= maxFreeGenerations) {
       toast({
         title: "Limit erreicht",
         description: "Upgrade auf Premium für unbegrenzte Generierungen",
@@ -272,19 +265,12 @@ const MealPlansPage = () => {
     console.log('[MEAL-PLAN] Using global context for generation:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
 
     // Use global context for background generation
-    const success = await globalGenerateMealPlan({
+    await globalGenerateMealPlan({
       dailyCalories,
       dailyProtein,
       dailyCarbs,
       dailyFat,
     });
-
-    if (success && !isPremium) {
-      // Track generation count for free users
-      const newCount = mealPlanGenerationCount + 1;
-      setMealPlanGenerationCount(newCount);
-      localStorage.setItem('mealPlanGenerationCount', String(newCount));
-    }
   };
 
   const openMealDetail = (meal: Meal) => {
@@ -487,7 +473,7 @@ const MealPlansPage = () => {
                     <div className="flex items-center gap-2">
                       {!isPremium && !isFreeMode && (
                         <span className="text-xs text-muted-foreground">
-                          {mealPlanGenerationCount}/{maxFreeGenerations} Generierungen
+                          {globalGenerationCount}/{maxFreeGenerations} Generierungen
                         </span>
                       )}
                       <Button

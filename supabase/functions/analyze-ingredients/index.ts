@@ -1,5 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -66,8 +65,15 @@ serve(async (req) => {
           .maybeSingle();
 
         // Premium if subscribed is true AND (no end date OR end date is in the future)
+        // OR if it's the admin/owner email
         if (cacheData?.subscribed) {
           isPremium = !cacheData.subscription_end || new Date(cacheData.subscription_end) > new Date();
+        }
+
+        // Owner/Admin override
+        if (!isPremium && userData.user.email?.toLowerCase() === 'yousef0089mohamed@gmail.com') {
+          isPremium = true;
+          console.log(`[SCAN] Owner override premium access for ${userData.user.email}`);
         }
 
         console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
@@ -126,7 +132,7 @@ serve(async (req) => {
 
 
     // OpenAI Vision - OPTIMIZED
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt");
 
     console.log(`[SCAN] Calling OpenAI... | ${Date.now() - startTotal}ms`);
@@ -143,19 +149,14 @@ Regeln:
 - Bei Unsicherheit trotzdem auflisten
 - KEIN Text außer dem JSON`;
 
-    // 10 second hard timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
     let response: Response;
     try {
       response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${OPENAI_API_KEY}`, 
-          "Content-Type": "application/json" 
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
         },
-        signal: controller.signal,
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [{
@@ -169,20 +170,7 @@ Regeln:
           temperature: 0.1,
         }),
       });
-      clearTimeout(timeoutId);
     } catch (e: any) {
-      clearTimeout(timeoutId);
-      if (e.name === 'AbortError') {
-        console.error(`[SCAN] TIMEOUT after 10s`);
-        return new Response(JSON.stringify({ 
-          error: "timeout",
-          message: "Analyse dauerte zu lange. Bitte erneut versuchen.",
-          ingredients: []
-        }), { 
-          status: 408, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        });
-      }
       throw e;
     }
 

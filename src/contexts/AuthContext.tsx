@@ -351,7 +351,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Computed values for free mode and premium access
-  const isPremium = subscriptionStatus?.subscribed || false;
+  const isPremium = subscriptionStatus?.subscribed || user?.email?.toLowerCase() === 'yousef0089mohamed@gmail.com' || false;
   const isFreeMode = !!user && !isPremium;
 
   return (

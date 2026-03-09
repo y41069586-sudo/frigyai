@@ -31,6 +31,8 @@ interface MealPlanContextType {
   isMinimized: boolean;
   elapsedSeconds: number;
   mealPlan: DayPlan[] | null;
+  generationCount: number;
+  refreshGenerationCount: () => Promise<void>;
   generateMealPlan: (settings: {
     dailyCalories: number;
     dailyProtein: number;
@@ -69,7 +71,48 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     return null;
   });
+  const [generationCount, setGenerationCount] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper to get start of current week (Monday) in YYYY-MM-DD
+  const getWeekStart = (): string => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  };
+
+  const refreshGenerationCount = useCallback(async () => {
+    if (!session?.user?.id) return;
+
+    const weekStart = getWeekStart();
+    const { data, error } = await supabase
+      .from('meal_plan_usage')
+      .select('generation_count')
+      .eq('user_id', session.user.id)
+      .eq('week_start', weekStart)
+      .single();
+
+    if (error) {
+      if (error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+        console.error('Error fetching generation count:', error);
+      }
+      setGenerationCount(0);
+      return;
+    }
+
+    setGenerationCount(data?.generation_count || 0);
+  }, [session?.user?.id]);
+
+  // Fetch generation count on session change
+  useEffect(() => {
+    if (session?.user?.id) {
+      refreshGenerationCount();
+    } else {
+      setGenerationCount(0);
+    }
+  }, [session?.user?.id, refreshGenerationCount]);
 
   // Timer for elapsed seconds
   useEffect(() => {
@@ -177,14 +220,15 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsGenerating(true);
     setIsMinimized(false);
 
-    try {
-      // Add timeout for Edge Function call - increased to 180 seconds for faster generation
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 180 second timeout
+    console.log('[MEAL-PLAN-CLIENT] Invoking generate-meal-plan function...');
 
+    try {
       try {
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
           body: {
             preferences: '',
             dailyCalories: settings.dailyCalories,
@@ -194,12 +238,44 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           },
         });
 
-        clearTimeout(timeoutId);
-
         if (error) {
-          console.error('Edge Function error:', error);
-          throw new Error(error.message || 'Fehler bei der Generierung');
+          console.error('[MEAL-PLAN-CLIENT] Edge Function error:', error);
+
+          let errorMessage = 'Wochenplan konnte nicht generiert werden.';
+
+          // Better extraction for Supabase FunctionsHttpError
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+
+          const context = (error as any).context;
+          if (context) {
+            try {
+              // Try to get structured error from response body
+              const clonedResponse = context.clone();
+              const responseText = await clonedResponse.text();
+              console.log('[MEAL-PLAN-CLIENT] Response body:', responseText);
+
+              if (responseText) {
+                try {
+                  const parsed = JSON.parse(responseText);
+                  errorMessage = parsed.error || parsed.message || errorMessage;
+                } catch (jsonErr) {
+                  // Not JSON, just use text
+                  if (responseText.length < 200) errorMessage = responseText;
+                }
+              }
+            } catch (contextErr) {
+              console.error('[MEAL-PLAN-CLIENT] Error reading context:', contextErr);
+            }
+          } else if ((error as any).message) {
+            errorMessage = (error as any).message;
+          }
+
+          throw new Error(errorMessage);
         }
+
+        console.log('[MEAL-PLAN-CLIENT] Successfully received data:', data ? 'yes' : 'no');
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const newPlan = (data as any).mealPlan;
@@ -230,6 +306,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }
 
+          // Refresh generation count from server after successful generation
+          await refreshGenerationCount();
+
           toast({
             title: '✅ Wochenplan generiert!',
             description: `Plan mit ${settings.dailyCalories} kcal pro Tag`
@@ -239,8 +318,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           throw new Error('Leerer Wochenplan erhalten');
         }
       } catch (innerError) {
-        clearTimeout(timeoutId);
-
         // Better error handling for network issues
         if (innerError instanceof Error && innerError.message.includes('AbortError')) {
           throw new Error('Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.');
@@ -254,18 +331,21 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error('Error generating meal plan:', message);
+      console.error('[MEAL-PLAN-CLIENT] Error in generateMealPlan catch block:', message);
 
       if (message.includes('plan_limit_exceeded')) {
+        // Refresh count from server just in case
+        await refreshGenerationCount();
+
         toast({
           title: "Limit erreicht",
           description: "Upgrade auf Premium für unbegrenzte Pläne!",
           variant: 'destructive',
         });
-      } else if (message.includes('Netzwerkverbindung') || message.includes('Failed to send')) {
+      } else if (message.includes('Load failed') || message.includes('Failed to fetch')) {
         toast({
           title: 'Verbindungsfehler',
-          description: 'Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+          description: 'Die Verbindung zur Edge Function konnte nicht hergestellt werden. Bitte prüfe die SUPABASE_URL in den Einstellungen.',
           variant: 'destructive',
         });
       } else if (message.includes('zu lange')) {
@@ -308,6 +388,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isMinimized,
       elapsedSeconds,
       mealPlan,
+      generationCount,
+      refreshGenerationCount,
       generateMealPlan,
       setMinimized,
       clearMealPlan,

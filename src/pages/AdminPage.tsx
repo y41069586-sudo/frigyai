@@ -13,6 +13,7 @@ import frigLogo from '@/assets/frig-logo.png';
 // Admin emails
 const ADMIN_EMAILS = [
   "yousef0087mohamed@gmail.com",
+  "yousef0089mohamed@gmail.com",
 ];
 
 const AdminPage = () => {
