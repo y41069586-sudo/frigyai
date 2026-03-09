@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 
@@ -29,20 +29,32 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
+        JSON.stringify({ error: 'Authentication required', message: 'Auth header missing' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Configuration error', message: 'Missing SUPABASE_URL or SUPABASE_ANON_KEY' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Extract JWT token from header
     const token = authHeader.replace('Bearer ', '');
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
+
+    if (!token || token === 'undefined' || token === 'null') {
+      console.error('Missing Bearer token in Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required', message: 'Bearer token missing' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Use getUser with the token directly for edge function auth
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -61,9 +73,20 @@ serve(async (req) => {
     const userEmail = user.email;
 
     // Check database cache first (it's much faster than Stripe API)
+    const supabaseServiceUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseServiceUrl || !supabaseServiceRoleKey) {
+      console.error('Missing Supabase service variables');
+      return new Response(
+        JSON.stringify({ error: 'Configuration error', message: 'Missing SUPABASE_SERVICE_ROLE_KEY' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      supabaseServiceUrl,
+      supabaseServiceRoleKey,
       { auth: { persistSession: false } }
     );
 

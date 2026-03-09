@@ -220,10 +220,15 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsGenerating(true);
     setIsMinimized(false);
 
+    console.log('[MEAL-PLAN-CLIENT] Invoking generate-meal-plan function...');
+
     try {
       try {
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
           body: {
             preferences: '',
             dailyCalories: settings.dailyCalories,
@@ -234,7 +239,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
 
         if (error) {
-          console.error('Edge Function error:', error);
+          console.error('[MEAL-PLAN-CLIENT] Edge Function error:', error);
 
           let errorMessage = 'Wochenplan konnte nicht generiert werden.';
 
@@ -243,26 +248,34 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             errorMessage = error.message;
           }
 
-          if ((error as any).context?.message) {
-            errorMessage = (error as any).context.message;
-          }
-
-          // If the error message is just "Edge Function returned a non-2xx status code",
-          // we try to get more details if available in the context
-          if (errorMessage.includes('non-2xx status code') && (error as any).context) {
+          const context = (error as any).context;
+          if (context) {
             try {
-              const contextText = await (error as any).context.text();
-              if (contextText) {
-                const parsed = JSON.parse(contextText);
-                errorMessage = parsed.error || parsed.message || contextText;
+              // Try to get structured error from response body
+              const clonedResponse = context.clone();
+              const responseText = await clonedResponse.text();
+              console.log('[MEAL-PLAN-CLIENT] Response body:', responseText);
+
+              if (responseText) {
+                try {
+                  const parsed = JSON.parse(responseText);
+                  errorMessage = parsed.error || parsed.message || errorMessage;
+                } catch (jsonErr) {
+                  // Not JSON, just use text
+                  if (responseText.length < 200) errorMessage = responseText;
+                }
               }
-            } catch (e) {
-              // fallback
+            } catch (contextErr) {
+              console.error('[MEAL-PLAN-CLIENT] Error reading context:', contextErr);
             }
+          } else if ((error as any).message) {
+            errorMessage = (error as any).message;
           }
 
           throw new Error(errorMessage);
         }
+
+        console.log('[MEAL-PLAN-CLIENT] Successfully received data:', data ? 'yes' : 'no');
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const newPlan = (data as any).mealPlan;
@@ -318,7 +331,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error('Error generating meal plan:', message);
+      console.error('[MEAL-PLAN-CLIENT] Error in generateMealPlan catch block:', message);
 
       if (message.includes('plan_limit_exceeded')) {
         // Refresh count from server just in case
@@ -329,10 +342,10 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: "Upgrade auf Premium für unbegrenzte Pläne!",
           variant: 'destructive',
         });
-      } else if (message.includes('Netzwerkverbindung') || message.includes('Failed to send')) {
+      } else if (message.includes('Load failed') || message.includes('Failed to fetch')) {
         toast({
           title: 'Verbindungsfehler',
-          description: 'Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+          description: 'Die Verbindung zur Edge Function konnte nicht hergestellt werden. Bitte prüfe die SUPABASE_URL in den Einstellungen.',
           variant: 'destructive',
         });
       } else if (message.includes('zu lange')) {
