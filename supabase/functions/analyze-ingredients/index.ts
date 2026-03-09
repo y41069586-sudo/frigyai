@@ -150,19 +150,14 @@ Regeln:
 - Bei Unsicherheit trotzdem auflisten
 - KEIN Text außer dem JSON`;
 
-    // 10 second hard timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
     let response: Response;
     try {
       response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${OPENAI_API_KEY}`, 
-          "Content-Type": "application/json" 
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
         },
-        signal: controller.signal,
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [{
@@ -176,20 +171,7 @@ Regeln:
           temperature: 0.1,
         }),
       });
-      clearTimeout(timeoutId);
     } catch (e: any) {
-      clearTimeout(timeoutId);
-      if (e.name === 'AbortError') {
-        console.error(`[SCAN] TIMEOUT after 10s`);
-        return new Response(JSON.stringify({ 
-          error: "timeout",
-          message: "Analyse dauerte zu lange. Bitte erneut versuchen.",
-          ingredients: []
-        }), { 
-          status: 408, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        });
-      }
       throw e;
     }
 

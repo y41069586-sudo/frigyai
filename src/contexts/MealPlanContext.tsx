@@ -221,10 +221,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsMinimized(false);
 
     try {
-      // Add timeout for Edge Function call - increased to 180 seconds for faster generation
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 180 second timeout
-
       try {
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -236,8 +232,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             dailyFat: settings.dailyFat
           },
         });
-
-        clearTimeout(timeoutId);
 
         if (error) {
           console.error('Edge Function error:', error);
@@ -287,8 +281,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           throw new Error('Leerer Wochenplan erhalten');
         }
       } catch (innerError) {
-        clearTimeout(timeoutId);
-
         // Better error handling for network issues
         if (innerError instanceof Error && innerError.message.includes('AbortError')) {
           throw new Error('Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.');
