@@ -133,7 +133,7 @@ serve(async (req) => {
 
 
     // OpenAI Vision - OPTIMIZED
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt");
 
     console.log(`[SCAN] Calling OpenAI... | ${Date.now() - startTotal}ms`);

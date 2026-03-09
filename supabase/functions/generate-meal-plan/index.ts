@@ -144,7 +144,7 @@ serve(async (req) => {
       console.log(`User ${user.id} weekly meal plan count: ${currentCount}/${FREE_PLAN_LIMIT}`);
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('OPEN_AI_KEY');
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not configured');
     }
