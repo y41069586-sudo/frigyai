@@ -113,22 +113,29 @@ serve(async (req) => {
 
     // Check meal plan generation limit for free users (1 per week)
     const FREE_PLAN_LIMIT = 1;
+    let currentUsageData = null;
+
     if (!isPremium) {
       const weekStart = getWeekStart();
 
-      const { data: usageData } = await supabaseService
+      const { data: usageData, error: usageError } = await supabaseService
         .from('meal_plan_usage')
         .select('generation_count')
         .eq('user_id', user.id)
         .eq('week_start', weekStart)
-        .single();
+        .maybeSingle();
 
+      if (usageError) {
+        console.error('Usage check error:', usageError);
+      }
+
+      currentUsageData = usageData;
       const currentCount = usageData?.generation_count || 0;
 
       if (currentCount >= FREE_PLAN_LIMIT) {
         console.log(`User ${user.id} exceeded free weekly meal plan limit (${currentCount}/${FREE_PLAN_LIMIT})`);
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "plan_limit_exceeded",
             message: "Du hast deinen wöchentlichen Wochenplan erreicht. Upgrade auf Premium für unbegrenzte Pläne!",
             plansUsed: currentCount,
@@ -535,16 +542,9 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
     // Increment meal plan count for free users ONLY after successful generation
     if (!isPremium) {
       const weekStart = getWeekStart();
-      const { data: usageData } = await supabaseService
-        .from('meal_plan_usage')
-        .select('generation_count')
-        .eq('user_id', user.id)
-        .eq('week_start', weekStart)
-        .single();
+      const currentCount = currentUsageData?.generation_count || 0;
 
-      const currentCount = usageData?.generation_count || 0;
-
-      if (usageData) {
+      if (currentUsageData) {
         await supabaseService
           .from('meal_plan_usage')
           .update({ generation_count: currentCount + 1, updated_at: new Date().toISOString() })

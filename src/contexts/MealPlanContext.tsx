@@ -235,8 +235,29 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         if (error) {
           console.error('Edge Function error:', error);
-          // Try to get more details if it's a FunctionsHttpError
-          const errorMessage = (error as any).context?.message || error.message || 'Fehler bei der Generierung';
+
+          // Handle structured error responses
+          let errorMessage = 'Wochenplan konnte nicht generiert werden.';
+
+          if ((error as any).context?.message) {
+            errorMessage = (error as any).context.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          // Try to parse the error message if it's JSON
+          try {
+            if (errorMessage.includes('{')) {
+              const startIdx = errorMessage.indexOf('{');
+              const jsonPart = errorMessage.substring(startIdx);
+              const parsed = JSON.parse(jsonPart);
+              if (parsed.error) errorMessage = parsed.error;
+              if (parsed.message) errorMessage = parsed.message;
+            }
+          } catch (e) {
+            // fallback to original message
+          }
+
           throw new Error(errorMessage);
         }
 
