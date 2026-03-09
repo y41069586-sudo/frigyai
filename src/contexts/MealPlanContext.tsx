@@ -31,6 +31,8 @@ interface MealPlanContextType {
   isMinimized: boolean;
   elapsedSeconds: number;
   mealPlan: DayPlan[] | null;
+  generationCount: number;
+  refreshGenerationCount: () => Promise<void>;
   generateMealPlan: (settings: {
     dailyCalories: number;
     dailyProtein: number;
@@ -69,7 +71,48 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     return null;
   });
+  const [generationCount, setGenerationCount] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper to get start of current week (Monday) in YYYY-MM-DD
+  const getWeekStart = (): string => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  };
+
+  const refreshGenerationCount = useCallback(async () => {
+    if (!session?.user?.id) return;
+
+    const weekStart = getWeekStart();
+    const { data, error } = await supabase
+      .from('meal_plan_usage')
+      .select('generation_count')
+      .eq('user_id', session.user.id)
+      .eq('week_start', weekStart)
+      .single();
+
+    if (error) {
+      if (error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+        console.error('Error fetching generation count:', error);
+      }
+      setGenerationCount(0);
+      return;
+    }
+
+    setGenerationCount(data?.generation_count || 0);
+  }, [session?.user?.id]);
+
+  // Fetch generation count on session change
+  useEffect(() => {
+    if (session?.user?.id) {
+      refreshGenerationCount();
+    } else {
+      setGenerationCount(0);
+    }
+  }, [session?.user?.id, refreshGenerationCount]);
 
   // Timer for elapsed seconds
   useEffect(() => {
@@ -232,6 +275,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }
 
+          // Refresh generation count from server after successful generation
+          await refreshGenerationCount();
+
           toast({
             title: '✅ Wochenplan generiert!',
             description: `Plan mit ${settings.dailyCalories} kcal pro Tag`
@@ -259,6 +305,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Error generating meal plan:', message);
 
       if (message.includes('plan_limit_exceeded')) {
+        // Refresh count from server just in case
+        await refreshGenerationCount();
+
         toast({
           title: "Limit erreicht",
           description: "Upgrade auf Premium für unbegrenzte Pläne!",
@@ -310,6 +359,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isMinimized,
       elapsedSeconds,
       mealPlan,
+      generationCount,
+      refreshGenerationCount,
       generateMealPlan,
       setMinimized,
       clearMealPlan,
