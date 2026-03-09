@@ -56,6 +56,11 @@ serve(async (req) => {
       );
     }
 
+    // Create Supabase client for authentication
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
     // Use getUser with the token directly for edge function auth
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
