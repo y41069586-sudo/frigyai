@@ -66,8 +66,15 @@ serve(async (req) => {
           .maybeSingle();
 
         // Premium if subscribed is true AND (no end date OR end date is in the future)
+        // OR if it's the admin/owner email
         if (cacheData?.subscribed) {
           isPremium = !cacheData.subscription_end || new Date(cacheData.subscription_end) > new Date();
+        }
+
+        // Owner/Admin override
+        if (!isPremium && userData.user.email?.toLowerCase() === 'yousef0089mohamed@gmail.com') {
+          isPremium = true;
+          console.log(`[SCAN] Owner override premium access for ${userData.user.email}`);
         }
 
         console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
