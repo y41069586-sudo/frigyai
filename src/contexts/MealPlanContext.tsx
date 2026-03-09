@@ -236,26 +236,29 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (error) {
           console.error('Edge Function error:', error);
 
-          // Handle structured error responses
           let errorMessage = 'Wochenplan konnte nicht generiert werden.';
 
-          if ((error as any).context?.message) {
-            errorMessage = (error as any).context.message;
-          } else if (error.message) {
+          // Better extraction for Supabase FunctionsHttpError
+          if (error instanceof Error) {
             errorMessage = error.message;
           }
 
-          // Try to parse the error message if it's JSON
-          try {
-            if (errorMessage.includes('{')) {
-              const startIdx = errorMessage.indexOf('{');
-              const jsonPart = errorMessage.substring(startIdx);
-              const parsed = JSON.parse(jsonPart);
-              if (parsed.error) errorMessage = parsed.error;
-              if (parsed.message) errorMessage = parsed.message;
+          if ((error as any).context?.message) {
+            errorMessage = (error as any).context.message;
+          }
+
+          // If the error message is just "Edge Function returned a non-2xx status code",
+          // we try to get more details if available in the context
+          if (errorMessage.includes('non-2xx status code') && (error as any).context) {
+            try {
+              const contextText = await (error as any).context.text();
+              if (contextText) {
+                const parsed = JSON.parse(contextText);
+                errorMessage = parsed.error || parsed.message || contextText;
+              }
+            } catch (e) {
+              // fallback
             }
-          } catch (e) {
-            // fallback to original message
           }
 
           throw new Error(errorMessage);
