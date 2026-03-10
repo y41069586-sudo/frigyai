@@ -23,12 +23,14 @@ serve(async (req) => {
       dailyProtein,
       dailyCarbs,
       dailyFat,
-      breakfastCal,
-      snackCal,
-      lunchCal,
-      dinnerCal,
       preferences
     } = body;
+
+    // Calculate calorie distribution
+    const breakfastCal = Math.round(dailyCalories * 0.20);
+    const snackCal = Math.round(dailyCalories * 0.10);
+    const lunchCal = Math.round(dailyCalories * 0.35);
+    const dinnerCal = Math.round(dailyCalories * 0.25);
 
     const systemPrompt = `
 Du bist ein deutscher Ernährungsexperte.
