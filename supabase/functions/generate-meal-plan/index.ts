@@ -144,11 +144,15 @@ ${preferences ?? ""}
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[GENERATE-MEAL-PLAN] Catch block error:', errorMessage);
+    console.error('[GENERATE-MEAL-PLAN] Full error:', error);
 
     return new Response(
       JSON.stringify({
         error: "Meal plan generation failed",
-        message: error.message
+        message: errorMessage,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
