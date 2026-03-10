@@ -465,7 +465,14 @@ JSON-Schema:
         throw new HttpError(response.status, errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('[GENERATE-MEAL-PLAN] Failed to parse OpenAI response as JSON');
+        throw new Error('OpenAI response konnte nicht als JSON geparst werden');
+      }
+
       return parsePlanFromOpenAI(data);
     };
 
@@ -590,7 +597,20 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage = 'Unbekannter Fehler';
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object') {
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        errorMessage = String(error);
+      }
+    }
+
     console.error('[GENERATE-MEAL-PLAN] Error:', errorMessage);
 
     return new Response(
