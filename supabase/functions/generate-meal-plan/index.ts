@@ -15,6 +15,23 @@ serve(async (req) => {
   }
 
   try {
+    // Check if API key is set
+    if (!OPENAI_API_KEY) {
+      console.error('[GENERATE-MEAL-PLAN] OPENAI_API_KEY not found in environment');
+      return new Response(
+        JSON.stringify({
+          error: "Configuration error",
+          message: "OPENAI_API_KEY is not configured"
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    }
 
     const body = await req.json();
 
@@ -76,6 +93,8 @@ Erstelle den kompletten Wochenplan für 7 Tage.
 ${preferences ?? ""}
 `;
 
+    console.log('[GENERATE-MEAL-PLAN] Calling OpenAI API...');
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
 
       method: "POST",
@@ -98,9 +117,24 @@ ${preferences ?? ""}
 
     });
 
+    console.log('[GENERATE-MEAL-PLAN] OpenAI response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[GENERATE-MEAL-PLAN] OpenAI error:', errorData);
+      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
+    }
+
     const data = await response.json();
 
     const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error('[GENERATE-MEAL-PLAN] No content in response:', data);
+      throw new Error('No content in OpenAI response');
+    }
+
+    console.log('[GENERATE-MEAL-PLAN] Successfully generated meal plan');
 
     return new Response(content, {
       headers: {
