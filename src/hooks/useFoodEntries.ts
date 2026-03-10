@@ -159,10 +159,11 @@ export const useFoodEntries = () => {
 
       return typedEntry;
     } catch (error: any) {
-      console.error('Error adding food entry:', error);
+      const errorMessage = error?.message || error?.details || JSON.stringify(error) || 'Unbekannter Fehler';
+      console.error('Error adding food entry:', errorMessage, error);
       toast({
         title: 'Fehler beim Speichern',
-        description: error.message || 'Das Mahlzeitsjournal konnte nicht gespeichert werden',
+        description: errorMessage,
         variant: 'destructive'
       });
       return null;

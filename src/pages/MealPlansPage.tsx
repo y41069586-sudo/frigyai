@@ -283,13 +283,23 @@ const MealPlansPage = () => {
 
     try {
       // Log meal to database via food entries hook
+      console.log('[ADD-MEAL-TO-TRACKER] Adding meal:', {
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
+        meal_type: meal.type,
+      });
+
       const result = await addEntry({
         name: meal.name,
         calories: meal.calories,
         protein: meal.protein,
         carbs: meal.carbs,
         fat: meal.fat,
-        portion: `${meal.prepTime}min`,
+        portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
         meal_type: meal.type,
       });
 
