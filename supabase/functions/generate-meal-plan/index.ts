@@ -15,6 +15,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[GENERATE-MEAL-PLAN] Request received, method:', req.method);
+
     // Check if API key is set
     if (!OPENAI_API_KEY) {
       console.error('[GENERATE-MEAL-PLAN] OPENAI_API_KEY not found in environment');
@@ -33,7 +35,28 @@ serve(async (req) => {
       );
     }
 
-    const body = await req.json();
+    console.log('[GENERATE-MEAL-PLAN] Parsing request body...');
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error('[GENERATE-MEAL-PLAN] JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid JSON",
+          message: String(parseError)
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    }
+
+    console.log('[GENERATE-MEAL-PLAN] Body parsed successfully:', { dailyCalories: body.dailyCalories, dailyProtein: body.dailyProtein });
 
     const {
       dailyCalories,
@@ -43,11 +66,31 @@ serve(async (req) => {
       preferences
     } = body;
 
+    // Validate required fields
+    if (!dailyCalories || !dailyProtein || !dailyCarbs || !dailyFat) {
+      console.error('[GENERATE-MEAL-PLAN] Missing required fields:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields",
+          message: "dailyCalories, dailyProtein, dailyCarbs, and dailyFat are required"
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    }
+
+    console.log('[GENERATE-MEAL-PLAN] Calculating calorie distribution...');
     // Calculate calorie distribution
     const breakfastCal = Math.round(dailyCalories * 0.20);
     const snackCal = Math.round(dailyCalories * 0.10);
     const lunchCal = Math.round(dailyCalories * 0.35);
     const dinnerCal = Math.round(dailyCalories * 0.25);
+    console.log('[GENERATE-MEAL-PLAN] Distribution:', { breakfastCal, snackCal, lunchCal, dinnerCal });
 
     const systemPrompt = `
 Du bist ein deutscher Ernährungsexperte.
@@ -93,7 +136,9 @@ Erstelle den kompletten Wochenplan für 7 Tage.
 ${preferences ?? ""}
 `;
 
-    console.log('[GENERATE-MEAL-PLAN] Calling OpenAI API...');
+    console.log('[GENERATE-MEAL-PLAN] Prompts created, calling OpenAI API...');
+    console.log('[GENERATE-MEAL-PLAN] System prompt length:', systemPrompt.length);
+    console.log('[GENERATE-MEAL-PLAN] User prompt length:', userPrompt.length);
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
 
@@ -117,24 +162,32 @@ ${preferences ?? ""}
 
     });
 
-    console.log('[GENERATE-MEAL-PLAN] OpenAI response status:', response.status);
+    console.log('[GENERATE-MEAL-PLAN] OpenAI response received, status:', response.status);
 
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = await response.text();
+      }
       console.error('[GENERATE-MEAL-PLAN] OpenAI error:', errorData);
       throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
+    console.log('[GENERATE-MEAL-PLAN] Parsing OpenAI response...');
     const data = await response.json();
+    console.log('[GENERATE-MEAL-PLAN] Response parsed');
 
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      console.error('[GENERATE-MEAL-PLAN] No content in response:', data);
+      console.error('[GENERATE-MEAL-PLAN] No content in response:', JSON.stringify(data));
       throw new Error('No content in OpenAI response');
     }
 
-    console.log('[GENERATE-MEAL-PLAN] Successfully generated meal plan');
+    console.log('[GENERATE-MEAL-PLAN] Content extracted, length:', content.length);
+    console.log('[GENERATE-MEAL-PLAN] Successfully generated meal plan, returning response');
 
     return new Response(content, {
       headers: {
