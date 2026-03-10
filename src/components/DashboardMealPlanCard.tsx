@@ -6,9 +6,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
 interface Meal {
-  type: string;
-  name: string;
-  calories: number;
+  type?: string;
+  name?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  ingredients?: any[];
+  prepTime?: number;
 }
 
 interface DayPlan {
@@ -32,11 +37,13 @@ const getCurrentDayIndex = () => {
 };
 
 const getNextMeal = (meals: Meal[]): Meal | null => {
+  if (!meals || !Array.isArray(meals) || meals.length === 0) return null;
+
   const hour = new Date().getHours();
-  if (hour < 10) return meals.find(m => m.type.includes('Frühstück')) || meals[0];
-  if (hour < 14) return meals.find(m => m.type.includes('Mittag')) || meals[1];
-  if (hour < 18) return meals.find(m => m.type.includes('Snack') || m.type.includes('snack')) || meals[2];
-  return meals.find(m => m.type.includes('Abend')) || meals[meals.length - 1];
+  if (hour < 10) return meals.find(m => m?.type?.includes('Frühstück')) || meals[0];
+  if (hour < 14) return meals.find(m => m?.type?.includes('Mittag')) || meals[1];
+  if (hour < 18) return meals.find(m => m?.type?.includes('Snack') || m?.type?.includes('snack')) || meals[2];
+  return meals.find(m => m?.type?.includes('Abend')) || meals[meals.length - 1];
 };
 
 export const DashboardMealPlanCard = () => {
@@ -72,9 +79,9 @@ export const DashboardMealPlanCard = () => {
     }
   };
 
-  const totalCalories = todayPlan?.meals.reduce((sum, m) => sum + m.calories, 0) || 0;
+  const totalCalories = todayPlan?.meals ? todayPlan.meals.reduce((sum, m) => sum + (m?.calories || 0), 0) : 0;
   const hasMealPlan = mealPlan.length > 0;
-  const nextMeal = todayPlan?.meals ? getNextMeal(todayPlan.meals) : null;
+  const nextMeal = todayPlan?.meals && Array.isArray(todayPlan.meals) ? getNextMeal(todayPlan.meals) : null;
   const mealEmoji = nextMeal ? (MEAL_EMOJIS[nextMeal.type] || '🍽️') : '🍽️';
 
   return (
