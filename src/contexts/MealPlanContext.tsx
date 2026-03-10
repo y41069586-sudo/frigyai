@@ -225,17 +225,13 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       try {
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: {
+          body: JSON.stringify({
             preferences: '',
             dailyCalories: settings.dailyCalories,
             dailyProtein: settings.dailyProtein,
             dailyCarbs: settings.dailyCarbs,
             dailyFat: settings.dailyFat
-          },
+          }),
         });
 
         if (error) {
