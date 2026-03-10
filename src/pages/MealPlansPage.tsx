@@ -543,8 +543,7 @@ const MealPlansPage = () => {
                                 size="sm"
                                 variant="outline"
                                 className="w-full mt-1.5 sm:mt-2 h-6 sm:h-7 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
-                                onClick={(e) => !isFreeMode && addMealToTracker(meal, e)}
-                                disabled={isFreeMode}
+                                onClick={(e) => addMealToTracker(meal, e)}
                               >
                                 <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
                                 {t.eaten}

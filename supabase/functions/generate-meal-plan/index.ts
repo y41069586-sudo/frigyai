@@ -72,6 +72,7 @@ REGELN:
 - 7 Tage
 - 5 Mahlzeiten pro Tag
 - Keine Wiederholungen
+- JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
 
 Tagesziele:
 Kalorien: ${dailyCalories}
@@ -93,6 +94,7 @@ WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
 - protein: Protein in Gramm
 - carbs: Kohlenhydrate in Gramm
 - fat: Fett in Gramm
+- ingredients: Array mit Zutaten [{name, amount, price}]
 
 Antwort NUR als JSON im Format:
 
@@ -107,7 +109,13 @@ Antwort NUR als JSON im Format:
          "calories":420,
          "protein":20,
          "carbs":28,
-         "fat":22
+         "fat":22,
+         "ingredients":[
+           {"name":"Eier","amount":"3 Stück","price":0.9},
+           {"name":"Speck","amount":"50g","price":1.5},
+           {"name":"Brot","amount":"2 Scheiben","price":0.5},
+           {"name":"Butter","amount":"10g","price":0.1}
+         ]
        },
        {
          "type":"Snack",
@@ -115,7 +123,11 @@ Antwort NUR als JSON im Format:
          "calories":200,
          "protein":8,
          "carbs":22,
-         "fat":10
+         "fat":10,
+         "ingredients":[
+           {"name":"Apfel","amount":"1 Stück","price":0.8},
+           {"name":"Erdnussbutter","amount":"1 EL","price":0.4}
+         ]
        }
      ]
    }
