@@ -86,13 +86,38 @@ Mittagessen: ${lunchCal}
 Snack: ${snackCal}
 Abendessen: ${dinnerCal}
 
+WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
+- type: "Frühstück", "Snack", "Mittagessen", "Snack", oder "Abendessen"
+- name: Name des Gerichts (z.B. "Rührei mit Speck")
+- calories: Genaue Kalorien
+- protein: Protein in Gramm
+- carbs: Kohlenhydrate in Gramm
+- fat: Fett in Gramm
+
 Antwort NUR als JSON im Format:
 
 {
  "mealPlan":[
    {
      "day":"Montag",
-     "meals":[]
+     "meals":[
+       {
+         "type":"Frühstück",
+         "name":"Rührei mit Speck und Toast",
+         "calories":420,
+         "protein":20,
+         "carbs":28,
+         "fat":22
+       },
+       {
+         "type":"Snack",
+         "name":"Apfel mit Erdnussbutter",
+         "calories":200,
+         "protein":8,
+         "carbs":22,
+         "fat":10
+       }
+     ]
    }
  ]
 }`;
