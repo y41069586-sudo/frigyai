@@ -161,8 +161,28 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-    console.error('[GENERATE-MEAL-PLAN] Error:', errorMessage);
+    let errorMessage = 'Unbekannter Fehler';
+
+    try {
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        const obj = error as Record<string, any>;
+        if (obj.message) {
+          errorMessage = String(obj.message);
+        } else if (obj.error) {
+          errorMessage = String(obj.error);
+        } else {
+          errorMessage = JSON.stringify(obj);
+        }
+      }
+    } catch (stringifyError) {
+      errorMessage = 'Fehler beim Verarbeiten der Fehlermeldung';
+    }
+
+    console.error('[GENERATE-MEAL-PLAN] Final error:', errorMessage);
 
     return new Response(
       JSON.stringify({ error: errorMessage }),
@@ -179,15 +199,6 @@ function getWeekStart(): string {
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
   const monday = new Date(now.setDate(diff));
   return monday.toISOString().split('T')[0];
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as any).message);
-  }
-  return 'Unbekannter Fehler';
 }
 
 async function generateMealPlanWithOpenAI(
