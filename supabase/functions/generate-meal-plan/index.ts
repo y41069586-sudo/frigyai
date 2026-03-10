@@ -603,18 +603,16 @@ Antworte NUR mit dem vollständigen JSON-Objekt, keine Erklärungen.`;
       errorMessage = error.message;
     } else if (typeof error === 'string') {
       errorMessage = error;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String((error as any).message);
     } else if (error && typeof error === 'object') {
-      try {
-        errorMessage = JSON.stringify(error);
-      } catch {
-        errorMessage = String(error);
-      }
+      errorMessage = JSON.stringify(error) || 'Unbekanntes Fehler-Objekt';
     }
 
     console.error('[GENERATE-MEAL-PLAN] Error:', errorMessage);
 
     return new Response(
-      JSON.stringify({ error: `Wochenplan konnte nicht erstellt werden: ${errorMessage}` }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
