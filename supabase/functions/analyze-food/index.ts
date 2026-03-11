@@ -58,14 +58,22 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[ANALYZE-FOOD] Missing Supabase config');
+      return new Response(
+        JSON.stringify({ error: 'Server-Konfiguration fehlt' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!OPENAI_API_KEY) {
       console.error('[ANALYZE-FOOD] OPENAI_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'AI service not configured' }),
+        JSON.stringify({ error: 'AI-Service nicht konfiguriert. Bitte kontaktiere den Admin.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -167,15 +175,29 @@ Beachte Mengen. Kalorien auf 5er runden. Deutsche Namen.`;
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[ANALYZE-FOOD] AI error:', response.status, errorText);
-      
+
+      if (response.status === 401) {
+        return new Response(
+          JSON.stringify({ error: 'OpenAI-Authentifizierung fehlgeschlagen. Kontaktiere den Admin.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte kurz.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      throw new Error(`AI error: ${response.status}`);
+
+      if (response.status === 500) {
+        return new Response(
+          JSON.stringify({ error: 'OpenAI-Service nicht verfügbar. Bitte später versuchen.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      throw new Error(`AI error ${response.status}: ${errorText.substring(0, 200)}`);
     }
 
     // Wait for image upload while AI was processing
@@ -218,12 +240,30 @@ Beachte Mengen. Kalorien auf 5er runden. Deutsche Namen.`;
 
     console.log('[ANALYZE-FOOD] Done:', foodData.name);
 
-    return new Response(JSON.stringify(foodData), {
+    // Ensure response has all required fields
+    const response = {
+      name: foodData.name || 'Unknown Food',
+      calories: Math.round(foodData.calories || 0),
+      protein: Math.round(foodData.protein || 0),
+      carbs: Math.round(foodData.carbs || 0),
+      fat: Math.round(foodData.fat || 0),
+      portion: foodData.portion || undefined,
+      source: foodData.source || 'ai',
+      image_url: imageUrl || undefined,
+    };
+
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
     });
   } catch (error: unknown) {
-    console.error('[ANALYZE-FOOD] Error:', error);
-    return new Response(JSON.stringify({ error: "Analyse fehlgeschlagen. Bitte erneut versuchen." }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[ANALYZE-FOOD] Error:', errorMessage, error);
+
+    return new Response(JSON.stringify({
+      error: "Analyse fehlgeschlagen. Bitte erneut versuchen.",
+      details: errorMessage
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -36,7 +36,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
   const scanningRef = useRef(false);
   const lastScannedRef = useRef<string | null>(null);
+  const lastScanTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
+  const SCAN_COOLDOWN = 300; // Schnelle Erkennung: nur 300ms Cooldown
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -61,6 +63,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
+
     lastScannedRef.current = barcode;
 
     setIsLoading(true);
@@ -83,15 +86,34 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // API lookup with 1.5s timeout for fast response
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      // Prüfe Internetverbindung
+      if (!navigator.onLine) {
+        console.warn('[Barcode] Keine Internetverbindung');
+        toast({
+          title: "⚠️ Offline",
+          description: "Internet ist erforderlich. Verbinde dich mit WiFi oder Mobilfunk.",
+          variant: "destructive",
+        });
+        lastScannedRef.current = null;
+        scanningRef.current = true;
+        setIsLoading(false);
+        return;
+      }
 
+      // API lookup with 5s timeout (OpenFoodFacts kann langsam sein)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      console.log('[Barcode] Suche in OpenFoodFacts...');
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
         { signal: controller.signal }
       );
       clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -130,8 +152,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       // Produkt nicht gefunden
       console.log('[Barcode] Product not found in Open Food Facts');
       toast({
-        title: "Produkt nicht gefunden",
-        description: "Dieser Barcode ist nicht in der Datenbank. Versuche es manuell einzugeben.",
+        title: "Produkt nicht gefunden 🔍",
+        description: "Dieser Barcode ist nicht in der Datenbank. Versuche einen anderen Code.",
         variant: "destructive",
       });
       lastScannedRef.current = null;
@@ -140,30 +162,43 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     } catch (err: any) {
       console.error("[Barcode] Lookup error:", err);
 
-      // Handle timeout gracefully
+      let errorMsg = "Fehler beim Abruf";
+
+      // Handle timeout
       if (err.name === 'AbortError') {
-        console.log('[Barcode] Lookup timeout, trying again...');
-        lastScannedRef.current = null;
-        scanningRef.current = true;
-        setIsLoading(false);
-        return;
+        console.log('[Barcode] Lookup timeout - API zu langsam');
+        errorMsg = "⏱️ Zeitüberschreitung - OpenFoodFacts antwortet nicht";
+        toast({
+          title: "Zu langsam",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        console.log('[Barcode] Network error');
+        errorMsg = "🌐 Netzwerkfehler - Prüfe deine Internetverbindung";
+        toast({
+          title: "Keine Verbindung",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Fehler",
+          description: errorMsg,
+          variant: "destructive",
+        });
       }
 
-      toast({
-        title: "Fehler",
-        description: "Produkt konnte nicht abgerufen werden.",
-        variant: "destructive",
-      });
       lastScannedRef.current = null;
       scanningRef.current = true;
       setIsLoading(false);
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Ultra-fast native detection loop
+  // Ultra-schnelle native Erkennung - kontinuierlich
   const detectBarcodes = useCallback(async () => {
     if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
-    
+
     const video = videoRef.current;
     if (video.readyState < video.HAVE_CURRENT_DATA) {
       animationFrameRef.current = requestAnimationFrame(detectBarcodes);
@@ -173,18 +208,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     try {
       const barcodes = await detectorRef.current.detect(video);
       if (barcodes.length > 0 && barcodes[0].rawValue) {
-        lookupBarcode(barcodes[0].rawValue);
-        return;
+        const now = Date.now();
+        const barcode = barcodes[0].rawValue;
+
+        // Nur 300ms Cooldown - schnelle, mehrfache Erkennung
+        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== barcode) {
+          lastScanTimeRef.current = now;
+          lookupBarcode(barcode);
+          return;
+        }
       }
     } catch {
       // Continue scanning
     }
 
     if (scanningRef.current) {
-      // Optimized: Use requestAnimationFrame for faster scanning (no 50ms delay)
+      // Kontinuierlich scannen ohne Verzögerung
       animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
-  }, [lookupBarcode]);
+  }, [lookupBarcode, SCAN_COOLDOWN]);
 
   // Start with native BarcodeDetector (Chrome, Edge)
   const startNativeScanner = useCallback(async () => {
@@ -195,21 +237,22 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 }
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
       }
     });
 
     streamRef.current = stream;
-    
+
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
-      
+
+      lastScanTimeRef.current = Date.now();
       setIsInitializing(false);
       scanningRef.current = true;
-      
+
       animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
   }, [detectBarcodes]);
@@ -217,55 +260,79 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   // Fallback for Safari/Firefox
   const startFallbackScanner = useCallback(async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
-    
-    const scanner = new Html5Qrcode("barcode-reader-fallback", { 
+
+    const scanner = new Html5Qrcode("barcode-reader-fallback", {
       formatsToSupport: [
         Html5QrcodeSupportedFormats.EAN_13,
         Html5QrcodeSupportedFormats.EAN_8,
         Html5QrcodeSupportedFormats.UPC_A,
         Html5QrcodeSupportedFormats.UPC_E,
-      ], 
-      verbose: false 
+      ],
+      verbose: false
     });
     html5QrcodeRef.current = scanner;
 
     await scanner.start(
       { facingMode: "environment" },
       {
-        fps: 30,
-        qrbox: { width: 300, height: 150 },
-        disableFlip: true,
+        fps: 30, // Maximale fps für schnelle Erkennung
+        qrbox: { width: 400, height: 200 }, // Größerer Erkennungsbereich
+        disableFlip: false, // Erlaube Flip für bessere Kompatibilität
       },
       async (decodedText) => {
-        await lookupBarcode(decodedText);
+        // Schneller Cooldown im Fallback
+        const now = Date.now();
+        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== decodedText) {
+          lastScanTimeRef.current = now;
+          lastScannedRef.current = decodedText;
+          await lookupBarcode(decodedText);
+        }
       },
       () => {}
     );
-    
+
+    lastScanTimeRef.current = Date.now();
     setIsInitializing(false);
     scanningRef.current = true;
-  }, [lookupBarcode]);
+  }, [lookupBarcode, SCAN_COOLDOWN]);
 
   const startCamera = useCallback(async () => {
     try {
       setError(null);
       setIsInitializing(true);
       lastScannedRef.current = null;
+      lastScanTimeRef.current = Date.now();
+
+      // Debug-Info: Welcher Scanner wird verwendet
+      console.log('[BarcodeScanner] Starting...', {
+        hasNative: hasNativeBarcodeDetector,
+        userAgent: navigator.userAgent.substring(0, 50),
+        onLine: navigator.onLine
+      });
 
       if (hasNativeBarcodeDetector) {
+        console.log('[BarcodeScanner] Verwende Native BarcodeDetector API (schneller)');
         await startNativeScanner();
       } else {
+        console.log('[BarcodeScanner] Verwende Html5Qrcode Fallback (langsamer)');
         await startFallbackScanner();
       }
     } catch (err: any) {
       console.error("Camera error:", err);
+
+      let errorMsg = "Kamera konnte nicht gestartet werden.";
+
       if (err.name === 'NotAllowedError') {
-        setError("Kamera-Zugriff verweigert. Bitte erlaube den Zugriff.");
+        errorMsg = "❌ Kamera-Zugriff verweigert!\n\n1. Klick auf das 🔒-Symbol in der Browserleiste\n2. Erlaube Kamera-Zugriff\n3. Versuche erneut";
       } else if (err.name === 'NotFoundError') {
-        setError("Keine Kamera gefunden.");
-      } else {
-        setError("Kamera konnte nicht gestartet werden.");
+        errorMsg = "❌ Keine Kamera gefunden!\n\nStelle sicher, dass:\n1. Ein Gerät mit Kamera vorhanden ist\n2. Es nicht von anderer App blockiert wird";
+      } else if (err.name === 'NotReadableError') {
+        errorMsg = "❌ Kamera wird bereits verwendet!\n\nAnwendungen schließen und erneut versuchen.";
+      } else if (err.name === 'SecurityError') {
+        errorMsg = "❌ Sicherheitsfehler!\n\nHttps ist erforderlich (nicht Http).";
       }
+
+      setError(errorMsg);
       setIsInitializing(false);
     }
   }, [startNativeScanner, startFallbackScanner]);
@@ -365,8 +432,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
         {/* Footer */}
         <div className="p-3 bg-gradient-to-t from-black to-transparent absolute bottom-0 left-0 right-0">
-          <p className="text-center text-white/60 text-xs">
-            {hasNativeBarcodeDetector ? "⚡ Sofort-Erkennung aktiv" : "Safari-Modus"} • Open Food Facts
+          <p className="text-center text-white/60 text-xs mb-1">
+            {hasNativeBarcodeDetector ? "⚡ Schneller Modus (Chrome/Edge)" : "⏸️ Langsamer Modus (Safari/Firefox)"} • Open Food Facts
+          </p>
+          <p className="text-center text-white/40 text-[10px]">
+            {navigator.onLine ? "🟢 Online" : "🔴 Offline"} • {!hasNativeBarcodeDetector && "Nutze Chrome für schnelleres Scannen"}
           </p>
         </div>
       </motion.div>
