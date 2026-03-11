@@ -37,6 +37,7 @@ import { WheelPicker } from "./WheelPicker";
 import { MacroRing } from "./MacroRing";
 import HeroAnimationCompact from "./HeroAnimationCompact";
 import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
+import { AIChatbotBubble } from "./AIChatbotBubble";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -167,7 +168,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   // Scan feedback state (moved to top level to avoid hooks in switch)
   const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
   const [selectedFeedbackReason, setSelectedFeedbackReason] = useState<string | null>(null);
-  
+
+  // AI Bubble state
+  const [showAIBubble, setShowAIBubble] = useState(() => {
+    const bubbleShown = localStorage.getItem('aiBubbleShown');
+    return !bubbleShown;
+  });
+
   // Ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -3912,11 +3919,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
+      {/* AI Chatbot Bubble - Show at start */}
+      <AIChatbotBubble
+        isVisible={showAIBubble}
+        position="center"
+        onComplete={() => setShowAIBubble(false)}
+      />
+
       {/* Progress Bar at Top */}
       {currentStep !== 'language-select' && currentStep !== 'analyzing' && currentStep !== 'tutorial' && (
-        <OnboardingProgressBar 
-          currentStep={currentIndex + 1} 
-          totalSteps={totalSteps} 
+        <OnboardingProgressBar
+          currentStep={currentIndex + 1}
+          totalSteps={totalSteps}
         />
       )}
 

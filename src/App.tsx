@@ -97,7 +97,7 @@ const App = () => {
   return (
     <SupabaseErrorBoundary>
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>
             <TooltipProvider>

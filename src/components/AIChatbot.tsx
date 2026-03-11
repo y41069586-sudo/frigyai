@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bot, Send, X, Sparkles, User } from 'lucide-react';
+import { Bot, Send, X, Sparkles, User, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -25,14 +26,16 @@ interface AIChatbotProps {
     targetWeight: number;
   } | null;
   onResetTracker?: () => void;
+  onRegenerateMealPlan?: () => void;
   isOpen?: boolean;
   setIsOpen?: (open: boolean) => void;
 }
 
-export const AIChatbot = ({ userProfile, onResetTracker, isOpen: externalIsOpen, setIsOpen: externalSetIsOpen }: AIChatbotProps) => {
+export const AIChatbot = ({ userProfile, onResetTracker, onRegenerateMealPlan, isOpen: externalIsOpen, setIsOpen: externalSetIsOpen }: AIChatbotProps) => {
   // All hooks MUST be called unconditionally, before any conditional returns
   const { session, subscriptionStatus } = useAuth();
   const { t } = useLanguage();
+  const { theme, setTheme } = useTheme();
   const [localIsOpen, setLocalIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -56,20 +59,52 @@ export const AIChatbot = ({ userProfile, onResetTracker, isOpen: externalIsOpen,
   }
 
   const processActions = (response: string): string => {
+    let processedResponse = response;
+
     // Check for reset tracker action
-    if (response.includes('[ACTION:RESET_TRACKER]')) {
-      // Execute the reset
+    if (processedResponse.includes('[ACTION:RESET_TRACKER]')) {
       if (onResetTracker) {
         onResetTracker();
         toast({
-          title: t.trackerReset,
-          description: t.goalsReset,
+          title: t.trackerReset || "Tracker zurückgesetzt",
+          description: t.goalsReset || "Deine Ziele wurden zurückgesetzt",
         });
       }
-      // Remove the action tag from the displayed message
-      return response.replace('[ACTION:RESET_TRACKER]', '').trim();
+      processedResponse = processedResponse.replace('[ACTION:RESET_TRACKER]', '').trim();
     }
-    return response;
+
+    // Check for dark mode toggle action
+    if (processedResponse.includes('[ACTION:TOGGLE_DARK_MODE:ON]')) {
+      setTheme('dark');
+      toast({
+        title: "🌙 Dark Mode aktiviert",
+        description: "Deine App ist jetzt im dunklen Modus",
+      });
+      processedResponse = processedResponse.replace('[ACTION:TOGGLE_DARK_MODE:ON]', '').trim();
+    }
+
+    if (processedResponse.includes('[ACTION:TOGGLE_DARK_MODE:OFF]')) {
+      setTheme('light');
+      toast({
+        title: "☀️ Light Mode aktiviert",
+        description: "Deine App ist jetzt im hellen Modus",
+      });
+      processedResponse = processedResponse.replace('[ACTION:TOGGLE_DARK_MODE:OFF]', '').trim();
+    }
+
+    // Check for meal plan regeneration action
+    if (processedResponse.includes('[ACTION:REGENERATE_MEAL_PLAN]')) {
+      if (onRegenerateMealPlan) {
+        onRegenerateMealPlan();
+        toast({
+          title: "📋 Neuer Wochenplan",
+          description: "Dein Wochenplan wird generiert",
+        });
+      }
+      processedResponse = processedResponse.replace('[ACTION:REGENERATE_MEAL_PLAN]', '').trim();
+    }
+
+    return processedResponse;
   };
 
   const sendMessage = async () => {
