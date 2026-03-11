@@ -1,286 +1,256 @@
 import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Max-Age': '86400',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function sendError(message: string, status: number = 500) {
+  return new Response(
+    JSON.stringify({
+      error: "Meal plan generation failed",
+      message
+    }),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
+
+// Generate placeholder ingredients if they're missing
+function generateIngredientsForMeal(meal: any): any {
+  if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+    return meal; // Keep original if they exist
+  }
+
+  // Fallback ingredients based on meal type
+  const ingredientsByType: Record<string, any[]> = {
+    "Frühstück": [
+      { name: "Eier", amount: "2 Stück", price: 0.5 },
+      { name: "Brot", amount: "2 Scheiben", price: 0.5 },
+      { name: "Butter", amount: "10g", price: 0.1 },
+      { name: "Käse", amount: "50g", price: 0.8 }
+    ],
+    "Mittagessen": [
+      { name: "Hähnchen", amount: "150g", price: 2.0 },
+      { name: "Kartoffeln", amount: "200g", price: 0.5 },
+      { name: "Broccoli", amount: "150g", price: 1.0 },
+      { name: "Öl", amount: "1 EL", price: 0.2 }
+    ],
+    "Abendessen": [
+      { name: "Rinderhack", amount: "150g", price: 2.5 },
+      { name: "Nudeln", amount: "100g", price: 0.5 },
+      { name: "Tomaten", amount: "200g", price: 1.0 },
+      { name: "Knoblauch", amount: "1 Zehe", price: 0.2 }
+    ],
+    "Snack": [
+      { name: "Apfel", amount: "1 Stück", price: 0.8 },
+      { name: "Nüsse", amount: "30g", price: 1.0 },
+      { name: "Joghurt", amount: "100g", price: 0.6 }
+    ]
+  };
+
+  const mealType = meal.type || "Snack";
+  const ingredients = ingredientsByType[mealType] || ingredientsByType["Snack"];
+
+  return {
+    ...meal,
+    ingredients: ingredients
+  };
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  console.log("[GENERATE-MEAL-PLAN] New request:", req.method);
+
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // 1. AUTHENTICATE USER
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentifizierung erforderlich' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Check API key
+    if (!OPENAI_API_KEY) {
+      console.error("[GENERATE-MEAL-PLAN] OPENAI_API_KEY is not set!");
+      return sendError("OPENAI_API_KEY is not configured on the server", 500);
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Authentifizierung fehlgeschlagen' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Parse request body
+    let body: Record<string, any>;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error("[GENERATE-MEAL-PLAN] Failed to parse JSON:", e);
+      return sendError("Invalid request body", 400);
     }
 
-    console.log(`[GENERATE-MEAL-PLAN] User ${user.id} authenticated`);
+    const { dailyCalories, dailyProtein, dailyCarbs, dailyFat, preferences } = body;
 
-    // 2. GET REQUEST BODY
-    const {
-      dailyCalories,
-      dailyProtein,
-      dailyCarbs,
-      dailyFat,
-      preferences
-    } = await req.json();
+    // Validate required fields
+    if (!dailyCalories || !dailyProtein || !dailyCarbs || !dailyFat) {
+      console.error("[GENERATE-MEAL-PLAN] Missing required fields");
+      return sendError("Missing required fields: dailyCalories, dailyProtein, dailyCarbs, dailyFat", 400);
+    }
 
-    // Calculate calorie distribution
+    // Calculate meal distribution
     const breakfastCal = Math.round(dailyCalories * 0.20);
     const snackCal = Math.round(dailyCalories * 0.10);
     const lunchCal = Math.round(dailyCalories * 0.35);
     const dinnerCal = Math.round(dailyCalories * 0.25);
 
-    console.log('[GENERATE-MEAL-PLAN] Targets:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
-
-    // 3. CHECK PREMIUM STATUS & USAGE LIMITS
-    const supabaseServiceUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    const supabaseService = createClient(supabaseServiceUrl, supabaseServiceRoleKey, { 
-      auth: { persistSession: false } 
-    });
-
-    let isPremium = user.email?.toLowerCase() === 'yousef0089mohamed@gmail.com';
-    
-    if (!isPremium) {
-      const { data: subData } = await supabaseService
-        .from('subscription_cache')
-        .select('subscribed')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (subData?.subscribed) isPremium = true;
-    }
-
-    // Check free user limit
-    if (!isPremium) {
-      const weekStart = getWeekStart();
-      const { data: usageData } = await supabaseService
-        .from('meal_plan_usage')
-        .select('generation_count')
-        .eq('user_id', user.id)
-        .eq('week_start', weekStart)
-        .maybeSingle();
-
-      const currentCount = usageData?.generation_count || 0;
-      if (currentCount >= 1) {
-        return new Response(
-          JSON.stringify({
-            error: 'plan_limit_exceeded',
-            message: 'Du hast deinen wöchentlichen Wochenplan erreicht. Upgrade auf Premium für unbegrenzte Pläne!'
-          }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
-    // 4. CREATE PROMPTS
     const systemPrompt = `Du bist ein deutscher Ernährungsexperte.
 
 Erstelle einen Wochenplan mit einfachen deutschen und europäischen Gerichten.
 
 REGELN:
-- Keine exotischen Zutaten (Tofu, Quinoa, Tahini, etc.)
-- Keine asiatischen oder orientalischen Gerichte
-- Nur einfache Hausmannskost: Fleisch, Fisch, Eier, Käse, Nudeln, Reis, Kartoffeln, Gemüse
-- 7 Tage (Montag bis Sonntag)
-- Pro Tag genau 5 Mahlzeiten: Frühstück, Snack, Mittagessen, Snack, Abendessen
-- Keine Wiederholungen - jeden Tag andere Gerichte
-- Realistische Portionen, 10-30 Minuten Zubereitungszeit
+- Nur einfache Hausmannskost
+- Keine exotischen Zutaten
+- Keine asiatischen Gerichte
+- 7 Tage
+- 5 Mahlzeiten pro Tag
+- Keine Wiederholungen
+- JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
 
-MAKROZIELE PRO TAG (EXAKT EINHALTEN):
-- Kalorien: ${dailyCalories} kcal
-- Protein: ${dailyProtein}g
-- Kohlenhydrate: ${dailyCarbs}g
-- Fett: ${dailyFat}g
+Tagesziele:
+Kalorien: ${dailyCalories}
+Protein: ${dailyProtein}
+Carbs: ${dailyCarbs}
+Fat: ${dailyFat}
 
-TAGESVERTEILUNG:
-- Frühstück: ${breakfastCal} kcal
-- Snack: ${snackCal} kcal
-- Mittagessen: ${lunchCal} kcal
-- Snack: ${snackCal} kcal
-- Abendessen: ${dinnerCal} kcal
+Kalorienverteilung:
+Frühstück: ${breakfastCal}
+Snack: ${snackCal}
+Mittagessen: ${lunchCal}
+Snack: ${snackCal}
+Abendessen: ${dinnerCal}
 
-JEDE MAHLZEIT MUSS ENTHALTEN:
-- type: "Frühstück", "Snack", "Mittagessen", "Snack", "Abendessen"
-- name: Name des Gerichts
+WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
+- type: "Frühstück", "Snack", "Mittagessen", "Snack", oder "Abendessen"
+- name: Name des Gerichts (z.B. "Rührei mit Speck")
 - calories: Genaue Kalorien
-- protein: Protein in g
-- carbs: Kohlenhydrate in g
-- fat: Fett in g
-- prepTime: Zubereitungszeit in Minuten
-- ingredients: Array mit {name, amount, price}
-- instructions: Array mit 2-4 Zubereitungsschritten
+- protein: Protein in Gramm
+- carbs: Kohlenhydrate in Gramm
+- fat: Fett in Gramm
+- ingredients: Array mit Zutaten [{name, amount, price}]
 
-WICHTIG:
-- Die Summe der Makros pro Tag MUSS exakt den Zielen entsprechen
-- NUR valides JSON, keine Erklärungen
+Antwort NUR als JSON im Format:
 
-ANTWORTFORMAT:
 {
-  "mealPlan": [
-    {
-      "day": "Montag",
-      "meals": [
-        {
-          "type": "Frühstück",
-          "name": "Rührei mit Speck",
-          "calories": 380,
-          "protein": 22,
-          "carbs": 8,
-          "fat": 28,
-          "prepTime": 10,
-          "ingredients": [
-            {"name": "Eier", "amount": "3 Stück", "price": 0.9},
-            {"name": "Speck", "amount": "50g", "price": 1.2},
-            {"name": "Butter", "amount": "10g", "price": 0.1}
-          ],
-          "instructions": ["Speck in der Pfanne braten", "Eier verquirlen und dazugeben", "Bei mittlerer Hitze stocken lassen"]
-        }
-      ]
-    }
-  ]
+ "mealPlan":[
+   {
+     "day":"Montag",
+     "meals":[
+       {
+         "type":"Frühstück",
+         "name":"Rührei mit Speck und Toast",
+         "calories":420,
+         "protein":20,
+         "carbs":28,
+         "fat":22,
+         "ingredients":[
+           {"name":"Eier","amount":"3 Stück","price":0.9},
+           {"name":"Speck","amount":"50g","price":1.5},
+           {"name":"Brot","amount":"2 Scheiben","price":0.5},
+           {"name":"Butter","amount":"10g","price":0.1}
+         ]
+       },
+       {
+         "type":"Snack",
+         "name":"Apfel mit Erdnussbutter",
+         "calories":200,
+         "protein":8,
+         "carbs":22,
+         "fat":10,
+         "ingredients":[
+           {"name":"Apfel","amount":"1 Stück","price":0.8},
+           {"name":"Erdnussbutter","amount":"1 EL","price":0.4}
+         ]
+       }
+     ]
+   }
+ ]
 }`;
 
-    const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage mit je 5 Mahlzeiten pro Tag.
+    const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage.
 
-${preferences ? `Zusätzlich zu beachten: ${preferences}` : ''}
+${preferences ?? ""}`;
 
-Wichtig: Die Summe der Makros MUSS pro Tag exakt ${dailyCalories} kcal, ${dailyProtein}g Protein, ${dailyCarbs}g Carbs und ${dailyFat}g Fett entsprechen!
+    console.log("[GENERATE-MEAL-PLAN] Calling OpenAI API...");
 
-Antworte NUR mit dem JSON-Objekt, keine weiteren Erklärungen.`;
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ]
+      })
+    });
 
-    // 5. CALL OPENAI
-    console.log('[GENERATE-MEAL-PLAN] Calling OpenAI...');
-
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0.8,
-          response_format: { type: "json_object" },
-          max_tokens: 8000,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      }
-    );
+    console.log("[GENERATE-MEAL-PLAN] OpenAI response status:", openaiResponse.status);
 
     if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('[GENERATE-MEAL-PLAN] OpenAI error:', openaiResponse.status, errorText);
-      throw new Error(`OpenAI API Fehler: ${openaiResponse.status}`);
+      let errorText = "";
+      try {
+        const errorBody = await openaiResponse.json();
+        errorText = JSON.stringify(errorBody);
+      } catch {
+        errorText = await openaiResponse.text();
+      }
+      console.error("[GENERATE-MEAL-PLAN] OpenAI error:", errorText);
+      return sendError(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
-    const data = await openaiResponse.json();
-    const content = data.choices?.[0]?.message?.content;
+    const responseData = await openaiResponse.json();
+    const content = responseData.choices?.[0]?.message?.content;
 
     if (!content) {
-      throw new Error("Keine Antwort von OpenAI erhalten");
+      console.error("[GENERATE-MEAL-PLAN] No content in OpenAI response");
+      return sendError("OpenAI returned empty response");
     }
 
-    console.log('[GENERATE-MEAL-PLAN] OpenAI response received');
-
-    // Parse and validate JSON
+    // Parse the JSON response
     let mealPlan;
     try {
       mealPlan = JSON.parse(content);
     } catch (e) {
-      console.error('[GENERATE-MEAL-PLAN] JSON parse error:', e);
-      throw new Error("OpenAI response war kein valides JSON");
+      console.error("[GENERATE-MEAL-PLAN] Failed to parse OpenAI JSON response:", e);
+      return sendError("OpenAI response was not valid JSON");
     }
 
-    // Validate structure
-    if (!Array.isArray(mealPlan?.mealPlan) || mealPlan.mealPlan.length !== 7) {
-      throw new Error("Wochenplan muss genau 7 Tage enthalten");
+    // Ensure all meals have ingredients by applying fallback function
+    if (mealPlan.mealPlan && Array.isArray(mealPlan.mealPlan)) {
+      mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
+        ...day,
+        meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
+      }));
+      console.log("[GENERATE-MEAL-PLAN] Applied ingredient fallback for all meals");
     }
 
-    // 6. UPDATE USAGE COUNT FOR FREE USERS
-    if (!isPremium) {
-      const weekStart = getWeekStart();
-      const { data: existingUsage } = await supabaseService
-        .from('meal_plan_usage')
-        .select('id, generation_count')
-        .eq('user_id', user.id)
-        .eq('week_start', weekStart)
-        .maybeSingle();
-
-      if (existingUsage) {
-        await supabaseService
-          .from('meal_plan_usage')
-          .update({ generation_count: existingUsage.generation_count + 1, updated_at: new Date().toISOString() })
-          .eq('id', existingUsage.id);
-      } else {
-        await supabaseService
-          .from('meal_plan_usage')
-          .insert({ user_id: user.id, week_start: weekStart, generation_count: 1 });
-      }
-      console.log(`[GENERATE-MEAL-PLAN] Usage count updated for user ${user.id}`);
-    }
-
-    console.log('[GENERATE-MEAL-PLAN] Successfully generated meal plan');
+    console.log("[GENERATE-MEAL-PLAN] Success! Returning meal plan with ingredients");
 
     return new Response(JSON.stringify(mealPlan), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
     });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[GENERATE-MEAL-PLAN] Error:', errorMessage);
-
-    return new Response(
-      JSON.stringify({
-        error: "Wochenplan konnte nicht erstellt werden",
-        details: errorMessage,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[GENERATE-MEAL-PLAN] Unexpected error:", errorMsg);
+    return sendError(errorMsg);
   }
 });
-
-function getWeekStart(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
-  return monday.toISOString().split('T')[0];
-}

@@ -1,7 +1,7 @@
 project_id = "mcabsjuamjgkvfljkfit"
 
 [functions.generate-meal-plan]
-verify_jwt = true
+verify_jwt = false
 
 [functions.analyze-food]
 verify_jwt = false

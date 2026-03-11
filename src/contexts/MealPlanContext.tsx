@@ -225,17 +225,13 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       try {
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: {
+          body: JSON.stringify({
             preferences: '',
             dailyCalories: settings.dailyCalories,
             dailyProtein: settings.dailyProtein,
             dailyCarbs: settings.dailyCarbs,
             dailyFat: settings.dailyFat
-          },
+          }),
         });
 
         if (error) {
@@ -279,6 +275,15 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const newPlan = (data as any).mealPlan;
+
+          // Debug: Check if ingredients are present
+          console.log('[MEAL-PLAN] Generated plan structure:', {
+            days: newPlan.length,
+            firstDay: newPlan[0]?.day,
+            firstMealHasIngredients: !!newPlan[0]?.meals?.[0]?.ingredients,
+            firstMealStructure: newPlan[0]?.meals?.[0]
+          });
+
           setMealPlan(newPlan);
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
 

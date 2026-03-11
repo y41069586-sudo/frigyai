@@ -81,7 +81,16 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
 
     // Normale Generierung aus MealPlan
     const ingredientMap = new Map<string, ShoppingItem>();
-    
+
+    console.log('[SHOPPING] Processing meal plan:', {
+      mealPlanLength: mealPlan.length,
+      firstDay: mealPlan[0]?.day,
+      firstDayMeals: mealPlan[0]?.meals?.length,
+      firstMeal: mealPlan[0]?.meals?.[0],
+      firstMealHasIngredients: !!mealPlan[0]?.meals?.[0]?.ingredients,
+      firstMealIngredients: mealPlan[0]?.meals?.[0]?.ingredients
+    });
+
     mealPlan.forEach(day => {
       day.meals?.forEach((meal: any) => {
         meal.ingredients?.forEach((ing: Ingredient) => {
@@ -99,6 +108,8 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         });
       });
     });
+
+    console.log('[SHOPPING] Generated ingredients:', ingredientMap.size, 'items');
 
     // Lade purchased-Status aus Cache
     const cachedItems = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);

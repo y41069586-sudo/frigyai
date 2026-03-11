@@ -146,7 +146,7 @@ export const useFoodEntries = () => {
 
       // Update local state
       setEntries(prev => [typedEntry, ...prev]);
-      
+
       // Update totals
       const newTotals = {
         calories: todayTotals.calories + typedEntry.calories,
@@ -157,12 +157,19 @@ export const useFoodEntries = () => {
       setTodayTotals(newTotals);
       await updateDailyMacros(newTotals);
 
+      // Signal to other instances of this hook to refresh
+      const event = new CustomEvent('foodEntryAdded', {
+        detail: { timestamp: Date.now(), userId: user.id }
+      });
+      window.dispatchEvent(event);
+
       return typedEntry;
     } catch (error: any) {
-      console.error('Error adding food entry:', error);
+      const errorMessage = error?.message || error?.details || JSON.stringify(error) || 'Unbekannter Fehler';
+      console.error('Error adding food entry:', errorMessage, error);
       toast({
         title: 'Fehler beim Speichern',
-        description: error.message || 'Das Mahlzeitsjournal konnte nicht gespeichert werden',
+        description: errorMessage,
         variant: 'destructive'
       });
       return null;
@@ -285,6 +292,18 @@ export const useFoodEntries = () => {
 
     return () => clearInterval(intervalId);
   }, [user, loadEntries]);
+
+  // Listen for food entry changes from other components
+  useEffect(() => {
+    const handleFoodEntryAdded = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      console.log('[FOOD-ENTRIES] Detected food entry from another component, refreshing...', customEvent.detail);
+      loadEntries();
+    };
+
+    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
+    return () => window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+  }, [loadEntries]);
 
   return {
     entries,

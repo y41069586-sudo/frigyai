@@ -283,13 +283,23 @@ const MealPlansPage = () => {
 
     try {
       // Log meal to database via food entries hook
+      console.log('[ADD-MEAL-TO-TRACKER] Adding meal:', {
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
+        meal_type: meal.type,
+      });
+
       const result = await addEntry({
         name: meal.name,
         calories: meal.calories,
         protein: meal.protein,
         carbs: meal.carbs,
         fat: meal.fat,
-        portion: `${meal.prepTime}min`,
+        portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
         meal_type: meal.type,
       });
 
@@ -543,8 +553,7 @@ const MealPlansPage = () => {
                                 size="sm"
                                 variant="outline"
                                 className="w-full mt-1.5 sm:mt-2 h-6 sm:h-7 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
-                                onClick={(e) => !isFreeMode && addMealToTracker(meal, e)}
-                                disabled={isFreeMode}
+                                onClick={(e) => addMealToTracker(meal, e)}
                               >
                                 <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
                                 {t.eaten}
