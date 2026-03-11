@@ -83,12 +83,15 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     const ingredientMap = new Map<string, ShoppingItem>();
 
     console.log('[SHOPPING] Processing meal plan:', {
-      mealPlanLength: mealPlan.length,
-      firstDay: mealPlan[0]?.day,
-      firstDayMeals: mealPlan[0]?.meals?.length,
-      firstMeal: mealPlan[0]?.meals?.[0],
-      firstMealHasIngredients: !!mealPlan[0]?.meals?.[0]?.ingredients,
-      firstMealIngredients: mealPlan[0]?.meals?.[0]?.ingredients
+      mealPlanLength: mealPlan?.length,
+      mealPlanExists: !!mealPlan,
+      mealPlanIsArray: Array.isArray(mealPlan),
+      firstDay: mealPlan?.[0]?.day,
+      firstDayMeals: mealPlan?.[0]?.meals?.length,
+      firstMeal: mealPlan?.[0]?.meals?.[0],
+      firstMealHasIngredients: !!mealPlan?.[0]?.meals?.[0]?.ingredients,
+      firstMealIngredients: mealPlan?.[0]?.meals?.[0]?.ingredients,
+      fullMealPlan: JSON.stringify(mealPlan)
     });
 
     mealPlan.forEach(day => {
@@ -463,7 +466,10 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       {items.length === 0 && (
         <Card className="p-8 text-center bg-card/60 border-primary/10">
           <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">{t.generateMealPlanForList}</p>
+          <p className="text-muted-foreground mb-2">{t.generateMealPlanForList}</p>
+          <p className="text-xs text-muted-foreground/60">
+            Wochenplan: {mealPlan?.length > 0 ? `${mealPlan.length} Tage` : 'Nicht generiert'}
+          </p>
         </Card>
       )}
     </div>
