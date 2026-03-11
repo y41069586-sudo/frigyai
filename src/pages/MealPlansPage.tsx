@@ -198,18 +198,33 @@ const MealPlansPage = () => {
 
   // Sync meal plan from global context or localStorage
   useEffect(() => {
+    console.log('[MEALPLANS] Syncing meal plan from context:', {
+      globalMealPlanExists: !!globalMealPlan,
+      globalMealPlanLength: globalMealPlan?.length,
+      globalMealPlan: globalMealPlan
+    });
+
     if (globalMealPlan && globalMealPlan.length > 0) {
+      console.log('[MEALPLANS] Using global meal plan with', globalMealPlan.length, 'days');
       setMealPlan(globalMealPlan);
     } else {
       const saved = localStorage.getItem('weeklyMealPlan');
+      console.log('[MEALPLANS] localStorage weeklyMealPlan:', saved ? 'found' : 'not found');
       if (saved) {
         try {
-          setMealPlan(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          console.log('[MEALPLANS] Loaded from localStorage:', {
+            daysCount: parsed?.length,
+            firstDay: parsed?.[0]?.day,
+            firstMealIngredients: parsed?.[0]?.meals?.[0]?.ingredients
+          });
+          setMealPlan(parsed);
         } catch (e) {
-          console.error('Failed to load saved meal plan');
+          console.error('[MEALPLANS] Failed to load saved meal plan:', e);
           setMealPlan([]);
         }
       } else {
+        console.log('[MEALPLANS] No meal plan found - empty state');
         setMealPlan([]);
       }
     }
