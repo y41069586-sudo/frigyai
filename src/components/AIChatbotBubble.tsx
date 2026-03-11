@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, ChevronRight, Volume2, VolumeX } from 'lucide-react';
+import { Bot, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AIChatbotBubbleProps {
   onComplete?: () => void;
   isVisible?: boolean;
-  position?: 'bottom-right' | 'center';
+  position?: 'top-right' | 'bottom-right' | 'center';
 }
 
-export const AIChatbotBubble = ({ 
-  onComplete, 
+export const AIChatbotBubble = ({
+  onComplete,
   isVisible = true,
-  position = 'bottom-right'
+  position = 'top-right'
 }: AIChatbotBubbleProps) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [showTyping, setShowTyping] = useState(true);
@@ -88,9 +88,13 @@ export const AIChatbotBubble = ({
 
   if (!isVisible) return null;
 
-  const containerClasses = position === 'center' 
-    ? 'fixed inset-0 z-50 flex items-center justify-center p-4'
-    : 'fixed bottom-6 right-6 z-50';
+  const positionClasses = {
+    'top-right': 'fixed top-20 right-6 z-50',
+    'bottom-right': 'fixed bottom-6 right-6 z-50',
+    'center': 'fixed inset-0 z-50 flex items-center justify-center p-4',
+  };
+
+  const containerClasses = positionClasses[position] || positionClasses['top-right'];
 
   return (
     <AnimatePresence>
@@ -120,75 +124,88 @@ export const AIChatbotBubble = ({
           >
             {/* Floating animation wrapper */}
             <motion.div
-              animate={{ 
+              animate={{
                 y: [0, -12, 0],
               }}
-              transition={{ 
-                duration: 3, 
+              transition={{
+                duration: 3,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
               className="w-full max-w-sm"
             >
-              {/* Bubble Container */}
+              {/* Bubble Container - Speech Bubble / Denkwolke Style */}
               <motion.div
-                className="bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-cyan-500/10 backdrop-blur-xl rounded-3xl border border-blue-500/30 shadow-2xl overflow-hidden"
+                className="bg-gradient-to-br from-emerald-100 via-emerald-50 to-green-100 backdrop-blur-xl rounded-3xl border border-emerald-200/60 shadow-xl overflow-hidden relative"
                 style={{
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(31, 38, 135, 0.15)'
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 8px 32px rgba(16, 185, 129, 0.15)'
                 }}
               >
+                {/* Denkwolke Tail */}
+                <motion.div
+                  className="absolute -bottom-4 right-8 w-6 h-6 bg-gradient-to-br from-emerald-100 to-green-100 rounded-full border border-emerald-200/60 shadow-md"
+                  animate={{
+                    y: [0, 2, 0],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+
                 {/* Header with Bot Avatar */}
-                <div className="relative p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/10 border-b border-blue-500/20">
+                <div className="relative p-4 bg-gradient-to-r from-emerald-100/60 to-green-50/40 border-b border-emerald-200/40">
                   <div className="flex items-center gap-3">
                     {/* Animated Bot Avatar */}
                     <motion.div
-                      className="relative"
-                      animate={{ 
-                        scale: [1, 1.05, 1],
+                    className="relative"
+                    animate={{
+                      scale: [1, 1.05, 1],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <motion.div
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg relative"
+                      style={{
+                        boxShadow: '0 0 20px rgba(16, 185, 129, 0.5)'
                       }}
-                      transition={{ 
-                        duration: 2, 
+                    >
+                      <Bot className="w-6 h-6 text-white" />
+                    </motion.div>
+
+                    {/* Pulsing glow */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-emerald-500"
+                      animate={{
+                        opacity: [0.2, 0, 0.2],
+                        scale: [1, 1.3, 1],
+                      }}
+                      transition={{
+                        duration: 2,
                         repeat: Infinity,
                         ease: "easeInOut"
                       }}
-                    >
-                      <motion.div
-                        className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg relative"
-                        style={{
-                          boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)'
-                        }}
-                      >
-                        <Bot className="w-6 h-6 text-white" />
-                      </motion.div>
-                      
-                      {/* Pulsing glow */}
-                      <motion.div
-                        className="absolute inset-0 rounded-full bg-blue-500"
-                        animate={{ 
-                          opacity: [0.2, 0, 0.2],
-                          scale: [1, 1.3, 1],
-                        }}
-                        transition={{ 
-                          duration: 2, 
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      />
-                    </motion.div>
+                    />
+                  </motion.div>
 
                     <div className="flex-1">
-                      <h3 className="font-bold text-base text-foreground">Frigy AI</h3>
-                      <p className="text-xs text-muted-foreground">Dein KI-Assistent</p>
+                      <h3 className="font-bold text-base text-emerald-900">Frigy AI</h3>
+                      <p className="text-xs text-emerald-600">Dein KI-Assistent</p>
                     </div>
 
                     {/* Close button */}
                     <motion.button
                       onClick={handleSkip}
-                      className="p-2 hover:bg-primary/10 rounded-lg transition-colors ml-auto"
+                      className="p-2 hover:bg-emerald-200/50 rounded-lg transition-colors ml-auto"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
+                      <ChevronRight className="w-4 h-4 text-emerald-600 rotate-90" />
                     </motion.button>
                   </div>
                 </div>
@@ -206,7 +223,7 @@ export const AIChatbotBubble = ({
                       >
                         <div className="flex-shrink-0">
                           <motion.div
-                            className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
+                            className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center"
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ duration: 0.2 }}
@@ -215,12 +232,12 @@ export const AIChatbotBubble = ({
                           </motion.div>
                         </div>
                         <motion.div
-                          className="flex-1 bg-gradient-to-br from-blue-500/15 to-purple-500/10 rounded-2xl p-3 border border-blue-500/20"
+                          className="flex-1 bg-gradient-to-br from-white/80 to-emerald-50/60 rounded-2xl p-3 border border-emerald-200/50"
                           initial={{ scale: 0.95, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ duration: 0.3 }}
                         >
-                          <p className="text-sm text-foreground leading-relaxed">
+                          <p className="text-sm text-emerald-900 leading-relaxed">
                             {message.text}
                           </p>
                         </motion.div>
@@ -236,15 +253,15 @@ export const AIChatbotBubble = ({
                       className="flex gap-2"
                     >
                       <div className="flex-shrink-0">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
                           <Bot className="w-3.5 h-3.5 text-white" />
                         </div>
                       </div>
-                      <div className="flex-1 bg-gradient-to-br from-blue-500/15 to-purple-500/10 rounded-2xl p-3 flex gap-1.5 items-center border border-blue-500/20">
+                      <div className="flex-1 bg-gradient-to-br from-white/80 to-emerald-50/60 rounded-2xl p-3 flex gap-1.5 items-center border border-emerald-200/50">
                         {[0, 1, 2].map((i) => (
                           <motion.div
                             key={i}
-                            className="w-2 h-2 rounded-full bg-primary/60"
+                            className="w-2 h-2 rounded-full bg-emerald-400"
                             animate={{ y: [0, -4, 0] }}
                             transition={{ delay: i * 0.1, repeat: Infinity, duration: 0.6 }}
                           />
@@ -257,21 +274,21 @@ export const AIChatbotBubble = ({
                 {/* Footer / Actions */}
                 {!showTyping && (
                   <motion.div
-                    className="p-4 bg-gradient-to-t from-blue-500/5 to-transparent border-t border-blue-500/20 space-y-2"
+                    className="p-4 bg-gradient-to-t from-emerald-100/40 to-transparent border-t border-emerald-200/40 space-y-2"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                   >
                     <Button
                       onClick={handleNext}
-                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all"
+                      className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium shadow-lg hover:shadow-xl transition-all"
                     >
                       Los geht's! 🚀
                     </Button>
                     <Button
                       onClick={handleSkip}
                       variant="ghost"
-                      className="w-full text-muted-foreground hover:text-foreground"
+                      className="w-full text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/50"
                     >
                       Später
                     </Button>
