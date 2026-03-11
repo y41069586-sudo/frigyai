@@ -36,7 +36,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
   const scanningRef = useRef(false);
   const lastScannedRef = useRef<string | null>(null);
+  const lastScanTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
+  const SCAN_COOLDOWN = 2000; // 2 Sekunden Mindestwartezeit zwischen Scans
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -61,7 +63,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
+
+    // Sicherstellen, dass mindestens 2 Sekunden seit dem letzten Scan vergangen sind
+    const now = Date.now();
+    if (now - lastScanTimeRef.current < SCAN_COOLDOWN) {
+      return;
+    }
+
     lastScannedRef.current = barcode;
+    lastScanTimeRef.current = now;
 
     setIsLoading(true);
     scanningRef.current = false;
@@ -160,10 +170,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Ultra-fast native detection loop
+  // Native detection loop mit 2 Sekunden Cooldown
   const detectBarcodes = useCallback(async () => {
     if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
-    
+
     const video = videoRef.current;
     if (video.readyState < video.HAVE_CURRENT_DATA) {
       animationFrameRef.current = requestAnimationFrame(detectBarcodes);
@@ -173,18 +183,27 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     try {
       const barcodes = await detectorRef.current.detect(video);
       if (barcodes.length > 0 && barcodes[0].rawValue) {
-        lookupBarcode(barcodes[0].rawValue);
-        return;
+        const now = Date.now();
+        // Mindestens 2 Sekunden seit dem letzten erfolgreichen Scan
+        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN) {
+          lastScanTimeRef.current = now;
+          lookupBarcode(barcodes[0].rawValue);
+          return;
+        }
       }
     } catch {
       // Continue scanning
     }
 
     if (scanningRef.current) {
-      // Optimized: Use requestAnimationFrame for faster scanning (no 50ms delay)
-      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      // Scan-Verzögerung: alle 500ms prüfen (nicht zu oft)
+      setTimeout(() => {
+        if (scanningRef.current) {
+          animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+        }
+      }, 500);
     }
-  }, [lookupBarcode]);
+  }, [lookupBarcode, SCAN_COOLDOWN]);
 
   // Start with native BarcodeDetector (Chrome, Edge)
   const startNativeScanner = useCallback(async () => {
@@ -197,19 +216,20 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         facingMode: 'environment',
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        frameRate: { ideal: 30 }
+        frameRate: { ideal: 15 } // Reduziert von 30 auf 15 fps für weniger CPU-Belastung
       }
     });
 
     streamRef.current = stream;
-    
+
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
-      
+
+      lastScanTimeRef.current = Date.now();
       setIsInitializing(false);
       scanningRef.current = true;
-      
+
       animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
   }, [detectBarcodes]);
@@ -217,40 +237,47 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   // Fallback for Safari/Firefox
   const startFallbackScanner = useCallback(async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
-    
-    const scanner = new Html5Qrcode("barcode-reader-fallback", { 
+
+    const scanner = new Html5Qrcode("barcode-reader-fallback", {
       formatsToSupport: [
         Html5QrcodeSupportedFormats.EAN_13,
         Html5QrcodeSupportedFormats.EAN_8,
         Html5QrcodeSupportedFormats.UPC_A,
         Html5QrcodeSupportedFormats.UPC_E,
-      ], 
-      verbose: false 
+      ],
+      verbose: false
     });
     html5QrcodeRef.current = scanner;
 
     await scanner.start(
       { facingMode: "environment" },
       {
-        fps: 30,
+        fps: 15, // Reduziert von 30 auf 15 fps
         qrbox: { width: 300, height: 150 },
         disableFlip: true,
       },
       async (decodedText) => {
-        await lookupBarcode(decodedText);
+        // 2-Sekunden-Cooldown auch im Fallback
+        const now = Date.now();
+        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN) {
+          lastScanTimeRef.current = now;
+          await lookupBarcode(decodedText);
+        }
       },
       () => {}
     );
-    
+
+    lastScanTimeRef.current = Date.now();
     setIsInitializing(false);
     scanningRef.current = true;
-  }, [lookupBarcode]);
+  }, [lookupBarcode, SCAN_COOLDOWN]);
 
   const startCamera = useCallback(async () => {
     try {
       setError(null);
       setIsInitializing(true);
       lastScannedRef.current = null;
+      lastScanTimeRef.current = Date.now(); // Reset cooldown timer
 
       if (hasNativeBarcodeDetector) {
         await startNativeScanner();
