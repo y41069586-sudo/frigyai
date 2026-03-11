@@ -146,7 +146,7 @@ export const useFoodEntries = () => {
 
       // Update local state
       setEntries(prev => [typedEntry, ...prev]);
-      
+
       // Update totals
       const newTotals = {
         calories: todayTotals.calories + typedEntry.calories,
@@ -156,6 +156,12 @@ export const useFoodEntries = () => {
       };
       setTodayTotals(newTotals);
       await updateDailyMacros(newTotals);
+
+      // Signal to other instances of this hook to refresh
+      const event = new CustomEvent('foodEntryAdded', {
+        detail: { timestamp: Date.now(), userId: user.id }
+      });
+      window.dispatchEvent(event);
 
       return typedEntry;
     } catch (error: any) {
@@ -286,6 +292,18 @@ export const useFoodEntries = () => {
 
     return () => clearInterval(intervalId);
   }, [user, loadEntries]);
+
+  // Listen for food entry changes from other components
+  useEffect(() => {
+    const handleFoodEntryAdded = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      console.log('[FOOD-ENTRIES] Detected food entry from another component, refreshing...', customEvent.detail);
+      loadEntries();
+    };
+
+    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
+    return () => window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+  }, [loadEntries]);
 
   return {
     entries,
