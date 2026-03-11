@@ -362,8 +362,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
   };
 
-  const removeEntry = (id: string) => {
+  const removeEntry = async (id: string) => {
+    // Remove from local state first
     saveFoodEntries(foodEntries.filter(e => e.id !== id));
+
+    // Try to delete from database if user is logged in
+    // UUID format check: if it looks like a database ID (contains hyphens or is long), delete from DB
+    if (user && id.length > 15) {
+      try {
+        await deleteDbEntry(id);
+      } catch (error) {
+        // Silently fail if it doesn't exist in database
+        console.log('Entry not found in database or already deleted:', id);
+      }
+    }
   };
 
   const editEntry = (entry: FoodEntry) => {
@@ -1176,6 +1188,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                     removeEntry(entry.id);
                   }}
                   className="h-8 w-8 text-muted-foreground/50 hover:text-destructive flex-shrink-0"
+                  disabled={isAnalyzing}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
