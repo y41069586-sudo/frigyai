@@ -292,22 +292,55 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       const body: { food?: string; imageBase64?: string } = {};
       if (food && food.trim()) body.food = food.trim();
       if (imageBase64) body.imageBase64 = imageBase64;
-      
-      const { data, error } = await supabase.functions.invoke('analyze-food', {
-        body,
-      });
 
-      if (error) throw error;
+      let data;
+      try {
+        const response = await supabase.functions.invoke('analyze-food', {
+          body,
+        });
+
+        if (response.error) {
+          const errorMsg = response.error?.message || String(response.error);
+          console.error('[ANALYZE-FOOD] Function error:', errorMsg);
+          throw new Error(errorMsg || 'Analyse fehlgeschlagen');
+        }
+
+        data = response.data;
+      } catch (invokeError: any) {
+        const errorMsg = invokeError?.message || String(invokeError);
+        console.error('[ANALYZE-FOOD] Invoke error:', errorMsg, invokeError);
+        throw new Error(`Verbindungsfehler: ${errorMsg}`);
+      }
+
+      if (!data) {
+        throw new Error('Keine Daten von der Analyse erhalten');
+      }
+
+      // Check if the response contains an error field (from the function)
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.name || !data.calories) {
+        throw new Error(`Unvollständige Daten erhalten: ${JSON.stringify(data)}`);
+      }
 
       // Save to database with image_url
-      const savedEntry = await addDbEntry({
-        name: data.name,
-        calories: data.calories,
-        protein: data.protein,
-        carbs: data.carbs,
-        fat: data.fat,
-        image_url: data.image_url,
-      });
+      let savedEntry;
+      try {
+        savedEntry = await addDbEntry({
+          name: data.name,
+          calories: Math.round(data.calories),
+          protein: Math.round(data.protein || 0),
+          carbs: Math.round(data.carbs || 0),
+          fat: Math.round(data.fat || 0),
+          image_url: data.image_url,
+        });
+      } catch (dbError: any) {
+        console.error('Database save error:', dbError);
+        // If database save fails, still continue with local state
+        savedEntry = null;
+      }
 
       // Also update local state for immediate UI feedback
       const newEntry: FoodEntry = {
@@ -323,7 +356,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
-      
+
       if (imageBase64) {
         setLastAnalyzedFood({
           name: data.name,
@@ -338,12 +371,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
         playClick();
       }
-      
+
       recordActivity();
       checkAndAwardBadge('meal_logged');
-    } catch (error) {
-      console.error('Error analyzing food:', error);
-      toast({ title: t.error, description: t.couldNotAnalyzeFood, variant: 'destructive' });
+    } catch (error: any) {
+      const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood || 'Analyse fehlgeschlagen';
+      console.error('Error analyzing food:', errorMsg, error);
+      toast({
+        title: t.error,
+        description: errorMsg,
+        variant: 'destructive'
+      });
     } finally {
       setIsAnalyzing(false);
       setAnalyzingImage(null);
