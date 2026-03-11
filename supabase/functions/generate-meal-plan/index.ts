@@ -23,6 +23,48 @@ function sendError(message: string, status: number = 500) {
   );
 }
 
+// Generate placeholder ingredients if they're missing
+function generateIngredientsForMeal(meal: any): any {
+  if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+    return meal; // Keep original if they exist
+  }
+
+  // Fallback ingredients based on meal type
+  const ingredientsByType: Record<string, any[]> = {
+    "Frühstück": [
+      { name: "Eier", amount: "2 Stück", price: 0.5 },
+      { name: "Brot", amount: "2 Scheiben", price: 0.5 },
+      { name: "Butter", amount: "10g", price: 0.1 },
+      { name: "Käse", amount: "50g", price: 0.8 }
+    ],
+    "Mittagessen": [
+      { name: "Hähnchen", amount: "150g", price: 2.0 },
+      { name: "Kartoffeln", amount: "200g", price: 0.5 },
+      { name: "Broccoli", amount: "150g", price: 1.0 },
+      { name: "Öl", amount: "1 EL", price: 0.2 }
+    ],
+    "Abendessen": [
+      { name: "Rinderhack", amount: "150g", price: 2.5 },
+      { name: "Nudeln", amount: "100g", price: 0.5 },
+      { name: "Tomaten", amount: "200g", price: 1.0 },
+      { name: "Knoblauch", amount: "1 Zehe", price: 0.2 }
+    ],
+    "Snack": [
+      { name: "Apfel", amount: "1 Stück", price: 0.8 },
+      { name: "Nüsse", amount: "30g", price: 1.0 },
+      { name: "Joghurt", amount: "100g", price: 0.6 }
+    ]
+  };
+
+  const mealType = meal.type || "Snack";
+  const ingredients = ingredientsByType[mealType] || ingredientsByType["Snack"];
+
+  return {
+    ...meal,
+    ingredients: ingredients
+  };
+}
+
 serve(async (req) => {
   console.log("[GENERATE-MEAL-PLAN] New request:", req.method);
 
@@ -179,9 +221,27 @@ ${preferences ?? ""}`;
       return sendError("OpenAI returned empty response");
     }
 
-    console.log("[GENERATE-MEAL-PLAN] Success! Returning meal plan");
+    // Parse the JSON response
+    let mealPlan;
+    try {
+      mealPlan = JSON.parse(content);
+    } catch (e) {
+      console.error("[GENERATE-MEAL-PLAN] Failed to parse OpenAI JSON response:", e);
+      return sendError("OpenAI response was not valid JSON");
+    }
 
-    return new Response(content, {
+    // Ensure all meals have ingredients by applying fallback function
+    if (mealPlan.mealPlan && Array.isArray(mealPlan.mealPlan)) {
+      mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
+        ...day,
+        meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
+      }));
+      console.log("[GENERATE-MEAL-PLAN] Applied ingredient fallback for all meals");
+    }
+
+    console.log("[GENERATE-MEAL-PLAN] Success! Returning meal plan with ingredients");
+
+    return new Response(JSON.stringify(mealPlan), {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json"

@@ -84,8 +84,11 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
 
     console.log('[SHOPPING] Processing meal plan:', {
       mealPlanLength: mealPlan.length,
-      firstDay: mealPlan[0],
-      firstMealHasIngredients: !!mealPlan[0]?.meals?.[0]?.ingredients
+      firstDay: mealPlan[0]?.day,
+      firstDayMeals: mealPlan[0]?.meals?.length,
+      firstMeal: mealPlan[0]?.meals?.[0],
+      firstMealHasIngredients: !!mealPlan[0]?.meals?.[0]?.ingredients,
+      firstMealIngredients: mealPlan[0]?.meals?.[0]?.ingredients
     });
 
     mealPlan.forEach(day => {
