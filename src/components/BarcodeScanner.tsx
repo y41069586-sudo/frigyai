@@ -38,7 +38,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lastScannedRef = useRef<string | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
-  const SCAN_COOLDOWN = 2000; // 2 Sekunden Mindestwartezeit zwischen Scans
+  const SCAN_COOLDOWN = 300; // Schnelle Erkennung: nur 300ms Cooldown
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -64,14 +64,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
 
-    // Sicherstellen, dass mindestens 2 Sekunden seit dem letzten Scan vergangen sind
-    const now = Date.now();
-    if (now - lastScanTimeRef.current < SCAN_COOLDOWN) {
-      return;
-    }
-
     lastScannedRef.current = barcode;
-    lastScanTimeRef.current = now;
 
     setIsLoading(true);
     scanningRef.current = false;
@@ -93,9 +86,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // API lookup with 1.5s timeout for fast response
+      // API lookup with 3s timeout for reliable response
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
@@ -170,7 +163,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Native detection loop mit 2 Sekunden Cooldown
+  // Ultra-schnelle native Erkennung - kontinuierlich
   const detectBarcodes = useCallback(async () => {
     if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
 
@@ -184,10 +177,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       const barcodes = await detectorRef.current.detect(video);
       if (barcodes.length > 0 && barcodes[0].rawValue) {
         const now = Date.now();
-        // Mindestens 2 Sekunden seit dem letzten erfolgreichen Scan
-        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN) {
+        const barcode = barcodes[0].rawValue;
+
+        // Nur 300ms Cooldown - schnelle, mehrfache Erkennung
+        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== barcode) {
           lastScanTimeRef.current = now;
-          lookupBarcode(barcodes[0].rawValue);
+          lookupBarcode(barcode);
           return;
         }
       }
@@ -196,12 +191,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
 
     if (scanningRef.current) {
-      // Scan-Verzögerung: alle 500ms prüfen (nicht zu oft)
-      setTimeout(() => {
-        if (scanningRef.current) {
-          animationFrameRef.current = requestAnimationFrame(detectBarcodes);
-        }
-      }, 500);
+      // Kontinuierlich scannen ohne Verzögerung
+      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
     }
   }, [lookupBarcode, SCAN_COOLDOWN]);
 
@@ -214,9 +205,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 15 } // Reduziert von 30 auf 15 fps für weniger CPU-Belastung
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
       }
     });
 
@@ -252,15 +243,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     await scanner.start(
       { facingMode: "environment" },
       {
-        fps: 15, // Reduziert von 30 auf 15 fps
-        qrbox: { width: 300, height: 150 },
-        disableFlip: true,
+        fps: 30, // Maximale fps für schnelle Erkennung
+        qrbox: { width: 400, height: 200 }, // Größerer Erkennungsbereich
+        disableFlip: false, // Erlaube Flip für bessere Kompatibilität
       },
       async (decodedText) => {
-        // 2-Sekunden-Cooldown auch im Fallback
+        // Schneller Cooldown im Fallback
         const now = Date.now();
-        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN) {
+        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== decodedText) {
           lastScanTimeRef.current = now;
+          lastScannedRef.current = decodedText;
           await lookupBarcode(decodedText);
         }
       },
