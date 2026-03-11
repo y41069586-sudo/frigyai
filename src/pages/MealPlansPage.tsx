@@ -225,7 +225,46 @@ const MealPlansPage = () => {
         }
       } else {
         console.log('[MEALPLANS] No meal plan found - empty state');
-        setMealPlan([]);
+        // TEST: Add demo meal plan for debugging
+        const demoMealPlan: DayPlan[] = [
+          {
+            day: 'Montag',
+            meals: [
+              {
+                type: 'Frühstück',
+                name: 'Rührei mit Toast',
+                calories: 420,
+                protein: 20,
+                carbs: 28,
+                fat: 22,
+                prepTime: 15,
+                ingredients: [
+                  { name: 'Eier', amount: '3 Stück', price: 0.9 },
+                  { name: 'Brot', amount: '2 Scheiben', price: 0.5 },
+                  { name: 'Butter', amount: '10g', price: 0.1 }
+                ],
+                instructions: ['Eier rühren', 'Brot toasten', 'Servieren']
+              },
+              {
+                type: 'Mittagessen',
+                name: 'Hähnchen mit Kartoffeln',
+                calories: 650,
+                protein: 45,
+                carbs: 55,
+                fat: 18,
+                prepTime: 30,
+                ingredients: [
+                  { name: 'Hähnchen', amount: '200g', price: 3.5 },
+                  { name: 'Kartoffeln', amount: '300g', price: 1.0 },
+                  { name: 'Öl', amount: '2 EL', price: 0.3 }
+                ],
+                instructions: ['Hähnchen braten', 'Kartoffeln kochen']
+              }
+            ]
+          }
+        ];
+        console.log('[MEALPLANS] Using demo meal plan for testing');
+        setMealPlan(demoMealPlan);
       }
     }
   }, [globalMealPlan]);
@@ -593,6 +632,13 @@ const MealPlansPage = () => {
                 />
               )}
               <div className={!isPremium ? "pointer-events-none" : ""}>
+                {mealPlan.length === 0 && (
+                  <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
+                    <p className="text-sm text-amber-700">
+                      💡 Hinweis: Erstelle einen Wochenplan im &quot;Mahlzeiten&quot;-Tab, um eine Einkaufsliste zu generieren.
+                    </p>
+                  </Card>
+                )}
                 <ShoppingList mealPlan={mealPlan} />
               </div>
             </div>
