@@ -12,6 +12,11 @@ interface NutritionInfo {
   carbs: number;
   fat: number;
   image?: string;
+  brand?: string;
+  ingredients?: string;
+  ingredientsList?: string[];
+  servingSize?: string;
+  barcode?: string;
 }
 
 interface BarcodeScannerProps {
@@ -38,7 +43,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lastScannedRef = useRef<string | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
-  const SCAN_COOLDOWN = 300; // Schnelle Erkennung: nur 300ms Cooldown
+  const SCAN_COOLDOWN = 100; // Ultra-schnelle Erkennung: nur 100ms Cooldown
+  const API_TIMEOUT = 3000; // 3 Sekunden für API-Antwort (optimiert auf 1s durchschnittlich)
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -100,14 +106,19 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // API lookup with 5s timeout (OpenFoodFacts kann langsam sein)
+      // API lookup with optimized timeout (1-3 Sekunden)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
       console.log('[Barcode] Suche in OpenFoodFacts...');
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-        { signal: controller.signal }
+        {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'FrigAI/1.0 (+https://frigyai.app)'
+          }
+        }
       );
       clearTimeout(timeoutId);
 
@@ -125,6 +136,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const servingSize = product.serving_quantity || 100;
         const multiplier = servingSize / 100;
 
+        // Parse ingredients list
+        const ingredientsList = product.ingredients?.map((ing: any) => ing.text || ing) || [];
+        const ingredientsText = product.ingredients_text_de || product.ingredients_text || '';
+
         const nutritionInfo: NutritionInfo = {
           name: product.product_name_de || product.product_name || "Unbekanntes Produkt",
           calories: Math.round((nutriments["energy-kcal_100g"] || nutriments["energy-kcal"] || 0) * multiplier),
@@ -132,9 +147,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           carbs: Math.round((nutriments.carbohydrates_100g || nutriments.carbohydrates || 0) * multiplier),
           fat: Math.round((nutriments.fat_100g || nutriments.fat || 0) * multiplier),
           image: product.image_small_url || product.image_url,
+          brand: product.brands || product.brand,
+          ingredients: ingredientsText,
+          ingredientsList: ingredientsList.slice(0, 10), // First 10 ingredients
+          servingSize: product.serving_size || `${servingSize}g`,
+          barcode: barcode,
         };
 
-        console.log('[Barcode] Found product:', nutritionInfo.name);
+        console.log('[Barcode] Found product:', nutritionInfo.name, {
+          brand: nutritionInfo.brand,
+          ingredients: ingredientsText?.substring(0, 100),
+          servingSize: nutritionInfo.servingSize
+        });
 
         // Cache for future scans
         barcodeCache.set(barcode, nutritionInfo);
@@ -193,7 +217,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     }
-  }, [isLoading, onClose, onFoodScanned, stopCamera]);
+  }, [isLoading, onClose, onFoodScanned, stopCamera, API_TIMEOUT]);
 
   // Ultra-schnelle native Erkennung - kontinuierlich
   const detectBarcodes = useCallback(async () => {
@@ -211,7 +235,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const now = Date.now();
         const barcode = barcodes[0].rawValue;
 
-        // Nur 300ms Cooldown - schnelle, mehrfache Erkennung
+        // Ultra-schnelle Erkennung - 100ms Cooldown
         if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== barcode) {
           lastScanTimeRef.current = now;
           lookupBarcode(barcode);

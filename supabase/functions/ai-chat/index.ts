@@ -88,6 +88,30 @@ const tools = [
       description: "Holt die heutigen Makronährstoffe (Kalorien, Protein, Kohlenhydrate, Fett)",
       parameters: { type: "object", properties: {} }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_current_weight",
+      description: "Setzt das aktuelle Gewicht des Nutzers für den Gewichtsverlauf",
+      parameters: { type: "object", properties: { weight: { type: "number", description: "Gewicht in kg" } }, required: ["weight"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "toggle_dark_mode",
+      description: "Schaltet Dark Mode ein oder aus",
+      parameters: { type: "object", properties: { enable: { type: "boolean", description: "True zum Aktivieren, False zum Deaktivieren" } }, required: ["enable"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "regenerate_weekly_plan",
+      description: "Generiert einen neuen Wochenplan basierend auf den aktuellen Präferenzen des Nutzers",
+      parameters: { type: "object", properties: {} }
+    }
   }
 ];
 
@@ -213,11 +237,61 @@ async function executeTool(
         .eq('user_id', userId)
         .eq('date', today)
         .maybeSingle();
-      
+
       if (!data) return "Heute noch keine Makros getrackt.";
       return `Heute: ${(data as any).calories} kcal | ${(data as any).protein}g Protein | ${(data as any).carbs}g Carbs | ${(data as any).fat}g Fett`;
     }
-    
+
+    case 'set_current_weight': {
+      const weight = args.weight as number;
+      if (!weight || weight < 20 || weight > 500) return "Ungültiges Gewicht (20-500kg).";
+
+      // Update current weight in user profile
+      const { data: profile } = await supabase
+        .from('user_tracker_settings')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (profile) {
+        await supabase
+          .from('user_tracker_settings')
+          .update({ current_weight: weight, updated_at: new Date().toISOString() } as never)
+          .eq('id', (profile as any).id);
+      }
+
+      // Also add to weight entries for history
+      await supabase.from('weight_entries').insert({ user_id: userId, weight, recorded_at: new Date().toISOString() } as never);
+      return `Gewicht auf ${weight}kg aktualisiert! 💪 Dein Gewichtsverlauf wird aktualisiert.`;
+    }
+
+    case 'toggle_dark_mode': {
+      const enable = args.enable as boolean;
+      // Store preference in user metadata or settings
+      const { data: profile } = await supabase
+        .from('user_tracker_settings')
+        .select('id, preferences')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const preferences = (profile as any)?.preferences || {};
+      preferences.dark_mode_enabled = enable;
+
+      if (profile) {
+        await supabase
+          .from('user_tracker_settings')
+          .update({ preferences, updated_at: new Date().toISOString() } as never)
+          .eq('id', (profile as any).id);
+      }
+
+      return `Dark Mode ${enable ? '🌙 aktiviert' : '☀️ deaktiviert'}! [ACTION:TOGGLE_DARK_MODE:${enable ? 'ON' : 'OFF'}]`;
+    }
+
+    case 'regenerate_weekly_plan': {
+      // Signal to client that a new plan should be generated
+      return "[ACTION:REGENERATE_MEAL_PLAN] Generiere einen neuen Wochenplan basierend auf deinen Vorlieben! 📋";
+    }
+
     default:
       return "Unbekannte Aktion.";
   }

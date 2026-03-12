@@ -167,7 +167,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   // Scan feedback state (moved to top level to avoid hooks in switch)
   const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
   const [selectedFeedbackReason, setSelectedFeedbackReason] = useState<string | null>(null);
-  
+
   // Ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -3914,9 +3914,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     >
       {/* Progress Bar at Top */}
       {currentStep !== 'language-select' && currentStep !== 'analyzing' && currentStep !== 'tutorial' && (
-        <OnboardingProgressBar 
-          currentStep={currentIndex + 1} 
-          totalSteps={totalSteps} 
+        <OnboardingProgressBar
+          currentStep={currentIndex + 1}
+          totalSteps={totalSteps}
         />
       )}
 

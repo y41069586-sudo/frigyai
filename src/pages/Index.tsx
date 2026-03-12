@@ -25,6 +25,7 @@ import { useReminders } from "@/hooks/useReminders";
 import frigLogo from "@/assets/frig-logo.png";
 import { ChatbotIntro } from "@/components/ChatbotIntro";
 import { AIChatbot } from "@/components/AIChatbot";
+import { AIChatbotBubble } from "@/components/AIChatbotBubble";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
@@ -34,6 +35,11 @@ const Index = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [showChatbotIntro, setShowChatbotIntro] = useState(false);
+  const [showAIBubbleIntro, setShowAIBubbleIntro] = useState(() => {
+    const bubbleShown = localStorage.getItem('aiBubbleIntroShown');
+    const isPremium = subscriptionStatus?.subscribed === true;
+    return !bubbleShown && isPremium;
+  });
 
   // Initialize reminders system
   useReminders();
@@ -562,6 +568,16 @@ const Index = () => {
           onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
         />
       )}
+
+      {/* AI Bubble Intro - Show once on dashboard load */}
+      <AIChatbotBubble
+        isVisible={showAIBubbleIntro}
+        position="top-right"
+        onComplete={() => {
+          localStorage.setItem('aiBubbleIntroShown', 'true');
+          setShowAIBubbleIntro(false);
+        }}
+      />
 
       {/* AI Chatbot - Premium Only */}
       <AIChatbot
