@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, AlertCircle, Zap } from "lucide-react";
+import { X, Loader2, AlertCircle, Zap, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -383,37 +383,89 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] bg-black flex flex-col"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
-            <h2 className="text-white font-semibold text-lg">Barcode scannen</h2>
+        {/* Header - Enhanced */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between p-4 bg-gradient-to-b from-black/90 via-black/70 to-transparent absolute top-0 left-0 right-0 z-10"
+        >
+          <div className="flex items-center gap-3">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              <Zap className="h-6 w-6 text-primary" />
+            </motion.div>
+            <div>
+              <h2 className="text-white font-bold text-lg">Barcode Scan</h2>
+              <p className="text-primary/80 text-[10px] font-medium">
+                {hasNativeBarcodeDetector ? "⚡ Ultra-Modus aktiv" : "📱 Kompatibilitätsmodus"}
+              </p>
+            </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-white/20 hover:text-primary transition-all"
           >
             <X className="h-6 w-6" />
           </Button>
-        </div>
+        </motion.div>
 
         {/* Scanner Area */}
         <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
           {error ? (
-            <div className="text-center space-y-4 px-6 z-20">
-              <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
-              <p className="text-white text-sm">{error}</p>
-              <Button onClick={startCamera} variant="outline">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center space-y-6 px-6 z-20"
+            >
+              <motion.div
+                animate={{ rotate: [0, -5, 5, 0] }}
+                transition={{ duration: 0.5 }}
+              >
+                <AlertCircle className="h-20 w-20 text-destructive mx-auto" />
+              </motion.div>
+              <div>
+                <p className="text-white text-base font-semibold mb-2">Fehler beim Kamerazugriff</p>
+                <p className="text-white/70 text-sm whitespace-pre-line">{error}</p>
+              </div>
+              <Button
+                onClick={startCamera}
+                variant="outline"
+                className="bg-primary/20 hover:bg-primary/30 border-primary text-white"
+              >
+                <Zap className="h-4 w-4 mr-2" />
                 Erneut versuchen
               </Button>
-            </div>
+            </motion.div>
           ) : isLoading ? (
-            <div className="text-center space-y-4 absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20">
-              <Loader2 className="h-16 w-16 text-primary mx-auto animate-spin" />
-              <p className="text-white text-sm">Produkt wird gesucht...</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center space-y-6 absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <Loader2 className="h-20 w-20 text-primary mx-auto animate-spin" />
+              </motion.div>
+              <div>
+                <p className="text-white text-lg font-semibold">Barcode erkannt! 🎉</p>
+                <p className="text-white/60 text-sm mt-2">Produktinformationen werden geladen...</p>
+              </div>
+              <motion.div
+                className="flex gap-2"
+                animate={{ gap: ["0.5rem", "1rem", "0.5rem"] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              >
+                <div className="h-2 w-2 bg-primary rounded-full" />
+                <div className="h-2 w-2 bg-primary rounded-full" />
+                <div className="h-2 w-2 bg-primary rounded-full" />
+              </motion.div>
+            </motion.div>
           ) : null}
 
           {/* Native Video Feed */}
@@ -432,36 +484,79 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             <div id="barcode-reader-fallback" className="w-full h-full" />
           )}
 
-          {/* Scan overlay */}
+          {/* Scan overlay - Enhanced Animation */}
           {hasNativeBarcodeDetector && !error && !isLoading && !isInitializing && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="relative w-80 h-36 border-2 border-primary/50 rounded-xl">
+              <div className="relative w-96 h-48 border-2 border-primary rounded-2xl overflow-hidden bg-gradient-to-b from-primary/5 to-transparent">
+                {/* Corner decorations */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary/60" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary/60" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary/60" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary/60" />
+
+                {/* Animated scan line - Ultra-smooth */}
                 <motion.div
-                  className="absolute inset-x-2 h-0.5 bg-primary rounded-full"
-                  style={{ boxShadow: "0 0 15px rgba(95, 208, 104, 1)" }}
-                  animate={{ top: ["5%", "95%", "5%"] }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-x-0 h-1 bg-gradient-to-b from-primary via-primary/80 to-transparent"
+                  style={{
+                    boxShadow: "0 0 20px rgba(95, 208, 104, 0.8), 0 0 40px rgba(95, 208, 104, 0.4)",
+                    filter: "blur(0.5px)"
+                  }}
+                  animate={{ top: ["0%", "100%"] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                />
+
+                {/* Pulsing background effect */}
+                <motion.div
+                  className="absolute inset-0 bg-primary/0"
+                  animate={{ backgroundColor: ["rgba(95, 208, 104, 0)", "rgba(95, 208, 104, 0.05)", "rgba(95, 208, 104, 0)"] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 />
               </div>
+
+              {/* Scanning indicator text */}
+              <motion.p
+                className="absolute bottom-12 text-primary font-semibold text-sm"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                Scanne Barcode...
+              </motion.p>
             </div>
           )}
 
           {/* Initializing */}
           {isInitializing && !error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-              <Loader2 className="h-10 w-10 text-primary animate-spin" />
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10 gap-4"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Zap className="h-12 w-12 text-primary" />
+              </motion.div>
+              <p className="text-white/70 text-sm">Kamera wird aktiviert...</p>
+            </motion.div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-3 bg-gradient-to-t from-black to-transparent absolute bottom-0 left-0 right-0">
-          <p className="text-center text-white/60 text-xs mb-1">
-            {hasNativeBarcodeDetector ? "⚡ Schneller Modus (Chrome/Edge)" : "⏸️ Langsamer Modus (Safari/Firefox)"} • Open Food Facts
-          </p>
-          <p className="text-center text-white/40 text-[10px]">
-            {navigator.onLine ? "🟢 Online" : "🔴 Offline"} • {!hasNativeBarcodeDetector && "Nutze Chrome für schnelleres Scannen"}
-          </p>
+        {/* Footer - Enhanced */}
+        <div className="p-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent absolute bottom-0 left-0 right-0">
+          <motion.div
+            className="text-center space-y-2"
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
+              <ShoppingCart className="h-4 w-4 text-primary" />
+              {hasNativeBarcodeDetector ? "⚡ Ultra-Schneller Scan Modus" : "📱 Kompatibilitätsmodus"} • Open Food Facts
+            </p>
+            <p className="text-white/60 text-xs">
+              {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline - Bitte Internet verbinden"} {!hasNativeBarcodeDetector && "• Nutze Chrome für beste Performance"}
+            </p>
+          </motion.div>
         </div>
       </motion.div>
     </AnimatePresence>
