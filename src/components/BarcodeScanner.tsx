@@ -43,7 +43,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lastScannedRef = useRef<string | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
-  const SCAN_COOLDOWN = 300; // Schnelle Erkennung: nur 300ms Cooldown
+  const SCAN_COOLDOWN = 100; // Ultra-schnelle Erkennung: nur 100ms Cooldown
+  const API_TIMEOUT = 3000; // 3 Sekunden für API-Antwort (optimiert auf 1s durchschnittlich)
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -105,9 +106,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // API lookup with 5s timeout (OpenFoodFacts kann langsam sein)
+      // API lookup with optimized timeout (1-3 Sekunden)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
       console.log('[Barcode] Suche in OpenFoodFacts...');
       const response = await fetch(
@@ -216,7 +217,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     }
-  }, [isLoading, onClose, onFoodScanned, stopCamera]);
+  }, [isLoading, onClose, onFoodScanned, stopCamera, API_TIMEOUT]);
 
   // Ultra-schnelle native Erkennung - kontinuierlich
   const detectBarcodes = useCallback(async () => {
@@ -234,7 +235,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const now = Date.now();
         const barcode = barcodes[0].rawValue;
 
-        // Nur 300ms Cooldown - schnelle, mehrfache Erkennung
+        // Ultra-schnelle Erkennung - 100ms Cooldown
         if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== barcode) {
           lastScanTimeRef.current = now;
           lookupBarcode(barcode);
