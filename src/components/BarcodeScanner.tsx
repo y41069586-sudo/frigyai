@@ -12,6 +12,11 @@ interface NutritionInfo {
   carbs: number;
   fat: number;
   image?: string;
+  brand?: string;
+  ingredients?: string;
+  ingredientsList?: string[];
+  servingSize?: string;
+  barcode?: string;
 }
 
 interface BarcodeScannerProps {
@@ -107,7 +112,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.log('[Barcode] Suche in OpenFoodFacts...');
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-        { signal: controller.signal }
+        {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'FrigAI/1.0 (+https://frigyai.app)'
+          }
+        }
       );
       clearTimeout(timeoutId);
 
@@ -125,6 +135,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const servingSize = product.serving_quantity || 100;
         const multiplier = servingSize / 100;
 
+        // Parse ingredients list
+        const ingredientsList = product.ingredients?.map((ing: any) => ing.text || ing) || [];
+        const ingredientsText = product.ingredients_text_de || product.ingredients_text || '';
+
         const nutritionInfo: NutritionInfo = {
           name: product.product_name_de || product.product_name || "Unbekanntes Produkt",
           calories: Math.round((nutriments["energy-kcal_100g"] || nutriments["energy-kcal"] || 0) * multiplier),
@@ -132,9 +146,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           carbs: Math.round((nutriments.carbohydrates_100g || nutriments.carbohydrates || 0) * multiplier),
           fat: Math.round((nutriments.fat_100g || nutriments.fat || 0) * multiplier),
           image: product.image_small_url || product.image_url,
+          brand: product.brands || product.brand,
+          ingredients: ingredientsText,
+          ingredientsList: ingredientsList.slice(0, 10), // First 10 ingredients
+          servingSize: product.serving_size || `${servingSize}g`,
+          barcode: barcode,
         };
 
-        console.log('[Barcode] Found product:', nutritionInfo.name);
+        console.log('[Barcode] Found product:', nutritionInfo.name, {
+          brand: nutritionInfo.brand,
+          ingredients: ingredientsText?.substring(0, 100),
+          servingSize: nutritionInfo.servingSize
+        });
 
         // Cache for future scans
         barcodeCache.set(barcode, nutritionInfo);
