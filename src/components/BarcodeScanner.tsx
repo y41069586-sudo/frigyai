@@ -197,61 +197,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Advanced barcode detection
+  // Simple camera preview - no auto detection
   const detectBarcode = useCallback(() => {
-    if (!scanningRef.current || !videoRef.current || !canvasRef.current) return;
+    if (!scanningRef.current || !videoRef.current) return;
 
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-
     if (video.readyState < video.HAVE_CURRENT_DATA) {
       animationFrameRef.current = requestAnimationFrame(detectBarcode);
       return;
     }
 
-    try {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
-
-      // Get center region for barcode detection
-      const centerY = Math.floor(canvas.height / 2);
-      const regionHeight = Math.floor(canvas.height * 0.15);
-      const regionY = centerY - Math.floor(regionHeight / 2);
-
-      const imageData = ctx.getImageData(0, regionY, canvas.width, regionHeight);
-      
-      // Check for barcode pattern
-      const detected = detectBarcodeInImage(imageData);
-
-      if (detected) {
-        detectionCounterRef.current++;
-        setDetectionStatus(`Barcode erkannt! (${detectionCounterRef.current}x)`);
-
-        // Trigger lookup after multiple detections for confidence
-        if (detectionCounterRef.current > 5) {
-          const timestamp = Date.now().toString();
-          lookupBarcode(timestamp);
-          detectionCounterRef.current = 0;
-          return;
-        }
-      } else {
-        detectionCounterRef.current = Math.max(0, detectionCounterRef.current - 1);
-        if (detectionCounterRef.current === 0) {
-          setDetectionStatus("Barcode suchen...");
-        }
-      }
-    } catch (err) {
-      // Continue scanning
-    }
-
+    // Just keep the stream running - user taps "Manuell eingeben" button
     if (scanningRef.current) {
       animationFrameRef.current = requestAnimationFrame(detectBarcode);
     }
-  }, [lookupBarcode]);
+  }, []);
 
   const startCamera = useCallback(async () => {
     try {
@@ -448,14 +408,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 />
               </div>
               
-              {/* Detection status */}
-              <motion.div 
-                className="absolute bottom-32 text-center space-y-2"
+              {/* Instructions */}
+              <motion.div
+                className="absolute bottom-32 text-center space-y-3"
                 animate={{ opacity: [0.6, 1, 0.6] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <p className="text-primary font-bold text-lg">{detectionStatus}</p>
-                <p className="text-white/60 text-xs">Halte Barcode in die grüne Box</p>
+                <p className="text-white font-bold text-lg">📸 Kamera bereit</p>
+                <p className="text-white/60 text-sm">Nutze "MANUELL EINGEBEN" Button unten um Barcode einzugeben</p>
               </motion.div>
             </div>
           )}
