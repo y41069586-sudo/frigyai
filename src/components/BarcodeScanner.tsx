@@ -515,13 +515,22 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         {/* Manual Input Panel */}
         {showManualInput && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-0 left-0 right-0 p-6 bg-black/95 z-30 border-t border-primary/20"
+            className="fixed bottom-0 left-0 right-0 top-0 bg-black/70 z-40 flex items-end"
           >
-            <div className="space-y-4">
-              <p className="text-white font-semibold text-sm">Gib den Barcode manuell ein:</p>
-              <div className="flex gap-2">
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="w-full bg-gradient-to-t from-black via-black to-black/80 p-6 rounded-t-3xl border-t border-primary/30 space-y-6"
+            >
+              <div className="space-y-2">
+                <h3 className="text-white font-bold text-xl">Barcode eingeben</h3>
+                <p className="text-white/60 text-sm">Gib die Barcode-Nummer ein und suche das Produkt</p>
+              </div>
+
+              {/* Input */}
+              <div className="space-y-3">
                 <Input
                   type="text"
                   placeholder="z.B. 4006381333931"
@@ -529,29 +538,45 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   onChange={(e) => setManualBarcode(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
                   autoFocus
-                  className="flex-1 bg-white/10 border-primary/50 text-white placeholder:text-white/50"
+                  className="w-full bg-white/10 border-2 border-primary/50 text-white text-lg placeholder:text-white/40 py-3 px-4 rounded-lg focus:border-primary"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleManualSubmit}
-                  disabled={!manualBarcode.trim() || isLoading}
-                  className="flex-1 bg-primary hover:bg-primary/90"
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Suchen"}
-                </Button>
+
+              {/* Buttons */}
+              <div className="flex gap-3 flex-col-reverse sm:flex-row">
                 <Button
                   onClick={() => {
                     setShowManualInput(false);
                     setManualBarcode("");
                   }}
                   variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  className="flex-1 bg-white/5 border-white/20 text-white hover:bg-white/10 font-semibold py-6 text-base"
                 >
                   Abbrechen
                 </Button>
+                <Button
+                  onClick={handleManualSubmit}
+                  disabled={!manualBarcode.trim() || isLoading}
+                  className="flex-1 bg-primary hover:bg-primary/90 text-black font-bold py-6 text-base rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Suche läuft...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      SUCHEN
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
+
+              <p className="text-white/40 text-xs text-center">
+                💡 Tipp: Barcode-Nummer meist auf der Rückseite der Packung
+              </p>
+            </motion.div>
           </motion.div>
         )}
       </motion.div>
