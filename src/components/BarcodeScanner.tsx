@@ -265,9 +265,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 20 }
         }
       });
 
@@ -275,20 +275,36 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await new Promise(resolve => {
-          if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => {
-              resolve(null);
+
+        // iPad/Safari fix: Nutze timeout statt onloadedmetadata
+        await Promise.race([
+          new Promise<void>(resolve => {
+            const handler = () => {
+              videoRef.current?.removeEventListener('loadedmetadata', handler);
+              resolve();
             };
-          }
-        });
-        await videoRef.current.play();
+            videoRef.current!.addEventListener('loadedmetadata', handler);
+          }),
+          new Promise<void>(resolve => {
+            setTimeout(() => resolve(), 1000); // Timeout nach 1 Sekunde
+          })
+        ]);
+
+        // Force play - wichtig für iPad
+        try {
+          await videoRef.current.play();
+        } catch (err) {
+          console.warn('Play failed, continuing anyway:', err);
+        }
+
+        // Small delay to ensure video is really playing
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         setIsInitializing(false);
         scanningRef.current = true;
         setDetectionStatus("Barcode suchen...");
         console.log('[BarcodeScanner] Kamera aktiv ✅');
-        
+
         animationFrameRef.current = requestAnimationFrame(detectBarcode);
       }
     } catch (err: any) {
