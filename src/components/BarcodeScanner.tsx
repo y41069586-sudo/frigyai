@@ -252,52 +252,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [lookupBarcode, SCAN_COOLDOWN]);
 
-  // Start with native BarcodeDetector (Chrome, Edge)
-  const startNativeScanner = useCallback(async () => {
-    try {
-      // Überprüfe ob BarcodeDetector wirklich unterstützt wird
-      if (!('BarcodeDetector' in window)) {
-        console.warn('[BarcodeScanner] BarcodeDetector nicht unterstützt, nutze Fallback');
-        throw new Error('BarcodeDetector nicht verfügbar');
-      }
-
-      // Überprüfe ob die Formate unterstützt werden
-      const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats?.();
-      console.log('[BarcodeScanner] Unterstützte Formate:', supportedFormats);
-
-      detectorRef.current = new (window as any).BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
-      });
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
-        }
-      });
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-
-        lastScanTimeRef.current = Date.now();
-        setIsInitializing(false);
-        scanningRef.current = true;
-
-        console.log('[BarcodeScanner] Native BarcodeDetector gestartet ⚡');
-        animationFrameRef.current = requestAnimationFrame(detectBarcodes);
-      }
-    } catch (err) {
-      console.warn('[BarcodeScanner] Native Detector fehlgeschlagen, nutze Fallback:', err);
-      // Fallback auf Html5Qrcode
-      await startFallbackScanner();
-    }
-  }, [detectBarcodes, startFallbackScanner]);
-
   // Fallback for Safari/Firefox and when BarcodeDetector fails
   const startFallbackScanner = useCallback(async () => {
     try {
@@ -366,6 +320,52 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsInitializing(false);
     }
   }, [lookupBarcode, SCAN_COOLDOWN]);
+
+  // Start with native BarcodeDetector (Chrome, Edge)
+  const startNativeScanner = useCallback(async () => {
+    try {
+      // Überprüfe ob BarcodeDetector wirklich unterstützt wird
+      if (!('BarcodeDetector' in window)) {
+        console.warn('[BarcodeScanner] BarcodeDetector nicht unterstützt, nutze Fallback');
+        throw new Error('BarcodeDetector nicht verfügbar');
+      }
+
+      // Überprüfe ob die Formate unterstützt werden
+      const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats?.();
+      console.log('[BarcodeScanner] Unterstützte Formate:', supportedFormats);
+
+      detectorRef.current = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
+      });
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
+        }
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        lastScanTimeRef.current = Date.now();
+        setIsInitializing(false);
+        scanningRef.current = true;
+
+        console.log('[BarcodeScanner] Native BarcodeDetector gestartet ⚡');
+        animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      }
+    } catch (err) {
+      console.warn('[BarcodeScanner] Native Detector fehlgeschlagen, nutze Fallback:', err);
+      // Fallback auf Html5Qrcode - wird jetzt korrekt aufgerufen
+      await startFallbackScanner();
+    }
+  }, [detectBarcodes, startFallbackScanner]);
 
   const startCamera = useCallback(async () => {
     try {
