@@ -254,70 +254,112 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   // Start with native BarcodeDetector (Chrome, Edge)
   const startNativeScanner = useCallback(async () => {
-    detectorRef.current = new (window as any).BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
-    });
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment',
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
+    try {
+      // Überprüfe ob BarcodeDetector wirklich unterstützt wird
+      if (!('BarcodeDetector' in window)) {
+        console.warn('[BarcodeScanner] BarcodeDetector nicht unterstützt, nutze Fallback');
+        throw new Error('BarcodeDetector nicht verfügbar');
       }
-    });
 
-    streamRef.current = stream;
+      // Überprüfe ob die Formate unterstützt werden
+      const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats?.();
+      console.log('[BarcodeScanner] Unterstützte Formate:', supportedFormats);
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+      detectorRef.current = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
+      });
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
+        }
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        lastScanTimeRef.current = Date.now();
+        setIsInitializing(false);
+        scanningRef.current = true;
+
+        console.log('[BarcodeScanner] Native BarcodeDetector gestartet ⚡');
+        animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      }
+    } catch (err) {
+      console.warn('[BarcodeScanner] Native Detector fehlgeschlagen, nutze Fallback:', err);
+      // Fallback auf Html5Qrcode
+      await startFallbackScanner();
+    }
+  }, [detectBarcodes, startFallbackScanner]);
+
+  // Fallback for Safari/Firefox and when BarcodeDetector fails
+  const startFallbackScanner = useCallback(async () => {
+    try {
+      console.log('[BarcodeScanner] Starte Html5Qrcode Fallback...');
+
+      // Stelle sicher, dass Container existiert
+      const container = document.getElementById("barcode-reader-fallback");
+      if (!container) {
+        console.error('[BarcodeScanner] Container nicht gefunden');
+        setError("Scanner Container konnte nicht geladen werden");
+        setIsInitializing(false);
+        return;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const scanner = new Html5Qrcode("barcode-reader-fallback", {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ],
+        verbose: true // Debug-Modus für bessere Fehlerbehandlung
+      });
+      html5QrcodeRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 30, // Maximale fps für schnelle Erkennung
+          qrbox: { width: 400, height: 200 }, // Größerer Erkennungsbereich
+          disableFlip: false, // Erlaube Flip für bessere Kompatibilität
+          aspectRatio: 1.33333, // Standard Kamera-Verhältnis
+        },
+        async (decodedText) => {
+          // Schneller Cooldown im Fallback
+          const now = Date.now();
+          console.log('[BarcodeScanner] Barcode erkannt:', decodedText);
+          if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== decodedText) {
+            lastScanTimeRef.current = now;
+            lastScannedRef.current = decodedText;
+            await lookupBarcode(decodedText);
+          }
+        },
+        (error) => {
+          // Error callback - logg aber nicht zu verbose
+          if (error && !error.toString().includes('No QR code found')) {
+            console.log('[BarcodeScanner] Scan error:', error);
+          }
+        }
+      );
 
       lastScanTimeRef.current = Date.now();
       setIsInitializing(false);
       scanningRef.current = true;
-
-      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      console.log('[BarcodeScanner] Html5Qrcode Fallback gestartet 📱');
+    } catch (err: any) {
+      console.error('[BarcodeScanner] Fallback-Fehler:', err);
+      setError(`Barcode-Scanner konnte nicht gestartet werden: ${err.message}`);
+      setIsInitializing(false);
     }
-  }, [detectBarcodes]);
-
-  // Fallback for Safari/Firefox
-  const startFallbackScanner = useCallback(async () => {
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    const scanner = new Html5Qrcode("barcode-reader-fallback", {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-      ],
-      verbose: false
-    });
-    html5QrcodeRef.current = scanner;
-
-    await scanner.start(
-      { facingMode: "environment" },
-      {
-        fps: 30, // Maximale fps für schnelle Erkennung
-        qrbox: { width: 400, height: 200 }, // Größerer Erkennungsbereich
-        disableFlip: false, // Erlaube Flip für bessere Kompatibilität
-      },
-      async (decodedText) => {
-        // Schneller Cooldown im Fallback
-        const now = Date.now();
-        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== decodedText) {
-          lastScanTimeRef.current = now;
-          lastScannedRef.current = decodedText;
-          await lookupBarcode(decodedText);
-        }
-      },
-      () => {}
-    );
-
-    lastScanTimeRef.current = Date.now();
-    setIsInitializing(false);
-    scanningRef.current = true;
   }, [lookupBarcode, SCAN_COOLDOWN]);
 
   const startCamera = useCallback(async () => {
@@ -331,14 +373,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.log('[BarcodeScanner] Starting...', {
         hasNative: hasNativeBarcodeDetector,
         userAgent: navigator.userAgent.substring(0, 50),
-        onLine: navigator.onLine
+        onLine: navigator.onLine,
+        isSecure: window.location.protocol === 'https:'
       });
 
+      // Prüfe HTTPS
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        throw new Error('SecurityError');
+      }
+
+      // Prüfe Internetverbindung
+      if (!navigator.onLine) {
+        throw new Error('Offline - Internetverbindung erforderlich');
+      }
+
       if (hasNativeBarcodeDetector) {
-        console.log('[BarcodeScanner] Verwende Native BarcodeDetector API (schneller)');
+        console.log('[BarcodeScanner] Versuche Native BarcodeDetector API (schneller)');
         await startNativeScanner();
       } else {
-        console.log('[BarcodeScanner] Verwende Html5Qrcode Fallback (langsamer)');
+        console.log('[BarcodeScanner] BarcodeDetector nicht verfügbar, nutze Html5Qrcode Fallback');
         await startFallbackScanner();
       }
     } catch (err: any) {
@@ -346,16 +399,19 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
       let errorMsg = "Kamera konnte nicht gestartet werden.";
 
-      if (err.name === 'NotAllowedError') {
+      if (err.name === 'NotAllowedError' || err.message?.includes('denied')) {
         errorMsg = "❌ Kamera-Zugriff verweigert!\n\n1. Klick auf das 🔒-Symbol in der Browserleiste\n2. Erlaube Kamera-Zugriff\n3. Versuche erneut";
-      } else if (err.name === 'NotFoundError') {
+      } else if (err.name === 'NotFoundError' || err.message?.includes('No camera')) {
         errorMsg = "❌ Keine Kamera gefunden!\n\nStelle sicher, dass:\n1. Ein Gerät mit Kamera vorhanden ist\n2. Es nicht von anderer App blockiert wird";
       } else if (err.name === 'NotReadableError') {
         errorMsg = "❌ Kamera wird bereits verwendet!\n\nAnwendungen schließen und erneut versuchen.";
-      } else if (err.name === 'SecurityError') {
+      } else if (err.name === 'SecurityError' || err.message?.includes('SecurityError')) {
         errorMsg = "❌ Sicherheitsfehler!\n\nHttps ist erforderlich (nicht Http).";
+      } else if (err.message?.includes('Offline')) {
+        errorMsg = "❌ Keine Internetverbindung!\n\nVerbinde dich mit WiFi oder Mobilfunk.";
       }
 
+      console.error('[BarcodeScanner] Error:', { name: err.name, message: err.message });
       setError(errorMsg);
       setIsInitializing(false);
     }
