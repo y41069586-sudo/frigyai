@@ -301,7 +301,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   // Fallback for Safari/Firefox and when BarcodeDetector fails
   const startFallbackScanner = useCallback(async () => {
     try {
-      console.log('[BarcodeScanner] Starte Html5Qrcode Fallback...');
+      console.log('[BarcodeScanner] Starte Html5Qrcode Fallback für Safari/iPad...');
 
       // Stelle sicher, dass Container existiert
       const container = document.getElementById("barcode-reader-fallback");
@@ -312,7 +312,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Für iPad/Safari: Geben Sie Zeit für DOM zu aktualisieren
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const scanner = new Html5Qrcode("barcode-reader-fallback", {
         formatsToSupport: [
@@ -325,13 +326,17 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       });
       html5QrcodeRef.current = scanner;
 
+      // iPad-optimierte Einstellungen
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 30, // Maximale fps für schnelle Erkennung
-          qrbox: { width: 400, height: 200 }, // Größerer Erkennungsbereich
-          disableFlip: false, // Erlaube Flip für bessere Kompatibilität
-          aspectRatio: 1.33333, // Standard Kamera-Verhältnis
+          fps: isIOS ? 15 : 30, // iPad: niedrigere fps für bessere Performance
+          qrbox: { width: 350, height: 300 }, // Größerer Erkennungsbereich für iPad
+          disableFlip: isIOS ? true : false, // iPad: deaktiviere Flip
+          aspectRatio: isIOS ? undefined : 1.33333, // iPad: lasse Browser Verhältnis wählen
+          useBarCodeDetectorIfSupported: false, // Erzwinge Html5Qrcode auch wenn BarcodeDetector verfügbar wäre
         },
         async (decodedText) => {
           // Schneller Cooldown im Fallback
@@ -346,7 +351,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         (error) => {
           // Error callback - logg aber nicht zu verbose
           if (error && !error.toString().includes('No QR code found')) {
-            console.log('[BarcodeScanner] Scan error:', error);
+            console.log('[BarcodeScanner] Scan-Versuch:', error?.toString?.());
           }
         }
       );
@@ -354,10 +359,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       lastScanTimeRef.current = Date.now();
       setIsInitializing(false);
       scanningRef.current = true;
-      console.log('[BarcodeScanner] Html5Qrcode Fallback gestartet 📱');
+      console.log('[BarcodeScanner] Html5Qrcode Fallback gestartet 📱', { isIOS });
     } catch (err: any) {
       console.error('[BarcodeScanner] Fallback-Fehler:', err);
-      setError(`Barcode-Scanner konnte nicht gestartet werden: ${err.message}`);
+      setError(`Barcode-Scanner konnte nicht gestartet werden: ${err.message || err}`);
       setIsInitializing(false);
     }
   }, [lookupBarcode, SCAN_COOLDOWN]);
@@ -607,11 +612,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           >
             <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
               <ShoppingCart className="h-4 w-4 text-primary" />
-              {hasNativeBarcodeDetector ? "⚡ Ultra-Schneller Scan Modus" : "📱 Kompatibilitätsmodus"} • Open Food Facts
+              {hasNativeBarcodeDetector ? "⚡ Ultra-Schneller Scan Modus" : "📱 Kompatibilitätsmodus (iPad/Safari)"} • Open Food Facts
             </p>
             <p className="text-white/60 text-xs">
-              {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline - Bitte Internet verbinden"} {!hasNativeBarcodeDetector && "• Nutze Chrome für beste Performance"}
+              {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline - Bitte Internet verbinden"}
             </p>
+            {!hasNativeBarcodeDetector && (
+              <p className="text-white/50 text-[10px] mt-1">
+                💡 Tipp: Halte Barcode ruhig und mittig in die Scan-Box für beste Erkennung
+              </p>
+            )}
           </motion.div>
         </div>
       </motion.div>
