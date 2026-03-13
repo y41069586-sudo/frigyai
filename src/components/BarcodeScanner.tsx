@@ -418,7 +418,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             playsInline
             muted
             autoPlay
-            style={{ transform: 'scaleX(-1)' }}
           />
 
           {/* Hidden canvas for barcode detection */}
