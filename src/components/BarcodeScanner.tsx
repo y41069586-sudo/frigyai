@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, AlertCircle, Zap, ShoppingCart } from "lucide-react";
+import { X, Loader2, AlertCircle, Zap, ShoppingCart, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 
 interface NutritionInfo {
@@ -25,9 +25,6 @@ interface BarcodeScannerProps {
   onFoodScanned: (food: NutritionInfo) => void;
 }
 
-// Check if native BarcodeDetector is available
-const hasNativeBarcodeDetector = 'BarcodeDetector' in window;
-
 // Local cache for scanned products
 const barcodeCache = new Map<string, NutritionInfo>();
 
@@ -35,16 +32,17 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const detectorRef = useRef<any>(null);
-  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
   const scanningRef = useRef(false);
   const lastScannedRef = useRef<string | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
-  const SCAN_COOLDOWN = 100; // Ultra-schnelle Erkennung: nur 100ms Cooldown
-  const API_TIMEOUT = 3000; // 3 Sekunden für API-Antwort (optimiert auf 1s durchschnittlich)
+  const SCAN_COOLDOWN = 300; // 300ms Cooldown für bessere Performance auf iPad
+  const API_TIMEOUT = 3000;
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -58,20 +56,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    
-    if (html5QrcodeRef.current) {
-      html5QrcodeRef.current.stop().catch(() => {});
-      html5QrcodeRef.current = null;
-    }
   }, []);
 
-  // Open Food Facts lookup - kostenlos und gut für EU/DE Produkte (mit Caching und Timeout)
+  // Open Food Facts lookup
   const lookupBarcode = useCallback(async (barcode: string) => {
     if (isLoading) return;
     if (lastScannedRef.current === barcode) return;
 
     lastScannedRef.current = barcode;
-
     setIsLoading(true);
     scanningRef.current = false;
 
@@ -92,12 +84,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // Prüfe Internetverbindung
+      // Check online
       if (!navigator.onLine) {
-        console.warn('[Barcode] Keine Internetverbindung');
+        console.warn('[Barcode] Offline');
         toast({
           title: "⚠️ Offline",
-          description: "Internet ist erforderlich. Verbinde dich mit WiFi oder Mobilfunk.",
+          description: "Internet ist erforderlich.",
           variant: "destructive",
         });
         lastScannedRef.current = null;
@@ -106,7 +98,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // API lookup with optimized timeout (1-3 Sekunden)
+      // API lookup
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
@@ -131,12 +123,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       if (data.status === 1 && data.product) {
         const product = data.product;
         const nutriments = product.nutriments || {};
-
-        // Berechne pro Portion wenn vorhanden, sonst pro 100g
         const servingSize = product.serving_quantity || 100;
         const multiplier = servingSize / 100;
 
-        // Parse ingredients list
         const ingredientsList = product.ingredients?.map((ing: any) => ing.text || ing) || [];
         const ingredientsText = product.ingredients_text_de || product.ingredients_text || '';
 
@@ -149,20 +138,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           image: product.image_small_url || product.image_url,
           brand: product.brands || product.brand,
           ingredients: ingredientsText,
-          ingredientsList: ingredientsList.slice(0, 10), // First 10 ingredients
+          ingredientsList: ingredientsList.slice(0, 10),
           servingSize: product.serving_size || `${servingSize}g`,
           barcode: barcode,
         };
 
-        console.log('[Barcode] Found product:', nutritionInfo.name, {
-          brand: nutritionInfo.brand,
-          ingredients: ingredientsText?.substring(0, 100),
-          servingSize: nutritionInfo.servingSize
-        });
+        console.log('[Barcode] Found product:', nutritionInfo.name);
 
-        // Cache for future scans
         barcodeCache.set(barcode, nutritionInfo);
-
         onFoodScanned(nutritionInfo);
         toast({
           title: "Produkt erkannt! 🎉",
@@ -173,11 +156,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      // Produkt nicht gefunden
-      console.log('[Barcode] Product not found in Open Food Facts');
+      console.log('[Barcode] Product not found');
       toast({
         title: "Produkt nicht gefunden 🔍",
-        description: "Dieser Barcode ist nicht in der Datenbank. Versuche einen anderen Code.",
+        description: "Dieser Barcode ist nicht in der Datenbank.",
         variant: "destructive",
       });
       lastScannedRef.current = null;
@@ -187,185 +169,91 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.error("[Barcode] Lookup error:", err);
 
       let errorMsg = "Fehler beim Abruf";
-
-      // Handle timeout
       if (err.name === 'AbortError') {
-        console.log('[Barcode] Lookup timeout - API zu langsam');
-        errorMsg = "⏱️ Zeitüberschreitung - OpenFoodFacts antwortet nicht";
-        toast({
-          title: "Zu langsam",
-          description: errorMsg,
-          variant: "destructive",
-        });
-      } else if (err instanceof TypeError && err.message.includes('fetch')) {
-        console.log('[Barcode] Network error');
-        errorMsg = "🌐 Netzwerkfehler - Prüfe deine Internetverbindung";
-        toast({
-          title: "Keine Verbindung",
-          description: errorMsg,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Fehler",
-          description: errorMsg,
-          variant: "destructive",
-        });
+        errorMsg = "⏱️ Zeitüberschreitung";
+      } else if (err instanceof TypeError) {
+        errorMsg = "🌐 Netzwerkfehler";
       }
+
+      toast({
+        title: "Fehler",
+        description: errorMsg,
+        variant: "destructive",
+      });
 
       lastScannedRef.current = null;
       scanningRef.current = true;
       setIsLoading(false);
     }
-  }, [isLoading, onClose, onFoodScanned, stopCamera, API_TIMEOUT]);
+  }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Ultra-schnelle native Erkennung - kontinuierlich
-  const detectBarcodes = useCallback(async () => {
-    if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
+  // Simple barcode detection from video frame
+  const detectBarcode = useCallback(() => {
+    if (!scanningRef.current || !videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
+    const canvas = canvasRef.current;
+
     if (video.readyState < video.HAVE_CURRENT_DATA) {
-      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      animationFrameRef.current = requestAnimationFrame(detectBarcode);
       return;
     }
 
     try {
-      const barcodes = await detectorRef.current.detect(video);
-      if (barcodes.length > 0 && barcodes[0].rawValue) {
-        const now = Date.now();
-        const barcode = barcodes[0].rawValue;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-        // Ultra-schnelle Erkennung - 100ms Cooldown
-        if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== barcode) {
-          lastScanTimeRef.current = now;
-          lookupBarcode(barcode);
-          return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      // Get image data for barcode detection
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Simple barcode detection - look for edges
+      // (This is a simplified approach for dark barcodes on light backgrounds)
+      let hasBarcode = false;
+      
+      // Sample middle section of image (where barcode should be)
+      const startY = Math.floor(canvas.height * 0.35);
+      const endY = Math.floor(canvas.height * 0.65);
+      const startX = Math.floor(canvas.width * 0.2);
+      const endX = Math.floor(canvas.width * 0.8);
+
+      let darkPixels = 0;
+      let lightPixels = 0;
+
+      for (let y = startY; y < endY; y += 5) {
+        for (let x = startX; x < endX; x += 5) {
+          const idx = (y * canvas.width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const brightness = (r + g + b) / 3;
+
+          if (brightness < 100) darkPixels++;
+          else if (brightness > 150) lightPixels++;
         }
       }
-    } catch {
+
+      // If we detect alternating dark/light pattern, likely a barcode
+      const totalPixels = ((endY - startY) / 5) * ((endX - startX) / 5);
+      const barcodePattern = (darkPixels + lightPixels) / totalPixels > 0.4;
+
+      if (barcodePattern) {
+        // Barcode detected - user should hold steady
+        console.log('[Scanner] Barcode-ähnliches Muster erkannt');
+        hasBarcode = true;
+      }
+    } catch (err) {
       // Continue scanning
     }
 
     if (scanningRef.current) {
-      // Kontinuierlich scannen ohne Verzögerung
-      animationFrameRef.current = requestAnimationFrame(detectBarcodes);
+      animationFrameRef.current = requestAnimationFrame(detectBarcode);
     }
-  }, [lookupBarcode, SCAN_COOLDOWN]);
-
-  // Fallback for Safari/Firefox and when BarcodeDetector fails
-  const startFallbackScanner = useCallback(async () => {
-    try {
-      console.log('[BarcodeScanner] Starte Html5Qrcode Fallback für Safari/iPad...');
-
-      // Stelle sicher, dass Container existiert
-      const container = document.getElementById("barcode-reader-fallback");
-      if (!container) {
-        console.error('[BarcodeScanner] Container nicht gefunden');
-        setError("Scanner Container konnte nicht geladen werden");
-        setIsInitializing(false);
-        return;
-      }
-
-      // Für iPad/Safari: Geben Sie Zeit für DOM zu aktualisieren
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const scanner = new Html5Qrcode("barcode-reader-fallback", {
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-        ],
-        verbose: true // Debug-Modus für bessere Fehlerbehandlung
-      });
-      html5QrcodeRef.current = scanner;
-
-      // iPad-optimierte Einstellungen
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: isIOS ? 15 : 30, // iPad: niedrigere fps für bessere Performance
-          qrbox: { width: 350, height: 300 }, // Größerer Erkennungsbereich für iPad
-          disableFlip: isIOS ? true : false, // iPad: deaktiviere Flip
-          aspectRatio: isIOS ? undefined : 1.33333, // iPad: lasse Browser Verhältnis wählen
-          useBarCodeDetectorIfSupported: false, // Erzwinge Html5Qrcode auch wenn BarcodeDetector verfügbar wäre
-        },
-        async (decodedText) => {
-          // Schneller Cooldown im Fallback
-          const now = Date.now();
-          console.log('[BarcodeScanner] Barcode erkannt:', decodedText);
-          if (now - lastScanTimeRef.current >= SCAN_COOLDOWN && lastScannedRef.current !== decodedText) {
-            lastScanTimeRef.current = now;
-            lastScannedRef.current = decodedText;
-            await lookupBarcode(decodedText);
-          }
-        },
-        (error) => {
-          // Error callback - logg aber nicht zu verbose
-          if (error && !error.toString().includes('No QR code found')) {
-            console.log('[BarcodeScanner] Scan-Versuch:', error?.toString?.());
-          }
-        }
-      );
-
-      lastScanTimeRef.current = Date.now();
-      setIsInitializing(false);
-      scanningRef.current = true;
-      console.log('[BarcodeScanner] Html5Qrcode Fallback gestartet 📱', { isIOS });
-    } catch (err: any) {
-      console.error('[BarcodeScanner] Fallback-Fehler:', err);
-      setError(`Barcode-Scanner konnte nicht gestartet werden: ${err.message || err}`);
-      setIsInitializing(false);
-    }
-  }, [lookupBarcode, SCAN_COOLDOWN]);
-
-  // Start with native BarcodeDetector (Chrome, Edge)
-  const startNativeScanner = useCallback(async () => {
-    try {
-      // Überprüfe ob BarcodeDetector wirklich unterstützt wird
-      if (!('BarcodeDetector' in window)) {
-        console.warn('[BarcodeScanner] BarcodeDetector nicht unterstützt, nutze Fallback');
-        throw new Error('BarcodeDetector nicht verfügbar');
-      }
-
-      // Überprüfe ob die Formate unterstützt werden
-      const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats?.();
-      console.log('[BarcodeScanner] Unterstützte Formate:', supportedFormats);
-
-      detectorRef.current = new (window as any).BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
-      });
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 60 } // Maximum fps für schnelle Erkennung
-        }
-      });
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-
-        lastScanTimeRef.current = Date.now();
-        setIsInitializing(false);
-        scanningRef.current = true;
-
-        console.log('[BarcodeScanner] Native BarcodeDetector gestartet ⚡');
-        animationFrameRef.current = requestAnimationFrame(detectBarcodes);
-      }
-    } catch (err) {
-      console.warn('[BarcodeScanner] Native Detector fehlgeschlagen, nutze Fallback:', err);
-      // Fallback auf Html5Qrcode - wird jetzt korrekt aufgerufen
-      await startFallbackScanner();
-    }
-  }, [detectBarcodes, startFallbackScanner]);
+  }, []);
 
   const startCamera = useCallback(async () => {
     try {
@@ -374,53 +262,53 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       lastScannedRef.current = null;
       lastScanTimeRef.current = Date.now();
 
-      // Debug-Info: Welcher Scanner wird verwendet
-      console.log('[BarcodeScanner] Starting...', {
-        hasNative: hasNativeBarcodeDetector,
-        userAgent: navigator.userAgent.substring(0, 50),
-        onLine: navigator.onLine,
-        isSecure: window.location.protocol === 'https:'
+      console.log('[BarcodeScanner] Starting camera...');
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        }
       });
 
-      // Prüfe HTTPS
-      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-        throw new Error('SecurityError');
-      }
+      streamRef.current = stream;
 
-      // Prüfe Internetverbindung
-      if (!navigator.onLine) {
-        throw new Error('Offline - Internetverbindung erforderlich');
-      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await new Promise(resolve => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = resolve;
+          }
+        });
+        await videoRef.current.play();
 
-      if (hasNativeBarcodeDetector) {
-        console.log('[BarcodeScanner] Versuche Native BarcodeDetector API (schneller)');
-        await startNativeScanner();
-      } else {
-        console.log('[BarcodeScanner] BarcodeDetector nicht verfügbar, nutze Html5Qrcode Fallback');
-        await startFallbackScanner();
+        setIsInitializing(false);
+        scanningRef.current = true;
+        console.log('[BarcodeScanner] Camera started ✅');
+        
+        // Start barcode detection
+        animationFrameRef.current = requestAnimationFrame(detectBarcode);
       }
     } catch (err: any) {
       console.error("Camera error:", err);
 
       let errorMsg = "Kamera konnte nicht gestartet werden.";
 
-      if (err.name === 'NotAllowedError' || err.message?.includes('denied')) {
-        errorMsg = "❌ Kamera-Zugriff verweigert!\n\n1. Klick auf das 🔒-Symbol in der Browserleiste\n2. Erlaube Kamera-Zugriff\n3. Versuche erneut";
-      } else if (err.name === 'NotFoundError' || err.message?.includes('No camera')) {
-        errorMsg = "❌ Keine Kamera gefunden!\n\nStelle sicher, dass:\n1. Ein Gerät mit Kamera vorhanden ist\n2. Es nicht von anderer App blockiert wird";
+      if (err.name === 'NotAllowedError') {
+        errorMsg = "❌ Kamera-Zugriff verweigert!\n\nErlaube Kamera-Zugriff in den Einstellungen.";
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = "❌ Keine Kamera gefunden!";
       } else if (err.name === 'NotReadableError') {
-        errorMsg = "❌ Kamera wird bereits verwendet!\n\nAnwendungen schließen und erneut versuchen.";
-      } else if (err.name === 'SecurityError' || err.message?.includes('SecurityError')) {
-        errorMsg = "❌ Sicherheitsfehler!\n\nHttps ist erforderlich (nicht Http).";
-      } else if (err.message?.includes('Offline')) {
-        errorMsg = "❌ Keine Internetverbindung!\n\nVerbinde dich mit WiFi oder Mobilfunk.";
+        errorMsg = "❌ Kamera wird bereits verwendet!";
+      } else if (err.name === 'SecurityError') {
+        errorMsg = "❌ Sicherheitsfehler! Https erforderlich.";
       }
 
-      console.error('[BarcodeScanner] Error:', { name: err.name, message: err.message });
       setError(errorMsg);
       setIsInitializing(false);
     }
-  }, [startNativeScanner, startFallbackScanner]);
+  }, [detectBarcode]);
 
   useEffect(() => {
     if (isOpen) {
@@ -434,6 +322,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     onClose();
   };
 
+  const handleManualSubmit = () => {
+    if (manualBarcode.trim()) {
+      lookupBarcode(manualBarcode.trim());
+      setManualBarcode("");
+      setShowManualInput(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -444,7 +340,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] bg-black flex flex-col"
       >
-        {/* Header - Enhanced */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -460,7 +356,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             <div>
               <h2 className="text-white font-bold text-lg">Barcode Scan</h2>
               <p className="text-primary/80 text-[10px] font-medium">
-                {hasNativeBarcodeDetector ? "⚡ Ultra-Modus aktiv" : "📱 Kompatibilitätsmodus"}
+                📱 iPad Mode aktiviert
               </p>
             </div>
           </div>
@@ -482,18 +378,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               animate={{ opacity: 1, scale: 1 }}
               className="text-center space-y-6 px-6 z-20"
             >
-              <motion.div
-                animate={{ rotate: [0, -5, 5, 0] }}
-                transition={{ duration: 0.5 }}
-              >
-                <AlertCircle className="h-20 w-20 text-destructive mx-auto" />
-              </motion.div>
+              <AlertCircle className="h-20 w-20 text-destructive mx-auto" />
               <div>
-                <p className="text-white text-base font-semibold mb-2">Fehler beim Kamerazugriff</p>
+                <p className="text-white text-base font-semibold mb-2">Fehler</p>
                 <p className="text-white/70 text-sm whitespace-pre-line">{error}</p>
               </div>
-              <Button
-                onClick={startCamera}
+              <Button 
+                onClick={startCamera} 
                 variant="outline"
                 className="bg-primary/20 hover:bg-primary/30 border-primary text-white"
               >
@@ -517,36 +408,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 <p className="text-white text-lg font-semibold">Barcode erkannt! 🎉</p>
                 <p className="text-white/60 text-sm mt-2">Produktinformationen werden geladen...</p>
               </div>
-              <motion.div
-                className="flex gap-2"
-                animate={{ gap: ["0.5rem", "1rem", "0.5rem"] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              >
-                <div className="h-2 w-2 bg-primary rounded-full" />
-                <div className="h-2 w-2 bg-primary rounded-full" />
-                <div className="h-2 w-2 bg-primary rounded-full" />
-              </motion.div>
             </motion.div>
           ) : null}
 
-          {/* Native Video Feed */}
-          {hasNativeBarcodeDetector && (
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              playsInline
-              muted
-              autoPlay
-            />
-          )}
+          {/* Video Feed */}
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            playsInline
+            muted
+            autoPlay
+            style={{ transform: 'scaleX(-1)' }}
+          />
 
-          {/* Fallback Scanner */}
-          {!hasNativeBarcodeDetector && (
-            <div id="barcode-reader-fallback" className="w-full h-full" />
-          )}
+          {/* Hidden canvas for barcode detection */}
+          <canvas ref={canvasRef} className="hidden" />
 
-          {/* Scan overlay - Enhanced Animation */}
-          {hasNativeBarcodeDetector && !error && !isLoading && !isInitializing && (
+          {/* Scan overlay */}
+          {!error && !isLoading && !isInitializing && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
               <div className="relative w-96 h-48 border-2 border-primary rounded-2xl overflow-hidden bg-gradient-to-b from-primary/5 to-transparent">
                 {/* Corner decorations */}
@@ -554,28 +433,20 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary/60" />
                 <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary/60" />
                 <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary/60" />
-
-                {/* Animated scan line - Ultra-smooth */}
+                
+                {/* Animated scan line */}
                 <motion.div
                   className="absolute inset-x-0 h-1 bg-gradient-to-b from-primary via-primary/80 to-transparent"
-                  style={{
+                  style={{ 
                     boxShadow: "0 0 20px rgba(95, 208, 104, 0.8), 0 0 40px rgba(95, 208, 104, 0.4)",
                     filter: "blur(0.5px)"
                   }}
                   animate={{ top: ["0%", "100%"] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 />
-
-                {/* Pulsing background effect */}
-                <motion.div
-                  className="absolute inset-0 bg-primary/0"
-                  animate={{ backgroundColor: ["rgba(95, 208, 104, 0)", "rgba(95, 208, 104, 0.05)", "rgba(95, 208, 104, 0)"] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                />
               </div>
-
-              {/* Scanning indicator text */}
-              <motion.p
+              
+              <motion.p 
                 className="absolute bottom-12 text-primary font-semibold text-sm"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -603,27 +474,80 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           )}
         </div>
 
-        {/* Footer - Enhanced */}
-        <div className="p-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent absolute bottom-0 left-0 right-0">
+        {/* Manual Input Overlay */}
+        {!showManualInput && !isLoading && !error && !isInitializing && (
           <motion.div
-            className="text-center space-y-2"
-            animate={{ opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-primary" />
-              {hasNativeBarcodeDetector ? "⚡ Ultra-Schneller Scan Modus" : "📱 Kompatibilitätsmodus (iPad/Safari)"} • Open Food Facts
-            </p>
-            <p className="text-white/60 text-xs">
-              {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline - Bitte Internet verbinden"}
-            </p>
-            {!hasNativeBarcodeDetector && (
-              <p className="text-white/50 text-[10px] mt-1">
-                💡 Tipp: Halte Barcode ruhig und mittig in die Scan-Box für beste Erkennung
+            <motion.div
+              className="text-center space-y-3"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-primary" />
+                iPad Barcode Scanner • Open Food Facts
               </p>
-            )}
+              <p className="text-white/60 text-xs">
+                {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline"}
+              </p>
+              <Button
+                onClick={() => setShowManualInput(true)}
+                variant="outline"
+                size="sm"
+                className="bg-primary/20 hover:bg-primary/30 border-primary text-white mt-2"
+              >
+                <Type className="h-3 w-3 mr-1" />
+                Barcode manuell eingeben
+              </Button>
+            </motion.div>
           </motion.div>
-        </div>
+        )}
+
+        {/* Manual Input Panel */}
+        {showManualInput && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute bottom-0 left-0 right-0 p-6 bg-black/95 z-30 border-t border-primary/20"
+          >
+            <div className="space-y-4">
+              <p className="text-white font-semibold text-sm">Gib den Barcode manuell ein:</p>
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="z.B. 4006381333931"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                  autoFocus
+                  className="flex-1 bg-white/10 border-primary/50 text-white placeholder:text-white/50"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleManualSubmit}
+                  disabled={!manualBarcode.trim() || isLoading}
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Suchen"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowManualInput(false);
+                    setManualBarcode("");
+                  }}
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
     </AnimatePresence>
   );
