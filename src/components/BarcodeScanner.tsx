@@ -476,32 +476,39 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         {/* Manual Input Overlay */}
         {!showManualInput && !isLoading && !error && !isInitializing && (
           <motion.div
-            className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/95 via-black/50 to-transparent"
+            className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/98 via-black/80 to-transparent"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <motion.div
-              className="text-center space-y-3"
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-primary" />
-                iPad Barcode Scanner • Open Food Facts
-              </p>
-              <p className="text-white/60 text-xs">
-                {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline"}
-              </p>
-              <Button
-                onClick={() => setShowManualInput(true)}
-                variant="outline"
-                size="sm"
-                className="bg-primary/20 hover:bg-primary/30 border-primary text-white mt-2"
+            <div className="text-center space-y-4 max-w-sm mx-auto">
+              <div className="space-y-2">
+                <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-primary" />
+                  iPad Barcode Scanner • Open Food Facts
+                </p>
+                <p className="text-white/60 text-xs">
+                  {navigator.onLine ? "🟢 Online verfügbar" : "🔴 Offline"}
+                </p>
+              </div>
+
+              {/* Large Manual Button */}
+              <motion.div
+                animate={{ scale: [0.98, 1.02, 0.98] }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                <Type className="h-3 w-3 mr-1" />
-                Barcode manuell eingeben
-              </Button>
-            </motion.div>
+                <Button
+                  onClick={() => setShowManualInput(true)}
+                  className="w-full bg-primary hover:bg-primary/90 text-black font-bold text-base py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Type className="h-5 w-5 mr-2" />
+                  MANUELL EINGEBEN
+                </Button>
+              </motion.div>
+
+              <p className="text-white/50 text-xs">
+                💡 Falls Kamera-Scan nicht funktioniert
+              </p>
+            </div>
           </motion.div>
         )}
 
