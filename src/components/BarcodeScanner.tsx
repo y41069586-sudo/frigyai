@@ -122,7 +122,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.log('[BarcodeScanner] Starting scanner...');
       quaggaRef.current = Quagga;
 
-      // Initialize Quagga
+      // Initialize Quagga with optimized settings for fast detection
       await new Promise<void>((resolve, reject) => {
         const initTimeout = setTimeout(() => {
           reject(new Error('Quagga initialization timeout'));
@@ -130,21 +130,36 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
         Quagga.init(
           {
+            frequency: 5, // Optimized for ~1 second detection time
             inputStream: {
               type: 'LiveStream',
               target: document.querySelector('#barcode-reader'),
               constraints: {
                 facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
               },
             },
             locator: {
-              patchSize: 'large',
+              patchSize: 'medium', // Balanced between speed and accuracy
               halfSample: true,
             },
             numOfWorkers: 4,
             decoder: {
-              readers: ['ean_reader', 'ean_8_reader', 'upc_reader'],
+              readers: [
+                'ean_8_reader',
+                'ean_reader',
+                'upc_reader',
+                'upc_e_reader',
+              ], // Optimized order for common barcodes
+              debug: {
+                drawBoundingBox: false,
+                drawScanline: false,
+                showFrequency: false,
+                showPattern: false,
+              },
             },
+            multiple: false, // Stop on first detection
           },
           (err: any) => {
             clearTimeout(initTimeout);
