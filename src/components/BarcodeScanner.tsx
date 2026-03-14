@@ -4,6 +4,7 @@ import { X, Loader2, AlertCircle, Zap, ShoppingCart, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { Html5Qrcode } from "html5-qrcode";
 
 interface NutritionInfo {
   name: string;
@@ -28,34 +29,6 @@ interface BarcodeScannerProps {
 // Local cache
 const barcodeCache = new Map<string, NutritionInfo>();
 
-// Barcode pattern recognition - detects EAN/UPC patterns
-const detectBarcodeInImage = (imageData: ImageData): string | null => {
-  const data = imageData.data;
-  const width = imageData.width;
-  const height = imageData.height;
-
-  // Scan horizontally for barcode patterns
-  for (let y = Math.floor(height * 0.3); y < Math.floor(height * 0.7); y += 10) {
-    let line = '';
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const brightness = (r + g + b) / 3;
-      line += brightness < 128 ? '1' : '0';
-    }
-
-    // Look for repeating patterns (barcode characteristic)
-    const matches = line.match(/1{3,8}0{1,3}|0{3,8}1{1,3}/g);
-    if (matches && matches.length > 30) {
-      // Found barcode-like pattern
-      return 'DETECTED';
-    }
-  }
-
-  return null;
-};
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -74,15 +47,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
-    
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+
+    if (html5qrcodeRef.current) {
+      try {
+        html5qrcodeRef.current.clear();
+      } catch (err) {
+        console.warn("[Html5Qrcode] Clear error:", err);
+      }
+      html5qrcodeRef.current = null;
     }
   }, []);
 
@@ -197,21 +179,77 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Simple camera preview - no auto detection
-  const detectBarcode = useCallback(() => {
-    if (!scanningRef.current || !videoRef.current) return;
+  // Detect barcodes using html5-qrcode from the video canvas
+  const html5qrcodeRef = useRef<Html5Qrcode | null>(null);
 
-    const video = videoRef.current;
-    if (video.readyState < video.HAVE_CURRENT_DATA) {
-      animationFrameRef.current = requestAnimationFrame(detectBarcode);
-      return;
-    }
-
-    // Just keep the stream running - user taps "Manuell eingeben" button
-    if (scanningRef.current) {
-      animationFrameRef.current = requestAnimationFrame(detectBarcode);
+  useEffect(() => {
+    // Create a hidden container for html5-qrcode if it doesn't exist
+    if (!document.getElementById("barcode-scanner-hidden")) {
+      const container = document.createElement("div");
+      container.id = "barcode-scanner-hidden";
+      container.style.display = "none";
+      document.body.appendChild(container);
     }
   }, []);
+
+  const detectBarcode = useCallback(async () => {
+    if (!scanningRef.current || !videoRef.current || !canvasRef.current) return;
+
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+
+      if (video.readyState < video.HAVE_CURRENT_DATA) {
+        animationFrameRef.current = requestAnimationFrame(detectBarcode);
+        return;
+      }
+
+      // Draw video frame to canvas
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        animationFrameRef.current = requestAnimationFrame(detectBarcode);
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Initialize html5-qrcode instance if not already done
+      if (!html5qrcodeRef.current) {
+        try {
+          html5qrcodeRef.current = new Html5Qrcode("barcode-scanner-hidden");
+        } catch (err) {
+          console.warn("[Html5Qrcode] Init warning:", err);
+        }
+      }
+
+      if (html5qrcodeRef.current) {
+        try {
+          const result = await html5qrcodeRef.current.scanImgData(canvas, true);
+          if (result && result.decodedText && scanningRef.current) {
+            const barcode = result.decodedText.trim();
+            if (barcode && barcode !== lastScannedRef.current) {
+              console.log("[Html5Qrcode] Barcode detected:", barcode);
+              await lookupBarcode(barcode);
+              return;
+            }
+          }
+        } catch (err) {
+          // No barcode found in this frame, continue scanning
+        }
+      }
+
+      if (scanningRef.current) {
+        animationFrameRef.current = requestAnimationFrame(detectBarcode);
+      }
+    } catch (err) {
+      console.error("[Barcode Detection] Error:", err);
+      if (scanningRef.current) {
+        animationFrameRef.current = requestAnimationFrame(detectBarcode);
+      }
+    }
+  }, [lookupBarcode]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -263,8 +301,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         setIsInitializing(false);
         scanningRef.current = true;
         setDetectionStatus("Barcode suchen...");
-        console.log('[BarcodeScanner] Kamera aktiv ✅');
+        console.log('[BarcodeScanner] Barcode-Scanner aktiv ✅');
 
+        // Start detecting barcodes from video frames
         animationFrameRef.current = requestAnimationFrame(detectBarcode);
       }
     } catch (err: any) {
