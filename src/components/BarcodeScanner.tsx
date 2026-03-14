@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,11 +22,25 @@ interface BarcodeScannerProps {
 }
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [productData, setProductData] = useState<NutritionInfo | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
+  const quaggaRef = useRef<any>(null);
+
+  // Load Quagga2 library from CDN
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js';
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -46,21 +59,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const stopScanner = async () => {
     try {
-      if (scannerRef.current) {
+      if (quaggaRef.current) {
         try {
-          await scannerRef.current.stop();
-        } catch (stopErr: any) {
-          // Ignore "not running" errors - scanner might already be stopped
-          if (!stopErr.message?.includes('not running')) {
-            console.warn('Error stopping scanner:', stopErr);
+          const Quagga = (window as any).Quagga;
+          if (Quagga) {
+            Quagga.stop();
           }
+        } catch (stopErr) {
+          console.warn('Error stopping Quagga scanner:', stopErr);
         }
-        try {
-          scannerRef.current.clear();
-        } catch (clearErr) {
-          console.warn('Error clearing scanner:', clearErr);
-        }
-        scannerRef.current = null;
+        quaggaRef.current = null;
       }
       setIsScannerActive(false);
     } catch (err) {
@@ -74,36 +82,55 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setError(null);
       setIsScannerActive(false);
 
-      // Check if cameras are available
-      const devices = await Html5Qrcode.getCameras();
-      
-      if (!devices || devices.length === 0) {
-        setError('❌ Keine Kamera gefunden!');
+      const Quagga = (window as any).Quagga;
+      if (!Quagga) {
+        setError('❌ Quagga2 Library nicht geladen');
         return;
       }
 
-      // Initialize scanner
-      scannerRef.current = new Html5Qrcode('barcode-reader', false);
+      quaggaRef.current = Quagga;
 
-      // Start scanning
-      await scannerRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 15,
-          qrbox: { width: 250, height: 120 },
-        },
-        async (barcode) => {
-          await handleBarcodeDetected(barcode);
-        },
-        (err) => {
-          console.warn('Scanner error:', err);
-        }
-      );
+      // Initialize Quagga
+      await new Promise<void>((resolve, reject) => {
+        Quagga.init(
+          {
+            inputStream: {
+              type: 'LiveStream',
+              target: document.querySelector('#barcode-reader'),
+              constraints: {
+                facingMode: 'environment',
+              },
+            },
+            locator: {
+              patchSize: 'large',
+              halfSample: true,
+            },
+            numOfWorkers: 4,
+            decoder: {
+              readers: ['ean_reader', 'ean_8_reader', 'upc_reader'],
+            },
+          },
+          (err: any) => {
+            if (err) {
+              console.error('Quagga init error:', err);
+              reject(err);
+            } else {
+              Quagga.start();
+              setIsScannerActive(true);
+              resolve();
+            }
+          }
+        );
+      });
 
-      setIsScannerActive(true);
+      // Set up detection handler
+      Quagga.onDetected((data: any) => {
+        const code = data.codeResult.code;
+        handleBarcodeDetected(code);
+      });
     } catch (err: any) {
       console.error('Scanner init error:', err);
-      
+
       let errorMsg = '❌ Kamera konnte nicht gestartet werden';
       if (err.message?.includes('NotAllowedError')) {
         errorMsg = '❌ Kamera-Zugriff verweigert!';
@@ -112,7 +139,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       } else if (err.message?.includes('NotReadableError')) {
         errorMsg = '❌ Kamera wird bereits verwendet!';
       }
-      
+
       setError(errorMsg);
       setIsScannerActive(false);
     }
@@ -122,12 +149,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (!barcode || isLoading || productData) return;
 
     try {
-      // Pause scanner (ignore errors if already paused)
-      if (scannerRef.current) {
+      // Stop scanner
+      const Quagga = (window as any).Quagga;
+      if (Quagga) {
         try {
-          await scannerRef.current.pause();
-        } catch (pauseErr) {
-          console.warn('Scanner pause error (ignored):', pauseErr);
+          Quagga.stop();
+        } catch (stopErr) {
+          console.warn('Scanner stop error (ignored):', stopErr);
         }
       }
 
@@ -180,9 +208,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         });
 
         // Resume scanning if product not found
-        if (scannerRef.current) {
+        const Quagga = (window as any).Quagga;
+        if (Quagga) {
           try {
-            await scannerRef.current.resume();
+            Quagga.start();
           } catch (resumeErr) {
             console.warn('Scanner resume error (ignored):', resumeErr);
           }
@@ -197,9 +226,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       });
 
       // Resume scanning on error
-      if (scannerRef.current) {
+      const Quagga = (window as any).Quagga;
+      if (Quagga) {
         try {
-          await scannerRef.current.resume();
+          Quagga.start();
         } catch (resumeErr) {
           console.warn('Scanner resume error (ignored):', resumeErr);
         }
@@ -211,9 +241,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const handleScanAnother = async () => {
     setProductData(null);
-    if (scannerRef.current) {
+    const Quagga = (window as any).Quagga;
+    if (Quagga) {
       try {
-        await scannerRef.current.resume();
+        Quagga.start();
+        setIsScannerActive(true);
       } catch (resumeErr) {
         console.warn('Scanner resume error:', resumeErr);
         // Try to restart scanner if resume fails
