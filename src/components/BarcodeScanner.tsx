@@ -47,13 +47,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const stopScanner = async () => {
     try {
       if (scannerRef.current) {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
+        try {
+          await scannerRef.current.stop();
+        } catch (stopErr: any) {
+          // Ignore "not running" errors - scanner might already be stopped
+          if (!stopErr.message?.includes('not running')) {
+            console.warn('Error stopping scanner:', stopErr);
+          }
+        }
+        try {
+          scannerRef.current.clear();
+        } catch (clearErr) {
+          console.warn('Error clearing scanner:', clearErr);
+        }
         scannerRef.current = null;
       }
       setIsScannerActive(false);
     } catch (err) {
-      console.error('Error stopping scanner:', err);
+      console.error('Unexpected error in stopScanner:', err);
+      setIsScannerActive(false);
     }
   };
 
@@ -110,11 +122,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (!barcode || isLoading || productData) return;
 
     try {
-      // Pause scanner
+      // Pause scanner (ignore errors if already paused)
       if (scannerRef.current) {
-        await scannerRef.current.pause();
+        try {
+          await scannerRef.current.pause();
+        } catch (pauseErr) {
+          console.warn('Scanner pause error (ignored):', pauseErr);
+        }
       }
-      
+
       setIsLoading(true);
       console.log('[BarcodeScanner] Looking up:', barcode);
 
@@ -162,10 +178,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           description: 'Dieser Barcode existiert nicht in der Datenbank',
           variant: 'destructive',
         });
-        
+
         // Resume scanning if product not found
         if (scannerRef.current) {
-          await scannerRef.current.resume();
+          try {
+            await scannerRef.current.resume();
+          } catch (resumeErr) {
+            console.warn('Scanner resume error (ignored):', resumeErr);
+          }
         }
       }
     } catch (err: any) {
@@ -175,10 +195,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         description: err.message || 'Fehler beim Abrufen der Produktdaten',
         variant: 'destructive',
       });
-      
+
       // Resume scanning on error
       if (scannerRef.current) {
-        await scannerRef.current.resume();
+        try {
+          await scannerRef.current.resume();
+        } catch (resumeErr) {
+          console.warn('Scanner resume error (ignored):', resumeErr);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -188,7 +212,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const handleScanAnother = async () => {
     setProductData(null);
     if (scannerRef.current) {
-      await scannerRef.current.resume();
+      try {
+        await scannerRef.current.resume();
+      } catch (resumeErr) {
+        console.warn('Scanner resume error:', resumeErr);
+        // Try to restart scanner if resume fails
+        await startScanner();
+      }
     }
   };
 
