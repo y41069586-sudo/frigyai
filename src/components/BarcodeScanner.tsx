@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,6 @@ interface NutritionInfo {
   fat: number;
   image?: string;
   brand?: string;
-  ingredients?: string;
-  ingredientsList?: string[];
-  servingSize?: string;
   barcode?: string;
 }
 
@@ -26,61 +23,99 @@ interface BarcodeScannerProps {
 }
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
-  const readerRef = useRef<HTMLDivElement>(null);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [productData, setProductData] = useState<NutritionInfo | null>(null);
+  const [isScannerActive, setIsScannerActive] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || !readerRef.current) return;
+    if (!isOpen) return;
 
     setError(null);
     setProductData(null);
     setIsLoading(false);
+    setIsScannerActive(false);
 
-    // Initialize scanner
-    scannerRef.current = new Html5QrcodeScanner(
-      'qr-reader',
-      {
-        fps: 15,
-        qrbox: { width: 250, height: 250 },
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true,
-        showZoomSliderIfSupported: true,
-      },
-      false
-    );
-
-    scannerRef.current.render(
-      (decodedText) => {
-        handleScanSuccess(decodedText);
-      },
-      (err) => {
-        console.warn('Scanner error:', err);
-      }
-    );
+    startScanner();
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
-        scannerRef.current = null;
-      }
+      stopScanner();
     };
   }, [isOpen]);
 
-  const handleScanSuccess = async (barcode: string) => {
+  const stopScanner = async () => {
+    try {
+      if (scannerRef.current) {
+        await scannerRef.current.stop();
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+      setIsScannerActive(false);
+    } catch (err) {
+      console.error('Error stopping scanner:', err);
+    }
+  };
+
+  const startScanner = async () => {
+    try {
+      setError(null);
+      setIsScannerActive(false);
+
+      // Check if cameras are available
+      const devices = await Html5Qrcode.getCameras();
+      
+      if (!devices || devices.length === 0) {
+        setError('❌ Keine Kamera gefunden!');
+        return;
+      }
+
+      // Initialize scanner
+      scannerRef.current = new Html5Qrcode('barcode-reader', false);
+
+      // Start scanning
+      await scannerRef.current.start(
+        { facingMode: 'environment' },
+        {
+          fps: 15,
+          qrbox: { width: 250, height: 120 },
+        },
+        async (barcode) => {
+          await handleBarcodeDetected(barcode);
+        },
+        (err) => {
+          console.warn('Scanner error:', err);
+        }
+      );
+
+      setIsScannerActive(true);
+    } catch (err: any) {
+      console.error('Scanner init error:', err);
+      
+      let errorMsg = '❌ Kamera konnte nicht gestartet werden';
+      if (err.message?.includes('NotAllowedError')) {
+        errorMsg = '❌ Kamera-Zugriff verweigert!';
+      } else if (err.message?.includes('NotFoundError')) {
+        errorMsg = '❌ Keine Kamera gefunden!';
+      } else if (err.message?.includes('NotReadableError')) {
+        errorMsg = '❌ Kamera wird bereits verwendet!';
+      }
+      
+      setError(errorMsg);
+      setIsScannerActive(false);
+    }
+  };
+
+  const handleBarcodeDetected = async (barcode: string) => {
     if (!barcode || isLoading || productData) return;
 
-    setIsLoading(true);
-    
     try {
-      // Stop scanning while fetching
+      // Pause scanner
       if (scannerRef.current) {
         await scannerRef.current.pause();
       }
-
+      
+      setIsLoading(true);
       console.log('[BarcodeScanner] Looking up:', barcode);
 
       const response = await fetch(
@@ -111,8 +146,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
           fat: Math.round((nutriments.fat_100g || 0) * multiplier),
           image: p.image_front_small_url || p.image_url,
-          brand: p.brands || p.brand,
-          servingSize: p.serving_size || `${servingSize}g`,
+          brand: p.brands,
           barcode: barcode,
         };
 
@@ -159,10 +193,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   };
 
   const handleClose = () => {
-    if (scannerRef.current) {
-      scannerRef.current.clear().catch(() => {});
-      scannerRef.current = null;
-    }
+    stopScanner();
     onClose();
   };
 
@@ -187,12 +218,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
             >
-              <ShoppingCart className="h-6 w-6 text-primary" />
+              <ShoppingCart className="h-6 w-6 text-lime-400" />
             </motion.div>
             <div>
-              <h2 className="text-white font-bold text-lg">Barcode Scan</h2>
-              <p className="text-primary/80 text-[10px] font-medium">
-                📱 Scan your product
+              <h2 className="text-white font-bold text-lg">📦 Barcode scannen</h2>
+              <p className="text-lime-400/80 text-[10px] font-medium">
+                🎯 Produkt erfassen
               </p>
             </div>
           </div>
@@ -206,7 +237,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           </Button>
         </motion.div>
 
-        {/* Scanner Area */}
+        {/* Scanner Container */}
         <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden pt-16">
           {error ? (
             <motion.div
@@ -216,27 +247,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             >
               <AlertCircle className="h-20 w-20 text-destructive mx-auto" />
               <div>
-                <p className="text-white text-base font-semibold mb-2">Error</p>
+                <p className="text-white text-base font-semibold mb-2">Fehler</p>
                 <p className="text-white/70 text-sm">{error}</p>
               </div>
-              <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-black font-bold">
-                Close
+              <Button onClick={handleClose} className="bg-lime-500 hover:bg-lime-600 text-black font-bold">
+                Schließen
               </Button>
-            </motion.div>
-          ) : productData && isLoading ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center space-y-6 absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 pt-16"
-            >
-              <Loader2 className="h-20 w-20 text-primary animate-spin" />
-              <p className="text-white text-lg font-semibold">Loading product...</p>
             </motion.div>
           ) : productData ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 z-20 space-y-4"
+              className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 z-20 space-y-4"
             >
               {productData.image && (
                 <div className="relative w-full h-40 bg-gray-200 rounded-lg overflow-hidden">
@@ -250,49 +272,103 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   />
                 </div>
               )}
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-gray-900">{productData.name}</h3>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-gray-900">{productData.name}</h3>
                 {productData.brand && (
                   <p className="text-sm text-gray-600">
-                    <b>Brand:</b> {productData.brand}
+                    <b>Marke:</b> {productData.brand}
                   </p>
                 )}
               </div>
-              <div className="bg-gray-100 rounded-lg p-4 space-y-2">
+              <div className="bg-gray-100 rounded-lg p-4 space-y-2 text-black">
                 <p className="text-sm">
-                  <b>Calories:</b> {productData.calories} kcal
+                  <b>Kalorien:</b> {productData.calories} kcal
                 </p>
                 <p className="text-sm">
                   <b>Protein:</b> {productData.protein}g
                 </p>
                 <p className="text-sm">
-                  <b>Carbs:</b> {productData.carbs}g
+                  <b>Kohlenhydrate:</b> {productData.carbs}g
                 </p>
                 <p className="text-sm">
-                  <b>Fat:</b> {productData.fat}g
+                  <b>Fett:</b> {productData.fat}g
                 </p>
               </div>
               <Button
                 onClick={handleScanAnother}
-                className="w-full bg-primary hover:bg-primary/90 text-black font-bold"
+                className="w-full bg-lime-500 hover:bg-lime-600 text-black font-bold"
               >
-                🔄 Scan Another Product
+                🔄 Neues Produkt scannen
               </Button>
             </motion.div>
           ) : (
-            <div id="qr-reader" className="w-full h-full" />
+            <>
+              {/* Scanner Video Area */}
+              <div id="barcode-reader" className="w-full h-full relative flex items-center justify-center" />
+              
+              {/* Scan Box Overlay */}
+              {isScannerActive && !isLoading && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  {/* Scan Frame */}
+                  <div className="relative w-64 h-32">
+                    <div 
+                      className="absolute inset-0 border-4 border-lime-400 rounded-lg"
+                      style={{
+                        boxShadow: '0 0 20px rgba(132, 255, 136, 0.8), inset 0 0 20px rgba(132, 255, 136, 0.2)',
+                      }}
+                    />
+                    
+                    {/* Corner brackets */}
+                    <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-lime-400" />
+                    <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-lime-400" />
+                    <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-lime-400" />
+                    <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-lime-400" />
+                    
+                    {/* Animated scan line */}
+                    <motion.div
+                      className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-lime-400 to-transparent"
+                      initial={{ top: '0%' }}
+                      animate={{ top: '100%' }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      style={{
+                        boxShadow: '0 0 15px rgba(132, 255, 136, 1)',
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Loading State */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20"
+                >
+                  <Loader2 className="h-16 w-16 text-lime-400 animate-spin mb-4" />
+                  <p className="text-white font-semibold">Produkt wird geladen...</p>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer Info */}
-        {!productData && !error && (
+        {!productData && !error && isScannerActive && (
           <motion.div
             className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/98 via-black/80 to-transparent text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <p className="text-white/60 text-sm">
-              🎯 Point camera at barcode to scan product
+            <p className="text-lime-400 text-sm font-semibold">
+              🎯 Kamera bereit - Barcode scannen
+            </p>
+            <p className="text-white/60 text-xs mt-1">
+              Halte den Barcode ins Sichtfeld
             </p>
           </motion.div>
         )}
