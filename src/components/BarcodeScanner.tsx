@@ -4,7 +4,7 @@ import { X, Loader2, AlertCircle, Zap, ShoppingCart, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Html5Qrcode } from "html5-qrcode";
+import Quagga from "quagga";
 
 interface NutritionInfo {
   name: string;
@@ -45,6 +45,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const animationFrameRef = useRef<number | null>(null);
   const detectionCounterRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const quaggaInitializedRef = useRef(false);
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -59,13 +60,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       streamRef.current = null;
     }
 
-    if (html5qrcodeRef.current) {
+    // Stop Quagga if it's running
+    if (quaggaInitializedRef.current) {
       try {
-        html5qrcodeRef.current.clear();
+        Quagga.stop();
+        Quagga.close();
+        quaggaInitializedRef.current = false;
       } catch (err) {
-        console.warn("[Html5Qrcode] Clear error:", err);
+        console.warn("[Quagga] Stop error:", err);
       }
-      html5qrcodeRef.current = null;
     }
 
     // Cancel any pending barcode lookup requests
@@ -224,75 +227,94 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Detect barcodes using html5-qrcode from the video canvas
-  const html5qrcodeRef = useRef<Html5Qrcode | null>(null);
-
-  useEffect(() => {
-    // Create a hidden container for html5-qrcode if it doesn't exist
-    if (!document.getElementById("barcode-scanner-hidden")) {
-      const container = document.createElement("div");
-      container.id = "barcode-scanner-hidden";
-      container.style.display = "none";
-      document.body.appendChild(container);
+  // Initialize Quagga for barcode detection
+  const initializeQuagga = useCallback(async () => {
+    if (quaggaInitializedRef.current || !videoRef.current) {
+      return;
     }
-  }, []);
-
-  const detectBarcode = useCallback(async () => {
-    if (!scanningRef.current || !videoRef.current || !canvasRef.current) return;
 
     try {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
+      console.log("[Quagga] Initializing barcode scanner...");
 
-      if (video.readyState < video.HAVE_CURRENT_DATA) {
-        animationFrameRef.current = requestAnimationFrame(detectBarcode);
-        return;
-      }
-
-      // Draw video frame to canvas
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        animationFrameRef.current = requestAnimationFrame(detectBarcode);
-        return;
-      }
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Initialize html5-qrcode instance if not already done
-      if (!html5qrcodeRef.current) {
-        try {
-          html5qrcodeRef.current = new Html5Qrcode("barcode-scanner-hidden");
-        } catch (err) {
-          console.warn("[Html5Qrcode] Init warning:", err);
-        }
-      }
-
-      if (html5qrcodeRef.current) {
-        try {
-          const result = await html5qrcodeRef.current.scanImgData(canvas, true);
-          if (result && result.decodedText && scanningRef.current) {
-            const barcode = result.decodedText.trim();
-            if (barcode && barcode !== lastScannedRef.current) {
-              console.log("[Html5Qrcode] Barcode detected:", barcode);
-              await lookupBarcode(barcode);
-              return;
+      Quagga.init(
+        {
+          inputStream: {
+            type: "LiveStream",
+            constraints: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "environment",
+              aspectRatio: { min: 1, max: 100 }
+            },
+            target: videoRef.current,
+            area: {
+              top: "10%",
+              right: "10%",
+              left: "10%",
+              bottom: "10%"
             }
+          },
+          decoder: {
+            readers: [
+              "code_128_reader",
+              "ean_reader",
+              "ean_8_reader",
+              "upc_reader",
+              "upc_e_reader",
+              "codabar_reader",
+              "code_39_reader"
+            ],
+            debug: {
+              showPatternMatches: false,
+              showFoundPatterns: false,
+              showSkeleton: false,
+              showCanvasSize: false,
+              showPattern: false
+            }
+          },
+          locator: {
+            halfSample: true,
+            patchSize: "medium"
+          },
+          numOfWorkers: 4,
+          frequency: 10 // Check 10 times per second
+        },
+        function (err: any) {
+          if (err) {
+            console.error("[Quagga] Init error:", err);
+            setError("Barcode-Scanner konnte nicht initialisiert werden");
+            setIsInitializing(false);
+            return;
           }
-        } catch (err) {
-          // No barcode found in this frame, continue scanning
-        }
-      }
 
-      if (scanningRef.current) {
-        animationFrameRef.current = requestAnimationFrame(detectBarcode);
-      }
+          console.log("[Quagga] Initialization successful");
+          Quagga.start();
+          quaggaInitializedRef.current = true;
+
+          Quagga.onDetected((result: any) => {
+            if (!scanningRef.current) return;
+
+            const barcode = result?.codeResult?.code?.trim();
+            if (barcode && barcode !== lastScannedRef.current) {
+              console.log("[Quagga] Barcode detected:", barcode, {
+                format: result?.codeResult?.format,
+                confidence: result?.codeResult?.confidence
+              });
+              setDetectionStatus(`✅ Barcode erkannt: ${barcode}`);
+              lookupBarcode(barcode);
+            }
+          });
+
+          setIsInitializing(false);
+          scanningRef.current = true;
+          setDetectionStatus("🔍 Barcode wird gesucht...");
+          console.log("[Quagga] Scanner started");
+        }
+      );
     } catch (err) {
-      console.error("[Barcode Detection] Error:", err);
-      if (scanningRef.current) {
-        animationFrameRef.current = requestAnimationFrame(detectBarcode);
-      }
+      console.error("[Quagga] Initialization failed:", err);
+      setError("Kamera-Zugriff fehlgeschlagen");
+      setIsInitializing(false);
     }
   }, [lookupBarcode]);
 
@@ -300,59 +322,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     try {
       setError(null);
       setIsInitializing(true);
-      setDetectionStatus("Kamera lädt...");
+      setDetectionStatus("Kamera wird initialisiert...");
       detectionCounterRef.current = 0;
 
-      console.log('[BarcodeScanner] Starte Kamera...');
+      console.log('[BarcodeScanner] Starte Kamera mit Quagga...');
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 20 }
-        }
-      });
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-
-        // iPad/Safari fix: Nutze timeout statt onloadedmetadata
-        await Promise.race([
-          new Promise<void>(resolve => {
-            const handler = () => {
-              videoRef.current?.removeEventListener('loadedmetadata', handler);
-              resolve();
-            };
-            videoRef.current!.addEventListener('loadedmetadata', handler);
-          }),
-          new Promise<void>(resolve => {
-            setTimeout(() => resolve(), 1000); // Timeout nach 1 Sekunde
-          })
-        ]);
-
-        // Force play - wichtig für iPad
-        try {
-          await videoRef.current.play();
-        } catch (err) {
-          console.warn('Play failed, continuing anyway:', err);
-        }
-
-        // Small delay to ensure video is really playing
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        setIsInitializing(false);
-        scanningRef.current = true;
-        setDetectionStatus("Barcode suchen...");
-        console.log('[BarcodeScanner] Barcode-Scanner aktiv ✅');
-
-        // Start detecting barcodes from video frames
-        animationFrameRef.current = requestAnimationFrame(detectBarcode);
-      }
+      // Initialize Quagga which handles the camera stream directly
+      await initializeQuagga();
     } catch (err: any) {
-      console.error("Camera error:", err);
+      console.error("[BarcodeScanner] Camera error:", err);
 
       let errorMsg = "Kamera konnte nicht gestartet werden.";
       if (err.name === 'NotAllowedError') {
@@ -366,7 +344,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setError(errorMsg);
       setIsInitializing(false);
     }
-  }, [detectBarcode]);
+  }, [initializeQuagga]);
 
   useEffect(() => {
     if (isOpen) {
