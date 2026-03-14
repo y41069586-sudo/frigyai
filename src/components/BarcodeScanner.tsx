@@ -447,30 +447,40 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           ) : (
             <>
               {/* Scanner Video Area */}
+              <style>{`
+                #barcode-reader {
+                  position: absolute !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                  bottom: 0 !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  overflow: hidden !important;
+                }
+                #barcode-reader video {
+                  position: absolute !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                  display: block !important;
+                }
+                #barcode-reader canvas {
+                  position: absolute !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                  display: block !important;
+                }
+              `}</style>
               <div
                 id="barcode-reader"
                 className="absolute inset-0 w-full h-full overflow-hidden"
-              >
-                <style>{`
-                  #barcode-reader {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                  }
-                  #barcode-reader video {
-                    width: 100% !important;
-                    height: 100% !important;
-                    object-fit: cover !important;
-                    display: block !important;
-                  }
-                  #barcode-reader canvas {
-                    width: 100% !important;
-                    height: 100% !important;
-                    object-fit: cover !important;
-                    display: block !important;
-                  }
-                `}</style>
-              </div>
+              />
               
               {/* Scan Box Overlay */}
               {isScannerActive && !isLoading && (
