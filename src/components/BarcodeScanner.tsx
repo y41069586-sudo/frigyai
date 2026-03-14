@@ -136,8 +136,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               target: document.querySelector('#barcode-reader'),
               constraints: {
                 facingMode: 'environment',
-                width: 1280,
-                height: 720,
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              area: {
+                top: '0%',
+                left: '0%',
+                right: '0%',
+                bottom: '0%',
               },
             },
             locator: {
