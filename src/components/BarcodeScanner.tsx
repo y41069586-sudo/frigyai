@@ -130,36 +130,29 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
         Quagga.init(
           {
-            frequency: 5, // Optimized for ~1 second detection time
+            frequency: 10,
             inputStream: {
               type: 'LiveStream',
               target: document.querySelector('#barcode-reader'),
               constraints: {
                 facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: 1280,
+                height: 720,
               },
             },
             locator: {
-              patchSize: 'medium', // Balanced between speed and accuracy
+              patchSize: 'large',
               halfSample: true,
             },
+            locate: true,
             numOfWorkers: 4,
             decoder: {
               readers: [
-                'ean_8_reader',
                 'ean_reader',
+                'ean_8_reader',
                 'upc_reader',
-                'upc_e_reader',
-              ], // Optimized order for common barcodes
-              debug: {
-                drawBoundingBox: false,
-                drawScanline: false,
-                showFrequency: false,
-                showPattern: false,
-              },
+              ],
             },
-            multiple: false, // Stop on first detection
           },
           (err: any) => {
             clearTimeout(initTimeout);
