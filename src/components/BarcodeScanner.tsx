@@ -44,6 +44,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lastScannedRef = useRef<string | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const detectionCounterRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
@@ -65,6 +66,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         console.warn("[Html5Qrcode] Clear error:", err);
       }
       html5qrcodeRef.current = null;
+    }
+
+    // Cancel any pending barcode lookup requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   }, []);
 
@@ -104,11 +111,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
+      // Create and track the abort controller for this request
       const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const timeoutId = setTimeout(() => {
-        console.warn('[Barcode] Request timeout triggered after 10s');
+        console.warn('[Barcode] Request timeout triggered after 15s');
         controller.abort();
-      }, 10000); // 10 seconds timeout
+      }, 15000); // 15 seconds timeout (increased from 10s)
 
       console.log('[Barcode] Fetching from Open Food Facts:', `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
 
@@ -122,6 +132,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         }
       );
       clearTimeout(timeoutId);
+      abortControllerRef.current = null;
       console.log('[Barcode] Response received:', response.status);
 
       if (!response.ok) {
@@ -137,6 +148,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       }
 
       if (data.status === 1 && data.product) {
+        abortControllerRef.current = null; // Clear the controller on success
+
         const product = data.product;
         const nutriments = product.nutriments || {};
         const servingSize = product.serving_quantity || 100;
@@ -170,6 +183,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
+      abortControllerRef.current = null; // Clear the controller
+
       toast({
         title: "Produkt nicht gefunden 🔍",
         description: "Dieser Barcode ist nicht in der Datenbank.",
@@ -179,12 +194,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     } catch (err: any) {
+      // Clear the abort controller reference since the request is done
+      abortControllerRef.current = null;
+
+      // Don't show error if modal was closed (user-initiated abort)
+      if (err.name === 'AbortError' && !isOpen) {
+        console.log("[Barcode] Request cancelled (modal closed)");
+        return;
+      }
+
       console.error("[Barcode] Lookup error:", err.message || err);
 
       let errorMsg = "🌐 Netzwerkfehler";
       if (err.name === 'AbortError') {
         errorMsg = "⏱️ Zeitüberschreitung - API antwortet zu langsam";
-        console.warn("[Barcode] Request timeout after 10s");
+        console.warn("[Barcode] Request timeout after 15s");
       } else if (err.message?.includes('Failed to fetch')) {
         errorMsg = "🌐 Verbindungsfehler - Internet überprüfen";
       }
@@ -348,7 +372,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (isOpen) {
       startCamera();
     }
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+      // Ensure any pending requests are cancelled when modal closes
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [isOpen, startCamera, stopCamera]);
 
   const handleClose = () => {
