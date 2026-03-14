@@ -21,7 +21,6 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
-import { ProductDetailsModal } from './ProductDetailsModal';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
@@ -130,7 +129,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     fat: number;
   } | null>(null);
   const [scannedProductData, setScannedProductData] = useState<any>(null);
-  const [showProductDetailsModal, setShowProductDetailsModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -423,34 +421,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     navigate(`/food-entry/${entry.id}`);
   };
 
-  const handleBarcodeScanned = (food: any) => {
-    // Store the product data and open the modal
-    setScannedProductData(food);
-    setShowProductDetailsModal(true);
-    setShowBarcodeScanner(false);
-  };
-
-  const handleAddScannedProduct = () => {
-    if (!scannedProductData) return;
-
-    const newEntry: FoodEntry = {
-      id: Date.now().toString(),
-      name: scannedProductData.name,
-      calories: scannedProductData.calories,
-      protein: scannedProductData.protein,
-      carbs: scannedProductData.carbs,
-      fat: scannedProductData.fat,
-      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-      image_url: scannedProductData.image,
-    };
-    saveFoodEntries([...foodEntries, newEntry]);
-    recordActivity();
-    checkAndAwardBadge('meal_logged');
-    playSuccess();
-    setShowProductDetailsModal(false);
-    setScannedProductData(null);
-  };
-
   const handleCameraClick = () => {
     const access = canAccessFeature('scan');
     if (!access.canAccess) {
@@ -467,6 +437,29 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       return;
     }
     setShowBarcodeScanner(true);
+  };
+
+  const handleBarcodeScanned = (food: any) => {
+    setScannedProductData(food);
+    setShowSuccessOverlay(true);
+    setShowBarcodeScanner(false);
+
+    // Automatically add to entries
+    const newEntry: FoodEntry = {
+      id: Date.now().toString(),
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      image_url: food.image,
+    };
+    saveFoodEntries([...foodEntries, newEntry]);
+    recordActivity();
+    checkAndAwardBadge('meal_logged');
+    playSuccess();
+    setLastAnalyzedFood(food);
   };
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
@@ -1093,23 +1086,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         </div>
       </Card>
 
-      {/* Barcode Scanner */}
-      <BarcodeScanner
-        isOpen={showBarcodeScanner}
-        onClose={() => setShowBarcodeScanner(false)}
-        onFoodScanned={handleBarcodeScanned}
-      />
-
-      {/* Product Details Modal */}
-      <ProductDetailsModal
-        isOpen={showProductDetailsModal}
-        productData={scannedProductData}
-        onClose={() => {
-          setShowProductDetailsModal(false);
-          setScannedProductData(null);
-        }}
-        onAdd={handleAddScannedProduct}
-      />
 
       {/* Analyzing State with Image Preview */}
       <AnimatePresence>
@@ -1283,6 +1259,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         onComplete={() => setShowSuccessOverlay(false)}
       />
 
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onFoodScanned={handleBarcodeScanned}
+      />
+
       {/* Paywall Overlay for Premium Features */}
       {showPaywall && (
         <motion.div
@@ -1294,7 +1277,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <div onClick={(e) => e.stopPropagation()}>
             <FreeModePaywallOverlay
               title="Premium freischalten"
-              description="Nutze Foto und Barcode Scan für schnellere Erfassung"
+              description="Nutze Foto für schnellere Erfassung"
               className="relative"
             />
           </div>

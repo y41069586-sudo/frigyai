@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, AlertCircle, Zap, ShoppingCart, Type } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import Quagga from "quagga";
+import { useEffect, useRef, useState } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 interface NutritionInfo {
   name: string;
@@ -14,9 +13,6 @@ interface NutritionInfo {
   fat: number;
   image?: string;
   brand?: string;
-  ingredients?: string;
-  ingredientsList?: string[];
-  servingSize?: string;
   barcode?: string;
 }
 
@@ -26,351 +22,209 @@ interface BarcodeScannerProps {
   onFoodScanned: (food: NutritionInfo) => void;
 }
 
-// Local cache
-const barcodeCache = new Map<string, NutritionInfo>();
-
-
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [showManualInput, setShowManualInput] = useState(false);
-  const [manualBarcode, setManualBarcode] = useState("");
-  const [detectionStatus, setDetectionStatus] = useState("Kamera lädt...");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanningRef = useRef(false);
-  const lastScannedRef = useRef<string | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const detectionCounterRef = useRef(0);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const quaggaInitializedRef = useRef(false);
+  const [productData, setProductData] = useState<NutritionInfo | null>(null);
+  const [isScannerActive, setIsScannerActive] = useState(false);
 
-  const stopCamera = useCallback(() => {
-    scanningRef.current = false;
+  useEffect(() => {
+    if (!isOpen) return;
 
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
+    setError(null);
+    setProductData(null);
+    setIsLoading(false);
+    setIsScannerActive(false);
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+    startScanner();
 
-    // Stop Quagga if it's running
-    if (quaggaInitializedRef.current) {
-      try {
-        Quagga.stop();
-        Quagga.close();
-        quaggaInitializedRef.current = false;
-      } catch (err) {
-        console.warn("[Quagga] Stop error:", err);
+    return () => {
+      stopScanner();
+    };
+  }, [isOpen]);
+
+  const stopScanner = async () => {
+    try {
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop();
+        } catch (stopErr: any) {
+          // Ignore "not running" errors - scanner might already be stopped
+          if (!stopErr.message?.includes('not running')) {
+            console.warn('Error stopping scanner:', stopErr);
+          }
+        }
+        try {
+          scannerRef.current.clear();
+        } catch (clearErr) {
+          console.warn('Error clearing scanner:', clearErr);
+        }
+        scannerRef.current = null;
       }
+      setIsScannerActive(false);
+    } catch (err) {
+      console.error('Unexpected error in stopScanner:', err);
+      setIsScannerActive(false);
     }
+  };
 
-    // Cancel any pending barcode lookup requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+  const startScanner = async () => {
+    try {
+      setError(null);
+      setIsScannerActive(false);
+
+      // Check if cameras are available
+      const devices = await Html5Qrcode.getCameras();
+      
+      if (!devices || devices.length === 0) {
+        setError('❌ Keine Kamera gefunden!');
+        return;
+      }
+
+      // Initialize scanner
+      scannerRef.current = new Html5Qrcode('barcode-reader', false);
+
+      // Start scanning
+      await scannerRef.current.start(
+        { facingMode: 'environment' },
+        {
+          fps: 15,
+          qrbox: { width: 250, height: 120 },
+        },
+        async (barcode) => {
+          await handleBarcodeDetected(barcode);
+        },
+        (err) => {
+          console.warn('Scanner error:', err);
+        }
+      );
+
+      setIsScannerActive(true);
+    } catch (err: any) {
+      console.error('Scanner init error:', err);
+      
+      let errorMsg = '❌ Kamera konnte nicht gestartet werden';
+      if (err.message?.includes('NotAllowedError')) {
+        errorMsg = '❌ Kamera-Zugriff verweigert!';
+      } else if (err.message?.includes('NotFoundError')) {
+        errorMsg = '❌ Keine Kamera gefunden!';
+      } else if (err.message?.includes('NotReadableError')) {
+        errorMsg = '❌ Kamera wird bereits verwendet!';
+      }
+      
+      setError(errorMsg);
+      setIsScannerActive(false);
     }
-  }, []);
+  };
 
-  // Open Food Facts lookup
-  const lookupBarcode = useCallback(async (barcode: string) => {
-    if (isLoading) return;
-    if (lastScannedRef.current === barcode) return;
-
-    lastScannedRef.current = barcode;
-    setIsLoading(true);
-    scanningRef.current = false;
+  const handleBarcodeDetected = async (barcode: string) => {
+    if (!barcode || isLoading || productData) return;
 
     try {
-      console.log('[Barcode] Looking up:', barcode);
-
-      if (barcodeCache.has(barcode)) {
-        const cached = barcodeCache.get(barcode)!;
-        onFoodScanned(cached);
-        toast({
-          title: "Produkt erkannt! 🎉",
-          description: `${cached.name} - ${cached.calories} kcal`,
-        });
-        stopCamera();
-        onClose();
-        return;
+      // Pause scanner (ignore errors if already paused)
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.pause();
+        } catch (pauseErr) {
+          console.warn('Scanner pause error (ignored):', pauseErr);
+        }
       }
 
-      if (!navigator.onLine) {
-        toast({
-          title: "⚠️ Offline",
-          description: "Internet erforderlich.",
-          variant: "destructive",
-        });
-        lastScannedRef.current = null;
-        scanningRef.current = true;
-        setIsLoading(false);
-        return;
-      }
-
-      // Create and track the abort controller for this request
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      const timeoutId = setTimeout(() => {
-        console.warn('[Barcode] Request timeout triggered after 15s');
-        controller.abort();
-      }, 15000); // 15 seconds timeout (increased from 10s)
-
-      console.log('[Barcode] Fetching from Open Food Facts:', `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      setIsLoading(true);
+      console.log('[BarcodeScanner] Looking up:', barcode);
 
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
         {
-          signal: controller.signal,
           headers: {
-            'User-Agent': 'FrigAI/1.0 (+https://frigyai.app)'
-          }
+            'User-Agent': 'FrigAI/1.0 (+https://frigyai.app)',
+          },
         }
       );
-      clearTimeout(timeoutId);
-      abortControllerRef.current = null;
-      console.log('[Barcode] Response received:', response.status);
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseErr) {
-        console.error('[Barcode] JSON parse error:', parseErr);
-        throw new Error('Invalid API response format');
-      }
+      const data = await response.json();
 
       if (data.status === 1 && data.product) {
-        abortControllerRef.current = null; // Clear the controller on success
-
-        const product = data.product;
-        const nutriments = product.nutriments || {};
-        const servingSize = product.serving_quantity || 100;
+        const p = data.product;
+        const servingSize = p.serving_quantity || 100;
         const multiplier = servingSize / 100;
-
-        const ingredientsList = product.ingredients?.map((ing: any) => ing.text || ing) || [];
-        const ingredientsText = product.ingredients_text_de || product.ingredients_text || '';
+        const nutriments = p.nutriments || {};
 
         const nutritionInfo: NutritionInfo = {
-          name: product.product_name_de || product.product_name || "Unbekanntes Produkt",
-          calories: Math.round((nutriments["energy-kcal_100g"] || nutriments["energy-kcal"] || 0) * multiplier),
-          protein: Math.round((nutriments.proteins_100g || nutriments.proteins || 0) * multiplier),
-          carbs: Math.round((nutriments.carbohydrates_100g || nutriments.carbohydrates || 0) * multiplier),
-          fat: Math.round((nutriments.fat_100g || nutriments.fat || 0) * multiplier),
-          image: product.image_small_url || product.image_url,
-          brand: product.brands || product.brand,
-          ingredients: ingredientsText,
-          ingredientsList: ingredientsList.slice(0, 10),
-          servingSize: product.serving_size || `${servingSize}g`,
+          name: p.product_name_de || p.product_name || 'Unbekanntes Produkt',
+          calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
+          protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
+          carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
+          fat: Math.round((nutriments.fat_100g || 0) * multiplier),
+          image: p.image_front_small_url || p.image_url,
+          brand: p.brands,
           barcode: barcode,
         };
 
-        barcodeCache.set(barcode, nutritionInfo);
+        setProductData(nutritionInfo);
         onFoodScanned(nutritionInfo);
         toast({
-          title: "Produkt erkannt! 🎉",
+          title: '✅ Produkt erkannt!',
           description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
         });
-        stopCamera();
-        onClose();
-        return;
-      }
+      } else {
+        toast({
+          title: '❌ Produkt nicht gefunden',
+          description: 'Dieser Barcode existiert nicht in der Datenbank',
+          variant: 'destructive',
+        });
 
-      abortControllerRef.current = null; // Clear the controller
-
-      toast({
-        title: "Produkt nicht gefunden 🔍",
-        description: "Dieser Barcode ist nicht in der Datenbank.",
-        variant: "destructive",
-      });
-      lastScannedRef.current = null;
-      scanningRef.current = true;
-      setIsLoading(false);
-    } catch (err: any) {
-      // Clear the abort controller reference since the request is done
-      abortControllerRef.current = null;
-
-      // Don't show error if modal was closed (user-initiated abort)
-      if (err.name === 'AbortError' && !isOpen) {
-        console.log("[Barcode] Request cancelled (modal closed)");
-        return;
-      }
-
-      console.error("[Barcode] Lookup error:", err.message || err);
-
-      let errorMsg = "🌐 Netzwerkfehler";
-      if (err.name === 'AbortError') {
-        errorMsg = "⏱️ Zeitüberschreitung - API antwortet zu langsam";
-        console.warn("[Barcode] Request timeout after 15s");
-      } else if (err.message?.includes('Failed to fetch')) {
-        errorMsg = "🌐 Verbindungsfehler - Internet überprüfen";
-      }
-
-      toast({
-        title: "Fehler",
-        description: errorMsg,
-        variant: "destructive",
-      });
-      lastScannedRef.current = null;
-      scanningRef.current = true;
-      setIsLoading(false);
-    }
-  }, [isLoading, onClose, onFoodScanned, stopCamera]);
-
-  // Initialize Quagga for barcode detection
-  const initializeQuagga = useCallback(async () => {
-    if (quaggaInitializedRef.current || !videoRef.current) {
-      return;
-    }
-
-    try {
-      console.log("[Quagga] Initializing barcode scanner...");
-
-      Quagga.init(
-        {
-          inputStream: {
-            type: "LiveStream",
-            constraints: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: "environment",
-              aspectRatio: { min: 1, max: 100 }
-            },
-            target: videoRef.current,
-            area: {
-              top: "10%",
-              right: "10%",
-              left: "10%",
-              bottom: "10%"
-            }
-          },
-          decoder: {
-            readers: [
-              "code_128_reader",
-              "ean_reader",
-              "ean_8_reader",
-              "upc_reader",
-              "upc_e_reader",
-              "codabar_reader",
-              "code_39_reader"
-            ],
-            debug: {
-              showPatternMatches: false,
-              showFoundPatterns: false,
-              showSkeleton: false,
-              showCanvasSize: false,
-              showPattern: false
-            }
-          },
-          locator: {
-            halfSample: true,
-            patchSize: "medium"
-          },
-          numOfWorkers: 4,
-          frequency: 10 // Check 10 times per second
-        },
-        function (err: any) {
-          if (err) {
-            console.error("[Quagga] Init error:", err);
-            setError("Barcode-Scanner konnte nicht initialisiert werden");
-            setIsInitializing(false);
-            return;
+        // Resume scanning if product not found
+        if (scannerRef.current) {
+          try {
+            await scannerRef.current.resume();
+          } catch (resumeErr) {
+            console.warn('Scanner resume error (ignored):', resumeErr);
           }
-
-          console.log("[Quagga] Initialization successful");
-          Quagga.start();
-          quaggaInitializedRef.current = true;
-
-          Quagga.onDetected((result: any) => {
-            if (!scanningRef.current) return;
-
-            const barcode = result?.codeResult?.code?.trim();
-            if (barcode && barcode !== lastScannedRef.current) {
-              console.log("[Quagga] Barcode detected:", barcode, {
-                format: result?.codeResult?.format,
-                confidence: result?.codeResult?.confidence
-              });
-              setDetectionStatus(`✅ Barcode erkannt: ${barcode}`);
-              lookupBarcode(barcode);
-            }
-          });
-
-          setIsInitializing(false);
-          scanningRef.current = true;
-          setDetectionStatus("🔍 Barcode wird gesucht...");
-          console.log("[Quagga] Scanner started");
         }
-      );
-    } catch (err) {
-      console.error("[Quagga] Initialization failed:", err);
-      setError("Kamera-Zugriff fehlgeschlagen");
-      setIsInitializing(false);
-    }
-  }, [lookupBarcode]);
-
-  const startCamera = useCallback(async () => {
-    try {
-      setError(null);
-      setIsInitializing(true);
-      setDetectionStatus("Kamera wird initialisiert...");
-      detectionCounterRef.current = 0;
-
-      console.log('[BarcodeScanner] Starte Kamera mit Quagga...');
-
-      // Initialize Quagga which handles the camera stream directly
-      await initializeQuagga();
+      }
     } catch (err: any) {
-      console.error("[BarcodeScanner] Camera error:", err);
+      console.error('[BarcodeScanner] Error:', err);
+      toast({
+        title: '⚠️ Fehler',
+        description: err.message || 'Fehler beim Abrufen der Produktdaten',
+        variant: 'destructive',
+      });
 
-      let errorMsg = "Kamera konnte nicht gestartet werden.";
-      if (err.name === 'NotAllowedError') {
-        errorMsg = "❌ Kamera-Zugriff verweigert!\n\nErlaube Kamera-Zugriff.";
-      } else if (err.name === 'NotFoundError') {
-        errorMsg = "❌ Keine Kamera gefunden!";
-      } else if (err.name === 'NotReadableError') {
-        errorMsg = "❌ Kamera wird bereits verwendet!";
+      // Resume scanning on error
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.resume();
+        } catch (resumeErr) {
+          console.warn('Scanner resume error (ignored):', resumeErr);
+        }
       }
-
-      setError(errorMsg);
-      setIsInitializing(false);
+    } finally {
+      setIsLoading(false);
     }
-  }, [initializeQuagga]);
-
-  useEffect(() => {
-    if (isOpen) {
-      startCamera();
-    }
-    return () => {
-      stopCamera();
-      // Ensure any pending requests are cancelled when modal closes
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [isOpen, startCamera, stopCamera]);
-
-  const handleClose = () => {
-    stopCamera();
-    onClose();
   };
 
-  const handleManualSubmit = () => {
-    if (manualBarcode.trim()) {
-      lookupBarcode(manualBarcode.trim());
-      setManualBarcode("");
-      setShowManualInput(false);
+  const handleScanAnother = async () => {
+    setProductData(null);
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.resume();
+      } catch (resumeErr) {
+        console.warn('Scanner resume error:', resumeErr);
+        // Try to restart scanner if resume fails
+        await startScanner();
+      }
     }
+  };
+
+  const handleClose = () => {
+    stopScanner();
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -394,12 +248,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
             >
-              <Zap className="h-6 w-6 text-primary" />
+              <ShoppingCart className="h-6 w-6 text-lime-400" />
             </motion.div>
             <div>
-              <h2 className="text-white font-bold text-lg">Barcode Scan</h2>
-              <p className="text-primary/80 text-[10px] font-medium">
-                📱 iPad optimiert
+              <h2 className="text-white font-bold text-lg">📦 Barcode scannen</h2>
+              <p className="text-lime-400/80 text-[10px] font-medium">
+                🎯 Produkt erfassen
               </p>
             </div>
           </div>
@@ -413,8 +267,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           </Button>
         </motion.div>
 
-        {/* Scanner Area */}
-        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Scanner Container */}
+        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden pt-16">
           {error ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -424,181 +278,128 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               <AlertCircle className="h-20 w-20 text-destructive mx-auto" />
               <div>
                 <p className="text-white text-base font-semibold mb-2">Fehler</p>
-                <p className="text-white/70 text-sm whitespace-pre-line">{error}</p>
+                <p className="text-white/70 text-sm">{error}</p>
               </div>
-              <Button 
-                onClick={startCamera} 
-                className="bg-primary hover:bg-primary/90 text-black font-bold"
-              >
-                Erneut versuchen
+              <Button onClick={handleClose} className="bg-lime-500 hover:bg-lime-600 text-black font-bold">
+                Schließen
               </Button>
             </motion.div>
-          ) : isLoading ? (
+          ) : productData ? (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center space-y-6 absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 z-20 space-y-4"
             >
-              <Loader2 className="h-20 w-20 text-primary animate-spin" />
-              <p className="text-white text-lg font-semibold">Barcode erkannt! 🎉</p>
-              <p className="text-white/60 text-sm">Laden...</p>
-            </motion.div>
-          ) : null}
-
-          {/* Video Feed */}
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover"
-            playsInline
-            muted
-            autoPlay
-          />
-
-          <canvas ref={canvasRef} className="hidden" />
-
-          {/* Scan overlay */}
-          {!error && !isLoading && !isInitializing && (
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-              {/* Scan box */}
-              <div className="relative w-96 h-48 border-3 border-primary rounded-2xl overflow-hidden bg-gradient-to-b from-primary/5 to-transparent">
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-primary" />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-primary" />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-primary" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-primary" />
-                
-                {/* Animated scan line */}
-                <motion.div
-                  className="absolute inset-x-0 h-1 bg-primary"
-                  style={{ 
-                    boxShadow: "0 0 30px rgba(95, 208, 104, 1)",
-                  }}
-                  animate={{ top: ["0%", "100%"] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                />
+              {productData.image && (
+                <div className="relative w-full h-40 bg-gray-200 rounded-lg overflow-hidden">
+                  <img
+                    src={productData.image}
+                    alt={productData.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-gray-900">{productData.name}</h3>
+                {productData.brand && (
+                  <p className="text-sm text-gray-600">
+                    <b>Marke:</b> {productData.brand}
+                  </p>
+                )}
               </div>
-              
-              {/* Instructions */}
-              <motion.div
-                className="absolute bottom-32 text-center space-y-3"
-                animate={{ opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 2, repeat: Infinity }}
+              <div className="bg-gray-100 rounded-lg p-4 space-y-2 text-black">
+                <p className="text-sm">
+                  <b>Kalorien:</b> {productData.calories} kcal
+                </p>
+                <p className="text-sm">
+                  <b>Protein:</b> {productData.protein}g
+                </p>
+                <p className="text-sm">
+                  <b>Kohlenhydrate:</b> {productData.carbs}g
+                </p>
+                <p className="text-sm">
+                  <b>Fett:</b> {productData.fat}g
+                </p>
+              </div>
+              <Button
+                onClick={handleScanAnother}
+                className="w-full bg-lime-500 hover:bg-lime-600 text-black font-bold"
               >
-                <p className="text-white font-bold text-lg">📸 Kamera bereit</p>
-                <p className="text-white/60 text-sm">Nutze "MANUELL EINGEBEN" Button unten um Barcode einzugeben</p>
-              </motion.div>
-            </div>
-          )}
-
-          {/* Initializing */}
-          {isInitializing && !error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10 gap-4"
-            >
-              <Loader2 className="h-12 w-12 text-primary animate-spin" />
-              <p className="text-white/70 text-sm">Kamera wird aktiviert...</p>
+                🔄 Neues Produkt scannen
+              </Button>
             </motion.div>
+          ) : (
+            <>
+              {/* Scanner Video Area */}
+              <div id="barcode-reader" className="w-full h-full relative flex items-center justify-center" />
+              
+              {/* Scan Box Overlay */}
+              {isScannerActive && !isLoading && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  {/* Scan Frame */}
+                  <div className="relative w-64 h-32">
+                    <div 
+                      className="absolute inset-0 border-4 border-lime-400 rounded-lg"
+                      style={{
+                        boxShadow: '0 0 20px rgba(132, 255, 136, 0.8), inset 0 0 20px rgba(132, 255, 136, 0.2)',
+                      }}
+                    />
+                    
+                    {/* Corner brackets */}
+                    <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-lime-400" />
+                    <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-lime-400" />
+                    <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-lime-400" />
+                    <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-lime-400" />
+                    
+                    {/* Animated scan line */}
+                    <motion.div
+                      className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-lime-400 to-transparent"
+                      initial={{ top: '0%' }}
+                      animate={{ top: '100%' }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      style={{
+                        boxShadow: '0 0 15px rgba(132, 255, 136, 1)',
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Loading State */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20"
+                >
+                  <Loader2 className="h-16 w-16 text-lime-400 animate-spin mb-4" />
+                  <p className="text-white font-semibold">Produkt wird geladen...</p>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Manual Input Button */}
-        {!showManualInput && !isLoading && !error && !isInitializing && (
+        {/* Footer Info */}
+        {!productData && !error && isScannerActive && (
           <motion.div
-            className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/98 via-black/80 to-transparent"
+            className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/98 via-black/80 to-transparent text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="text-center space-y-4 max-w-sm mx-auto">
-              <div className="space-y-2">
-                <p className="text-white font-medium text-sm flex items-center justify-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-primary" />
-                  Open Food Facts
-                </p>
-                <p className="text-white/60 text-xs">
-                  {navigator.onLine ? "🟢 Online" : "🔴 Offline"}
-                </p>
-              </div>
-
-              <motion.div
-                animate={{ scale: [0.98, 1.02, 0.98] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Button
-                  onClick={() => setShowManualInput(true)}
-                  className="w-full bg-primary hover:bg-primary/90 text-black font-bold text-base py-6 rounded-xl shadow-lg"
-                >
-                  <Type className="h-5 w-5 mr-2" />
-                  MANUELL EINGEBEN
-                </Button>
-              </motion.div>
-
-              <p className="text-white/50 text-xs">
-                💡 Falls Kamera-Scan nicht funktioniert
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Manual Input Panel */}
-        {showManualInput && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-0 left-0 right-0 top-0 bg-black/70 z-40 flex items-end"
-          >
-            <motion.div
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="w-full bg-gradient-to-t from-black via-black to-black/80 p-6 rounded-t-3xl border-t border-primary/30 space-y-6"
-            >
-              <div className="space-y-2">
-                <h3 className="text-white font-bold text-xl">Barcode eingeben</h3>
-                <p className="text-white/60 text-sm">Gib die Barcode-Nummer ein</p>
-              </div>
-
-              <div className="space-y-3">
-                <Input
-                  type="text"
-                  placeholder="z.B. 4006381333931"
-                  value={manualBarcode}
-                  onChange={(e) => setManualBarcode(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
-                  autoFocus
-                  className="w-full bg-white/10 border-2 border-primary/50 text-white text-lg placeholder:text-white/40 py-3 px-4 rounded-lg"
-                />
-              </div>
-
-              <div className="flex gap-3 flex-col-reverse sm:flex-row">
-                <Button
-                  onClick={() => {
-                    setShowManualInput(false);
-                    setManualBarcode("");
-                  }}
-                  variant="outline"
-                  className="flex-1 bg-white/5 border-white/20 text-white hover:bg-white/10 font-semibold py-6 text-base"
-                >
-                  Abbrechen
-                </Button>
-                <Button
-                  onClick={handleManualSubmit}
-                  disabled={!manualBarcode.trim() || isLoading}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-black font-bold py-6 text-base"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Suche...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      SUCHEN
-                    </>
-                  )}
-                </Button>
-              </div>
-            </motion.div>
+            <p className="text-lime-400 text-sm font-semibold">
+              🎯 Kamera bereit - Barcode scannen
+            </p>
+            <p className="text-white/60 text-xs mt-1">
+              Halte den Barcode ins Sichtfeld
+            </p>
           </motion.div>
         )}
       </motion.div>
