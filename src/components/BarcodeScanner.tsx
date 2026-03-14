@@ -122,7 +122,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.log('[BarcodeScanner] Starting scanner...');
       quaggaRef.current = Quagga;
 
-      // Initialize Quagga
+      // Initialize Quagga with optimized settings for fast detection
       await new Promise<void>((resolve, reject) => {
         const initTimeout = setTimeout(() => {
           reject(new Error('Quagga initialization timeout'));
@@ -130,20 +130,34 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
         Quagga.init(
           {
+            frequency: 10,
             inputStream: {
               type: 'LiveStream',
               target: document.querySelector('#barcode-reader'),
               constraints: {
                 facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              area: {
+                top: '0%',
+                left: '0%',
+                right: '0%',
+                bottom: '0%',
               },
             },
             locator: {
               patchSize: 'large',
               halfSample: true,
             },
+            locate: true,
             numOfWorkers: 4,
             decoder: {
-              readers: ['ean_reader', 'ean_8_reader', 'upc_reader'],
+              readers: [
+                'ean_reader',
+                'ean_8_reader',
+                'upc_reader',
+              ],
             },
           },
           (err: any) => {
@@ -433,30 +447,40 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           ) : (
             <>
               {/* Scanner Video Area */}
+              <style>{`
+                #barcode-reader {
+                  position: absolute !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                  bottom: 0 !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  overflow: hidden !important;
+                }
+                #barcode-reader video {
+                  position: absolute !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                  display: block !important;
+                }
+                #barcode-reader canvas {
+                  position: absolute !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                  display: block !important;
+                }
+              `}</style>
               <div
                 id="barcode-reader"
-                className="w-full h-full relative flex items-center justify-center overflow-hidden"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: '100%',
-                  height: '100%',
-                }}
-              >
-                <style>{`
-                  #barcode-reader video,
-                  #barcode-reader canvas {
-                    width: 100% !important;
-                    height: 100% !important;
-                    object-fit: cover;
-                    max-width: 100%;
-                    max-height: 100%;
-                  }
-                `}</style>
-              </div>
+                className="absolute inset-0 w-full h-full overflow-hidden"
+              />
               
               {/* Scan Box Overlay */}
               {isScannerActive && !isLoading && (
