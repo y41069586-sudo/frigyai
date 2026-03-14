@@ -105,7 +105,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => {
+        console.warn('[Barcode] Request timeout triggered after 10s');
+        controller.abort();
+      }, 10000); // 10 seconds timeout
+
+      console.log('[Barcode] Fetching from Open Food Facts:', `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
 
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
@@ -117,12 +122,19 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         }
       );
       clearTimeout(timeoutId);
+      console.log('[Barcode] Response received:', response.status);
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.error('[Barcode] JSON parse error:', parseErr);
+        throw new Error('Invalid API response format');
+      }
 
       if (data.status === 1 && data.product) {
         const product = data.product;
@@ -167,10 +179,19 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     } catch (err: any) {
-      console.error("[Barcode] Lookup error:", err);
+      console.error("[Barcode] Lookup error:", err.message || err);
+
+      let errorMsg = "🌐 Netzwerkfehler";
+      if (err.name === 'AbortError') {
+        errorMsg = "⏱️ Zeitüberschreitung - API antwortet zu langsam";
+        console.warn("[Barcode] Request timeout after 10s");
+      } else if (err.message?.includes('Failed to fetch')) {
+        errorMsg = "🌐 Verbindungsfehler - Internet überprüfen";
+      }
+
       toast({
         title: "Fehler",
-        description: err.name === 'AbortError' ? "⏱️ Zeitüberschreitung" : "🌐 Netzwerkfehler",
+        description: errorMsg,
         variant: "destructive",
       });
       lastScannedRef.current = null;
