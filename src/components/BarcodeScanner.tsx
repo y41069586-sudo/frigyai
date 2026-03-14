@@ -4,6 +4,7 @@ import { X, Loader2, AlertCircle, Zap, ShoppingCart, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import Quagga from "quagga";
 
 interface NutritionInfo {
   name: string;
@@ -28,34 +29,6 @@ interface BarcodeScannerProps {
 // Local cache
 const barcodeCache = new Map<string, NutritionInfo>();
 
-// Barcode pattern recognition - detects EAN/UPC patterns
-const detectBarcodeInImage = (imageData: ImageData): string | null => {
-  const data = imageData.data;
-  const width = imageData.width;
-  const height = imageData.height;
-
-  // Scan horizontally for barcode patterns
-  for (let y = Math.floor(height * 0.3); y < Math.floor(height * 0.7); y += 10) {
-    let line = '';
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const brightness = (r + g + b) / 3;
-      line += brightness < 128 ? '1' : '0';
-    }
-
-    // Look for repeating patterns (barcode characteristic)
-    const matches = line.match(/1{3,8}0{1,3}|0{3,8}1{1,3}/g);
-    if (matches && matches.length > 30) {
-      // Found barcode-like pattern
-      return 'DETECTED';
-    }
-  }
-
-  return null;
-};
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -71,18 +44,37 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const lastScannedRef = useRef<string | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const detectionCounterRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const quaggaInitializedRef = useRef(false);
 
   const stopCamera = useCallback(() => {
     scanningRef.current = false;
-    
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+
+    // Stop Quagga if it's running
+    if (quaggaInitializedRef.current) {
+      try {
+        Quagga.stop();
+        Quagga.close();
+        quaggaInitializedRef.current = false;
+      } catch (err) {
+        console.warn("[Quagga] Stop error:", err);
+      }
+    }
+
+    // Cancel any pending barcode lookup requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   }, []);
 
@@ -122,8 +114,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
+      // Create and track the abort controller for this request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      abortControllerRef.current = controller;
+
+      const timeoutId = setTimeout(() => {
+        console.warn('[Barcode] Request timeout triggered after 15s');
+        controller.abort();
+      }, 15000); // 15 seconds timeout (increased from 10s)
+
+      console.log('[Barcode] Fetching from Open Food Facts:', `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
 
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
@@ -135,14 +135,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         }
       );
       clearTimeout(timeoutId);
+      abortControllerRef.current = null;
+      console.log('[Barcode] Response received:', response.status);
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.error('[Barcode] JSON parse error:', parseErr);
+        throw new Error('Invalid API response format');
+      }
 
       if (data.status === 1 && data.product) {
+        abortControllerRef.current = null; // Clear the controller on success
+
         const product = data.product;
         const nutriments = product.nutriments || {};
         const servingSize = product.serving_quantity || 100;
@@ -176,6 +186,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
+      abortControllerRef.current = null; // Clear the controller
+
       toast({
         title: "Produkt nicht gefunden 🔍",
         description: "Dieser Barcode ist nicht in der Datenbank.",
@@ -185,10 +197,28 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       scanningRef.current = true;
       setIsLoading(false);
     } catch (err: any) {
-      console.error("[Barcode] Lookup error:", err);
+      // Clear the abort controller reference since the request is done
+      abortControllerRef.current = null;
+
+      // Don't show error if modal was closed (user-initiated abort)
+      if (err.name === 'AbortError' && !isOpen) {
+        console.log("[Barcode] Request cancelled (modal closed)");
+        return;
+      }
+
+      console.error("[Barcode] Lookup error:", err.message || err);
+
+      let errorMsg = "🌐 Netzwerkfehler";
+      if (err.name === 'AbortError') {
+        errorMsg = "⏱️ Zeitüberschreitung - API antwortet zu langsam";
+        console.warn("[Barcode] Request timeout after 15s");
+      } else if (err.message?.includes('Failed to fetch')) {
+        errorMsg = "🌐 Verbindungsfehler - Internet überprüfen";
+      }
+
       toast({
         title: "Fehler",
-        description: err.name === 'AbortError' ? "⏱️ Zeitüberschreitung" : "🌐 Netzwerkfehler",
+        description: errorMsg,
         variant: "destructive",
       });
       lastScannedRef.current = null;
@@ -197,78 +227,110 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [isLoading, onClose, onFoodScanned, stopCamera]);
 
-  // Simple camera preview - no auto detection
-  const detectBarcode = useCallback(() => {
-    if (!scanningRef.current || !videoRef.current) return;
-
-    const video = videoRef.current;
-    if (video.readyState < video.HAVE_CURRENT_DATA) {
-      animationFrameRef.current = requestAnimationFrame(detectBarcode);
+  // Initialize Quagga for barcode detection
+  const initializeQuagga = useCallback(async () => {
+    if (quaggaInitializedRef.current || !videoRef.current) {
       return;
     }
 
-    // Just keep the stream running - user taps "Manuell eingeben" button
-    if (scanningRef.current) {
-      animationFrameRef.current = requestAnimationFrame(detectBarcode);
+    try {
+      console.log("[Quagga] Initializing barcode scanner...");
+
+      Quagga.init(
+        {
+          inputStream: {
+            type: "LiveStream",
+            constraints: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "environment",
+              aspectRatio: { min: 1, max: 100 }
+            },
+            target: videoRef.current,
+            area: {
+              top: "10%",
+              right: "10%",
+              left: "10%",
+              bottom: "10%"
+            }
+          },
+          decoder: {
+            readers: [
+              "code_128_reader",
+              "ean_reader",
+              "ean_8_reader",
+              "upc_reader",
+              "upc_e_reader",
+              "codabar_reader",
+              "code_39_reader"
+            ],
+            debug: {
+              showPatternMatches: false,
+              showFoundPatterns: false,
+              showSkeleton: false,
+              showCanvasSize: false,
+              showPattern: false
+            }
+          },
+          locator: {
+            halfSample: true,
+            patchSize: "medium"
+          },
+          numOfWorkers: 4,
+          frequency: 10 // Check 10 times per second
+        },
+        function (err: any) {
+          if (err) {
+            console.error("[Quagga] Init error:", err);
+            setError("Barcode-Scanner konnte nicht initialisiert werden");
+            setIsInitializing(false);
+            return;
+          }
+
+          console.log("[Quagga] Initialization successful");
+          Quagga.start();
+          quaggaInitializedRef.current = true;
+
+          Quagga.onDetected((result: any) => {
+            if (!scanningRef.current) return;
+
+            const barcode = result?.codeResult?.code?.trim();
+            if (barcode && barcode !== lastScannedRef.current) {
+              console.log("[Quagga] Barcode detected:", barcode, {
+                format: result?.codeResult?.format,
+                confidence: result?.codeResult?.confidence
+              });
+              setDetectionStatus(`✅ Barcode erkannt: ${barcode}`);
+              lookupBarcode(barcode);
+            }
+          });
+
+          setIsInitializing(false);
+          scanningRef.current = true;
+          setDetectionStatus("🔍 Barcode wird gesucht...");
+          console.log("[Quagga] Scanner started");
+        }
+      );
+    } catch (err) {
+      console.error("[Quagga] Initialization failed:", err);
+      setError("Kamera-Zugriff fehlgeschlagen");
+      setIsInitializing(false);
     }
-  }, []);
+  }, [lookupBarcode]);
 
   const startCamera = useCallback(async () => {
     try {
       setError(null);
       setIsInitializing(true);
-      setDetectionStatus("Kamera lädt...");
+      setDetectionStatus("Kamera wird initialisiert...");
       detectionCounterRef.current = 0;
 
-      console.log('[BarcodeScanner] Starte Kamera...');
+      console.log('[BarcodeScanner] Starte Kamera mit Quagga...');
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 20 }
-        }
-      });
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-
-        // iPad/Safari fix: Nutze timeout statt onloadedmetadata
-        await Promise.race([
-          new Promise<void>(resolve => {
-            const handler = () => {
-              videoRef.current?.removeEventListener('loadedmetadata', handler);
-              resolve();
-            };
-            videoRef.current!.addEventListener('loadedmetadata', handler);
-          }),
-          new Promise<void>(resolve => {
-            setTimeout(() => resolve(), 1000); // Timeout nach 1 Sekunde
-          })
-        ]);
-
-        // Force play - wichtig für iPad
-        try {
-          await videoRef.current.play();
-        } catch (err) {
-          console.warn('Play failed, continuing anyway:', err);
-        }
-
-        // Small delay to ensure video is really playing
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        setIsInitializing(false);
-        scanningRef.current = true;
-        setDetectionStatus("Barcode suchen...");
-        console.log('[BarcodeScanner] Kamera aktiv ✅');
-
-        animationFrameRef.current = requestAnimationFrame(detectBarcode);
-      }
+      // Initialize Quagga which handles the camera stream directly
+      await initializeQuagga();
     } catch (err: any) {
-      console.error("Camera error:", err);
+      console.error("[BarcodeScanner] Camera error:", err);
 
       let errorMsg = "Kamera konnte nicht gestartet werden.";
       if (err.name === 'NotAllowedError') {
@@ -282,13 +344,20 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setError(errorMsg);
       setIsInitializing(false);
     }
-  }, [detectBarcode]);
+  }, [initializeQuagga]);
 
   useEffect(() => {
     if (isOpen) {
       startCamera();
     }
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+      // Ensure any pending requests are cancelled when modal closes
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [isOpen, startCamera, stopCamera]);
 
   const handleClose = () => {
