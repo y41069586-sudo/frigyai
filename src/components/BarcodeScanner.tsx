@@ -235,6 +235,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
     try {
       console.log("[Quagga] Initializing barcode scanner...");
+      console.log("[Quagga] Video element:", videoRef.current);
+      console.log("[Quagga] Browser:", navigator.userAgent);
 
       Quagga.init(
         {
@@ -282,7 +284,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         function (err: any) {
           if (err) {
             console.error("[Quagga] Init error:", err);
-            setError("Barcode-Scanner konnte nicht initialisiert werden");
+            console.error("[Quagga] Error details:", {
+              name: err?.name,
+              message: err?.message,
+              code: err?.code
+            });
+
+            let errorMsg = "Barcode-Scanner konnte nicht initialisiert werden";
+            if (err.name === 'NotAllowedError' || err.code === 'PermissionDenied') {
+              errorMsg = "❌ Kamera-Zugriff verweigert!\n\nErlaube Kamera-Zugriff in Safari Einstellungen.";
+            } else if (err.name === 'NotFoundError') {
+              errorMsg = "❌ Keine Kamera gefunden!";
+            } else if (err.name === 'NotReadableError') {
+              errorMsg = "❌ Kamera wird bereits verwendet!";
+            } else if (err.message?.includes('getUserMedia')) {
+              errorMsg = "❌ Kamera-Zugriff fehlgeschlagen\n\nSafari-Berechtigung prüfen.";
+            }
+
+            setError(errorMsg);
             setIsInitializing(false);
             return;
           }
@@ -311,9 +330,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           console.log("[Quagga] Scanner started");
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("[Quagga] Initialization failed:", err);
-      setError("Kamera-Zugriff fehlgeschlagen");
+      console.error("[Quagga] Exception details:", {
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack
+      });
+      setError("❌ Kamera-Zugriff fehlgeschlagen\n\nBitte Safari-Einstellungen überprüfen.");
       setIsInitializing(false);
     }
   }, [lookupBarcode]);
