@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import {
   User, Scale, Target, Flame, Camera, Plus, Trash2,
-  ChevronRight, Sparkles, TrendingDown, Pencil,
+  ChevronRight, Sparkles, TrendingDown, Pencil, Barcode,
   Armchair, Footprints, PersonStanding, Dumbbell, Crown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,7 @@ import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
+import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
@@ -116,6 +117,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
@@ -126,6 +128,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     carbs: number;
     fat: number;
   } | null>(null);
+  const [scannedProductData, setScannedProductData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -425,6 +428,38 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       return;
     }
     fileInputRef.current?.click();
+  };
+
+  const handleBarcodeClick = () => {
+    const access = canAccessFeature('scan');
+    if (!access.canAccess) {
+      setShowPaywall(true);
+      return;
+    }
+    setShowBarcodeScanner(true);
+  };
+
+  const handleBarcodeScanned = (food: any) => {
+    setScannedProductData(food);
+    setShowSuccessOverlay(true);
+    setShowBarcodeScanner(false);
+
+    // Automatically add to entries
+    const newEntry: FoodEntry = {
+      id: Date.now().toString(),
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      image_url: food.image,
+    };
+    saveFoodEntries([...foodEntries, newEntry]);
+    recordActivity();
+    checkAndAwardBadge('meal_logged');
+    playSuccess();
+    setLastAnalyzedFood(food);
   };
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
@@ -1007,6 +1042,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <Camera className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium text-primary">Foto</span>
           </motion.button>
+          <motion.button
+            onClick={handleBarcodeClick}
+            disabled={isAnalyzing}
+            className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors relative overflow-hidden"
+            whileTap={{ scale: 0.97 }}
+          >
+            {!isPremium && (
+              <div className="absolute top-1 right-1">
+                <Crown className="w-2.5 h-2.5 text-amber-600 fill-amber-600 -rotate-12" />
+              </div>
+            )}
+            <Barcode className="h-5 w-5 text-amber-600" />
+            <span className="text-sm font-medium text-amber-600">Barcode</span>
+          </motion.button>
         </div>
         
         {/* Text Input */}
@@ -1208,6 +1257,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         carbs={lastAnalyzedFood?.carbs || 0}
         fat={lastAnalyzedFood?.fat || 0}
         onComplete={() => setShowSuccessOverlay(false)}
+      />
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onFoodScanned={handleBarcodeScanned}
       />
 
       {/* Paywall Overlay for Premium Features */}
