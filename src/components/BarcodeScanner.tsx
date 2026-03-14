@@ -443,25 +443,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               {/* Scanner Video Area */}
               <div
                 id="barcode-reader"
-                className="w-full h-full relative flex items-center justify-center overflow-hidden"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: '100%',
-                  height: '100%',
-                }}
+                className="absolute inset-0 w-full h-full overflow-hidden"
               >
                 <style>{`
-                  #barcode-reader video,
+                  #barcode-reader {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  }
+                  #barcode-reader video {
+                    width: 100% !important;
+                    height: 100% !important;
+                    object-fit: cover !important;
+                    display: block !important;
+                  }
                   #barcode-reader canvas {
                     width: 100% !important;
                     height: 100% !important;
-                    object-fit: cover;
-                    max-width: 100%;
-                    max-height: 100%;
+                    object-fit: cover !important;
+                    display: block !important;
                   }
                 `}</style>
               </div>
