@@ -143,19 +143,28 @@ const Index = () => {
         .eq('date', today)
         .maybeSingle();
       if (data) {
+        console.log('[DASHBOARD] Updated macros:', data);
         setCaloriesEaten(data.calories);
         setProteinEaten(data.protein);
         setCarbsEaten(data.carbs);
         setFatEaten(data.fat);
       }
     };
-    
+
     fetchDailyMacros();
-    
-    // Periodic refresh instead of real-time subscription (more stable)
+
+    // Listen for food entry changes - update immediately when meal is added from meal plan
+    const handleFoodEntryAdded = () => {
+      console.log('[DASHBOARD] Food entry added event detected, refreshing macros...');
+      fetchDailyMacros();
+    };
+
+    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
+
+    // Also periodic refresh as fallback (every 10 seconds instead of 30)
     if (user) {
       const intervalId = setInterval(async () => {
-        console.log('[DASHBOARD] Refreshing macro data...');
+        console.log('[DASHBOARD] Periodic macro refresh...');
         const today = new Date().toISOString().split('T')[0];
         const { data } = await supabase
           .from('daily_macros')
@@ -170,10 +179,17 @@ const Index = () => {
           setCarbsEaten(data.carbs || 0);
           setFatEaten(data.fat || 0);
         }
-      }, 30000);
+      }, 10000);
 
-      return () => clearInterval(intervalId);
+      return () => {
+        clearInterval(intervalId);
+        window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+      };
     }
+
+    return () => {
+      window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+    };
   }, [user]);
   
   // Handle reset onboarding from URL parameter (for testing on iPad etc.)
