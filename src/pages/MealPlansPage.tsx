@@ -29,7 +29,6 @@ import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
 import { FreeModePaywallOverlay } from '@/components/FreeModePaywallOverlay';
-import { ChatbotIntro } from '@/components/ChatbotIntro';
 
 interface UserProfile {
   age: number;
@@ -98,7 +97,6 @@ const MealPlansPage = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
   const [showWeeklySummary, setShowWeeklySummary] = useState(false);
-  const [showChatbotIntro, setShowChatbotIntro] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
@@ -133,12 +131,6 @@ const MealPlansPage = () => {
           setIsActivatingSubscription(false);
           setShowSuccessDialog(true);
 
-          // Show chatbot intro if not shown before
-          if (!localStorage.getItem('chatbotIntroShown')) {
-            setTimeout(() => {
-              setShowChatbotIntro(true);
-            }, 1500);
-          }
 
           // Clean up URL
           searchParams.delete('subscription');
@@ -417,13 +409,7 @@ const MealPlansPage = () => {
 
   return (
     <>
-      {/* Chatbot Intro Overlay */}
-      <ChatbotIntro
-        isVisible={showChatbotIntro}
-        onComplete={() => setShowChatbotIntro(false)}
-      />
-
-      <div className={`min-h-screen bg-gradient-primary safe-area-inset ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className="min-h-screen bg-gradient-primary safe-area-inset">
       <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center">
