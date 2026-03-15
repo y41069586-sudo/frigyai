@@ -63,7 +63,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
-  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals, refreshEntries } = useFoodEntries();
+  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals } = useFoodEntries();
   const { canAccessFeature } = useFeatureAccess();
   
   const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
@@ -103,18 +103,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       }
     }
   }, [trackerSettings, isConfigured, settingsLoading]);
-
-  // Listen for food entry changes from other components (e.g., meal plan page)
-  useEffect(() => {
-    const handleFoodEntryAdded = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      console.log('[MACRO-TRACKER] Detected food entry change, refreshing...', customEvent.detail);
-      refreshEntries();
-    };
-
-    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
-    return () => window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
-  }, [refreshEntries]);
 
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>(() => {
     const saved = localStorage.getItem('todayFood');
