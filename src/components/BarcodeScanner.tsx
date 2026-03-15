@@ -28,7 +28,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const [isScannerActive, setIsScannerActive] = useState(false);
   const quaggaRef = useRef<any>(null);
   const detectionLockRef = useRef(false);
-  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const detectionHandlerRef = useRef<((data: any) => void) | null>(null);
 
   // Load Quagga2 library from CDN
   useEffect(() => {
@@ -76,14 +76,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const stopScanner = async () => {
     try {
-      // Clear any pending timeouts
-      if (loadTimeoutRef.current) {
-        clearTimeout(loadTimeoutRef.current);
-        loadTimeoutRef.current = null;
-      }
-
       const Quagga = (window as any).Quagga;
       if (Quagga && quaggaRef.current) {
+        // Remove the detection handler
+        if (detectionHandlerRef.current && Quagga.offDetected) {
+          Quagga.offDetected(detectionHandlerRef.current);
+          detectionHandlerRef.current = null;
+        }
         try {
           Quagga.stop();
           console.log('[BarcodeScanner] Scanner stopped');
@@ -176,12 +175,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       });
 
       // Set up detection handler with debouncing
-      Quagga.onDetected((data: any) => {
+      const detectionHandler = (data: any) => {
         if (data?.codeResult?.code) {
           console.log('[BarcodeScanner] Barcode detected:', data.codeResult.code);
           handleBarcodeDetected(data.codeResult.code);
         }
-      });
+      };
+      detectionHandlerRef.current = detectionHandler;
+      Quagga.onDetected(detectionHandler);
 
       console.log('[BarcodeScanner] Scanner started successfully');
     } catch (err: any) {
@@ -233,12 +234,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       );
 
       const fetchPromise = fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-        {
-          headers: {
-            'User-Agent': 'FrigAI/1.0 (+https://frigyai.app)',
-          },
-        }
+        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
       );
 
       const response = await Promise.race([fetchPromise, fetchTimeout]);

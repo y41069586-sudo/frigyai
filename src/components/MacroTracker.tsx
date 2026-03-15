@@ -103,6 +103,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       }
     }
   }, [trackerSettings, isConfigured, settingsLoading]);
+
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>(() => {
     const saved = localStorage.getItem('todayFood');
     if (saved) {

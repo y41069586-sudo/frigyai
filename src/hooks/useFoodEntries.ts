@@ -118,15 +118,23 @@ export const useFoodEntries = () => {
     }
 
     try {
+      // Ensure all numeric values are properly converted
+      const caloriesValue = Number(entry.calories) || 0;
+      const proteinValue = Number(entry.protein) || 0;
+      const carbsValue = Number(entry.carbs) || 0;
+      const fatValue = Number(entry.fat) || 0;
+
+      console.log('[FOOD-ENTRIES] Adding entry with values:', { calories: caloriesValue, protein: proteinValue, carbs: carbsValue, fat: fatValue });
+
       const { data, error } = await supabase
         .from('food_entries')
         .insert({
           user_id: user.id,
           name: entry.name,
-          calories: entry.calories,
-          protein: entry.protein,
-          carbs: entry.carbs,
-          fat: entry.fat,
+          calories: caloriesValue,
+          protein: proteinValue,
+          carbs: carbsValue,
+          fat: fatValue,
           portion: entry.portion,
           meal_type: entry.meal_type,
           image_url: entry.image_url,

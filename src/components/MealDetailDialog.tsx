@@ -45,10 +45,10 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     try {
       const result = await addEntry({
         name: meal.name,
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
+        calories: Number(meal.calories) || 0,
+        protein: Number(meal.protein) || 0,
+        carbs: Number(meal.carbs) || 0,
+        fat: Number(meal.fat) || 0,
         portion: `${meal.prepTime}min`,
         meal_type: meal.type,
       });
@@ -66,6 +66,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         }, 1000);
       }
     } catch (error) {
+      console.error('[MealDetailDialog] Error logging meal:', error);
       toast({
         title: 'Fehler',
         description: 'Konnte Mahlzeit nicht speichern',
@@ -76,7 +77,16 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     }
   };
 
-  if (!meal) return null;
+  // Early return before hooks - hooks must run before any conditionals
+  if (!meal) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <p className="text-center text-muted-foreground">Keine Mahlzeit ausgewählt</p>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -135,19 +145,21 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         </div>
 
         {/* Instructions */}
-        <div className="mb-6">
-          <h4 className="font-semibold mb-2 text-primary">Zubereitung</h4>
-          <ol className="space-y-3">
-            {meal.instructions.map((step, idx) => (
-              <li key={idx} className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-medium">
-                  {idx + 1}
-                </span>
-                <span className="text-sm">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
+        {meal.instructions && meal.instructions.length > 0 && (
+          <div className="mb-6">
+            <h4 className="font-semibold mb-2 text-primary">Zubereitung</h4>
+            <ol className="space-y-3">
+              {meal.instructions.map((step, idx) => (
+                <li key={idx} className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-medium">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         {/* Log as eaten button */}
         <div className="flex gap-2 mt-6 pt-4 border-t border-primary/20">
