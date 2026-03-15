@@ -43,13 +43,16 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
 
     setIsLogging(true);
     try {
+      // Ensure all values are numbers and handle potential undefined values
+      const prepTime = meal.prepTime || 20;
+
       const result = await addEntry({
         name: meal.name,
         calories: Number(meal.calories) || 0,
         protein: Number(meal.protein) || 0,
         carbs: Number(meal.carbs) || 0,
         fat: Number(meal.fat) || 0,
-        portion: `${meal.prepTime}min`,
+        portion: `${prepTime}min`,
         meal_type: meal.type,
       });
 

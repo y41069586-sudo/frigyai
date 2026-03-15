@@ -23,9 +23,7 @@ import { DashboardTodayMealsCard } from "@/components/DashboardTodayMealsCard";
 import { useReminders } from "@/hooks/useReminders";
 
 import frigLogo from "@/assets/frig-logo.png";
-import { ChatbotIntro } from "@/components/ChatbotIntro";
 import { AIChatbot } from "@/components/AIChatbot";
-import { AIChatbotBubble } from "@/components/AIChatbotBubble";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading } = useAuth();
@@ -34,12 +32,6 @@ const Index = () => {
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-  const [showChatbotIntro, setShowChatbotIntro] = useState(false);
-  const [showAIBubbleIntro, setShowAIBubbleIntro] = useState(() => {
-    const bubbleShown = localStorage.getItem('aiBubbleIntroShown');
-    const isPremium = subscriptionStatus?.subscribed === true;
-    return !bubbleShown && isPremium;
-  });
 
   // Initialize reminders system
   useReminders();
@@ -151,19 +143,28 @@ const Index = () => {
         .eq('date', today)
         .maybeSingle();
       if (data) {
+        console.log('[DASHBOARD] Updated macros:', data);
         setCaloriesEaten(data.calories);
         setProteinEaten(data.protein);
         setCarbsEaten(data.carbs);
         setFatEaten(data.fat);
       }
     };
-    
+
     fetchDailyMacros();
-    
-    // Periodic refresh instead of real-time subscription (more stable)
+
+    // Listen for food entry changes - update immediately when meal is added from meal plan
+    const handleFoodEntryAdded = () => {
+      console.log('[DASHBOARD] Food entry added event detected, refreshing macros...');
+      fetchDailyMacros();
+    };
+
+    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
+
+    // Also periodic refresh as fallback (every 10 seconds instead of 30)
     if (user) {
       const intervalId = setInterval(async () => {
-        console.log('[DASHBOARD] Refreshing macro data...');
+        console.log('[DASHBOARD] Periodic macro refresh...');
         const today = new Date().toISOString().split('T')[0];
         const { data } = await supabase
           .from('daily_macros')
@@ -178,10 +179,17 @@ const Index = () => {
           setCarbsEaten(data.carbs || 0);
           setFatEaten(data.fat || 0);
         }
-      }, 30000);
+      }, 10000);
 
-      return () => clearInterval(intervalId);
+      return () => {
+        clearInterval(intervalId);
+        window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+      };
     }
+
+    return () => {
+      window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+    };
   }, [user]);
   
   // Handle reset onboarding from URL parameter (for testing on iPad etc.)
@@ -231,16 +239,6 @@ const Index = () => {
     }
   }, [isFromSubscription, navigate]);
 
-  // Show chatbot intro for new premium users
-  useEffect(() => {
-    if (subscriptionStatus?.subscribed && !localStorage.getItem('chatbotIntroShown')) {
-      // Delay to let the page settle
-      const timer = setTimeout(() => {
-        setShowChatbotIntro(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [subscriptionStatus?.subscribed]);
 
   // Fetch daily scan usage for free users - updated to weekly
   useEffect(() => {
@@ -365,17 +363,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Chatbot Intro Overlay */}
-      <ChatbotIntro
-        isVisible={showChatbotIntro}
-        onComplete={() => setShowChatbotIntro(false)}
-      />
-
       {/* Subtle background */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/3 via-transparent to-transparent pointer-events-none" />
 
       {/* Main Content */}
-      <main className={`relative flex-1 flex flex-col px-3 sm:px-5 pb-32 pt-6 sm:pt-8 safe-top ${showChatbotIntro ? 'blur-sm pointer-events-none' : ''}`}>
+      <main className="relative flex-1 flex flex-col px-3 sm:px-5 pb-32 pt-6 sm:pt-8 safe-top">
         <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-6 sm:space-y-8">
           
           {/* Header - Clean & Modern */}
@@ -568,16 +560,6 @@ const Index = () => {
           onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
         />
       )}
-
-      {/* AI Bubble Intro - Show once on dashboard load */}
-      <AIChatbotBubble
-        isVisible={showAIBubbleIntro}
-        position="top-right"
-        onComplete={() => {
-          localStorage.setItem('aiBubbleIntroShown', 'true');
-          setShowAIBubbleIntro(false);
-        }}
-      />
 
       {/* AI Chatbot - Premium Only */}
       <AIChatbot

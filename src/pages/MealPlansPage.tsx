@@ -320,7 +320,14 @@ const MealPlansPage = () => {
   };
 
   const openMealDetail = (meal: Meal) => {
-    setSelectedMeal(meal);
+    // Ensure meal has all required fields with safe defaults
+    const safeMeal: Meal = {
+      ...meal,
+      instructions: meal.instructions && Array.isArray(meal.instructions) ? meal.instructions : [],
+      prepTime: meal.prepTime || 20,
+      ingredients: meal.ingredients || [],
+    };
+    setSelectedMeal(safeMeal);
     setDialogOpen(true);
   };
 
@@ -328,22 +335,23 @@ const MealPlansPage = () => {
     e.stopPropagation(); // Prevent opening meal detail
 
     try {
-      // Log meal to database via food entries hook
-      console.log('[ADD-MEAL-TO-TRACKER] Adding meal:', {
-        name: meal.name,
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
-        portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
-        meal_type: meal.type,
-      });
-
-      // Ensure all values are numbers
+      // Ensure all values are numbers - handle potential undefined/null values
       const calories = Number(meal.calories) || 0;
       const protein = Number(meal.protein) || 0;
       const carbs = Number(meal.carbs) || 0;
       const fat = Number(meal.fat) || 0;
+      const prepTime = meal.prepTime || 20;
+
+      // Log meal to database via food entries hook
+      console.log('[ADD-MEAL-TO-TRACKER] Adding meal:', {
+        name: meal.name,
+        calories,
+        protein,
+        carbs,
+        fat,
+        portion: `${prepTime}min`,
+        meal_type: meal.type,
+      });
 
       const result = await addEntry({
         name: meal.name,
@@ -351,7 +359,7 @@ const MealPlansPage = () => {
         protein,
         carbs,
         fat,
-        portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
+        portion: `${prepTime}min`,
         meal_type: meal.type,
       });
 
