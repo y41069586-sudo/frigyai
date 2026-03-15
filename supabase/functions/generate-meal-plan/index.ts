@@ -61,7 +61,10 @@ function generateIngredientsForMeal(meal: any): any {
 
   return {
     ...meal,
-    ingredients: ingredients
+    ingredients: ingredients,
+    // Ensure these fields exist for the meal detail dialog
+    instructions: meal.instructions || [],
+    prepTime: meal.prepTime || 20
   };
 }
 
@@ -136,7 +139,9 @@ WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
 - protein: Protein in Gramm
 - carbs: Kohlenhydrate in Gramm
 - fat: Fett in Gramm
+- prepTime: Zubereitungszeit in Minuten (z.B. 15, 20, 30)
 - ingredients: Array mit Zutaten [{name, amount, price}]
+- instructions: Array mit Zubereitungsschritten als Strings
 
 Antwort NUR als JSON im Format:
 
@@ -152,12 +157,14 @@ Antwort NUR als JSON im Format:
          "protein":20,
          "carbs":28,
          "fat":22,
+         "prepTime":15,
          "ingredients":[
            {"name":"Eier","amount":"3 Stück","price":0.9},
            {"name":"Speck","amount":"50g","price":1.5},
            {"name":"Brot","amount":"2 Scheiben","price":0.5},
            {"name":"Butter","amount":"10g","price":0.1}
-         ]
+         ],
+         "instructions":["Eier in einer Pfanne rühren","Speck knusprig braten","Brot toasten","Alles servieren"]
        },
        {
          "type":"Snack",
@@ -166,10 +173,12 @@ Antwort NUR als JSON im Format:
          "protein":8,
          "carbs":22,
          "fat":10,
+         "prepTime":5,
          "ingredients":[
            {"name":"Apfel","amount":"1 Stück","price":0.8},
            {"name":"Erdnussbutter","amount":"1 EL","price":0.4}
-         ]
+         ],
+         "instructions":["Apfel waschen","Mit Erdnussbutter servieren"]
        }
      ]
    }
