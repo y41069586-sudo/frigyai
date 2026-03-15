@@ -339,12 +339,18 @@ const MealPlansPage = () => {
         meal_type: meal.type,
       });
 
+      // Ensure all values are numbers
+      const calories = Number(meal.calories) || 0;
+      const protein = Number(meal.protein) || 0;
+      const carbs = Number(meal.carbs) || 0;
+      const fat = Number(meal.fat) || 0;
+
       const result = await addEntry({
         name: meal.name,
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
+        calories,
+        protein,
+        carbs,
+        fat,
         portion: meal.prepTime ? `${meal.prepTime}min` : '1 Portion',
         meal_type: meal.type,
       });
@@ -352,10 +358,18 @@ const MealPlansPage = () => {
       if (result) {
         toast({
           title: `${t.eaten}! ✓`,
-          description: `${meal.name} - ${meal.calories} kcal ${t.toastProductAdded}`
+          description: `${meal.name} - ${calories} kcal ${t.toastProductAdded}`
+        });
+      } else {
+        console.error('[ADD-MEAL-TO-TRACKER] Failed to add meal - result is null');
+        toast({
+          title: 'Fehler',
+          description: 'Mahlzeit konnte nicht hinzugefügt werden',
+          variant: 'destructive'
         });
       }
     } catch (error) {
+      console.error('[ADD-MEAL-TO-TRACKER] Error:', error);
       toast({
         title: 'Fehler',
         description: 'Konnte Mahlzeit nicht speichern',
