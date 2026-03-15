@@ -45,10 +45,10 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     try {
       const result = await addEntry({
         name: meal.name,
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
+        calories: Number(meal.calories) || 0,
+        protein: Number(meal.protein) || 0,
+        carbs: Number(meal.carbs) || 0,
+        fat: Number(meal.fat) || 0,
         portion: `${meal.prepTime}min`,
         meal_type: meal.type,
       });
@@ -66,6 +66,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         }, 1000);
       }
     } catch (error) {
+      console.error('[MealDetailDialog] Error logging meal:', error);
       toast({
         title: 'Fehler',
         description: 'Konnte Mahlzeit nicht speichern',
@@ -76,7 +77,16 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     }
   };
 
-  if (!meal) return null;
+  // Early return before hooks - hooks must run before any conditionals
+  if (!meal) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <p className="text-center text-muted-foreground">Keine Mahlzeit ausgewählt</p>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
