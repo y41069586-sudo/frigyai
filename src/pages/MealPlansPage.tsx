@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -104,10 +104,11 @@ const MealPlansPage = () => {
   // Sync activeTab with URL params
   const activeTab = searchParams.get('tab') || 'tracker';
 
-  const setActiveTab = (tab: string) => {
-    searchParams.set('tab', tab);
-    setSearchParams(searchParams, { replace: true });
-  };
+  const setActiveTab = useCallback((tab: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', tab);
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Initialize reminder system
   useReminders();
@@ -172,6 +173,7 @@ const MealPlansPage = () => {
   // Free users: can regenerate meal plan only once after the onboarding plan
   const maxFreeGenerations = 1;
   const canGenerateMealPlan = isPremium || globalGenerationCount < maxFreeGenerations;
+  const pendingMealPlanRefreshRef = useRef(false);
 
   useEffect(() => {
     // Wait for auth to finish loading before redirecting
@@ -275,7 +277,7 @@ const MealPlansPage = () => {
     setActiveTab('tracker');
   };
 
-  const generateMealPlan = async () => {
+  const generateMealPlan = useCallback(async () => {
     if (!trackerSetup || !trackerSettings) {
       toast({
         title: t.setupTracker,
@@ -317,7 +319,40 @@ const MealPlansPage = () => {
       dailyCarbs,
       dailyFat,
     });
-  };
+  }, [
+    trackerSetup,
+    trackerSettings,
+    session,
+    isPremium,
+    globalGenerationCount,
+    maxFreeGenerations,
+    navigate,
+    globalGenerateMealPlan,
+    setActiveTab,
+    t,
+  ]);
+
+  useEffect(() => {
+    const shouldRegenerate = activeTab === 'meals' && searchParams.get('regenerate') === '1';
+
+    if (!shouldRegenerate || trackerLoading || pendingMealPlanRefreshRef.current) {
+      return;
+    }
+
+    pendingMealPlanRefreshRef.current = true;
+
+    const params = new URLSearchParams(searchParams);
+    params.delete('regenerate');
+    setSearchParams(params, { replace: true });
+
+    void (async () => {
+      try {
+        await generateMealPlan();
+      } finally {
+        pendingMealPlanRefreshRef.current = false;
+      }
+    })();
+  }, [activeTab, generateMealPlan, searchParams, setSearchParams, trackerLoading]);
 
   const openMealDetail = (meal: Meal) => {
     // Ensure meal has all required fields with safe defaults
