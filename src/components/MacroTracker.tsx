@@ -63,7 +63,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
-  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals } = useFoodEntries();
+  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
   const { canAccessFeature } = useFeatureAccess();
   
   const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
@@ -154,56 +154,30 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
   }, [isAnalyzing, analyzingImage]);
 
-  // Listen for food entries added from meal plan and sync them to this tracker
+  const mapDbEntriesToTrackerEntries = useCallback((entries: DBFoodEntry[]): FoodEntry[] => {
+    return entries.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      calories: entry.calories,
+      protein: entry.protein,
+      carbs: entry.carbs,
+      fat: entry.fat,
+      time: new Date(entry.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      image_url: entry.image_url,
+    }));
+  }, []);
+
   useEffect(() => {
-    const handleFoodEntryAdded = async () => {
-      console.log('[MACRO-TRACKER] Food entry added event received, refreshing entries...');
+    if (!user || foodEntriesLoading) return;
 
-      if (!user) return;
+    const freshEntries = mapDbEntriesToTrackerEntries(dbEntries);
+    setFoodEntries(freshEntries);
 
-      try {
-        // Reload entries from database
-        const today = new Date().toISOString().split('T')[0];
-        const { data, error } = await supabase
-          .from('food_entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Convert to FoodEntry format
-        const freshEntries = (data || []).map((entry: any) => ({
-          id: entry.id,
-          name: entry.name,
-          calories: entry.calories,
-          protein: entry.protein,
-          carbs: entry.carbs,
-          fat: entry.fat,
-          time: new Date(entry.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-          image_url: entry.image_url,
-        }));
-
-        console.log('[MACRO-TRACKER] Updated entries from DB:', freshEntries.length);
-        setFoodEntries(freshEntries);
-
-        // Also save to localStorage
-        localStorage.setItem('todayFood', JSON.stringify({
-          date: new Date().toDateString(),
-          entries: freshEntries,
-        }));
-      } catch (error) {
-        console.error('[MACRO-TRACKER] Error refreshing entries:', error);
-      }
-    };
-
-    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
-
-    return () => {
-      window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
-    };
-  }, [user]);
+    localStorage.setItem('todayFood', JSON.stringify({
+      date: new Date().toDateString(),
+      entries: freshEntries,
+    }));
+  }, [dbEntries, foodEntriesLoading, mapDbEntriesToTrackerEntries, user]);
 
   // Expose reset function to parent
   const resetTracker = async () => {
