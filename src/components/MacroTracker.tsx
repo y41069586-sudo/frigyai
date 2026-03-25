@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -1031,6 +1032,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
           };
+          const mealPlanNeedsRefresh =
+            profile && (
+              profile.dailyCalories !== goals.dailyCalories ||
+              profile.dailyProtein !== goals.dailyProtein ||
+              profile.dailyCarbs !== goals.dailyCarbs ||
+              profile.dailyFat !== goals.dailyFat
+            );
+
           setProfile(newProfile);
 
           // Save to database
@@ -1045,6 +1054,21 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
           });
+
+          if (mealPlanNeedsRefresh) {
+            toast({
+              title: 'Bitte aktualisiere deinen Wochenplan aufgrund der Änderung',
+              description: 'Dein Wochenplan sollte an deine neuen Tracker-Ziele angepasst werden.',
+              action: (
+                <ToastAction
+                  altText="Wochenplan aktualisieren"
+                  onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}
+                >
+                  Wochenplan aktualisieren
+                </ToastAction>
+              ),
+            });
+          }
         }}
       />
 
