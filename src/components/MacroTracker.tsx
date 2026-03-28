@@ -234,6 +234,25 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const carbCalories = Math.max(0, targetCalories - proteinCalories - fatCalories);
   const targetCarbs = Math.round(carbCalories / 4);
 
+  const showMealPlanRefreshToast = () => {
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <span>Wochenplan neu generieren</span>
+        </div>
+      ),
+      description: 'Deine Makroziele wurden angepasst. Damit dein Wochenplan wieder perfekt passt, solltest du ihn neu erstellen.',
+      action: (
+        <ToastAction altText="Wochenplan generieren" onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}>
+          Wochenplan generieren
+        </ToastAction>
+      ),
+    });
+  };
+
   const saveProfile = async () => {
     const newProfile = {
       age,
@@ -260,6 +279,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     
     setProfile(newProfile);
     setStep('tracker');
+
+    if (profile) {
+      const profileChanged =
+        profile.dailyCalories !== newProfile.dailyCalories ||
+        profile.dailyProtein !== newProfile.dailyProtein ||
+        profile.dailyCarbs !== newProfile.dailyCarbs ||
+        profile.dailyFat !== newProfile.dailyFat ||
+        profile.targetWeight !== newProfile.targetWeight ||
+        profile.weight !== newProfile.weight ||
+        profile.age !== newProfile.age;
+
+      if (profileChanged) {
+        showMealPlanRefreshToast();
+      }
+    }
+
     onSetupComplete?.();
   };
 
@@ -1056,18 +1091,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           });
 
           if (mealPlanNeedsRefresh) {
-            toast({
-              title: 'Bitte aktualisiere deinen Wochenplan aufgrund der Änderung',
-              description: 'Dein Wochenplan sollte an deine neuen Tracker-Ziele angepasst werden.',
-              action: (
-                <ToastAction
-                  altText="Wochenplan aktualisieren"
-                  onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}
-                >
-                  Wochenplan aktualisieren
-                </ToastAction>
-              ),
-            });
+            showMealPlanRefreshToast();
           }
         }}
       />
