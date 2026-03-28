@@ -117,15 +117,16 @@ REGELN:
 - Keine exotischen Zutaten
 - Keine asiatischen Gerichte
 - 7 Tage
-- 5 Mahlzeiten pro Tag
-- Keine Wiederholungen
+- Genau 5 Mahlzeiten pro Tag
+- Die Reihenfolge im meals-Array muss genau sein: Frühstück, Snack, Mittagessen, Abendessen, Snack
+- Keine Wiederholungen innerhalb eines Tages
 - JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
-- Die Tageskalorien müssen zuverlässig erreicht werden; die Summe pro Tag soll das Ziel möglichst genau treffen und darf bei Bedarf leicht darüber liegen
+- Die Summe der 5 Mahlzeiten muss das Tagesziel zuverlässig erreichen; das Ziel soll möglichst genau getroffen werden und darf bei Bedarf leicht überschritten werden, aber nicht deutlich unterschritten werden
 - Wenn das Kalorienziel hoch ist, wähle bewusst energiereiche, kaloriendichte Gerichte und größere Portionen statt zu leichter Diätkost
 - Nutze bei hohen Kalorienzielen gezielt Kalorienbomben aus alltagstauglichen Lebensmitteln wie Nüsse, Erdnussbutter, Käse, Sahne, Butter, Öl, Reis, Nudeln, Brot, Haferflocken, Vollmilch, Avocado, Kartoffeln und fettreicheres Fleisch
 - Vermeide zu viele leichte Salate oder sehr kleine Snacks, wenn dadurch das Tagesziel nicht erreicht wird
 - Frühstück, Mittag- und Abendessen dürfen bei hohen Zielen deutlich größer ausfallen; Snacks dürfen ebenfalls energiereich sein
-${highCalorieTarget ? '- Bei sehr hohen Zielen ab etwa 3200 kcal pro Tag müssen die Gerichte klar kalorienreich sein und pro Tag insgesamt das Ziel sicher abdecken' : ''}
+- Bei sehr hohen Zielen ab etwa 3200 kcal pro Tag müssen mindestens 2 Mahlzeiten deutlich kaloriendicht sein und die Tageskalorien dürfen nicht nur zur Hälfte abgedeckt werden
 
 Tagesziele:
 Kalorien: ${dailyCalories}
@@ -133,15 +134,15 @@ Protein: ${dailyProtein}
 Carbs: ${dailyCarbs}
 Fat: ${dailyFat}
 
-Kalorienverteilung:
+Kalorienverteilung pro Tag:
 Frühstück: ${breakfastCal}
 Snack: ${snackCal}
 Mittagessen: ${lunchCal}
-Snack: ${snackCal}
 Abendessen: ${dinnerCal}
+Snack: ${snackCal}
 
 WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
-- type: "Frühstück", "Snack", "Mittagessen", "Snack", oder "Abendessen"
+- type: "Frühstück", "Snack", "Mittagessen" oder "Abendessen"
 - name: Name des Gerichts
 - calories: Genaue Kalorien
 - protein: Protein in Gramm
@@ -153,6 +154,8 @@ WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
 
 Achte darauf, dass die Gerichte realistisch, sättigend und zum Kalorienziel passend sind. Bei hohem Ziel lieber deftige, energiereiche Klassiker als zu leichte Mahlzeiten.
 
+Antworte so, dass jeder Tag vollständig ist und genau 5 Mahlzeiten enthält. Wenn das Tagesziel sehr hoch ist, müssen die Gerichte entsprechend groß und energiereich sein.
+
 Antwort NUR als JSON im Format:
 
 {
@@ -163,7 +166,7 @@ Antwort NUR als JSON im Format:
        {
          "type":"Frühstück",
          "name":"Rührei mit Speck, Käse und Butterbrot",
-         "calories":780,
+         "calories":760,
          "protein":34,
          "carbs":52,
          "fat":44,
@@ -180,7 +183,7 @@ Antwort NUR als JSON im Format:
        {
          "type":"Snack",
          "name":"Banane mit Erdnussbutter und Nüssen",
-         "calories":430,
+         "calories":380,
          "protein":14,
          "carbs":36,
          "fat":26,
@@ -193,57 +196,57 @@ Antwort NUR als JSON im Format:
          "instructions":["Banane schälen","Mit Erdnussbutter servieren","Nüsse darüber streuen"]
        },
        {
-        "type":"Mittagessen",
-        "name":"Nudeln mit Hackfleisch-Sahne-Soße",
-        "calories":1100,
-        "protein":46,
-        "carbs":118,
-        "fat":46,
-        "prepTime":30,
-        "ingredients":[
-          {"name":"Nudeln","amount":"150g","price":0.8},
-          {"name":"Rinderhack","amount":"200g","price":3.5},
-          {"name":"Sahne","amount":"100ml","price":0.9},
-          {"name":"Tomatensoße","amount":"150ml","price":0.5},
-          {"name":"Parmesan","amount":"20g","price":0.8}
-        ],
-        "instructions":["Nudeln kochen","Hackfleisch anbraten","Sahne und Tomatensoße einrühren","Mit Parmesan servieren"]
-      },
-      {
-        "type":"Snack",
-        "name":"Griechischer Joghurt mit Müsli und Honig",
-        "calories":420,
-        "protein":18,
-        "carbs":48,
-        "fat":16,
-        "prepTime":5,
-        "ingredients":[
-          {"name":"Griechischer Joghurt","amount":"250g","price":1.2},
-          {"name":"Müsli","amount":"60g","price":0.6},
-          {"name":"Honig","amount":"1 EL","price":0.2}
-        ],
-        "instructions":["Joghurt in eine Schüssel geben","Müsli darüber streuen","Mit Honig verfeinern"]
-      },
-      {
-        "type":"Abendessen",
-        "name":"Kartoffeln mit Hähnchen und Rahmsoße",
-        "calories":980,
-        "protein":52,
-        "carbs":82,
-        "fat":42,
-        "prepTime":35,
-        "ingredients":[
-          {"name":"Kartoffeln","amount":"300g","price":0.9},
-          {"name":"Hähnchenbrust","amount":"200g","price":3.4},
-          {"name":"Rahmsoße","amount":"120ml","price":0.8},
-          {"name":"Butter","amount":"15g","price":0.2},
-          {"name":"Gemüse","amount":"150g","price":1.0}
-        ],
-        "instructions":["Kartoffeln kochen","Hähnchen anbraten","Rahmsoße erwärmen","Alles zusammen anrichten"]
-      }
-    ]
-  }
-]
+         "type":"Mittagessen",
+         "name":"Nudeln mit Hackfleisch-Sahne-Soße",
+         "calories":1330,
+         "protein":46,
+         "carbs":118,
+         "fat":46,
+         "prepTime":30,
+         "ingredients":[
+           {"name":"Nudeln","amount":"180g","price":0.8},
+           {"name":"Rinderhack","amount":"250g","price":4.1},
+           {"name":"Sahne","amount":"150ml","price":1.2},
+           {"name":"Tomatensoße","amount":"200ml","price":0.7},
+           {"name":"Parmesan","amount":"30g","price":1.1}
+         ],
+         "instructions":["Nudeln kochen","Hackfleisch anbraten","Sahne und Tomatensoße einrühren","Mit Parmesan servieren"]
+       },
+       {
+         "type":"Abendessen",
+         "name":"Kartoffeln mit Hähnchen und Rahmsoße",
+         "calories":950,
+         "protein":52,
+         "carbs":82,
+         "fat":42,
+         "prepTime":35,
+         "ingredients":[
+           {"name":"Kartoffeln","amount":"300g","price":0.9},
+           {"name":"Hähnchenbrust","amount":"200g","price":3.4},
+           {"name":"Rahmsoße","amount":"120ml","price":0.8},
+           {"name":"Butter","amount":"15g","price":0.2},
+           {"name":"Gemüse","amount":"150g","price":1.0}
+         ],
+         "instructions":["Kartoffeln kochen","Hähnchen anbraten","Rahmsoße erwärmen","Alles zusammen anrichten"]
+       },
+       {
+         "type":"Snack",
+         "name":"Griechischer Joghurt mit Müsli und Honig",
+         "calories":380,
+         "protein":18,
+         "carbs":48,
+         "fat":16,
+         "prepTime":5,
+         "ingredients":[
+           {"name":"Griechischer Joghurt","amount":"250g","price":1.2},
+           {"name":"Müsli","amount":"60g","price":0.6},
+           {"name":"Honig","amount":"1 EL","price":0.2}
+         ],
+         "instructions":["Joghurt in eine Schüssel geben","Müsli darüber streuen","Mit Honig verfeinern"]
+       }
+     ]
+   }
+ ]
 }`;
 
     const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage.
