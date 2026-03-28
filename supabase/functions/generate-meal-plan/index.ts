@@ -106,6 +106,8 @@ serve(async (req) => {
     const lunchCal = Math.round(dailyCalories * 0.35);
     const dinnerCal = Math.round(dailyCalories * 0.25);
 
+    const highCalorieTarget = dailyCalories >= 3200;
+
     const systemPrompt = `Du bist ein deutscher Ernährungsexperte.
 
 Erstelle einen Wochenplan mit einfachen deutschen und europäischen Gerichten.
@@ -118,6 +120,12 @@ REGELN:
 - 5 Mahlzeiten pro Tag
 - Keine Wiederholungen
 - JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
+- Die Tageskalorien müssen zuverlässig erreicht werden; die Summe pro Tag soll das Ziel möglichst genau treffen und darf bei Bedarf leicht darüber liegen
+- Wenn das Kalorienziel hoch ist, wähle bewusst energiereiche, kaloriendichte Gerichte und größere Portionen statt zu leichter Diätkost
+- Nutze bei hohen Kalorienzielen gezielt Kalorienbomben aus alltagstauglichen Lebensmitteln wie Nüsse, Erdnussbutter, Käse, Sahne, Butter, Öl, Reis, Nudeln, Brot, Haferflocken, Vollmilch, Avocado, Kartoffeln und fettreicheres Fleisch
+- Vermeide zu viele leichte Salate oder sehr kleine Snacks, wenn dadurch das Tagesziel nicht erreicht wird
+- Frühstück, Mittag- und Abendessen dürfen bei hohen Zielen deutlich größer ausfallen; Snacks dürfen ebenfalls energiereich sein
+${highCalorieTarget ? '- Bei sehr hohen Zielen ab etwa 3200 kcal pro Tag müssen die Gerichte klar kalorienreich sein und pro Tag insgesamt das Ziel sicher abdecken' : ''}
 
 Tagesziele:
 Kalorien: ${dailyCalories}
@@ -134,14 +142,16 @@ Abendessen: ${dinnerCal}
 
 WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
 - type: "Frühstück", "Snack", "Mittagessen", "Snack", oder "Abendessen"
-- name: Name des Gerichts (z.B. "Rührei mit Speck")
+- name: Name des Gerichts
 - calories: Genaue Kalorien
 - protein: Protein in Gramm
 - carbs: Kohlenhydrate in Gramm
 - fat: Fett in Gramm
-- prepTime: Zubereitungszeit in Minuten (z.B. 15, 20, 30)
+- prepTime: Zubereitungszeit in Minuten
 - ingredients: Array mit Zutaten [{name, amount, price}]
 - instructions: Array mit Zubereitungsschritten als Strings
+
+Achte darauf, dass die Gerichte realistisch, sättigend und zum Kalorienziel passend sind. Bei hohem Ziel lieber deftige, energiereiche Klassiker als zu leichte Mahlzeiten.
 
 Antwort NUR als JSON im Format:
 
@@ -152,37 +162,88 @@ Antwort NUR als JSON im Format:
      "meals":[
        {
          "type":"Frühstück",
-         "name":"Rührei mit Speck und Toast",
-         "calories":420,
-         "protein":20,
-         "carbs":28,
-         "fat":22,
-         "prepTime":15,
+         "name":"Rührei mit Speck, Käse und Butterbrot",
+         "calories":780,
+         "protein":34,
+         "carbs":52,
+         "fat":44,
+         "prepTime":20,
          "ingredients":[
-           {"name":"Eier","amount":"3 Stück","price":0.9},
-           {"name":"Speck","amount":"50g","price":1.5},
-           {"name":"Brot","amount":"2 Scheiben","price":0.5},
-           {"name":"Butter","amount":"10g","price":0.1}
+           {"name":"Eier","amount":"4 Stück","price":1.2},
+           {"name":"Speck","amount":"80g","price":2.2},
+           {"name":"Käse","amount":"60g","price":1.0},
+           {"name":"Brot","amount":"4 Scheiben","price":1.0},
+           {"name":"Butter","amount":"15g","price":0.2}
          ],
-         "instructions":["Eier in einer Pfanne rühren","Speck knusprig braten","Brot toasten","Alles servieren"]
+         "instructions":["Eier mit Speck in der Pfanne braten","Käse unterheben","Brot toasten und mit Butter bestreichen","Alles zusammen servieren"]
        },
        {
          "type":"Snack",
-         "name":"Apfel mit Erdnussbutter",
-         "calories":200,
-         "protein":8,
-         "carbs":22,
-         "fat":10,
+         "name":"Banane mit Erdnussbutter und Nüssen",
+         "calories":430,
+         "protein":14,
+         "carbs":36,
+         "fat":26,
          "prepTime":5,
          "ingredients":[
-           {"name":"Apfel","amount":"1 Stück","price":0.8},
-           {"name":"Erdnussbutter","amount":"1 EL","price":0.4}
+           {"name":"Banane","amount":"1 Stück","price":0.6},
+           {"name":"Erdnussbutter","amount":"2 EL","price":0.8},
+           {"name":"Nüsse","amount":"30g","price":1.2}
          ],
-         "instructions":["Apfel waschen","Mit Erdnussbutter servieren"]
-       }
-     ]
-   }
- ]
+         "instructions":["Banane schälen","Mit Erdnussbutter servieren","Nüsse darüber streuen"]
+       },
+       {
+        "type":"Mittagessen",
+        "name":"Nudeln mit Hackfleisch-Sahne-Soße",
+        "calories":1100,
+        "protein":46,
+        "carbs":118,
+        "fat":46,
+        "prepTime":30,
+        "ingredients":[
+          {"name":"Nudeln","amount":"150g","price":0.8},
+          {"name":"Rinderhack","amount":"200g","price":3.5},
+          {"name":"Sahne","amount":"100ml","price":0.9},
+          {"name":"Tomatensoße","amount":"150ml","price":0.5},
+          {"name":"Parmesan","amount":"20g","price":0.8}
+        ],
+        "instructions":["Nudeln kochen","Hackfleisch anbraten","Sahne und Tomatensoße einrühren","Mit Parmesan servieren"]
+      },
+      {
+        "type":"Snack",
+        "name":"Griechischer Joghurt mit Müsli und Honig",
+        "calories":420,
+        "protein":18,
+        "carbs":48,
+        "fat":16,
+        "prepTime":5,
+        "ingredients":[
+          {"name":"Griechischer Joghurt","amount":"250g","price":1.2},
+          {"name":"Müsli","amount":"60g","price":0.6},
+          {"name":"Honig","amount":"1 EL","price":0.2}
+        ],
+        "instructions":["Joghurt in eine Schüssel geben","Müsli darüber streuen","Mit Honig verfeinern"]
+      },
+      {
+        "type":"Abendessen",
+        "name":"Kartoffeln mit Hähnchen und Rahmsoße",
+        "calories":980,
+        "protein":52,
+        "carbs":82,
+        "fat":42,
+        "prepTime":35,
+        "ingredients":[
+          {"name":"Kartoffeln","amount":"300g","price":0.9},
+          {"name":"Hähnchenbrust","amount":"200g","price":3.4},
+          {"name":"Rahmsoße","amount":"120ml","price":0.8},
+          {"name":"Butter","amount":"15g","price":0.2},
+          {"name":"Gemüse","amount":"150g","price":1.0}
+        ],
+        "instructions":["Kartoffeln kochen","Hähnchen anbraten","Rahmsoße erwärmen","Alles zusammen anrichten"]
+      }
+    ]
+  }
+]
 }`;
 
     const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage.
