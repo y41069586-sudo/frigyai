@@ -23,6 +23,44 @@ function sendError(message: string, status: number = 500) {
   );
 }
 
+// Validate that meal plan meets daily calorie targets
+function validateMealPlanCalories(mealPlan: any[], targetCalories: number): { isValid: boolean; details: any } {
+  if (!Array.isArray(mealPlan) || mealPlan.length === 0) {
+    return { isValid: false, details: "Empty meal plan" };
+  }
+
+  const dailyAnalysis = mealPlan.map((day: any) => {
+    const dayCalories = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
+    const caloriePercentage = (dayCalories / targetCalories) * 100;
+    return {
+      day: day.day,
+      totalCalories: dayCalories,
+      targetCalories,
+      percentage: caloriePercentage,
+      meetsTarget: caloriePercentage >= 85 // Allow 15% tolerance downward, but require at least 85% of target
+    };
+  });
+
+  // Check if most days meet the target (at least 5 out of 7 days reach 85% of target)
+  const daysMeetingTarget = dailyAnalysis.filter(d => d.meetsTarget).length;
+  const isValid = daysMeetingTarget >= 5;
+
+  // Also calculate average to understand overall coverage
+  const avgCalories = dailyAnalysis.reduce((sum: any, d: any) => sum + d.totalCalories, 0) / dailyAnalysis.length;
+  const avgPercentage = (avgCalories / targetCalories) * 100;
+
+  return {
+    isValid,
+    details: {
+      daysMeetingTarget,
+      totalDays: dailyAnalysis.length,
+      avgCalories: Math.round(avgCalories),
+      avgPercentage: Math.round(avgPercentage),
+      dailyBreakdown: dailyAnalysis
+    }
+  };
+}
+
 // Generate placeholder ingredients if they're missing
 function generateIngredientsForMeal(meal: any): any {
   if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
@@ -121,12 +159,12 @@ REGELN:
 - Die Reihenfolge im meals-Array muss genau sein: Frühstück, Snack, Mittagessen, Abendessen, Snack
 - Keine Wiederholungen innerhalb eines Tages
 - JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
-- Die Summe der 5 Mahlzeiten muss das Tagesziel zuverlässig erreichen; das Ziel soll möglichst genau getroffen werden und darf bei Bedarf leicht überschritten werden, aber nicht deutlich unterschritten werden
-- Wenn das Kalorienziel hoch ist, wähle bewusst energiereiche, kaloriendichte Gerichte und größere Portionen statt zu leichter Diätkost
-- Nutze bei hohen Kalorienzielen gezielt Kalorienbomben aus alltagstauglichen Lebensmitteln wie Nüsse, Erdnussbutter, Käse, Sahne, Butter, Öl, Reis, Nudeln, Brot, Haferflocken, Vollmilch, Avocado, Kartoffeln und fettreicheres Fleisch
-- Vermeide zu viele leichte Salate oder sehr kleine Snacks, wenn dadurch das Tagesziel nicht erreicht wird
-- Frühstück, Mittag- und Abendessen dürfen bei hohen Zielen deutlich größer ausfallen; Snacks dürfen ebenfalls energiereich sein
-- Bei sehr hohen Zielen ab etwa 3200 kcal pro Tag müssen mindestens 2 Mahlzeiten deutlich kaloriendicht sein und die Tageskalorien dürfen nicht nur zur Hälfte abgedeckt werden
+- Die Summe der 5 Mahlzeiten MUSS MINDESTENS ${dailyCalories} kcal pro Tag erreichen
+- KEINE Unterschreitungen des Ziels erlaubt
+- Jeder einzelne Tag muss mindestens ${Math.round(dailyCalories * 0.95)} kcal enthalten (95% Minimum)
+- Die Summe MUSS genau berechnet werden - darf nicht geschätzt sein
+- Überprüfe die Kalorienangaben ZWEIMAL vor dem Abspeichern
+- Wenn das Ziel nicht erreicht wird, erhöhe die Portionsgrößen oder wähle kalorienreichere Zutaten
 
 Tagesziele:
 Kalorien: ${dailyCalories}
@@ -312,7 +350,19 @@ ${preferences ?? ""}`;
       console.log("[GENERATE-MEAL-PLAN] Applied ingredient fallback for all meals");
     }
 
-    console.log("[GENERATE-MEAL-PLAN] Success! Returning meal plan with ingredients");
+    // Validate that the meal plan meets calorie targets
+    const validation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories);
+    console.log("[GENERATE-MEAL-PLAN] Calorie validation result:", validation);
+
+    if (!validation.isValid) {
+      console.error("[GENERATE-MEAL-PLAN] Meal plan does not meet calorie targets:", validation.details);
+      return sendError(
+        `Meal plan does not adequately meet calorie targets. Average: ${validation.details.avgCalories} kcal (${validation.details.avgPercentage}% of ${dailyCalories} target). Please regenerate.`,
+        400
+      );
+    }
+
+    console.log("[GENERATE-MEAL-PLAN] Success! Calorie validation passed. Returning meal plan with ingredients");
 
     return new Response(JSON.stringify(mealPlan), {
       headers: {
