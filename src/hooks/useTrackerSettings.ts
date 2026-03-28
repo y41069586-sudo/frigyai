@@ -120,7 +120,7 @@ export const useTrackerSettings = () => {
 
     const { error } = await supabase
       .from('user_tracker_settings')
-      .upsert(dbData);
+      .upsert(dbData, { onConflict: 'user_id' });
 
     if (error) {
       console.error('Error saving tracker settings to database:', error.message || JSON.stringify(error));
