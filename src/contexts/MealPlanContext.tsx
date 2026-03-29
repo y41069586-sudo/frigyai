@@ -92,17 +92,17 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       .select('generation_count')
       .eq('user_id', session.user.id)
       .eq('week_start', weekStart)
-      .single();
+      .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
 
     if (error) {
-      if (error.code !== 'PGRST116') { // PGRST116 is "no rows found"
-        console.error('Error fetching generation count:', error);
-      }
+      console.error('[MEAL-PLAN-USAGE] Error fetching generation count:', error);
       setGenerationCount(0);
       return;
     }
 
+    // data will be null if no row exists, which is fine
     setGenerationCount(data?.generation_count || 0);
+    console.log('[MEAL-PLAN-USAGE] Generation count:', data?.generation_count || 0, 'for week:', weekStart);
   }, [session?.user?.id]);
 
   // Fetch generation count on session change
