@@ -23,31 +23,141 @@ function sendError(message: string, status: number = 500) {
   );
 }
 
-// Validate that meal plan meets daily calorie targets
-function validateMealPlanCalories(mealPlan: any[], targetCalories: number): { isValid: boolean; details: any } {
+// Helper: Parse amount strings to extract numeric value for scaling
+function parseAmount(amount: string): { value: number; unit: string } {
+  const match = amount.match(/^([\d.]+)\s*(.*)$/);
+  if (match) {
+    return { value: parseFloat(match[1]), unit: match[2] || "" };
+  }
+  return { value: 1, unit: "" };
+}
+
+// Helper: Format amount back to string
+function formatAmount(value: number, unit: string): string {
+  if (unit === "") return value.toFixed(0);
+  // Round to reasonable precision
+  if (value < 10) return value.toFixed(1) + unit;
+  return Math.round(value) + unit;
+}
+
+// Scale a single meal's macros and ingredients
+function scaleMeal(meal: any, scaleFactor: number): any {
+  if (scaleFactor === 1) return meal; // No scaling needed
+
+  const scaled = {
+    ...meal,
+    calories: Math.round(meal.calories * scaleFactor),
+    protein: Math.round(meal.protein * scaleFactor),
+    carbs: Math.round(meal.carbs * scaleFactor),
+    fat: Math.round(meal.fat * scaleFactor),
+  };
+
+  // Scale ingredients
+  if (Array.isArray(meal.ingredients)) {
+    scaled.ingredients = meal.ingredients.map((ingredient: any) => {
+      const parsed = parseAmount(ingredient.amount);
+      const scaledValue = parsed.value * scaleFactor;
+      return {
+        ...ingredient,
+        amount: formatAmount(scaledValue, parsed.unit),
+        price: ingredient.price * scaleFactor // Scale price proportionally
+      };
+    });
+  }
+
+  return scaled;
+}
+
+// Scale entire meal plan to match target calories
+function scaleMealPlanToTarget(mealPlan: any[], targetCalories: number): { mealPlan: any[], analysis: any } {
+  const analysis = mealPlan.map((day: any) => {
+    const dayCalories = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
+    return {
+      day: day.day,
+      totalCalories: dayCalories,
+      targetCalories,
+      percentage: (dayCalories / targetCalories) * 100
+    };
+  });
+
+  // Calculate average factor needed
+  const avgCalories = analysis.reduce((sum: any, d: any) => sum + d.totalCalories, 0) / analysis.length;
+  const scaleFactor = targetCalories / avgCalories;
+
+  console.log(`[SCALE-PLAN] Target: ${targetCalories}, Actual: ${Math.round(avgCalories)}, Factor: ${scaleFactor.toFixed(3)}`);
+
+  // Scale all days
+  const scaledPlan = mealPlan.map((day: any) => ({
+    ...day,
+    meals: (day.meals || []).map((meal: any) => scaleMeal(meal, scaleFactor))
+  }));
+
+  return { mealPlan: scaledPlan, analysis };
+}
+
+// Validate meal plan structure
+function validateMealPlanStructure(mealPlan: any[]): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!Array.isArray(mealPlan)) {
+    errors.push("mealPlan is not an array");
+    return { isValid: false, errors };
+  }
+
+  if (mealPlan.length !== 7) {
+    errors.push(`Expected 7 days, got ${mealPlan.length}`);
+  }
+
+  mealPlan.forEach((day: any, dayIndex: number) => {
+    if (!Array.isArray(day.meals) || day.meals.length !== 5) {
+      errors.push(`Day ${day.day || dayIndex} has ${day.meals?.length || 0} meals, expected 5`);
+    }
+
+    day.meals?.forEach((meal: any, mealIndex: number) => {
+      if (!meal.name || meal.name.trim() === "") {
+        errors.push(`Day ${day.day} Meal ${mealIndex}: Missing name`);
+      }
+      if (!meal.calories || meal.calories === 0) {
+        errors.push(`Day ${day.day} "${meal.name}": calories is 0 or missing`);
+      }
+      if (!Array.isArray(meal.ingredients) || meal.ingredients.length === 0) {
+        errors.push(`Day ${day.day} "${meal.name}": Missing ingredients`);
+      }
+      if (!Array.isArray(meal.instructions) || meal.instructions.length === 0) {
+        errors.push(`Day ${day.day} "${meal.name}": Missing instructions`);
+      }
+    });
+  });
+
+  return { isValid: errors.length === 0, errors };
+}
+
+// Validate that meal plan meets daily calorie targets (with tolerance)
+function validateMealPlanCalories(mealPlan: any[], targetCalories: number, tolerance: number = 0.05): { isValid: boolean; details: any } {
   if (!Array.isArray(mealPlan) || mealPlan.length === 0) {
     return { isValid: false, details: "Empty meal plan" };
   }
 
   const dailyAnalysis = mealPlan.map((day: any) => {
     const dayCalories = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
-    const caloriePercentage = (dayCalories / targetCalories) * 100;
+    const deviation = Math.abs(dayCalories - targetCalories) / targetCalories;
     return {
       day: day.day,
       totalCalories: dayCalories,
       targetCalories,
-      percentage: caloriePercentage,
-      meetsTarget: caloriePercentage >= 85 // Allow 15% tolerance downward, but require at least 85% of target
+      percentage: (dayCalories / targetCalories) * 100,
+      deviation: Math.round(deviation * 1000) / 10, // percentage
+      meetsTarget: deviation <= tolerance
     };
   });
 
-  // Check if most days meet the target (at least 5 out of 7 days reach 85% of target)
+  // Check if all days meet the target (now with strict ±5% tolerance)
   const daysMeetingTarget = dailyAnalysis.filter(d => d.meetsTarget).length;
-  const isValid = daysMeetingTarget >= 5;
+  const isValid = daysMeetingTarget === 7; // All 7 days must meet target
 
-  // Also calculate average to understand overall coverage
   const avgCalories = dailyAnalysis.reduce((sum: any, d: any) => sum + d.totalCalories, 0) / dailyAnalysis.length;
   const avgPercentage = (avgCalories / targetCalories) * 100;
+  const avgDeviation = Math.abs(avgCalories - targetCalories) / targetCalories;
 
   return {
     isValid,
@@ -56,6 +166,8 @@ function validateMealPlanCalories(mealPlan: any[], targetCalories: number): { is
       totalDays: dailyAnalysis.length,
       avgCalories: Math.round(avgCalories),
       avgPercentage: Math.round(avgPercentage),
+      avgDeviation: Math.round(avgDeviation * 1000) / 10,
+      tolerance: Math.round(tolerance * 1000) / 10,
       dailyBreakdown: dailyAnalysis
     }
   };
@@ -100,7 +212,6 @@ function generateIngredientsForMeal(meal: any): any {
   return {
     ...meal,
     ingredients: ingredients,
-    // Ensure these fields exist for the meal detail dialog
     instructions: meal.instructions || [],
     prepTime: meal.prepTime || 20
   };
@@ -138,17 +249,31 @@ serve(async (req) => {
       return sendError("Missing required fields: dailyCalories, dailyProtein, dailyCarbs, dailyFat", 400);
     }
 
-    // Calculate meal distribution
-    const breakfastCal = Math.round(dailyCalories * 0.20);
-    const snackCal = Math.round(dailyCalories * 0.10);
-    const lunchCal = Math.round(dailyCalories * 0.35);
-    const dinnerCal = Math.round(dailyCalories * 0.25);
+    // ================================================================================
+    // STEP 1: STRICT CALORIE PRE-ALLOCATION
+    // ================================================================================
+    const mealAllocation = {
+      breakfast: Math.round(dailyCalories * 0.25),      // 25%
+      snack1: Math.round(dailyCalories * 0.10),         // 10%
+      lunch: Math.round(dailyCalories * 0.30),          // 30%
+      snack2: Math.round(dailyCalories * 0.10),         // 10%
+      dinner: Math.round(dailyCalories * 0.25)          // 25%
+    };
+    
+    const totalAllocated = mealAllocation.breakfast + mealAllocation.snack1 + mealAllocation.lunch + mealAllocation.snack2 + mealAllocation.dinner;
+    
+    console.log("[GENERATE-MEAL-PLAN] CALORIE ALLOCATION (PRE-AI):", {
+      target: dailyCalories,
+      allocated: totalAllocated,
+      breakdown: mealAllocation
+    });
 
-    const highCalorieTarget = dailyCalories >= 3200;
+    // ================================================================================
+    // STEP 2: ENHANCED SYSTEM PROMPT WITH STRICT TOLERANCE
+    // ================================================================================
+    const systemPrompt = `Du bist ein deutscher Ernährungsexperte und Nutrition-Engine.
 
-    const systemPrompt = `Du bist ein deutscher Ernährungsexperte.
-
-Erstelle einen Wochenplan mit einfachen deutschen und europäischen Gerichten.
+DEINE AUFGABE: Erstelle einen präzisen Wochenplan mit genauen Kalorienangaben.
 
 REGELN:
 - Nur einfache Hausmannskost
@@ -159,139 +284,67 @@ REGELN:
 - Die Reihenfolge im meals-Array muss genau sein: Frühstück, Snack, Mittagessen, Abendessen, Snack
 - Keine Wiederholungen innerhalb eines Tages
 - JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
-- Die Summe der 5 Mahlzeiten MUSS MINDESTENS ${dailyCalories} kcal pro Tag erreichen
-- KEINE Unterschreitungen des Ziels erlaubt
-- Jeder einzelne Tag muss mindestens ${Math.round(dailyCalories * 0.95)} kcal enthalten (95% Minimum)
-- Die Summe MUSS genau berechnet werden - darf nicht geschätzt sein
-- Überprüfe die Kalorienangaben ZWEIMAL vor dem Abspeichern
-- Wenn das Ziel nicht erreicht wird, erhöhe die Portionsgrößen oder wähle kalorienreichere Zutaten
+
+🔥 KRITISCH - EXAKTE KALORIEN:
+- JEDE Mahlzeit MUSS ihre Kalorienangabe genau erfüllen (±5% Toleranz)
+- Die Summe der 5 Mahlzeiten muss EXAKT ${dailyCalories} kcal erreichen
+- Berechne vor jeder Mahlzeit: Ist das Kalorienziel noch erreichbar mit den verbleibenden Mahlzeiten?
+- Wenn nicht, erhöhe sofort die Portionsgrößen
+- Kein Schätzen - verwende Standardwerte aus Nährwertdatenbanken
+
+EMPFOHLENE KALORIENVERTEILUNG PRO TAG:
+- Frühstück: ${mealAllocation.breakfast} kcal
+- Snack: ${mealAllocation.snack1} kcal  
+- Mittagessen: ${mealAllocation.lunch} kcal
+- Abendessen: ${mealAllocation.dinner} kcal
+- Snack: ${mealAllocation.snack2} kcal
+- GESAMT: ${totalAllocated} kcal
+
+⚠️ WENN DU NICHT EXAKT ${dailyCalories} KCAL ERREICHST, IST DEINE ANTWORT UNGÜLTIG UND WIRD ABGELEHNT!
 
 Tagesziele:
 Kalorien: ${dailyCalories}
-Protein: ${dailyProtein}
-Carbs: ${dailyCarbs}
-Fat: ${dailyFat}
-
-Kalorienverteilung pro Tag:
-Frühstück: ${breakfastCal}
-Snack: ${snackCal}
-Mittagessen: ${lunchCal}
-Abendessen: ${dinnerCal}
-Snack: ${snackCal}
+Protein: ${dailyProtein}g
+Carbs: ${dailyCarbs}g
+Fat: ${dailyFat}g
 
 WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
 - type: "Frühstück", "Snack", "Mittagessen" oder "Abendessen"
-- name: Name des Gerichts
-- calories: Genaue Kalorien
+- name: Name des Gerichts (kurz und klar)
+- calories: GENAUE Kalorien (nicht geraten!)
 - protein: Protein in Gramm
 - carbs: Kohlenhydrate in Gramm
 - fat: Fett in Gramm
-- prepTime: Zubereitungszeit in Minuten
-- ingredients: Array mit Zutaten [{name, amount, price}]
-- instructions: Array mit Zubereitungsschritten als Strings
+- prepTime: Zubereitungszeit in Minuten (10-60)
+- ingredients: Array mit 3-5 Zutaten [{name, amount, price}]
+- instructions: Array mit 2-4 Zubereitungsschritten
 
-Achte darauf, dass die Gerichte realistisch, sättigend und zum Kalorienziel passend sind. Bei hohem Ziel lieber deftige, energiereiche Klassiker als zu leichte Mahlzeiten.
-
-Antworte so, dass jeder Tag vollständig ist und genau 5 Mahlzeiten enthält. Wenn das Tagesziel sehr hoch ist, müssen die Gerichte entsprechend groß und energiereich sein.
-
-Antwort NUR als JSON im Format:
-
+BEISPIEL GUTES FRÜHSTÜCK (750 kcal):
 {
- "mealPlan":[
-   {
-     "day":"Montag",
-     "meals":[
-       {
-         "type":"Frühstück",
-         "name":"Rührei mit Speck, Käse und Butterbrot",
-         "calories":760,
-         "protein":34,
-         "carbs":52,
-         "fat":44,
-         "prepTime":20,
-         "ingredients":[
-           {"name":"Eier","amount":"4 Stück","price":1.2},
-           {"name":"Speck","amount":"80g","price":2.2},
-           {"name":"Käse","amount":"60g","price":1.0},
-           {"name":"Brot","amount":"4 Scheiben","price":1.0},
-           {"name":"Butter","amount":"15g","price":0.2}
-         ],
-         "instructions":["Eier mit Speck in der Pfanne braten","Käse unterheben","Brot toasten und mit Butter bestreichen","Alles zusammen servieren"]
-       },
-       {
-         "type":"Snack",
-         "name":"Banane mit Erdnussbutter und Nüssen",
-         "calories":380,
-         "protein":14,
-         "carbs":36,
-         "fat":26,
-         "prepTime":5,
-         "ingredients":[
-           {"name":"Banane","amount":"1 Stück","price":0.6},
-           {"name":"Erdnussbutter","amount":"2 EL","price":0.8},
-           {"name":"Nüsse","amount":"30g","price":1.2}
-         ],
-         "instructions":["Banane schälen","Mit Erdnussbutter servieren","Nüsse darüber streuen"]
-       },
-       {
-         "type":"Mittagessen",
-         "name":"Nudeln mit Hackfleisch-Sahne-Soße",
-         "calories":1330,
-         "protein":46,
-         "carbs":118,
-         "fat":46,
-         "prepTime":30,
-         "ingredients":[
-           {"name":"Nudeln","amount":"180g","price":0.8},
-           {"name":"Rinderhack","amount":"250g","price":4.1},
-           {"name":"Sahne","amount":"150ml","price":1.2},
-           {"name":"Tomatensoße","amount":"200ml","price":0.7},
-           {"name":"Parmesan","amount":"30g","price":1.1}
-         ],
-         "instructions":["Nudeln kochen","Hackfleisch anbraten","Sahne und Tomatensoße einrühren","Mit Parmesan servieren"]
-       },
-       {
-         "type":"Abendessen",
-         "name":"Kartoffeln mit Hähnchen und Rahmsoße",
-         "calories":950,
-         "protein":52,
-         "carbs":82,
-         "fat":42,
-         "prepTime":35,
-         "ingredients":[
-           {"name":"Kartoffeln","amount":"300g","price":0.9},
-           {"name":"Hähnchenbrust","amount":"200g","price":3.4},
-           {"name":"Rahmsoße","amount":"120ml","price":0.8},
-           {"name":"Butter","amount":"15g","price":0.2},
-           {"name":"Gemüse","amount":"150g","price":1.0}
-         ],
-         "instructions":["Kartoffeln kochen","Hähnchen anbraten","Rahmsoße erwärmen","Alles zusammen anrichten"]
-       },
-       {
-         "type":"Snack",
-         "name":"Griechischer Joghurt mit Müsli und Honig",
-         "calories":380,
-         "protein":18,
-         "carbs":48,
-         "fat":16,
-         "prepTime":5,
-         "ingredients":[
-           {"name":"Griechischer Joghurt","amount":"250g","price":1.2},
-           {"name":"Müsli","amount":"60g","price":0.6},
-           {"name":"Honig","amount":"1 EL","price":0.2}
-         ],
-         "instructions":["Joghurt in eine Schüssel geben","Müsli darüber streuen","Mit Honig verfeinern"]
-       }
-     ]
-   }
- ]
-}`;
+  "type": "Frühstück",
+  "name": "Rührei mit Speck und Butterbrot",
+  "calories": 750,
+  "protein": 32,
+  "carbs": 48,
+  "fat": 48,
+  "prepTime": 15,
+  "ingredients": [
+    {"name": "Eier", "amount": "4 Stück", "price": 1.2},
+    {"name": "Speck", "amount": "100g", "price": 2.5},
+    {"name": "Brot", "amount": "3 Scheiben", "price": 0.8},
+    {"name": "Butter", "amount": "20g", "price": 0.3}
+  ],
+  "instructions": ["Eier rühren", "Speck anbraten", "Brot toasten", "Zusammen servieren"]
+}
+
+Antworte NUR als JSON - keine Erklärungen!`;
 
     const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage.
+Bedenke: JEDER Tag muss EXAKT ${dailyCalories} kcal enthalten. Das ist nicht verhandelbar!
 
 ${preferences ?? ""}`;
 
-    console.log("[GENERATE-MEAL-PLAN] Calling OpenAI API...");
+    console.log("[GENERATE-MEAL-PLAN] Calling OpenAI API with enhanced prompt...");
 
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -301,7 +354,7 @@ ${preferences ?? ""}`;
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        temperature: 0.4,
+        temperature: 0.3, // Lower temperature for more consistent results
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
@@ -341,28 +394,74 @@ ${preferences ?? ""}`;
       return sendError("OpenAI response was not valid JSON");
     }
 
-    // Ensure all meals have ingredients by applying fallback function
+    // ================================================================================
+    // STEP 3: VALIDATION & STRUCTURE CHECK
+    // ================================================================================
+    const structureValidation = validateMealPlanStructure(mealPlan.mealPlan);
+    if (!structureValidation.isValid) {
+      console.error("[GENERATE-MEAL-PLAN] Structure validation failed:", structureValidation.errors);
+      return sendError(`Invalid meal plan structure: ${structureValidation.errors.join(", ")}`);
+    }
+
+    // Ensure all meals have ingredients
     if (mealPlan.mealPlan && Array.isArray(mealPlan.mealPlan)) {
       mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
         ...day,
         meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
       }));
-      console.log("[GENERATE-MEAL-PLAN] Applied ingredient fallback for all meals");
     }
 
-    // Validate that the meal plan meets calorie targets
-    const validation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories);
-    console.log("[GENERATE-MEAL-PLAN] Calorie validation result:", validation);
+    // ================================================================================
+    // STEP 4: POST-PROCESSING WITH PROPORTIONAL SCALING
+    // ================================================================================
+    console.log("[GENERATE-MEAL-PLAN] Starting calorie validation...");
+    const initialValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
+    
+    console.log("[GENERATE-MEAL-PLAN] Initial validation:", initialValidation.details);
 
-    if (!validation.isValid) {
-      console.error("[GENERATE-MEAL-PLAN] Meal plan does not meet calorie targets:", validation.details);
+    if (!initialValidation.isValid) {
+      console.log("[GENERATE-MEAL-PLAN] Calorie targets not met - scaling meals proportionally...");
+      
+      const { mealPlan: scaledPlan, analysis } = scaleMealPlanToTarget(mealPlan.mealPlan, dailyCalories);
+      
+      console.log("[GENERATE-MEAL-PLAN] Scaling complete. New analysis:", analysis);
+      
+      // Validate scaled plan
+      const scaledValidation = validateMealPlanCalories(scaledPlan, dailyCalories, 0.05);
+      console.log("[GENERATE-MEAL-PLAN] Validation after scaling:", scaledValidation.details);
+      
+      if (!scaledValidation.isValid) {
+        console.error("[GENERATE-MEAL-PLAN] Scaled plan still invalid:", scaledValidation.details);
+        return sendError(
+          `Even after scaling, meal plan does not meet targets. Average: ${scaledValidation.details.avgCalories} kcal. Please try again.`,
+          400
+        );
+      }
+      
+      mealPlan.mealPlan = scaledPlan;
+    }
+
+    // ================================================================================
+    // STEP 5: FINAL VALIDATION
+    // ================================================================================
+    const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
+    console.log("[GENERATE-MEAL-PLAN] FINAL VALIDATION:", finalValidation.details);
+
+    if (!finalValidation.isValid) {
+      console.error("[GENERATE-MEAL-PLAN] Final validation failed:", finalValidation.details);
       return sendError(
-        `Meal plan does not adequately meet calorie targets. Average: ${validation.details.avgCalories} kcal (${validation.details.avgPercentage}% of ${dailyCalories} target). Please regenerate.`,
+        `Final validation failed. Average calories: ${finalValidation.details.avgCalories} kcal (deviation: ${finalValidation.details.avgDeviation}%). Required: ±5%.`,
         400
       );
     }
 
-    console.log("[GENERATE-MEAL-PLAN] Success! Calorie validation passed. Returning meal plan with ingredients");
+    console.log("[GENERATE-MEAL-PLAN] ✅ SUCCESS! Meal plan meets all requirements");
+    console.log("[GENERATE-MEAL-PLAN] Summary:", {
+      target: dailyCalories,
+      average: finalValidation.details.avgCalories,
+      daysMeeting: finalValidation.details.daysMeetingTarget,
+      deviation: finalValidation.details.avgDeviation + "%"
+    });
 
     return new Response(JSON.stringify(mealPlan), {
       headers: {
