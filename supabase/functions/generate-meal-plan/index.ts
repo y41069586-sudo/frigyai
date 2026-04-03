@@ -23,76 +23,64 @@ function sendError(message: string, status: number = 500) {
   );
 }
 
-// Helper: Parse amount strings to extract numeric value for scaling
-function parseAmount(amount: string): { value: number; unit: string } {
-  const match = amount.match(/^([\d.]+)\s*(.*)$/);
-  if (match) {
-    return { value: parseFloat(match[1]), unit: match[2] || "" };
-  }
-  return { value: 1, unit: "" };
+// ================================================================================
+// INGREDIENT SCALING HELPERS
+// ================================================================================
+
+// Scale ingredient amount with unit preservation
+function scaleAmount(amount: string, factor: number): string {
+  if (!amount) return amount;
+
+  const match = amount.match(/(\d+)(g|ml|Stück|EL|TL|Zehe)?/);
+
+  if (!match) return amount;
+
+  const value = parseFloat(match[1]);
+  const unit = match[2] || "";
+
+  const scaled = Math.round(value * factor);
+
+  return `${scaled}${unit}`;
 }
 
-// Helper: Format amount back to string
-function formatAmount(value: number, unit: string): string {
-  if (unit === "") return value.toFixed(0);
-  // Round to reasonable precision
-  if (value < 10) return value.toFixed(1) + unit;
-  return Math.round(value) + unit;
-}
+// Scale entire meal plan to match target calories per day
+function scaleMealPlan(mealPlan: any[], targetCalories: number): any[] {
+  return mealPlan.map((day: any) => {
+    let currentCalories = 0;
 
-// Scale a single meal's macros and ingredients
-function scaleMeal(meal: any, scaleFactor: number): any {
-  if (scaleFactor === 1) return meal; // No scaling needed
+    day.meals.forEach((meal: any) => {
+      currentCalories += meal.calories || 0;
+    });
 
-  const scaled = {
-    ...meal,
-    calories: Math.round(meal.calories * scaleFactor),
-    protein: Math.round(meal.protein * scaleFactor),
-    carbs: Math.round(meal.carbs * scaleFactor),
-    fat: Math.round(meal.fat * scaleFactor),
-  };
+    if (currentCalories === 0) return day;
 
-  // Scale ingredients
-  if (Array.isArray(meal.ingredients)) {
-    scaled.ingredients = meal.ingredients.map((ingredient: any) => {
-      const parsed = parseAmount(ingredient.amount);
-      const scaledValue = parsed.value * scaleFactor;
+    const factor = targetCalories / currentCalories;
+
+    console.log(`[SCALE-PLAN] Day: ${day.day}, Current: ${currentCalories}, Target: ${targetCalories}, Factor: ${factor.toFixed(3)}`);
+
+    const scaledMeals = day.meals.map((meal: any) => {
+      const scaledIngredients = (meal.ingredients || []).map((ing: any) => {
+        return {
+          ...ing,
+          amount: scaleAmount(ing.amount, factor)
+        };
+      });
+
       return {
-        ...ingredient,
-        amount: formatAmount(scaledValue, parsed.unit),
-        price: ingredient.price * scaleFactor // Scale price proportionally
+        ...meal,
+        calories: Math.round(meal.calories * factor),
+        protein: Math.round(meal.protein * factor),
+        carbs: Math.round(meal.carbs * factor),
+        fat: Math.round(meal.fat * factor),
+        ingredients: scaledIngredients
       };
     });
-  }
 
-  return scaled;
-}
-
-// Scale entire meal plan to match target calories
-function scaleMealPlanToTarget(mealPlan: any[], targetCalories: number): { mealPlan: any[], analysis: any } {
-  const analysis = mealPlan.map((day: any) => {
-    const dayCalories = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
     return {
-      day: day.day,
-      totalCalories: dayCalories,
-      targetCalories,
-      percentage: (dayCalories / targetCalories) * 100
+      ...day,
+      meals: scaledMeals
     };
   });
-
-  // Calculate average factor needed
-  const avgCalories = analysis.reduce((sum: any, d: any) => sum + d.totalCalories, 0) / analysis.length;
-  const scaleFactor = targetCalories / avgCalories;
-
-  console.log(`[SCALE-PLAN] Target: ${targetCalories}, Actual: ${Math.round(avgCalories)}, Factor: ${scaleFactor.toFixed(3)}`);
-
-  // Scale all days
-  const scaledPlan = mealPlan.map((day: any) => ({
-    ...day,
-    meals: (day.meals || []).map((meal: any) => scaleMeal(meal, scaleFactor))
-  }));
-
-  return { mealPlan: scaledPlan, analysis };
 }
 
 // Validate meal plan structure
@@ -395,7 +383,16 @@ ${preferences ?? ""}`;
     }
 
     // ================================================================================
-    // STEP 3: VALIDATION & STRUCTURE CHECK
+    // STEP 3: IMMEDIATE SCALING AFTER AI RESPONSE
+    // ================================================================================
+    console.log("[GENERATE-MEAL-PLAN] Scaling meal plan to exact calorie target...");
+    if (mealPlan.mealPlan && Array.isArray(mealPlan.mealPlan)) {
+      mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
+      console.log("[GENERATE-MEAL-PLAN] Scaling complete");
+    }
+
+    // ================================================================================
+    // STEP 4: VALIDATION & STRUCTURE CHECK
     // ================================================================================
     const structureValidation = validateMealPlanStructure(mealPlan.mealPlan);
     if (!structureValidation.isValid) {
@@ -412,34 +409,12 @@ ${preferences ?? ""}`;
     }
 
     // ================================================================================
-    // STEP 4: POST-PROCESSING WITH PROPORTIONAL SCALING
+    // STEP 5: FINAL CALORIE VALIDATION
     // ================================================================================
-    console.log("[GENERATE-MEAL-PLAN] Starting calorie validation...");
-    const initialValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
-    
-    console.log("[GENERATE-MEAL-PLAN] Initial validation:", initialValidation.details);
+    console.log("[GENERATE-MEAL-PLAN] Starting final calorie validation...");
+    const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
 
-    if (!initialValidation.isValid) {
-      console.log("[GENERATE-MEAL-PLAN] Calorie targets not met - scaling meals proportionally...");
-      
-      const { mealPlan: scaledPlan, analysis } = scaleMealPlanToTarget(mealPlan.mealPlan, dailyCalories);
-      
-      console.log("[GENERATE-MEAL-PLAN] Scaling complete. New analysis:", analysis);
-      
-      // Validate scaled plan
-      const scaledValidation = validateMealPlanCalories(scaledPlan, dailyCalories, 0.05);
-      console.log("[GENERATE-MEAL-PLAN] Validation after scaling:", scaledValidation.details);
-      
-      if (!scaledValidation.isValid) {
-        console.error("[GENERATE-MEAL-PLAN] Scaled plan still invalid:", scaledValidation.details);
-        return sendError(
-          `Even after scaling, meal plan does not meet targets. Average: ${scaledValidation.details.avgCalories} kcal. Please try again.`,
-          400
-        );
-      }
-      
-      mealPlan.mealPlan = scaledPlan;
-    }
+    console.log("[GENERATE-MEAL-PLAN] Final validation result:", finalValidation.details);
 
     // ================================================================================
     // STEP 5: FINAL VALIDATION
