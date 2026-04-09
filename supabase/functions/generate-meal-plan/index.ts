@@ -416,12 +416,6 @@ ${preferences ?? ""}`;
 
     console.log("[GENERATE-MEAL-PLAN] Final validation result:", finalValidation.details);
 
-    // ================================================================================
-    // STEP 5: FINAL VALIDATION
-    // ================================================================================
-    const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
-    console.log("[GENERATE-MEAL-PLAN] FINAL VALIDATION:", finalValidation.details);
-
     if (!finalValidation.isValid) {
       console.error("[GENERATE-MEAL-PLAN] Final validation failed:", finalValidation.details);
       return sendError(
