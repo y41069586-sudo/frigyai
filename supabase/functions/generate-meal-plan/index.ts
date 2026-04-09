@@ -383,30 +383,32 @@ ${preferences ?? ""}`;
     }
 
     // ================================================================================
-    // STEP 3: IMMEDIATE SCALING AFTER AI RESPONSE
+    // STEP 3: VALIDATION & STRUCTURE CHECK (BEFORE SCALING)
     // ================================================================================
-    console.log("[GENERATE-MEAL-PLAN] Scaling meal plan to exact calorie target...");
-    if (mealPlan.mealPlan && Array.isArray(mealPlan.mealPlan)) {
-      mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
-      console.log("[GENERATE-MEAL-PLAN] Scaling complete");
+    if (!mealPlan.mealPlan || !Array.isArray(mealPlan.mealPlan)) {
+      console.error("[GENERATE-MEAL-PLAN] mealPlan.mealPlan is not an array:", typeof mealPlan.mealPlan);
+      return sendError(`Invalid meal plan structure. Expected mealPlan array, got ${typeof mealPlan.mealPlan}`);
     }
 
-    // ================================================================================
-    // STEP 4: VALIDATION & STRUCTURE CHECK
-    // ================================================================================
     const structureValidation = validateMealPlanStructure(mealPlan.mealPlan);
     if (!structureValidation.isValid) {
       console.error("[GENERATE-MEAL-PLAN] Structure validation failed:", structureValidation.errors);
       return sendError(`Invalid meal plan structure: ${structureValidation.errors.join(", ")}`);
     }
 
-    // Ensure all meals have ingredients
-    if (mealPlan.mealPlan && Array.isArray(mealPlan.mealPlan)) {
-      mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
-        ...day,
-        meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
-      }));
-    }
+    // Ensure all meals have ingredients BEFORE scaling
+    console.log("[GENERATE-MEAL-PLAN] Ensuring all meals have ingredients...");
+    mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
+      ...day,
+      meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
+    }));
+
+    // ================================================================================
+    // STEP 4: IMMEDIATE SCALING AFTER AI RESPONSE
+    // ================================================================================
+    console.log(`[GENERATE-MEAL-PLAN] Scaling meal plan from AI to exact calorie target (${dailyCalories} kcal/day)...`);
+    mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
+    console.log("[GENERATE-MEAL-PLAN] Scaling complete");
 
     // ================================================================================
     // STEP 5: FINAL CALORIE VALIDATION
