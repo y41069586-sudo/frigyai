@@ -12,6 +12,7 @@ export interface TrackerSettings {
   dailyProtein: number;
   dailyCarbs: number;
   dailyFat: number;
+  mealsPerDay: number;
 }
 
 const LOCAL_STORAGE_KEY = 'userProfile';
@@ -33,6 +34,7 @@ export const useTrackerSettings = () => {
     dailyProtein: data.daily_protein || 0,
     dailyCarbs: data.daily_carbs || 0,
     dailyFat: data.daily_fat || 0,
+    mealsPerDay: data.meals_per_day || 5,
   });
 
   // Load settings from database or localStorage
@@ -116,6 +118,7 @@ export const useTrackerSettings = () => {
       daily_protein: data.dailyProtein,
       daily_carbs: data.dailyCarbs,
       daily_fat: data.dailyFat,
+      meals_per_day: data.mealsPerDay,
     };
 
     const { error } = await supabase
