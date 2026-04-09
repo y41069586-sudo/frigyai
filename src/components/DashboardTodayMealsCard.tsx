@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Flame, Beef, Wheat, Droplets, Plus } from 'lucide-react';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 
 interface LoggedMeal {
   name: string;
@@ -19,6 +20,7 @@ export const DashboardTodayMealsCard = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { entries, todayTotals } = useFoodEntries();
+  const { settings: trackerSettings } = useTrackerSettings();
   const [todayMealPlan, setTodayMealPlan] = useState<LoggedMeal[]>([]);
 
   useEffect(() => {
@@ -41,12 +43,16 @@ export const DashboardTodayMealsCard = () => {
     }
   }, []);
 
-  if (!todayMealPlan.length) {
+  // Use tracker settings as the source of truth for daily calorie target
+  // This ensures the widget always shows the current tracker goal, not an old meal plan value
+  const targetCalories = trackerSettings?.dailyCalories || 0;
+
+  if (!targetCalories) {
     return null;
   }
 
   const plannedCalories = todayMealPlan.reduce((sum, meal) => sum + meal.calories, 0);
-  const progress = plannedCalories > 0 ? Math.min((todayTotals.calories / plannedCalories) * 100, 100) : 0;
+  const progress = targetCalories > 0 ? Math.min((todayTotals.calories / targetCalories) * 100, 100) : 0;
 
   return (
     <motion.div
@@ -64,7 +70,7 @@ export const DashboardTodayMealsCard = () => {
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs text-muted-foreground">Kalorienziel</span>
             <span className="text-sm font-semibold text-primary">
-              {Math.round(todayTotals.calories)} / {plannedCalories} kcal
+              {Math.round(todayTotals.calories)} / {targetCalories} kcal
             </span>
           </div>
           <div className="w-full h-2 bg-background/50 rounded-full overflow-hidden">

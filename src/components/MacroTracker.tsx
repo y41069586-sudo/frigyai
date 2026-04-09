@@ -323,14 +323,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         }, {
           onConflict: 'user_id,date',
         });
-      
+
       if (error) {
-        console.error('Error syncing macros:', error);
+        const errorMsg = error?.message || error?.details || JSON.stringify(error);
+        console.error('[MACRO-SYNC] Error syncing macros:', errorMsg, error);
       } else {
-        console.log('[MACRO-SYNC] Synced to DB:', { calories: totalCals, protein: totalProt });
+        console.log('[MACRO-SYNC] Successfully synced to DB:', { calories: totalCals, protein: totalProt, date: today });
       }
-    } catch (e) {
-      console.error('Failed to sync macros:', e);
+    } catch (e: any) {
+      const errorMsg = e?.message || JSON.stringify(e);
+      console.error('[MACRO-SYNC] Failed to sync macros:', errorMsg);
+      // Silently fail - daily_macros is auxiliary data only
     }
   }, [user]);
 

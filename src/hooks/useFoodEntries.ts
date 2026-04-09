@@ -57,7 +57,7 @@ export const useFoodEntries = () => {
       }));
 
       setEntries(typedData);
-      
+
       // Calculate totals
       const totals = typedData.reduce((acc, entry) => ({
         calories: acc.calories + entry.calories,
@@ -65,11 +65,15 @@ export const useFoodEntries = () => {
         carbs: acc.carbs + entry.carbs,
         fat: acc.fat + entry.fat
       }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-      
+
       setTodayTotals(totals);
 
       // Also update daily_macros table for dashboard sync
-      await updateDailyMacros(totals);
+      try {
+        await updateDailyMacros(totals);
+      } catch (macroError) {
+        console.warn('[FOOD-ENTRIES] Failed to sync daily macros during load:', macroError);
+      }
     } catch (error) {
       console.error('Error loading food entries:', error);
       toast({
@@ -87,26 +91,40 @@ export const useFoodEntries = () => {
     if (!user) return;
 
     try {
+      const macroData = {
+        user_id: user.id,
+        date: today,
+        calories: Math.max(0, Math.round(totals.calories)),
+        protein: Math.max(0, Math.round(totals.protein)),
+        carbs: Math.max(0, Math.round(totals.carbs)),
+        fat: Math.max(0, Math.round(totals.fat)),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('[DAILY-MACROS] Updating with data:', macroData);
+
       const { error } = await supabase
         .from('daily_macros')
-        .upsert({
-          user_id: user.id,
-          date: today,
-          calories: totals.calories,
-          protein: Math.round(totals.protein),
-          carbs: Math.round(totals.carbs),
-          fat: Math.round(totals.fat),
-          updated_at: new Date().toISOString()
-        }, {
+        .upsert([macroData], {
           onConflict: 'user_id,date'
         });
 
       if (error) {
-        console.error('Error updating daily macros:', error);
+        const errorMsg = error?.message || error?.details || JSON.stringify(error);
+        console.error('[DAILY-MACROS] Error updating:', errorMsg, { code: error?.code, status: error?.status });
+
+        // Check if it's a table/schema issue
+        if (errorMsg.includes('relation') || errorMsg.includes('does not exist') || error?.code === 'PGRST116') {
+          console.warn('[DAILY-MACROS] Table may not exist or is not accessible - this is optional data');
+        }
+        // Silently fail for background updates - daily_macros is optional for core functionality
+      } else {
+        console.log('[DAILY-MACROS] Successfully updated');
       }
-    } catch (error) {
-      console.error('Error in updateDailyMacros:', error);
-      // Don't show toast for background updates
+    } catch (error: any) {
+      const errorMsg = error?.message || JSON.stringify(error);
+      console.error('[DAILY-MACROS] Unexpected error:', errorMsg);
+      // Don't show toast for background updates - this is auxiliary functionality
     }
   };
 
@@ -163,7 +181,13 @@ export const useFoodEntries = () => {
         fat: todayTotals.fat + typedEntry.fat
       };
       setTodayTotals(newTotals);
-      await updateDailyMacros(newTotals);
+
+      // Try to update daily macros, but don't block on failure
+      try {
+        await updateDailyMacros(newTotals);
+      } catch (macroError) {
+        console.warn('[FOOD-ENTRIES] Failed to sync daily macros, but entry was added successfully:', macroError);
+      }
 
       // Signal to other instances of this hook to refresh
       const event = new CustomEvent('foodEntryAdded', {
@@ -229,7 +253,7 @@ export const useFoodEntries = () => {
 
       // Update local state
       setEntries(prev => prev.filter(e => e.id !== id));
-      
+
       // Update totals
       if (entry) {
         const newTotals = {
@@ -239,7 +263,11 @@ export const useFoodEntries = () => {
           fat: Math.max(0, todayTotals.fat - entry.fat)
         };
         setTodayTotals(newTotals);
-        await updateDailyMacros(newTotals);
+        try {
+          await updateDailyMacros(newTotals);
+        } catch (macroError) {
+          console.warn('[FOOD-ENTRIES] Failed to sync daily macros after delete:', macroError);
+        }
       }
 
       return true;
@@ -270,7 +298,11 @@ export const useFoodEntries = () => {
       setEntries([]);
       const emptyTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
       setTodayTotals(emptyTotals);
-      await updateDailyMacros(emptyTotals);
+      try {
+        await updateDailyMacros(emptyTotals);
+      } catch (macroError) {
+        console.warn('[FOOD-ENTRIES] Failed to sync daily macros after clear:', macroError);
+      }
 
       return true;
     } catch (error: any) {

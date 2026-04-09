@@ -453,8 +453,8 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {/* Premium indicator - only for premium users */}
-              {subscriptionStatus?.subscribed && (
+              {/* Premium indicator - only for free users to show this is a premium feature */}
+              {!subscriptionStatus?.subscribed && (
                 <div className="absolute top-1 right-1 z-10">
                   <Crown className="w-3 h-3 text-amber-300 fill-amber-300 -rotate-12 drop-shadow-sm" />
                 </div>

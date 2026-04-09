@@ -190,6 +190,29 @@ const MealPlansPage = () => {
     // Remove premium redirect - allow free users to access with limitations
   }, [user, loading, navigate, searchParams]);
 
+  // Validate if meal plan meets current calorie target
+  const validateMealPlanCalories = (plan: DayPlan[], targetCalories: number): boolean => {
+    if (!Array.isArray(plan) || plan.length === 0) return false;
+
+    const dailyAnalysis = plan.map((day) => {
+      const dayCalories = (day.meals || []).reduce((sum, meal) => sum + (meal.calories || 0), 0);
+      const percentage = (dayCalories / targetCalories) * 100;
+      return { day: day.day, calories: dayCalories, percentage };
+    });
+
+    const daysMeetingTarget = dailyAnalysis.filter(d => d.percentage >= 85).length;
+    const isValid = daysMeetingTarget >= 5;
+
+    console.log('[MEALPLANS] Calorie validation:', {
+      isValid,
+      daysMeetingTarget,
+      targetCalories,
+      dailyAnalysis
+    });
+
+    return isValid;
+  };
+
   // Sync meal plan from global context or localStorage
   useEffect(() => {
     console.log('[MEALPLANS] Syncing meal plan from context:', {
@@ -204,7 +227,7 @@ const MealPlansPage = () => {
     } else {
       const saved = localStorage.getItem('weeklyMealPlan');
       console.log('[MEALPLANS] localStorage weeklyMealPlan:', saved ? 'found' : 'not found');
-      if (saved) {
+      if (saved && trackerSettings && trackerSettings.dailyCalories > 0) {
         try {
           const parsed = JSON.parse(saved);
           console.log('[MEALPLANS] Loaded from localStorage:', {
@@ -212,7 +235,22 @@ const MealPlansPage = () => {
             firstDay: parsed?.[0]?.day,
             firstMealIngredients: parsed?.[0]?.meals?.[0]?.ingredients
           });
-          setMealPlan(parsed);
+
+          // Validate the saved plan against current calorie target
+          const isValid = validateMealPlanCalories(parsed, trackerSettings.dailyCalories);
+
+          if (isValid) {
+            setMealPlan(parsed);
+          } else {
+            console.warn('[MEALPLANS] Saved meal plan does not meet current calorie target - clearing');
+            localStorage.removeItem('weeklyMealPlan');
+            setMealPlan([]);
+            toast({
+              title: 'Wochenplan veraltet',
+              description: `Ihr gespeicherter Plan erfüllt das Kalorienziel von ${trackerSettings.dailyCalories} kcal nicht. Bitte generieren Sie einen neuen Plan.`,
+              variant: 'destructive'
+            });
+          }
         } catch (e) {
           console.error('[MEALPLANS] Failed to load saved meal plan:', e);
           setMealPlan([]);
@@ -261,7 +299,7 @@ const MealPlansPage = () => {
         setMealPlan(demoMealPlan);
       }
     }
-  }, [globalMealPlan]);
+  }, [globalMealPlan, trackerSettings]);
 
   // Auto-generate meal plan on login was removed: plans are persisted and should never regenerate automatically.
 

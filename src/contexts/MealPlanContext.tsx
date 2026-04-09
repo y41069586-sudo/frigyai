@@ -92,17 +92,17 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       .select('generation_count')
       .eq('user_id', session.user.id)
       .eq('week_start', weekStart)
-      .single();
+      .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
 
     if (error) {
-      if (error.code !== 'PGRST116') { // PGRST116 is "no rows found"
-        console.error('Error fetching generation count:', error);
-      }
+      console.error('[MEAL-PLAN-USAGE] Error fetching generation count:', error);
       setGenerationCount(0);
       return;
     }
 
+    // data will be null if no row exists, which is fine
     setGenerationCount(data?.generation_count || 0);
+    console.log('[MEAL-PLAN-USAGE] Generation count:', data?.generation_count || 0, 'for week:', weekStart);
   }, [session?.user?.id]);
 
   // Fetch generation count on session change
@@ -287,6 +287,18 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             firstMealStructure: newPlan[0]?.meals?.[0]
           });
 
+          // Verify calories per day
+          const dailyCalorieAnalysis = newPlan.map((day: any) => {
+            const totalCals = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
+            return { day: day.day, calories: totalCals, meets_target: totalCals >= settings.dailyCalories * 0.85 };
+          });
+          const avgCalories = dailyCalorieAnalysis.reduce((sum: number, d: any) => sum + d.calories, 0) / dailyCalorieAnalysis.length;
+          console.log('[MEAL-PLAN] Daily calorie analysis:', {
+            analysis: dailyCalorieAnalysis,
+            avgCalories: Math.round(avgCalories),
+            avgPercentage: Math.round((avgCalories / settings.dailyCalories) * 100)
+          });
+
           setMealPlan(newPlan);
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
 
@@ -360,6 +372,12 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast({
           title: 'Zeitüberschreitung',
           description: 'Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.',
+          variant: 'destructive',
+        });
+      } else if (message.includes('calorie') || message.includes('Kalorie')) {
+        toast({
+          title: 'Kalorienziel nicht erreicht',
+          description: 'Der generierte Plan erfüllt Ihr Kalorienziel nicht. Bitte versuchen Sie es erneut oder überprüfen Sie Ihre Einstellungen.',
           variant: 'destructive',
         });
       } else {
