@@ -83,8 +83,41 @@ function scaleMealPlan(mealPlan: any[], targetCalories: number): any[] {
   });
 }
 
+// Validate individual meals meet per-meal requirements
+function validateMealPerformance(day: any, mealAllocation: Record<string, number>, minProteinPerMeal: number): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!Array.isArray(day.meals)) {
+    errors.push(`Day ${day.day} has no meals array`);
+    return { isValid: false, errors };
+  }
+
+  day.meals.forEach((meal: any, index: number) => {
+    // Check calorie tolerance (±50 kcal from allocated amount)
+    const mealType = meal.type || Object.keys(mealAllocation)[index] || "unknown";
+    const allocatedCals = mealAllocation[mealType] || 0;
+    const mealCals = meal.calories || 0;
+    const calorieDeviation = Math.abs(mealCals - allocatedCals);
+
+    if (calorieDeviation > 50) {
+      errors.push(
+        `Day ${day.day} "${meal.name}": Calories ${mealCals} deviate by ${calorieDeviation}kcal from allocated ${allocatedCals}kcal`
+      );
+    }
+
+    // Check protein minimum
+    if (meal.protein < minProteinPerMeal) {
+      errors.push(
+        `Day ${day.day} "${meal.name}": Protein ${meal.protein}g is below minimum ${minProteinPerMeal}g`
+      );
+    }
+  });
+
+  return { isValid: errors.length === 0, errors };
+}
+
 // Validate meal plan structure
-function validateMealPlanStructure(mealPlan: any[]): { isValid: boolean; errors: string[] } {
+function validateMealPlanStructure(mealPlan: any[], expectedMealsPerDay: number): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!Array.isArray(mealPlan)) {
@@ -97,8 +130,8 @@ function validateMealPlanStructure(mealPlan: any[]): { isValid: boolean; errors:
   }
 
   mealPlan.forEach((day: any, dayIndex: number) => {
-    if (!Array.isArray(day.meals) || day.meals.length !== 5) {
-      errors.push(`Day ${day.day || dayIndex} has ${day.meals?.length || 0} meals, expected 5`);
+    if (!Array.isArray(day.meals) || day.meals.length !== expectedMealsPerDay) {
+      errors.push(`Day ${day.day || dayIndex} has ${day.meals?.length || 0} meals, expected ${expectedMealsPerDay}`);
     }
 
     day.meals?.forEach((meal: any, mealIndex: number) => {
@@ -229,7 +262,7 @@ serve(async (req) => {
       return sendError("Invalid request body", 400);
     }
 
-    const { dailyCalories, dailyProtein, dailyCarbs, dailyFat, preferences } = body;
+    const { dailyCalories, dailyProtein, dailyCarbs, dailyFat, preferences, mealsPerDay = 5 } = body;
 
     // Validate required fields
     if (!dailyCalories || !dailyProtein || !dailyCarbs || !dailyFat) {
@@ -237,58 +270,97 @@ serve(async (req) => {
       return sendError("Missing required fields: dailyCalories, dailyProtein, dailyCarbs, dailyFat", 400);
     }
 
+    // Validate meals per day
+    const validMeals = Math.max(3, Math.min(6, mealsPerDay));
+    console.log(`[GENERATE-MEAL-PLAN] Meals per day: ${validMeals}`);
+
     // ================================================================================
-    // STEP 1: STRICT CALORIE PRE-ALLOCATION
+    // STEP 1: DYNAMIC CALORIE PRE-ALLOCATION
     // ================================================================================
-    const mealAllocation = {
-      breakfast: Math.round(dailyCalories * 0.25),      // 25%
-      snack1: Math.round(dailyCalories * 0.10),         // 10%
-      lunch: Math.round(dailyCalories * 0.30),          // 30%
-      snack2: Math.round(dailyCalories * 0.10),         // 10%
-      dinner: Math.round(dailyCalories * 0.25)          // 25%
+
+    // Generate dynamic meal allocation based on meals per day
+    const generateMealAllocation = (mealsCount: number, totalCals: number): Record<string, number> => {
+      const allocation: Record<string, number> = {};
+
+      if (mealsCount === 3) {
+        // Breakfast 30%, Lunch 40%, Dinner 30%
+        allocation.breakfast = Math.round(totalCals * 0.30);
+        allocation.lunch = Math.round(totalCals * 0.40);
+        allocation.dinner = Math.round(totalCals * 0.30);
+      } else if (mealsCount === 4) {
+        // Breakfast 25%, Lunch 35%, Snack 10%, Dinner 30%
+        allocation.breakfast = Math.round(totalCals * 0.25);
+        allocation.lunch = Math.round(totalCals * 0.35);
+        allocation.snack1 = Math.round(totalCals * 0.10);
+        allocation.dinner = Math.round(totalCals * 0.30);
+      } else if (mealsCount === 5) {
+        // Standard: 25%, 10%, 30%, 10%, 25%
+        allocation.breakfast = Math.round(totalCals * 0.25);
+        allocation.snack1 = Math.round(totalCals * 0.10);
+        allocation.lunch = Math.round(totalCals * 0.30);
+        allocation.snack2 = Math.round(totalCals * 0.10);
+        allocation.dinner = Math.round(totalCals * 0.25);
+      } else if (mealsCount === 6) {
+        // 6 meals: 20%, 8%, 25%, 10%, 22%, 15%
+        allocation.breakfast = Math.round(totalCals * 0.20);
+        allocation.snack1 = Math.round(totalCals * 0.08);
+        allocation.lunch = Math.round(totalCals * 0.25);
+        allocation.snack2 = Math.round(totalCals * 0.10);
+        allocation.dinner = Math.round(totalCals * 0.22);
+        allocation.snack3 = Math.round(totalCals * 0.15);
+      }
+
+      return allocation;
     };
-    
-    const totalAllocated = mealAllocation.breakfast + mealAllocation.snack1 + mealAllocation.lunch + mealAllocation.snack2 + mealAllocation.dinner;
-    
+
+    const mealAllocation = generateMealAllocation(validMeals, dailyCalories);
+    const totalAllocated = Object.values(mealAllocation).reduce((sum, val) => sum + val, 0);
+
     console.log("[GENERATE-MEAL-PLAN] CALORIE ALLOCATION (PRE-AI):", {
+      mealsPerDay: validMeals,
       target: dailyCalories,
       allocated: totalAllocated,
       breakdown: mealAllocation
     });
 
     // ================================================================================
-    // STEP 2: ENHANCED SYSTEM PROMPT WITH STRICT TOLERANCE
+    // STEP 2: DYNAMIC SYSTEM PROMPT WITH STRICT PER-MEAL VALIDATION
     // ================================================================================
+
+    // Build the meal allocation text for the prompt
+    const allocationText = Object.entries(mealAllocation)
+      .map(([type, cals]) => `- ${type}: ${cals} kcal`)
+      .join('\n');
+
     const systemPrompt = `Du bist ein deutscher Ernährungsexperte und Nutrition-Engine.
 
-DEINE AUFGABE: Erstelle einen präzisen Wochenplan mit genauen Kalorienangaben.
+DEINE AUFGABE: Erstelle einen präzisen Wochenplan mit genauen Kalorienangaben für ${validMeals} Mahlzeiten pro Tag.
 
 REGELN:
 - Nur einfache Hausmannskost
 - Keine exotischen Zutaten
 - Keine asiatischen Gerichte
 - 7 Tage
-- Genau 5 Mahlzeiten pro Tag
-- Die Reihenfolge im meals-Array muss genau sein: Frühstück, Snack, Mittagessen, Abendessen, Snack
+- Genau ${validMeals} Mahlzeiten pro Tag
 - Keine Wiederholungen innerhalb eines Tages
 - JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
 
-🔥 KRITISCH - EXAKTE KALORIEN:
-- JEDE Mahlzeit MUSS ihre Kalorienangabe genau erfüllen (±5% Toleranz)
-- Die Summe der 5 Mahlzeiten muss EXAKT ${dailyCalories} kcal erreichen
-- Berechne vor jeder Mahlzeit: Ist das Kalorienziel noch erreichbar mit den verbleibenden Mahlzeiten?
-- Wenn nicht, erhöhe sofort die Portionsgrößen
-- Kein Schätzen - verwende Standardwerte aus Nährwertdatenbanken
+🔥 STRIKTE KALORIE & PROTEIN ANFORDERUNGEN:
+
+PER-MAHLZEIT ANFORDERUNGEN:
+- JEDE Mahlzeit MUSS ±50 kcal ihrer zugewiesenen Menge entsprechen
+- JEDE Mahlzeit MUSS mindestens ${Math.round(dailyProtein / validMeals)}g Protein haben
+- Berechne VOR jeder Mahlzeit: Sind die verbleibenden Kalorien ausreichend?
+- Wenn nicht, erhöhe sofort die Portionsgrößen der folgenden Mahlzeiten
+
+TÄGLICHE ANFORDERUNGEN:
+- Die Summe aller ${validMeals} Mahlzeiten MUSS EXAKT ${dailyCalories} kcal erreichen
+- Gesamtprotein MUSS mindestens ${dailyProtein}g sein
+- Abweichung: Maximal ±50 kcal über den Tag
 
 EMPFOHLENE KALORIENVERTEILUNG PRO TAG:
-- Frühstück: ${mealAllocation.breakfast} kcal
-- Snack: ${mealAllocation.snack1} kcal  
-- Mittagessen: ${mealAllocation.lunch} kcal
-- Abendessen: ${mealAllocation.dinner} kcal
-- Snack: ${mealAllocation.snack2} kcal
-- GESAMT: ${totalAllocated} kcal
-
-⚠️ WENN DU NICHT EXAKT ${dailyCalories} KCAL ERREICHST, IST DEINE ANTWORT UNGÜLTIG UND WIRD ABGELEHNT!
+${allocationText}
+GESAMT: ${totalAllocated} kcal
 
 Tagesziele:
 Kalorien: ${dailyCalories}
@@ -297,149 +369,210 @@ Carbs: ${dailyCarbs}g
 Fat: ${dailyFat}g
 
 WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
-- type: "Frühstück", "Snack", "Mittagessen" oder "Abendessen"
+- type: Mahlzeittyp (z.B. "Frühstück", "Mittagessen", "Abendessen", "Snack")
 - name: Name des Gerichts (kurz und klar)
-- calories: GENAUE Kalorien (nicht geraten!)
-- protein: Protein in Gramm
+- calories: GENAUE Kalorien (±50 kcal zur Zuweisung)
+- protein: Protein in Gramm (MINIMUM ${Math.round(dailyProtein / validMeals)}g)
 - carbs: Kohlenhydrate in Gramm
 - fat: Fett in Gramm
 - prepTime: Zubereitungszeit in Minuten (10-60)
 - ingredients: Array mit 3-5 Zutaten [{name, amount, price}]
 - instructions: Array mit 2-4 Zubereitungsschritten
 
-BEISPIEL GUTES FRÜHSTÜCK (750 kcal):
+BEISPIEL (${Math.round(dailyCalories / validMeals)} kcal Mahlzeit):
 {
   "type": "Frühstück",
-  "name": "Rührei mit Speck und Butterbrot",
-  "calories": 750,
-  "protein": 32,
-  "carbs": 48,
-  "fat": 48,
+  "name": "Rührei mit Toast und Speck",
+  "calories": ${Math.round(mealAllocation.breakfast || dailyCalories / validMeals)},
+  "protein": ${Math.round((dailyProtein / validMeals) * 1.1)},
+  "carbs": ${Math.round((dailyCarbs / validMeals))},
+  "fat": ${Math.round((dailyFat / validMeals))},
   "prepTime": 15,
   "ingredients": [
-    {"name": "Eier", "amount": "4 Stück", "price": 1.2},
-    {"name": "Speck", "amount": "100g", "price": 2.5},
-    {"name": "Brot", "amount": "3 Scheiben", "price": 0.8},
-    {"name": "Butter", "amount": "20g", "price": 0.3}
+    {"name": "Eier", "amount": "3 Stück", "price": 0.9},
+    {"name": "Speck", "amount": "60g", "price": 1.5},
+    {"name": "Vollkornbrot", "amount": "2 Scheiben", "price": 0.6},
+    {"name": "Butter", "amount": "10g", "price": 0.2}
   ],
-  "instructions": ["Eier rühren", "Speck anbraten", "Brot toasten", "Zusammen servieren"]
+  "instructions": ["Eier rühren", "Speck anbraten", "Zusammen anrichten"]
 }
 
-Antworte NUR als JSON - keine Erklärungen!`;
+⚠️ KRITISCH:
+- Wenn die tägliche Summe nicht ${dailyCalories}±50 kcal ist, WIRD DEINE ANTWORT ABGELEHNT!
+- Wenn eine Mahlzeit unter ${Math.round(dailyProtein / validMeals)}g Protein hat, WIRD DEINE ANTWORT ABGELEHNT!
+- Antworte NUR als JSON - keine Erklärungen!`;
 
     const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage.
 Bedenke: JEDER Tag muss EXAKT ${dailyCalories} kcal enthalten. Das ist nicht verhandelbar!
 
 ${preferences ?? ""}`;
 
-    console.log("[GENERATE-MEAL-PLAN] Calling OpenAI API with enhanced prompt...");
+    // ================================================================================
+    // STEP 3: GENERATE WITH RETRY LOGIC (UP TO 3 ATTEMPTS)
+    // ================================================================================
 
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.3, // Lower temperature for more consistent results
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ]
-      })
-    });
+    const maxRetries = 3;
+    let mealPlan: any = null;
+    let lastValidationErrors: string[] = [];
+    const minProteinPerMeal = Math.round(dailyProtein / validMeals);
 
-    console.log("[GENERATE-MEAL-PLAN] OpenAI response status:", openaiResponse.status);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`[GENERATE-MEAL-PLAN] Generation attempt ${attempt}/${maxRetries}...`);
 
-    if (!openaiResponse.ok) {
-      let errorText = "";
+      let currentUserPrompt = userPrompt;
+
+      // On retry, ask AI to fix the issues
+      if (attempt > 1 && lastValidationErrors.length > 0) {
+        currentUserPrompt = `${userPrompt}
+
+FEHLER AUS VERSUCH ${attempt - 1}:
+${lastValidationErrors.slice(0, 3).join('\n')}
+
+KORRIGIERE diese Fehler:
+- Erhöhe Portionsgrößen falls nötig
+- JEDE Mahlzeit MUSS ≥${minProteinPerMeal}g Protein haben
+- JEDE Mahlzeit MUSS ±50 kcal der Zuweisung entsprechen
+- Gesamtkalorien pro Tag MUSS ±50 kcal von ${dailyCalories} sein`;
+      }
+
+      console.log(`[GENERATE-MEAL-PLAN] Calling OpenAI API (attempt ${attempt})...`);
+
+      const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: currentUserPrompt }
+          ]
+        })
+      });
+
+      if (!openaiResponse.ok) {
+        let errorText = "";
+        try {
+          const errorBody = await openaiResponse.json();
+          errorText = JSON.stringify(errorBody);
+        } catch {
+          errorText = await openaiResponse.text();
+        }
+        console.error(`[GENERATE-MEAL-PLAN] OpenAI error (attempt ${attempt}):`, errorText);
+        if (attempt === maxRetries) {
+          return sendError(`OpenAI API error after ${maxRetries} attempts: ${errorText}`);
+        }
+        continue;
+      }
+
+      const responseData = await openaiResponse.json();
+      const content = responseData.choices?.[0]?.message?.content;
+
+      if (!content) {
+        console.error(`[GENERATE-MEAL-PLAN] No content in response (attempt ${attempt})`);
+        if (attempt === maxRetries) {
+          return sendError("OpenAI returned empty response");
+        }
+        continue;
+      }
+
+      // Parse JSON
       try {
-        const errorBody = await openaiResponse.json();
-        errorText = JSON.stringify(errorBody);
-      } catch {
-        errorText = await openaiResponse.text();
+        mealPlan = JSON.parse(content);
+      } catch (e) {
+        console.error(`[GENERATE-MEAL-PLAN] JSON parse failed (attempt ${attempt}):`, e);
+        if (attempt === maxRetries) {
+          return sendError("OpenAI response was not valid JSON");
+        }
+        continue;
       }
-      console.error("[GENERATE-MEAL-PLAN] OpenAI error:", errorText);
-      return sendError(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
-    }
 
-    const responseData = await openaiResponse.json();
-    const content = responseData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      console.error("[GENERATE-MEAL-PLAN] No content in OpenAI response");
-      return sendError("OpenAI returned empty response");
-    }
-
-    // Parse the JSON response
-    let mealPlan;
-    try {
-      mealPlan = JSON.parse(content);
-    } catch (e) {
-      console.error("[GENERATE-MEAL-PLAN] Failed to parse OpenAI JSON response:", e);
-      return sendError("OpenAI response was not valid JSON");
-    }
-
-    // ================================================================================
-    // STEP 3: VALIDATION & STRUCTURE CHECK (BEFORE SCALING)
-    // ================================================================================
-    if (!mealPlan.mealPlan || !Array.isArray(mealPlan.mealPlan)) {
-      console.error("[GENERATE-MEAL-PLAN] mealPlan.mealPlan is not an array:", typeof mealPlan.mealPlan);
-      return sendError(`Invalid meal plan structure. Expected mealPlan array, got ${typeof mealPlan.mealPlan}`);
-    }
-
-    const structureValidation = validateMealPlanStructure(mealPlan.mealPlan);
-    if (!structureValidation.isValid) {
-      console.error("[GENERATE-MEAL-PLAN] Structure validation failed:", structureValidation.errors);
-      return sendError(`Invalid meal plan structure: ${structureValidation.errors.join(", ")}`);
-    }
-
-    // Ensure all meals have ingredients BEFORE scaling
-    console.log("[GENERATE-MEAL-PLAN] Ensuring all meals have ingredients...");
-    mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
-      ...day,
-      meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
-    }));
-
-    // ================================================================================
-    // STEP 4: IMMEDIATE SCALING AFTER AI RESPONSE
-    // ================================================================================
-    console.log(`[GENERATE-MEAL-PLAN] Scaling meal plan from AI to exact calorie target (${dailyCalories} kcal/day)...`);
-    mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
-    console.log("[GENERATE-MEAL-PLAN] Scaling complete");
-
-    // ================================================================================
-    // STEP 5: FINAL CALORIE VALIDATION
-    // ================================================================================
-    console.log("[GENERATE-MEAL-PLAN] Starting final calorie validation...");
-    const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
-
-    console.log("[GENERATE-MEAL-PLAN] Final validation result:", finalValidation.details);
-
-    if (!finalValidation.isValid) {
-      console.error("[GENERATE-MEAL-PLAN] Final validation failed:", finalValidation.details);
-      return sendError(
-        `Final validation failed. Average calories: ${finalValidation.details.avgCalories} kcal (deviation: ${finalValidation.details.avgDeviation}%). Required: ±5%.`,
-        400
-      );
-    }
-
-    console.log("[GENERATE-MEAL-PLAN] ✅ SUCCESS! Meal plan meets all requirements");
-    console.log("[GENERATE-MEAL-PLAN] Summary:", {
-      target: dailyCalories,
-      average: finalValidation.details.avgCalories,
-      daysMeeting: finalValidation.details.daysMeetingTarget,
-      deviation: finalValidation.details.avgDeviation + "%"
-    });
-
-    return new Response(JSON.stringify(mealPlan), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json"
+      // Validate structure
+      if (!mealPlan.mealPlan || !Array.isArray(mealPlan.mealPlan)) {
+        console.error(`[GENERATE-MEAL-PLAN] Invalid structure (attempt ${attempt})`);
+        if (attempt === maxRetries) {
+          return sendError(`Invalid meal plan structure. Expected mealPlan array`);
+        }
+        continue;
       }
-    });
+
+      const structureValidation = validateMealPlanStructure(mealPlan.mealPlan, validMeals);
+      if (!structureValidation.isValid) {
+        console.error(`[GENERATE-MEAL-PLAN] Structure validation failed (attempt ${attempt}):`, structureValidation.errors);
+        lastValidationErrors = structureValidation.errors;
+        if (attempt === maxRetries) {
+          return sendError(`Invalid meal plan structure: ${structureValidation.errors.join(", ")}`);
+        }
+        continue;
+      }
+
+      // Ensure all meals have ingredients
+      mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
+        ...day,
+        meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
+      }));
+
+      // Scale to target calories
+      console.log(`[GENERATE-MEAL-PLAN] Scaling to ${dailyCalories} kcal (attempt ${attempt})...`);
+      mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
+
+      // Validate calories and protein
+      const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
+
+      if (!finalValidation.isValid) {
+        console.warn(`[GENERATE-MEAL-PLAN] Calorie validation failed (attempt ${attempt}):`, finalValidation.details);
+        lastValidationErrors = [`Calories: ${finalValidation.details.avgCalories}/${dailyCalories} (${finalValidation.details.avgDeviation}% deviation)`];
+        if (attempt === maxRetries) {
+          return sendError(
+            `Validation failed after ${maxRetries} attempts. Avg calories: ${finalValidation.details.avgCalories} kcal (deviation: ${finalValidation.details.avgDeviation}%).`
+          );
+        }
+        continue;
+      }
+
+      // Validate per-meal requirements
+      let perMealErrors: string[] = [];
+      for (const day of mealPlan.mealPlan) {
+        const dayValidation = validateMealPerformance(day, mealAllocation, minProteinPerMeal);
+        if (!dayValidation.isValid) {
+          perMealErrors.push(...dayValidation.errors);
+        }
+      }
+
+      if (perMealErrors.length > 0) {
+        console.warn(`[GENERATE-MEAL-PLAN] Per-meal validation failed (attempt ${attempt}):`, perMealErrors);
+        lastValidationErrors = perMealErrors;
+        if (attempt === maxRetries) {
+          return sendError(`Per-meal validation failed after ${maxRetries} attempts: ${perMealErrors.slice(0, 3).join('; ')}`);
+        }
+        continue;
+      }
+
+      // SUCCESS!
+      console.log("[GENERATE-MEAL-PLAN] ✅ SUCCESS! Meal plan meets all requirements");
+      console.log("[GENERATE-MEAL-PLAN] Summary:", {
+        attempt,
+        mealsPerDay: validMeals,
+        targetCalories: dailyCalories,
+        avgCalories: finalValidation.details.avgCalories,
+        daysMeeting: finalValidation.details.daysMeetingTarget,
+        deviation: finalValidation.details.avgDeviation + "%"
+      });
+
+      return new Response(JSON.stringify(mealPlan), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
+    // If we reach here, all retries failed
+    return sendError(`Failed to generate valid meal plan after ${maxRetries} attempts`);
 
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

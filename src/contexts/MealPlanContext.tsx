@@ -211,6 +211,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dailyProtein: number;
     dailyCarbs: number;
     dailyFat: number;
+    mealsPerDay?: number;
   }): Promise<boolean> => {
     if (!session) {
       toast({ title: 'Nicht eingeloggt', variant: 'destructive' });
@@ -234,6 +235,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             dailyProtein: settings.dailyProtein,
             dailyCarbs: settings.dailyCarbs,
             dailyFat: settings.dailyFat,
+            mealsPerDay: settings.mealsPerDay || 5,
           },
         });
 
