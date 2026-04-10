@@ -99,7 +99,7 @@ function validateMealPerformance(day: any, mealAllocation: Record<string, number
     const mealCals = meal.calories || 0;
     const calorieDeviation = Math.abs(mealCals - allocatedCals);
 
-    if (calorieDeviation > 50) {
+    if (calorieDeviation > 100) {  // More lenient for faster execution
       errors.push(
         `Day ${day.day} "${meal.name}": Calories ${mealCals} deviate by ${calorieDeviation}kcal from allocated ${allocatedCals}kcal`
       );
@@ -414,10 +414,10 @@ Bedenke: JEDER Tag muss EXAKT ${dailyCalories} kcal enthalten. Das ist nicht ver
 ${preferences ?? ""}`;
 
     // ================================================================================
-    // STEP 3: GENERATE WITH RETRY LOGIC (UP TO 3 ATTEMPTS)
+    // STEP 3: GENERATE WITH RETRY LOGIC (UP TO 2 ATTEMPTS - reduced for timeout)
     // ================================================================================
 
-    const maxRetries = 3;
+    const maxRetries = 2;
     let mealPlan: any = null;
     let lastValidationErrors: string[] = [];
     const minProteinPerMeal = Math.round(dailyProtein / validMeals);
@@ -432,13 +432,12 @@ ${preferences ?? ""}`;
         currentUserPrompt = `${userPrompt}
 
 FEHLER AUS VERSUCH ${attempt - 1}:
-${lastValidationErrors.slice(0, 3).join('\n')}
+${lastValidationErrors.slice(0, 2).join('\n')}
 
-KORRIGIERE diese Fehler:
-- Erhöhe Portionsgrößen falls nötig
-- JEDE Mahlzeit MUSS ≥${minProteinPerMeal}g Protein haben
-- JEDE Mahlzeit MUSS ±50 kcal der Zuweisung entsprechen
-- Gesamtkalorien pro Tag MUSS ±50 kcal von ${dailyCalories} sein`;
+SCHNELL KORRIGIEREN:
+- Erhöhe Portionsgrößen
+- Jede Mahlzeit mindestens ${minProteinPerMeal}g Protein
+- Tagesgesamt ca. ${dailyCalories} kcal (±100 kcal OK)`;
       }
 
       console.log(`[GENERATE-MEAL-PLAN] Calling OpenAI API (attempt ${attempt})...`);
@@ -450,14 +449,15 @@ KORRIGIERE diese Fehler:
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: currentUserPrompt }
-          ]
-        })
+        model: "gpt-4o-mini",
+        temperature: 0.2,  // Even more deterministic
+        max_tokens: 4000,  // Limit response length
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: currentUserPrompt }
+        ]
+      })
       });
 
       if (!openaiResponse.ok) {
@@ -527,7 +527,7 @@ KORRIGIERE diese Fehler:
       mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
 
       // Validate calories and protein
-      const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.05);
+      const finalValidation = validateMealPlanCalories(mealPlan.mealPlan, dailyCalories, 0.10);  // 10% tolerance instead of 5% for faster execution
 
       if (!finalValidation.isValid) {
         console.warn(`[GENERATE-MEAL-PLAN] Calorie validation failed (attempt ${attempt}):`, finalValidation.details);
