@@ -329,78 +329,84 @@ serve(async (req) => {
 
     // Build the meal allocation text for the prompt
     const allocationText = Object.entries(mealAllocation)
-      .map(([type, cals]) => `- ${type}: ${cals} kcal`)
+      .map(([type, cals]) => {
+        const proteinPerMeal = Math.round(dailyProtein / validMeals);
+        return `- ${type}: EXAKT ${cals} kcal, MINDESTENS ${proteinPerMeal}g Protein`;
+      })
       .join('\n');
+
+    const minProteinPerMeal = Math.round(dailyProtein / validMeals);
 
     const systemPrompt = `Du bist ein deutscher Ernährungsexperte und Nutrition-Engine.
 
-DEINE AUFGABE: Erstelle einen präzisen Wochenplan mit genauen Kalorienangaben für ${validMeals} Mahlzeiten pro Tag.
+DEINE AUFGABE: Erstelle einen präzisen Wochenplan mit EXAKTEN Kalorienangaben für ${validMeals} Mahlzeiten pro Tag.
 
-REGELN:
-- Nur einfache Hausmannskost
-- Keine exotischen Zutaten
-- Keine asiatischen Gerichte
-- 7 Tage
-- Genau ${validMeals} Mahlzeiten pro Tag
-- Keine Wiederholungen innerhalb eines Tages
-- JEDE MAHLZEIT MUSS 3-5 ZUTATEN HABEN mit Menge und ungefährem Preis
+KRITISCHE ANFORDERUNGEN:
+✓ 7 Tage
+✓ Genau ${validMeals} Mahlzeiten pro Tag
+✓ Jede Mahlzeit MUSS 3-5 Zutaten haben
+✓ Nur einfache Hausmannskost (keine Exoten, keine Asian-Gerichte)
+✓ Keine Wiederholungen innerhalb eines Tages
 
-🔥 STRIKTE KALORIE & PROTEIN ANFORDERUNGEN:
+🔥 KALORIENRICHTLINIEN (NICHT VERHANDELBAR):
 
-PER-MAHLZEIT ANFORDERUNGEN:
-- JEDE Mahlzeit MUSS ±50 kcal ihrer zugewiesenen Menge entsprechen
-- JEDE Mahlzeit MUSS mindestens ${Math.round(dailyProtein / validMeals)}g Protein haben
-- Berechne VOR jeder Mahlzeit: Sind die verbleibenden Kalorien ausreichend?
-- Wenn nicht, erhöhe sofort die Portionsgrößen der folgenden Mahlzeiten
+JEDE MAHLZEIT MUSS:
+- Die EXAKTEN Kalorien erfüllen (siehe unten)
+- MINDESTENS ${minProteinPerMeal}g Protein haben
+- Mahlzeiten-Liste in korrekter Reihenfolge
 
-TÄGLICHE ANFORDERUNGEN:
-- Die Summe aller ${validMeals} Mahlzeiten MUSS EXAKT ${dailyCalories} kcal erreichen
-- Gesamtprotein MUSS mindestens ${dailyProtein}g sein
-- Abweichung: Maximal ±50 kcal über den Tag
-
-EMPFOHLENE KALORIENVERTEILUNG PRO TAG:
+TÄGLICHE AUFTEILUNG (EXAKT):
 ${allocationText}
-GESAMT: ${totalAllocated} kcal
+TAGESGESAMT: EXAKT ${dailyCalories} kcal (±0 kcal Toleranz!)
 
-Tagesziele:
-Kalorien: ${dailyCalories}
-Protein: ${dailyProtein}g
-Carbs: ${dailyCarbs}g
-Fat: ${dailyFat}g
+BEISPIEL: Eine 300-kcal Mahlzeit muss EXAKT 300 kcal sein (nicht 280, nicht 320)!
 
-WICHTIG: Jede Mahlzeit MUSS folgende Felder haben:
-- type: Mahlzeittyp (z.B. "Frühstück", "Mittagessen", "Abendessen", "Snack")
-- name: Name des Gerichts (kurz und klar)
-- calories: GENAUE Kalorien (±50 kcal zur Zuweisung)
-- protein: Protein in Gramm (MINIMUM ${Math.round(dailyProtein / validMeals)}g)
-- carbs: Kohlenhydrate in Gramm
-- fat: Fett in Gramm
-- prepTime: Zubereitungszeit in Minuten (10-60)
-- ingredients: Array mit 3-5 Zutaten [{name, amount, price}]
-- instructions: Array mit 2-4 Zubereitungsschritten
+BERECHNUNG:
+- Pro Mahlzeit berechnen: Wie viele Kalorien noch verfügbar?
+- Portionen so anpassen, dass die EXAKTE Zahl erreicht wird
+- NIEMALS schätzen - verwende Standard-Nährwertdaten
 
-BEISPIEL (${Math.round(dailyCalories / validMeals)} kcal Mahlzeit):
+JSON STRUKTUR (MUSS exakt eingehalten werden):
+
 {
-  "type": "Frühstück",
-  "name": "Rührei mit Toast und Speck",
-  "calories": ${Math.round(mealAllocation.breakfast || dailyCalories / validMeals)},
-  "protein": ${Math.round((dailyProtein / validMeals) * 1.1)},
-  "carbs": ${Math.round((dailyCarbs / validMeals))},
-  "fat": ${Math.round((dailyFat / validMeals))},
-  "prepTime": 15,
-  "ingredients": [
-    {"name": "Eier", "amount": "3 Stück", "price": 0.9},
-    {"name": "Speck", "amount": "60g", "price": 1.5},
-    {"name": "Vollkornbrot", "amount": "2 Scheiben", "price": 0.6},
-    {"name": "Butter", "amount": "10g", "price": 0.2}
-  ],
-  "instructions": ["Eier rühren", "Speck anbraten", "Zusammen anrichten"]
+  "mealPlan": [
+    {
+      "day": "Montag",
+      "meals": [
+        {
+          "type": "Frühstück",
+          "name": "Eierspeise mit Toast",
+          "calories": ${mealAllocation.breakfast || Math.round(dailyCalories / validMeals)},
+          "protein": ${minProteinPerMeal},
+          "carbs": ${Math.round(dailyCarbs / validMeals)},
+          "fat": ${Math.round(dailyFat / validMeals)},
+          "prepTime": 15,
+          "ingredients": [
+            {"name": "Eier", "amount": "3 Stück", "price": 0.9},
+            {"name": "Vollkornbrot", "amount": "2 Scheiben", "price": 0.6},
+            {"name": "Butter", "amount": "10g", "price": 0.2},
+            {"name": "Salz & Pfeffer", "amount": "nach Geschmack", "price": 0.1}
+          ],
+          "instructions": [
+            "Eier schlagen und rühren",
+            "Brot toasten",
+            "Eierspeise auf Toast anrichten"
+          ]
+        },
+        ...weitere 4 Mahlzeiten
+      ]
+    },
+    ...weitere 6 Tage
+  ]
 }
 
-⚠️ KRITISCH:
-- Wenn die tägliche Summe nicht ${dailyCalories}±50 kcal ist, WIRD DEINE ANTWORT ABGELEHNT!
-- Wenn eine Mahlzeit unter ${Math.round(dailyProtein / validMeals)}g Protein hat, WIRD DEINE ANTWORT ABGELEHNT!
-- Antworte NUR als JSON - keine Erklärungen!`;
+⚠️ ABSOLUT KRITISCH:
+1. Jede Mahlzeit MUSS EXAKT ihre Calorie-Zuweisung erfüllen
+2. Jede Mahlzeit MUSS MINDESTENS ${minProteinPerMeal}g Protein haben
+3. Gesamtkalorien pro Tag MUSS EXAKT ${dailyCalories} sein
+4. Wenn NICHT erfüllt → ANTWORT WIRD ABGELEHNT UND REGENERIERT!
+
+Antworte NUR als JSON - keine Erklärungen!`;
 
     const userPrompt = `Erstelle den kompletten Wochenplan für 7 Tage.
 Bedenke: JEDER Tag muss EXAKT ${dailyCalories} kcal enthalten. Das ist nicht verhandelbar!
