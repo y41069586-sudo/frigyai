@@ -211,6 +211,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dailyProtein: number;
     dailyCarbs: number;
     dailyFat: number;
+    mealsPerDay?: number;
   }): Promise<boolean> => {
     if (!session) {
       toast({ title: 'Nicht eingeloggt', variant: 'destructive' });
@@ -219,6 +220,19 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setIsGenerating(true);
     setIsMinimized(false);
+
+    console.log('[MEAL-PLAN-CLIENT] Clearing old meal plan before generation...');
+
+    // Clear old plan from localStorage and Supabase
+    localStorage.removeItem('weeklyMealPlan');
+    if (session?.user?.id) {
+      try {
+        await supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
+        console.log('[MEAL-PLAN-CLIENT] Cleared old plan from Supabase');
+      } catch (error) {
+        console.warn('[MEAL-PLAN-CLIENT] Warning: Could not clear old plan:', error);
+      }
+    }
 
     console.log('[MEAL-PLAN-CLIENT] Invoking generate-meal-plan function...');
 
@@ -234,6 +248,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             dailyProtein: settings.dailyProtein,
             dailyCarbs: settings.dailyCarbs,
             dailyFat: settings.dailyFat,
+            mealsPerDay: settings.mealsPerDay || 5,
           },
         });
 
@@ -398,13 +413,18 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsMinimized(minimized);
   }, []);
 
-  const clearMealPlan = useCallback(() => {
+  const clearMealPlan = useCallback(async () => {
     setMealPlan(null);
     localStorage.removeItem('weeklyMealPlan');
 
-    // Best-effort: also clear persisted plan for the logged in user
+    // Clear persisted plan for the logged in user from Supabase
     if (session?.user?.id) {
-      supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
+      try {
+        await supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
+        console.log('[MEAL-PLAN] Cleared meal plan from Supabase');
+      } catch (error) {
+        console.error('[MEAL-PLAN] Error clearing meal plan from Supabase:', error);
+      }
     }
   }, [session?.user?.id]);
 

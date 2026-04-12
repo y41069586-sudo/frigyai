@@ -347,8 +347,9 @@ const MealPlansPage = () => {
     const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
     const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
     const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
+    const mealsPerDay = trackerSettings.mealsPerDay || 5;
 
-    console.log('[MEAL-PLAN] Using global context for generation:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat });
+    console.log('[MEAL-PLAN] Using global context for generation:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat, mealsPerDay });
 
     // Use global context for background generation
     await globalGenerateMealPlan({
@@ -356,6 +357,7 @@ const MealPlansPage = () => {
       dailyProtein,
       dailyCarbs,
       dailyFat,
+      mealsPerDay,
     });
   }, [
     trackerSetup,

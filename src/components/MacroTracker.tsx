@@ -50,6 +50,7 @@ interface UserProfile {
   dailyProtein: number;
   dailyCarbs: number;
   dailyFat: number;
+  mealsPerDay: number;
 }
 
 interface MacroTrackerProps {
@@ -77,6 +78,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [weeklyLossRate, setWeeklyLossRate] = useState(0.75); // kg per week
   const [goalMode, setGoalMode] = useState<'lose' | 'gain'>('lose'); // New: lose or gain weight
   const [targetWeight, setTargetWeight] = useState(75);
+  const [mealsPerDay, setMealsPerDay] = useState(5); // Number of meals per day
   const [profile, setProfile] = useState<UserProfile | null>(null);
   
   // Sync with database settings
@@ -91,6 +93,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           dailyProtein: trackerSettings.dailyProtein,
           dailyCarbs: trackerSettings.dailyCarbs,
           dailyFat: trackerSettings.dailyFat,
+          mealsPerDay: trackerSettings.mealsPerDay,
         });
         setStep('tracker');
         setAge(trackerSettings.age);
@@ -98,6 +101,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setTargetWeight(trackerSettings.targetWeight);
         setGoalMode(trackerSettings.goalMode);
         setWeeklyLossRate(trackerSettings.weeklyGoal);
+        setMealsPerDay(trackerSettings.mealsPerDay);
       } else {
         setStep('onboarding');
         setProfile(null);
@@ -262,8 +266,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       dailyProtein: targetProtein,
       dailyCarbs: targetCarbs,
       dailyFat: targetFat,
+      mealsPerDay,
     };
-    
+
     // Save to database via hook
     await saveTrackerSettings({
       age,
@@ -275,8 +280,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       dailyProtein: targetProtein,
       dailyCarbs: targetCarbs,
       dailyFat: targetFat,
+      mealsPerDay,
     });
-    
+
     setProfile(newProfile);
     setStep('tracker');
 
@@ -922,6 +928,40 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         </div>
       ),
     },
+    {
+      icon: Plus,
+      title: "Mahlzeiten pro Tag",
+      subtitle: "Wie viele Mahlzeiten möchtest du täglich haben?",
+      content: (
+        <div className="w-full space-y-6">
+          <div className="grid grid-cols-3 gap-3">
+            {[3, 4, 5, 6].map((option) => (
+              <motion.button
+                key={option}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: option === 3 ? 0 : (option - 3) * 0.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setMealsPerDay(option)}
+                className={`relative p-6 rounded-2xl border-2 transition-all ${
+                  mealsPerDay === option ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card hover:border-primary/30"
+                }`}
+              >
+                <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-orange-500" />
+                </div>
+                <span className="text-2xl font-bold block">{option}</span>
+                <span className="text-xs text-muted-foreground/60">Mahlzeiten</span>
+              </motion.button>
+            ))}
+          </div>
+
+          <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3">
+            <p>Du kannst dich später jederzeit noch umstellen.</p>
+          </div>
+        </div>
+      ),
+    },
   ];
 
   // Show loading state while fetching settings from database
@@ -1091,6 +1131,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             dailyProtein: goals.dailyProtein,
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
+            mealsPerDay: mealsPerDay,
           });
 
           if (mealPlanNeedsRefresh) {

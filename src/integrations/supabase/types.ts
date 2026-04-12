@@ -581,6 +581,7 @@ export type Database = {
           daily_protein: number | null
           goal_mode: string | null
           id: string
+          meals_per_day: number
           target_weight: number | null
           updated_at: string
           user_id: string
@@ -596,6 +597,7 @@ export type Database = {
           daily_protein?: number | null
           goal_mode?: string | null
           id?: string
+          meals_per_day?: number
           target_weight?: number | null
           updated_at?: string
           user_id: string
@@ -611,6 +613,7 @@ export type Database = {
           daily_protein?: number | null
           goal_mode?: string | null
           id?: string
+          meals_per_day?: number
           target_weight?: number | null
           updated_at?: string
           user_id?: string
