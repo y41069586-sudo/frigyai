@@ -73,6 +73,7 @@ const MealPlansPage = () => {
   // Use global meal plan context for background generation
   const {
     mealPlan: globalMealPlan,
+    shoppingList: globalShoppingList,
     isGenerating: globalIsGenerating,
     elapsedSeconds: globalElapsedSeconds,
     generateMealPlan: globalGenerateMealPlan,
@@ -82,6 +83,18 @@ const MealPlansPage = () => {
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
     // Initialize from localStorage - no demo plan fallback
     const saved = localStorage.getItem('weeklyMealPlan');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+  const [shoppingList, setShoppingList] = useState<Ingredient[]>(() => {
+    // Initialize from localStorage
+    const saved = localStorage.getItem('weeklyShoppingList');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -213,17 +226,23 @@ const MealPlansPage = () => {
     return isValid;
   };
 
-  // Sync meal plan from global context or localStorage
+  // Sync meal plan and shopping list from global context or localStorage
   useEffect(() => {
     console.log('[MEALPLANS] Syncing meal plan from context:', {
       globalMealPlanExists: !!globalMealPlan,
       globalMealPlanLength: globalMealPlan?.length,
-      globalMealPlan: globalMealPlan
+      globalMealPlan: globalMealPlan,
+      globalShoppingListLength: globalShoppingList?.length
     });
 
     if (globalMealPlan && globalMealPlan.length > 0) {
       console.log('[MEALPLANS] Using global meal plan with', globalMealPlan.length, 'days');
       setMealPlan(globalMealPlan);
+    }
+
+    if (globalShoppingList && globalShoppingList.length > 0) {
+      console.log('[MEALPLANS] Using global shopping list with', globalShoppingList.length, 'items');
+      setShoppingList(globalShoppingList);
     } else {
       const saved = localStorage.getItem('weeklyMealPlan');
       console.log('[MEALPLANS] localStorage weeklyMealPlan:', saved ? 'found' : 'not found');
@@ -299,7 +318,7 @@ const MealPlansPage = () => {
         setMealPlan(demoMealPlan);
       }
     }
-  }, [globalMealPlan, trackerSettings]);
+  }, [globalMealPlan, globalShoppingList, trackerSettings]);
 
   // Auto-generate meal plan on login was removed: plans are persisted and should never regenerate automatically.
 

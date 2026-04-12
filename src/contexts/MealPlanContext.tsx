@@ -26,11 +26,18 @@ interface DayPlan {
   meals: Meal[];
 }
 
+interface ShoppingListItem {
+  name: string;
+  amount: string;
+  price: number;
+}
+
 interface MealPlanContextType {
   isGenerating: boolean;
   isMinimized: boolean;
   elapsedSeconds: number;
   mealPlan: DayPlan[] | null;
+  shoppingList: ShoppingListItem[] | null;
   generationCount: number;
   refreshGenerationCount: () => Promise<void>;
   generateMealPlan: (settings: {
@@ -66,6 +73,19 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return JSON.parse(saved);
       } catch (e) {
         console.error('Failed to parse saved meal plan');
+        return null;
+      }
+    }
+    return null;
+  });
+  const [shoppingList, setShoppingList] = useState<ShoppingListItem[] | null>(() => {
+    // Initialize from localStorage immediately to prevent flash of empty state
+    const saved = localStorage.getItem('weeklyShoppingList');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved shopping list');
         return null;
       }
     }
@@ -293,13 +313,15 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const newPlan = (data as any).mealPlan;
+          const newShoppingList = (data as any).shoppingList || [];
 
           // Debug: Check if ingredients are present
           console.log('[MEAL-PLAN] Generated plan structure:', {
             days: newPlan.length,
             firstDay: newPlan[0]?.day,
             firstMealHasIngredients: !!newPlan[0]?.meals?.[0]?.ingredients,
-            firstMealStructure: newPlan[0]?.meals?.[0]
+            firstMealStructure: newPlan[0]?.meals?.[0],
+            shoppingListItems: newShoppingList.length
           });
 
           // Verify calories per day
@@ -315,7 +337,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
 
           setMealPlan(newPlan);
+          setShoppingList(newShoppingList);
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
+          localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
 
           // Persist for this user so it never auto-regenerates after login
           // If table doesn't exist yet, that's OK - just use localStorage
@@ -415,7 +439,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const clearMealPlan = useCallback(async () => {
     setMealPlan(null);
+    setShoppingList(null);
     localStorage.removeItem('weeklyMealPlan');
+    localStorage.removeItem('weeklyShoppingList');
 
     // Clear persisted plan for the logged in user from Supabase
     if (session?.user?.id) {
@@ -434,6 +460,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isMinimized,
       elapsedSeconds,
       mealPlan,
+      shoppingList,
       generationCount,
       refreshGenerationCount,
       generateMealPlan,
