@@ -61,11 +61,47 @@ export const EditMacroGoalsDialog = ({
     }
   }, [open, currentGoals, focusMacro]);
 
+  const handleAutoCalculateCarbs = () => {
+    // Calculate carbs based on calories - protein - fat
+    const proteinCals = protein * 4;
+    const fatCals = fat * 9;
+    const carbCals = Math.max(0, calories - proteinCals - fatCals);
+    const newCarbs = Math.round(carbCals / 4);
+
+    setCarbs(newCarbs);
+
+    toast({
+      title: language === 'de' ? 'Kohlenhydrate berechnet' : language === 'fr' ? 'Glucides calculés' : 'Carbs calculated',
+      description: language === 'de'
+        ? `Kohlenhydrate auf ${newCarbs}g eingestellt, um ${calories} kcal zu erreichen.`
+        : language === 'fr'
+        ? `Les glucides ont été définis à ${newCarbs}g pour atteindre ${calories} kcal.`
+        : `Carbs set to ${newCarbs}g to reach ${calories} kcal.`,
+    });
+  };
+
   const handleSave = () => {
     if (calories < 800 || calories > 10000) {
       toast({
         title: language === 'de' ? 'Ungültiger Wert' : language === 'fr' ? 'Valeur invalide' : 'Invalid value',
         description: language === 'de' ? 'Kalorien müssen zwischen 800 und 10000 liegen' : language === 'fr' ? 'Les calories doivent être entre 800 et 10000' : 'Calories must be between 800 and 10000',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate that macros sum to approximately the calorie target
+    const macroCalories = (protein * 4) + (carbs * 4) + (fat * 9);
+    const caloriesDifference = Math.abs(calories - macroCalories);
+
+    if (caloriesDifference > 50) {
+      toast({
+        title: language === 'de' ? 'Warnung' : language === 'fr' ? 'Avertissement' : 'Warning',
+        description: language === 'de'
+          ? `Die Makronährstoffe ergeben ${macroCalories} kcal, aber dein Ziel ist ${calories} kcal. Bitte passe die Werte an.`
+          : language === 'fr'
+          ? `Les macronutriments totalisent ${macroCalories} kcal, mais votre objectif est ${calories} kcal.`
+          : `Macros total ${macroCalories} kcal but your goal is ${calories} kcal.`,
         variant: 'destructive',
       });
       return;
@@ -191,13 +227,21 @@ export const EditMacroGoalsDialog = ({
           })}
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-2 pt-2">
           <Button
             variant="outline"
             className="flex-1"
             onClick={() => onOpenChange(false)}
           >
             {t.cancel}
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1 text-xs sm:text-sm"
+            onClick={handleAutoCalculateCarbs}
+            title={language === 'de' ? 'Berechnet Kohlenhydrate automatisch' : 'Auto-calculate carbs'}
+          >
+            {language === 'de' ? 'Auto-KH' : 'Auto-Carbs'}
           </Button>
           <Button
             className="flex-1"

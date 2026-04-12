@@ -232,11 +232,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const targetProtein = Math.round(weight * (goalMode === 'gain' ? 2.2 : 2));
   // Fat: 0.8-1g per kg
   const targetFat = Math.round(weight * 0.9);
-  // Carbs: remaining calories
+  // Carbs: remaining calories (must sum to total calories)
   const proteinCalories = targetProtein * 4;
   const fatCalories = targetFat * 9;
   const carbCalories = Math.max(0, targetCalories - proteinCalories - fatCalories);
-  const targetCarbs = Math.round(carbCalories / 4);
+  const targetCarbs = Math.max(0, Math.round(carbCalories / 4));
+
+  // Verify the macros sum correctly to targetCalories
+  const calculatedTotalCalories = (targetProtein * 4) + (targetFat * 9) + (targetCarbs * 4);
+  console.log('[MACRO-CALCULATION]', {
+    targetCalories,
+    targetProtein,
+    targetFat,
+    targetCarbs,
+    calculatedTotal: calculatedTotalCalories,
+    match: calculatedTotalCalories >= targetCalories * 0.95
+  });
 
   const showMealPlanRefreshToast = () => {
     toast({
