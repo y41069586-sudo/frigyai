@@ -4,54 +4,43 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-function sendError(message: string, status: number = 500) {
-  return new Response(
-    JSON.stringify({
-      error: "Meal plan generation failed",
-      message
-    }),
-    {
-      status,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json"
-      }
-    }
-  );
-}
-
-// Scale ingredient amount with unit preservation
-function scaleAmount(amount: string, factor: number): string {
+// 🔥 SCALE FUNCTIONS
+function scaleAmount(amount, factor) {
   if (!amount) return amount;
-  const match = amount.match(/(\d+)(g|ml|Stück|EL|TL|Zehe)?/);
+
+  const match = amount.match(/(\d+)(g|ml|Stück)?/);
+
   if (!match) return amount;
+
   const value = parseFloat(match[1]);
   const unit = match[2] || "";
+
   const scaled = Math.round(value * factor);
+
   return `${scaled}${unit}`;
 }
 
-// Scale entire meal plan to match target calories per day
-function scaleMealPlan(mealPlan: any[], targetCalories: number): any[] {
-  return mealPlan.map((day: any) => {
+function scaleMealPlan(mealPlan, targetCalories) {
+  return mealPlan.map((day) => {
     let currentCalories = 0;
-    day.meals.forEach((meal: any) => {
+
+    day.meals.forEach((meal) => {
       currentCalories += meal.calories || 0;
     });
 
     if (currentCalories === 0) return day;
+
     const factor = targetCalories / currentCalories;
 
-    const scaledMeals = day.meals.map((meal: any) => {
-      const scaledIngredients = (meal.ingredients || []).map((ing: any) => {
-        return {
-          ...ing,
-          amount: scaleAmount(ing.amount, factor)
-        };
-      });
+    const scaledMeals = day.meals.map((meal) => {
+      const scaledIngredients = (meal.ingredients || []).map((ing) => ({
+        ...ing,
+        amount: scaleAmount(ing.amount, factor),
+      }));
 
       return {
         ...meal,
@@ -59,235 +48,135 @@ function scaleMealPlan(mealPlan: any[], targetCalories: number): any[] {
         protein: Math.round(meal.protein * factor),
         carbs: Math.round(meal.carbs * factor),
         fat: Math.round(meal.fat * factor),
-        ingredients: scaledIngredients
+        ingredients: scaledIngredients,
       };
     });
 
     return {
       ...day,
-      meals: scaledMeals
+      meals: scaledMeals,
     };
   });
 }
 
-// Generate placeholder ingredients if missing
-function generateIngredientsForMeal(meal: any): any {
-  if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
-    return meal;
-  }
+// 🛒 SHOPPING LIST
+function generateShoppingList(mealPlan) {
+  const items = {};
 
-  const ingredientsByType: Record<string, any[]> = {
-    "Frühstück": [
-      { name: "Eier", amount: "2 Stück", price: 0.5 },
-      { name: "Brot", amount: "2 Scheiben", price: 0.5 },
-      { name: "Butter", amount: "10g", price: 0.1 },
-      { name: "Käse", amount: "50g", price: 0.8 }
-    ],
-    "Mittagessen": [
-      { name: "Hähnchen", amount: "150g", price: 2.0 },
-      { name: "Kartoffeln", amount: "200g", price: 0.5 },
-      { name: "Broccoli", amount: "150g", price: 1.0 },
-      { name: "Öl", amount: "1 EL", price: 0.2 }
-    ],
-    "Abendessen": [
-      { name: "Rinderhack", amount: "150g", price: 2.5 },
-      { name: "Nudeln", amount: "100g", price: 0.5 },
-      { name: "Tomaten", amount: "200g", price: 1.0 },
-      { name: "Knoblauch", amount: "1 Zehe", price: 0.2 }
-    ],
-    "Snack": [
-      { name: "Apfel", amount: "1 Stück", price: 0.8 },
-      { name: "Nüsse", amount: "30g", price: 1.0 },
-      { name: "Joghurt", amount: "100g", price: 0.6 }
-    ]
-  };
+  mealPlan.forEach((day) => {
+    day.meals.forEach((meal) => {
+      (meal.ingredients || []).forEach((ing) => {
+        const key = ing.name;
 
-  const mealType = meal.type || "Snack";
-  const ingredients = ingredientsByType[mealType] || ingredientsByType["Snack"];
+        if (!items[key]) {
+          items[key] = {
+            name: ing.name,
+            amount: ing.amount,
+            price: ing.price,
+          };
+        }
+      });
+    });
+  });
 
-  return {
-    ...meal,
-    ingredients: ingredients,
-    instructions: meal.instructions || [],
-    prepTime: meal.prepTime || 20
-  };
+  return Object.values(items);
 }
 
 serve(async (req) => {
-  console.log("[GENERATE-MEAL-PLAN] New request:", req.method);
-
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    if (!OPENAI_API_KEY) {
-      return sendError("OPENAI_API_KEY is not configured", 500);
-    }
+    const body = await req.json();
 
-    let body: Record<string, any>;
-    try {
-      body = await req.json();
-    } catch (e) {
-      return sendError("Invalid request body", 400);
-    }
+    const systemPrompt = `
+Du bist ein deutscher Ernährungsexperte.
 
-    const { dailyCalories, dailyProtein, dailyCarbs, dailyFat, preferences, mealsPerDay = 5 } = body;
-
-    if (!dailyCalories || !dailyProtein || !dailyCarbs || !dailyFat) {
-      return sendError("Missing required fields", 400);
-    }
-
-    const validMeals = Math.max(3, Math.min(6, mealsPerDay));
-    const minProteinPerMeal = Math.round(dailyProtein / validMeals);
-
-    console.log(`[GENERATE-MEAL-PLAN] Meals: ${validMeals}, Calories: ${dailyCalories}, Protein: ${dailyProtein}g`);
-
-    // ================================================================================
-    // DYNAMIC CALORIE ALLOCATION
-    // ================================================================================
-
-    const generateMealAllocation = (mealsCount: number, totalCals: number): Record<string, number> => {
-      const allocation: Record<string, number> = {};
-
-      if (mealsCount === 3) {
-        allocation.breakfast = Math.round(totalCals * 0.30);
-        allocation.lunch = Math.round(totalCals * 0.40);
-        allocation.dinner = Math.round(totalCals * 0.30);
-      } else if (mealsCount === 4) {
-        allocation.breakfast = Math.round(totalCals * 0.25);
-        allocation.lunch = Math.round(totalCals * 0.35);
-        allocation.snack1 = Math.round(totalCals * 0.10);
-        allocation.dinner = Math.round(totalCals * 0.30);
-      } else if (mealsCount === 5) {
-        allocation.breakfast = Math.round(totalCals * 0.25);
-        allocation.snack1 = Math.round(totalCals * 0.10);
-        allocation.lunch = Math.round(totalCals * 0.30);
-        allocation.snack2 = Math.round(totalCals * 0.10);
-        allocation.dinner = Math.round(totalCals * 0.25);
-      } else if (mealsCount === 6) {
-        allocation.breakfast = Math.round(totalCals * 0.20);
-        allocation.snack1 = Math.round(totalCals * 0.08);
-        allocation.lunch = Math.round(totalCals * 0.25);
-        allocation.snack2 = Math.round(totalCals * 0.10);
-        allocation.dinner = Math.round(totalCals * 0.22);
-        allocation.snack3 = Math.round(totalCals * 0.15);
-      }
-
-      return allocation;
-    };
-
-    const mealAllocation = generateMealAllocation(validMeals, dailyCalories);
-
-    // ================================================================================
-    // OPTIMIZED FAST PROMPT
-    // ================================================================================
-
-    const allocationText = Object.entries(mealAllocation)
-      .map(([type, cals]) => `- ${type}: ${cals} kcal`)
-      .join('\n');
-
-    const systemPrompt = `Du bist ein Nutrition Planner. Erstelle EXAKT einen Wochenplan mit diesen Kalorien pro Tag:
-
-${allocationText}
-GESAMT: ${dailyCalories} kcal
+Erstelle einen Wochenplan mit einfachen deutschen Gerichten.
 
 REGELN:
-- 7 Tage, ${validMeals} Mahlzeiten pro Tag
-- Kein Protein unter ${minProteinPerMeal}g pro Mahlzeit
-- Einfache deutsche Küche
-- 3-5 Zutaten pro Mahlzeit
-- JSON Format nur
+- 7 Tage
+- 5 Mahlzeiten pro Tag
+- Nur einfache Hausmannskost
+- Keine exotischen Zutaten
 
-Format:
+Jede Mahlzeit MUSS enthalten:
+name, calories, protein, carbs, fat, prepTime, ingredients, instructions
+
+ingredients MUSS enthalten:
+name, amount, price
+
+Antwort NUR als JSON:
+
 {
-  "mealPlan": [
-    {
-      "day": "Montag",
-      "meals": [
-        {
-          "type": "Frühstück",
-          "name": "...",
-          "calories": ${Math.round(mealAllocation.breakfast || dailyCalories / validMeals)},
-          "protein": ${minProteinPerMeal},
-          "carbs": ${Math.round(dailyCarbs / validMeals)},
-          "fat": ${Math.round(dailyFat / validMeals)},
-          "prepTime": 15,
-          "ingredients": [{"name": "...", "amount": "...", "price": 0.5}],
-          "instructions": ["..."]
-        }
-      ]
-    }
-  ]
+ "mealPlan":[
+  {
+   "day":"Montag",
+   "meals":[]
+  }
+ ]
 }`;
 
-    const userPrompt = `Wochenplan für ${validMeals} Mahlzeiten, ${dailyCalories} kcal/Tag. ${preferences || ""}`;
+    const response = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: "Erstelle einen Wochenplan." },
+          ],
+        }),
+      }
+    );
 
-    console.log("[GENERATE-MEAL-PLAN] Calling OpenAI...");
-
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.1,
-        max_tokens: 3500,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ]
-      })
-    });
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error("[GENERATE-MEAL-PLAN] OpenAI error:", errorText);
-      return sendError(`OpenAI error: ${errorText}`);
-    }
-
-    const responseData = await openaiResponse.json();
-    const content = responseData.choices?.[0]?.message?.content;
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      return sendError("Empty OpenAI response");
+      throw new Error("No response from OpenAI");
     }
 
-    let mealPlan;
-    try {
-      mealPlan = JSON.parse(content);
-    } catch (e) {
-      return sendError("Invalid JSON from OpenAI");
-    }
+    let parsed = JSON.parse(content);
 
-    if (!mealPlan.mealPlan || !Array.isArray(mealPlan.mealPlan) || mealPlan.mealPlan.length !== 7) {
-      return sendError("Invalid meal plan structure");
-    }
+    // 🔥 FIX: Kalorien skalieren
+    parsed.mealPlan = scaleMealPlan(parsed.mealPlan, body.dailyCalories);
 
-    // Add missing ingredients
-    mealPlan.mealPlan = mealPlan.mealPlan.map((day: any) => ({
-      ...day,
-      meals: day.meals?.map((meal: any) => generateIngredientsForMeal(meal)) || []
-    }));
+    // 🛒 Einkaufsliste erstellen
+    const shoppingList = generateShoppingList(parsed.mealPlan);
 
-    // Scale to exact calories
-    mealPlan.mealPlan = scaleMealPlan(mealPlan.mealPlan, dailyCalories);
-
-    console.log("[GENERATE-MEAL-PLAN] ✅ SUCCESS");
-
-    return new Response(JSON.stringify(mealPlan), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json"
+    return new Response(
+      JSON.stringify({
+        mealPlan: parsed.mealPlan,
+        shoppingList,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
       }
-    });
-
+    );
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[GENERATE-MEAL-PLAN] Error:", errorMsg);
-    return sendError(errorMsg);
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
 });
