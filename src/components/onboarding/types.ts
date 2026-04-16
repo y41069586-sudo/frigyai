@@ -1,6 +1,6 @@
 import { Language } from "@/contexts/LanguageContext";
 
-export type OnboardingStep = 
+export type OnboardingStep =
   | "intro"
   | "language-select"
   | "name-input"
@@ -9,6 +9,7 @@ export type OnboardingStep =
   | "motivation"
   | "social-proof"
   | "success-stats"
+  | "long-term-results"
   | "tutorial-transition"  // Smooth transition before tutorial
   | "fridge-intro"
   | "scan-feedback"
@@ -124,7 +125,8 @@ export const onboardingSteps: OnboardingStep[] = [
   // Phase 2: Social Proof & Trust
   "social-proof",
   "success-stats",
-  
+  "long-term-results",
+
   // Phase 2.5: Tutorial Transition (smooth bridge)
   "tutorial-transition",
   

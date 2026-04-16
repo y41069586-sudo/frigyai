@@ -45,6 +45,10 @@ interface Translations {
   onboardingJoinUsers: string;
   onboardingRealResults: string;
   onboardingBasedOnData: string;
+  onboardingLongTermResults: string;
+  onboardingComparisonSubtitle: string;
+  onboardingMaintainWeightLoss: string;
+  onboardingReadyToStart: string;
   onboardingReachGoals: string;
   onboardingAvgWeightLoss: string;
   onboardingTimeSaved: string;
@@ -1427,6 +1431,10 @@ const translations: Record<Language, Translations> = {
     onboardingJoinUsers: "Schließe dich 50.000+ zufriedenen Nutzern an",
     onboardingRealResults: "Echte Ergebnisse",
     onboardingBasedOnData: "Basierend auf Nutzerdaten der letzten 6 Monate",
+    onboardingLongTermResults: "Cal AI schafft langfristige Ergebnisse",
+    onboardingComparisonSubtitle: "80% halten ihr Gewicht auch nach 6 Monaten",
+    onboardingMaintainWeightLoss: "behalten ihr Gewicht auch nach 6 Monaten",
+    onboardingReadyToStart: "Bereit loszulegen?",
     onboardingReachGoals: "erreichen ihre Ziele",
     onboardingAvgWeightLoss: "durchschn. Gewichtsverlust/Monat",
     onboardingTimeSaved: "täglich gespart bei Mahlzeitenplanung",
@@ -2252,6 +2260,10 @@ const translations: Record<Language, Translations> = {
     onboardingJoinUsers: "Join 50,000+ happy users",
     onboardingRealResults: "Real results",
     onboardingBasedOnData: "Based on user data from the last 6 months",
+    onboardingLongTermResults: "Cal AI creates long-term results",
+    onboardingComparisonSubtitle: "80% maintain their weight loss after 6 months",
+    onboardingMaintainWeightLoss: "maintain their weight loss after 6 months",
+    onboardingReadyToStart: "Ready to get started?",
     onboardingReachGoals: "reach their goals",
     onboardingAvgWeightLoss: "avg. weight loss/month",
     onboardingTimeSaved: "saved daily on meal planning",
@@ -3077,6 +3089,10 @@ const translations: Record<Language, Translations> = {
     onboardingJoinUsers: "Rejoins 50 000+ utilisateurs satisfaits",
     onboardingRealResults: "Résultats réels",
     onboardingBasedOnData: "Basé sur les données des 6 derniers mois",
+    onboardingLongTermResults: "Cal AI crée des résultats à long terme",
+    onboardingComparisonSubtitle: "80% maintiennent leur perte de poids après 6 mois",
+    onboardingMaintainWeightLoss: "maintiennent leur perte de poids après 6 mois",
+    onboardingReadyToStart: "Prêt à commencer?",
     onboardingReachGoals: "atteignent leurs objectifs",
     onboardingAvgWeightLoss: "perte de poids moy./mois",
     onboardingTimeSaved: "gagnées par jour en planification",

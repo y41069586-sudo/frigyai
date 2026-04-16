@@ -775,6 +775,119 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </StepCard>
         );
 
+      case "long-term-results":
+        return (
+          <StepCard step="long-term-results">
+            <div className="flex flex-col items-center text-center px-6 w-full">
+              {/* Heading */}
+              <motion.h1
+                className="text-3xl font-bold mb-2"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
+                {t.onboardingLongTermResults || "Cal AI creates long-term results"}
+              </motion.h1>
+
+              <motion.p
+                className="text-muted-foreground text-sm mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+              >
+                {t.onboardingComparisonSubtitle || "80% of users maintain their weight loss"}
+              </motion.p>
+
+              {/* Comparison Chart */}
+              <motion.div
+                className="w-full max-w-sm bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-6 mb-6"
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                <div className="mb-4">
+                  <p className="text-xs text-muted-foreground mb-2">Your weight</p>
+
+                  {/* Chart SVG */}
+                  <svg viewBox="0 0 300 180" className="w-full h-auto">
+                    {/* Grid lines */}
+                    <line x1="20" y1="160" x2="280" y2="160" stroke="currentColor" strokeWidth="1" opacity="0.1" />
+
+                    {/* Cal AI Line (curved down) */}
+                    <motion.path
+                      d="M 20 80 Q 80 70, 140 60 T 280 40"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="3"
+                      fill="none"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ delay: 0.6, duration: 0.8 }}
+                    />
+
+                    {/* Traditional Diet Line (curved up) */}
+                    <motion.path
+                      d="M 20 80 Q 80 90, 140 100 T 280 130"
+                      stroke="hsl(0, 100%, 70%)"
+                      strokeWidth="3"
+                      fill="none"
+                      strokeLinecap="round"
+                      opacity="0.6"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ delay: 0.8, duration: 0.8 }}
+                    />
+
+                    {/* Axis labels */}
+                    <text x="10" y="165" fontSize="12" className="fill-muted-foreground/50 text-xs">
+                      Month 1
+                    </text>
+                    <text x="260" y="165" fontSize="12" className="fill-muted-foreground/50 text-xs">
+                      Month 6
+                    </text>
+                  </svg>
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-6 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="font-medium">{t.appName || "Cal AI"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <span className="text-muted-foreground/60">Traditional diet</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Key Statistic */}
+              <motion.div
+                className="w-full max-w-sm bg-primary/10 border border-primary/20 rounded-xl p-4 mb-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.0, duration: 0.4 }}
+              >
+                <p className="text-xs text-muted-foreground mb-1">Success Rate</p>
+                <p className="text-2xl font-bold text-primary">80%</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  {t.onboardingMaintainWeightLoss || "maintain their weight loss after 6 months"}
+                </p>
+              </motion.div>
+
+              {/* Bottom text */}
+              <motion.p
+                className="text-xs text-muted-foreground/50 px-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.4 }}
+              >
+                {t.onboardingReadyToStart || "Ready to get started?"}
+              </motion.p>
+            </div>
+          </StepCard>
+        );
+
       case "tutorial-transition":
         return (
           <div className="fixed inset-0 bg-background flex flex-col overflow-hidden">
