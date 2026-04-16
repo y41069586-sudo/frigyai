@@ -26,8 +26,8 @@ export const OnboardingProgressBar = ({ currentStep, totalSteps }: OnboardingPro
             className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ 
-              duration: 0.4, 
+            transition={{
+              duration: 0.5,
               ease: [0.4, 0, 0.2, 1]
             }}
           />

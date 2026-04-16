@@ -55,15 +55,15 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
   return (
     <motion.div
       className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
-        status === 'done' 
-          ? 'bg-primary/10 border border-primary/30' 
+        status === 'done'
+          ? 'bg-primary/10 border border-primary/30'
           : status === 'loading'
             ? 'bg-muted/50 border border-border'
             : 'bg-transparent border border-transparent'
       }`}
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay / 1000, duration: 0.3 }}
+      transition={{ delay: delay / 1000, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="w-6 h-6 flex items-center justify-center">
         {status === 'waiting' && <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
@@ -71,14 +71,14 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
           <motion.div
             className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent"
             animate={{ rotate: 360 }}
-            transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
           />
         )}
         {status === 'done' && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.2 }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
           >
             <Check className="w-4 h-4 text-primary-foreground" />
@@ -380,10 +380,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {languages.map((lang, index) => (
                   <motion.button
                     key={lang.code}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + index * 0.08, duration: 0.3 }}
-                    whileTap={{ scale: 0.98 }}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + index * 0.1, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => { setLanguage(lang.code); goNext(); }}
                     className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${
                       language === lang.code ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
@@ -393,7 +393,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <span className="text-3xl">{lang.flag}</span>
                       <span className="font-semibold text-lg">{lang.label}</span>
                       {language === lang.code && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                          className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                        >
                           <Check className="w-4 h-4 text-primary-foreground" />
                         </motion.div>
                       )}
@@ -3958,7 +3963,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           className="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-6"
         >
           <AnimatePresence mode="wait">
-            <motion.div key={currentStep} className="w-full max-w-md">
+            <motion.div
+              key={currentStep}
+              className="w-full max-w-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{
+                duration: 0.4,
+                ease: [0.4, 0, 0.2, 1] // cubic-bezier for smooth easing
+              }}
+            >
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
@@ -3967,11 +3982,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       {/* Bottom button */}
       {!["language-select", "name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress"].includes(currentStep) && (
-        <motion.div 
+        <motion.div
           className="p-6 pb-8"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.3 }}
+          transition={{ delay: 0.2, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           <Button
             onClick={goNext}
