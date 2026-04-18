@@ -55,15 +55,15 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
   return (
     <motion.div
       className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
-        status === 'done' 
-          ? 'bg-primary/10 border border-primary/30' 
+        status === 'done'
+          ? 'bg-primary/10 border border-primary/30'
           : status === 'loading'
             ? 'bg-muted/50 border border-border'
             : 'bg-transparent border border-transparent'
       }`}
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay / 1000, duration: 0.3 }}
+      transition={{ delay: delay / 1000, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="w-6 h-6 flex items-center justify-center">
         {status === 'waiting' && <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
@@ -71,14 +71,14 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
           <motion.div
             className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent"
             animate={{ rotate: 360 }}
-            transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
           />
         )}
         {status === 'done' && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.2 }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
           >
             <Check className="w-4 h-4 text-primary-foreground" />
@@ -380,10 +380,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {languages.map((lang, index) => (
                   <motion.button
                     key={lang.code}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + index * 0.08, duration: 0.3 }}
-                    whileTap={{ scale: 0.98 }}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + index * 0.1, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => { setLanguage(lang.code); goNext(); }}
                     className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${
                       language === lang.code ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
@@ -393,7 +393,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <span className="text-3xl">{lang.flag}</span>
                       <span className="font-semibold text-lg">{lang.label}</span>
                       {language === lang.code && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                          className="ml-auto w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                        >
                           <Check className="w-4 h-4 text-primary-foreground" />
                         </motion.div>
                       )}
@@ -615,64 +620,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "motivation":
         return <MotivationStep {...stepProps} />;
 
-      case "social-proof":
-        const testimonials = [
-          { name: "Sarah M.", text: language === 'de' ? "8kg in 2 Monaten verloren!" : language === 'fr' ? "Perdu 8kg en 2 mois!" : "Lost 8kg in 2 months!", color: "from-pink-500/20 to-rose-500/20", rating: 5 },
-          { name: "Thomas K.", text: language === 'de' ? "Endlich meine Makros erreicht!" : language === 'fr' ? "Enfin atteint mes macros!" : "Finally hitting my macros!", color: "from-blue-500/20 to-cyan-500/20", rating: 5 },
-          { name: "Lisa R.", text: language === 'de' ? "Beste Meal-Planning App!" : language === 'fr' ? "La meilleure app de planification!" : "Best meal planning app ever", color: "from-purple-500/20 to-pink-500/20", rating: 5 },
-        ];
-        return (
-          <StepCard step="social-proof">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
-              >
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  ))}
-                </div>
-                <span className="font-bold text-lg">4.9</span>
-              </motion.div>
-              
-              <motion.h1 className="text-2xl font-bold mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1, duration: 0.3 }}>
-                {t.onboardingLovedByThousands}
-              </motion.h1>
-              <motion.p className="text-muted-foreground/50 text-xs mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.3 }}>
-                {t.onboardingJoinUsers}
-              </motion.p>
-              
-              <div className="w-full max-w-sm space-y-3">
-                {testimonials.map((testimonial, i) => (
-                  <motion.div
-                    key={testimonial.name}
-                    initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1, duration: 0.3 }}
-                    className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border"
-                  >
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${testimonial.color} flex items-center justify-center`}>
-                      <User className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-semibold text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground/60">&quot;{testimonial.text}&quot;</p>
-                    </div>
-                    <div className="flex text-yellow-500">
-                      {Array.from({ length: testimonial.rating }).map((_, idx) => (
-                        <Star key={idx} className="w-3 h-3 fill-yellow-500" />
-                      ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </StepCard>
-        );
-
       case "success-stats":
         const stats = [
           { value: 94, suffix: "%", label: t.onboardingReachGoals, color: "bg-primary" },
@@ -734,14 +681,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               >
                 {t.onboardingRealResults}
               </motion.h1>
-              <motion.p 
-                className="text-muted-foreground/50 text-xs mb-6" 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                transition={{ delay: 0.9, duration: 0.3 }}
-              >
-                {t.onboardingBasedOnData}
-              </motion.p>
               
               <div className="w-full max-w-sm space-y-3">
                 {stats.map((stat, i) => (
@@ -3958,7 +3897,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           className="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-6"
         >
           <AnimatePresence mode="wait">
-            <motion.div key={currentStep} className="w-full max-w-md">
+            <motion.div
+              key={currentStep}
+              className="w-full max-w-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{
+                duration: 0.4,
+                ease: [0.4, 0, 0.2, 1] // cubic-bezier for smooth easing
+              }}
+            >
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
@@ -3967,11 +3916,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       {/* Bottom button */}
       {!["language-select", "name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress"].includes(currentStep) && (
-        <motion.div 
+        <motion.div
           className="p-6 pb-8"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.3 }}
+          transition={{ delay: 0.2, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           <Button
             onClick={goNext}
