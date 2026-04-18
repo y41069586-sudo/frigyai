@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Calendar, ChefHat, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3, Crown } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3, Crown, Refrigerator } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,7 +29,7 @@ import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
 import { FreeModePaywallOverlay } from '@/components/FreeModePaywallOverlay';
-
+import { notifyFrigyStorageUpdated, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
 interface UserProfile {
   age: number;
   weight: number;
@@ -195,6 +195,15 @@ const MealPlansPage = () => {
     // Don't redirect if coming from successful subscription - wait for status to update
     const subscriptionParam = searchParams.get('subscription');
     if (subscriptionParam === 'success') return;
+
+    if (user && !user.email_confirmed_at) {
+      const q = new URLSearchParams();
+      if (user.email) q.set('email', user.email);
+      q.set('next', '/premium-pricing');
+      q.set('from', 'signup');
+      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
+      return;
+    }
     
     // Only redirect to auth if not logged in
     if (!user) {
@@ -263,6 +272,7 @@ const MealPlansPage = () => {
           } else {
             console.warn('[MEALPLANS] Saved meal plan does not meet current calorie target - clearing');
             localStorage.removeItem('weeklyMealPlan');
+            notifyFrigyStorageUpdated();
             setMealPlan([]);
             toast({
               title: 'Wochenplan veraltet',
@@ -276,46 +286,7 @@ const MealPlansPage = () => {
         }
       } else {
         console.log('[MEALPLANS] No meal plan found - empty state');
-        // TEST: Add demo meal plan for debugging
-        const demoMealPlan: DayPlan[] = [
-          {
-            day: 'Montag',
-            meals: [
-              {
-                type: 'Frühstück',
-                name: 'Rührei mit Toast',
-                calories: 420,
-                protein: 20,
-                carbs: 28,
-                fat: 22,
-                prepTime: 15,
-                ingredients: [
-                  { name: 'Eier', amount: '3 Stück', price: 0.9 },
-                  { name: 'Brot', amount: '2 Scheiben', price: 0.5 },
-                  { name: 'Butter', amount: '10g', price: 0.1 }
-                ],
-                instructions: ['Eier rühren', 'Brot toasten', 'Servieren']
-              },
-              {
-                type: 'Mittagessen',
-                name: 'Hähnchen mit Kartoffeln',
-                calories: 650,
-                protein: 45,
-                carbs: 55,
-                fat: 18,
-                prepTime: 30,
-                ingredients: [
-                  { name: 'Hähnchen', amount: '200g', price: 3.5 },
-                  { name: 'Kartoffeln', amount: '300g', price: 1.0 },
-                  { name: 'Öl', amount: '2 EL', price: 0.3 }
-                ],
-                instructions: ['Hähnchen braten', 'Kartoffeln kochen']
-              }
-            ]
-          }
-        ];
-        console.log('[MEALPLANS] Using demo meal plan for testing');
-        setMealPlan(demoMealPlan);
+        setMealPlan([]);
       }
     }
   }, [globalMealPlan, globalShoppingList, trackerSettings]);
@@ -539,8 +510,8 @@ const MealPlansPage = () => {
             </Button>
             <NavLink to="/">
               <div className="flex items-center gap-2">
-                <img src={frigyMascot} alt="frigy" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
-                <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">frigy</h1>
+                <img src={frigyMascot} alt="Frigy" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
+                <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">Frigy</h1>
               </div>
             </NavLink>
           </div>
@@ -580,7 +551,7 @@ const MealPlansPage = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
 
           <TabsContent value="tracker">
@@ -629,21 +600,22 @@ const MealPlansPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className={!isPremium ? "pointer-events-none" : ""}
               >
-                <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold neon-text mb-1">{t.weeklyPlan}</h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{t.tip}</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <ExportMealPlan mealPlan={mealPlan} />
-                    <div className="flex items-center gap-2">
-                      {!isPremium && !isFreeMode && (
-                        <span className="text-xs text-muted-foreground">
-                          {globalGenerationCount}/{maxFreeGenerations} Generierungen
-                        </span>
-                      )}
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
+                    <ExportMealPlan mealPlan={mealPlan} pdfOnly />
+                    <div className="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
                       <Button
-                        className="glow-button shrink-0 touch-target text-xs sm:text-sm"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 touch-target gap-2 shrink-0 border-primary/30 px-3"
+                        onClick={() => navigate("/scan")}
+                      >
+                        <Refrigerator className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-xs sm:text-sm whitespace-nowrap">Wochenplan erstellen</span>
+                      </Button>
+                      <Button
+                        className="glow-button h-9 shrink-0 touch-target text-xs sm:text-sm px-3"
                         size="sm"
                         onClick={generateMealPlan}
                         disabled={globalIsGenerating || !canGenerateMealPlan}
@@ -668,12 +640,17 @@ const MealPlansPage = () => {
                           </>
                         ) : (
                           <>
-                            <Calendar className="mr-1 h-4 w-4" />
-                            <span className="sm:hidden">{t.generateNewPlan.split(' ')[0]}</span>
-                            <span className="hidden sm:inline">{t.generateNewPlan}</span>
+                            <Sparkles className="mr-1 h-4 w-4" />
+                            <span className="sm:hidden">Frigy Plan</span>
+                            <span className="hidden sm:inline">Frigy Plan erstellen</span>
                           </>
                         )}
                       </Button>
+                      {!isPremium && !isFreeMode && (
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {globalGenerationCount}/{maxFreeGenerations} Generierungen
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -737,7 +714,7 @@ const MealPlansPage = () => {
                 {mealPlan.length === 0 && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
                     <p className="text-sm text-amber-700">
-                      💡 Hinweis: Erstelle einen Wochenplan im &quot;Mahlzeiten&quot;-Tab, um eine Einkaufsliste zu generieren.
+                      💡 Die Einkaufsliste füllt sich nur, wenn du hier einen <strong>Frigy Plan</strong> erstellst (Button „Frigy Plan erstellen“). Nach einem reinen Kühlschrank-Scan gibt es keine automatische Liste.
                     </p>
                   </Card>
                 )}
@@ -775,13 +752,21 @@ const MealPlansPage = () => {
       />
 
       {/* Premium Success Dialog */}
-      <PremiumSuccessDialog 
-        open={showSuccessDialog} 
-        onClose={() => setShowSuccessDialog(false)} 
+      <PremiumSuccessDialog
+        open={showSuccessDialog}
+        onClose={() => {
+          setShowSuccessDialog(false);
+          localStorage.setItem(POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, '1');
+        }}
+        onScanFridge={() => {
+          setShowSuccessDialog(false);
+          localStorage.setItem(POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, '1');
+          navigate('/scan');
+        }}
       />
 
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab={activeTab} trackerSetup={trackerSetup} trackerLoading={trackerLoading} onTabChange={setActiveTab} />
+      <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
     </div>
     </>
   );

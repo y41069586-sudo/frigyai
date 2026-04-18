@@ -39,6 +39,7 @@ try {
         storage: localStorage,
         persistSession: true,
         autoRefreshToken: true,
+        detectSessionInUrl: true,
       }
     });
   } else {

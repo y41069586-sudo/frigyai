@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,6 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { MacroDisplay } from './MacroDisplay';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
@@ -27,9 +26,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
 import { FreeModePaywallOverlay } from './FreeModePaywallOverlay';
+import { TrackerWidget } from '@/components/food-ai/dashboard/TrackerWidget';
+import { MEAL_FOCUS_PROMPTS_DE, parseMealFocus, type MealFocusKey } from '@/lib/mealFocus';
+import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 
 // Import animated animal components
-import { AnimatedSloth, AnimatedRabbit, AnimatedCheetah } from './AnimatedAnimals';
+import { AnimatedSloth, AnimatedCheetah } from './AnimatedAnimals';
+import { AnimatedMotorcycle } from '@/components/onboarding/components/SpeedIcons';
 
 export interface FoodEntry {
   id: string;
@@ -60,6 +63,7 @@ interface MacroTrackerProps {
 
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useLanguage();
   const { user, subscriptionStatus, isPremium } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
@@ -120,6 +124,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     return [];
   });
   const [foodInput, setFoodInput] = useState('');
+  const [mealPromptKey, setMealPromptKey] = useState<MealFocusKey | null>(null);
+  const foodTextInputRef = useRef<HTMLInputElement>(null);
+  const addFoodSectionRef = useRef<HTMLDivElement>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
@@ -137,6 +144,32 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [scannedProductData, setScannedProductData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Deep link vom Dashboard: ?mealFocus=breakfast → Frage + Scroll zur Textzeile
+  useEffect(() => {
+    if (step !== "tracker") return;
+    const raw = searchParams.get("mealFocus");
+    if (!raw) return;
+    const key = parseMealFocus(raw);
+    if (!key) return;
+    setMealPromptKey(key);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("mealFocus");
+        return p;
+      },
+      { replace: true },
+    );
+  }, [step, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (step !== "tracker" || !mealPromptKey) return;
+    const timer = window.setTimeout(() => {
+      addFoodSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => foodTextInputRef.current?.focus({ preventScroll: true }), 450);
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [mealPromptKey, step]);
 
   // Animated analyzing messages - use translations
   const analyzingMessages = [
@@ -182,12 +215,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       date: new Date().toDateString(),
       entries: freshEntries,
     }));
+    notifyFrigyStorageUpdated();
   }, [dbEntries, foodEntriesLoading, mapDbEntriesToTrackerEntries, user]);
 
   // Expose reset function to parent
   const resetTracker = async () => {
     await resetTrackerSettings();
     localStorage.removeItem('todayFood');
+    notifyFrigyStorageUpdated();
     setProfile(null);
     setFoodEntries([]);
     setStep('onboarding');
@@ -359,6 +394,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       date: new Date().toDateString(),
       entries,
     }));
+    notifyFrigyStorageUpdated();
     setFoodEntries(entries);
     
     // Sync to database
@@ -854,7 +890,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               <AnimatedSloth isActive={weeklyLossRate <= 0.5} />
             </div>
             <div className={`transition-all duration-200 ${weeklyLossRate > 0.5 && weeklyLossRate <= 1.0 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
-              <AnimatedRabbit isActive={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0} />
+              <AnimatedMotorcycle selected={weeklyLossRate > 0.5 && weeklyLossRate <= 1.0} />
             </div>
             <div className={`transition-all duration-200 ${weeklyLossRate > 1.0 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
               <AnimatedCheetah isActive={weeklyLossRate > 1.0} />
@@ -1071,31 +1107,44 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   return (
     <div className="space-y-4">
-      {/* Modern Macro Display */}
+      {/* Gleiches Tracker-Widget wie im Dashboard */}
       <div className="space-y-3">
-        <MacroDisplay
-          calories={{ current: totalCalories, target: profile?.dailyCalories || 0 }}
-          protein={{ current: totalProtein, target: profile?.dailyProtein || 0 }}
-          carbs={{ current: totalCarbs, target: profile?.dailyCarbs || 0 }}
-          fat={{ current: totalFat, target: profile?.dailyFat || 0 }}
-          variant="full"
-          onEditCalories={() => { setFocusMacro('calories'); setShowEditGoalsDialog(true); }}
-          onEditProtein={() => { setFocusMacro('protein'); setShowEditGoalsDialog(true); }}
-          onEditCarbs={() => { setFocusMacro('carbs'); setShowEditGoalsDialog(true); }}
-          onEditFat={() => { setFocusMacro('fat'); setShowEditGoalsDialog(true); }}
+        <TrackerWidget
+          delay={0}
+          caloriesEaten={totalCalories}
+          targetCalories={profile?.dailyCalories || 0}
+          proteinEaten={totalProtein}
+          targetProtein={profile?.dailyProtein || 0}
+          carbsEaten={totalCarbs}
+          targetCarbs={profile?.dailyCarbs || 0}
+          fatEaten={totalFat}
+          targetFat={profile?.dailyFat || 0}
         />
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full text-xs text-muted-foreground hover:text-primary"
-          onClick={() => {
-            setStep('onboarding');
-            setOnboardingStep(0);
-          }}
-        >
-          <Pencil className="h-3 w-3 mr-1.5" />
-          {t.changeGoal}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 min-w-[8rem] text-xs text-muted-foreground hover:text-primary"
+            onClick={() => {
+              setFocusMacro("calories");
+              setShowEditGoalsDialog(true);
+            }}
+          >
+            Makros anpassen
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 min-w-[8rem] text-xs text-muted-foreground hover:text-primary"
+            onClick={() => {
+              setStep("onboarding");
+              setOnboardingStep(0);
+            }}
+          >
+            <Pencil className="h-3 w-3 mr-1.5" />
+            {t.changeGoal}
+          </Button>
+        </div>
       </div>
 
       {/* Edit Macro Goals Dialog */}
@@ -1152,8 +1201,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       />
 
       {/* Add Food - Improved UX */}
-      <Card className="p-4 bg-card border-border/30">
-        <p className="font-semibold text-sm mb-3">{t.addFood}</p>
+      <Card ref={addFoodSectionRef} className="p-4 bg-card border-border/30 scroll-mt-24">
+        <motion.p
+          className="font-semibold text-sm mb-3 leading-snug"
+          key={mealPromptKey ?? "default"}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {mealPromptKey ? MEAL_FOCUS_PROMPTS_DE[mealPromptKey] : t.addFood}
+        </motion.p>
 
         {/* Quick Actions */}
         <div className="flex gap-2 mb-3">
@@ -1190,6 +1247,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         {/* Text Input */}
         <div className="flex gap-2">
           <Input
+            ref={foodTextInputRef}
             placeholder={t.egTwoEggsWithToast}
             value={foodInput}
             onChange={(e) => setFoodInput(e.target.value)}

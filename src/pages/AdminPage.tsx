@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Crown, Gift, Loader2, Shield, Check } from 'lucide-react';
-import frigLogo from '@/assets/frig-logo.png';
+import frigLogo from '@/assets/frigy-mascot.png';
 
 // Admin emails
 const ADMIN_EMAILS = [
@@ -31,7 +31,7 @@ const AdminPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
-        <img src={frigLogo} alt="frigy" className="h-12 w-12 rounded-xl animate-pulse" />
+        <img src={frigLogo} alt="Frigy" className="h-12 w-12 rounded-xl animate-pulse" />
       </div>
     );
   }

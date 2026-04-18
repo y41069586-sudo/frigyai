@@ -89,6 +89,10 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
+    const constraintPrompt =
+      typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "";
+    const mealsPerDay = Number(body.mealsPerDay) || 5;
+    const dailyCalories = Number(body.dailyCalories) || 2000;
 
     const systemPrompt = `
 Du bist ein deutscher Ernährungsexperte.
@@ -97,9 +101,14 @@ Erstelle einen Wochenplan mit einfachen deutschen Gerichten.
 
 REGELN:
 - 7 Tage
-- 5 Mahlzeiten pro Tag
+- ${mealsPerDay} Mahlzeiten pro Tag
 - Nur einfache Hausmannskost
 - Keine exotischen Zutaten
+${
+  constraintPrompt
+    ? `- WICHTIG: Wenn unten Allergien oder Ernährungsform genannt sind, sind diese ABSOLUT bindend. Kein Gericht und keine Zutat darf diese verletzen. Liste bei Bedarf Alternativen (z. B. glutenfreie Nudeln, pflanzliche Milch).`
+    : ""
+}
 
 Jede Mahlzeit MUSS enthalten:
 name, calories, protein, carbs, fat, prepTime, ingredients, instructions
@@ -132,7 +141,17 @@ Antwort NUR als JSON:
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: "Erstelle einen Wochenplan." },
+            {
+              role: "user",
+              content: [
+                `Erstelle einen vollständigen Wochenplan.`,
+                `Ziel: etwa ${dailyCalories} kcal pro Tag (Summe der Mahlzeiten pro Tag soll in die Nähe dieses Werts passen).`,
+                `Mahlzeiten pro Tag: ${mealsPerDay}.`,
+                constraintPrompt
+                  ? `\n\n--- Nutzer-Vorgaben (verbindlich) ---\n${constraintPrompt}`
+                  : "",
+              ].join("\n"),
+            },
           ],
         }),
       }
@@ -148,7 +167,7 @@ Antwort NUR als JSON:
     let parsed = JSON.parse(content);
 
     // 🔥 FIX: Kalorien skalieren
-    parsed.mealPlan = scaleMealPlan(parsed.mealPlan, body.dailyCalories);
+    parsed.mealPlan = scaleMealPlan(parsed.mealPlan, dailyCalories);
 
     // 🛒 Einkaufsliste erstellen
     const shoppingList = generateShoppingList(parsed.mealPlan);

@@ -265,10 +265,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     options?: { emailRedirectTo?: string }
   ) => {
     // Redirect target for email confirmation flow (used when email confirmation is enabled)
-    const defaultRedirectUrl = `${window.location.origin}/email-confirmation?confirmed=true`;
+    const defaultRedirectUrl = `${window.location.origin}/email-confirmation?confirmed=true&next=/premium-pricing&from=signup`;
     const redirectUrl = options?.emailRedirectTo ?? defaultRedirectUrl;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -282,8 +282,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: error.message,
         variant: "destructive",
       });
+    } else if (data.user && !data.session) {
+      // E-Mail-Bestätigung in Supabase aktiviert: noch kein Login bis zum Link in der E-Mail
+      toast({
+        title: "Bestätige deine E-Mail",
+        description: "Wir haben dir einen Link geschickt. Nach dem Klick wirst du zur App und zur Mitgliedschaft weitergeleitet.",
+      });
     } else {
-      // If email auto-confirm is enabled, users are logged in immediately.
       toast({
         title: "Registrierung erfolgreich!",
         description: "Du kannst jetzt fortfahren.",
@@ -314,7 +319,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        // Google bestätigt die E-Mail – direkt zur Paywall statt ins leere Dashboard
+        redirectTo: `${window.location.origin}/premium-pricing`,
       },
     });
 

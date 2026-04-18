@@ -72,6 +72,9 @@ export const useOnboardingProgress = () => {
       if (data.onboarding_complete) {
         localStorage.setItem('onboardingComplete', 'true');
       }
+      if (data.onboarding_complete === false) {
+        localStorage.removeItem('onboardingComplete');
+      }
       // Update in-memory state to keep UI in sync
       setProgress(prev => prev ? { ...prev, ...data } : { onboarding_complete: false, ...data });
       return;
@@ -97,6 +100,9 @@ export const useOnboardingProgress = () => {
         // Also sync to localStorage
         if (data.onboarding_complete) {
           localStorage.setItem('onboardingComplete', 'true');
+        }
+        if (data.onboarding_complete === false) {
+          localStorage.removeItem('onboardingComplete');
         }
       }
     } catch (e) {

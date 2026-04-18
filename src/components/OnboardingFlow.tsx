@@ -15,8 +15,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import frigLogo from "@/assets/frig-logo.png";
-import frigyMascotSrc from "@/assets/frigy-mascot.png";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
@@ -29,7 +27,7 @@ import {
 import { calculateMacros, calculateWeeksToGoal, saveOnboardingData } from "./onboarding/utils";
 import { 
   StepCard, ProgressDots, AnimatedCounter, SelectionCard,
-  AnimatedBicycle, AnimatedCar, AnimatedRocket, OnboardingProgressBar
+  AnimatedBicycle, AnimatedMotorcycle, AnimatedRocket, OnboardingProgressBar
 } from "./onboarding/components";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
@@ -623,8 +621,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "success-stats":
         const stats = [
           { value: 94, suffix: "%", label: t.onboardingReachGoals, color: "bg-primary" },
-          { value: 2.5, suffix: "kg", label: t.onboardingAvgWeightLoss, color: "bg-blue-500" },
-          { value: 15, suffix: "min", label: t.onboardingTimeSaved, color: "bg-purple-500" },
+          { value: 2.5, suffix: "kg", label: t.onboardingAvgWeightLoss, color: "bg-primary/85" },
+          { value: 15, suffix: "min", label: t.onboardingTimeSaved, color: "bg-emerald-500" },
         ];
         return (
           <StepCard step="success-stats">
@@ -1206,7 +1204,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         // Determine category for visual feedback with animated icons
         const getSpeedCategory = (speed: number): { label: string; desc: string; Component: typeof AnimatedBicycle; color: string } => {
           if (speed <= 0.5) return { label: t.onboardingSlow, desc: t.onboardingGentle, Component: AnimatedBicycle, color: "text-green-500" };
-          if (speed <= 0.9) return { label: t.onboardingModerate, desc: t.onboardingSteady, Component: AnimatedCar, color: "text-blue-500" };
+          if (speed <= 0.9) return { label: t.onboardingModerate, desc: t.onboardingSteady, Component: AnimatedMotorcycle, color: "text-blue-500" };
           return { label: t.onboardingFast, desc: t.onboardingAmbitious, Component: AnimatedRocket, color: "text-orange-500" };
         };
         
@@ -1260,7 +1258,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <AnimatedBicycle selected={currentSpeed <= 0.5} />
                   </div>
                   <div className={`transition-all duration-200 ${currentSpeed > 0.5 && currentSpeed <= 0.9 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
-                    <AnimatedCar selected={currentSpeed > 0.5 && currentSpeed <= 0.9} />
+                    <AnimatedMotorcycle selected={currentSpeed > 0.5 && currentSpeed <= 0.9} />
                   </div>
                   <div className={`transition-all duration-200 ${currentSpeed > 0.9 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
                     <AnimatedRocket selected={currentSpeed > 0.9} />
@@ -2640,6 +2638,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <InteractiveTutorial 
             onComplete={goNext} 
             onSkip={() => setCurrentStep("tracker-intro")} 
+            onBackToOnboarding={() => setCurrentStep("tutorial-transition")}
           />
         );
 

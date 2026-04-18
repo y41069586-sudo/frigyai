@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.analyze-ingredients]
 verify_jwt = false
 
+[functions.assess-fridge-for-week]
+verify_jwt = false
+
 [functions.generate-recipes]
 verify_jwt = false
 

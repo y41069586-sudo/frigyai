@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -6,6 +6,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const LegalPage = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+
+  const handleClose = () => {
+    if (from && typeof from === "string" && from.startsWith("/")) {
+      navigate(from, { replace: true });
+      return;
+    }
+    navigate("/", { replace: true });
+  };
 
   const getContent = () => {
     switch (type) {
@@ -40,12 +50,16 @@ const LegalPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={handleClose}
             className="shrink-0"
+            aria-label="Zurück zur App"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold truncate">{getTitle()}</h1>
+          <h1 className="text-xl font-bold truncate flex-1">{getTitle()}</h1>
+          <Button variant="outline" size="sm" className="shrink-0 text-xs" onClick={handleClose} type="button">
+            Schließen
+          </Button>
         </div>
       </div>
 
@@ -58,31 +72,45 @@ const LegalPage = () => {
   );
 };
 
+const IMPRESSUM_ANBIETER = "Yousef Mohamed";
+const IMPRESSUM_ANSCHRIFT_ZEILEN = ["Wilhelm-Diess-Weg 3a", "94081 Fürstenzell", "Deutschland"];
+const IMPRESSUM_EMAIL = "mail@frigy.app";
+
 const ImpressumContent = () => (
   <div className="max-w-none space-y-6 sm:space-y-8">
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">Angaben gemäß § 5 TMG</h2>
       <div className="text-muted-foreground space-y-1 mt-3">
-        <p className="font-medium text-foreground text-sm sm:text-base">frigy GmbH</p>
-        <p className="text-sm sm:text-base">Musterstraße 1</p>
-        <p className="text-sm sm:text-base">10115 Berlin</p>
-        <p className="text-sm sm:text-base">Deutschland</p>
+        <p className="font-medium text-foreground text-sm sm:text-base">{IMPRESSUM_ANBIETER}</p>
+        <p className="text-sm sm:text-base text-muted-foreground/90">
+          Anbieter der App „Frigy“ (Marken-/Produktbezeichnung; es liegt kein im Handelsregister eingetragener
+          Firmenname vor).
+        </p>
+        {IMPRESSUM_ANSCHRIFT_ZEILEN.map((line) => (
+          <p key={line} className="text-sm sm:text-base">
+            {line}
+          </p>
+        ))}
       </div>
     </section>
 
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">Kontakt</h2>
       <div className="text-muted-foreground space-y-1 mt-3">
-        <p className="text-sm sm:text-base">E-Mail: contact@frigy.de</p>
-        <p className="text-sm sm:text-base">Telefon: +49 (0) 30 12345678</p>
+        <p className="text-sm sm:text-base">
+          E-Mail:{" "}
+          <a href={`mailto:${IMPRESSUM_EMAIL}`} className="text-primary hover:underline">
+            {IMPRESSUM_EMAIL}
+          </a>
+        </p>
       </div>
     </section>
 
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
       <div className="text-muted-foreground space-y-1 mt-3">
-        <p className="text-sm sm:text-base">frigy GmbH</p>
-        <p className="text-sm sm:text-base">Musterstraße 1, 10115 Berlin</p>
+        <p className="text-sm sm:text-base">{IMPRESSUM_ANBIETER}</p>
+        <p className="text-sm sm:text-base">{IMPRESSUM_ANSCHRIFT_ZEILEN.join(", ")}</p>
       </div>
     </section>
 
@@ -122,9 +150,14 @@ const DatenschutzContent = () => (
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">2. Verantwortliche Stelle</h2>
       <div className="text-muted-foreground space-y-1 mt-3">
-        <p className="text-sm sm:text-base">frigy GmbH</p>
-        <p className="text-sm sm:text-base">Musterstraße 1, 10115 Berlin</p>
-        <p className="text-sm sm:text-base">E-Mail: contact@frigy.de</p>
+        <p className="text-sm sm:text-base">{IMPRESSUM_ANBIETER}</p>
+        <p className="text-sm sm:text-base">{IMPRESSUM_ANSCHRIFT_ZEILEN.join(", ")}</p>
+        <p className="text-sm sm:text-base">
+          E-Mail:{" "}
+          <a href={`mailto:${IMPRESSUM_EMAIL}`} className="text-primary hover:underline">
+            {IMPRESSUM_EMAIL}
+          </a>
+        </p>
       </div>
     </section>
 
@@ -211,13 +244,17 @@ const DatenschutzContent = () => (
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">9. Kontakt für Datenschutzanfragen</h2>
       <p className="text-muted-foreground text-sm sm:text-base mt-3">
-        Bei Fragen zum Datenschutz kontaktieren Sie uns unter: contact@frigy.de
+        Bei Fragen zum Datenschutz kontaktieren Sie uns unter:{" "}
+        <a href={`mailto:${IMPRESSUM_EMAIL}`} className="text-primary hover:underline">
+          {IMPRESSUM_EMAIL}
+        </a>
       </p>
     </section>
 
     <div className="mt-8 p-4 bg-muted/50 rounded-lg border">
       <p className="text-xs sm:text-sm text-muted-foreground">
-        Stand: Dezember 2024. Bitte ersetzen Sie alle Platzhalter durch Ihre Daten.
+        Stand: April 2026. Texte sind keine Rechtsberatung; bei Änderungen der Datenverarbeitung bitte
+        anpassen.
       </p>
     </div>
   </div>
@@ -228,8 +265,8 @@ const AGBContent = () => (
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">§ 1 Geltungsbereich</h2>
       <p className="text-muted-foreground text-sm sm:text-base mt-3">
-        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der App "frigy"
-        (nachfolgend "App" genannt), bereitgestellt von frigy GmbH (nachfolgend "Anbieter").
+        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der App „Frigy“
+        (nachfolgend „App“ genannt), bereitgestellt von {IMPRESSUM_ANBIETER} (nachfolgend „Anbieter“).
       </p>
     </section>
 
@@ -326,7 +363,8 @@ const AGBContent = () => (
 
     <div className="mt-8 p-4 bg-muted/50 rounded-lg border">
       <p className="text-xs sm:text-sm text-muted-foreground">
-        Stand: Dezember 2024. Ersetzen Sie [Ihr Name/Firma] durch Ihre Daten.
+        Stand: April 2026. AGB durch Rechtsberatung prüfen lassen, wenn ihr kommerziell verkauft oder
+        Abos anbietet.
       </p>
     </div>
   </div>

@@ -179,7 +179,7 @@ export const AIChatbotBubble = ({
                       </motion.div>
 
                       <div className="flex-1">
-                        <h3 className="font-bold text-base text-emerald-900">Frigy AI</h3>
+                        <h3 className="font-bold text-base text-emerald-900">Frigy</h3>
                         <p className="text-xs text-emerald-600">Dein KI-Assistent</p>
                       </div>
 

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import frigLogo from "@/assets/frig-logo.png";
+import frigLogo from "@/assets/frigy-mascot.png";
 
 export const PageLoader = () => {
   return (
@@ -11,7 +11,7 @@ export const PageLoader = () => {
       >
         <motion.img
           src={frigLogo}
-          alt="frigy"
+          alt="Frigy"
           className="w-16 h-16"
           animate={{ 
             scale: [1, 1.1, 1],

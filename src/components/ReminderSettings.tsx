@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 
 interface ReminderConfig {
   water: { enabled: boolean; interval: number }; // interval in hours
@@ -35,6 +36,7 @@ export const ReminderSettings = () => {
 
   useEffect(() => {
     localStorage.setItem('reminderConfig', JSON.stringify(config));
+    notifyFrigyStorageUpdated();
   }, [config]);
 
   const requestPermission = async () => {
@@ -56,7 +58,7 @@ export const ReminderSettings = () => {
         description: 'Du erhältst jetzt Erinnerungen.',
       });
       // Test notification
-      new Notification('Healthy3 Erinnerungen', {
+      new Notification('Frigy Erinnerungen', {
         body: 'Benachrichtigungen wurden erfolgreich aktiviert!',
         icon: '/favicon.ico',
       });

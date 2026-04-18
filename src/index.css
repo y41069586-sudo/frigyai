@@ -8,55 +8,55 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Optimized light mode with better contrast */
-    --background: 0 0% 99%;
-    --foreground: 160 10% 12%;
+    /* Hell leuchtend Grün + Weiß — einheitliche Hue ~150° (elektrisches Mint/Lime) */
+    --background: 0 0% 100%;
+    --foreground: 152 28% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 160 10% 12%;
+    --card-foreground: 152 28% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 10% 12%;
+    --popover-foreground: 152 28% 11%;
 
-    /* Neon green primary - slightly deeper for better contrast on white */
-    --primary: 160 100% 38%;
+    /* Primär: leuchtendes Grün, gut lesbar auf Weiß */
+    --primary: 150 100% 46%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 20% 96%;
-    --secondary-foreground: 160 10% 15%;
+    --secondary: 148 55% 96%;
+    --secondary-foreground: 152 22% 16%;
 
-    --muted: 160 15% 95%;
-    --muted-foreground: 160 5% 45%;
+    --muted: 148 42% 96%;
+    --muted-foreground: 152 12% 40%;
 
-    --accent: 160 100% 38%;
+    --accent: 148 100% 44%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 160 15% 88%;
-    --input: 160 15% 90%;
-    --ring: 160 100% 38%;
+    --border: 148 48% 90%;
+    --input: 148 42% 94%;
+    --ring: 150 100% 46%;
 
     --radius: 1rem;
 
-    /* Neon green variants */
-    --neon-green: 160 100% 45%;
-    --neon-green-dark: 160 100% 35%;
-    --neon-green-light: 160 80% 85%;
-    --soft-green: 160 30% 97%;
+    /* Neon-Varianten (Tailwind neon / neon-dark) */
+    --neon-green: 148 100% 52%;
+    --neon-green-dark: 152 100% 34%;
+    --neon-green-light: 148 90% 88%;
+    --soft-green: 148 45% 97%;
     
-    /* Refined gradients */
-    --gradient-bg: linear-gradient(135deg, hsl(160, 20%, 98%) 0%, hsl(0, 0%, 100%) 100%);
-    --gradient-neon: linear-gradient(135deg, hsl(160, 100%, 42%) 0%, hsl(155, 100%, 35%) 100%);
-    --gradient-card: linear-gradient(135deg, hsla(0, 0%, 100%, 0.95) 0%, hsla(160, 20%, 99%, 0.9) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(160, 100%, 42%) 0%, hsl(155, 100%, 32%) 100%);
+    /* Verläufe: weiß → sehr helles Mint, kräftiges Grün für Akzente */
+    --gradient-bg: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(148, 55%, 98%) 55%, hsl(0, 0%, 100%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(148, 100%, 52%) 0%, hsl(152, 100%, 38%) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(0, 0%, 100%, 0.98) 0%, hsla(148, 60%, 99%, 0.95) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(148, 100%, 50%) 0%, hsl(152, 100%, 36%) 100%);
     
-    /* Refined shadows with green tint */
-    --shadow-glow: 0 0 30px hsla(160, 100%, 45%, 0.25);
-    --shadow-glow-lg: 0 0 50px hsla(160, 100%, 45%, 0.35);
-    --shadow-soft: 0 4px 20px -4px hsla(160, 30%, 20%, 0.08);
-    --shadow-card: 0 8px 32px -8px hsla(160, 30%, 20%, 0.1);
+    /* Schatten mit Grün-Glow */
+    --shadow-glow: 0 0 32px hsla(148, 100%, 50%, 0.35);
+    --shadow-glow-lg: 0 0 56px hsla(148, 100%, 55%, 0.42);
+    --shadow-soft: 0 4px 24px -4px hsla(152, 45%, 35%, 0.1);
+    --shadow-card: 0 10px 36px -10px hsla(152, 50%, 40%, 0.12);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -91,10 +91,10 @@ All colors MUST be HSL.
   
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 20px hsla(160, 100%, 50%, 0.2);
+      box-shadow: 0 0 22px hsla(148, 100%, 55%, 0.35);
     }
     50% {
-      box-shadow: 0 0 40px hsla(160, 100%, 50%, 0.4);
+      box-shadow: 0 0 48px hsla(148, 100%, 58%, 0.55);
     }
   }
   
@@ -119,14 +119,14 @@ All colors MUST be HSL.
   
   
   .hero-gradient {
-    background: linear-gradient(135deg, hsl(160, 100%, 45%) 0%, hsl(140, 100%, 35%) 100%);
+    background: linear-gradient(135deg, hsl(148, 100%, 52%) 0%, hsl(152, 100%, 38%) 100%);
   }
   
   .mesh-gradient {
     background: 
-      radial-gradient(at 40% 20%, hsla(160, 100%, 60%, 0.3) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(140, 100%, 50%, 0.2) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(160, 100%, 70%, 0.2) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, hsla(148, 100%, 65%, 0.35) 0px, transparent 52%),
+      radial-gradient(at 80% 0%, hsla(150, 100%, 55%, 0.22) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(152, 100%, 72%, 0.22) 0px, transparent 50%);
   }
 
   .gradient-primary {
@@ -136,6 +136,11 @@ All colors MUST be HSL.
   /* Mobile-optimized utilities */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* Scroll padding under fixed BottomNavigation (bottom offset + pill + FAB) + home indicator */
+  .pb-bottom-nav {
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
   }
 
   .safe-top {

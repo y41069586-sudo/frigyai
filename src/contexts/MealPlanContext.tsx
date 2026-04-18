@@ -2,6 +2,25 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
+import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { buildGermanConstraintPrompt } from '@/lib/mealAllergySafety';
+
+function readUserProfileDiet(): { allergies: string[]; dietaryPreferences: string[] } {
+  try {
+    const raw = localStorage.getItem('userProfile');
+    if (!raw) return { allergies: [], dietaryPreferences: [] };
+    const p = JSON.parse(raw);
+    return {
+      allergies: Array.isArray(p.allergies) ? p.allergies.filter((x: string) => x && x !== 'none') : [],
+      dietaryPreferences: Array.isArray(p.dietaryPreferences)
+        ? p.dietaryPreferences.filter((x: string) => x && x !== 'none')
+        : [],
+    };
+  } catch {
+    return { allergies: [], dietaryPreferences: [] };
+  }
+}
 
 interface Ingredient {
   name: string;
@@ -199,6 +218,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Array.isArray(dbPlan) && dbPlan.length > 0) {
         setMealPlan(dbPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify(dbPlan));
+        notifyFrigyStorageUpdated();
         return;
       }
 
@@ -245,6 +265,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Clear old plan from localStorage and Supabase
     localStorage.removeItem('weeklyMealPlan');
+    removeMealPlanShoppingSource();
     if (session?.user?.id) {
       try {
         await supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
@@ -258,6 +279,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     try {
       try {
+        const diet = readUserProfileDiet();
+        const constraintPrompt = buildGermanConstraintPrompt(diet.allergies, diet.dietaryPreferences);
+
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
           headers: session?.access_token
             ? { Authorization: `Bearer ${session.access_token}` }
@@ -269,6 +293,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             dailyCarbs: settings.dailyCarbs,
             dailyFat: settings.dailyFat,
             mealsPerDay: settings.mealsPerDay || 5,
+            allergies: diet.allergies,
+            dietaryPreferences: diet.dietaryPreferences,
+            constraintPrompt,
           },
         });
 
@@ -340,6 +367,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setShoppingList(newShoppingList);
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
           localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
+          setMealPlanShoppingSource('frigy');
 
           // Persist for this user so it never auto-regenerates after login
           // If table doesn't exist yet, that's OK - just use localStorage
@@ -442,6 +470,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setShoppingList(null);
     localStorage.removeItem('weeklyMealPlan');
     localStorage.removeItem('weeklyShoppingList');
+    removeMealPlanShoppingSource();
 
     // Clear persisted plan for the logged in user from Supabase
     if (session?.user?.id) {

@@ -1150,7 +1150,7 @@ const translations: Record<Language, Translations> = {
     generateMealPlanForList: "Generiere einen Wochenplan um die Einkaufsliste zu sehen",
     
     // AI Chatbot
-    aiAdvisor: "frigy Berater",
+    aiAdvisor: "Frigy Berater",
     yourNutritionExpert: "Dein Ernährungsexperte",
     helloImAI: "Hallo! Ich bin dein KI-Assistent.",
     askAboutRecipes: "Frag mich nach Rezepten, App-Hilfe oder sage \"Tracker zurücksetzen\"!",
@@ -1565,7 +1565,7 @@ const translations: Record<Language, Translations> = {
     onboardingShowMeHow: "Zeig mir wie",
     
     // Tutorial steps (multi-page explanation)
-    tutorialIntroTitle: "So funktioniert Frig AI",
+    tutorialIntroTitle: "So funktioniert Frigy",
     tutorialIntroSubtitle: "In 6 einfachen Schritten",
     tutorialIntroDesc: "Lass dir Schritt für Schritt zeigen, wie alles zusammenhängt",
     tutorialScanTitle: "Kühlschrank scannen",
@@ -1590,7 +1590,7 @@ const translations: Record<Language, Translations> = {
     tutorialShoppingDesc3: "Nach dem Einkauf → wieder scannen!",
     tutorialCycleTitle: "So hängt alles zusammen",
     tutorialCycleStep: "Schritt 5 von 6",
-    tutorialCycleDesc1: "Das ist der Kreislauf von Frig AI",
+    tutorialCycleDesc1: "Das ist der Kreislauf von Frigy",
     tutorialCycleHave: "Was du HAST",
     tutorialCycleNeed: "Was du BRAUCHST",
     tutorialCycleEat: "Was du ISST",
@@ -1979,7 +1979,7 @@ const translations: Record<Language, Translations> = {
     generateMealPlanForList: "Generate a meal plan to see the shopping list",
     
     // AI Chatbot
-    aiAdvisor: "frigy Advisor",
+    aiAdvisor: "Frigy Advisor",
     yourNutritionExpert: "Your nutrition expert",
     helloImAI: "Hello! I am your AI assistant.",
     askAboutRecipes: "Ask me about recipes, app help, or say \"reset tracker\"!",
@@ -2394,7 +2394,7 @@ const translations: Record<Language, Translations> = {
     onboardingShowMeHow: "Show me how",
     
     // Tutorial steps (multi-page explanation)
-    tutorialIntroTitle: "How Frig AI works",
+    tutorialIntroTitle: "How Frigy works",
     tutorialIntroSubtitle: "In 6 simple steps",
     tutorialIntroDesc: "Let us show you step by step how everything connects",
     tutorialScanTitle: "Scan your fridge",
@@ -2419,7 +2419,7 @@ const translations: Record<Language, Translations> = {
     tutorialShoppingDesc3: "After shopping → scan again!",
     tutorialCycleTitle: "How it all connects",
     tutorialCycleStep: "Step 5 of 6",
-    tutorialCycleDesc1: "This is the Frig AI cycle",
+    tutorialCycleDesc1: "This is the Frigy cycle",
     tutorialCycleHave: "What you HAVE",
     tutorialCycleNeed: "What you NEED",
     tutorialCycleEat: "What you'll EAT",
@@ -2808,7 +2808,7 @@ const translations: Record<Language, Translations> = {
     generateMealPlanForList: "Générez un plan de repas pour voir la liste de courses",
     
     // AI Chatbot
-    aiAdvisor: "Conseiller frigy",
+    aiAdvisor: "Conseiller Frigy",
     yourNutritionExpert: "Votre expert en nutrition",
     helloImAI: "Bonjour! Je suis votre assistant IA.",
     askAboutRecipes: "Demandez-moi des recettes, de l'aide sur l'app, ou dites \"réinitialiser le suivi\"!",
@@ -3223,7 +3223,7 @@ const translations: Record<Language, Translations> = {
     onboardingShowMeHow: "Montre-moi comment",
     
     // Tutorial steps (multi-page explanation)
-    tutorialIntroTitle: "Comment fonctionne Frig AI",
+    tutorialIntroTitle: "Comment fonctionne Frigy",
     tutorialIntroSubtitle: "En 6 étapes simples",
     tutorialIntroDesc: "Laisse-nous te montrer étape par étape comment tout fonctionne",
     tutorialScanTitle: "Scanner ton frigo",
@@ -3248,7 +3248,7 @@ const translations: Record<Language, Translations> = {
     tutorialShoppingDesc3: "Après les courses → scanne à nouveau!",
     tutorialCycleTitle: "Comment tout est connecté",
     tutorialCycleStep: "Étape 5 sur 6",
-    tutorialCycleDesc1: "Voici le cycle de Frig AI",
+    tutorialCycleDesc1: "Voici le cycle de Frigy",
     tutorialCycleHave: "Ce que tu AS",
     tutorialCycleNeed: "Ce que tu as BESOIN",
     tutorialCycleEat: "Ce que tu vas MANGER",

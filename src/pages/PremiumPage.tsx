@@ -11,7 +11,7 @@ import { NavLink } from '@/components/NavLink';
 import { WaterTracker } from '@/components/WaterTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
-import frigLogo from '@/assets/frig-logo.png';
+import frigLogo from '@/assets/frigy-mascot.png';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -160,7 +160,7 @@ const PremiumPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <img src={frigLogo} alt="Fridgie" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="Frigy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
           <h2 className="text-xl font-bold mb-2">{"Premium wird aktiviert..."}</h2>
           <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
         </motion.div>
@@ -177,7 +177,7 @@ const PremiumPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <img src={frigLogo} alt="Fridgie" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="Frigy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
           <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
           <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
         </motion.div>
@@ -255,8 +255,8 @@ const PremiumPage = () => {
             </Button>
             <NavLink to="/">
               <div className="flex items-center gap-2">
-                <img src={frigLogo} alt="FrigBuddy" className="h-7 w-7 rounded-lg flex-shrink-0" />
-                <h1 className="text-base font-bold text-foreground truncate">FrigBuddy</h1>
+                <img src={frigLogo} alt="Frigy" className="h-7 w-7 rounded-lg flex-shrink-0" />
+                <h1 className="text-base font-bold text-foreground truncate">Frigy</h1>
               </div>
             </NavLink>
           </div>
@@ -446,7 +446,7 @@ const PremiumPage = () => {
                   <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">
-                  FrigBuddy Premium
+                  Frigy Premium
                 </h2>
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <p className="text-3xl sm:text-4xl font-bold text-primary">ab 4,99€</p>

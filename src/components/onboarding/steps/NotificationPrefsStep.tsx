@@ -118,6 +118,13 @@ export const NotificationPrefsStep = ({ userData, setUserData }: StepProps) => {
         >
           {language === 'de' ? 'Erinnerungen helfen 94% der Nutzer, ihre Ziele zu erreichen' : language === 'fr' ? 'Les rappels aident 94% des utilisateurs à atteindre leurs objectifs' : 'Reminders help 94% of users reach their goals'}
         </motion.p>
+        <p className="text-[10px] text-muted-foreground/50 mt-3 max-w-sm mx-auto leading-snug">
+          {language === 'de'
+            ? 'Tipp: Unter Einstellungen → Erinnerungen kannst du die Browser-Berechtigung für Push-Benachrichtigungen erteilen – dann funktionieren die Erinnerungen zuverlässig.'
+            : language === 'fr'
+              ? 'Astuce : dans Réglages → Rappels, autorise les notifications du navigateur pour des rappels fiables.'
+              : 'Tip: In Settings → Reminders, allow browser notifications so reminders work reliably.'}
+        </p>
       </div>
     </StepCard>
   );

@@ -175,7 +175,7 @@ export const CommunityPage = () => {
       {
         id: '2',
         author: { name: 'Thomas K.' },
-        content: '5kg in 4 Wochen geschafft! 💪 Die Meal Plans sind einfach genial. Danke FrigBuddy!',
+        content: '5kg in 4 Wochen geschafft! 💪 Die Meal Plans sind einfach genial. Danke Frigy!',
         likes: 45,
         comments: 12,
         isLiked: true,
@@ -210,7 +210,7 @@ export const CommunityPage = () => {
   const handleSharePost = (post: Post) => {
     if (navigator.share) {
       navigator.share({
-        title: 'FrigBuddy Community',
+        title: 'Frigy Community',
         text: post.content,
         url: window.location.href
       });
@@ -238,7 +238,7 @@ export const CommunityPage = () => {
   const isPremium = subscriptionStatus?.subscribed === true;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-bottom-nav">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -513,7 +513,7 @@ export const CommunityPage = () => {
         />
       )}
 
-      <BottomNavigation activeTab="tracker" onTabChange={() => {}} />
+      <BottomNavigation />
     </div>
   );
 };

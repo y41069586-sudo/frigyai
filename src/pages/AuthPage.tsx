@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
-import frigLogo from '@/assets/frig-logo.png';
+import frigLogo from '@/assets/frigy-mascot.png';
 
 const AuthPage = () => {
   const { t } = useLanguage();
@@ -26,22 +26,30 @@ const AuthPage = () => {
   const isFromOnboarding = fromParam === 'onboarding';
   const isFromPremiumPricing = fromParam === 'premium-pricing';
 
-  // Redirect if already logged in
+  // Redirect if already logged in (nur mit bestätigter E-Mail – sonst zur Bestätigungsseite)
   useEffect(() => {
-    if (user && !loading) {
-      // Coming from onboarding or premium-pricing: go to paywall
-      if (isFromOnboarding || isFromPremiumPricing) {
-        navigate('/premium-pricing', { replace: true });
-        return;
-      }
+    if (!user || loading) return;
 
-      const redirectPath = localStorage.getItem('redirectAfterAuth');
-      if (redirectPath) {
-        localStorage.removeItem('redirectAfterAuth');
-        navigate(redirectPath);
-      } else {
-        navigate('/');
-      }
+    if (!user.email_confirmed_at) {
+      const q = new URLSearchParams();
+      if (user.email) q.set('email', user.email);
+      q.set('next', '/premium-pricing');
+      q.set('from', 'signup');
+      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
+      return;
+    }
+
+    if (isFromOnboarding || isFromPremiumPricing) {
+      navigate('/premium-pricing', { replace: true });
+      return;
+    }
+
+    const redirectPath = localStorage.getItem('redirectAfterAuth');
+    if (redirectPath) {
+      localStorage.removeItem('redirectAfterAuth');
+      navigate(redirectPath);
+    } else {
+      navigate('/');
     }
   }, [user, loading, navigate, isFromOnboarding, isFromPremiumPricing]);
 
@@ -79,9 +87,8 @@ const AuthPage = () => {
         }
       } else {
         const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;
-        const redirectTo = shouldGoToPricing
-          ? `${window.location.origin}/email-confirmation?confirmed=true&from=premium&next=/premium-pricing`
-          : `${window.location.origin}/email-confirmation?confirmed=true`;
+        // Nach Klick in der Bestätigungs-Mail: immer zurück in die App zur Paywall
+        const redirectTo = `${window.location.origin}/email-confirmation?confirmed=true&next=/premium-pricing&from=${shouldGoToPricing ? 'premium' : 'signup'}`;
 
         const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
         if (error) {
@@ -96,14 +103,10 @@ const AuthPage = () => {
             setError(error.message || 'Registrierung fehlgeschlagen');
           }
         } else {
-          // If the user is auto-confirmed, they'll be redirected via the effect above.
-          // Otherwise, show the email confirmation page.
           const params = new URLSearchParams();
           params.set('email', email);
-          if (shouldGoToPricing) {
-            params.set('from', 'premium');
-            params.set('next', '/premium-pricing');
-          }
+          params.set('next', '/premium-pricing');
+          params.set('from', shouldGoToPricing ? 'premium' : 'signup');
           navigate(`/email-confirmation?${params.toString()}`, { replace: true });
         }
       }
@@ -117,7 +120,7 @@ const AuthPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
         <div className="text-center">
-          <img src={frigLogo} alt="FrigBuddy" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
+          <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
           <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
@@ -148,8 +151,8 @@ const AuthPage = () => {
         >
           <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-6 sm:p-8 border border-primary/20">
             <div className="flex items-center justify-center mb-6 sm:mb-8">
-              <img src={frigLogo} alt="FrigBuddy" className="h-12 w-12 rounded-xl" />
-              <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">FrigBuddy</h1>
+              <img src={frigLogo} alt="Frigy" className="h-12 w-12 rounded-xl" />
+              <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">Frigy</h1>
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">

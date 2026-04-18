@@ -27,9 +27,11 @@ interface DayPlan {
 
 interface ExportMealPlanProps {
   mealPlan: DayPlan[];
+  /** Nur PDF (kein Text-/Kalender-Export) – z. B. kompakte Toolbar */
+  pdfOnly?: boolean;
 }
 
-export const ExportMealPlan = ({ mealPlan }: ExportMealPlanProps) => {
+export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProps) => {
   const exportToPDF = () => {
     // Create printable HTML
     const content = generatePrintContent();
@@ -146,9 +148,9 @@ export const ExportMealPlan = ({ mealPlan }: ExportMealPlanProps) => {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333; }
-    h1 { text-align: center; color: #00FF88; margin-bottom: 20px; }
+    h1 { text-align: center; color: #33FF99; margin-bottom: 20px; }
     .day { page-break-inside: avoid; margin-bottom: 24px; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
-    .day-title { font-size: 18px; font-weight: bold; color: #00FF88; margin-bottom: 12px; border-bottom: 2px solid #00FF88; padding-bottom: 8px; }
+    .day-title { font-size: 18px; font-weight: bold; color: #33FF99; margin-bottom: 12px; border-bottom: 2px solid #33FF99; padding-bottom: 8px; }
     .meals { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
     .meal { background: #f9f9f9; border-radius: 6px; padding: 12px; }
     .meal-type { font-size: 11px; color: #666; text-transform: uppercase; }
@@ -182,6 +184,22 @@ export const ExportMealPlan = ({ mealPlan }: ExportMealPlanProps) => {
   };
 
   if (mealPlan.length === 0) return null;
+
+  if (pdfOnly) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={exportToPDF}
+        className="hover:border-primary h-9 shrink-0 gap-1.5 px-2.5 sm:px-3"
+        title="Als PDF drucken"
+      >
+        <FileText className="h-4 w-4 shrink-0" />
+        <span className="text-xs font-medium">PDF</span>
+      </Button>
+    );
+  }
 
   return (
     <div className="flex gap-1.5 sm:gap-2">

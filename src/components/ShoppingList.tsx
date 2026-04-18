@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown, Refrigerator } from 'lucide-react';
+import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { groupByCategory, getCategoryColor, getCategoryEmoji, IngredientCategory } from '@/lib/ingredient-categories';
+import { getMealPlanShoppingSource } from '@/lib/mealPlanSource';
 
 interface Ingredient {
   name: string;
@@ -29,7 +29,6 @@ const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -64,6 +63,11 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
 
   // Einkaufsliste aus MealPlan generieren ODER aus Cache laden
   useEffect(() => {
+    if (getMealPlanShoppingSource() === "scan") {
+      setItems([]);
+      return;
+    }
+
     // Wenn offline und kein MealPlan, lade aus Cache
     if (isOffline && (!mealPlan || mealPlan.length === 0)) {
       const cached = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
@@ -242,13 +246,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     return costs[b.length];
   };
 
-  /**
-   * Handle fridge scan - navigates to camera/scan page with OpenAI-powered ingredient detection
-   */
-  const handleFridgeScan = () => {
-    navigate('/scan');
-  };
-
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
   const purchasedPrice = items
     .filter((i) => i.purchased)
@@ -343,27 +340,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
 
         {/* Action Buttons */}
         <div className="mt-4 flex gap-2">
-          {/* Offline Sync Button */}
           <Button
             variant="outline"
-            className="flex-1 gap-2"
+            className="w-full gap-2"
             onClick={forceSync}
           >
             <RefreshCw className="h-4 w-4" />
             Für Offline speichern
           </Button>
-
-          {/* Fridge Scan Button */}
-          {items.length > 0 && (
-            <Button
-              className="flex-1 gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
-              onClick={handleFridgeScan}
-              variant="default"
-            >
-              <Refrigerator className="h-4 w-4" />
-              <span className="hidden sm:inline">Kühlschrank scannen</span>
-            </Button>
-          )}
         </div>
 
         {/* Sync Status */}

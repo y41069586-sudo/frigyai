@@ -15,6 +15,11 @@ import { useShoppingListSync } from "@/hooks/useShoppingListSync";
 import { useAICache } from "@/hooks/useAICache";
 import { checkImageQuality, ImageQualityResult } from "@/utils/imageQualityCheck";
 import { validateImageFileSize, VALIDATION_RULES } from "@/utils/validation";
+import { ScanResultActions } from "@/components/food-ai";
+import { generateWeekPlan, analyzeImage as analyzeImageMock } from "@/lib/food-ai/mock";
+import { assessFridgeForWeek } from "@/lib/food-ai/assessFridgeWeek";
+import type { UserGoal } from "@/lib/food-ai/types";
+import { setMealPlanShoppingSource } from "@/lib/mealPlanSource";
 
 const FREE_SCAN_LIMIT = 1;
 
@@ -52,11 +57,71 @@ const ScanPage = () => {
   const [syncedItems, setSyncedItems] = useState<string[]>([]);
   const [imageQualityIssue, setImageQualityIssue] = useState<ImageQualityResult | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
+  const [mealGoal, setMealGoal] = useState<UserGoal>(() => {
+    const s = localStorage.getItem("userFoodGoal") as UserGoal | null;
+    if (s === "lose" || s === "gain" || s === "maintain") return s;
+    return "maintain";
+  });
+  const [weekPlanLoading, setWeekPlanLoading] = useState(false);
 
   const { syncWithScannedIngredients } = useShoppingListSync();
   const { getCached, setCached, cacheHits } = useAICache();
 
   const isSubscribed = subscriptionStatus?.subscribed;
+
+  useEffect(() => {
+    localStorage.setItem("userFoodGoal", mealGoal);
+  }, [mealGoal]);
+
+  const handleGenerateWeekFromScan = async () => {
+    if (ingredients.length === 0) return;
+    setWeekPlanLoading(true);
+    try {
+      const assessment = await assessFridgeForWeek(ingredients);
+      if (!assessment.sufficient) {
+        const detail =
+          assessment.reason?.trim() ||
+          "Für eine ganze Woche reicht der Vorrat wahrscheinlich nicht.";
+        toast({
+          title: "Unzureichende Zutaten",
+          description: `${detail} Erstelle einen Frigy Plan mit Einkaufsliste im Tab „Wochenplan“ (Button „Frigy Plan erstellen“).`,
+          variant: "destructive",
+        });
+        navigate("/meal-plans?tab=meals");
+        return;
+      }
+
+      const result = await generateWeekPlan(ingredients, mealGoal);
+      const dayPlans = result.days.map((day) => ({
+        day: day.day,
+        meals: day.meals.map((m) => ({
+          type: m.type,
+          name: m.name,
+          calories: m.calories,
+          protein: m.protein,
+          carbs: m.carbs,
+          fat: m.fat,
+          prepTime: m.prepTime,
+          ingredients: m.ingredients.map((i) => ({ name: i.name, amount: i.amount, price: i.price ?? 0 })),
+          instructions: m.instructions,
+        })),
+      }));
+      localStorage.setItem("weeklyMealPlan", JSON.stringify(dayPlans));
+      localStorage.setItem("weeklyShoppingList", JSON.stringify([]));
+      setMealPlanShoppingSource("scan");
+      toast({
+        title: "Wochenplan gespeichert",
+        description: "Aus dem Scan gibt es keine Einkaufsliste. Die füllt sich mit „Frigy Plan erstellen“ im Wochenplan.",
+      });
+      navigate("/meal-plans?tab=meals");
+    } catch (e) {
+      console.error(e);
+      toast({ title: t.error, variant: "destructive" });
+    } finally {
+      setWeekPlanLoading(false);
+    }
+  };
+
   
   // Check if user is in onboarding mode (free trial scan)
   const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
@@ -292,11 +357,20 @@ const ScanPage = () => {
       });
     } catch (error) {
       console.error("Error analyzing image:", error);
-      toast({
-        title: t.error,
-        description: t.couldNotAnalyze,
-        variant: "destructive",
-      });
+      try {
+        const mockIngs = await analyzeImageMock(file);
+        setIngredients(mockIngs);
+        toast({
+          title: "Demo-Analyse",
+          description: "Zutaten simuliert (API nicht erreichbar).",
+        });
+      } catch {
+        toast({
+          title: t.error,
+          description: t.couldNotAnalyze,
+          variant: "destructive",
+        });
+      }
     } finally {
       clearInterval(progressInterval);
       setScanProgress(100);
@@ -797,7 +871,15 @@ const ScanPage = () => {
                         onIngredientsChange={setIngredients}
                       />
 
-                      {/* Action Buttons */}
+                      {ingredients.length > 0 && (
+                        <ScanResultActions
+                          goal={mealGoal}
+                          onGoalChange={setMealGoal}
+                          onWeekPlan={handleGenerateWeekFromScan}
+                          loading={weekPlanLoading}
+                        />
+                      )}
+
                       <div className="flex flex-col sm:flex-row gap-4">
                         <Button
                           onClick={() => {

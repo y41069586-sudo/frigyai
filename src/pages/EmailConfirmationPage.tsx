@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import frigLogo from '@/assets/frig-logo.png';
+import frigLogo from '@/assets/frigy-mascot.png';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,35 +14,38 @@ const EmailConfirmationPage = () => {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const email = searchParams.get('email') || '';
 
+  const resolveNextPath = () => {
+    const explicit = searchParams.get('next');
+    if (explicit && explicit.startsWith('/')) return explicit;
+    return '/premium-pricing';
+  };
+
+  // Session aus E-Mail-Link (#access_token / PKCE) einlesen, dann Status prüfen
+  useEffect(() => {
+    void supabase.auth.getSession();
+  }, []);
+
   // Check if user is confirmed and redirect
   useEffect(() => {
+    const goNext = () => {
+      const next = resolveNextPath();
+      navigate(next, { replace: true });
+    };
+
     const checkConfirmation = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email_confirmed_at) {
         setIsConfirmed(true);
-        // Redirect after showing success for 2 seconds
-        setTimeout(() => {
-          const fromParam = searchParams.get('from');
-          const shouldGoToPricing = fromParam === 'onboarding' || fromParam === 'premium';
-          const next = searchParams.get('next') || (shouldGoToPricing ? '/premium-pricing' : '/');
-          navigate(next, { replace: true });
-        }, 2000);
+        setTimeout(goNext, 2000);
       }
     };
 
-    // Check immediately
     checkConfirmation();
 
-    // Listen for auth state changes (when user confirms email and comes back)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
         setIsConfirmed(true);
-        setTimeout(() => {
-          const fromParam = searchParams.get('from');
-          const shouldGoToPricing = fromParam === 'onboarding' || fromParam === 'premium';
-          const next = searchParams.get('next') || (shouldGoToPricing ? '/premium-pricing' : '/');
-          navigate(next, { replace: true });
-        }, 2000);
+        setTimeout(goNext, 2000);
       }
     });
 
@@ -110,8 +113,8 @@ const EmailConfirmationPage = () => {
         >
           <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-8 sm:p-10 border border-primary/20 text-center">
             <div className="flex items-center justify-center mb-6">
-              <img src={frigLogo} alt="FrigBuddy" className="h-12 w-12 rounded-xl" />
-              <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">FrigBuddy</h1>
+              <img src={frigLogo} alt="Frigy" className="h-12 w-12 rounded-xl" />
+              <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">Frigy</h1>
             </div>
 
             <motion.div

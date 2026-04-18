@@ -17,7 +17,7 @@ export type OnboardingStep =
   | "weekly-plan"
   | "comparison"
   | "transformation"
-  | "tutorial"  // Interactive tutorial (7 slides)
+  | "tutorial"  // Interactive tutorial (slides in InteractiveTutorial.tsx)
   | "tracker-intro"
   | "body-basics"
   | "gender"

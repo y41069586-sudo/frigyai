@@ -15,7 +15,7 @@ import { LanguageSettings } from "@/components/LanguageSettings";
 import { HealthSync } from "@/components/HealthSync";
 import { ReminderSettings } from "@/components/ReminderSettings";
 
-import frigLogo from "@/assets/frig-logo.png";
+import frigyBrand from "@/assets/frigy-mascot.png";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -108,7 +108,7 @@ const ProfilePage = () => {
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
-        <img src={frigLogo} alt="frigy" className="h-16 w-16 rounded-2xl mb-6" />
+        <img src={frigyBrand} alt="Frigy" className="h-16 w-16 rounded-2xl mb-6" />
         <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
         <p className="text-sm text-muted-foreground text-center mb-6">
           Melde dich an, um dein Profil zu sehen
@@ -166,6 +166,95 @@ const ProfilePage = () => {
                   {user.email}
                 </p>
               </div>
+            </div>
+
+            <div className="mt-5 pt-5 border-t border-border/60 space-y-2">
+              {isPremium && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => navigate("/community")}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Community
+                  </Button>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Activity className="h-4 w-4 mr-2" />
+                        Health Sync
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Health Sync</DialogTitle>
+                      </DialogHeader>
+                      <HealthSync />
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+
+              <Button variant="outline" className="w-full justify-start" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                {t.logout}
+              </Button>
+
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t.deleteAccount}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten werden permanent gelöscht:
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+                      <li>Deine Mahlzeitseinträge</li>
+                      <li>Deine Makro-Ziele</li>
+                      <li>Dein Profil</li>
+                      <li>Alle Einstellungen</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setDeleteDialogOpen(false)}
+                      disabled={deleteLoading}
+                    >
+                      Abbrechen
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteAccount}
+                      disabled={deleteLoading}
+                      className="flex-1"
+                    >
+                      {deleteLoading ? "Wird gelöscht..." : "Konto löschen"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/?resetOnboarding=true")}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Onboarding erneut starten
+              </Button>
             </div>
           </Card>
         </motion.div>
@@ -254,100 +343,6 @@ const ProfilePage = () => {
             <ReminderSettings />
           </Card>
         </motion.div>
-        {/* Quick Links */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-3"
-        >
-          {isPremium && (
-            <>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => navigate("/community")}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Community
-              </Button>
-              
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Activity className="h-4 w-4 mr-2" />
-                    Health Sync
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Health Sync</DialogTitle>
-                  </DialogHeader>
-                  <HealthSync />
-                </DialogContent>
-              </Dialog>
-            </>
-          )}
-          
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={signOut}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            {t.logout}
-          </Button>
-
-          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t.deleteAccount}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <p className="text-sm text-muted-foreground">
-                  Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten werden permanent gelöscht:
-                </p>
-                <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
-                  <li>Deine Mahlzeitseinträge</li>
-                  <li>Deine Makro-Ziele</li>
-                  <li>Dein Profil</li>
-                  <li>Alle Einstellungen</li>
-                </ul>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteDialogOpen(false)}
-                  disabled={deleteLoading}
-                >
-                  Abbrechen
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleDeleteAccount}
-                  disabled={deleteLoading}
-                  className="flex-1"
-                >
-                  {deleteLoading ? "Wird gelöscht..." : "Konto löschen"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-        </motion.div>
-
         {/* Legal Links */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -360,7 +355,7 @@ const ProfilePage = () => {
               <Button
                 variant="ghost"
                 className="w-full justify-start text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/legal/datenschutz")}
+                onClick={() => navigate("/legal/datenschutz", { state: { from: "/profile" } })}
               >
                 <Shield className="h-4 w-4 mr-2" />
                 {t.privacyPolicy}
@@ -376,7 +371,7 @@ const ProfilePage = () => {
               <Button
                 variant="ghost"
                 className="w-full justify-start text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/legal/impressum")}
+                onClick={() => navigate("/legal/impressum", { state: { from: "/profile" } })}
               >
                 <Scale className="h-4 w-4 mr-2" />
                 {t.imprint}
@@ -392,9 +387,9 @@ const ProfilePage = () => {
           transition={{ delay: 0.5 }}
           className="text-center py-4"
         >
-          <img src={frigLogo} alt="frigy" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
-          <p className="text-xs text-muted-foreground">frigy v1.0.0</p>
-          <p className="text-xs text-muted-foreground mt-1">© 2024 frigy</p>
+          <img src={frigyBrand} alt="Frigy" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
+          <p className="text-xs text-muted-foreground">Frigy v1.0.0</p>
+          <p className="text-xs text-muted-foreground mt-1">© 2026 Frigy</p>
         </motion.div>
       </div>
     </div>

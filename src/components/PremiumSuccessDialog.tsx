@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Check, Sparkles, Calendar, ShoppingCart, Droplets, Activity } from "lucide-react";
+import { Crown, Check, Sparkles, Calendar, ShoppingCart, Droplets, Activity, Refrigerator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,9 +9,11 @@ import confetti from "canvas-confetti";
 interface PremiumSuccessDialogProps {
   open: boolean;
   onClose: () => void;
+  /** z. B. nach Checkout auf der Wochenplan-Seite: Hinweis + Button zum Kühlschrank-Scan */
+  onScanFridge?: () => void;
 }
 
-export const PremiumSuccessDialog = ({ open, onClose }: PremiumSuccessDialogProps) => {
+export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuccessDialogProps) => {
   const { t } = useLanguage();
   const [showFeatures, setShowFeatures] = useState(false);
 
@@ -110,6 +112,32 @@ export const PremiumSuccessDialog = ({ open, onClose }: PremiumSuccessDialogProp
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {onScanFridge && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.65 }}
+                className="mt-5 rounded-xl border border-primary/25 bg-primary/5 p-4 text-left text-sm"
+              >
+                <p className="font-medium text-foreground mb-1">Wochenplan mit Kühlschrank</p>
+                <p className="text-muted-foreground text-xs leading-relaxed mb-3">
+                  Scanne deinen Kühlschrank für einen Plan aus deinen Zutaten. Die{" "}
+                  <span className="text-foreground font-medium">Einkaufsliste</span> entsteht über „Frigy Plan erstellen“
+                  im Wochenplan-Tab. Wenn zu wenig Zutaten erkannt werden, sagt Frigy Bescheid – dann einen Frigy Plan mit
+                  Liste erstellen.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2 border-primary/40"
+                  onClick={() => onScanFridge()}
+                >
+                  <Refrigerator className="h-4 w-4" />
+                  Kühlschrank scannen
+                </Button>
+              </motion.div>
+            )}
 
             {/* CTA */}
             <motion.div

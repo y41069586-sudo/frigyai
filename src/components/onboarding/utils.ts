@@ -1,4 +1,6 @@
 import { UserData } from "./types";
+import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
+import { isMealSafeForUser } from "@/lib/mealAllergySafety";
 
 // Macro calculation using Mifflin-St Jeor BMR formula
 export const calculateMacros = (userData: UserData) => {
@@ -112,16 +114,24 @@ export const saveOnboardingData = (userData: UserData) => {
   };
   localStorage.setItem('reminderConfig', JSON.stringify(reminderConfig));
   
+  const dietaryOnly = (userData.dietaryPreferences || []).filter((d) => d && d !== "none");
+  const allergyList = (userData.allergies || []).filter((a) => a && a !== "none");
+
   // Generate and save initial meal plan based on user's macros
-  const initialMealPlan = generateInitialMealPlan(dailyCalories);
+  const initialMealPlan = generateInitialMealPlan(dailyCalories, allergyList, dietaryOnly);
   localStorage.setItem('weeklyMealPlan', JSON.stringify(initialMealPlan));
+  notifyFrigyStorageUpdated();
   
   // Set generation count to 0 - user gets 1 free regeneration
   localStorage.setItem('mealPlanGenerationCount', '0');
 };
 
 // Generate an initial personalized meal plan with simple, everyday German foods
-const generateInitialMealPlan = (targetCalories: number) => {
+const generateInitialMealPlan = (
+  targetCalories: number,
+  allergies: string[] = [],
+  dietaryPreferences: string[] = [],
+) => {
   const breakfastCal = Math.round(targetCalories * 0.25);
   const snack1Cal = Math.round(targetCalories * 0.1);
   const lunchCal = Math.round(targetCalories * 0.3);
@@ -168,15 +178,24 @@ const generateInitialMealPlan = (targetCalories: number) => {
       { name: "Kartoffelbrei mit Bratwurst", protein: 22, carbs: 50, fat: 28, prepTime: 25, ingredients: [{ name: "Kartoffeln", amount: "300g", price: 0.70 }, { name: "Bratwurst", amount: "2 Stück", price: 2.20 }, { name: "Butter", amount: "30g", price: 0.30 }], instructions: ["Kartoffeln kochen und stampfen", "Butter unterrühren", "Bratwurst braten und dazuservieren"] },
     ],
   };
+
+  type PoolMeal = (typeof mealOptions.breakfast)[number];
+
+  const pickMeal = (pool: PoolMeal[], index: number): PoolMeal => {
+    const safe = pool.filter((m) => isMealSafeForUser(m, allergies, dietaryPreferences));
+    const relaxed = pool.filter((m) => isMealSafeForUser(m, [], dietaryPreferences));
+    const use = safe.length ? safe : relaxed.length ? relaxed : pool;
+    return use[index % use.length];
+  };
   
   return days.map((day, index) => ({
     day,
     meals: [
-      { type: "Frühstück", ...mealOptions.breakfast[index % mealOptions.breakfast.length], calories: breakfastCal },
-      { type: "Snack", ...mealOptions.snack[index % mealOptions.snack.length], calories: snack1Cal },
-      { type: "Mittagessen", ...mealOptions.lunch[index % mealOptions.lunch.length], calories: lunchCal },
-      { type: "Snack", ...mealOptions.snack[(index + 3) % mealOptions.snack.length], calories: snack2Cal },
-      { type: "Abendessen", ...mealOptions.dinner[index % mealOptions.dinner.length], calories: dinnerCal },
+      { type: "Frühstück", ...pickMeal(mealOptions.breakfast, index), calories: breakfastCal },
+      { type: "Snack", ...pickMeal(mealOptions.snack, index), calories: snack1Cal },
+      { type: "Mittagessen", ...pickMeal(mealOptions.lunch, index), calories: lunchCal },
+      { type: "Snack", ...pickMeal(mealOptions.snack, index + 3), calories: snack2Cal },
+      { type: "Abendessen", ...pickMeal(mealOptions.dinner, index), calories: dinnerCal },
     ],
   }));
 };

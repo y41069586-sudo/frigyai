@@ -97,7 +97,7 @@ export const ChatbotIntro = ({ onComplete, isVisible }: ChatbotIntroProps) => {
                     <Bot className="w-6 h-6 text-white" />
                   </motion.div>
                   <div>
-                    <h2 className="font-bold text-lg text-foreground">Frigy Bot</h2>
+                    <h2 className="font-bold text-lg text-foreground">Frigy</h2>
                     <p className="text-xs text-muted-foreground">Dein KI-Assistent</p>
                   </div>
                 </motion.div>

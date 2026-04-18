@@ -11,6 +11,12 @@ import { toast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGamification } from '@/hooks/useGamification';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import {
+  WATER_GLASSES_CHANGED,
+  WATER_GOAL_CUPS_CHANGED,
+  dispatchWaterGlassesChanged,
+  dispatchWaterGoalCupsChanged,
+} from '@/lib/waterSync';
 
 const ML_PER_CUP = 200;
 
@@ -28,7 +34,6 @@ export const WaterTracker = () => {
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playWaterDrop, playGoalReached } = useSoundEffects();
   const [cups, setCups] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [dailyGoal, setDailyGoal] = useState(10); // Default 10 cups = 2L
   const [tempGoal, setTempGoal] = useState(10);
 
@@ -45,6 +50,26 @@ export const WaterTracker = () => {
       loadTodayIntake();
     }
   }, [user]);
+
+  useEffect(() => {
+    const onGlasses = (e: Event) => {
+      const g = (e as CustomEvent<{ glasses: number }>).detail?.glasses;
+      if (typeof g === "number" && g >= 0) setCups(Math.min(20, g));
+    };
+    const onGoal = (e: Event) => {
+      const c = (e as CustomEvent<{ cups: number }>).detail?.cups;
+      if (typeof c === "number" && c >= 1 && c <= 20) {
+        setDailyGoal(c);
+        setTempGoal(c);
+      }
+    };
+    window.addEventListener(WATER_GLASSES_CHANGED, onGlasses);
+    window.addEventListener(WATER_GOAL_CUPS_CHANGED, onGoal);
+    return () => {
+      window.removeEventListener(WATER_GLASSES_CHANGED, onGlasses);
+      window.removeEventListener(WATER_GOAL_CUPS_CHANGED, onGoal);
+    };
+  }, []);
 
   const loadTodayIntake = async () => {
     if (!user) return;
@@ -68,9 +93,10 @@ export const WaterTracker = () => {
     
     const newCups = Math.max(0, Math.min(20, cups + change));
     const today = new Date().toISOString().split('T')[0];
-    
-    setIsLoading(true);
+    const prevCups = cups;
+
     setCups(newCups);
+    dispatchWaterGlassesChanged(newCups);
 
     const { error } = await supabase
       .from('water_intake')
@@ -81,7 +107,8 @@ export const WaterTracker = () => {
 
     if (error) {
       console.error('Error updating water intake:', error);
-      setCups(cups); // Revert on error
+      setCups(prevCups);
+      dispatchWaterGlassesChanged(prevCups);
       toast({ title: t.error, variant: 'destructive' });
     } else {
       const mlDrunk = newCups * ML_PER_CUP;
@@ -99,14 +126,13 @@ export const WaterTracker = () => {
         checkAndAwardBadge('water_goal');
       }
     }
-    
-    setIsLoading(false);
   };
 
   const saveGoal = () => {
     if (tempGoal >= 1 && tempGoal <= 20) {
       setDailyGoal(tempGoal);
       localStorage.setItem('waterDailyGoalCups', tempGoal.toString());
+      dispatchWaterGoalCupsChanged(tempGoal);
       toast({ title: t.goalSaved, description: `${tempGoal} Tassen (${tempGoal * ML_PER_CUP}ml) ${t.perDay}` });
     }
   };
@@ -163,7 +189,7 @@ export const WaterTracker = () => {
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600/90 via-blue-500/70 to-blue-400/50"
           initial={{ height: 0 }}
           animate={{ height: `${Math.min(100, progress)}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
         >
           {/* Animated waves */}
           <svg className="absolute top-0 left-0 w-full" viewBox="0 0 100 10" preserveAspectRatio="none" style={{ height: '12px', transform: 'translateY(-50%)' }}>
@@ -255,14 +281,13 @@ export const WaterTracker = () => {
           variant="outline"
           size="icon"
           onClick={() => updateIntake(-1)}
-          disabled={isLoading || cups <= 0}
+          disabled={cups <= 0}
           className="rounded-full"
         >
           <Minus className="h-4 w-4" />
         </Button>
         <Button
           onClick={() => updateIntake(1)}
-          disabled={isLoading}
           className="glow-button px-6"
         >
           <CupIcon className="h-4 w-4 mr-1" /> +{ML_PER_CUP}ml
@@ -271,7 +296,6 @@ export const WaterTracker = () => {
           variant="outline"
           size="icon"
           onClick={() => updateIntake(1)}
-          disabled={isLoading}
           className="rounded-full"
         >
           <Plus className="h-4 w-4" />

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 interface LocalFoodEntry {
   id: string;
   name: string;
@@ -178,6 +179,7 @@ const FoodEntryDetailPage = () => {
             ...data,
             entries: updatedEntries,
           }));
+          notifyFrigyStorageUpdated();
           toast({ title: t.saved });
           navigate('/meal-plans?tab=tracker');
         }
@@ -221,6 +223,7 @@ const FoodEntryDetailPage = () => {
             ...data,
             entries: updatedEntries,
           }));
+          notifyFrigyStorageUpdated();
           toast({ title: t.deleted });
           navigate('/meal-plans?tab=tracker');
         }

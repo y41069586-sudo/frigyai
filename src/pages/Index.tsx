@@ -1,55 +1,81 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Camera, Crown, Settings, User, ChevronRight, Droplets, Zap, Plus, Utensils, TrendingUp, Scan, Bot } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Settings, Bot } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { NavLink } from "@/components/NavLink";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import ProgressCharts from "@/components/ProgressCharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
-import { DashboardMealPlanCard } from "@/components/DashboardMealPlanCard";
-import { DashboardShoppingCard } from "@/components/DashboardShoppingCard";
-import { DashboardMacroRing } from "@/components/DashboardMacroRing";
-import { DashboardWaterWidget } from "@/components/DashboardWaterWidget";
-import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
-import { DashboardTodayMealsCard } from "@/components/DashboardTodayMealsCard";
 import { useReminders } from "@/hooks/useReminders";
-
-import frigLogo from "@/assets/frig-logo.png";
+import { HealthDashboard } from "@/components/food-ai";
+import type { UserGoal } from "@/lib/food-ai/types";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import frigyLogo from "@/assets/frigy-mascot.png";
 import { AIChatbot } from "@/components/AIChatbot";
+import {
+  WATER_GLASSES_CHANGED,
+  WATER_GOAL_CUPS_CHANGED,
+  dispatchWaterGlassesChanged,
+  goalCupsToMl,
+  readWaterGoalCupsFromStorage,
+} from "@/lib/waterSync";
+import { FRIGY_STORAGE_UPDATED, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from "@/lib/frigyStorageSync";
 
 const Index = () => {
-  const { user, session, subscriptionStatus, signOut, loading } = useAuth();
+  const { user, session, subscriptionStatus, signOut, loading, checkSubscription } = useAuth();
   const { t, language } = useLanguage();
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [showPostPayCoach, setShowPostPayCoach] = useState(false);
+  const [chatBootstrapMessage, setChatBootstrapMessage] = useState<string | null>(null);
+  const landedFromSubscriptionSuccessRef = useRef(false);
 
   // Initialize reminders system
   useReminders();
-  
-  // Check localStorage once at mount
-  const urlParams = new URLSearchParams(window.location.search);
-  const isFromSubscription = urlParams.get('subscription') === 'success';
-  const resetOnboarding = urlParams.get('resetOnboarding') === 'true';
-  
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isFromSubscription = searchParams.get("subscription") === "success";
+  const resetOnboarding = searchParams.get("resetOnboarding") === "true";
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("subscription") === "success") {
+      landedFromSubscriptionSuccessRef.current = true;
+    }
+  }, []);
+
   // Get user name from localStorage or DB
   const [userName, setUserName] = useState<string | null>(null);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [waterGlasses, setWaterGlasses] = useState(0);
+  const [waterGoalMl, setWaterGoalMl] = useState(() => goalCupsToMl(readWaterGoalCupsFromStorage()));
   const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number }[]>([]);
   const [caloriesEaten, setCaloriesEaten] = useState(0);
   const [proteinEaten, setProteinEaten] = useState(0);
   const [carbsEaten, setCarbsEaten] = useState(0);
   const [fatEaten, setFatEaten] = useState(0);
+  const [foodGoal, setFoodGoal] = useState<UserGoal>(() => {
+    const s = localStorage.getItem("userFoodGoal") as UserGoal | null;
+    if (s === "lose" || s === "gain" || s === "maintain") return s;
+    return "maintain";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("userFoodGoal", foodGoal);
+  }, [foodGoal]);
 
   useEffect(() => {
     const localName = localStorage.getItem('userName');
@@ -90,6 +116,50 @@ const Index = () => {
     fetchWater();
   }, [user]);
 
+  // Gleiches Wasser-Ziel wie auf der Wasser-Seite (localStorage)
+  useEffect(() => {
+    const onGoal = (e: Event) => {
+      const cups = (e as CustomEvent<{ cups: number }>).detail?.cups;
+      if (typeof cups === "number" && cups >= 1) setWaterGoalMl(goalCupsToMl(Math.min(20, cups)));
+    };
+    const onGlasses = (e: Event) => {
+      const g = (e as CustomEvent<{ glasses: number }>).detail?.glasses;
+      if (typeof g === "number" && g >= 0) setWaterGlasses(g);
+    };
+    window.addEventListener(WATER_GOAL_CUPS_CHANGED, onGoal);
+    window.addEventListener(WATER_GLASSES_CHANGED, onGlasses);
+    return () => {
+      window.removeEventListener(WATER_GOAL_CUPS_CHANGED, onGoal);
+      window.removeEventListener(WATER_GLASSES_CHANGED, onGlasses);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key !== "waterDailyGoalCups" || ev.newValue == null) return;
+      const c = parseInt(ev.newValue, 10);
+      if (!Number.isNaN(c) && c >= 1) setWaterGoalMl(goalCupsToMl(Math.min(20, c)));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const updateWaterGlasses = async (newGlasses: number) => {
+    if (!user) return;
+    setWaterGlasses(newGlasses);
+    dispatchWaterGlassesChanged(newGlasses);
+    const today = new Date().toISOString().split("T")[0];
+    try {
+      const { error } = await supabase.from("water_intake").upsert(
+        { user_id: user.id, date: today, glasses: newGlasses },
+        { onConflict: "user_id,date" },
+      );
+      if (error) throw error;
+    } catch (e) {
+      console.error("water update failed", e);
+    }
+  };
+
   // Load today's meals from localStorage
   useEffect(() => {
     const loadTodayMeals = () => {
@@ -112,21 +182,19 @@ const Index = () => {
     };
     
     loadTodayMeals();
-    
-    // Listen for storage changes (when user adds food in tracker)
+
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'todayFood') {
-        loadTodayMeals();
-      }
+      if (e.key === "todayFood") loadTodayMeals();
     };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check periodically for same-tab updates
-    const interval = setInterval(loadTodayMeals, 2000);
-    
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(FRIGY_STORAGE_UPDATED, loadTodayMeals);
+
+    const interval = setInterval(loadTodayMeals, 15000);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(FRIGY_STORAGE_UPDATED, loadTodayMeals);
       clearInterval(interval);
     };
   }, []);
@@ -192,33 +260,49 @@ const Index = () => {
     };
   }, [user]);
   
-  // Handle reset onboarding from URL parameter (for testing on iPad etc.)
+  // Handle reset onboarding from URL parameter (for testing or "Erneut starten" in profile)
   useEffect(() => {
-    if (resetOnboarding) {
+    if (!resetOnboarding || loading) return;
+    const run = async () => {
       localStorage.removeItem('onboardingComplete');
       localStorage.removeItem('onboardingUserData');
       localStorage.removeItem('userName');
-      // Clear URL parameter and reload
+      localStorage.removeItem('onboardingScanUsed');
+      await saveProgress({ onboarding_complete: false });
       window.history.replaceState({}, '', '/');
       window.location.reload();
-    }
-  }, [resetOnboarding]);
+    };
+    void run();
+  }, [resetOnboarding, saveProgress, loading]);
   
   // Initialize states - check if user already completed onboarding
   // TESTMODUS: Onboarding wird bei jeder Session angezeigt (Login bleibt möglich)
   const ONBOARDING_TEST_MODE = false; // Testmodus deaktiviert
   
   const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
-  const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
+  // Skip only when onboarding was actually completed (local or DB), not merely because user is logged in
+  const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
-  
+
+  // Ohne bestätigte E-Mail kein Dashboard – zur Bestätigungs-/Warteseite
+  useEffect(() => {
+    if (!user || loading) return;
+    if (!user.email_confirmed_at) {
+      const q = new URLSearchParams();
+      if (user.email) q.set("email", user.email);
+      q.set("next", "/premium-pricing");
+      q.set("from", "signup");
+      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
+    }
+  }, [user, loading, navigate]);
+
   // Update onboarding visibility when loading completes
   useEffect(() => {
     if (!onboardingLoading && !loading) {
-      const skip = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete || !!user);
+      const skip = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
       setShowOnboarding(!skip);
       setOnboardingComplete(skip);
     }
@@ -232,13 +316,36 @@ const Index = () => {
     }
   }, [isFromSubscription]);
   
-  // Redirect to meal-plans if coming from successful subscription
+  // Nach Zahlung: Abo-Status pollen (wie Mahlzeiten-Seite), ohne vom Dashboard wegzuleiten
   useEffect(() => {
-    if (isFromSubscription) {
-      navigate('/meal-plans?subscription=success', { replace: true });
-    }
-  }, [isFromSubscription, navigate]);
+    if (searchParams.get("subscription") !== "success" || !user) return;
 
+    let attempts = 0;
+    const maxAttempts = 15;
+    const pollSubscription = setInterval(async () => {
+      attempts++;
+      await checkSubscription();
+
+      if (subscriptionStatus?.subscribed || attempts >= maxAttempts) {
+        clearInterval(pollSubscription);
+        const next = new URLSearchParams(searchParams);
+        next.delete("subscription");
+        setSearchParams(next, { replace: true });
+      }
+    }, 2000);
+
+    return () => clearInterval(pollSubscription);
+  }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus?.subscribed, user]);
+
+  // Erstes Dashboard nach Zahlung: Hinweis nach 6 Sekunden (einmalig)
+  useEffect(() => {
+    if (!user || !onboardingComplete) return;
+    if (localStorage.getItem(POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY) === "1") return;
+    if (!landedFromSubscriptionSuccessRef.current) return;
+
+    const t = window.setTimeout(() => setShowPostPayCoach(true), 6000);
+    return () => window.clearTimeout(t);
+  }, [user, onboardingComplete]);
 
   // Fetch daily scan usage for free users - updated to weekly
   useEffect(() => {
@@ -314,6 +421,17 @@ const Index = () => {
     }
   };
 
+  const dismissPostPayCoach = () => {
+    localStorage.setItem(POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, "1");
+    setShowPostPayCoach(false);
+  };
+
+  const handlePostPayScan = () => {
+    localStorage.setItem(POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, "1");
+    setShowPostPayCoach(false);
+    navigate("/scan");
+  };
+
   const scansRemaining = Math.max(0, 1 - dailyScansUsed);
   const targetCalories = trackerSettings?.dailyCalories || 2000;
   const targetProtein = trackerSettings?.dailyProtein || 150;
@@ -321,16 +439,12 @@ const Index = () => {
   const targetFat = trackerSettings?.dailyFat || 65;
   
   
-  const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
-  const calorieProgress = Math.min(100, (caloriesEaten / targetCalories) * 100);
-  const waterLiters = (waterGlasses * 0.2).toFixed(1);
-
   // Wait for auth before showing anything
   if (loading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="animate-pulse">
-          <img src={frigLogo} alt="FrigBuddy" className="h-16 w-16 rounded-2xl" />
+          <img src={frigyLogo} alt="Frigy" className="h-20 w-20 object-contain" />
         </div>
       </div>
     );
@@ -345,7 +459,7 @@ const Index = () => {
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
-        <img src={frigLogo} alt="frigy" className="h-16 w-16 rounded-2xl mb-6" />
+        <img src={frigyLogo} alt="Frigy" className="h-20 w-20 object-contain mb-6" />
         <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
         <p className="text-sm text-muted-foreground text-center mb-6">
           Melde dich an, um dein Dashboard zu sehen
@@ -357,8 +471,6 @@ const Index = () => {
     );
   }
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? t.goodMorning : hour < 18 ? t.goodAfternoon : t.goodEvening;
   const displayName = userName || (user?.email?.split('@')[0]) || '';
 
   return (
@@ -367,7 +479,7 @@ const Index = () => {
       <div className="fixed inset-0 bg-gradient-to-b from-primary/3 via-transparent to-transparent pointer-events-none" />
 
       {/* Main Content */}
-      <main className="relative flex-1 flex flex-col px-3 sm:px-5 pb-32 pt-6 sm:pt-8 safe-top">
+      <main className="relative flex-1 flex flex-col px-3 sm:px-5 pb-bottom-nav pt-6 sm:pt-8 safe-top">
         <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-6 sm:space-y-8">
           
           {/* Header - Clean & Modern */}
@@ -419,152 +531,74 @@ const Index = () => {
               </motion.button>
             </div>
           </motion.header>
-          
-          {/* Main Calorie Ring - Hero Section */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div 
-              className="p-6 bg-card rounded-3xl border border-border/30 cursor-pointer active:scale-[0.99] transition-transform"
-              onClick={() => navigate('/meal-plans?tab=tracker')}
-            >
-              <DashboardMacroRing
-                caloriesEaten={caloriesEaten}
-                targetCalories={targetCalories}
-                proteinEaten={proteinEaten}
-                targetProtein={targetProtein}
-                carbsEaten={carbsEaten}
-                targetCarbs={targetCarbs}
-                fatEaten={fatEaten}
-                targetFat={targetFat}
-              />
-            </div>
-            
-            {/* Scan Fridge Button - Mobile Optimized */}
-            <motion.button
-              onClick={() => {
-                navigate('/scan');
-              }}
-              className="w-full mt-4 py-3 sm:py-4 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 text-white font-semibold sm:text-base active:scale-[0.98] transition-all relative overflow-hidden"
-              whileTap={{ scale: 0.97 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              {/* Premium indicator - only for free users to show this is a premium feature */}
-              {!subscriptionStatus?.subscribed && (
-                <div className="absolute top-1 right-1 z-10">
-                  <Crown className="w-3 h-3 text-amber-300 fill-amber-300 -rotate-12 drop-shadow-sm" />
-                </div>
-              )}
 
-              {/* Mobile: Icon with Scan Badge Overlay */}
-              <motion.div
-                className="sm:hidden relative"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Scan className="w-6 h-6" />
-              </motion.div>
-
-              {/* Desktop: Icon + Text */}
-              <motion.div
-                className="hidden sm:block"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Scan className="w-5 h-5" />
-              </motion.div>
-              <span className="hidden sm:inline text-base">{t.scanFridge}</span>
-              <span className="sm:hidden text-xs">Kühlschrank scannen</span>
-            </motion.button>
-          </motion.section>
-          
-          {/* Today's Meals Widget - Full Width */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <DashboardTodayMealsCard />
-          </motion.section>
-
-          {/* Water Widget - Full Width */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            <DashboardWaterWidget
-              waterGlasses={waterGlasses}
-              onWaterUpdate={setWaterGlasses}
-            />
-          </motion.section>
-
-
-          {/* Wochenplan Widget - Full Width */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            viewport={{ once: true }}
-          >
-            <DashboardMealPlanCard />
-          </motion.section>
-
-          {/* Shopping List Widget - Full Width */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            viewport={{ once: true }}
-          >
-            <DashboardShoppingCard />
-          </motion.section>
-
-          {/* Weight Tracker Widget - Full Width */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-          >
-            <DashboardWeightWidget targetWeight={trackerSettings?.targetWeight} />
-          </motion.section>
-          
-          
-          {/* Login CTA for guests */}
-          {!user && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-30px" }}
-              transition={{ delay: 0.15, duration: 0.4 }}
-            >
-              <NavLink to="/auth">
-                <Button variant="outline" className="w-full h-12 rounded-2xl">
-                  {t.startNow}
-                </Button>
-              </NavLink>
-            </motion.section>
-          )}
+          <HealthDashboard
+            caloriesEaten={caloriesEaten}
+            targetCalories={targetCalories}
+            proteinEaten={proteinEaten}
+            targetProtein={targetProtein}
+            carbsEaten={carbsEaten}
+            targetCarbs={trackerSettings?.dailyCarbs ?? 200}
+            fatEaten={fatEaten}
+            targetFat={trackerSettings?.dailyFat ?? 65}
+            waterGlasses={waterGlasses}
+            waterGoalMl={waterGoalMl}
+            onWaterGlassesChange={updateWaterGlasses}
+            scansRemaining={!subscriptionStatus?.subscribed ? scansRemaining : null}
+            aiChatEnabled={!!subscriptionStatus?.subscribed}
+            onAiChatPromptSubmit={(text) => {
+              setChatBootstrapMessage(text);
+              setIsChatbotOpen(true);
+            }}
+          />
         </div>
       </main>
 
       {/* Bottom Navigation - Show for all logged in users */}
       {user && onboardingComplete && (
-        <BottomNavigation
-          trackerSetup={trackerSetup}
-          trackerLoading={trackerLoading}
-          onTabChange={(tab) => navigate(`/meal-plans?tab=${tab}`)}
-        />
+        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
       )}
+
+      <Dialog
+        open={showPostPayCoach}
+        onOpenChange={(open) => {
+          if (!open) dismissPostPayCoach();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dein erster Wochenplan</DialogTitle>
+            <DialogDescription className="text-left space-y-2">
+              <span className="block">
+                Scanne deinen Kühlschrank – Frigy erkennt deine Zutaten und erstellt daraus einen{" "}
+                <strong className="text-foreground">7-Tage-Wochenplan</strong>.
+              </span>
+              <span className="block text-muted-foreground">
+                Eine <strong className="text-foreground">Einkaufsliste</strong> bekommst du mit dem Button{" "}
+                <strong className="text-foreground">„Frigy Plan erstellen“</strong> im Tab Wochenplan (nicht aus dem reinen Scan).
+              </span>
+              <span className="block text-muted-foreground text-xs">
+                Reichen die erkannten Zutaten nicht für eine ganze Woche, weist Frigy dich darauf hin – dann bitte einen Frigy Plan mit Einkaufsliste erstellen.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={dismissPostPayCoach}>
+              Später
+            </Button>
+            <Button type="button" onClick={handlePostPayScan}>
+              Jetzt scannen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* AI Chatbot - Premium Only */}
       <AIChatbot
         isOpen={isChatbotOpen}
         setIsOpen={setIsChatbotOpen}
+        bootstrapMessage={chatBootstrapMessage}
+        onBootstrapConsumed={() => setChatBootstrapMessage(null)}
         userProfile={trackerSettings ? {
           dailyCalories: trackerSettings.dailyCalories,
           dailyProtein: trackerSettings.dailyProtein,

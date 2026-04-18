@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MealReplacementDialog from "@/components/MealReplacementDialog";
 import MealPlanSuccessOverlay from "@/components/MealPlanSuccessOverlay";
+import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 
 interface Recipe {
   id: string;
@@ -130,7 +131,7 @@ const RecipesPage = () => {
         
         const budgetInfo = macroBudget 
           ? `Passt zu deinem Makro-Budget!` 
-          : `FRIGY empfiehlt dir das erste Gericht.`;
+          : `Frigy empfiehlt dir das erste Gericht.`;
         
         toast({
           title: "3 Gerichte gefunden!",
@@ -303,6 +304,7 @@ const RecipesPage = () => {
         });
         
         localStorage.setItem('weeklyMealPlan', JSON.stringify(updatedPlan));
+        notifyFrigyStorageUpdated();
       }
       
       const dayLabel = dayOffset === 0 ? 'Heute' : dayOffset === 1 ? 'Morgen' : 'Übermorgen';
@@ -341,7 +343,7 @@ const RecipesPage = () => {
             <ChefHat className="h-16 w-16 mx-auto text-primary" />
           </motion.div>
           <h2 className="text-2xl font-bold mb-2">
-            FRIGY sucht 3 Gerichte...
+            Frigy sucht 3 Gerichte...
           </h2>
           <p className="text-muted-foreground">
             {macroBudget 

@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import frigLogo from "@/assets/frig-logo.png";
+import frigLogo from "@/assets/frigy-mascot.png";
 
 const UpdatePasswordPage = () => {
   const navigate = useNavigate();
@@ -111,8 +111,8 @@ const UpdatePasswordPage = () => {
       >
         <div className="bg-card/80 backdrop-blur-lg rounded-2xl shadow-neon p-6 sm:p-8 border border-primary/20">
           <div className="flex items-center justify-center mb-6">
-            <img src={frigLogo} alt="frigy" className="h-12 w-12 rounded-xl" />
-            <h1 className="text-2xl font-bold ml-3 neon-text">frigy</h1>
+            <img src={frigLogo} alt="Frigy" className="h-12 w-12 rounded-xl" />
+            <h1 className="text-2xl font-bold ml-3 neon-text">Frigy</h1>
           </div>
 
           <h2 className="text-xl font-bold text-center mb-2">Neues Passwort</h2>

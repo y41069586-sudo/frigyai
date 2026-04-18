@@ -1,34 +1,32 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   Refrigerator, 
   Camera, 
-  Clock, 
-  Smile, 
-  UtensilsCrossed, 
   Calendar, 
   ShoppingCart, 
   Sparkles,
   HelpCircle,
-  ScanLine,
-  ChefHat
+  ChefHat,
+  ChevronLeft,
+  Package,
 } from "lucide-react";
-import { AnimatedVectorFrigy, VectorFrigyMascot } from "@/components/VectorFrigyMascot";
+import { AnimatedFrigyMascot } from "@/components/AnimatedFrigyMascot";
 
 interface InteractiveTutorialProps {
   onComplete: () => void;
   onSkip: () => void;
+  /** First tutorial slide: go back to previous onboarding step (e.g. tutorial-transition) */
+  onBackToOnboarding?: () => void;
 }
 
-type TutorialSlide = "intro" | "problem" | "scan" | "preferences" | "recipes" | "weekplan" | "shopping" | "finish";
+type TutorialSlide = "intro" | "problem" | "scan" | "recipes" | "frigyPlanHint" | "weekplan" | "shopping" | "finish";
 
-const slideOrder: TutorialSlide[] = ["intro", "problem", "scan", "preferences", "recipes", "weekplan", "shopping", "finish"];
+const slideOrder: TutorialSlide[] = ["intro", "problem", "scan", "recipes", "frigyPlanHint", "weekplan", "shopping", "finish"];
 
-export const InteractiveTutorial = ({ onComplete, onSkip }: InteractiveTutorialProps) => {
+export const InteractiveTutorial = ({ onComplete, onSkip, onBackToOnboarding }: InteractiveTutorialProps) => {
   const [currentSlide, setCurrentSlide] = useState<TutorialSlide>("intro");
-  const { t } = useLanguage();
 
   const currentIndex = slideOrder.indexOf(currentSlide);
   const progress = ((currentIndex) / (slideOrder.length - 1)) * 100;
@@ -42,8 +40,28 @@ export const InteractiveTutorial = ({ onComplete, onSkip }: InteractiveTutorialP
     }
   };
 
+  const goBack = () => {
+    if (currentIndex <= 0) {
+      onBackToOnboarding?.();
+      return;
+    }
+    setCurrentSlide(slideOrder[currentIndex - 1]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background flex flex-col">
+      {/* Top bar: back (always available so users are not trapped in the tutorial) */}
+      <div className="flex items-center gap-2 px-3 pb-2 shrink-0 safe-top">
+        <button
+          type="button"
+          onClick={goBack}
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted/80 transition-colors text-muted-foreground"
+          aria-label="Zurück"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      </div>
+
       {/* Progress bar - hidden on intro */}
       {currentSlide !== "intro" && (
         <div className="w-full h-1 bg-muted">
@@ -56,7 +74,7 @@ export const InteractiveTutorial = ({ onComplete, onSkip }: InteractiveTutorialP
         </div>
       )}
 
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 pt-2">
         <AnimatePresence mode="wait">
           {currentSlide === "intro" && (
             <IntroSlide key="intro" onStart={goNext} onSkip={onSkip} />
@@ -67,11 +85,11 @@ export const InteractiveTutorial = ({ onComplete, onSkip }: InteractiveTutorialP
           {currentSlide === "scan" && (
             <ScanSlide key="scan" onNext={goNext} />
           )}
-          {currentSlide === "preferences" && (
-            <PreferencesSlide key="preferences" onNext={goNext} />
-          )}
           {currentSlide === "recipes" && (
             <RecipesSlide key="recipes" onNext={goNext} />
+          )}
+          {currentSlide === "frigyPlanHint" && (
+            <FrigyPlanHintSlide key="frigyPlanHint" onNext={goNext} />
           )}
           {currentSlide === "weekplan" && (
             <WeekplanSlide key="weekplan" onNext={goNext} />
@@ -105,8 +123,8 @@ const SlideWrapper = ({ children }: { children: React.ReactNode }) => (
 const IntroSlide = ({ onStart, onSkip }: { onStart: () => void; onSkip: () => void }) => {
   const features = [
     { icon: Camera, label: "Kühlschrank scannen" },
-    { icon: UtensilsCrossed, label: "Rezepte erhalten" },
-    { icon: Calendar, label: "Woche planen" },
+    { icon: Calendar, label: "Wochenplan" },
+    { icon: ShoppingCart, label: "Einkaufsliste" },
   ];
 
   return (
@@ -147,7 +165,26 @@ const IntroSlide = ({ onStart, onSkip }: { onStart: () => void; onSkip: () => vo
           </motion.div>
         ))}
         
-        <AnimatedVectorFrigy size={160} />
+        <motion.div
+          key="intro-mascot"
+          initial={{ scale: 0, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          transition={{
+            duration: 0.6,
+            type: "spring",
+            stiffness: 100,
+            damping: 15,
+          }}
+          className="relative"
+        >
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            <AnimatedFrigyMascot size={160} animate={true} />
+          </motion.div>
+        </motion.div>
       </div>
       
       {/* Title with gradient effect */}
@@ -166,7 +203,7 @@ const IntroSlide = ({ onStart, onSkip }: { onStart: () => void; onSkip: () => vo
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          Ein kurzes Tutorial – weniger als 1 Minute
+          Scan zuerst deinen Kühlschrank, Frigy plant den Rest.
         </motion.p>
       </div>
 
@@ -282,8 +319,8 @@ const ProblemSlide = ({ onNext }: { onNext: () => void }) => {
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-foreground">Kühlschrank voll.</h2>
-        <p className="text-lg text-muted-foreground">Keine Ahnung, was du kochen sollst.</p>
+        <h2 className="text-xl font-bold text-foreground">Du hast Zutaten zuhause.</h2>
+        <p className="text-lg text-muted-foreground">Frigy macht daraus einen klaren Plan.</p>
       </div>
 
       <Button onClick={onNext} size="lg" className="w-full">
@@ -335,7 +372,8 @@ const ScanSlide = ({ onNext }: { onNext: () => void }) => (
     </div>
 
     <div className="space-y-2">
-      <h2 className="text-xl font-bold text-foreground">Frigy schaut in deinen Kühlschrank</h2>
+      <h2 className="text-xl font-bold text-foreground">Frigy erkennt deine Zutaten per Kamera</h2>
+      <p className="text-sm text-muted-foreground">Web und Mobile werden unterstützt.</p>
     </div>
 
     <Button onClick={onNext} size="lg" className="w-full">
@@ -344,87 +382,7 @@ const ScanSlide = ({ onNext }: { onNext: () => void }) => (
   </SlideWrapper>
 );
 
-// SLIDE 3 - Preferences
-const PreferencesSlide = ({ onNext }: { onNext: () => void }) => {
-  const moods = ["😴", "😊", "💪", "🎉"];
-  const [activeMood, setActiveMood] = useState(0);
-  const [sliderValue, setSliderValue] = useState(30);
-
-  // Auto-animate mood
-  useState(() => {
-    const interval = setInterval(() => {
-      setActiveMood(prev => (prev + 1) % moods.length);
-    }, 800);
-    return () => clearInterval(interval);
-  });
-
-  // Auto-animate slider
-  useState(() => {
-    const interval = setInterval(() => {
-      setSliderValue(prev => prev >= 60 ? 15 : prev + 15);
-    }, 600);
-    return () => clearInterval(interval);
-  });
-
-  return (
-    <SlideWrapper>
-      <div className="w-full space-y-6">
-        {/* Time slider demo */}
-        <div className="bg-card rounded-2xl p-4 border">
-          <div className="flex items-center gap-3 mb-3">
-            <Clock className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium">Zeit</span>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              animate={{ width: [`${sliderValue}%`, `${sliderValue + 15}%`] }}
-              transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
-            />
-          </div>
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>15 Min</span>
-            <span>60 Min</span>
-          </div>
-        </div>
-
-        {/* Mood selector demo */}
-        <div className="bg-card rounded-2xl p-4 border">
-          <div className="flex items-center gap-3 mb-3">
-            <Smile className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium">Stimmung</span>
-          </div>
-          <div className="flex justify-around">
-            {moods.map((mood, i) => (
-              <motion.span
-                key={i}
-                className="text-3xl cursor-pointer"
-                animate={{ 
-                  scale: activeMood === i ? 1.3 : 1,
-                  opacity: activeMood === i ? 1 : 0.5
-                }}
-                transition={{ duration: 0.2 }}
-              >
-                {mood}
-              </motion.span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold text-foreground">Sag Frigy,</h2>
-        <p className="text-lg text-muted-foreground">wie viel Zeit du hast und wie du dich fühlst</p>
-      </div>
-
-      <Button onClick={onNext} size="lg" className="w-full">
-        Okay
-      </Button>
-    </SlideWrapper>
-  );
-};
-
-// SLIDE 4 - Recipes
+// SLIDE 3 - Recipes
 const RecipesSlide = ({ onNext }: { onNext: () => void }) => {
   const recipes = [
     { name: "Schnelle Pasta", time: "15 Min", emoji: "🍝" },
@@ -461,16 +419,71 @@ const RecipesSlide = ({ onNext }: { onNext: () => void }) => {
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-foreground">Frigy entscheidet für dich</h2>
-        <p className="text-lg text-muted-foreground">und zeigt dir 3 passende Gerichte</p>
+        <h2 className="text-xl font-bold text-foreground">Wochenplan aus deinen Zutaten</h2>
+        <p className="text-lg text-muted-foreground">
+          Nach dem Scan schlägt Frigy dir Mahlzeiten vor – abgestimmt auf das, was du zuhause hast.
+        </p>
       </div>
 
       <Button onClick={onNext} size="lg" className="w-full">
-        Nice
+        Weiter
       </Button>
     </SlideWrapper>
   );
 };
+
+// SLIDE – Wenig Zutaten? Frigy Plan + Einkaufsliste
+const FrigyPlanHintSlide = ({ onNext }: { onNext: () => void }) => (
+  <SlideWrapper>
+    <div className="relative w-52 h-44 mx-auto flex items-center justify-center">
+      <motion.div
+        className="absolute inset-0 flex items-center justify-center"
+        animate={{ y: [0, -4, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <Refrigerator className="w-28 h-28 text-primary/90" strokeWidth={1.25} />
+      </motion.div>
+      <motion.div
+        className="absolute -right-1 bottom-6 rounded-2xl bg-card border-2 border-primary/30 shadow-lg px-3 py-2 flex items-center gap-2"
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.15 }}
+      >
+        <Package className="w-6 h-6 text-amber-500" strokeWidth={2} />
+        <span className="text-xs font-semibold text-foreground">Zu wenig?</span>
+      </motion.div>
+      <motion.div
+        className="absolute -left-2 top-4 rounded-2xl bg-primary text-primary-foreground px-2.5 py-1.5 flex items-center gap-1.5 shadow-md"
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: 1.8, repeat: Infinity }}
+      >
+        <Sparkles className="w-4 h-4" />
+        <span className="text-[10px] font-bold uppercase tracking-wide">Frigy Plan</span>
+      </motion.div>
+      <motion.div
+        className="absolute right-2 top-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 px-2 py-1 flex items-center gap-1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35 }}
+      >
+        <ShoppingCart className="w-4 h-4 text-emerald-600" />
+        <span className="text-[10px] font-medium text-emerald-800 dark:text-emerald-200">Liste</span>
+      </motion.div>
+    </div>
+
+    <div className="space-y-2">
+      <h2 className="text-xl font-bold text-foreground">Zu wenig im Kühlschrank?</h2>
+      <p className="text-base text-muted-foreground leading-relaxed">
+        Dann erstell dir einen <span className="font-semibold text-foreground">Frigy Plan</span>: Frigy plant dir die Woche und
+        füllt automatisch deine <span className="font-semibold text-foreground">Einkaufsliste</span> mit allem, was noch fehlt.
+      </p>
+    </div>
+
+    <Button onClick={onNext} size="lg" className="w-full">
+      Weiter
+    </Button>
+  </SlideWrapper>
+);
 
 // SLIDE 5 - Weekplan
 const WeekplanSlide = ({ onNext }: { onNext: () => void }) => {
@@ -481,7 +494,7 @@ const WeekplanSlide = ({ onNext }: { onNext: () => void }) => {
       <div className="w-full">
         <div className="bg-card rounded-2xl p-4 border">
           <div className="flex items-center gap-3 mb-4">
-            <Calendar className="w-5 h-5 text-blue-500" />
+            <Calendar className="w-5 h-5 text-primary" />
             <span className="font-medium">Wochenplan</span>
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -495,7 +508,7 @@ const WeekplanSlide = ({ onNext }: { onNext: () => void }) => {
               >
                 <span className="text-xs text-muted-foreground">{day}</span>
                 <motion.div
-                  className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center"
+                  className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: i * 0.15 + 0.2, duration: 0.3, ease: "backOut" }}
@@ -511,9 +524,10 @@ const WeekplanSlide = ({ onNext }: { onNext: () => void }) => {
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-foreground">Willst du vorausplanen?</h2>
-        <p className="text-lg text-muted-foreground">Dann nutze den Wochenplan</p>
-        <p className="text-sm text-muted-foreground/70">Unabhängig vom Kühlschrank-Scan</p>
+        <h2 className="text-xl font-bold text-foreground">Dein Wochenplan für die ganze Woche</h2>
+        <p className="text-lg text-muted-foreground">
+          Sieben Tage strukturiert – mit Wiederverwendung deiner Zutaten und einer Einkaufsliste für fehlende Artikel.
+        </p>
       </div>
 
       <Button onClick={onNext} size="lg" className="w-full">
@@ -578,8 +592,8 @@ const ShoppingSlide = ({ onNext }: { onNext: () => void }) => {
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-foreground">Frigy schreibt dir automatisch auf,</h2>
-        <p className="text-lg text-muted-foreground">was noch fehlt</p>
+        <h2 className="text-xl font-bold text-foreground">Automatische Einkaufsliste</h2>
+        <p className="text-lg text-muted-foreground">Fehlende Zutaten werden nach Kategorien gruppiert</p>
       </div>
 
       <Button onClick={onNext} size="lg" className="w-full">
@@ -592,39 +606,9 @@ const ShoppingSlide = ({ onNext }: { onNext: () => void }) => {
 // SLIDE 7 - Finish
 const FinishSlide = ({ onComplete }: { onComplete: () => void }) => (
   <SlideWrapper>
-    <motion.div
-      animate={{
-        y: [0, -15, 0],
-        rotate: [-5, 5, -5]
-      }}
-      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-    >
-      <VectorFrigyMascot size={160} animate={true} />
-    </motion.div>
-
-    <motion.div
-      className="flex gap-2"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.3 }}
-    >
-      {[...Array(3)].map((_, i) => (
-        <motion.div
-          key={i}
-          animate={{
-            y: [0, -8, 0],
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            delay: i * 0.2
-          }}
-        >
-          <Sparkles className="w-6 h-6 text-yellow-500" />
-        </motion.div>
-      ))}
-    </motion.div>
+    <div className="relative">
+      <AnimatedFrigyMascot size={160} animate={false} static />
+    </div>
 
     <div className="space-y-2">
       <h2 className="text-xl font-bold text-foreground">Du musst nicht mehr überlegen.</h2>

@@ -3,20 +3,23 @@ import { motion } from "framer-motion";
 interface AnimatedFrigyMascotProps {
   size?: number;
   animate?: boolean;
+  /** Keine Bewegung im SVG (kein Blinken, keine Sterne/Herzen) – z. B. Abschluss-Slide */
+  static?: boolean;
   onAnimationComplete?: () => void;
 }
 
 export const AnimatedFrigyMascot = ({ 
   size = 320, 
   animate = true,
+  static: isStatic = false,
   onAnimationComplete 
 }: AnimatedFrigyMascotProps) => {
 
   return (
     <motion.div
       style={{ width: size, height: size * 1.2 }}
-      initial={animate ? { y: "100vh", rotate: -5 } : false}
-      animate={animate ? { y: 0, rotate: 0 } : false}
+      initial={animate && !isStatic ? { y: "100vh", rotate: -5 } : false}
+      animate={animate && !isStatic ? { y: 0, rotate: 0 } : false}
       transition={{
         type: "spring",
         stiffness: 80,
@@ -33,28 +36,32 @@ export const AnimatedFrigyMascot = ({
       >
         {/* Main fridge body */}
         <motion.g
-          initial={animate ? { scale: 0.9 } : { scale: 1 }}
+          initial={animate && !isStatic ? { scale: 0.9 } : { scale: 1 }}
           animate={{ scale: 1 }}
-          transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+          transition={isStatic ? { duration: 0 } : { delay: 0.3, type: "spring", stiffness: 200 }}
         >
           {/* Gradient definitions for premium look */}
           <defs>
             <linearGradient id="fridgeBodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#86efac" />
-              <stop offset="50%" stopColor="#6ee7b7" />
-              <stop offset="100%" stopColor="#4ade80" />
+              <stop offset="0%" stopColor="#bbf7d0" />
+              <stop offset="45%" stopColor="#86efac" />
+              <stop offset="100%" stopColor="#22c55e" />
             </linearGradient>
             <linearGradient id="freezerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#f0fdf4" />
+              <stop offset="0%" stopColor="#ffffff" />
               <stop offset="100%" stopColor="#dcfce7" />
             </linearGradient>
             <linearGradient id="fridgeDoorGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ecfdf5" />
+              <stop offset="0%" stopColor="#f7fff9" />
               <stop offset="100%" stopColor="#d1fae5" />
             </linearGradient>
             <linearGradient id="handleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#34d399" />
               <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+            <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#4ade80" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#14532d" stopOpacity="0.28" />
             </linearGradient>
             {/* Glossy shine effect */}
             <linearGradient id="shineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -67,13 +74,13 @@ export const AnimatedFrigyMascot = ({
           {/* Fridge body shadow/depth - right side */}
           <path
             d="M160 35 L175 45 L175 215 L160 225 L160 35Z"
-            fill="#6ee7b7"
+            fill="#34d399"
           />
           
           {/* Fridge body shadow/depth - bottom */}
           <path
             d="M40 225 L55 235 L175 215 L160 225 L40 225Z"
-            fill="#34d399"
+            fill="#16a34a"
           />
 
           {/* Main fridge body - front with gradient */}
@@ -84,8 +91,25 @@ export const AnimatedFrigyMascot = ({
             height="200"
             rx="12"
             fill="url(#fridgeBodyGradient)"
-            stroke="#34d399"
-            strokeWidth="2"
+            stroke="#16a34a"
+            strokeWidth="2.2"
+          />
+          <rect
+            x="42"
+            y="27"
+            width="16"
+            height="194"
+            rx="8"
+            fill="url(#shineGradient)"
+            opacity="0.7"
+          />
+          <rect
+            x="150"
+            y="29"
+            width="8"
+            height="192"
+            rx="4"
+            fill="url(#edgeGradient)"
           />
 
           {/* Fridge door - top section (freezer) with gradient */}
@@ -96,8 +120,8 @@ export const AnimatedFrigyMascot = ({
             height="75"
             rx="8"
             fill="url(#freezerGradient)"
-            stroke="#a7f3d0"
-            strokeWidth="1.5"
+            stroke="#86efac"
+            strokeWidth="1.8"
           />
           
           {/* Freezer shine overlay */}
@@ -118,9 +142,10 @@ export const AnimatedFrigyMascot = ({
             height="95"
             rx="8"
             fill="url(#fridgeDoorGradient)"
-            stroke="#a7f3d0"
-            strokeWidth="1.5"
+            stroke="#86efac"
+            strokeWidth="1.8"
           />
+          <line x1="50" y1="115" x2="150" y2="115" stroke="#4ade80" strokeWidth="2" opacity="0.8" />
           
           {/* Bottom door shine overlay */}
           <rect
@@ -140,6 +165,8 @@ export const AnimatedFrigyMascot = ({
             height="25"
             rx="3"
             fill="url(#handleGradient)"
+            stroke="#059669"
+            strokeWidth="0.6"
           />
           <motion.rect
             x="140"
@@ -148,23 +175,26 @@ export const AnimatedFrigyMascot = ({
             height="35"
             rx="3"
             fill="url(#handleGradient)"
+            stroke="#059669"
+            strokeWidth="0.6"
           />
 
           {/* Fridge feet */}
           <rect x="50" y="222" width="18" height="10" rx="3" fill="#34d399" />
           <rect x="132" y="222" width="18" height="10" rx="3" fill="#34d399" />
+          <ellipse cx="100" cy="236" rx="62" ry="7" fill="#14532d" opacity="0.25" />
         </motion.g>
 
         {/* Face INSIDE the freezer section */}
         <motion.g
-          initial={animate ? { opacity: 0, scale: 0.8 } : { opacity: 1, scale: 1 }}
+          initial={animate && !isStatic ? { opacity: 0, scale: 0.8 } : { opacity: 1, scale: 1 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6, duration: 0.4, type: "spring" }}
+          transition={isStatic ? { duration: 0 } : { delay: 0.6, duration: 0.4, type: "spring" }}
         >
           {/* Eyes - inside freezer */}
           <motion.g
-            animate={{ scaleY: [1, 0.1, 1] }}
-            transition={{ 
+            animate={isStatic ? false : { scaleY: [1, 0.1, 1] }}
+            transition={isStatic ? undefined : { 
               delay: 2, 
               duration: 0.15, 
               repeat: Infinity, 
@@ -189,9 +219,9 @@ export const AnimatedFrigyMascot = ({
             ry="6"
             fill="#fca5a5"
             opacity="0.5"
-            initial={animate ? { scale: 0 } : { scale: 1 }}
+            initial={animate && !isStatic ? { scale: 0 } : { scale: 1 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 1, duration: 0.3 }}
+            transition={isStatic ? { duration: 0 } : { delay: 1, duration: 0.3 }}
           />
           <motion.ellipse
             cx="135"
@@ -200,9 +230,9 @@ export const AnimatedFrigyMascot = ({
             ry="6"
             fill="#fca5a5"
             opacity="0.5"
-            initial={animate ? { scale: 0 } : { scale: 1 }}
+            initial={animate && !isStatic ? { scale: 0 } : { scale: 1 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 1.1, duration: 0.3 }}
+            transition={isStatic ? { duration: 0 } : { delay: 1.1, duration: 0.3 }}
           />
 
           {/* Big happy smile */}
@@ -212,12 +242,14 @@ export const AnimatedFrigyMascot = ({
             strokeWidth="4"
             strokeLinecap="round"
             fill="none"
-            initial={animate ? { pathLength: 0 } : { pathLength: 1 }}
+            initial={animate && !isStatic ? { pathLength: 0 } : { pathLength: 1 }}
             animate={{ pathLength: 1 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
+            transition={isStatic ? { duration: 0 } : { delay: 0.8, duration: 0.5 }}
           />
         </motion.g>
 
+        {!isStatic && (
+          <>
         {/* Wiggle animation for whole fridge */}
         <motion.g
           animate={{ rotate: [0, -2, 2, -1, 1, 0] }}
@@ -317,6 +349,8 @@ export const AnimatedFrigyMascot = ({
             repeatDelay: 3.5 
           }}
         />
+          </>
+        )}
       </svg>
     </motion.div>
   );

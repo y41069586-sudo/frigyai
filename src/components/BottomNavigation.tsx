@@ -1,147 +1,168 @@
-import { Calendar, ShoppingCart, Target, Droplets, BarChart3, Lock, NotebookPen } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Home,
+  Calendar,
+  ShoppingCart,
+  Droplets,
+  BarChart3,
+  Plus,
+  Lock,
+  type LucideIcon,
+} from "lucide-react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { useFeatureAccess, type Feature } from "@/hooks/useFeatureAccess";
 import { motion } from "framer-motion";
 
 interface BottomNavigationProps {
-  activeTab?: string;
   trackerSetup?: boolean;
   trackerLoading?: boolean;
-  onTabChange?: (tab: string) => void;
 }
 
-export const BottomNavigation = ({ activeTab, trackerSetup = false, trackerLoading = false, onTabChange }: BottomNavigationProps) => {
+type NavId = "home" | "meals" | "shopping" | "water" | "progress";
+
+const ITEMS: {
+  id: NavId;
+  label: string;
+  icon: LucideIcon;
+  activeClass: string;
+  feature: Feature | null;
+}[] = [
+  { id: "home", label: "Start", icon: Home, activeClass: "text-primary", feature: null },
+  { id: "meals", label: "Wochenplan", icon: Calendar, activeClass: "text-orange-500", feature: "meal_plans" },
+  { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary", feature: "shopping_list" },
+  { id: "water", label: "Wasser", icon: Droplets, activeClass: "text-cyan-500", feature: "water" },
+  { id: "progress", label: "Statistik", icon: BarChart3, activeClass: "text-purple-500", feature: "progress" },
+];
+
+export const BottomNavigation = (_props: BottomNavigationProps) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const { canAccessFeature, isPremium } = useFeatureAccess();
+  const [searchParams] = useSearchParams();
+  const { canAccessFeature } = useFeatureAccess();
 
-  const isOnMealPlansPage = location.pathname === '/meal-plans';
+  const pathname = location.pathname;
+  const tab = searchParams.get("tab") || "tracker";
+  const isMealPlans = pathname === "/meal-plans";
 
-  // Items split: left side, center (elevated), right side
-  const leftItems = [
-    { id: "meals", label: t.navMealPlan, icon: Calendar, color: "text-orange-400", feature: 'meal_plans' as const },
-    { id: "shopping", label: t.navShopping, icon: ShoppingCart, color: "text-primary", feature: 'shopping_list' as const },
-  ];
+  const isTabActive = (id: NavId): boolean => {
+    if (id === "home") return pathname === "/";
+    if (!isMealPlans) return false;
+    return tab === id;
+  };
 
-  // Tracker (Tagebuch) now requires premium
-  const centerItem = { id: "tracker", label: t.navTracker, icon: NotebookPen, color: "text-primary-foreground", feature: 'tracker_full' as const };
+  const trackerActive = isMealPlans && tab === "tracker";
 
-  const rightItems = [
-    { id: "water", label: t.navWater, icon: Droplets, color: "text-cyan-400", feature: 'water' as const },
-    { id: "progress", label: t.navStats, icon: BarChart3, color: "text-purple-400", feature: 'progress' as const },
-  ];
+  const go = (id: NavId) => {
+    if (id === "home") {
+      navigate("/");
+      return;
+    }
+    const meta = ITEMS.find((x) => x.id === id);
+    if (meta?.feature) {
+      const access = canAccessFeature(meta.feature);
+      if (!access.canAccess) {
+        if (access.lockReason === "tracker_not_setup") {
+          toast({
+            title: t.setupTracker || "Tracker einrichten",
+            description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
+          });
+        }
+        navigate("/meal-plans?tab=tracker", { replace: isMealPlans });
+        return;
+      }
+    }
+    navigate(`/meal-plans?tab=${id}`, { replace: isMealPlans });
+  };
 
-  const handleNavClick = (item: typeof leftItems[0] | typeof centerItem | typeof rightItems[0]) => {
-    const access = canAccessFeature(item.feature);
-
+  const openTracker = () => {
+    const access = canAccessFeature("tracker_full");
     if (!access.canAccess) {
-      if (access.lockReason === 'tracker_not_setup') {
+      if (access.lockReason === "tracker_not_setup") {
         toast({
           title: t.setupTracker || "Tracker einrichten",
           description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
         });
-        if (onTabChange) {
-          onTabChange('tracker');
-        }
-        navigate('/meal-plans?tab=tracker', { replace: isOnMealPlansPage });
-        return;
       }
+      navigate("/meal-plans?tab=tracker", { replace: isMealPlans });
+      return;
     }
-
-    if (onTabChange) {
-      onTabChange(item.id);
-    }
-    navigate(`/meal-plans?tab=${item.id}`, { replace: isOnMealPlansPage });
+    navigate("/meal-plans?tab=tracker", { replace: isMealPlans });
   };
 
-  const renderNavItem = (item: typeof leftItems[0] | typeof centerItem | typeof rightItems[0], isCenter = false) => {
-    const isActive = activeTab === item.id;
-    const access = canAccessFeature(item.feature);
-    const isLocked = !access.canAccess;
-    
-    if (isCenter) {
-      return (
-        <motion.button
-          key={item.id}
-          onPointerDown={() => handleNavClick(item)}
-          type="button"
-          className="relative -mt-2 z-10 touch-none select-none"
-          whileTap={{ scale: 0.97 }}
-        >
-          <div className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center shadow-md transition-all",
-            "bg-primary",
-            isActive && "shadow-[0_0_15px_hsla(var(--primary),0.4)]"
-          )}>
-            <item.icon className="h-5 w-5 text-primary-foreground" />
-          </div>
-          {isActive && (
-            <motion.div 
-              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
-              layoutId="activeIndicator"
-            />
-          )}
-        </motion.button>
-      );
-    }
-    
-    return (
-      <button
-        key={item.id}
-        onPointerDown={() => handleNavClick(item)}
-        type="button"
-        className="flex-1 min-h-[56px] select-none touch-none active:scale-95 transition-transform"
-      >
-        <div className={cn(
-          "flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl transition-colors relative h-full",
-          isActive && "text-foreground",
-          isLocked && "opacity-50"
-        )}>
-          {isLocked && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-muted rounded-full flex items-center justify-center">
-              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
-            </div>
-          )}
-          <item.icon className={cn(
-            "h-5 w-5 transition-colors",
-            isActive ? item.color : "text-muted-foreground"
-          )} />
-          <span className={cn(
-            "text-[10px] font-medium transition-colors",
-            isActive ? "text-foreground" : "text-muted-foreground"
-          )}>
-            {item.label}
-          </span>
-          {isActive && (
-            <motion.div 
-              className="absolute -bottom-1 w-1 h-1 rounded-full bg-current"
-              style={{ color: item.color.replace('text-', '') }}
-              layoutId={`dot-${item.id}`}
-            />
-          )}
-        </div>
-      </button>
-    );
-  };
+  const trackerLocked = !canAccessFeature("tracker_full").canAccess;
 
   return (
-    <nav className="fixed inset-x-4 bottom-0 z-50 safe-bottom">
-      <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-md px-2 py-2">
-        <div className="flex items-center justify-between">
-          {/* Left items */}
-          {leftItems.map((item) => renderNavItem(item))}
-          
-          {/* Center elevated item */}
-          {renderNavItem(centerItem, true)}
-          
-          {/* Right items */}
-          {rightItems.map((item) => renderNavItem(item))}
-        </div>
+    <nav className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-3 safe-bottom">
+      <div
+        className={cn(
+          "pointer-events-auto flex w-full max-w-lg items-end gap-0.5 rounded-[2rem] border border-white/30 bg-background/90 px-1.5 py-2",
+          "shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/80",
+        )}
+      >
+        {ITEMS.map((item) => {
+          const active = isTabActive(item.id);
+          const Icon = item.icon;
+          const locked = item.feature ? !canAccessFeature(item.feature).canAccess : false;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => go(item.id)}
+              className="relative flex min-h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-2xl px-0.5 py-1 transition-transform active:scale-[0.97]"
+            >
+              {active && (
+                <motion.div
+                  layoutId="bottom-nav-active-pill"
+                  className="absolute inset-0 rounded-2xl bg-primary/[0.12] dark:bg-primary/20"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+              {locked && (
+                <span className="absolute right-1 top-0 z-[2] flex h-3.5 w-3.5 items-center justify-center rounded-full bg-muted/90">
+                  <Lock className="h-2 w-2 text-muted-foreground" />
+                </span>
+              )}
+              <Icon
+                className={cn(
+                  "relative z-[1] h-[22px] w-[22px]",
+                  active ? item.activeClass : "text-muted-foreground",
+                )}
+              />
+              <span
+                className={cn(
+                  "relative z-[1] max-w-full truncate px-0.5 text-[8px] font-bold leading-tight sm:text-[9px]",
+                  active ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+
+        <motion.button
+          type="button"
+          onClick={openTracker}
+          whileTap={{ scale: 0.96 }}
+          className={cn(
+            "relative -mt-6 ml-0.5 flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl text-primary-foreground shadow-xl",
+            trackerActive
+              ? "bg-primary ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
+              : "bg-primary shadow-primary/30",
+          )}
+          aria-label={t.navTracker}
+        >
+          {trackerLocked && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted ring-2 ring-background">
+              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
+            </span>
+          )}
+          <Plus className="h-7 w-7 stroke-[2.5]" />
+        </motion.button>
       </div>
     </nav>
   );

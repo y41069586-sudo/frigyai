@@ -13,7 +13,7 @@ const triggerConfetti = async () => {
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#FFD700', '#FFA500', '#FF6347', '#00FF88', '#00D4FF'],
+      colors: ['#FFFFFF', '#E8FFF5', '#66FFAA', '#33FF99', '#16D978'],
     });
     
     // Side bursts

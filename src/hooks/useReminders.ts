@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { FRIGY_STORAGE_UPDATED } from '@/lib/frigyStorageSync';
 
 interface ReminderConfig {
   water: { enabled: boolean; interval: number };
@@ -126,10 +127,17 @@ export const useReminders = () => {
     };
     window.addEventListener('storage', handleStorageChange);
 
+    const onAppStorageUpdate = () => {
+      startWaterReminder();
+      checkReminders();
+    };
+    window.addEventListener(FRIGY_STORAGE_UPDATED, onAppStorageUpdate);
+
     return () => {
       if (waterIntervalRef.current) clearInterval(waterIntervalRef.current);
       if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(FRIGY_STORAGE_UPDATED, onAppStorageUpdate);
     };
   }, []);
 };

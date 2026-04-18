@@ -29,9 +29,20 @@ interface AIChatbotProps {
   onRegenerateMealPlan?: () => void;
   isOpen?: boolean;
   setIsOpen?: (open: boolean) => void;
+  /** Beim Setzen: Chat öffnen und diese Nachricht senden (z. B. vom Dashboard-Prompt) */
+  bootstrapMessage?: string | null;
+  onBootstrapConsumed?: () => void;
 }
 
-export const AIChatbot = ({ userProfile, onResetTracker, onRegenerateMealPlan, isOpen: externalIsOpen, setIsOpen: externalSetIsOpen }: AIChatbotProps) => {
+export const AIChatbot = ({
+  userProfile,
+  onResetTracker,
+  onRegenerateMealPlan,
+  isOpen: externalIsOpen,
+  setIsOpen: externalSetIsOpen,
+  bootstrapMessage,
+  onBootstrapConsumed,
+}: AIChatbotProps) => {
   // All hooks MUST be called unconditionally, before any conditional returns
   const { session, subscriptionStatus } = useAuth();
   const { t } = useLanguage();
@@ -50,13 +61,7 @@ export const AIChatbot = ({ userProfile, onResetTracker, onRegenerateMealPlan, i
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
   const setIsOpen = externalSetIsOpen || setLocalIsOpen;
 
-  // Chatbot is Premium-only feature
   const isPremium = subscriptionStatus?.subscribed === true;
-
-  // Don't render anything for free users
-  if (!isPremium) {
-    return null;
-  }
 
   const processActions = (response: string): string => {
     let processedResponse = response;
@@ -107,58 +112,81 @@ export const AIChatbot = ({ userProfile, onResetTracker, onRegenerateMealPlan, i
     return processedResponse;
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessageWithText = async (rawText: string) => {
+    const trimmed = rawText.trim();
+    if (!trimmed || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
+      role: "user",
+      content: trimmed,
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        headers: session?.access_token ? {
-          Authorization: `Bearer ${session.access_token}`,
-        } : undefined,
+      const { data, error } = await supabase.functions.invoke("ai-chat", {
+        headers: session?.access_token
+          ? {
+              Authorization: `Bearer ${session.access_token}`,
+            }
+          : undefined,
         body: {
-          message: userMessage.content,
+          message: trimmed,
           userProfile: userProfile,
-          history: messages.slice(-10), // Last 10 messages for context
+          history: messages.slice(-10),
         },
       });
 
       if (error) throw error;
 
-      // Edge function returns { message: ... }
-      const aiResponse = data?.message || data?.response || '';
-      if (!aiResponse) throw new Error('Leere Antwort');
+      const aiResponse = data?.message || data?.response || "";
+      if (!aiResponse) throw new Error("Leere Antwort");
 
-      // Process any actions in the response
       const processedResponse = processActions(aiResponse);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
+        role: "assistant",
         content: processedResponse,
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: t.couldNotProcess,
-      }]);
+      console.error("Chat error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: t.couldNotProcess,
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const sendMessageWithTextRef = useRef(sendMessageWithText);
+  sendMessageWithTextRef.current = sendMessageWithText;
+
+  useEffect(() => {
+    if (!isPremium || !bootstrapMessage?.trim() || !isOpen) return;
+    const msg = bootstrapMessage.trim();
+    onBootstrapConsumed?.();
+    void sendMessageWithTextRef.current(msg);
+  }, [bootstrapMessage, isOpen, isPremium, onBootstrapConsumed]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    await sendMessageWithText(input);
+  };
+
+  if (!isPremium) {
+    return null;
+  }
 
   return (
     <>
