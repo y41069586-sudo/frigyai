@@ -805,58 +805,113 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.4 }}
               >
-                <div className="mb-4">
-                  <p className="text-xs text-muted-foreground mb-2">Your weight</p>
+                <div className="mb-6">
+                  <p className="text-xs text-muted-foreground mb-3">Your weight</p>
 
-                  {/* Chart SVG */}
-                  <svg viewBox="0 0 300 180" className="w-full h-auto">
-                    {/* Grid lines */}
-                    <line x1="20" y1="160" x2="280" y2="160" stroke="currentColor" strokeWidth="1" opacity="0.1" />
+                  {/* Chart SVG - Smooth comparison */}
+                  <svg viewBox="0 0 320 200" className="w-full h-auto">
+                    {/* Gradient backgrounds for smooth look */}
+                    <defs>
+                      <linearGradient id="calAiGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 0.15 }} />
+                        <stop offset="100%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 0 }} />
+                      </linearGradient>
+                      <linearGradient id="dietGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style={{ stopColor: 'hsl(0, 100%, 70%)', stopOpacity: 0.1 }} />
+                        <stop offset="100%" style={{ stopColor: 'hsl(0, 100%, 70%)', stopOpacity: 0 }} />
+                      </linearGradient>
+                    </defs>
 
-                    {/* Cal AI Line (curved down) */}
+                    {/* Baseline */}
+                    <line x1="30" y1="160" x2="300" y2="160" stroke="currentColor" strokeWidth="0.5" opacity="0.2" />
+
+                    {/* Traditional Diet Line (ohne Frigy - kurve OBEN) - Red/Pink */}
                     <motion.path
-                      d="M 20 80 Q 80 70, 140 60 T 280 40"
+                      d="M 30 80 C 90 75, 150 85, 210 95 C 250 110, 270 120, 300 115"
+                      stroke="hsl(0, 100%, 70%)"
+                      strokeWidth="2.5"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 0.7 }}
+                      transition={{ delay: 0.6, duration: 1 }}
+                    />
+
+                    {/* Cal AI Line (mit Frigy - kurve UNTEN) - Blue/Green */}
+                    <motion.path
+                      d="M 30 80 C 90 72, 150 58, 210 45 C 250 35, 270 32, 300 28"
                       stroke="hsl(var(--primary))"
                       strokeWidth="3"
                       fill="none"
                       strokeLinecap="round"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ delay: 0.6, duration: 0.8 }}
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 1 }}
+                      transition={{ delay: 0.8, duration: 1 }}
                     />
 
-                    {/* Traditional Diet Line (curved up) */}
-                    <motion.path
-                      d="M 20 80 Q 80 90, 140 100 T 280 130"
-                      stroke="hsl(0, 100%, 70%)"
-                      strokeWidth="3"
-                      fill="none"
-                      strokeLinecap="round"
-                      opacity="0.6"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ delay: 0.8, duration: 0.8 }}
-                    />
-
-                    {/* Axis labels */}
-                    <text x="10" y="165" fontSize="12" className="fill-muted-foreground/50 text-xs">
+                    {/* Month labels */}
+                    <text x="30" y="180" fontSize="11" textAnchor="middle" className="fill-muted-foreground/50">
                       Month 1
                     </text>
-                    <text x="260" y="165" fontSize="12" className="fill-muted-foreground/50 text-xs">
+                    <text x="300" y="180" fontSize="11" textAnchor="middle" className="fill-muted-foreground/50">
                       Month 6
                     </text>
+
+                    {/* Start point indicators */}
+                    <motion.circle
+                      cx="30" cy="80" r="4"
+                      fill="hsl(var(--primary))"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1.4, duration: 0.3 }}
+                    />
+                    <motion.circle
+                      cx="30" cy="80" r="4"
+                      fill="hsl(0, 100%, 70%)"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1.3, duration: 0.3 }}
+                      opacity="0.6"
+                    />
+
+                    {/* End point - Cal AI (low) */}
+                    <motion.circle
+                      cx="300" cy="28" r="4"
+                      fill="hsl(var(--primary))"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1.5, duration: 0.3 }}
+                    />
+
+                    {/* End point - Traditional (high) */}
+                    <motion.circle
+                      cx="300" cy="115" r="4"
+                      fill="hsl(0, 100%, 70%)"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1.4, duration: 0.3 }}
+                      opacity="0.6"
+                    />
                   </svg>
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center justify-center gap-6 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <span className="font-medium">{t.appName || "Cal AI"}</span>
+                <div className="flex flex-col gap-3 text-xs">
+                  <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                      <span className="font-semibold">{t.appName || "Cal AI"}</span>
+                    </div>
+                    <span className="ml-auto text-primary/70">↓ Sustainable</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
-                    <span className="text-muted-foreground/60">Traditional diet</span>
+                  <div className="flex items-center gap-3 p-2 rounded-lg bg-red-500/5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                      <span className="text-muted-foreground/70">Traditional diet</span>
+                    </div>
+                    <span className="ml-auto text-red-500/70">↑ Yo-yo</span>
                   </div>
                 </div>
               </motion.div>
