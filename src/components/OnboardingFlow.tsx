@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
+import frigySplashSrc from "@/assets/frigy-splash.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
@@ -35,6 +36,66 @@ import { WheelPicker } from "./WheelPicker";
 import { MacroRing } from "./MacroRing";
 import HeroAnimationCompact from "./HeroAnimationCompact";
 import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
+
+// ─── Splash Screen ────────────────────────────────────────────────────────────
+const SplashScreen = ({ onNext }: { onNext: () => void }) => {
+  return (
+    <div className="relative w-full h-full flex flex-col overflow-hidden">
+      {/* Speech bubble – top-left, fades in after mascot settles */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: 1.4, duration: 0.35, ease: "easeOut" }}
+        className="absolute top-14 left-6 z-10"
+      >
+        <div className="relative bg-white dark:bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-lg max-w-[200px]">
+          <p className="font-bold text-base text-foreground leading-snug">
+            Welcome to Frigy! 👋
+          </p>
+          {/* Bubble tail */}
+          <div className="absolute -bottom-2 left-4 w-3 h-3 bg-white dark:bg-card border-r border-b border-border rotate-45 rounded-br-sm" />
+        </div>
+      </motion.div>
+
+      {/* Mascot – rises from bottom with bounce */}
+      <motion.div
+        initial={{ y: 700 }}
+        animate={{ y: 0 }}
+        transition={{
+          type: "spring",
+          stiffness: 60,
+          damping: 10,
+          delay: 0.1,
+        }}
+        className="flex-1 flex items-center justify-center px-6 pt-20"
+      >
+        <img
+          src={frigySplashSrc}
+          alt="Frigy Mascot"
+          className="w-full max-w-[320px] object-contain select-none pointer-events-none mix-blend-multiply dark:mix-blend-screen"
+          draggable={false}
+        />
+      </motion.div>
+
+      {/* CTA button – fades in at bottom */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.6, duration: 0.4, ease: "easeOut" }}
+        className="px-6 pb-12 pt-4 shrink-0"
+      >
+        <Button
+          onClick={onNext}
+          size="lg"
+          className="w-full text-base font-semibold"
+        >
+          Los legen 🚀
+        </Button>
+      </motion.div>
+    </div>
+  );
+};
+// ──────────────────────────────────────────────────────────────────────────────
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -144,7 +205,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   
   // Check if returning from scan with feedback request
   const showScanFeedback = location.state?.showScanFeedback === true;
-  const initialStep: OnboardingStep = showScanFeedback ? "scan-feedback" : "language-select";
+  const initialStep: OnboardingStep = showScanFeedback ? "scan-feedback" : "splash";
   
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
@@ -354,6 +415,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     const stepProps = { userData, setUserData, goNext, goBack };
 
     switch (currentStep) {
+      case "splash":
+        return <SplashScreen onNext={goNext} />;
+
       case "language-select":
         return (
           <StepCard step="language-select">
@@ -3851,15 +3915,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
       {/* Progress Bar at Top */}
-      {currentStep !== 'language-select' && currentStep !== 'analyzing' && currentStep !== 'tutorial' && (
+      {currentStep !== 'language-select' && currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
           totalSteps={totalSteps}
         />
       )}
 
-      {/* Header - hidden for tutorial */}
-      {currentStep !== 'tutorial' && (
+      {/* Header - hidden for tutorial and splash */}
+      {currentStep !== 'tutorial' && currentStep !== 'splash' && (
         <div className={`flex items-center justify-between p-4 ${currentStep === 'language-select' ? 'mt-0' : 'mt-12'} ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
             <motion.button
@@ -3885,8 +3949,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Main content */}
-      {currentStep === 'tutorial' ? (
-        // Tutorial renders fullscreen
+      {currentStep === 'tutorial' || currentStep === 'splash' ? (
+        // Tutorial and splash render fullscreen
         <div className="flex-1 min-h-0">
           {renderStepContent()}
         </div>

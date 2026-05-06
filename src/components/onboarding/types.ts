@@ -1,6 +1,7 @@
 import { Language } from "@/contexts/LanguageContext";
 
 export type OnboardingStep =
+  | "splash"
   | "intro"
   | "language-select"
   | "name-input"
@@ -113,6 +114,9 @@ export const defaultUserData: UserData = {
 
 // Steps array for navigation - logically structured flow
 export const onboardingSteps: OnboardingStep[] = [
+  // Phase 0: Splash intro
+  "splash",
+
   // Phase 1: Language & Name
   "language-select",
   "name-input",

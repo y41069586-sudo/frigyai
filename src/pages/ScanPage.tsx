@@ -20,8 +20,12 @@ import { generateWeekPlan, analyzeImage as analyzeImageMock } from "@/lib/food-a
 import { assessFridgeForWeek } from "@/lib/food-ai/assessFridgeWeek";
 import type { UserGoal } from "@/lib/food-ai/types";
 import { setMealPlanShoppingSource } from "@/lib/mealPlanSource";
+import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
+import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
+import { SHOPPING_CHECKED_NAMES_KEY } from "@/lib/shoppingSync";
 
 const FREE_SCAN_LIMIT = 1;
+const MIN_INGREDIENTS_FOR_WEEKPLAN = 4;
 
 const getWeekStart = () => {
   const now = new Date();
@@ -43,7 +47,8 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, language } = useLanguage();
-  const { user, subscriptionStatus, isFreeMode, isPremium } = useAuth();
+  const { user, session, subscriptionStatus, isFreeMode, isPremium } = useAuth();
+  const { generateMealPlan } = useMealPlanGeneration();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -52,6 +57,9 @@ const ScanPage = () => {
   const [scanLimitReached, setScanLimitReached] = useState(false);
   const [showPrefsSelector, setShowPrefsSelector] = useState(false);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+  const [showLowIngredientConfirm, setShowLowIngredientConfirm] = useState(false);
+  const [lowIngredientProcessing, setLowIngredientProcessing] = useState(false);
+  const [lowIngredientReason, setLowIngredientReason] = useState("");
   const [pendingUpload, setPendingUpload] = useState<React.ChangeEvent<HTMLInputElement> | null>(null);
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
   const [syncedItems, setSyncedItems] = useState<string[]>([]);
@@ -63,6 +71,7 @@ const ScanPage = () => {
     return "maintain";
   });
   const [weekPlanLoading, setWeekPlanLoading] = useState(false);
+  const [weekPlanPhase, setWeekPlanPhase] = useState<"idle" | "planning">("idle");
 
   const { syncWithScannedIngredients } = useShoppingListSync();
   const { getCached, setCached, cacheHits } = useAICache();
@@ -73,25 +82,114 @@ const ScanPage = () => {
     localStorage.setItem("userFoodGoal", mealGoal);
   }, [mealGoal]);
 
-  const handleGenerateWeekFromScan = async () => {
+  const readMacroTargets = () => {
+    const raw = localStorage.getItem("userProfile");
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        return {
+          dailyCalories: Number(p.dailyCalories) || 2000,
+          dailyProtein: Number(p.dailyProtein) || 150,
+          dailyCarbs: Number(p.dailyCarbs) || 200,
+          dailyFat: Number(p.dailyFat) || 70,
+          mealsPerDay: Number(p.mealsPerDay) || 5,
+        };
+      } catch {
+        /* fallthrough */
+      }
+    }
+    return {
+      dailyCalories: 2000,
+      dailyProtein: 150,
+      dailyCarbs: 200,
+      dailyFat: 70,
+      mealsPerDay: 5,
+    };
+  };
+
+  const handleGenerateWeekFromScan = async (forceProceed = false) => {
     if (ingredients.length === 0) return;
+    let needsExtraIngredients = ingredients.length < MIN_INGREDIENTS_FOR_WEEKPLAN;
+
+    if (!forceProceed && !needsExtraIngredients) {
+      try {
+        const assessment = await assessFridgeForWeek(ingredients);
+        if (!assessment.sufficient) {
+          needsExtraIngredients = true;
+          setLowIngredientReason(assessment.reason || "");
+        } else {
+          setLowIngredientReason("");
+        }
+      } catch {
+        /* fallback keeps default heuristic */
+      }
+    } else if (needsExtraIngredients) {
+      setLowIngredientReason("Zu wenig Vielfalt fuer 7 Tage erkannt.");
+    }
+
+    if (needsExtraIngredients && !forceProceed) {
+      setLowIngredientProcessing(false);
+      setShowLowIngredientConfirm(true);
+      return;
+    }
+    if (needsExtraIngredients && forceProceed) {
+      setLowIngredientProcessing(true);
+      setShowLowIngredientConfirm(true);
+    }
     setWeekPlanLoading(true);
+    setWeekPlanPhase("planning");
     try {
-      const assessment = await assessFridgeForWeek(ingredients);
-      if (!assessment.sufficient) {
-        const detail =
-          assessment.reason?.trim() ||
-          "Für eine ganze Woche reicht der Vorrat wahrscheinlich nicht.";
-        toast({
-          title: "Unzureichende Zutaten",
-          description: `${detail} Erstelle einen Frigy Plan mit Einkaufsliste im Tab „Wochenplan“ (Button „Frigy Plan erstellen“).`,
-          variant: "destructive",
-        });
-        navigate("/meal-plans?tab=meals");
+      // New fridge scan should always rebuild the shopping list from scratch.
+      localStorage.removeItem("weeklyShoppingList");
+      localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
+      notifyFrigyStorageUpdated();
+
+      const getMissingItemsCount = () => {
+        try {
+          const raw = localStorage.getItem("weeklyShoppingList");
+          if (!raw) return 0;
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed.length : 0;
+        } catch {
+          return 0;
+        }
+      };
+
+      localStorage.setItem("lastFridgeIngredientList", JSON.stringify(ingredients));
+      const macros = readMacroTargets();
+
+      if (session) {
+        const ok = await generateMealPlan(
+          {
+            dailyCalories: macros.dailyCalories,
+            dailyProtein: macros.dailyProtein,
+            dailyCarbs: macros.dailyCarbs,
+            dailyFat: macros.dailyFat,
+            mealsPerDay: macros.mealsPerDay,
+          },
+          { fridgeIngredients: ingredients },
+        );
+        if (ok) {
+          notifyFrigyStorageUpdated();
+          const missingCount = getMissingItemsCount();
+          toast({
+            title: "✅ Fertig!",
+            description: needsExtraIngredients
+              ? "Dein Wochenplan wurde mit sinnvollen Zusatz-Zutaten erstellt. Die Einkaufsliste zeigt dir alles, was noch fehlt."
+              : "Wochenplan und Einkaufsliste (nur fehlende Zutaten) sind im Wochenplan-Tab.",
+          });
+          if (missingCount > 0) {
+            toast({
+              title: "Fehlende Zutaten erkannt",
+              description: `${missingCount} Zutaten wurden zur Einkaufsliste hinzugefügt.`,
+            });
+          }
+          navigate("/meal-plans?tab=meals");
+        }
         return;
       }
 
-      const result = await generateWeekPlan(ingredients, mealGoal);
+      const result = await generateWeekPlan(ingredients, mealGoal, macros);
       const dayPlans = result.days.map((day) => ({
         day: day.day,
         meals: day.meals.map((m) => ({
@@ -106,19 +204,43 @@ const ScanPage = () => {
           instructions: m.instructions,
         })),
       }));
+      const shopSimple = result.shoppingList.map(({ name, amount, price }) => ({ name, amount, price }));
       localStorage.setItem("weeklyMealPlan", JSON.stringify(dayPlans));
-      localStorage.setItem("weeklyShoppingList", JSON.stringify([]));
-      setMealPlanShoppingSource("scan");
+      localStorage.setItem("weeklyShoppingList", JSON.stringify(shopSimple));
+      if (result.scanMeta) {
+        localStorage.setItem(
+          "fridgeScanStats",
+          JSON.stringify({
+            percentHave: result.scanMeta.percentHave,
+            eurosSaved: result.scanMeta.eurosSaved,
+          }),
+        );
+      }
+      setMealPlanShoppingSource("frigy");
+      notifyFrigyStorageUpdated();
+      const missingCount = shopSimple.length;
       toast({
-        title: "Wochenplan gespeichert",
-        description: "Aus dem Scan gibt es keine Einkaufsliste. Die füllt sich mit „Frigy Plan erstellen“ im Wochenplan.",
+        title: "✅ Wochenplan gespeichert",
+        description: needsExtraIngredients
+          ? "Plan erstellt. Fehlende Zutaten wurden automatisch ergänzt und in die Einkaufsliste übernommen."
+          : "Einkaufsliste enthält nur Zutaten, die noch nicht im Kühlschrank sind.",
       });
+      if (missingCount > 0) {
+        toast({
+          title: "Fehlende Zutaten erkannt",
+          description: `${missingCount} Zutaten wurden zur Einkaufsliste hinzugefügt.`,
+        });
+      }
       navigate("/meal-plans?tab=meals");
     } catch (e) {
       console.error(e);
       toast({ title: t.error, variant: "destructive" });
     } finally {
+      setLowIngredientProcessing(false);
+      setShowLowIngredientConfirm(false);
+      setLowIngredientReason("");
       setWeekPlanLoading(false);
+      setWeekPlanPhase("idle");
     }
   };
 
@@ -339,6 +461,7 @@ const ScanPage = () => {
       setCached(base64, data);
 
       setIngredients(data.ingredients || []);
+      localStorage.setItem("lastFridgeIngredientList", JSON.stringify(data.ingredients || []));
       
       // Sync mit Einkaufsliste
       if (data.ingredients && data.ingredients.length > 0) {
@@ -473,12 +596,12 @@ const ScanPage = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 safe-bottom">
+      <div className="container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-8 safe-bottom">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-4 sm:mb-8 gap-2"
+          className="flex flex-wrap items-center justify-between mb-4 sm:mb-8 gap-2"
         >
           <div className="flex items-center min-w-0">
             <Button
@@ -489,7 +612,7 @@ const ScanPage = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl sm:text-3xl font-bold truncate">
+            <h1 className="text-lg min-[360px]:text-xl sm:text-3xl font-bold truncate">
               {t.scanTitle.split(' ')[0]} <span className="text-neon">{t.scanTitle.split(' ').slice(1).join(' ')}</span>
             </h1>
           </div>
@@ -507,7 +630,7 @@ const ScanPage = () => {
             >
               <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="font-semibold">
-                {scansRemaining}/1 {language === 'de' ? 'Woche' : 'Week'}
+                {scansRemaining}/1 <span className="hidden min-[360px]:inline">{language === 'de' ? 'Woche' : 'Week'}</span>
               </span>
             </motion.div>
           )}
@@ -609,7 +732,7 @@ const ScanPage = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all bg-card ${
+                className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-4 min-[360px]:p-6 sm:p-12 text-center transition-all bg-card ${
                   scanLimitReached && !isPremium
                     ? 'border-muted cursor-not-allowed opacity-50'
                     : 'border-primary/50'
@@ -624,10 +747,10 @@ const ScanPage = () => {
                 </p>
                 
                 {/* Two buttons: Camera and Gallery */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center">
                   {/* Camera Button */}
                   <Button 
-                    className="gradient-neon text-black font-semibold glow-button touch-target flex-1 sm:flex-none"
+                    className="gradient-neon text-black font-semibold glow-button touch-target flex-1 sm:flex-none text-xs min-[360px]:text-sm"
                     disabled={scanLimitReached && !isPremium}
                     onClick={() => {
                       if (scanLimitReached && !isPremium) return;
@@ -641,7 +764,7 @@ const ScanPage = () => {
                   {/* Gallery Button */}
                   <Button 
                     variant="outline"
-                    className="touch-target flex-1 sm:flex-none"
+                    className="touch-target flex-1 sm:flex-none text-xs min-[360px]:text-sm"
                     disabled={scanLimitReached && !isPremium}
                     onClick={() => {
                       if (scanLimitReached && !isPremium) return;
@@ -734,7 +857,7 @@ const ScanPage = () => {
                       alt={t.scanFridge}
                       className="w-full h-auto blur-[2px]"
                     />
-                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-4 min-[360px]:p-6">
                       {/* Scanning line - smooth 60fps */}
                       <motion.div
                         className="absolute left-0 right-0 h-0.5"
@@ -755,7 +878,7 @@ const ScanPage = () => {
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center gap-6"
+                        className="flex flex-col items-center gap-4 min-[360px]:gap-6"
                       >
                         {/* Icon with subtle glow */}
                         <div className="relative">
@@ -766,24 +889,24 @@ const ScanPage = () => {
                           <motion.div
                             animate={{ scale: [1, 1.05, 1] }}
                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                            className="relative w-16 h-16 rounded-2xl bg-primary/20 backdrop-blur-sm flex items-center justify-center border border-primary/30"
+                            className="relative w-14 h-14 min-[360px]:w-16 min-[360px]:h-16 rounded-2xl bg-primary/20 backdrop-blur-sm flex items-center justify-center border border-primary/30"
                           >
-                            <Camera className="w-8 h-8 text-primary" />
+                            <Camera className="w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 text-primary" />
                           </motion.div>
                         </div>
                         
                         {/* Text */}
                         <div className="text-center">
-                          <p className="text-lg font-semibold text-white">
-                            {t.aiAnalyzingIngredients}
+                          <p className="text-base min-[360px]:text-lg font-semibold text-white">
+                            {t.analyzingFridge}
                           </p>
-                          <p className="text-sm text-white/60 mt-1">
-                            Frigy erkennt deine Zutaten...
+                          <p className="text-xs min-[360px]:text-sm text-white/60 mt-1">
+                            {t.aiAnalyzingIngredients}
                           </p>
                         </div>
                         
                         {/* Progress bar - wider, cleaner */}
-                        <div className="w-56">
+                        <div className="w-full max-w-[14rem]">
                           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <motion.div
                               className="h-full rounded-full"
@@ -797,7 +920,7 @@ const ScanPage = () => {
                             />
                           </div>
                           {/* Percentage below bar */}
-                          <p className="text-center text-white/80 text-sm font-medium mt-2">
+                          <p className="text-center text-white/80 text-xs min-[360px]:text-sm font-medium mt-2">
                             {Math.round(Math.min(scanProgress, 100))}%
                           </p>
                         </div>
@@ -873,33 +996,17 @@ const ScanPage = () => {
 
                       {ingredients.length > 0 && (
                         <ScanResultActions
-                          goal={mealGoal}
-                          onGoalChange={setMealGoal}
                           onWeekPlan={handleGenerateWeekFromScan}
-                          loading={weekPlanLoading}
-                        />
-                      )}
-
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <Button
-                          onClick={() => {
+                          onNewPhoto={() => {
                             setImagePreview(null);
                             setIngredients([]);
                             setShowPrefsSelector(false);
                           }}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          {t.newPhoto}
-                        </Button>
-                        <Button
-                          onClick={handleGenerateRecipes}
-                          disabled={ingredients.length === 0}
-                          className="flex-1 gradient-neon text-black font-semibold glow-button"
-                        >
-                          {t.continueButton}
-                        </Button>
-                      </div>
+                          loading={weekPlanLoading}
+                          planPhase={weekPlanPhase}
+                          planningLabel={t.creatingWeeklyPlanFromScan}
+                        />
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -944,6 +1051,60 @@ const ScanPage = () => {
               {language === 'de' ? 'Zulassen' : 'Allow'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation shown only when ingredients are too low */}
+      <Dialog
+        open={showLowIngredientConfirm}
+        onOpenChange={(open) => {
+          if (!lowIngredientProcessing) {
+            setShowLowIngredientConfirm(open);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Zu wenig Zutaten fuer Wochenplan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Die erkannten Zutaten reichen nicht fuer einen vollstaendigen Wochenplan.
+            </p>
+            {lowIngredientReason && (
+              <p className="text-sm text-muted-foreground">{lowIngredientReason}</p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Wir koennen fehlende Zutaten automatisch ergaenzen und direkt zu deiner Einkaufsliste hinzufuegen.
+            </p>
+          </div>
+          {lowIngredientProcessing ? (
+            <div className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 animate-spin" />
+              Wochenplan wird erstellt...
+            </div>
+          ) : (
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowLowIngredientConfirm(false)}
+              >
+                Abbrechen
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  void handleGenerateWeekFromScan(true);
+                }}
+              >
+                Weiter
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

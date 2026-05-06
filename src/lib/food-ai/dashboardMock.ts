@@ -1,7 +1,5 @@
 /** Mock data for Health Dashboard widgets (replace with API / context later) */
 
-import { getMealPlanShoppingSource } from "@/lib/mealPlanSource";
-
 export type WeekPlanPreviewDay = {
   dayLabel: string;
   meals: string[];
@@ -49,6 +47,7 @@ export type ShoppingCategory = "Protein" | "Gemüse" | "Obst" | "Basics" | "Milc
 export type ShoppingPreviewItem = {
   id: string;
   name: string;
+  amount?: string;
   category: ShoppingCategory;
   needed: boolean;
 };
@@ -180,7 +179,7 @@ export function getWeekPlanPreviewFromStorage(): WeekPlanPreviewData {
 }
 
 /**
- * Liest `weeklyShoppingList` (Frigy); leer → Demo {@link mockShoppingTop}.
+ * Liest `weeklyShoppingList` (Frigy); leer -> keine Vorschau.
  */
 export function getShoppingPreviewFromStorage(): ShoppingPreviewItem[] {
   let list: StoredShopping[] = [];
@@ -194,19 +193,22 @@ export function getShoppingPreviewFromStorage(): ShoppingPreviewItem[] {
     list = [];
   }
 
-  const withNames = list
-    .map((it) => (it.name ?? "").trim())
-    .filter(Boolean);
+  const normalized = list
+    .map((it) => ({
+      name: (it.name ?? "").trim(),
+      amount: (it.amount ?? "").trim(),
+    }))
+    .filter((it) => it.name.length > 0);
 
-  if (withNames.length === 0) {
-    if (getMealPlanShoppingSource() === "scan") return [];
-    return mockShoppingTop;
+  if (normalized.length === 0) {
+    return [];
   }
 
-  return withNames.slice(0, 12).map((name, i) => ({
-    id: slugId(name, i),
-    name,
-    category: inferShoppingCategory(name),
+  return normalized.slice(0, 12).map((it, i) => ({
+    id: slugId(it.name, i),
+    name: it.name,
+    amount: it.amount || undefined,
+    category: inferShoppingCategory(it.name),
     needed: true,
   }));
 }

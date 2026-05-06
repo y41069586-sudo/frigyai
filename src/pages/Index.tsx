@@ -441,13 +441,7 @@ const Index = () => {
   
   // Wait for auth before showing anything
   if (loading) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="animate-pulse">
-          <img src={frigyLogo} alt="Frigy" className="h-20 w-20 object-contain" />
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Show onboarding with mascot intro (no separate splash screen)
@@ -574,11 +568,11 @@ const Index = () => {
                 <strong className="text-foreground">7-Tage-Wochenplan</strong>.
               </span>
               <span className="block text-muted-foreground">
-                Eine <strong className="text-foreground">Einkaufsliste</strong> bekommst du mit dem Button{" "}
-                <strong className="text-foreground">„Frigy Plan erstellen“</strong> im Tab Wochenplan (nicht aus dem reinen Scan).
+                Die <strong className="text-foreground">Einkaufsliste</strong> entsteht automatisch aus dem Wochenplan als
+                Lücke: nur Zutaten, die dir noch fehlen.
               </span>
               <span className="block text-muted-foreground text-xs">
-                Reichen die erkannten Zutaten nicht für eine ganze Woche, weist Frigy dich darauf hin – dann bitte einen Frigy Plan mit Einkaufsliste erstellen.
+                Frigy priorisiert deine vorhandenen Zutaten, ergänzt aber automatisch alles, was für deine Makroziele fehlt.
               </span>
             </DialogDescription>
           </DialogHeader>

@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
-import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { buildGermanConstraintPrompt } from '@/lib/mealAllergySafety';
+import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 
 function readUserProfileDiet(): { allergies: string[]; dietaryPreferences: string[] } {
   try {
@@ -59,12 +60,16 @@ interface MealPlanContextType {
   shoppingList: ShoppingListItem[] | null;
   generationCount: number;
   refreshGenerationCount: () => Promise<void>;
-  generateMealPlan: (settings: {
-    dailyCalories: number;
-    dailyProtein: number;
-    dailyCarbs: number;
-    dailyFat: number;
-  }) => Promise<boolean>;
+  generateMealPlan: (
+    settings: {
+      dailyCalories: number;
+      dailyProtein: number;
+      dailyCarbs: number;
+      dailyFat: number;
+      mealsPerDay?: number;
+    },
+    options?: { fridgeIngredients?: string[] },
+  ) => Promise<boolean>;
   setMinimized: (minimized: boolean) => void;
   clearMealPlan: () => void;
 }
@@ -246,13 +251,39 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [session?.user?.id]);
 
+  // Sync state when Scan-Seite o.ä. localStorage schreibt (Mock / ohne Context-Update)
+  useEffect(() => {
+    const load = () => {
+      const p = localStorage.getItem('weeklyMealPlan');
+      const s = localStorage.getItem('weeklyShoppingList');
+      if (p) {
+        try {
+          const parsed = JSON.parse(p);
+          if (Array.isArray(parsed) && parsed.length > 0) setMealPlan(parsed);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (s) {
+        try {
+          const parsed = JSON.parse(s);
+          if (Array.isArray(parsed)) setShoppingList(parsed);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    window.addEventListener(FRIGY_STORAGE_UPDATED, load);
+    return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, load);
+  }, []);
+
   const generateMealPlan = useCallback(async (settings: {
     dailyCalories: number;
     dailyProtein: number;
     dailyCarbs: number;
     dailyFat: number;
     mealsPerDay?: number;
-  }): Promise<boolean> => {
+  }, options?: { fridgeIngredients?: string[] }): Promise<boolean> => {
     if (!session) {
       toast({ title: 'Nicht eingeloggt', variant: 'destructive' });
       return false;
@@ -265,7 +296,10 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Clear old plan from localStorage and Supabase
     localStorage.removeItem('weeklyMealPlan');
+    localStorage.removeItem('weeklyShoppingList');
+    localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
     removeMealPlanShoppingSource();
+    notifyFrigyStorageUpdated();
     if (session?.user?.id) {
       try {
         await supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
@@ -296,6 +330,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             allergies: diet.allergies,
             dietaryPreferences: diet.dietaryPreferences,
             constraintPrompt,
+            fridgeIngredients: options?.fridgeIngredients ?? [],
           },
         });
 
@@ -369,6 +404,19 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
           setMealPlanShoppingSource('frigy');
 
+          const sm = (data as any)?.scanMeta;
+          if (sm) {
+            localStorage.setItem(
+              'fridgeScanStats',
+              JSON.stringify({
+                percentHave: sm.percentIngredientsFromFridge ?? sm.percentHave ?? 0,
+                eurosSaved: sm.estimatedEurosSaved ?? sm.eurosSaved ?? 0,
+              }),
+            );
+          } else if (options?.fridgeIngredients?.length) {
+            localStorage.removeItem('fridgeScanStats');
+          }
+
           // Persist for this user so it never auto-regenerates after login
           // If table doesn't exist yet, that's OK - just use localStorage
           try {
@@ -395,6 +443,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           // Refresh generation count from server after successful generation
           await refreshGenerationCount();
+
+          notifyFrigyStorageUpdated();
 
           toast({
             title: '✅ Wochenplan generiert!',
@@ -459,7 +509,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session]);
+  }, [session, refreshGenerationCount]);
 
   const setMinimized = useCallback((minimized: boolean) => {
     setIsMinimized(minimized);
@@ -470,7 +520,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setShoppingList(null);
     localStorage.removeItem('weeklyMealPlan');
     localStorage.removeItem('weeklyShoppingList');
+    localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
     removeMealPlanShoppingSource();
+    notifyFrigyStorageUpdated();
 
     // Clear persisted plan for the logged in user from Supabase
     if (session?.user?.id) {

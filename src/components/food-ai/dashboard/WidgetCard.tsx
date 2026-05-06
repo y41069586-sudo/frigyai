@@ -44,7 +44,7 @@ export function WidgetCard({
       whileTap={onClick ? { scale: 0.992 } : undefined}
       onClick={onClick}
       className={cn(
-        "relative w-full overflow-hidden rounded-[1.75rem] rounded-tl-2xl rounded-br-[2.25rem] p-5 sm:p-6 transition-shadow duration-300",
+        "relative w-full min-w-0 overflow-hidden rounded-2xl rounded-tl-xl rounded-br-3xl p-3.5 min-[360px]:p-4 sm:rounded-[1.75rem] sm:rounded-tl-2xl sm:rounded-br-[2.25rem] sm:p-6 transition-shadow duration-300 touch-manipulation",
         interactive && onClick && "cursor-pointer hover:shadow-[0_20px_50px_-18px_rgba(0,0,0,0.12)]",
         variantStyles[variant],
         className,

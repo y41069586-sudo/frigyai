@@ -6,9 +6,13 @@ import {
   groupShoppingByCategory,
   type ShoppingPreviewItem,
 } from "@/lib/food-ai/dashboardMock";
+import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
+import {
+  normalizeShoppingName,
+  readCheckedShoppingNames,
+  writeCheckedShoppingNames,
+} from "@/lib/shoppingSync";
 import { cn } from "@/lib/utils";
-
-const STORAGE_KEY = "frigy_shopping_checked_ids";
 
 type ShoppingListWidgetProps = {
   items: ShoppingPreviewItem[];
@@ -18,17 +22,6 @@ type ShoppingListWidgetProps = {
   onOpenList: () => void;
 };
 
-function loadChecked(): Set<string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
-    const arr = JSON.parse(raw) as string[];
-    return new Set(arr);
-  } catch {
-    return new Set();
-  }
-}
-
 export function ShoppingListWidget({
   items,
   delay = 0,
@@ -36,31 +29,48 @@ export function ShoppingListWidget({
   onToggleExpand,
   onOpenList,
 }: ShoppingListWidgetProps) {
-  const top5 = useMemo(() => items.slice(0, 5), [items]);
-  const [checked, setChecked] = useState<Set<string>>(loadChecked);
+  const top6 = useMemo(() => items.slice(0, 6), [items]);
+  const [checkedNames, setCheckedNames] = useState<Set<string>>(readCheckedShoppingNames);
 
   useEffect(() => {
-    const valid = new Set(items.map((i) => i.id));
-    setChecked((prev) => {
-      const next = new Set([...prev].filter((id) => valid.has(id)));
-      if (next.size === prev.size && [...prev].every((id) => next.has(id))) return prev;
+    const valid = new Set(items.map((i) => normalizeShoppingName(i.name)));
+    setCheckedNames((prev) => {
+      const next = new Set([...prev].filter((name) => valid.has(name)));
+      if (next.size === prev.size && [...prev].every((name) => next.has(name))) return prev;
       return next;
     });
   }, [items]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...checked]));
-  }, [checked]);
+    writeCheckedShoppingNames(checkedNames);
+    notifyFrigyStorageUpdated();
+  }, [checkedNames]);
 
-  const allDone = top5.length > 0 && top5.every((it) => checked.has(it.id));
-  const grouped = groupShoppingByCategory(top5);
+  useEffect(() => {
+    const syncChecked = () => setCheckedNames(readCheckedShoppingNames());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key == null || e.key.startsWith("frigy_shopping_checked")) {
+        syncChecked();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(FRIGY_STORAGE_UPDATED, syncChecked);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(FRIGY_STORAGE_UPDATED, syncChecked);
+    };
+  }, []);
 
-  const toggle = (id: string, e: MouseEvent<HTMLButtonElement>) => {
+  const allDone = top6.length > 0 && top6.every((it) => checkedNames.has(normalizeShoppingName(it.name)));
+  const grouped = groupShoppingByCategory(top6);
+
+  const toggle = (name: string, e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    setChecked((prev) => {
+    const normalized = normalizeShoppingName(name);
+    setCheckedNames((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(normalized)) next.delete(normalized);
+      else next.add(normalized);
       return next;
     });
   };
@@ -73,27 +83,31 @@ export function ShoppingListWidget({
       onClick={onToggleExpand}
       className="w-full"
     >
-      <div className="flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-2xl rounded-tl-md bg-violet-500/10">
+      <div className="flex items-start gap-2.5">
+        <div className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 items-center justify-center rounded-xl min-[360px]:rounded-2xl rounded-tl-md bg-violet-500/10">
           <ShoppingBag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Einkauf</p>
-          <h3 className="text-lg font-semibold tracking-tight">
-            {top5.length === 0
+          <h3 className="text-base min-[360px]:text-lg font-semibold tracking-tight">
+            {top6.length === 0
               ? "Keine Liste"
               : allDone
                 ? "Alles da"
                 : "Zutaten fehlen"}
           </h3>
+          {top6.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {top6.length} aktuelle Eintraege aus deiner Einkaufsliste
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
-        {top5.length === 0 && (
+      <div className="mt-3.5 min-[360px]:mt-4 space-y-3">
+        {top6.length === 0 && (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Nach einem <span className="font-medium text-foreground">Frigy Plan</span> erscheinen Zutaten hier. Nur
-            Kühlschrank-Scan füllt die Liste nicht.
+            Deine Einkaufsliste ist gerade leer. Sobald ein Plan erstellt ist, siehst du hier die fehlenden Zutaten live.
           </p>
         )}
         {Array.from(grouped.entries()).map(([cat, list]) => (
@@ -101,23 +115,31 @@ export function ShoppingListWidget({
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{cat}</p>
             <ul className="space-y-1.5">
               {list.map((it) => {
-                const isChecked = checked.has(it.id);
+                const normalizedName = normalizeShoppingName(it.name);
+                const isChecked = checkedNames.has(normalizedName);
                 return (
                   <li key={it.id}>
                     <button
                       type="button"
-                      onClick={(e) => toggle(it.id, e)}
+                      onClick={(e) => toggle(it.name, e)}
                       className={cn(
-                        "flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm backdrop-blur-sm transition-colors",
+                        "flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 min-[360px]:px-3 py-2.5 text-left text-sm backdrop-blur-sm transition-colors touch-manipulation",
                         isChecked
                           ? "border-border/30 bg-muted/30 text-muted-foreground line-through"
                           : "border-border/50 bg-background/50 font-medium text-foreground hover:border-primary/25",
                       )}
                     >
-                      <span>{it.name}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{it.name}</span>
+                        {it.amount && (
+                          <span className="block text-[11px] text-muted-foreground mt-0.5 normal-case font-normal">
+                            {it.amount}
+                          </span>
+                        )}
+                      </span>
                       <span
                         className={cn(
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border-2 transition-colors",
+                          "flex h-6 w-6 min-[360px]:h-7 min-[360px]:w-7 shrink-0 items-center justify-center rounded-lg min-[360px]:rounded-xl border-2 transition-colors",
                           isChecked
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-muted-foreground/30 bg-background/80",
@@ -137,7 +159,7 @@ export function ShoppingListWidget({
       <Button
         type="button"
         variant="secondary"
-        className="mt-5 h-11 w-full rounded-2xl rounded-br-2xl rounded-tl-md font-semibold"
+        className="mt-4 sm:mt-5 h-10 min-[360px]:h-11 touch-target w-full rounded-xl min-[360px]:rounded-2xl rounded-br-2xl rounded-tl-md font-semibold"
         onClick={(e) => {
           e.stopPropagation();
           onOpenList();

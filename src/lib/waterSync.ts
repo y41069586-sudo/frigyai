@@ -17,9 +17,13 @@ export function dispatchWaterGoalCupsChanged(cups: number) {
 
 export function readWaterGoalCupsFromStorage(): number {
   const raw = localStorage.getItem("waterDailyGoalCups");
-  const n = parseInt(raw || "10", 10);
-  if (Number.isNaN(n) || n < 1) return 10;
-  return Math.min(20, n);
+  const n = raw ? parseInt(raw, 10) : 0;
+  // Always default to 10 cups (2 L); reset any old/bad stored value
+  if (!raw || Number.isNaN(n) || n < 1 || n > 10) {
+    localStorage.setItem("waterDailyGoalCups", "10");
+    return 10;
+  }
+  return n;
 }
 
 export function goalCupsToMl(cups: number): number {

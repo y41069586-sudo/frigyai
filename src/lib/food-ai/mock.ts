@@ -1,6 +1,5 @@
 /**
  * Mock-KI für Entwicklung & Demo: Bild-Analyse, Mahlzeiten & Wochenplan.
- * Später durch echte API / Edge Function ersetzen.
  */
 import type {
   MockDayPlan,
@@ -9,8 +8,18 @@ import type {
   UserGoal,
   WeekPlanResult,
 } from "./types";
+import { buildGapShoppingList, computeFridgeScanStats, reconcileMealPlanMacros } from "@/lib/shoppingGap";
+import { categorizeIngredient } from "@/lib/ingredient-categories";
 
 const DAYS_DE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+
+const MEAL_TYPES: MockMeal["type"][] = [
+  "Frühstück",
+  "Vormittag",
+  "Mittagessen",
+  "Snack",
+  "Abendessen",
+];
 
 function hashString(s: string): number {
   let h = 0;
@@ -69,7 +78,7 @@ function mealTemplate(
   name: string,
   base: { cal: number; p: number; c: number; f: number },
   goal: UserGoal,
-  ings: { name: string; amount: string }[],
+  ings: { name: string; amount: string; price?: number }[],
 ): MockMeal {
   const { cal, proteinBoost } = goalFactors(goal);
   return {
@@ -79,20 +88,23 @@ function mealTemplate(
     protein: Math.round(base.p * proteinBoost),
     carbs: Math.round(base.c * (goal === "lose" ? 0.92 : 1)),
     fat: Math.round(base.f * (goal === "lose" ? 0.95 : 1.05)),
-    prepTime: type === "Frühstück" ? 12 : type === "Mittagessen" ? 25 : 20,
-    ingredients: ings.map((i) => ({ name: i.name, amount: i.amount, price: 0 })),
+    prepTime: type.includes("Snack") ? 8 : type === "Frühstück" ? 12 : type === "Mittagessen" ? 25 : 20,
+    ingredients: ings.map((i) => ({
+      name: i.name,
+      amount: i.amount,
+      price: i.price ?? 1.2,
+    })),
     instructions:
-      type === "Frühstück"
-        ? ["Zutaten vorbereiten", "Anrichten", "Genießen"]
-        : ["Zutaten schneiden", "Braten oder kochen", "Würzen und servieren"],
+      type.includes("Snack")
+        ? ["Zubereiten", "Portionieren"]
+        : type === "Frühstück"
+          ? ["Zutaten vorbereiten", "Anrichten", "Genießen"]
+          : ["Zutaten schneiden", "Braten oder kochen", "Würzen und servieren"],
   };
 }
 
 /** Drei Mahlzeiten aus vorhandenen Zutaten (Mock). */
-export async function generateMeals(
-  ingredients: string[],
-  goal: UserGoal,
-): Promise<MockMeal[]> {
+export async function generateMeals(ingredients: string[], goal: UserGoal): Promise<MockMeal[]> {
   await new Promise((r) => setTimeout(r, 500));
   const main =
     ingredients.find((i) => /hähnchen|tofu|ei/i.test(i)) ||
@@ -109,9 +121,9 @@ export async function generateMeals(
       { cal: 380, p: 28, c: 12, f: 22 },
       goal,
       [
-        { name: "Eier", amount: "3" },
-        { name: main, amount: "80g" },
-        { name: veg, amount: "60g" },
+        { name: "Eier", amount: "3 Stück", price: 0.9 },
+        { name: main, amount: "80g", price: 2.5 },
+        { name: veg, amount: "60g", price: 0.8 },
       ],
     ),
     mealTemplate(
@@ -120,9 +132,9 @@ export async function generateMeals(
       { cal: 620, p: 42, c: 55, f: 18 },
       goal,
       [
-        { name: main, amount: "150g" },
-        { name: carb, amount: "120g" },
-        { name: veg, amount: "100g" },
+        { name: main, amount: "150g", price: 3.5 },
+        { name: carb, amount: "120g", price: 0.6 },
+        { name: veg, amount: "100g", price: 1.1 },
       ],
     ),
     mealTemplate(
@@ -131,71 +143,121 @@ export async function generateMeals(
       { cal: 480, p: 35, c: 28, f: 24 },
       goal,
       [
-        { name: veg, amount: "200g" },
-        { name: main, amount: "120g" },
-        { name: "Olivenöl", amount: "1 EL" },
+        { name: veg, amount: "200g", price: 1.4 },
+        { name: main, amount: "120g", price: 2.8 },
+        { name: "Olivenöl", amount: "1 EL", price: 0.15 },
       ],
     ),
   ];
 }
 
-/** 7-Tage-Plan + Einkaufsliste (fehlende Zutaten mock). */
+function gapToShoppingItems(gap: ReturnType<typeof buildGapShoppingList>): ShoppingItem[] {
+  return gap.map((g) => ({
+    name: g.name,
+    amount: g.amount,
+    price: g.price,
+    category: categorizeIngredient(g.name),
+  })) as ShoppingItem[];
+}
+
+/** 7-Tage-Plan mit 5 Mahlzeiten/Tag, Makros pro Tag ausgerichtet, Einkauf = nur Lücke zur Kühlschrankliste */
 export async function generateWeekPlan(
   ingredients: string[],
   goal: UserGoal,
+  macroTargets?: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number },
 ): Promise<WeekPlanResult> {
-  await new Promise((r) => setTimeout(r, 800));
+  await new Promise((r) => setTimeout(r, 900));
   const h = hashString(ingredients.join(",") + goal);
+  const targets = {
+    dailyCalories: macroTargets?.dailyCalories ?? 2000,
+    dailyProtein: macroTargets?.dailyProtein ?? 150,
+    dailyCarbs: macroTargets?.dailyCarbs ?? 200,
+    dailyFat: macroTargets?.dailyFat ?? 70,
+  };
+
+  const rotate = (di: number, i: number) =>
+    ingredients[(h + di * 3 + i) % Math.max(ingredients.length, 1)] || "Gemüse";
+  const extra = ["Brokkoli", "Quinoa", "Sojasauce", "Zitrone", "Parmesan", "Avocado"];
+
   const days: MockDayPlan[] = DAYS_DE.map((day, di) => {
-    const rotate = (i: number) => ingredients[(h + di * 3 + i) % Math.max(ingredients.length, 1)] || "Zutat";
+    const r0 = rotate(di, 0);
+    const r1 = rotate(di, 1);
+    const r2 = rotate(di, 2);
+    const r3 = rotate(di, 3);
+    const x = extra[(h + di) % extra.length];
+
     const meals: MockMeal[] = [
       mealTemplate(
-        "Frühstück",
-        `Power-Start ${di + 1}: Haferflocken & ${rotate(0)}`,
-        { cal: 410, p: 18, c: 52, f: 12 },
+        MEAL_TYPES[0],
+        `Power-Frühstück: Hafer & ${r0}`,
+        { cal: 420, p: 20, c: 52, f: 14 },
         goal,
         [
-          { name: "Haferflocken", amount: "60g" },
-          { name: rotate(0), amount: "50g" },
-          { name: "Milch", amount: "200ml" },
+          { name: "Haferflocken", amount: "70g", price: 0.4 },
+          { name: r0, amount: "60g", price: 1.2 },
+          { name: "Milch", amount: "200ml", price: 0.35 },
+          { name: "Beeren", amount: "50g", price: 1.1 },
         ],
       ),
       mealTemplate(
-        "Mittagessen",
-        `Mittags-Highlight: ${rotate(1)} mit ${rotate(2)}`,
-        { cal: 640, p: 44, c: 48, f: 20 },
+        MEAL_TYPES[1],
+        `Protein-Snack: ${r1} & Joghurt`,
+        { cal: 220, p: 18, c: 14, f: 10 },
         goal,
         [
-          { name: rotate(1), amount: "180g" },
-          { name: rotate(2), amount: "150g" },
+          { name: "Griechischer Joghurt", amount: "150g", price: 0.9 },
+          { name: r1, amount: "40g", price: 0.6 },
         ],
       ),
       mealTemplate(
-        "Abendessen",
-        `Abend: ${rotate(3)}-Pfanne`,
-        { cal: 520, p: 32, c: 35, f: 22 },
+        MEAL_TYPES[2],
+        `Mittags-Bowl: ${r2}, Reis, ${x}`,
+        { cal: 640, p: 44, c: 58, f: 18 },
         goal,
         [
-          { name: rotate(3), amount: "200g" },
-          { name: "Knoblauch", amount: "1 Zehe" },
+          { name: r2, amount: "180g", price: 3.2 },
+          { name: "Reis", amount: "130g", price: 0.45 },
+          { name: x, amount: "80g", price: 1.5 },
+          { name: "Sesam", amount: "1 TL", price: 0.1 },
+        ],
+      ),
+      mealTemplate(
+        MEAL_TYPES[3],
+        `Snack: Obst & ${r3}`,
+        { cal: 200, p: 6, c: 38, f: 4 },
+        goal,
+        [
+          { name: "Apfel", amount: "1", price: 0.5 },
+          { name: r3, amount: "30g", price: 0.7 },
+          { name: "Mandeln", amount: "15g", price: 0.55 },
+        ],
+      ),
+      mealTemplate(
+        MEAL_TYPES[4],
+        `Abend: ${r0}-Pfanne mit ${r2}`,
+        { cal: 520, p: 36, c: 32, f: 24 },
+        goal,
+        [
+          { name: r0, amount: "160g", price: 3.0 },
+          { name: r2, amount: "120g", price: 1.8 },
+          { name: "Olivenöl", amount: "1 EL", price: 0.12 },
+          { name: "Knoblauch", amount: "1 Zehe", price: 0.05 },
         ],
       ),
     ];
+
     return { day, meals };
   });
 
-  const shoppingList: ShoppingItem[] = [
-    { name: "Haferflocken", amount: "500g", category: "Grundlagen" },
-    { name: "Quinoa", amount: "300g", category: "Grundlagen" },
-    { name: "Brokkoli", amount: "400g", category: "Gemüse" },
-    { name: "Paprika", amount: "3 Stück", category: "Gemüse" },
-    { name: "Hähnchenbrust", amount: "800g", category: "Protein" },
-    { name: "Griechischer Joghurt", amount: "500g", category: "Molkerei" },
-    { name: "Parmesan", amount: "150g", category: "Molkerei" },
-    { name: "Olivenöl", amount: "1 Flasche", category: "Vorräte" },
-  ].filter((_, i) => (h + i) % 3 !== 0);
+  const reconciled = reconcileMealPlanMacros(days, targets);
+  const gap = buildGapShoppingList(reconciled, ingredients);
+  const scanMeta = computeFridgeScanStats(reconciled, ingredients, gap);
 
-  return { days, shoppingList };
+  return {
+    days: reconciled,
+    shoppingList: gapToShoppingItems(gap),
+    scanMeta: { percentHave: scanMeta.percentHave, eurosSaved: scanMeta.eurosSaved },
+  };
 }
 
 /**

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, Loader2, Lock, TrendingDown, Droplets, Settings, XCircle, Check, Bell, User, BarChart3, Crown, Refrigerator } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Settings, XCircle, Check, Bell, User, Crown, Refrigerator } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,11 +13,8 @@ import { MealDetailDialog } from '@/components/MealDetailDialog';
 import frigyMascot from '@/assets/frigy-mascot.png';
 import { ShoppingList } from '@/components/ShoppingList';
 import { MacroTracker } from '@/components/MacroTracker';
-import { ProgressTracker } from '@/components/ProgressTracker';
-import { WaterTracker } from '@/components/WaterTracker';
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
-import { WeeklySummary } from '@/components/WeeklySummary';
 import { useReminders } from '@/hooks/useReminders';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,8 +71,6 @@ const MealPlansPage = () => {
   const {
     mealPlan: globalMealPlan,
     shoppingList: globalShoppingList,
-    isGenerating: globalIsGenerating,
-    elapsedSeconds: globalElapsedSeconds,
     generateMealPlan: globalGenerateMealPlan,
     generationCount: globalGenerationCount,
   } = useMealPlanGeneration();
@@ -109,7 +104,6 @@ const MealPlansPage = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
-  const [showWeeklySummary, setShowWeeklySummary] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
@@ -122,6 +116,14 @@ const MealPlansPage = () => {
     params.set('tab', tab);
     setSearchParams(params, { replace: true });
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const currentTab = searchParams.get('tab') || 'tracker';
+    const allowedTabs = new Set(['tracker', 'meals', 'shopping', 'reminders']);
+    if (!allowedTabs.has(currentTab)) {
+      setActiveTab('tracker');
+    }
+  }, [searchParams, setActiveTab]);
 
   // Initialize reminder system
   useReminders();
@@ -240,31 +242,16 @@ const MealPlansPage = () => {
     console.log('[MEALPLANS] Syncing meal plan from context:', {
       globalMealPlanExists: !!globalMealPlan,
       globalMealPlanLength: globalMealPlan?.length,
-      globalMealPlan: globalMealPlan,
-      globalShoppingListLength: globalShoppingList?.length
+      globalShoppingListLength: globalShoppingList?.length,
     });
 
     if (globalMealPlan && globalMealPlan.length > 0) {
-      console.log('[MEALPLANS] Using global meal plan with', globalMealPlan.length, 'days');
       setMealPlan(globalMealPlan);
-    }
-
-    if (globalShoppingList && globalShoppingList.length > 0) {
-      console.log('[MEALPLANS] Using global shopping list with', globalShoppingList.length, 'items');
-      setShoppingList(globalShoppingList);
     } else {
       const saved = localStorage.getItem('weeklyMealPlan');
-      console.log('[MEALPLANS] localStorage weeklyMealPlan:', saved ? 'found' : 'not found');
       if (saved && trackerSettings && trackerSettings.dailyCalories > 0) {
         try {
           const parsed = JSON.parse(saved);
-          console.log('[MEALPLANS] Loaded from localStorage:', {
-            daysCount: parsed?.length,
-            firstDay: parsed?.[0]?.day,
-            firstMealIngredients: parsed?.[0]?.meals?.[0]?.ingredients
-          });
-
-          // Validate the saved plan against current calorie target
           const isValid = validateMealPlanCalories(parsed, trackerSettings.dailyCalories);
 
           if (isValid) {
@@ -277,16 +264,31 @@ const MealPlansPage = () => {
             toast({
               title: 'Wochenplan veraltet',
               description: `Ihr gespeicherter Plan erfüllt das Kalorienziel von ${trackerSettings.dailyCalories} kcal nicht. Bitte generieren Sie einen neuen Plan.`,
-              variant: 'destructive'
+              variant: 'destructive',
             });
           }
         } catch (e) {
           console.error('[MEALPLANS] Failed to load saved meal plan:', e);
           setMealPlan([]);
         }
-      } else {
-        console.log('[MEALPLANS] No meal plan found - empty state');
+      } else if (!saved) {
         setMealPlan([]);
+      }
+    }
+
+    if (globalShoppingList && globalShoppingList.length > 0) {
+      setShoppingList(globalShoppingList as Ingredient[]);
+    } else {
+      const sl = localStorage.getItem('weeklyShoppingList');
+      if (sl) {
+        try {
+          const parsed = JSON.parse(sl);
+          if (Array.isArray(parsed)) {
+            setShoppingList(parsed as Ingredient[]);
+          }
+        } catch {
+          /* ignore */
+        }
       }
     }
   }, [globalMealPlan, globalShoppingList, trackerSettings]);
@@ -452,8 +454,8 @@ const MealPlansPage = () => {
   };
 
   const handleTabChange = (value: string) => {
-    // Only shopping and progress require tracker setup
-    if ((value === 'shopping' || value === 'progress') && !trackerSetup) {
+    // Only shopping requires tracker setup
+    if (value === 'shopping' && !trackerSetup) {
       toast({ 
         title: t.setupTracker, 
         description: t.setupTrackerFirst, 
@@ -551,30 +553,11 @@ const MealPlansPage = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
+      <div className="container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
 
           <TabsContent value="tracker">
             <MacroTracker onSetupComplete={handleTrackerSetup} />
-          </TabsContent>
-
-          <TabsContent value="progress">
-            <div className="relative">
-              <div>
-                <div className="flex justify-end mb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowWeeklySummary(true)}
-                    className="gap-2"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    Wochenübersicht
-                  </Button>
-                </div>
-                <ProgressTracker />
-              </div>
-            </div>
           </TabsContent>
 
           <TabsContent value="reminders">
@@ -603,54 +586,17 @@ const MealPlansPage = () => {
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <ExportMealPlan mealPlan={mealPlan} pdfOnly />
-                    <div className="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
+                    <div className="flex flex-1 flex-wrap items-center justify-start min-[400px]:justify-end gap-2 min-w-0">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-9 touch-target gap-2 shrink-0 border-primary/30 px-3"
+                        className="h-9 min-[360px]:h-10 sm:h-9 touch-target gap-2 shrink-0 border-primary/30 px-2.5 min-[360px]:px-3"
                         onClick={() => navigate("/scan")}
                       >
                         <Refrigerator className="h-4 w-4 text-primary shrink-0" />
-                        <span className="text-xs sm:text-sm whitespace-nowrap">Wochenplan erstellen</span>
+                        <span className="text-[11px] min-[360px]:text-xs sm:text-sm whitespace-nowrap">Wochenplan erstellen</span>
                       </Button>
-                      <Button
-                        className="glow-button h-9 shrink-0 touch-target text-xs sm:text-sm px-3"
-                        size="sm"
-                        onClick={generateMealPlan}
-                        disabled={globalIsGenerating || !canGenerateMealPlan}
-                      >
-                        {globalIsGenerating ? (() => {
-                          const expectedSeconds = 40;
-                          const remaining = Math.max(5, expectedSeconds - globalElapsedSeconds);
-                          const label = globalElapsedSeconds < expectedSeconds
-                            ? `Wird generiert… ca. ${remaining}s`
-                            : t.almostDone;
-
-                          return (
-                            <>
-                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                              <span>{label}</span>
-                            </>
-                          );
-                        })() : !canGenerateMealPlan ? (
-                          <>
-                            <Lock className="mr-1 h-4 w-4" />
-                            <span>Limit erreicht</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-1 h-4 w-4" />
-                            <span className="sm:hidden">Frigy Plan</span>
-                            <span className="hidden sm:inline">Frigy Plan erstellen</span>
-                          </>
-                        )}
-                      </Button>
-                      {!isPremium && !isFreeMode && (
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {globalGenerationCount}/{maxFreeGenerations} Generierungen
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -665,12 +611,12 @@ const MealPlansPage = () => {
                     >
                       <Card className="p-3 sm:p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
                         <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                           {day.meals.map((meal, mealIndex) => (
                             <div
                               key={mealIndex}
                               onClick={() => !isFreeMode && openMealDetail(meal)}
-                              className="p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98]"
+                              className="min-w-0 p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98] touch-manipulation"
                             >
                               <div className="flex items-center justify-between mb-1">
                                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{meal.type}</p>
@@ -685,7 +631,7 @@ const MealPlansPage = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-full mt-1.5 sm:mt-2 h-6 sm:h-7 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
+                                className="w-full mt-2 h-7 min-[360px]:h-8 sm:h-7 text-[10px] min-[360px]:text-[11px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
                                 onClick={(e) => addMealToTracker(meal, e)}
                               >
                                 <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
@@ -714,7 +660,7 @@ const MealPlansPage = () => {
                 {mealPlan.length === 0 && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
                     <p className="text-sm text-amber-700">
-                      💡 Die Einkaufsliste füllt sich nur, wenn du hier einen <strong>Frigy Plan</strong> erstellst (Button „Frigy Plan erstellen“). Nach einem reinen Kühlschrank-Scan gibt es keine automatische Liste.
+                      💡 Erstelle einen <strong>Frigy Plan</strong> oder scanne den Kühlschrank: Die Einkaufsliste zeigt dann nur Zutaten, die noch fehlen.
                     </p>
                   </Card>
                 )}
@@ -723,12 +669,6 @@ const MealPlansPage = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="water">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <h2 className="text-2xl font-bold neon-text mb-4">{t.waterTracker}</h2>
-              <WaterTracker />
-            </motion.div>
-          </TabsContent>
         </Tabs>
       </div>
 
@@ -743,12 +683,6 @@ const MealPlansPage = () => {
             description: `Mahlzeit zu deinem Tracker hinzugefügt`
           });
         }}
-      />
-
-      {/* Weekly Summary Dialog */}
-      <WeeklySummary 
-        open={showWeeklySummary} 
-        onClose={() => setShowWeeklySummary(false)} 
       />
 
       {/* Premium Success Dialog */}

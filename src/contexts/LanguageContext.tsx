@@ -512,6 +512,10 @@ interface Translations {
   loginToUseScanner: string;
   scanLimitReached: string;
   aiAnalyzingIngredients: string;
+  /** Kühlschrank-Scan Overlay */
+  analyzingFridge: string;
+  /** Wochenplan wird nach Scan erstellt */
+  creatingWeeklyPlanFromScan: string;
   
   // Recipes Page
   yourRecipes: string;
@@ -1103,7 +1107,9 @@ const translations: Record<Language, Translations> = {
     loginToUseScanner: "Bitte melde dich an, um den Scanner zu nutzen.",
     scanLimitReached: "Scan-Limit erreicht (1/Woche)",
     aiAnalyzingIngredients: "KI analysiert deine Zutaten...",
-    
+    analyzingFridge: "Analysiere deinen Kühlschrank…",
+    creatingWeeklyPlanFromScan: "Erstelle deinen persönlichen Wochenplan…",
+
     // Recipes Page
     yourRecipes: "Deine Rezepte",
     regenerate: "Neu generieren",
@@ -1932,7 +1938,9 @@ const translations: Record<Language, Translations> = {
     loginToUseScanner: "Please sign in to use the scanner.",
     scanLimitReached: "Scan limit reached",
     aiAnalyzingIngredients: "AI is analyzing your ingredients...",
-    
+    analyzingFridge: "Analyzing your fridge…",
+    creatingWeeklyPlanFromScan: "Creating your personalized weekly plan…",
+
     // Recipes Page
     yourRecipes: "Your Recipes",
     regenerate: "Regenerate",
@@ -2761,7 +2769,9 @@ const translations: Record<Language, Translations> = {
     loginToUseScanner: "Veuillez vous connecter pour utiliser le scanner.",
     scanLimitReached: "Limite de scan atteinte",
     aiAnalyzingIngredients: "L'IA analyse vos ingrédients...",
-    
+    analyzingFridge: "Analyse de votre réfrigérateur…",
+    creatingWeeklyPlanFromScan: "Création de votre plan de repas personnalisé…",
+
     // Recipes Page
     yourRecipes: "Vos Recettes",
     regenerate: "Régénérer",

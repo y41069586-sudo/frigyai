@@ -2,8 +2,6 @@ import {
   Home,
   Calendar,
   ShoppingCart,
-  Droplets,
-  BarChart3,
   Plus,
   Lock,
   type LucideIcon,
@@ -20,7 +18,7 @@ interface BottomNavigationProps {
   trackerLoading?: boolean;
 }
 
-type NavId = "home" | "meals" | "shopping" | "water" | "progress";
+type NavId = "home" | "meals" | "shopping";
 
 const ITEMS: {
   id: NavId;
@@ -32,8 +30,6 @@ const ITEMS: {
   { id: "home", label: "Start", icon: Home, activeClass: "text-primary", feature: null },
   { id: "meals", label: "Wochenplan", icon: Calendar, activeClass: "text-orange-500", feature: "meal_plans" },
   { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary", feature: "shopping_list" },
-  { id: "water", label: "Wasser", icon: Droplets, activeClass: "text-cyan-500", feature: "water" },
-  { id: "progress", label: "Statistik", icon: BarChart3, activeClass: "text-purple-500", feature: "progress" },
 ];
 
 export const BottomNavigation = (_props: BottomNavigationProps) => {

@@ -150,7 +150,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       if (!isPremium) {
         setShowPremiumOverlay(true);
       } else {
-        navigate('/meal-plans?tab=progress');
+        navigate('/meal-plans?tab=tracker&view=weight');
       }
     }
   };

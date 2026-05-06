@@ -1,7 +1,4 @@
 import { motion } from "framer-motion";
-import { Footprints, Link2 } from "lucide-react";
-import { WidgetCard } from "./WidgetCard";
-import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
 type StepsWidgetProps = {
@@ -16,86 +13,48 @@ export function StepsWidget({
   steps,
   goal = 10_000,
   delay = 0,
-  expanded,
   onToggleExpand,
 }: StepsWidgetProps) {
-  const pct = Math.min(100, (steps / goal) * 100);
-
-  const connectHealth = () => {
-    toast({
-      title: "Google Health / Health Connect",
-      description:
-        "Verbindung kommt als nächstes. Du kannst dann Schritte automatisch synchronisieren.",
-    });
+  const addSteps = () => {
+    toast({ title: "Schritte", description: "Health-Anbindung folgt als nächstes." });
   };
 
   return (
-    <WidgetCard
-      delay={delay}
-      variant="soft"
-      interactive={!!onToggleExpand}
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onToggleExpand}
-      className="w-full rounded-[2rem] rounded-br-xl rounded-tl-[2.25rem]"
+      className="relative h-[205px] w-full overflow-hidden rounded-[1.6rem] border border-orange-200/50 bg-gradient-to-b from-amber-50 to-orange-100 shadow-[0_8px_24px_-12px_rgba(249,115,22,0.25)]"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl rounded-br-md bg-orange-500/10">
-            <Footprints className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Bewegung</p>
-            <h3 className="text-lg font-semibold tracking-tight">Schritte</h3>
-          </div>
-        </div>
-        <span className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-          Ziel {goal >= 1000 ? `${goal / 1000}k` : goal}
-        </span>
-      </div>
+      {/* subtle glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_60%,rgba(253,186,116,0.35),transparent_60%)]" />
+      <div className="pointer-events-none absolute -bottom-8 left-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-orange-200/50 blur-2xl" />
 
-      <div className="mt-5">
-        <div className="mb-2 flex items-end justify-between">
-          <motion.span
-            className="text-3xl font-bold tabular-nums tracking-tight text-foreground"
-            key={steps}
-            initial={{ opacity: 0.6, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {steps.toLocaleString("de-DE")}
-          </motion.span>
-          <span className="text-sm text-muted-foreground">Schritte</span>
+      <div className="absolute inset-0 z-[10] flex flex-col justify-between p-3.5">
+        {/* Title */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[14px] leading-none">👟</span>
+          <span className="text-[14px] font-semibold text-slate-800">Schritte</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-muted/80">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-300"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-          />
+
+        {/* Motivational text — centered between title and button */}
+        <div className="flex flex-col items-center justify-center px-1">
+          <p className="text-center text-[13px] leading-relaxed text-slate-700">
+            Wie wär's mit<br />einem kurzen<br />Spaziergang?
+          </p>
         </div>
-      </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="mt-4 h-11 w-full rounded-2xl border-dashed border-orange-400/40 bg-orange-500/[0.06] text-foreground hover:bg-orange-500/10"
-        onClick={(e) => {
-          e.stopPropagation();
-          connectHealth();
-        }}
-      >
-        <Link2 className="mr-2 h-4 w-4 text-orange-600" />
-        Mit Google Health verbinden
-      </Button>
-
-      {expanded && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-3 text-xs text-muted-foreground"
+        {/* Button at bottom */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={(e) => { e.stopPropagation(); addSteps(); }}
+          className="flex h-10 w-full items-center justify-center rounded-full border-2 border-amber-400/80 bg-white/85 text-[12.5px] font-medium text-orange-700 shadow-sm transition-all hover:bg-orange-50"
         >
-          Aktuell Demo-Werte. Nach Verbindung werden echte Schritte übernommen (Health Connect / kompatible Apps).
-        </motion.p>
-      )}
-    </WidgetCard>
+          Schritte hinzufügen
+        </motion.button>
+      </div>
+    </motion.div>
   );
 }

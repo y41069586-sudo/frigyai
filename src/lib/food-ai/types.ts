@@ -8,7 +8,7 @@ export interface MockIngredient {
 }
 
 export interface MockMeal {
-  type: "Frühstück" | "Mittagessen" | "Abendessen";
+  type: string;
   name: string;
   calories: number;
   protein: number;
@@ -32,5 +32,7 @@ export interface ShoppingItem {
 
 export interface WeekPlanResult {
   days: MockDayPlan[];
+  /** Nur fehlende Zutaten (Rezept minus Kühlschrank), aggregiert */
   shoppingList: ShoppingItem[];
+  scanMeta?: { percentHave: number; eurosSaved: number };
 }

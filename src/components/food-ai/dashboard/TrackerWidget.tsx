@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Flame, Beef, Wheat, Droplet } from "lucide-react";
+import { CalendarDays, Flame, Pencil, Plus } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
+import type { MealFocusKey } from "@/lib/mealFocus";
 
 type TrackerWidgetProps = {
   delay?: number;
@@ -14,50 +14,25 @@ type TrackerWidgetProps = {
   targetCarbs: number;
   fatEaten: number;
   targetFat: number;
+  onAddMeal?: (slot: MealFocusKey) => void;
+  onOpenTracker?: () => void;
+  onOpenMealPlanner?: () => void;
   expanded?: boolean;
   onToggleExpand?: () => void;
 };
 
-function Ring({
-  pct,
-  size = 108,
-  stroke = 7,
-  className,
-}: {
-  pct: number;
-  size?: number;
-  stroke?: number;
-  className?: string;
-}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (Math.min(100, pct) / 100) * c;
-  return (
-    <svg width={size} height={size} className={cn("rotate-[-90deg]", className)}>
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        className="stroke-muted/40"
-        strokeWidth={stroke}
-      />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        className="stroke-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.35)]"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={c}
-        initial={{ strokeDashoffset: c }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-      />
-    </svg>
-  );
-}
+const MEAL_SLOTS: { key: MealFocusKey; label: string }[] = [
+  { key: "breakfast", label: "Frühstück" },
+  { key: "lunch", label: "Mittagessen" },
+  { key: "dinner", label: "Abendessen" },
+  { key: "snack", label: "Snacks" },
+];
+
+// Arc geometry: semicircle from left → top → right
+const ARC_R = 78;
+const ARC_CX = 100;
+const ARC_CY = 100;
+const ARC_HALF = Math.PI * ARC_R; // half circumference ≈ 245
 
 export function TrackerWidget({
   delay = 0,
@@ -69,10 +44,14 @@ export function TrackerWidget({
   targetCarbs,
   fatEaten,
   targetFat,
+  onAddMeal,
+  onOpenTracker,
+  onOpenMealPlanner,
   expanded,
   onToggleExpand,
 }: TrackerWidgetProps) {
-  const calPct = targetCalories > 0 ? (caloriesEaten / targetCalories) * 100 : 0;
+  const caloriesRemaining = Math.max(0, Math.round(targetCalories - caloriesEaten));
+  const calPct = targetCalories > 0 ? Math.min(1, caloriesEaten / targetCalories) : 0;
   const pPct = targetProtein > 0 ? (proteinEaten / targetProtein) * 100 : 0;
   const cPct = targetCarbs > 0 ? (carbsEaten / targetCarbs) * 100 : 0;
   const fPct = targetFat > 0 ? (fatEaten / targetFat) * 100 : 0;
@@ -80,111 +59,161 @@ export function TrackerWidget({
   return (
     <WidgetCard
       delay={delay}
-      variant="soft"
+      variant="gradient"
       interactive={!!onToggleExpand}
       onClick={onToggleExpand}
-      className="w-full rounded-[2rem] rounded-br-3xl rounded-tl-xl"
+      className="w-full rounded-[1.4rem] sm:rounded-[1.8rem]"
     >
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-5">
-          <div className="relative shrink-0">
-            <Ring pct={calPct} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <Flame className="mb-1 h-5 w-5 text-primary" />
-              <span className="text-xl font-bold tabular-nums leading-none">{Math.round(calPct)}%</span>
-              <span className="text-[10px] font-medium text-muted-foreground">vom Ziel</span>
+      <div className="space-y-3 text-foreground">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-400" />
+            <h3 className="text-lg font-semibold">Kalorien</h3>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpenMealPlanner?.(); }}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60"
+              aria-label="Wochenplan öffnen"
+            >
+              <CalendarDays className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpenTracker?.(); }}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60"
+              aria-label="Tracker bearbeiten"
+            >
+              <Pencil className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Arc gauge + calorie stats */}
+        <div className="relative h-[130px]">
+          {/* Semicircular SVG arc */}
+          <svg
+            viewBox="0 0 200 130"
+            className="absolute inset-0 h-full w-full"
+            aria-hidden
+          >
+            {/* Track (full semicircle) */}
+            <circle
+              cx={ARC_CX}
+              cy={ARC_CY}
+              r={ARC_R}
+              fill="none"
+              stroke="hsl(148 42% 88%)"
+              strokeWidth="11"
+              strokeLinecap="round"
+              strokeDasharray={`${ARC_HALF} ${ARC_HALF * 2}`}
+              transform={`rotate(180, ${ARC_CX}, ${ARC_CY})`}
+            />
+            {/* Progress arc */}
+            <motion.circle
+              cx={ARC_CX}
+              cy={ARC_CY}
+              r={ARC_R}
+              fill="none"
+              stroke="hsl(150 100% 46%)"
+              strokeWidth="11"
+              strokeLinecap="round"
+              strokeDasharray={`${ARC_HALF} ${ARC_HALF * 2}`}
+              transform={`rotate(180, ${ARC_CX}, ${ARC_CY})`}
+              initial={{ strokeDashoffset: ARC_HALF }}
+              animate={{ strokeDashoffset: ARC_HALF * (1 - calPct) }}
+              transition={{ duration: 0.9, ease: "easeOut", delay }}
+            />
+          </svg>
+
+          {/* Calorie numbers overlaid at bottom of arc */}
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between pb-2 text-center">
+            <div className="text-center">
+              <p className="text-lg font-semibold tabular-nums leading-tight">{Math.round(caloriesEaten)}</p>
+              <p className="text-[11px] text-muted-foreground">Gegessen</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[1.7rem] font-bold tabular-nums leading-tight">{caloriesRemaining.toLocaleString("de-DE")}</p>
+              <p className="text-[11px] text-muted-foreground">kcal Übrig</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold tabular-nums leading-tight">0</p>
+              <p className="text-[11px] text-muted-foreground">Verbrannt</p>
             </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Heute</p>
-            <p className="text-3xl font-bold tabular-nums tracking-tight">
-              {Math.round(caloriesEaten)}
-              <span className="text-base font-semibold text-muted-foreground"> / {targetCalories} kcal</span>
-            </p>
-          </div>
         </div>
-      </div>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
-        <div className="flex min-h-0 w-full min-w-0 flex-1">
-          <MacroBar
-            icon={<Beef className="h-4 w-4" />}
-            label="Protein"
-            current={proteinEaten}
-            target={targetProtein}
-            pct={pPct}
-            color="from-rose-400/90 to-orange-400/80"
-          />
+        {/* Macro stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <MacroStat label="Carbs" current={carbsEaten} target={targetCarbs} pct={cPct} />
+          <MacroStat label="Eiweiß" current={proteinEaten} target={targetProtein} pct={pPct} />
+          <MacroStat label="Fett" current={fatEaten} target={targetFat} pct={fPct} />
         </div>
-        <div className="flex min-h-0 w-full min-w-0 flex-1">
-          <MacroBar
-            icon={<Wheat className="h-4 w-4" />}
-            label="Carbs"
-            current={carbsEaten}
-            target={targetCarbs}
-            pct={cPct}
-            color="from-amber-400/90 to-yellow-400/70"
-          />
-        </div>
-        <div className="flex min-h-0 w-full min-w-0 flex-1">
-          <MacroBar
-            icon={<Droplet className="h-4 w-4" />}
-            label="Fett"
-            current={fatEaten}
-            target={targetFat}
-            pct={fPct}
-            color="from-sky-400/80 to-blue-500/70"
-          />
-        </div>
-      </div>
 
-      {expanded && (
-        <motion.p
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="mt-4 text-xs leading-relaxed text-muted-foreground"
-        >
-          Werte aus deinen Einträgen von heute.
-        </motion.p>
-      )}
+        {/* Meal slots */}
+        <div className="grid grid-cols-2 gap-2">
+          {MEAL_SLOTS.map((slot) => (
+            <div
+              key={slot.key}
+              className="flex items-center justify-between rounded-xl border border-border/40 bg-card/65 px-2.5 py-2"
+            >
+              <span className="text-sm">{slot.label}</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onAddMeal?.(slot.key); }}
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400 text-emerald-950",
+                  "transition-transform active:scale-95",
+                )}
+                aria-label={`${slot.label} hinzufügen`}
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {expanded && (
+          <motion.p
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="text-xs text-muted-foreground"
+          >
+            Werte aus deinen heutigen Einträgen.
+          </motion.p>
+        )}
+      </div>
     </WidgetCard>
   );
 }
 
-function MacroBar({
-  icon,
+function MacroStat({
   label,
   current,
   target,
   pct,
-  color,
 }: {
-  icon: ReactNode;
   label: string;
   current: number;
   target: number;
   pct: number;
-  color: string;
 }) {
   return (
-    <div className="flex h-full w-full flex-col rounded-2xl border border-border/30 bg-background/50 p-3.5 backdrop-blur-sm">
-      <div className="mb-2 flex min-h-[2.75rem] items-center justify-between gap-2">
-        <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-          {icon}
-          {label}
-        </span>
-        <span className="shrink-0 self-center text-xs tabular-nums text-foreground">
-          {Math.round(current)} / {Math.round(target)} g
-        </span>
-      </div>
-      <div className="mt-auto h-2 shrink-0 overflow-hidden rounded-full bg-muted/80">
+    <div className="space-y-1.5">
+      <p className="text-center text-xs text-muted-foreground">{label}</p>
+      <div className="h-[3px] rounded-full bg-muted/80">
         <motion.div
-          className={cn("h-full rounded-full bg-gradient-to-r", color)}
+          className="h-full rounded-full bg-primary"
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(100, pct)}%` }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         />
       </div>
+      <p className="text-center text-sm font-medium tabular-nums leading-tight">
+        {Math.round(current)}/{Math.round(target)} g
+      </p>
     </div>
   );
 }

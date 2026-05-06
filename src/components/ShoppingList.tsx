@@ -7,7 +7,12 @@ import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'luci
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 import { groupByCategory, getCategoryColor, getCategoryEmoji, IngredientCategory } from '@/lib/ingredient-categories';
-import { getMealPlanShoppingSource } from '@/lib/mealPlanSource';
+import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import {
+  normalizeShoppingName,
+  readCheckedShoppingNames,
+  writeCheckedShoppingNames,
+} from '@/lib/shoppingSync';
 
 interface Ingredient {
   name: string;
@@ -61,21 +66,54 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     }
   }, []);
 
-  // Einkaufsliste aus MealPlan generieren ODER aus Cache laden
-  useEffect(() => {
-    if (getMealPlanShoppingSource() === "scan") {
-      setItems([]);
-      return;
+  const applyPurchasedFromCache = (base: ShoppingItem[]): ShoppingItem[] => {
+    const checkedNames = readCheckedShoppingNames();
+    const cachedItems = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
+    const purchasedMap = new Map<string, boolean>();
+    if (cachedItems) {
+      try {
+        const parsed = JSON.parse(cachedItems) as ShoppingItem[];
+        parsed.forEach((item) => {
+          purchasedMap.set(item.name.toLowerCase(), item.purchased);
+        });
+      } catch {
+        /* ignore */
+      }
     }
+    return base.map((item) => ({
+      ...item,
+      purchased: checkedNames.has(normalizeShoppingName(item.name)) || purchasedMap.get(item.name.toLowerCase()) || false,
+    }));
+  };
 
-    // Wenn offline und kein MealPlan, lade aus Cache
+  // Priorität: gespeicherte Liste (Gap vom Server/Mock) → sonst alle Zutaten aus dem Plan aggregieren
+  useEffect(() => {
+    const tryStoredList = (): ShoppingItem[] | null => {
+      const raw = localStorage.getItem('weeklyShoppingList');
+      if (raw === null) return null;
+      try {
+        const parsed = JSON.parse(raw) as Array<{ name: string; amount: string; price: number }>;
+        if (!Array.isArray(parsed)) return null;
+        if (parsed.length === 0) return [];
+        return parsed.map((ing, idx) => ({
+          name: ing.name,
+          amount: ing.amount || '—',
+          price: typeof ing.price === 'number' ? ing.price : 0,
+          id: `stored-${ing.name.toLowerCase()}-${idx}`,
+          purchased: false,
+        }));
+      } catch {
+        return null;
+      }
+    };
+
+    // Wenn offline und kein MealPlan, lade aus Offline-Cache
     if (isOffline && (!mealPlan || mealPlan.length === 0)) {
       const cached = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
       if (cached) {
         try {
           const parsedItems = JSON.parse(cached);
           setItems(parsedItems);
-          console.log('[SHOPPING] Loaded from offline cache:', parsedItems.length, 'items');
           return;
         } catch (e) {
           console.error('[SHOPPING] Failed to load cache:', e);
@@ -83,22 +121,20 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       }
     }
 
-    // Normale Generierung aus MealPlan
+    const fromStorage = tryStoredList();
+    if (fromStorage !== null) {
+      setItems(applyPurchasedFromCache(fromStorage));
+      return;
+    }
+
+    if (!mealPlan?.length) {
+      setItems([]);
+      return;
+    }
+
     const ingredientMap = new Map<string, ShoppingItem>();
 
-    console.log('[SHOPPING] Processing meal plan:', {
-      mealPlanLength: mealPlan?.length,
-      mealPlanExists: !!mealPlan,
-      mealPlanIsArray: Array.isArray(mealPlan),
-      firstDay: mealPlan?.[0]?.day,
-      firstDayMeals: mealPlan?.[0]?.meals?.length,
-      firstMeal: mealPlan?.[0]?.meals?.[0],
-      firstMealHasIngredients: !!mealPlan?.[0]?.meals?.[0]?.ingredients,
-      firstMealIngredients: mealPlan?.[0]?.meals?.[0]?.ingredients,
-      fullMealPlan: JSON.stringify(mealPlan)
-    });
-
-    mealPlan.forEach(day => {
+    mealPlan.forEach((day) => {
       day.meals?.forEach((meal: any) => {
         meal.ingredients?.forEach((ing: Ingredient) => {
           const key = ing.name.toLowerCase();
@@ -116,30 +152,34 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       });
     });
 
-    console.log('[SHOPPING] Generated ingredients:', ingredientMap.size, 'items');
-
-    // Lade purchased-Status aus Cache
-    const cachedItems = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
-    let purchasedMap = new Map<string, boolean>();
-    if (cachedItems) {
-      try {
-        const parsed = JSON.parse(cachedItems) as ShoppingItem[];
-        parsed.forEach(item => {
-          purchasedMap.set(item.name.toLowerCase(), item.purchased);
-        });
-      } catch (e) {
-        console.warn('Failed to parse cached shopping list:', e);
-      }
-    }
-
-    // Merge: Behalte purchased-Status aus Cache
-    const newItems = Array.from(ingredientMap.values()).map(item => ({
-      ...item,
-      purchased: purchasedMap.get(item.name.toLowerCase()) || false,
-    }));
-
-    setItems(newItems);
+    const newItems = Array.from(ingredientMap.values());
+    setItems(applyPurchasedFromCache(newItems));
   }, [mealPlan, isOffline]);
+
+  useEffect(() => {
+    const onStorage = () => {
+      const raw = localStorage.getItem('weeklyShoppingList');
+      if (raw === null) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length === 0) return;
+        const withIds: ShoppingItem[] = parsed.map(
+          (ing: { name: string; amount: string; price: number }, idx: number) => ({
+            name: ing.name,
+            amount: ing.amount || '—',
+            price: typeof ing.price === 'number' ? ing.price : 0,
+            id: `stored-${ing.name.toLowerCase()}-${idx}`,
+            purchased: false,
+          }),
+        );
+        setItems(applyPurchasedFromCache(withIds));
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener(FRIGY_STORAGE_UPDATED, onStorage);
+    return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, onStorage);
+  }, []);
 
   // Einkaufsliste im Cache speichern bei jeder Änderung
   const saveToCache = useCallback((itemsToCache: ShoppingItem[]) => {
@@ -162,17 +202,27 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   }, [items, saveToCache]);
 
   const setPurchased = (id: string, purchased: boolean) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, purchased } : item))
-    );
+    setItems((prev) => {
+      const next = prev.map((item) => (item.id === id ? { ...item, purchased } : item));
+      const nextCheckedNames = new Set(
+        next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
+      );
+      writeCheckedShoppingNames(nextCheckedNames);
+      notifyFrigyStorageUpdated();
+      return next;
+    });
   };
 
   const toggleItem = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, purchased: !item.purchased } : item
-      )
-    );
+    setItems((prev) => {
+      const next = prev.map((item) => (item.id === id ? { ...item, purchased: !item.purchased } : item));
+      const nextCheckedNames = new Set(
+        next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
+      );
+      writeCheckedShoppingNames(nextCheckedNames);
+      notifyFrigyStorageUpdated();
+      return next;
+    });
   };
 
   const toggleCategory = (category: IngredientCategory) => {

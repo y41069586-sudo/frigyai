@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useCallback } from "react";
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 // Force rebuild to clear Vite cache
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,7 +13,6 @@ import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
 import { FreeTrialReminder } from "@/components/FreeTrialReminder";
 import { ReEngagementBanner } from "@/components/ReEngagementBanner";
-import { SplashScreen } from "@/components/SplashScreen";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
 
 // Lazy load all pages for better performance
@@ -57,7 +56,7 @@ const AppContent = () => {
       <OfflineIndicator />
       <FreeTrialReminder />
       <ReEngagementBanner />
-      <Suspense fallback={null}>
+      <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/landing" element={<LandingPage />} />
@@ -88,15 +87,8 @@ const AppContent = () => {
 };
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
-
-  const handleSplashComplete = useCallback(() => {
-    setShowSplash(false);
-  }, []);
-
   return (
     <SupabaseErrorBoundary>
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>

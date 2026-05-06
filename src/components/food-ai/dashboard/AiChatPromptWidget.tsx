@@ -74,9 +74,6 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
           <Send className="h-4 w-4" />
         </Button>
       </motion.div>
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        Senden-Button oder Enter – öffnet den Chat
-      </p>
     </WidgetCard>
   );
 }
