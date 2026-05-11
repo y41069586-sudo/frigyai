@@ -597,6 +597,7 @@ interface Translations {
   
   // New Welcome Screen
   welcomeToFrigy: string;
+  splashBubbleText: string;
   welcomeSubtitle: string;
   scanYourFridge: string;
   andMuchMore: string;
@@ -1190,6 +1191,7 @@ const translations: Record<Language, Translations> = {
     
     // New Welcome Screen
     welcomeToFrigy: "Willkommen bei Frigy",
+    splashBubbleText: "Ich kann es kaum erwarten, alles über dich zu erfahren!",
     welcomeSubtitle: "Die App, die deinen Kühlschrank scannt",
     scanYourFridge: "Kühlschrank scannen",
     andMuchMore: "...und vieles mehr",
@@ -2021,6 +2023,7 @@ const translations: Record<Language, Translations> = {
     
     // New Welcome Screen
     welcomeToFrigy: "Welcome to Frigy",
+    splashBubbleText: "I can't wait to learn all about you!",
     welcomeSubtitle: "The app that scans your fridge",
     scanYourFridge: "Scan your fridge",
     andMuchMore: "...and much more",
@@ -2852,6 +2855,7 @@ const translations: Record<Language, Translations> = {
     
     // New Welcome Screen
     welcomeToFrigy: "Bienvenue sur Frigy",
+    splashBubbleText: "J'ai hâte d'en savoir plus sur toi !",
     welcomeSubtitle: "L'app qui scanne votre frigo",
     scanYourFridge: "Scanner votre frigo",
     andMuchMore: "...et bien plus encore",

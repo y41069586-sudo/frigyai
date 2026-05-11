@@ -52,7 +52,7 @@ export interface UserData {
   height: number;
   weight: number;
   age: number;
-  gender: 'male' | 'female' | null;
+  gender: 'male' | 'female' | 'non-binary' | null;
   goalMode: 'lose' | 'gain';
   targetWeight: number;
   weeklyGoal: number;
@@ -113,56 +113,4 @@ export const defaultUserData: UserData = {
 };
 
 // Steps array for navigation - logically structured flow
-export const onboardingSteps: OnboardingStep[] = [
-  // Phase 0: Splash intro
-  "splash",
-
-  // Phase 1: Language & Name
-  "language-select",
-  "name-input",
-  "welcome",
-  "goal",
-  "motivation",
-  
-  // Phase 2: Success Stats
-  "success-stats",
-
-  // Phase 2.5: Tutorial Transition (smooth bridge)
-  "tutorial-transition",
-  
-  // Phase 3: Interactive Tutorial (replaces how-it-works)
-  "tutorial",
-  
-  // Phase 4: Body Data Collection
-  "tracker-intro",
-  "body-basics",
-  "gender",
-  "goal-mode",
-  "target-weight",
-  "speed-select",
-  "planning-setup", // Activity level
-  
-  // Phase 5: Preferences
-  "dietary-preferences",
-  "allergies",
-  "cooking-time",
-  "cooking-experience",
-  
-  // Phase 6: Analysis & Results
-  "analyzing",
-  "macro-preview",
-  
-  // Phase 7: Your Plan with Frigy - Echte Ergebnisse
-  "comparison",
-  "transformation",
-  
-  // Phase 8: Notifications
-  "notification-prefs",
-  
-  // Phase 10: Save & Finish
-  "save-progress",
-  "premium-hint",
-  "community",
-  "celebration",
-  "done"
-];
+export const onboardingSteps: OnboardingStep[] = ["splash", "gender"];

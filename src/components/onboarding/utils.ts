@@ -6,8 +6,8 @@ import { isMealSafeForUser } from "@/lib/mealAllergySafety";
 export const calculateMacros = (userData: UserData) => {
   const { weight, height, age, gender, activityLevel, goalMode, weeklyGoal } = userData;
   
-  // Mifflin-St Jeor BMR formula with gender-specific constants
-  const genderConstant = gender === 'female' ? -161 : 5;
+  const genderConstant =
+    gender === "female" ? -161 : gender === "non-binary" ? -78 : 5;
   const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
   
   // Activity multipliers

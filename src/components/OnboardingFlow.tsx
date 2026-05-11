@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
 import frigySplashSrc from "@/assets/frigy-splash.png";
+import frigyNotebookSrc from "@/assets/frigy-notebook.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
@@ -37,24 +38,183 @@ import { MacroRing } from "./MacroRing";
 import HeroAnimationCompact from "./HeroAnimationCompact";
 import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
 
+// ─── Typewriter hook ─────────────────────────────────────────────────────────
+const useTypewriter = (text: string, speed = 40, startDelay = 1400) => {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const start = setTimeout(() => {
+      let i = 0;
+      intervalId = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) {
+          if (intervalId) clearInterval(intervalId);
+          setDone(true);
+        }
+      }, speed);
+    }, startDelay);
+    return () => {
+      clearTimeout(start);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [text, speed, startDelay]);
+  return { displayed, done };
+};
+
+const NOTEBOOK_MASKOT_STEPS: OnboardingStep[] = ["gender"];
+
+type NotebookChromeProps = {
+  questionLines: string;
+  progressFilledIndex: number;
+  totalProgressSegments: number;
+  children: ReactNode;
+  onBack: () => void;
+  onNext: () => void;
+  canProceedNext: boolean;
+  showBack: boolean;
+};
+
+const NotebookOnboardingChrome = ({
+  questionLines,
+  progressFilledIndex,
+  totalProgressSegments,
+  children,
+  onBack,
+  onNext,
+  canProceedNext,
+  showBack,
+}: NotebookChromeProps) => {
+  const { language, t } = useLanguage();
+  const { displayed, done } = useTypewriter(questionLines, 34, 140);
+  const disclaimer =
+    language === "de"
+      ? "Ihre Daten werden nach der Erstellung eines Plans gelöscht."
+      : language === "fr"
+        ? "Vos données seront supprimées après la création du plan."
+        : "Your data will be deleted after the plan is created.";
+  return (
+    <div className="flex flex-1 min-h-0 flex-col bg-background">
+      {/* Fortschritt wie Referenz: kurze Striche, erster Block schwarz */}
+      <div className="flex justify-center gap-1 px-4 pt-14 pb-4">
+        {Array.from({ length: totalProgressSegments }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-[3px] w-7 shrink-0 rounded-none transition-colors ${i <= progressFilledIndex ? "bg-neutral-950" : "bg-neutral-300"}`}
+          />
+        ))}
+      </div>
+
+      {/* Persistent header: GIF + bubble (stable img so animation is not reset by React remounts below) */}
+      <div className="flex items-start gap-2 px-4 pb-4 shrink-0">
+        <img
+          key="onboarding-notebook-mascot"
+          src={frigyNotebookSrc}
+          alt="Frigy"
+          className="h-[72px] w-[72px] shrink-0 object-contain"
+        />
+        <div className="relative mt-1 min-w-0 flex-1">
+          <div className="relative rounded-xl border-2 border-neutral-950 bg-[#F5F5EF] px-4 py-3 shadow-sm before:absolute before:left-[-6px] before:top-[18px] before:z-0 before:h-3 before:w-3 before:rotate-45 before:border-l-2 before:border-b-2 before:border-neutral-950 before:bg-[#F5F5EF]">
+            <p className="whitespace-pre-line font-black text-[13px] uppercase leading-snug tracking-wide text-neutral-950">
+              {displayed}
+              {!done ? (
+                <span className="inline-block ml-0.5 h-[1em] w-0.5 animate-pulse bg-neutral-900 align-middle" />
+              ) : null}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle: only answers change */}
+      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+
+      {/* Footer */}
+      <div className="shrink-0 border-t border-border/40 px-4 pt-4 pb-8 pt-5">
+        <p className="mb-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
+          <span className="text-xs">ⓘ</span>
+          {disclaimer}
+        </p>
+        <div className="flex items-center gap-4">
+          {showBack ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              className="h-12 min-w-[52px] rounded-2xl border-border bg-[#EDE9E4] px-0 shadow-none hover:bg-[#E5E2DC]"
+              aria-label="Zurück"
+            >
+              <ChevronRight className="size-6 rotate-180 text-neutral-900" />
+            </Button>
+          ) : (
+            <div className="min-w-[52px]" aria-hidden />
+          )}
+          <Button
+            type="button"
+            onClick={onNext}
+            disabled={!canProceedNext}
+            className={`h-12 flex-1 rounded-2xl text-base font-semibold ${
+              canProceedNext
+                ? "bg-neutral-900 text-white hover:bg-neutral-800"
+                : "bg-neutral-400 text-white hover:bg-neutral-400"
+            }`}
+          >
+            {t.next}
+            <ChevronRight className="ml-1 size-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Splash Screen ────────────────────────────────────────────────────────────
+const BUBBLE_GREEN = "hsl(148 100% 52%)";
+
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
+  const { t } = useLanguage();
+  const bubbleText = t.welcomeToFrigy + "!";
+  const { displayed, done } = useTypewriter(bubbleText, 38, 600);
+
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">
-      {/* Speech bubble – top-left, fades in after mascot settles */}
+      {/* Speech bubble – green bg, typewriter text */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8, y: -8 }}
+        initial={{ opacity: 0, scale: 0.85, y: -6 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay: 1.4, duration: 0.35, ease: "easeOut" }}
-        className="absolute top-14 left-6 z-10"
+        transition={{ delay: 0.5, duration: 0.25, ease: "easeOut" }}
+        className="absolute top-10 left-4 right-4 z-10"
       >
-        <div className="relative bg-white dark:bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-lg max-w-[200px]">
-          <p className="font-bold text-base text-foreground leading-snug">
-            Welcome to Frigy! 👋
+        {/* Bubble box */}
+        <div
+          className="relative border-[4px] border-black px-5 py-4 rounded-none"
+          style={{ backgroundColor: BUBBLE_GREEN }}
+        >
+          <p className="font-black text-[17px] leading-snug text-white min-h-[1.4em]">
+            {displayed}
+            {!done && (
+              <span className="inline-block w-[2px] h-[1em] bg-white ml-[1px] align-middle animate-pulse" />
+            )}
           </p>
-          {/* Bubble tail */}
-          <div className="absolute -bottom-2 left-4 w-3 h-3 bg-white dark:bg-card border-r border-b border-border rotate-45 rounded-br-sm" />
         </div>
+        {/* Triangle tail */}
+        <svg
+          width="32" height="18"
+          viewBox="0 0 32 18"
+          className="absolute left-8 top-full -mt-[1px]"
+          aria-hidden
+        >
+          <polygon
+            points="0,0 32,0 10,18"
+            fill={BUBBLE_GREEN}
+            stroke="black"
+            strokeWidth="4"
+            strokeLinejoin="miter"
+            paintOrder="stroke"
+          />
+        </svg>
       </motion.div>
 
       {/* Mascot – rises from bottom with bounce */}
@@ -87,9 +247,10 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         <Button
           onClick={onNext}
           size="lg"
-          className="w-full text-base font-semibold"
+          className="w-full rounded-2xl text-base font-semibold"
         >
-          Los legen 🚀
+          {t.next}
+          <ChevronRight className="ml-1 size-5" />
         </Button>
       </motion.div>
     </div>
@@ -205,7 +366,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   
   // Check if returning from scan with feedback request
   const showScanFeedback = location.state?.showScanFeedback === true;
-  const initialStep: OnboardingStep = showScanFeedback ? "scan-feedback" : "splash";
+  const fallbackStep: OnboardingStep =
+    showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : "splash";
+  const initialStep = fallbackStep;
   
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
@@ -322,6 +485,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
 
     lightTap(); // Haptic feedback on navigation
+
+    /* Splash immer explizit auf den nächsten Eintrag in onboardingSteps –
+     * verhindert Verwechslung mit anderer Navigation; wenn der Array (z. B. alter PWA-Cache)
+     * nur noch "splash" hat, gibt es ohne neuen Build keinen zweiten Screen – dann Dev-Hinweis. */
+    if (currentStep === "splash") {
+      const splashI = onboardingSteps.indexOf("splash");
+      const nextStep = splashI >= 0 ? onboardingSteps[splashI + 1] : undefined;
+      if (import.meta.env.DEV && !nextStep) {
+        console.warn(
+          "[Frigy Onboarding] Kein zweiter Schritt nach „splash“. Bitte neu bauen: npm run build, PWA-Service-Worker entfernen, neu laden.",
+        );
+      }
+      if (nextStep) {
+        setCurrentStep(nextStep);
+        return;
+      }
+      handleComplete();
+      return;
+    }
 
     // Handle conditional navigation for app-mode steps
     if (currentStep === "spontan-mode-1") {
@@ -1045,59 +1227,184 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "gender":
         return (
-          <StepCard step="gender">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-6 shadow-lg">
-                <User className="w-8 h-8 text-primary-foreground" />
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">{t.onboardingYourGender}</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingGenderImportant}</p>
-              
-              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-                {[
-                  { id: 'male' as const, label: t.onboardingMale, color: 'from-blue-500/20 to-cyan-500/20' },
-                  { id: 'female' as const, label: t.onboardingFemale, color: 'from-pink-500/20 to-rose-500/20' },
-                ].map((option, index) => (
-                  <motion.button
-                    key={option.id}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserData({ ...userData, gender: option.id })}
-                    className={`relative p-6 rounded-2xl border-2 transition-all overflow-hidden ${
-                      userData.gender === option.id
-                        ? 'border-primary bg-primary/10 shadow-md'
-                        : 'border-border bg-card hover:border-primary/30'
-                    }`}
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-50`} />
-                    <div className="relative z-10 flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-card/80 flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary" />
-                      </div>
-                      <span className="font-medium">{option.label}</span>
-                    </div>
-                    {userData.gender === option.id && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
-                      >
-                        <Check className="w-4 h-4 text-primary-foreground" />
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))}
+          <div className="flex w-full flex-col px-4 pb-4">
+              <div className="mx-auto mb-5 grid w-full max-w-lg grid-cols-2 gap-3 sm:gap-4">
+                <motion.button
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.06, duration: 0.25 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setUserData({ ...userData, gender: "male" })}
+                  type="button"
+                  className="relative flex flex-col items-stretch overflow-hidden border-2 border-neutral-950 bg-white shadow-sm"
+                >
+                  <div className="flex aspect-square w-full items-center justify-center bg-white px-2 pt-4 pb-2">
+                    <svg
+                      viewBox="0 0 100 120"
+                      className="h-[118px] max-h-full w-full max-w-[104px]"
+                      aria-hidden
+                    >
+                      <path
+                        d="M22 118V84Q22 74 32 72L38 70Q50 77 62 70L68 72Q78 74 78 84V118H22Z"
+                        fill="#fff"
+                        stroke="#171717"
+                        strokeWidth="2.2"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M38 72Q50 79 62 72L63 76Q61 96 50 102Q39 96 37 76Z"
+                        fill="#171717"
+                      />
+                      <ellipse
+                        cx="50"
+                        cy="50"
+                        rx="20"
+                        ry="23"
+                        fill="#fff"
+                        stroke="#171717"
+                        strokeWidth="2.2"
+                      />
+                      <path
+                        d="M30 46Q32 24 50 22Q68 24 70 46Q66 34 50 32Q34 34 30 46Z"
+                        fill="#171717"
+                      />
+                      <circle cx="42" cy="50" r="2.2" fill="#171717" />
+                      <circle cx="58" cy="50" r="2.2" fill="#171717" />
+                      <path
+                        d="M44 61Q50 65 56 61"
+                        fill="none"
+                        stroke="#171717"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                  <div className="border-t-2 border-neutral-950 bg-white px-2 py-2.5 text-center text-sm font-semibold text-neutral-950">
+                    {t.onboardingMale}
+                  </div>
+                  {userData.gender === "male" ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-950"
+                    >
+                      <Check className="size-3 text-white" strokeWidth={3} />
+                    </motion.div>
+                  ) : null}
+                </motion.button>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.25 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setUserData({ ...userData, gender: "female" })}
+                  type="button"
+                  className="relative flex flex-col items-stretch overflow-hidden border-2 border-neutral-950 bg-white shadow-sm"
+                >
+                  <div className="flex aspect-square w-full items-center justify-center bg-white px-2 pt-4 pb-2">
+                    <svg
+                      viewBox="0 0 100 120"
+                      className="h-[118px] max-h-full w-full max-w-[104px]"
+                      aria-hidden
+                    >
+                      <path
+                        d="M20 118V86Q20 76 30 73L36 71Q50 79 64 71L70 73Q80 76 80 86V118H20Z"
+                        fill="#fff"
+                        stroke="#171717"
+                        strokeWidth="2.2"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M28 88H72M28 96H72M28 104H72"
+                        stroke="#171717"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M20 118V86Q20 76 30 73L36 71Q50 79 64 71L70 73Q80 76 80 86V118H20Z"
+                        fill="#fff"
+                        stroke="#171717"
+                        strokeWidth="2.2"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M28 88H72M28 96H72M28 104H72"
+                        stroke="#171717"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M24 52Q22 72 28 92L34 88Q30 68 32 48Z"
+                        fill="#171717"
+                      />
+                      <path
+                        d="M76 52Q78 72 72 92L66 88Q70 68 68 48Z"
+                        fill="#171717"
+                      />
+                      <ellipse
+                        cx="50"
+                        cy="54"
+                        rx="18"
+                        ry="22"
+                        fill="#fff"
+                        stroke="#171717"
+                        strokeWidth="2.2"
+                      />
+                      <path
+                        d="M26 58Q24 38 34 28Q50 18 66 28Q76 38 74 58Q72 42 50 38Q28 42 26 58Z"
+                        fill="#171717"
+                      />
+                      <circle cx="43" cy="54" r="2" fill="#171717" />
+                      <circle cx="57" cy="54" r="2" fill="#171717" />
+                      <path
+                        d="M45 64Q50 68 55 64"
+                        fill="none"
+                        stroke="#171717"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                  <div className="border-t-2 border-neutral-950 bg-white px-2 py-2.5 text-center text-sm font-semibold text-neutral-950">
+                    {t.onboardingFemale}
+                  </div>
+                  {userData.gender === "female" ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-950"
+                    >
+                      <Check className="size-3 text-white" strokeWidth={3} />
+                    </motion.div>
+                  ) : null}
+                </motion.button>
               </div>
-              
-              <motion.p className="text-xs text-muted-foreground/40 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
-                {language === 'de' ? '~166 kcal Unterschied zwischen Männern & Frauen' : language === 'fr' ? '~166 kcal différence entre hommes & femmes' : '~166 kcal difference between men & women'}
-              </motion.p>
+
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.25 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() =>
+                  setUserData((prev) => ({
+                    ...prev,
+                    gender: prev.gender === "non-binary" ? null : "non-binary",
+                  }))
+                }
+                className="mx-auto flex items-center gap-3 py-2"
+              >
+                <div
+                  className={`flex size-5 items-center justify-center border-2 border-black rounded-sm bg-white transition-colors ${userData.gender === "non-binary" ? "bg-black" : ""}`}
+                >
+                  {userData.gender === "non-binary" ? <Check className="size-3 text-white" /> : null}
+                </div>
+                <span className="text-sm font-medium">
+                  {language === "de" ? "Nicht-binär" : language === "fr" ? "Non-binaire" : "Non-binary"}
+                </span>
+              </motion.button>
             </div>
-          </StepCard>
         );
 
       case "goal-mode":
@@ -3907,6 +4214,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const notebookQuestionLines =
+    currentStep === "gender"
+      ? language === "de"
+        ? "WAS IST DEIN\nGESCHLECHT?"
+        : language === "fr"
+          ? "QUEL EST TON\nGENRE ?"
+          : "WHAT'S YOUR\nGENDER?"
+      : "";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -3915,16 +4231,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
       {/* Progress Bar at Top */}
-      {currentStep !== 'language-select' && currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && (
+      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' &&
+        !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
           totalSteps={totalSteps}
         />
       )}
 
-      {/* Header - hidden for tutorial and splash */}
-      {currentStep !== 'tutorial' && currentStep !== 'splash' && (
-        <div className={`flex items-center justify-between p-4 ${currentStep === 'language-select' ? 'mt-0' : 'mt-12'} ${currentStep === 'analyzing' || currentStep === 'language-select' ? 'opacity-0 pointer-events-none' : ''}`}>
+      {/* Header - hidden for tutorial, splash, notebook chrome steps */}
+      {currentStep !== 'tutorial' && currentStep !== 'splash' &&
+        !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
+        <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
             <motion.button
               onClick={goBack}
@@ -3954,6 +4272,31 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         <div className="flex-1 min-h-0">
           {renderStepContent()}
         </div>
+      ) : NOTEBOOK_MASKOT_STEPS.includes(currentStep) ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <NotebookOnboardingChrome
+            questionLines={notebookQuestionLines}
+            progressFilledIndex={currentIndex}
+            totalProgressSegments={totalSteps}
+            onBack={goBack}
+            onNext={goNext}
+            canProceedNext={canProceed()}
+            showBack={currentIndex > 0}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                className="mx-auto w-full max-w-lg pb-6"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.28 }}
+              >
+                {renderStepContent()}
+              </motion.div>
+            </AnimatePresence>
+          </NotebookOnboardingChrome>
+        </div>
       ) : (
         <div
           ref={scrollContainerRef}
@@ -3978,7 +4321,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Bottom button */}
-      {!["language-select", "name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress"].includes(currentStep) && (
+      {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender"].includes(currentStep) && (
         <motion.div
           className="p-6 pb-8"
           initial={{ opacity: 0, y: 24 }}

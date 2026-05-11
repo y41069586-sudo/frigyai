@@ -37,6 +37,7 @@ const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
 const FoodEntryDetailPage = lazy(() => import("./pages/FoodEntryDetailPage"));
+const OnboardingPreviewPage = lazy(() => import("./pages/OnboardingPreviewPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,7 @@ const AppContent = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/scan" element={<ScanPage />} />
