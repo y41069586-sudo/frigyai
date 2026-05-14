@@ -16,7 +16,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
-import frigySplashSrc from "@/assets/frigy-splash.png";
+import frigySplashSrc from "@/assets/frigy-hero-nobg.png";
 import frigyNotebookSrc from "@/assets/frigy-notebook.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
@@ -27,15 +27,30 @@ import {
   OnboardingStep, UserData, defaultUserData, onboardingSteps 
 } from "./onboarding/types";
 import { calculateMacros, calculateWeeksToGoal, saveOnboardingData } from "./onboarding/utils";
-import { 
+import {
   StepCard, ProgressDots, AnimatedCounter, SelectionCard,
   AnimatedBicycle, AnimatedMotorcycle, AnimatedRocket, OnboardingProgressBar
 } from "./onboarding/components";
+import { GenderSelectStep } from "./onboarding/components/GenderSelectStep";
+import { BirthdateSelectStep } from "./onboarding/components/BirthdateSelectStep";
+import { WeightSelectStep } from "./onboarding/components/WeightSelectStep";
+import { HeightSelectStep } from "./onboarding/components/HeightSelectStep";
+import { ActivitySelectStep } from "./onboarding/components/ActivitySelectStep";
+import { MainGoalSelectStep } from "./onboarding/components/MainGoalSelectStep";
+import { TargetWeightSelectStep } from "./onboarding/components/TargetWeightSelectStep";
+import { GoalPreviewStep } from "./onboarding/components/GoalPreviewStep";
+import { PaceSelectStep } from "./onboarding/components/PaceSelectStep";
+import { HealthGoalsSelectStep } from "./onboarding/components/HealthGoalsSelectStep";
+import { DietStyleSelectStep } from "./onboarding/components/DietStyleSelectStep";
+import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep";
+import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
+import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
+import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
 import { WheelPicker } from "./WheelPicker";
 import { MacroRing } from "./MacroRing";
-import HeroAnimationCompact from "./HeroAnimationCompact";
+import HeroAnimation from "./HeroAnimation";
 import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
 
 // ─── Typewriter hook ─────────────────────────────────────────────────────────
@@ -117,53 +132,49 @@ const NotebookOnboardingChrome = ({
           className="h-[72px] w-[72px] shrink-0 object-contain"
         />
         <div className="relative mt-1 min-w-0 flex-1">
-          <div className="relative rounded-xl border-2 border-neutral-950 bg-[#F5F5EF] px-4 py-3 shadow-sm before:absolute before:left-[-6px] before:top-[18px] before:z-0 before:h-3 before:w-3 before:rotate-45 before:border-l-2 before:border-b-2 before:border-neutral-950 before:bg-[#F5F5EF]">
-            <p className="whitespace-pre-line font-black text-[13px] uppercase leading-snug tracking-wide text-neutral-950">
+          <div className="relative rounded-xl border-2 border-emerald-400 bg-emerald-50 px-4 py-3 shadow-sm before:absolute before:left-[-6px] before:top-[18px] before:z-0 before:h-3 before:w-3 before:rotate-45 before:border-l-2 before:border-b-2 before:border-emerald-400 before:bg-emerald-50">
+            <p className="whitespace-pre-line font-black text-[13px] uppercase leading-snug tracking-wide text-neutral-900">
               {displayed}
               {!done ? (
-                <span className="inline-block ml-0.5 h-[1em] w-0.5 animate-pulse bg-neutral-900 align-middle" />
+                <span className="inline-block ml-0.5 h-[1em] w-0.5 animate-pulse bg-emerald-700 align-middle" />
               ) : null}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Middle: only answers change */}
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-
-      {/* Footer */}
-      <div className="shrink-0 border-t border-border/40 px-4 pt-4 pb-8 pt-5">
-        <p className="mb-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
-          <span className="text-xs">ⓘ</span>
-          {disclaimer}
-        </p>
-        <div className="flex items-center gap-4">
-          {showBack ? (
-            <Button
+      {/* Middle + actions: scroll together so „Weiter“ sits under content, not pinned to viewport bottom */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {children}
+        <div className="shrink-0 border-t border-border/40 px-4 pt-5 pb-8">
+          <p className="mb-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
+            <span className="text-xs">ⓘ</span>
+            {disclaimer}
+          </p>
+          <div className="flex items-center gap-4">
+            {showBack ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onBack}
+                className="h-12 min-w-[52px] rounded-2xl border-border bg-[#EDE9E4] px-0 shadow-none hover:bg-[#E5E2DC]"
+                aria-label="Zurück"
+              >
+                <ChevronRight className="size-6 rotate-180 text-neutral-900" />
+              </Button>
+            ) : (
+              <div className="min-w-[52px]" aria-hidden />
+            )}
+            <button
               type="button"
-              variant="outline"
-              onClick={onBack}
-              className="h-12 min-w-[52px] rounded-2xl border-border bg-[#EDE9E4] px-0 shadow-none hover:bg-[#E5E2DC]"
-              aria-label="Zurück"
+              onClick={onNext}
+              disabled={!canProceedNext}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-emerald-500 bg-emerald-300 px-4 text-base font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-emerald-300"
             >
-              <ChevronRight className="size-6 rotate-180 text-neutral-900" />
-            </Button>
-          ) : (
-            <div className="min-w-[52px]" aria-hidden />
-          )}
-          <Button
-            type="button"
-            onClick={onNext}
-            disabled={!canProceedNext}
-            className={`h-12 flex-1 rounded-2xl text-base font-semibold ${
-              canProceedNext
-                ? "bg-neutral-900 text-white hover:bg-neutral-800"
-                : "bg-neutral-400 text-white hover:bg-neutral-400"
-            }`}
-          >
-            {t.next}
-            <ChevronRight className="ml-1 size-5" />
-          </Button>
+              {t.next}
+              <ChevronRight className="ml-1 size-5 shrink-0" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -171,87 +182,94 @@ const NotebookOnboardingChrome = ({
 };
 
 // ─── Splash Screen ────────────────────────────────────────────────────────────
-const BUBBLE_GREEN = "hsl(148 100% 52%)";
+const FloatingFood = ({ emoji, delay, x, y }: { emoji: string; delay: number; x: string; y: string }) => (
+  <motion.div
+    className="absolute text-3xl select-none pointer-events-none z-0"
+    style={{ left: x, top: y }}
+    initial={{ opacity: 0, scale: 0 }}
+    animate={{
+      opacity: 1,
+      scale: 1,
+      y: [0, -10, 0],
+    }}
+    transition={{
+      opacity: { delay, duration: 0.4 },
+      scale: { delay, duration: 0.4, type: "spring", stiffness: 200 },
+      y: { delay: delay + 0.4, duration: 2.5, repeat: Infinity, ease: "easeInOut" },
+    }}
+  >
+    {emoji}
+  </motion.div>
+);
 
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   const { t } = useLanguage();
-  const bubbleText = t.welcomeToFrigy + "!";
-  const { displayed, done } = useTypewriter(bubbleText, 38, 600);
+
+  const featureItems = [
+    { icon: Camera, label: "KI-Scan" },
+    { icon: ChefHat, label: "Rezepte" },
+    { icon: Scale, label: "Kalorien" },
+  ];
+
+
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden">
-      {/* Speech bubble – green bg, typewriter text */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.85, y: -6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.25, ease: "easeOut" }}
-        className="absolute top-10 left-4 right-4 z-10"
-      >
-        {/* Bubble box */}
-        <div
-          className="relative border-[4px] border-black px-5 py-4 rounded-none"
-          style={{ backgroundColor: BUBBLE_GREEN }}
-        >
-          <p className="font-black text-[17px] leading-snug text-white min-h-[1.4em]">
-            {displayed}
-            {!done && (
-              <span className="inline-block w-[2px] h-[1em] bg-white ml-[1px] align-middle animate-pulse" />
-            )}
-          </p>
-        </div>
-        {/* Triangle tail */}
-        <svg
-          width="32" height="18"
-          viewBox="0 0 32 18"
-          className="absolute left-8 top-full -mt-[1px]"
-          aria-hidden
-        >
-          <polygon
-            points="0,0 32,0 10,18"
-            fill={BUBBLE_GREEN}
-            stroke="black"
-            strokeWidth="4"
-            strokeLinejoin="miter"
-            paintOrder="stroke"
-          />
-        </svg>
-      </motion.div>
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-white">
 
-      {/* Mascot – rises from bottom with bounce */}
-      <motion.div
-        initial={{ y: 700 }}
-        animate={{ y: 0 }}
-        transition={{
-          type: "spring",
-          stiffness: 60,
-          damping: 10,
-          delay: 0.1,
-        }}
-        className="flex-1 flex items-center justify-center px-6 pt-20"
-      >
+      {/* ── Speech bubble ── */}
+      <div className="shrink-0 z-20 mx-6 mt-10 pb-6">
+        <div
+          className="relative px-6 py-4"
+          style={{ background: "hsl(148 100% 52%)", border: "3px solid black", overflow: "visible" }}
+        >
+          <p className="font-black text-[20px] text-white text-center leading-tight">
+            {t.welcomeToFrigy}! 👋
+          </p>
+
+          {/* black triangle (outline layer) */}
+          <div className="absolute left-[35%]" style={{
+            bottom: -22, width: 0, height: 0,
+            borderLeft: "16px solid transparent",
+            borderRight: "16px solid transparent",
+            borderTop: "22px solid black",
+          }} />
+          {/* green triangle on top covers the seam */}
+          <div className="absolute left-[35%]" style={{
+            bottom: -16, marginLeft: 3, width: 0, height: 0,
+            borderLeft: "13px solid transparent",
+            borderRight: "13px solid transparent",
+            borderTop: "17px solid hsl(148 100% 52%)",
+          }} />
+        </div>
+      </div>
+
+      {/* ── Mascot ── */}
+      <div className="relative flex-1 min-h-0 flex items-end justify-center z-10">
         <img
           src={frigySplashSrc}
-          alt="Frigy Mascot"
-          className="w-full max-w-[320px] object-contain select-none pointer-events-none mix-blend-multiply dark:mix-blend-screen"
+          alt="Frigy"
+          className="w-full h-full object-contain select-none pointer-events-none"
+          style={{ transform: "scale(1.08)" }}
           draggable={false}
         />
-      </motion.div>
+      </div>
 
-      {/* CTA button – fades in at bottom */}
+      {/* ── Button ── */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.6, duration: 0.4, ease: "easeOut" }}
-        className="px-6 pb-12 pt-4 shrink-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.05, duration: 0.2 }}
+        className="shrink-0 z-20 px-5 pt-2 pb-8"
       >
-        <Button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           onClick={onNext}
-          size="lg"
-          className="w-full rounded-2xl text-base font-semibold"
+          className="w-full rounded-2xl font-black text-[18px] flex items-center justify-center gap-2 shadow-md"
+          style={{ background: "hsl(148 100% 52%)", color: "white", height: "56px" }}
         >
-          {t.next}
-          <ChevronRight className="ml-1 size-5" />
-        </Button>
+          Los geht's!
+          <ArrowRight className="w-5 h-5" />
+        </motion.button>
       </motion.div>
     </div>
   );
@@ -1227,184 +1245,158 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       case "gender":
         return (
-          <div className="flex w-full flex-col px-4 pb-4">
-              <div className="mx-auto mb-5 grid w-full max-w-lg grid-cols-2 gap-3 sm:gap-4">
-                <motion.button
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.06, duration: 0.25 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setUserData({ ...userData, gender: "male" })}
-                  type="button"
-                  className="relative flex flex-col items-stretch overflow-hidden border-2 border-neutral-950 bg-white shadow-sm"
-                >
-                  <div className="flex aspect-square w-full items-center justify-center bg-white px-2 pt-4 pb-2">
-                    <svg
-                      viewBox="0 0 100 120"
-                      className="h-[118px] max-h-full w-full max-w-[104px]"
-                      aria-hidden
-                    >
-                      <path
-                        d="M22 118V84Q22 74 32 72L38 70Q50 77 62 70L68 72Q78 74 78 84V118H22Z"
-                        fill="#fff"
-                        stroke="#171717"
-                        strokeWidth="2.2"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M38 72Q50 79 62 72L63 76Q61 96 50 102Q39 96 37 76Z"
-                        fill="#171717"
-                      />
-                      <ellipse
-                        cx="50"
-                        cy="50"
-                        rx="20"
-                        ry="23"
-                        fill="#fff"
-                        stroke="#171717"
-                        strokeWidth="2.2"
-                      />
-                      <path
-                        d="M30 46Q32 24 50 22Q68 24 70 46Q66 34 50 32Q34 34 30 46Z"
-                        fill="#171717"
-                      />
-                      <circle cx="42" cy="50" r="2.2" fill="#171717" />
-                      <circle cx="58" cy="50" r="2.2" fill="#171717" />
-                      <path
-                        d="M44 61Q50 65 56 61"
-                        fill="none"
-                        stroke="#171717"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
-                  <div className="border-t-2 border-neutral-950 bg-white px-2 py-2.5 text-center text-sm font-semibold text-neutral-950">
-                    {t.onboardingMale}
-                  </div>
-                  {userData.gender === "male" ? (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-950"
-                    >
-                      <Check className="size-3 text-white" strokeWidth={3} />
-                    </motion.div>
-                  ) : null}
-                </motion.button>
+          <GenderSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
 
-                <motion.button
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1, duration: 0.25 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setUserData({ ...userData, gender: "female" })}
-                  type="button"
-                  className="relative flex flex-col items-stretch overflow-hidden border-2 border-neutral-950 bg-white shadow-sm"
-                >
-                  <div className="flex aspect-square w-full items-center justify-center bg-white px-2 pt-4 pb-2">
-                    <svg
-                      viewBox="0 0 100 120"
-                      className="h-[118px] max-h-full w-full max-w-[104px]"
-                      aria-hidden
-                    >
-                      <path
-                        d="M20 118V86Q20 76 30 73L36 71Q50 79 64 71L70 73Q80 76 80 86V118H20Z"
-                        fill="#fff"
-                        stroke="#171717"
-                        strokeWidth="2.2"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M28 88H72M28 96H72M28 104H72"
-                        stroke="#171717"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M20 118V86Q20 76 30 73L36 71Q50 79 64 71L70 73Q80 76 80 86V118H20Z"
-                        fill="#fff"
-                        stroke="#171717"
-                        strokeWidth="2.2"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M28 88H72M28 96H72M28 104H72"
-                        stroke="#171717"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M24 52Q22 72 28 92L34 88Q30 68 32 48Z"
-                        fill="#171717"
-                      />
-                      <path
-                        d="M76 52Q78 72 72 92L66 88Q70 68 68 48Z"
-                        fill="#171717"
-                      />
-                      <ellipse
-                        cx="50"
-                        cy="54"
-                        rx="18"
-                        ry="22"
-                        fill="#fff"
-                        stroke="#171717"
-                        strokeWidth="2.2"
-                      />
-                      <path
-                        d="M26 58Q24 38 34 28Q50 18 66 28Q76 38 74 58Q72 42 50 38Q28 42 26 58Z"
-                        fill="#171717"
-                      />
-                      <circle cx="43" cy="54" r="2" fill="#171717" />
-                      <circle cx="57" cy="54" r="2" fill="#171717" />
-                      <path
-                        d="M45 64Q50 68 55 64"
-                        fill="none"
-                        stroke="#171717"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
-                  <div className="border-t-2 border-neutral-950 bg-white px-2 py-2.5 text-center text-sm font-semibold text-neutral-950">
-                    {t.onboardingFemale}
-                  </div>
-                  {userData.gender === "female" ? (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-950"
-                    >
-                      <Check className="size-3 text-white" strokeWidth={3} />
-                    </motion.div>
-                  ) : null}
-                </motion.button>
-              </div>
+      case "birthdate":
+        return (
+          <BirthdateSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
 
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.25 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() =>
-                  setUserData((prev) => ({
-                    ...prev,
-                    gender: prev.gender === "non-binary" ? null : "non-binary",
-                  }))
-                }
-                className="mx-auto flex items-center gap-3 py-2"
-              >
-                <div
-                  className={`flex size-5 items-center justify-center border-2 border-black rounded-sm bg-white transition-colors ${userData.gender === "non-binary" ? "bg-black" : ""}`}
-                >
-                  {userData.gender === "non-binary" ? <Check className="size-3 text-white" /> : null}
-                </div>
-                <span className="text-sm font-medium">
-                  {language === "de" ? "Nicht-binär" : language === "fr" ? "Non-binaire" : "Non-binary"}
-                </span>
-              </motion.button>
-            </div>
+      case "weight":
+        return (
+          <WeightSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "height":
+        return (
+          <HeightSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "activity":
+        return (
+          <ActivitySelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "main-goal":
+        return (
+          <MainGoalSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "target-weight":
+        return (
+          <TargetWeightSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "goal-preview":
+        return (
+          <GoalPreviewStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "speed-select":
+        return (
+          <PaceSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "health-goals":
+        return (
+          <HealthGoalsSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "weekly-plan-preview":
+        return (
+          <WeeklyPlanPreviewStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "scan-fridge":
+        return (
+          <FridgeScanStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "shopping-list":
+        return (
+          <ShoppingListStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
         );
 
       case "goal-mode":
@@ -1700,130 +1692,27 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         );
 
       case "dietary-preferences":
-        const dietOptionsData = [
-          { id: 'vegetarian', label: t.onboardingVegetarian, Icon: Salad, desc: t.onboardingNoMeatFish },
-          { id: 'vegan', label: t.onboardingVegan, Icon: Leaf, desc: t.onboardingNoAnimalProducts },
-          { id: 'pescatarian', label: t.onboardingPescatarian, Icon: Fish, desc: t.onboardingFishNoMeat },
-          { id: 'none', label: t.onboardingNone, Icon: Utensils, desc: t.onboardingEverythingAllowed },
-        ];
         return (
-          <StepCard step="dietary-preferences">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
-                <Leaf className="w-8 h-8 text-primary-foreground" />
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">{t.onboardingDietaryPrefs}</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingForMatchingRecipes}</p>
-              
-              <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                {dietOptionsData.map((option, index) => {
-                  const isSelected = option.id === 'none' 
-                    ? userData.dietaryPreferences.length === 0 
-                    : userData.dietaryPreferences.includes(option.id);
-                  
-                  return (
-                    <motion.button
-                      key={option.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.05 + index * 0.05, duration: 0.3 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        if (option.id === 'none') {
-                          setUserData({ ...userData, dietaryPreferences: [] });
-                        } else {
-                          const newPrefs = userData.dietaryPreferences.includes(option.id)
-                            ? userData.dietaryPreferences.filter(p => p !== option.id)
-                            : [...userData.dietaryPreferences.filter(p => p !== 'none'), option.id];
-                          setUserData({ ...userData, dietaryPreferences: newPrefs });
-                        }
-                      }}
-                      className={`relative p-4 rounded-xl border-2 transition-all text-left ${
-                        isSelected ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <option.Icon className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{option.label}</p>
-                          <p className="text-[10px] text-muted-foreground/50">{option.desc}</p>
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-3 h-3 text-primary-foreground" />
-                        </motion.div>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          </StepCard>
+          <DietStyleSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
         );
 
       case "allergies":
-        const allergyOptionsData = [
-          { id: 'gluten', label: t.onboardingGluten, Icon: Wheat },
-          { id: 'lactose', label: t.onboardingLactose, Icon: Milk },
-          { id: 'nuts', label: t.onboardingNuts, Icon: Apple },
-          { id: 'soy', label: t.onboardingSoy, Icon: Bean },
-          { id: 'eggs', label: t.onboardingEggs, Icon: Egg },
-          { id: 'none', label: t.onboardingNone, Icon: CircleCheck },
-        ];
         return (
-          <StepCard step="allergies">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-4 shadow-lg">
-                <AlertTriangle className="w-8 h-8 text-white" />
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">{t.onboardingAllergies}</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">{t.onboardingMultiSelect}</p>
-              
-              <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                {allergyOptionsData.map((option, index) => {
-                  const isSelected = option.id === 'none' 
-                    ? userData.allergies.length === 0 
-                    : userData.allergies.includes(option.id);
-                  
-                  return (
-                    <motion.button
-                      key={option.id}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.03 + index * 0.03, duration: 0.3 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        if (option.id === 'none') {
-                          setUserData({ ...userData, allergies: [] });
-                        } else {
-                          const newAllergies = userData.allergies.includes(option.id)
-                            ? userData.allergies.filter(a => a !== option.id)
-                            : [...userData.allergies.filter(a => a !== 'none'), option.id];
-                          setUserData({ ...userData, allergies: newAllergies });
-                        }
-                      }}
-                      className={`relative p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
-                        isSelected ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/30'
-                      }`}
-                    >
-                      <option.Icon className="w-6 h-6 text-primary" />
-                      <span className="text-xs font-medium">{option.label}</span>
-                      {isSelected && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                        </motion.div>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          </StepCard>
+          <AllergiesSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
         );
 
       case "cooking-time":
@@ -2242,12 +2131,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div className="flex flex-col items-center justify-center text-center px-4 w-full min-h-[60vh]">
               {/* Hero Animation - Full width */}
               <motion.div
-                className="w-full max-w-sm mb-6"
+                className="w-full max-w-xl mb-6 px-1"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <HeroAnimationCompact />
+                <HeroAnimation />
               </motion.div>
               
               <motion.h1 
@@ -4231,7 +4120,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
       {/* Progress Bar at Top */}
-      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' &&
+      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
@@ -4239,8 +4128,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         />
       )}
 
-      {/* Header - hidden for tutorial, splash, notebook chrome steps */}
-      {currentStep !== 'tutorial' && currentStep !== 'splash' &&
+      {/* Header - hidden for tutorial, splash, gender, birthdate, weight, height, activity, main-goal, target-weight, goal-preview, speed-select, health-goals, dietary-preferences, allergies, weekly-plan-preview, scan-fridge, shopping-list, notebook chrome steps */}
+      {currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'main-goal' && currentStep !== 'target-weight' && currentStep !== 'goal-preview' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
@@ -4267,8 +4156,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Main content */}
-      {currentStep === 'tutorial' || currentStep === 'splash' ? (
-        // Tutorial and splash render fullscreen
+      {currentStep === 'tutorial' || currentStep === 'splash' || currentStep === 'gender' || currentStep === 'birthdate' || currentStep === 'weight' || currentStep === 'height' || currentStep === 'activity' || currentStep === 'main-goal' || currentStep === 'target-weight' || currentStep === 'goal-preview' || currentStep === 'speed-select' || currentStep === 'health-goals' || currentStep === 'dietary-preferences' || currentStep === 'allergies' || currentStep === 'weekly-plan-preview' || currentStep === 'scan-fridge' || currentStep === 'shopping-list' ? (
+        // These steps render fullscreen with their own layout
         <div className="flex-1 min-h-0">
           {renderStepContent()}
         </div>
@@ -4317,29 +4206,27 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list"].includes(currentStep) && (
+            <motion.div
+              className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <Button
+                onClick={goNext}
+                disabled={!canProceed()}
+                className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
+              >
+                {currentStep === "welcome" ? t.start : 
+                 currentStep === "tracker-intro" ? t.letsGo : 
+                 currentStep === "macro-preview" ? t.perfectBtn :
+                 t.next}
+                <ChevronRight className="w-5 h-5 ml-1" />
+              </Button>
+            </motion.div>
+          )}
         </div>
-      )}
-
-      {/* Bottom button */}
-      {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender"].includes(currentStep) && (
-        <motion.div
-          className="p-6 pb-8"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        >
-          <Button
-            onClick={goNext}
-            disabled={!canProceed()}
-            className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
-          >
-            {currentStep === "welcome" ? t.start : 
-             currentStep === "tracker-intro" ? t.letsGo : 
-             currentStep === "macro-preview" ? t.perfectBtn :
-             t.next}
-            <ChevronRight className="w-5 h-5 ml-1" />
-          </Button>
-        </motion.div>
       )}
     </motion.div>
   );

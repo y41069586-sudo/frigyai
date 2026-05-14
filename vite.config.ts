@@ -10,6 +10,11 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  preview: {
+    host: "::",
+    port: 5180,
+    strictPort: true,
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
@@ -24,7 +29,7 @@ export default defineConfig(({ mode }) => ({
         background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
-        start_url: "/",
+        start_url: "/?pwa=v3",
         icons: [
           {
             src: "/pwa-192x192.png",

@@ -26,38 +26,40 @@ const HeroAnimation = () => {
       >
         {/* Head */}
         <motion.div
-          className="w-11 h-11 md:w-12 md:h-12 bg-primary/30 rounded-full border-2 border-primary flex items-center justify-center relative"
+          className="w-11 h-11 md:w-12 md:h-12 bg-primary/30 rounded-full border-2 border-emerald-200 dark:border-emerald-300 flex items-center justify-center relative overflow-visible"
           animate={step === 0 ? { rotate: [0, -10, 10, -5, 0] } : {}}
           transition={{ duration: 1, repeat: step === 0 ? Infinity : 0, repeatDelay: 0.5 }}
         >
-          <div className="flex gap-1.5">
+          {/* Hair — layered bob with side volume */}
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-[3.25rem] md:w-14 h-7 md:h-8 pointer-events-none z-0">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[2.75rem] md:w-12 h-5 md:h-6 rounded-t-[100%] rounded-b-lg bg-amber-900/88 shadow-sm" />
+            <div className="absolute bottom-0 left-0.5 w-3 md:w-3.5 h-5 md:h-6 rounded-full bg-amber-900/90 -rotate-[18deg] origin-bottom" />
+            <div className="absolute bottom-0 right-0.5 w-3 md:w-3.5 h-5 md:h-6 rounded-full bg-amber-900/90 rotate-[18deg] origin-bottom" />
+            <motion.div
+              className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 md:w-9 h-3.5 rounded-full bg-amber-950/75"
+              animate={step === 0 ? { scaleX: [1, 1.04, 1] } : {}}
+              transition={{ duration: 1.2, repeat: step === 0 ? Infinity : 0, ease: "easeInOut" }}
+            />
+            <div className="absolute top-2 left-2 w-1.5 h-3 rounded-full bg-amber-950/55 rotate-12" />
+            <div className="absolute top-2 right-2 w-1.5 h-3 rounded-full bg-amber-950/55 -rotate-12" />
+          </div>
+
+          <div className="relative z-10 flex gap-1.5">
             <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
             <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
           </div>
-          
-          <AnimatePresence>
-            {step === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0, rotate: [0, 15, -15, 10, 0] }}
-                exit={{ opacity: 0 }}
-                transition={{ rotate: { duration: 0.8, repeat: Infinity } }}
-                className="absolute -top-2 -right-1 w-5 h-5 bg-primary/40 rounded-full"
-              />
-            )}
-          </AnimatePresence>
         </motion.div>
 
-        <div className="w-1 h-14 md:h-16 bg-primary/50 mx-auto rounded-full" />
+        <div className="w-1 h-14 md:h-16 bg-emerald-300/70 dark:bg-emerald-400/50 mx-auto rounded-full" />
         
         <div className="absolute top-12 md:top-14 left-1/2 -translate-x-1/2 flex">
           <motion.div
-            className="w-8 h-1 bg-primary/50 rounded-full origin-right"
+            className="w-8 h-1 bg-emerald-300/70 dark:bg-emerald-400/50 rounded-full origin-right"
             animate={step >= 1 ? { rotate: 50, x: 15 } : { rotate: -30 }}
             transition={{ duration: 0.3 }}
           />
           <motion.div
-            className="w-8 h-1 bg-primary/50 rounded-full origin-left"
+            className="w-8 h-1 bg-emerald-300/70 dark:bg-emerald-400/50 rounded-full origin-left"
             animate={step >= 1 ? { rotate: -50, x: -15 } : { rotate: 30 }}
             transition={{ duration: 0.3 }}
           />
@@ -70,7 +72,7 @@ const HeroAnimation = () => {
                 animate={{ opacity: 1, scale: 1, x: 25, y: -18 }}
                 className="absolute top-10 right-0"
               >
-                <div className="w-6 h-10 bg-card border-2 border-primary rounded-md flex items-center justify-center shadow-lg">
+                <div className="w-6 h-10 bg-card border-2 border-emerald-200 dark:border-emerald-300 rounded-md flex items-center justify-center shadow-lg">
                   <Camera className="w-3 h-3 text-primary" />
                 </div>
               </motion.div>
@@ -112,11 +114,11 @@ const HeroAnimation = () => {
         transition={{ duration: 0.5 }}
       >
         {/* Fridge Interior */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-100 dark:from-slate-200 dark:to-slate-300 rounded-xl shadow-inner overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-100 dark:from-slate-200 dark:to-slate-300 rounded-xl shadow-inner overflow-hidden ring-1 ring-inset ring-emerald-200/70 dark:ring-emerald-400/35">
           {/* Shelves */}
-          <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-slate-300" />
-          <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-slate-300" />
-          <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-slate-300" />
+          <div className="absolute left-0 right-0 top-[25%] h-[2px] bg-emerald-200/90 dark:bg-emerald-500/40" />
+          <div className="absolute left-0 right-0 top-[50%] h-[2px] bg-emerald-200/90 dark:bg-emerald-500/40" />
+          <div className="absolute left-0 right-0 top-[75%] h-[2px] bg-emerald-200/90 dark:bg-emerald-500/40" />
           
           {/* Food Items */}
           <AnimatePresence>
@@ -130,7 +132,7 @@ const HeroAnimation = () => {
                   className="absolute top-[3%] left-[8%] w-6 h-12 md:w-8 md:h-14 rounded-sm shadow-md overflow-hidden"
                 >
                   {/* Milk carton */}
-                  <div className="w-full h-full bg-white border border-slate-200">
+                  <div className="w-full h-full bg-white border border-emerald-100 dark:border-emerald-800/40">
                     <div className="w-full h-3 bg-blue-400 rounded-t-sm" />
                     <div className="flex justify-center mt-1">
                       <div className="w-3 h-4 bg-blue-100 rounded-sm" />
@@ -169,7 +171,7 @@ const HeroAnimation = () => {
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.35 }}
-                  className="absolute top-[5%] right-[8%] w-8 h-6 md:w-10 md:h-7 bg-amber-50 rounded border border-amber-100 shadow-sm flex items-center justify-center gap-0.5"
+                  className="absolute top-[5%] right-[8%] w-8 h-6 md:w-10 md:h-7 bg-amber-50 rounded border border-emerald-200/80 dark:border-emerald-700/50 shadow-sm flex items-center justify-center gap-0.5"
                 >
                   <div className="w-2 h-3 bg-amber-100 rounded-full" />
                   <div className="w-2 h-3 bg-amber-100 rounded-full" />
@@ -233,7 +235,7 @@ const HeroAnimation = () => {
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="absolute top-[53%] left-[5%] w-10 h-6 md:w-14 md:h-8 bg-primary/20 rounded border border-primary/40 shadow-sm"
+                  className="absolute top-[53%] left-[5%] w-10 h-6 md:w-14 md:h-8 bg-primary/20 rounded border border-emerald-200 dark:border-emerald-400/60 shadow-sm"
                 >
                   <div className="w-full h-1.5 bg-primary/30 rounded-t" />
                 </motion.div>
@@ -245,7 +247,7 @@ const HeroAnimation = () => {
                   transition={{ delay: 0.65 }}
                   className="absolute top-[54%] left-[45%] w-5 h-5 md:w-6 md:h-6"
                 >
-                  <div className="w-full h-full bg-white rounded-sm border border-slate-200 shadow-sm">
+                  <div className="w-full h-full bg-white rounded-sm border border-emerald-100 dark:border-emerald-800/40 shadow-sm">
                     <div className="w-full h-1.5 bg-pink-400 rounded-t-sm" />
                   </div>
                 </motion.div>
@@ -270,7 +272,7 @@ const HeroAnimation = () => {
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.75 }}
-                  className="absolute bottom-[2%] left-[4%] right-[4%] h-8 md:h-10 bg-gradient-to-b from-green-50 to-green-100 rounded border border-slate-200 flex items-center justify-around px-2"
+                  className="absolute bottom-[2%] left-[4%] right-[4%] h-8 md:h-10 bg-gradient-to-b from-green-50 to-green-100 rounded border border-emerald-200 dark:border-emerald-600/40 flex items-center justify-around px-2"
                 >
                   {/* Lettuce */}
                   <div className="w-4 h-4 md:w-5 md:h-5 bg-gradient-to-br from-green-300 to-green-500 rounded-full" />
@@ -321,7 +323,7 @@ const HeroAnimation = () => {
         </AnimatePresence>
 
         <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 dark:from-slate-400 dark:via-slate-300 dark:to-slate-400 rounded-xl border-2 border-slate-300 shadow-xl origin-right"
+          className="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 dark:from-slate-400 dark:via-slate-300 dark:to-slate-400 rounded-xl border-2 border-emerald-200 dark:border-emerald-300 shadow-xl origin-right"
           animate={{
             rotateY: fridgeOpen ? 110 : 0,
           }}
@@ -331,7 +333,7 @@ const HeroAnimation = () => {
           <div className="absolute left-3 top-[45%] w-2 h-10 md:h-12 bg-slate-400 rounded-full shadow-inner" />
           
           {/* Freezer Line */}
-          <div className="absolute left-0 right-0 top-[25%] h-[3px] bg-slate-300" />
+          <div className="absolute left-0 right-0 top-[25%] h-[3px] bg-emerald-200/90 dark:bg-emerald-500/35" />
           
           {/* Door Texture */}
           <div className="absolute inset-2 rounded-lg bg-gradient-to-br from-white/30 to-transparent" />
@@ -350,7 +352,7 @@ const HeroAnimation = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="w-20 md:w-24 p-2 bg-card border-2 border-primary/50 rounded-lg shadow-lg"
+              className="w-20 md:w-24 p-2 bg-card border-2 border-emerald-200 dark:border-emerald-300 rounded-lg shadow-lg"
             >
               <div className="flex items-center gap-1 mb-1">
                 <Utensils className="w-3 h-3 text-primary" />
@@ -362,7 +364,7 @@ const HeroAnimation = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="w-20 md:w-24 p-2 bg-card border-2 border-primary/50 rounded-lg shadow-lg"
+              className="w-20 md:w-24 p-2 bg-card border-2 border-emerald-200 dark:border-emerald-300 rounded-lg shadow-lg"
             >
               <div className="flex items-center gap-1 mb-1">
                 <ChefHat className="w-3 h-3 text-primary" />
@@ -382,7 +384,7 @@ const HeroAnimation = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="absolute left-[25%] bottom-[8%]"
           >
-            <div className="flex items-center gap-1.5 bg-primary/20 px-3 py-1.5 rounded-full border border-primary/50 shadow-lg">
+            <div className="flex items-center gap-1.5 bg-primary/20 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-300 shadow-lg">
               <Scale className="w-4 h-4 text-primary" />
               <span className="text-sm font-bold text-primary">-3kg</span>
             </div>
