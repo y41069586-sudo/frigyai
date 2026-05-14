@@ -278,6 +278,8 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
 interface OnboardingFlowProps {
   onComplete: () => void;
+  /** QA helper: jump directly to a given step on mount (used by /onboarding-preview?step=…). */
+  initialStep?: OnboardingStep;
 }
 
 // Analysis Step component
@@ -374,7 +376,7 @@ const AnalysisProgress = () => {
   return <span>{progress}%</span>;
 };
 
-export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
+export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }: OnboardingFlowProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
@@ -386,7 +388,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const showScanFeedback = location.state?.showScanFeedback === true;
   const fallbackStep: OnboardingStep =
     showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : "splash";
-  const initialStep = fallbackStep;
+  const initialStep: OnboardingStep =
+    initialStepOverride && onboardingSteps.includes(initialStepOverride)
+      ? initialStepOverride
+      : fallbackStep;
   
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
