@@ -28,7 +28,7 @@ export function MintSegmentedControl<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className="relative inline-flex h-11 items-center rounded-full p-1"
+      className="relative inline-flex h-10 items-center rounded-full p-1 [@media(min-height:701px)]:h-11 [@media(min-height:800px)]:h-[52px]"
       style={{
         backgroundColor: "#EFF6F2",
         border: "1px solid #E3EFE7",
@@ -63,10 +63,9 @@ export function MintSegmentedControl<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(opt.id)}
-            className="relative z-10 flex h-full items-center justify-center px-6 text-[14px] font-medium transition-colors"
+            className="relative z-10 flex h-full min-w-[88px] items-center justify-center px-5 text-[13px] font-medium transition-colors [@media(min-height:701px)]:min-w-[96px] [@media(min-height:701px)]:px-6 [@media(min-height:701px)]:text-[14px] [@media(min-height:800px)]:min-w-[108px] [@media(min-height:800px)]:px-7 [@media(min-height:800px)]:text-[16px]"
             style={{
               color: active ? "white" : "#6B7280",
-              minWidth: 96,
               WebkitTapHighlightColor: "transparent",
             }}
           >

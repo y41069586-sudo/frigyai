@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { useMintWheelRowHeight } from "./MintWheelColumn";
 
 const PALETTE = {
   primary: "#7BE0B8",
@@ -16,7 +17,6 @@ const PALETTE = {
   cardBorderIdle: "#EEF2EF",
 };
 
-const ITEM_HEIGHT = 40;
 const VISIBLE_ITEMS = 5;
 const PAD_ITEMS = Math.floor(VISIBLE_ITEMS / 2);
 
@@ -29,6 +29,7 @@ type WheelColumnProps = {
   align?: "left" | "center" | "right";
   width?: number | string;
   ariaLabel?: string;
+  rowHeight: number;
 };
 
 const haptic = () => {
@@ -44,6 +45,7 @@ function WheelColumn({
   align = "center",
   width = "100%",
   ariaLabel,
+  rowHeight,
 }: WheelColumnProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastIndexRef = useRef(0);
@@ -55,37 +57,33 @@ function WheelColumn({
     return idx >= 0 ? idx : 0;
   }, [options, value]);
 
-  const scrollToIndex = useCallback((idx: number, smooth: boolean) => {
-    if (!scrollRef.current) return;
-    isProgrammaticRef.current = true;
-    scrollRef.current.scrollTo({
-      top: idx * ITEM_HEIGHT,
-      behavior: smooth ? "smooth" : "auto",
-    });
-    setTimeout(
-      () => {
-        isProgrammaticRef.current = false;
-      },
-      smooth ? 260 : 30,
-    );
-  }, []);
+  const scrollToIndex = useCallback(
+    (idx: number, smooth: boolean) => {
+      if (!scrollRef.current) return;
+      isProgrammaticRef.current = true;
+      scrollRef.current.scrollTo({
+        top: idx * rowHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+      setTimeout(
+        () => {
+          isProgrammaticRef.current = false;
+        },
+        smooth ? 260 : 30,
+      );
+    },
+    [rowHeight],
+  );
 
   useEffect(() => {
     scrollToIndex(selectedIndex, false);
     lastIndexRef.current = selectedIndex;
-  }, []);
-
-  useEffect(() => {
-    if (selectedIndex !== lastIndexRef.current) {
-      scrollToIndex(selectedIndex, false);
-      lastIndexRef.current = selectedIndex;
-    }
-  }, [selectedIndex, scrollToIndex]);
+  }, [selectedIndex, rowHeight, scrollToIndex]);
 
   const handleScroll = useCallback(() => {
     if (!scrollRef.current || isProgrammaticRef.current) return;
     const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / ITEM_HEIGHT);
+    const idx = Math.round(top / rowHeight);
     const clamped = Math.max(0, Math.min(options.length - 1, idx));
 
     if (clamped !== lastIndexRef.current) {
@@ -98,20 +96,23 @@ function WheelColumn({
     snapTimeoutRef.current = setTimeout(() => {
       if (!scrollRef.current) return;
       const currentTop = scrollRef.current.scrollTop;
-      const targetTop = lastIndexRef.current * ITEM_HEIGHT;
+      const targetTop = lastIndexRef.current * rowHeight;
       if (Math.abs(currentTop - targetTop) > 0.5) {
         scrollToIndex(lastIndexRef.current, true);
       }
     }, 90);
-  }, [options, onChange, scrollToIndex]);
+  }, [options, onChange, scrollToIndex, rowHeight]);
 
   useEffect(() => () => {
     if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
   }, []);
 
-  const containerHeight = VISIBLE_ITEMS * ITEM_HEIGHT;
+  const containerHeight = VISIBLE_ITEMS * rowHeight;
   const textAlignClass =
     align === "left" ? "justify-start pl-4" : align === "right" ? "justify-end pr-4" : "justify-center";
+
+  const selectedPx = rowHeight <= 40 ? 18 : 22;
+  const idlePx = rowHeight <= 40 ? 15 : 16;
 
   return (
     <div
@@ -134,7 +135,7 @@ function WheelColumn({
         }}
         onScroll={handleScroll}
       >
-        <div style={{ height: PAD_ITEMS * ITEM_HEIGHT }} />
+        <div style={{ height: PAD_ITEMS * rowHeight }} />
         {options.map((opt, idx) => {
           const distance = Math.abs(idx - selectedIndex);
           const isSelected = idx === selectedIndex;
@@ -147,9 +148,9 @@ function WheelColumn({
               aria-selected={isSelected}
               className={`flex items-center ${textAlignClass}`}
               style={{
-                height: ITEM_HEIGHT,
+                height: rowHeight,
                 scrollSnapAlign: "center",
-                fontSize: isSelected ? "18px" : "15px",
+                fontSize: isSelected ? `${selectedPx}px` : `${idlePx}px`,
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected ? PALETTE.text : PALETTE.textMuted,
                 opacity,
@@ -162,7 +163,7 @@ function WheelColumn({
             </div>
           );
         })}
-        <div style={{ height: PAD_ITEMS * ITEM_HEIGHT }} />
+        <div style={{ height: PAD_ITEMS * rowHeight }} />
       </div>
     </div>
   );
@@ -202,6 +203,7 @@ export function BirthdateSelectStep({
   totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
+  const wheelRow = useMintWheelRowHeight();
 
   const monthNames = language === "fr" ? MONTHS_FR : language === "en" ? MONTHS_EN : MONTHS_DE;
 
@@ -306,16 +308,16 @@ export function BirthdateSelectStep({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-4 pb-4 shrink-0 [@media(min-height:740px)]:pt-8 [@media(min-height:740px)]:pb-6"
+        className="px-6 pt-3 pb-3 shrink-0 [@media(max-height:700px)]:pt-3 [@media(max-height:700px)]:pb-3 [@media(min-height:701px)]:pt-5 [@media(min-height:701px)]:pb-4 [@media(min-height:800px)]:pt-8 [@media(min-height:800px)]:pb-6"
       >
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight [@media(min-height:740px)]:text-[26px]"
+          className="text-[24px] font-semibold leading-tight tracking-tight [@media(max-height:700px)]:text-[21px] [@media(min-height:800px)]:text-[30px]"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
         <p
-          className="mt-2 text-[14px] leading-snug [@media(min-height:740px)]:mt-3 [@media(min-height:740px)]:text-[15px]"
+          className="mt-1.5 text-[15px] leading-snug [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:text-[13px] [@media(min-height:800px)]:mt-3 [@media(min-height:800px)]:text-[17px]"
           style={{ color: PALETTE.textMuted }}
         >
           {subtitle}
@@ -328,7 +330,7 @@ export function BirthdateSelectStep({
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-          className="relative w-full max-w-md rounded-[24px] p-3 [@media(min-height:740px)]:rounded-[28px] [@media(min-height:740px)]:p-4"
+          className="relative w-full max-w-md rounded-[24px] p-3 [@media(max-height:700px)]:rounded-[22px] [@media(max-height:700px)]:p-2.5 [@media(min-height:800px)]:rounded-[28px] [@media(min-height:800px)]:p-5"
           style={{
             background:
               "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%)",
@@ -343,8 +345,8 @@ export function BirthdateSelectStep({
           <div
             className="pointer-events-none absolute inset-x-4 z-0 rounded-2xl"
             style={{
-              top: `calc(50% - ${ITEM_HEIGHT / 2}px)`,
-              height: ITEM_HEIGHT,
+              top: `calc(50% - ${wheelRow / 2}px)`,
+              height: wheelRow,
               backgroundColor: PALETTE.selectedBg,
               boxShadow: "0 0 0 4px rgba(123,224,184,0.18)",
             }}
@@ -352,18 +354,18 @@ export function BirthdateSelectStep({
 
           {/* Top fade */}
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
             style={{
-              height: PAD_ITEMS * ITEM_HEIGHT + 12,
+              height: PAD_ITEMS * wheelRow + 12,
               background:
                 "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
           {/* Bottom fade */}
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px]"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px] [@media(min-height:800px)]:rounded-b-[28px]"
             style={{
-              height: PAD_ITEMS * ITEM_HEIGHT + 12,
+              height: PAD_ITEMS * wheelRow + 12,
               background:
                 "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
@@ -378,6 +380,7 @@ export function BirthdateSelectStep({
               align="center"
               width="33.3333%"
               ariaLabel="Monat"
+              rowHeight={wheelRow}
             />
             <WheelColumn
               options={dayOptions}
@@ -386,6 +389,7 @@ export function BirthdateSelectStep({
               align="center"
               width="33.3333%"
               ariaLabel="Tag"
+              rowHeight={wheelRow}
             />
             <WheelColumn
               options={yearOptions}
@@ -394,19 +398,20 @@ export function BirthdateSelectStep({
               align="center"
               width="33.3333%"
               ariaLabel="Jahr"
+              rowHeight={wheelRow}
             />
           </div>
         </motion.div>
       </div>
 
       {/* ── Continue button ── */}
-      <div className="shrink-0 px-5 pt-3 pb-4 [@media(min-height:740px)]:pt-5 [@media(min-height:740px)]:pb-6">
+      <div className="shrink-0 px-5 pt-3 pb-4 [@media(max-height:700px)]:pt-2 [@media(max-height:700px)]:pb-3 [@media(min-height:800px)]:pt-5 [@media(min-height:800px)]:pb-6">
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
           onClick={onNext}
           disabled={!canProceed}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-semibold text-white transition-all [@media(min-height:740px)]:h-14 [@media(min-height:740px)]:text-[16px]"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-semibold text-white transition-all [@media(max-height:700px)]:h-11 [@media(max-height:700px)]:text-[14px] [@media(min-height:800px)]:h-[58px] [@media(min-height:800px)]:text-[17px]"
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
@@ -419,7 +424,7 @@ export function BirthdateSelectStep({
           }}
         >
           {t.next}
-          <ChevronRight className="size-5" strokeWidth={2.5} />
+          <ChevronRight className="size-5 [@media(min-height:800px)]:size-6" strokeWidth={2.5} />
         </motion.button>
       </div>
     </div>

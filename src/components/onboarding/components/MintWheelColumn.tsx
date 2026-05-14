@@ -1,8 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-export const WHEEL_ITEM_HEIGHT = 40;
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
+
+/** Short phones (e.g. iPhone SE): tighter wheel. Most iPhones use the comfortable row height. */
+const COMPACT_HEIGHT_MQ = "(max-height: 700px)";
+export const WHEEL_ROW_COMPACT = 40;
+export const WHEEL_ROW_COMFORT = 46;
+
+export function useMintWheelRowHeight(): number {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") return () => {};
+      const mq = window.matchMedia(COMPACT_HEIGHT_MQ);
+      mq.addEventListener("change", onStoreChange);
+      return () => mq.removeEventListener("change", onStoreChange);
+    },
+    () =>
+      typeof window !== "undefined" && window.matchMedia(COMPACT_HEIGHT_MQ).matches
+        ? WHEEL_ROW_COMPACT
+        : WHEEL_ROW_COMFORT,
+    () => WHEEL_ROW_COMFORT,
+  );
+}
 
 export type MintWheelOption = { value: number; label: string };
 
@@ -13,6 +33,8 @@ type MintWheelColumnProps = {
   align?: "left" | "center" | "right";
   width?: number | string;
   ariaLabel?: string;
+  /** Row height in px — must match overlay math in parent (use `useMintWheelRowHeight()`). */
+  rowHeight: number;
   /** Repeat options in a loop so short lists (e.g. 0–9) show digits above/below the ends */
   circular?: boolean;
 };
@@ -30,6 +52,7 @@ export function MintWheelColumn({
   align = "center",
   width = "100%",
   ariaLabel,
+  rowHeight,
   circular = false,
 }: MintWheelColumnProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -63,33 +86,34 @@ export function MintWheelColumn({
     setVisualPhysicalIndex(centerPhysicalIndex);
   }, [centerPhysicalIndex]);
 
-  const scrollToIndex = useCallback((idx: number, smooth: boolean) => {
-    if (!scrollRef.current) return;
-    isProgrammaticRef.current = true;
-    scrollRef.current.scrollTo({
-      top: idx * WHEEL_ITEM_HEIGHT,
-      behavior: smooth ? "smooth" : "auto",
-    });
-    lastPhysicalIndexRef.current = idx;
-    setTimeout(
-      () => {
-        isProgrammaticRef.current = false;
-      },
-      smooth ? 260 : 30,
-    );
-  }, []);
+  const scrollToIndex = useCallback(
+    (idx: number, smooth: boolean) => {
+      if (!scrollRef.current) return;
+      isProgrammaticRef.current = true;
+      scrollRef.current.scrollTo({
+        top: idx * rowHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+      lastPhysicalIndexRef.current = idx;
+      setTimeout(
+        () => {
+          isProgrammaticRef.current = false;
+        },
+        smooth ? 260 : 30,
+      );
+    },
+    [rowHeight],
+  );
 
   useEffect(() => {
     const targetPhysical = physicalOffset + selectedIndex;
-    if (targetPhysical !== lastPhysicalIndexRef.current) {
-      scrollToIndex(targetPhysical, false);
-    }
-  }, [selectedIndex, physicalOffset, scrollToIndex]);
+    scrollToIndex(targetPhysical, false);
+  }, [selectedIndex, physicalOffset, scrollToIndex, rowHeight]);
 
   const handleScroll = useCallback(() => {
     if (!scrollRef.current || isProgrammaticRef.current) return;
     const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / WHEEL_ITEM_HEIGHT);
+    const idx = Math.round(top / rowHeight);
     const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
 
     setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
@@ -103,7 +127,7 @@ export function MintWheelColumn({
     if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
     snapTimeoutRef.current = setTimeout(() => {
       if (!scrollRef.current) return;
-      let physical = Math.round(scrollRef.current.scrollTop / WHEEL_ITEM_HEIGHT);
+      let physical = Math.round(scrollRef.current.scrollTop / rowHeight);
       physical = Math.max(0, Math.min(displayOptions.length - 1, physical));
 
       if (circularActive) {
@@ -118,13 +142,13 @@ export function MintWheelColumn({
 
       lastPhysicalIndexRef.current = physical;
       setVisualPhysicalIndex(physical);
-      const targetTop = physical * WHEEL_ITEM_HEIGHT;
+      const targetTop = physical * rowHeight;
       const currentTop = scrollRef.current.scrollTop;
       if (Math.abs(currentTop - targetTop) > 0.5) {
         scrollToIndex(physical, true);
       }
     }, 90);
-  }, [displayOptions, onChange, scrollToIndex, circularActive, segmentLen]);
+  }, [displayOptions, onChange, scrollToIndex, circularActive, segmentLen, rowHeight]);
 
   useEffect(
     () => () => {
@@ -133,13 +157,16 @@ export function MintWheelColumn({
     [],
   );
 
-  const containerHeight = WHEEL_VISIBLE_ITEMS * WHEEL_ITEM_HEIGHT;
+  const containerHeight = WHEEL_VISIBLE_ITEMS * rowHeight;
   const textAlignClass =
     align === "left"
       ? "justify-start pl-2"
       : align === "right"
         ? "justify-end pr-2"
         : "justify-center";
+
+  const selectedFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 19 : 24;
+  const idleFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 14 : 17;
 
   return (
     <div
@@ -162,7 +189,7 @@ export function MintWheelColumn({
         }}
         onScroll={handleScroll}
       >
-        <div style={{ height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT }} />
+        <div style={{ height: WHEEL_PAD_ITEMS * rowHeight }} />
         {displayOptions.map((opt, idx) => {
           const distance = Math.abs(idx - visualPhysicalIndex);
           const isSelected = idx === visualPhysicalIndex;
@@ -175,9 +202,9 @@ export function MintWheelColumn({
               aria-selected={isSelected}
               className={`flex items-center ${textAlignClass}`}
               style={{
-                height: WHEEL_ITEM_HEIGHT,
+                height: rowHeight,
                 scrollSnapAlign: "center",
-                fontSize: isSelected ? "20px" : "15px",
+                fontSize: isSelected ? `${selectedFontPx}px` : `${idleFontPx}px`,
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected ? "#1F2937" : "#4B5563",
                 opacity,
@@ -191,7 +218,7 @@ export function MintWheelColumn({
             </div>
           );
         })}
-        <div style={{ height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT }} />
+        <div style={{ height: WHEEL_PAD_ITEMS * rowHeight }} />
       </div>
     </div>
   );
