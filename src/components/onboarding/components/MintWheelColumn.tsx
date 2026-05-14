@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-export const WHEEL_ITEM_HEIGHT = 44;
+export const WHEEL_ITEM_HEIGHT = 40;
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
 
@@ -177,7 +177,7 @@ export function MintWheelColumn({
               style={{
                 height: WHEEL_ITEM_HEIGHT,
                 scrollSnapAlign: "center",
-                fontSize: isSelected ? "22px" : "17px",
+                fontSize: isSelected ? "20px" : "15px",
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected ? "#1F2937" : "#4B5563",
                 opacity,

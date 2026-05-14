@@ -122,10 +122,15 @@ export function HeightSelectStep({
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col"
-      style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
+      style={{
+        backgroundColor: PALETTE.bg,
+        color: PALETTE.text,
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex items-center gap-3 px-5 pt-3 pb-1 shrink-0">
         {onBack ? (
           <motion.button
             type="button"
@@ -163,21 +168,21 @@ export function HeightSelectStep({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-8 pb-6 shrink-0"
+        className="px-6 pt-4 pb-3 shrink-0 [@media(min-height:740px)]:pt-6 [@media(min-height:740px)]:pb-5"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight [@media(min-height:740px)]:text-[26px]"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
-        <p className="mt-3 text-[15px] leading-relaxed" style={{ color: PALETTE.textMuted }}>
+        <p className="mt-2 text-[14px] leading-snug [@media(min-height:740px)]:mt-3 [@media(min-height:740px)]:text-[15px]" style={{ color: PALETTE.textMuted }}>
           {subtitle}
         </p>
       </motion.div>
 
-      {/* Unit toggle */}
-      <div className="flex justify-center px-5 pb-6 shrink-0">
+      {/* Unit toggle — stays above the card when the middle section is tight */}
+      <div className="relative z-30 flex justify-center px-5 pb-3 shrink-0 [@media(min-height:740px)]:pb-5">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}
@@ -186,14 +191,14 @@ export function HeightSelectStep({
         />
       </div>
 
-      {/* Wheel picker card */}
-      <div className="flex flex-1 min-h-0 items-center justify-center px-5">
+      {/* Wheel picker card — top-aligned with scroll so a tall card cannot cover the toggle */}
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-start overflow-y-auto px-4 pb-2 pt-1">
         <motion.div
           key={unit}
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-          className="relative w-full max-w-md rounded-[28px] p-4"
+          className="relative w-full max-w-md rounded-[24px] p-3 [@media(min-height:740px)]:rounded-[28px] [@media(min-height:740px)]:p-4"
           style={{
             background:
               "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%)",
@@ -216,19 +221,19 @@ export function HeightSelectStep({
           />
           {/* Fades */}
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[28px]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px]"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 16,
+              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
               background:
-                "linear-gradient(180deg, rgba(247,255,251,0.95) 0%, rgba(247,255,251,0.65) 50%, rgba(247,255,251,0) 100%)",
+                "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[28px]"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px]"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 16,
+              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
               background:
-                "linear-gradient(0deg, rgba(247,255,251,0.95) 0%, rgba(247,255,251,0.65) 50%, rgba(247,255,251,0) 100%)",
+                "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
 
@@ -292,12 +297,12 @@ export function HeightSelectStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-6 pb-10">
+      <div className="shrink-0 px-5 pt-3 pb-4 [@media(min-height:740px)]:pt-5 [@media(min-height:740px)]:pb-6">
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-semibold text-white transition-all [@media(min-height:740px)]:h-14 [@media(min-height:740px)]:text-[16px]"
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
