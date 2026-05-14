@@ -36,6 +36,7 @@ import { BirthdateSelectStep } from "./onboarding/components/BirthdateSelectStep
 import { WeightSelectStep } from "./onboarding/components/WeightSelectStep";
 import { HeightSelectStep } from "./onboarding/components/HeightSelectStep";
 import { ActivitySelectStep } from "./onboarding/components/ActivitySelectStep";
+import { AppleHealthConnectStep } from "./onboarding/components/AppleHealthConnectStep";
 import { MainGoalSelectStep } from "./onboarding/components/MainGoalSelectStep";
 import { TargetWeightSelectStep } from "./onboarding/components/TargetWeightSelectStep";
 import { GoalPreviewStep } from "./onboarding/components/GoalPreviewStep";
@@ -1294,6 +1295,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case "activity":
         return (
           <ActivitySelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
+          />
+        );
+
+      case "apple-health-connect":
+        return (
+          <AppleHealthConnectStep
             userData={userData}
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
@@ -4120,7 +4133,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
     >
       {/* Progress Bar at Top */}
-      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
+      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'apple-health-connect' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
@@ -4129,7 +4142,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Header - hidden for tutorial, splash, gender, birthdate, weight, height, activity, main-goal, target-weight, goal-preview, speed-select, health-goals, dietary-preferences, allergies, weekly-plan-preview, scan-fridge, shopping-list, notebook chrome steps */}
-      {currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'main-goal' && currentStep !== 'target-weight' && currentStep !== 'goal-preview' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
+      {currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'apple-health-connect' && currentStep !== 'main-goal' && currentStep !== 'target-weight' && currentStep !== 'goal-preview' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
@@ -4156,7 +4169,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       )}
 
       {/* Main content */}
-      {currentStep === 'tutorial' || currentStep === 'splash' || currentStep === 'gender' || currentStep === 'birthdate' || currentStep === 'weight' || currentStep === 'height' || currentStep === 'activity' || currentStep === 'main-goal' || currentStep === 'target-weight' || currentStep === 'goal-preview' || currentStep === 'speed-select' || currentStep === 'health-goals' || currentStep === 'dietary-preferences' || currentStep === 'allergies' || currentStep === 'weekly-plan-preview' || currentStep === 'scan-fridge' || currentStep === 'shopping-list' ? (
+      {currentStep === 'tutorial' || currentStep === 'splash' || currentStep === 'gender' || currentStep === 'birthdate' || currentStep === 'weight' || currentStep === 'height' || currentStep === 'activity' || currentStep === 'apple-health-connect' || currentStep === 'main-goal' || currentStep === 'target-weight' || currentStep === 'goal-preview' || currentStep === 'speed-select' || currentStep === 'health-goals' || currentStep === 'dietary-preferences' || currentStep === 'allergies' || currentStep === 'weekly-plan-preview' || currentStep === 'scan-fridge' || currentStep === 'shopping-list' ? (
         // These steps render fullscreen with their own layout
         <div className="flex-1 min-h-0">
           {renderStepContent()}
@@ -4206,7 +4219,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender", "birthdate", "weight", "height", "activity", "apple-health-connect", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

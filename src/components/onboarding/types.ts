@@ -26,6 +26,7 @@ export type OnboardingStep =
   | "weight"
   | "height"
   | "activity"
+  | "apple-health-connect"
   | "main-goal"
   | "goal-preview"
   | "goal-mode"
@@ -148,6 +149,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "weight",
   "height",
   "activity",
+  "apple-health-connect",
   "main-goal",
   "target-weight",
   "goal-preview",
