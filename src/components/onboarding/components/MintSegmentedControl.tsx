@@ -28,10 +28,10 @@ export function MintSegmentedControl<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className="relative inline-flex h-11 items-center rounded-full p-1"
+      className="relative inline-flex h-10 items-center rounded-full p-1"
       style={{
-        backgroundColor: "#EFF6F2",
-        border: "1px solid #E3EFE7",
+        backgroundColor: "#E8FFF2",
+        border: "1px solid #CDF5E0",
         boxShadow: "inset 0 1px 1px rgba(15,40,30,0.04)",
       }}
     >
@@ -47,9 +47,9 @@ export function MintSegmentedControl<T extends string>({
           bottom: 4,
           left: 4,
           width: `calc((100% - 8px) / ${count})`,
-          background: "linear-gradient(135deg, #7BE0B8 0%, #5BCB9F 100%)",
+          background: "linear-gradient(135deg, #24FF8F 0%, #12D978 100%)",
           boxShadow:
-            "0 6px 14px -6px rgba(91,203,159,0.55), 0 1px 2px rgba(15,40,30,0.05)",
+            "0 6px 14px -6px rgba(18,217,120,0.55), 0 1px 2px rgba(15,40,30,0.05)",
           pointerEvents: "none",
         }}
       />
@@ -63,10 +63,10 @@ export function MintSegmentedControl<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(opt.id)}
-            className="relative z-10 flex h-full items-center justify-center px-6 text-[14px] font-medium transition-colors"
+            className="relative z-10 flex h-full items-center justify-center px-4 text-[13px] font-medium transition-colors"
             style={{
               color: active ? "white" : "#6B7280",
-              minWidth: 96,
+              minWidth: 76,
               WebkitTapHighlightColor: "transparent",
             }}
           >

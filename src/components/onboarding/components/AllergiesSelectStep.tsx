@@ -9,21 +9,18 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  primaryDeep: "#2DAA82",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  primaryDeep: "#0A8550",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
   subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
 };
 
 type AllergyId =
@@ -43,15 +40,12 @@ export function AllergiesSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
 
   const labels = {
     de: {
       title: "Hast du Allergien oder Unverträglichkeiten?",
-      subtitle: "Wähle alle aus, die auf dich zutreffen. Wir passen deine Rezepte an.",
       none: "Keine Allergien",
       peanuts: "Erdnüsse",
       treeNuts: "Schalenfrüchte",
@@ -66,7 +60,6 @@ export function AllergiesSelectStep({
     },
     en: {
       title: "Do you have any allergies or intolerances?",
-      subtitle: "Select everything that applies. We'll adapt your recipes.",
       none: "No allergies",
       peanuts: "Peanuts",
       treeNuts: "Tree nuts",
@@ -81,7 +74,6 @@ export function AllergiesSelectStep({
     },
     fr: {
       title: "As-tu des allergies ou intolérances ?",
-      subtitle: "Sélectionne tout ce qui s'applique. Nous adaptons tes recettes.",
       none: "Aucune allergie",
       peanuts: "Cacahuètes",
       treeNuts: "Fruits à coque",
@@ -141,11 +133,11 @@ export function AllergiesSelectStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -154,7 +146,7 @@ export function AllergiesSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -164,43 +156,25 @@ export function AllergiesSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-8 pb-5 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {L.title}
         </h1>
-        <p
-          className="mt-3 text-[15px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </p>
       </motion.div>
 
       {/* Cards (scrollable) */}
-      <div className="flex flex-1 min-h-0 flex-col gap-2.5 overflow-y-auto px-5 pb-2">
+      <div className="mt-6 flex flex-1 min-h-0 flex-col gap-2.5 overflow-y-auto px-5 pb-2 pt-1">
         {options.map((opt, i) => {
           const isSelected = selected.includes(opt.id);
           const showOtherField = opt.isOther && isSelected;
@@ -227,14 +201,14 @@ export function AllergiesSelectStep({
                   backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                   border: `1.5px solid ${isSelected ? PALETTE.primary : PALETTE.cardBorderIdle}`,
                   boxShadow: isSelected
-                    ? "0 6px 18px -8px rgba(123,224,184,0.55), 0 1px 4px rgba(15,40,30,0.04)"
+                    ? "0 6px 18px -8px rgba(36,255,143,0.55), 0 1px 4px rgba(15,40,30,0.04)"
                     : "0 1px 2px rgba(15,40,30,0.03)",
                 }}
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[20px] transition-colors"
                   style={{
-                    backgroundColor: isSelected ? "#D6F8E8" : "#F2FAF6",
+                    backgroundColor: isSelected ? "#C0FFD9" : "#EAFFF5",
                   }}
                   aria-hidden
                 >
@@ -256,7 +230,7 @@ export function AllergiesSelectStep({
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                   style={{
                     backgroundColor: PALETTE.primary,
-                    boxShadow: "0 4px 10px -3px rgba(123,224,184,0.6)",
+                    boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
                   }}
                   aria-hidden
                 >
@@ -291,7 +265,7 @@ export function AllergiesSelectStep({
                         border: `1.5px solid ${PALETTE.border}`,
                         color: PALETTE.text,
                         boxShadow:
-                          "0 4px 14px -6px rgba(123,224,184,0.35), inset 0 1px 1px rgba(15,40,30,0.02)",
+                          "0 4px 14px -6px rgba(36,255,143,0.35), inset 0 1px 1px rgba(15,40,30,0.02)",
                       }}
                       autoFocus
                     />
@@ -304,7 +278,10 @@ export function AllergiesSelectStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-3 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -314,9 +291,9 @@ export function AllergiesSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #CFEEDD 0%, #BCE3CE 100%)",
+              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

@@ -159,3 +159,9 @@ export const onboardingSteps: OnboardingStep[] = [
   "scan-fridge",
   "shopping-list",
 ];
+
+/** Steps after splash: mint fullscreen body (no global progress bar). */
+export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(onboardingSteps.slice(1));
+
+/** Thin top progress line on these steps (includes splash). */
+export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(onboardingSteps);

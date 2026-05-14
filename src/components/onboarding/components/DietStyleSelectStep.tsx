@@ -9,20 +9,16 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
-  subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
 };
 
 type DietId =
@@ -38,58 +34,52 @@ export function DietStyleSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
 
   const labels = {
     de: {
       title: "Wie ist dein Ernährungsziel?",
-      subtitle: "Wähle den Stil, der am besten zu deinem Lebensstil passt.",
-      balanced: { title: "Ausgewogene Ernährung", sub: "Alles in Maßen" },
-      vegan: { title: "Vegan", sub: "Rein pflanzlich" },
-      vegetarian: { title: "Vegetarisch", sub: "Ohne Fleisch & Fisch" },
-      keto: { title: "Keto-Diät", sub: "Sehr wenig Kohlenhydrate" },
-      lowCarb: { title: "Kohlenhydratarme Diät", sub: "Weniger Kohlenhydrate" },
-      paleo: { title: "Paleo-Diät", sub: "Wie in der Steinzeit" },
+      balanced: { title: "Ausgewogene Ernährung" },
+      vegan: { title: "Vegan" },
+      vegetarian: { title: "Vegetarisch" },
+      keto: { title: "Keto-Diät" },
+      lowCarb: { title: "Kohlenhydratarme Diät" },
+      paleo: { title: "Paleo-Diät" },
     },
     en: {
       title: "What's your dietary goal?",
-      subtitle: "Pick the style that fits your lifestyle best.",
-      balanced: { title: "Balanced nutrition", sub: "Everything in moderation" },
-      vegan: { title: "Vegan", sub: "Plant-based only" },
-      vegetarian: { title: "Vegetarian", sub: "No meat or fish" },
-      keto: { title: "Keto", sub: "Very low carb" },
-      lowCarb: { title: "Low-carb", sub: "Reduced carbs" },
-      paleo: { title: "Paleo", sub: "Stone-age style" },
+      balanced: { title: "Balanced nutrition" },
+      vegan: { title: "Vegan" },
+      vegetarian: { title: "Vegetarian" },
+      keto: { title: "Keto" },
+      lowCarb: { title: "Low-carb" },
+      paleo: { title: "Paleo" },
     },
     fr: {
       title: "Quel est ton objectif alimentaire ?",
-      subtitle: "Choisis le style qui correspond le mieux à ton mode de vie.",
-      balanced: { title: "Alimentation équilibrée", sub: "Tout avec modération" },
-      vegan: { title: "Végan", sub: "100 % végétal" },
-      vegetarian: { title: "Végétarien", sub: "Sans viande ni poisson" },
-      keto: { title: "Cétogène", sub: "Très peu de glucides" },
-      lowCarb: { title: "Faible en glucides", sub: "Moins de glucides" },
-      paleo: { title: "Paléo", sub: "Style préhistorique" },
+      balanced: { title: "Alimentation équilibrée" },
+      vegan: { title: "Végan" },
+      vegetarian: { title: "Végétarien" },
+      keto: { title: "Cétogène" },
+      lowCarb: { title: "Faible en glucides" },
+      paleo: { title: "Paléo" },
     },
   } as const;
 
   const L = labels[(language as "de" | "en" | "fr")] ?? labels.de;
 
-  const options: { id: DietId; title: string; sub: string; emoji: string }[] = [
-    { id: "balanced", title: L.balanced.title, sub: L.balanced.sub, emoji: "🥗" },
-    { id: "vegan", title: L.vegan.title, sub: L.vegan.sub, emoji: "🌱" },
+  const options: { id: DietId; title: string; emoji: string }[] = [
+    { id: "balanced", title: L.balanced.title, emoji: "🥗" },
+    { id: "vegan", title: L.vegan.title, emoji: "🌱" },
     {
       id: "vegetarian",
       title: L.vegetarian.title,
-      sub: L.vegetarian.sub,
       emoji: "🧀",
     },
-    { id: "keto", title: L.keto.title, sub: L.keto.sub, emoji: "🥩" },
-    { id: "low-carb", title: L.lowCarb.title, sub: L.lowCarb.sub, emoji: "🥑" },
-    { id: "paleo", title: L.paleo.title, sub: L.paleo.sub, emoji: "🍖" },
+    { id: "keto", title: L.keto.title, emoji: "🥩" },
+    { id: "low-carb", title: L.lowCarb.title, emoji: "🥑" },
+    { id: "paleo", title: L.paleo.title, emoji: "🍖" },
   ];
 
   const selectedId = (userData.dietaryPreferences?.[0] ?? null) as DietId | null;
@@ -101,11 +91,11 @@ export function DietStyleSelectStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -114,7 +104,7 @@ export function DietStyleSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -124,43 +114,25 @@ export function DietStyleSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-8 pb-6 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {L.title}
         </h1>
-        <p
-          className="mt-3 text-[15px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </p>
       </motion.div>
 
       {/* Option cards */}
-      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-5 pb-2">
+      <div className="mt-6 grid flex-1 min-h-0 grid-cols-2 gap-2.5 overflow-y-auto px-5 pb-2 pt-1 content-start">
         {options.map((opt, i) => {
           const isSelected = selectedId === opt.id;
           return (
@@ -181,61 +153,58 @@ export function DietStyleSelectStep({
               whileTap={{ scale: isSelected ? 1.0 : 0.985 }}
               onClick={() => select(opt.id)}
               aria-pressed={isSelected}
-              className="relative flex w-full items-center gap-4 rounded-[20px] px-5 py-4 text-left transition-all duration-200"
+              className="relative flex min-h-[104px] flex-col items-stretch justify-between gap-2 rounded-[18px] px-3 py-3 text-left transition-all duration-200"
               style={{
                 backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                 border: `1.5px solid ${isSelected ? PALETTE.primary : PALETTE.cardBorderIdle}`,
                 boxShadow: isSelected
-                  ? "0 8px 24px -10px rgba(123,224,184,0.55), 0 2px 6px rgba(15,40,30,0.04)"
+                  ? "0 8px 24px -10px rgba(36,255,143,0.55), 0 2px 6px rgba(15,40,30,0.04)"
                   : "0 1px 2px rgba(15,40,30,0.03)",
               }}
             >
-              <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[22px] transition-colors"
-                style={{
-                  backgroundColor: isSelected ? "#D6F8E8" : "#F2FAF6",
-                }}
-                aria-hidden
-              >
-                <span>{opt.emoji}</span>
-              </div>
-              <div className="flex flex-1 flex-col">
-                <span
-                  className="text-[16px] font-medium tracking-tight"
-                  style={{ color: PALETTE.text }}
+              <div className="flex items-start justify-between gap-2">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[18px] transition-colors"
+                  style={{
+                    backgroundColor: isSelected ? "#C0FFD9" : "#EAFFF5",
+                  }}
+                  aria-hidden
                 >
-                  {opt.title}
-                </span>
-                <span
-                  className="mt-1 text-[13px]"
-                  style={{ color: PALETTE.subtext }}
+                  <span>{opt.emoji}</span>
+                </div>
+                <motion.span
+                  initial={false}
+                  animate={{
+                    scale: isSelected ? 1 : 0.6,
+                    opacity: isSelected ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: PALETTE.primary,
+                    boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
+                  }}
+                  aria-hidden
                 >
-                  {opt.sub}
-                </span>
+                  <Check className="size-3.5 text-white" strokeWidth={3} />
+                </motion.span>
               </div>
-              <motion.span
-                initial={false}
-                animate={{
-                  scale: isSelected ? 1 : 0.6,
-                  opacity: isSelected ? 1 : 0,
-                }}
-                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: PALETTE.primary,
-                  boxShadow: "0 4px 10px -3px rgba(123,224,184,0.6)",
-                }}
-                aria-hidden
+              <span
+                className="line-clamp-2 text-[13px] font-medium leading-snug tracking-tight"
+                style={{ color: PALETTE.text }}
               >
-                <Check className="size-4 text-white" strokeWidth={3} />
-              </motion.span>
+                {opt.title}
+              </span>
             </motion.button>
           );
         })}
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-4 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -245,9 +214,9 @@ export function DietStyleSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #CFEEDD 0%, #BCE3CE 100%)",
+              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

@@ -9,21 +9,18 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  primaryDeep: "#2DAA82",
-  bg: "#F7FFFB",
-  accent: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  primaryDeep: "#0A8550",
+  bg: "#F0FFF7",
+  accent: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
   subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
   pageLine: "#EDF7F1",
 };
 
@@ -65,7 +62,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
           height: 22,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(91,203,159,0.22) 0%, rgba(91,203,159,0) 70%)",
+            "radial-gradient(ellipse, rgba(18,217,120,0.22) 0%, rgba(18,217,120,0) 70%)",
           filter: "blur(2px)",
         }}
       />
@@ -82,10 +79,10 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
           height: 24,
           transform: "translateX(-50%)",
           background:
-            "linear-gradient(180deg, #BCF1DA 0%, #7BE0B8 100%)",
+            "linear-gradient(180deg, #B0FFDC 0%, #24FF8F 100%)",
           borderRadius: 8,
           boxShadow:
-            "0 6px 14px -4px rgba(91,203,159,0.55), inset 0 1px 1px rgba(255,255,255,0.6)",
+            "0 6px 14px -4px rgba(18,217,120,0.55), inset 0 1px 1px rgba(255,255,255,0.6)",
         }}
       >
         {/* Inner notch */}
@@ -115,7 +112,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
           background: "linear-gradient(180deg, #FFFFFF 0%, #FAFFFC 100%)",
           border: `1px solid ${PALETTE.cardBorderIdle}`,
           boxShadow:
-            "0 26px 60px -28px rgba(60,120,90,0.30), 0 6px 16px -8px rgba(60,120,90,0.10)",
+            "0 26px 60px -28px rgba(10,120,75,0.30), 0 6px 16px -8px rgba(10,120,75,0.10)",
           WebkitFontSmoothing: "antialiased",
         }}
       >
@@ -126,16 +123,16 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.25, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl"
+              className="relative flex h-7 w-7 items-center justify-center rounded-lg"
               style={{
                 background:
-                  "linear-gradient(135deg, #BCF1DA 0%, #7BE0B8 100%)",
+                  "linear-gradient(135deg, #B0FFDC 0%, #24FF8F 100%)",
                 color: "#fff",
                 boxShadow:
-                  "0 6px 14px -5px rgba(91,203,159,0.55), inset 0 1px 1px rgba(255,255,255,0.6)",
+                  "0 4px 10px -4px rgba(18,217,120,0.5), inset 0 1px 1px rgba(255,255,255,0.55)",
               }}
             >
-              <ClipboardList className="size-5" strokeWidth={2.2} />
+              <ClipboardList className="size-4" strokeWidth={2.2} />
               {/* Writing dot pulse on top-right of icon */}
               <motion.span
                 className="absolute h-1.5 w-1.5 rounded-full bg-white"
@@ -201,9 +198,9 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                 style={{
                   background:
-                    "linear-gradient(135deg, #7BE0B8 0%, #5BCB9F 100%)",
+                    "linear-gradient(135deg, #24FF8F 0%, #12D978 100%)",
                   boxShadow:
-                    "0 4px 10px -3px rgba(91,203,159,0.55), inset 0 1px 1px rgba(255,255,255,0.5)",
+                    "0 4px 10px -3px rgba(18,217,120,0.55), inset 0 1px 1px rgba(255,255,255,0.5)",
                 }}
               >
                 <Check className="size-3.5 text-white" strokeWidth={3} />
@@ -236,8 +233,6 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
 export function ShoppingListStep({
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language } = useLanguage();
   const lng: Lng = (["de", "en", "fr"] as const).includes(language as never)
@@ -247,22 +242,16 @@ export function ShoppingListStep({
   const L = {
     de: {
       title: "Einkaufsliste generieren",
-      subtitle:
-        "Basierend auf deinem Kühlschrank-Scan erstellen wir dir eine Liste mit den fehlenden Zutaten für deine Woche.",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
       title: "Generate your shopping list",
-      subtitle:
-        "Based on your fridge scan, we'll create a list with the missing ingredients for your week.",
       next: "Next",
       back: "Back",
     },
     fr: {
       title: "Générer ta liste de courses",
-      subtitle:
-        "À partir du scan de ton frigo, nous créons une liste avec les ingrédients manquants pour ta semaine.",
       next: "Suivant",
       back: "Retour",
     },
@@ -271,11 +260,11 @@ export function ShoppingListStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -284,7 +273,7 @@ export function ShoppingListStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -294,48 +283,33 @@ export function ShoppingListStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-6 pb-2 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[24px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {t.title}
         </h1>
-        <p
-          className="mt-2.5 text-[14.5px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {t.subtitle}
-        </p>
       </motion.div>
 
       {/* Hero: shopping list card */}
-      <div className="flex flex-1 min-h-0 items-center justify-center px-5">
+      <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
         <ShoppingListCard lng={lng} />
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-2 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -344,7 +318,7 @@ export function ShoppingListStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}
