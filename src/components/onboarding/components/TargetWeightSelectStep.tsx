@@ -216,8 +216,8 @@ export function TargetWeightSelectStep({
         </p>
       </motion.div>
 
-      {/* Unit toggle */}
-      <div className="flex justify-center px-5 pb-4 shrink-0">
+      {/* Unit toggle — stay above the wheel card if the middle section overflows */}
+      <div className="relative z-30 flex justify-center px-5 pb-4 shrink-0">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}
@@ -227,7 +227,7 @@ export function TargetWeightSelectStep({
       </div>
 
       {/* Wheel picker card */}
-      <div className="flex flex-1 min-h-0 items-center justify-center px-5">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-start overflow-y-auto px-5 pb-2 pt-2">
         <motion.div
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -257,17 +257,17 @@ export function TargetWeightSelectStep({
           <div
             className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[28px]"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 16,
+              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
               background:
-                "linear-gradient(180deg, rgba(247,255,251,0.95) 0%, rgba(247,255,251,0.65) 50%, rgba(247,255,251,0) 100%)",
+                "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[28px]"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 16,
+              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
               background:
-                "linear-gradient(0deg, rgba(247,255,251,0.95) 0%, rgba(247,255,251,0.65) 50%, rgba(247,255,251,0) 100%)",
+                "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
 
@@ -296,6 +296,7 @@ export function TargetWeightSelectStep({
               align="left"
               width={70}
               ariaLabel="Dezimal"
+              circular
             />
             <div className="relative shrink-0" style={{ width: 60 }}>
               <span

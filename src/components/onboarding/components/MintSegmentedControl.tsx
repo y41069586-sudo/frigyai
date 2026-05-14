@@ -35,17 +35,17 @@ export function MintSegmentedControl<T extends string>({
         boxShadow: "inset 0 1px 1px rgba(15,40,30,0.04)",
       }}
     >
-      {/* Animated mint indicator */}
+      {/* Animated mint indicator — translate X % is relative to the pill width, so use left + segment width */}
       <motion.div
         className="absolute rounded-full"
+        initial={false}
         animate={{
-          x: `calc(${selectedIdx} * 100%)`,
+          left: `calc(4px + (100% - 8px) * ${selectedIdx} / ${count})`,
         }}
         transition={{ type: "spring", stiffness: 360, damping: 32 }}
         style={{
           top: 4,
           bottom: 4,
-          left: 4,
           width: `calc((100% - 8px) / ${count})`,
           background: "linear-gradient(135deg, #7BE0B8 0%, #5BCB9F 100%)",
           boxShadow:
