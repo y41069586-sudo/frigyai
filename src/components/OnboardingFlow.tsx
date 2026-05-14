@@ -279,6 +279,8 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
 interface OnboardingFlowProps {
   onComplete: () => void;
+  /** Optional: start at a specific step (e.g. QA via /onboarding-preview?step=…). */
+  initialStep?: OnboardingStep;
 }
 
 // Analysis Step component
@@ -375,7 +377,7 @@ const AnalysisProgress = () => {
   return <span>{progress}%</span>;
 };
 
-export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
+export const OnboardingFlow = ({ onComplete, initialStep: initialStepProp }: OnboardingFlowProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
@@ -387,8 +389,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const showScanFeedback = location.state?.showScanFeedback === true;
   const fallbackStep: OnboardingStep =
     showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : "splash";
-  const initialStep = fallbackStep;
-  
+  const initialStep =
+    initialStepProp && onboardingSteps.includes(initialStepProp) ? initialStepProp : fallbackStep;
+
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
