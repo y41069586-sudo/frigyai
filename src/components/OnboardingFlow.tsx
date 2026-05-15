@@ -281,7 +281,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
 interface OnboardingFlowProps {
   onComplete: () => void;
-  /** Optional: start at a specific step (e.g. QA via /onboarding-preview?step=…). */
+  /** QA helper: jump directly to a given step on mount (used by /onboarding-preview?step=…). */
   initialStep?: OnboardingStep;
 }
 
@@ -379,7 +379,7 @@ const AnalysisProgress = () => {
   return <span>{progress}%</span>;
 };
 
-export const OnboardingFlow = ({ onComplete, initialStep: initialStepProp }: OnboardingFlowProps) => {
+export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }: OnboardingFlowProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
@@ -391,9 +391,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepProp }: Onb
   const showScanFeedback = location.state?.showScanFeedback === true;
   const fallbackStep: OnboardingStep =
     showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : "splash";
-  const initialStep =
-    initialStepProp && onboardingSteps.includes(initialStepProp) ? initialStepProp : fallbackStep;
-
+  const initialStep: OnboardingStep =
+    initialStepOverride && onboardingSteps.includes(initialStepOverride)
+      ? initialStepOverride
+      : fallbackStep;
+  
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);

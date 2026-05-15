@@ -6,8 +6,9 @@ import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import {
   MintWheelColumn,
-  WHEEL_ITEM_HEIGHT,
+  useMintWheelRowHeight,
   WHEEL_PAD_ITEMS,
+  WHEEL_ROW_COMPACT,
   type MintWheelOption,
 } from "./MintWheelColumn";
 import { MintSegmentedControl } from "./MintSegmentedControl";
@@ -37,6 +38,11 @@ export function TargetWeightSelectStep({
   onNext,
 }: Props) {
   const { language } = useLanguage();
+  const wheelRow = useMintWheelRowHeight();
+  const wholeColW = wheelRow <= WHEEL_ROW_COMPACT ? 118 : 134;
+  const decimalColW = wheelRow <= WHEEL_ROW_COMPACT ? 68 : 78;
+  const sepColW = wheelRow <= WHEEL_ROW_COMPACT ? 26 : 30;
+  const unitColW = wheelRow <= WHEEL_ROW_COMPACT ? 56 : 64;
 
   const unit = userData.weightUnit;
   const isMetric = unit === "metric";
@@ -149,11 +155,16 @@ export function TargetWeightSelectStep({
 
   return (
     <div
-      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
-      style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
+      className="fixed inset-0 z-[100] flex flex-col"
+      style={{
+        backgroundColor: PALETTE.bg,
+        color: PALETTE.text,
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
     >
       {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex items-center gap-3 px-5 pt-3 pb-1 shrink-0">
         {onBack ? (
           <motion.button
             type="button"
@@ -179,18 +190,24 @@ export function TargetWeightSelectStep({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 overflow-visible px-6 pb-3 pt-1"
+        className="px-6 pt-3 pb-2 shrink-0 [@media(max-height:700px)]:pt-3 [@media(max-height:700px)]:pb-2 [@media(min-height:701px)]:pt-5 [@media(min-height:701px)]:pb-4 [@media(min-height:800px)]:pt-7 [@media(min-height:800px)]:pb-5"
       >
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[24px] font-semibold leading-tight tracking-tight [@media(max-height:700px)]:text-[21px] [@media(min-height:800px)]:text-[30px]"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
+        <p
+          className="mt-1.5 text-[15px] leading-snug [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:text-[13px] [@media(min-height:800px)]:mt-3 [@media(min-height:800px)]:text-[17px]"
+          style={{ color: PALETTE.textMuted }}
+        >
+          {subtitle}
+        </p>
       </motion.div>
 
-      {/* Unit toggle — Abstand zur Überschrift */}
-      <div className="mt-1 flex shrink-0 justify-center px-5 pb-3">
+      {/* Unit toggle — stay above the wheel card if the middle section overflows */}
+      <div className="relative z-30 flex justify-center px-5 pb-3 shrink-0 [@media(max-height:700px)]:pb-2 [@media(min-height:800px)]:pb-5">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}
@@ -199,38 +216,46 @@ export function TargetWeightSelectStep({
         />
       </div>
 
-      {/* Wheel — direkt auf Mint-Hintergrund */}
-      <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0">
+      {/* Wheel picker card */}
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-start overflow-y-auto px-4 pb-2 pt-1">
         <motion.div
-          key={unit}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-          className="relative mx-auto w-full max-w-[260px] shrink-0 py-0.5"
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+          className="relative w-full max-w-md rounded-[24px] p-3 [@media(max-height:700px)]:rounded-[22px] [@media(max-height:700px)]:p-2.5 [@media(min-height:800px)]:rounded-[28px] [@media(min-height:800px)]:p-5"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: `1px solid ${PALETTE.cardBorderIdle}`,
+            boxShadow:
+              "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
+          }}
         >
           <div
             className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
             style={{
-              top: `calc(50% - ${WHEEL_ITEM_HEIGHT / 2}px)`,
-              height: WHEEL_ITEM_HEIGHT,
+              top: `calc(50% - ${wheelRow / 2}px)`,
+              height: wheelRow,
               backgroundColor: PALETTE.selectedBg,
               boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
             }}
           />
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-20"
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
+              height: WHEEL_PAD_ITEMS * wheelRow + 12,
               background:
-                "linear-gradient(180deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
+                "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px] [@media(min-height:800px)]:rounded-b-[28px]"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
+              height: WHEEL_PAD_ITEMS * wheelRow + 12,
               background:
-                "linear-gradient(0deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
+                "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
             }}
           />
 
@@ -241,12 +266,13 @@ export function TargetWeightSelectStep({
               value={whole}
               onChange={(v) => commitDisplay(v, decimal)}
               align="right"
-              width={100}
+              width={wholeColW}
+              rowHeight={wheelRow}
               ariaLabel={`Zielgewicht ganz (${unitLabel})`}
             />
-            <div className="relative shrink-0" style={{ width: 22 }}>
+            <div className="relative shrink-0" style={{ width: sepColW }}>
               <span
-                className="absolute inset-0 flex items-center justify-center text-[19px] font-semibold"
+                className="absolute inset-0 flex items-center justify-center text-[22px] font-semibold [@media(max-height:700px)]:text-[20px] [@media(min-height:800px)]:text-[26px]"
                 style={{ color: PALETTE.text }}
               >
                 {sepChar}
@@ -257,12 +283,14 @@ export function TargetWeightSelectStep({
               value={decimal}
               onChange={(v) => commitDisplay(whole, v)}
               align="left"
-              width={56}
+              width={decimalColW}
+              rowHeight={wheelRow}
               ariaLabel="Dezimal"
+              circular
             />
-            <div className="relative shrink-0" style={{ width: 44 }}>
+            <div className="relative shrink-0" style={{ width: unitColW }}>
               <span
-                className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
+                className="absolute inset-0 flex items-center pl-2 text-[17px] font-medium [@media(max-height:700px)]:text-[16px] [@media(min-height:800px)]:pl-2.5 [@media(min-height:800px)]:text-[19px]"
                 style={{ color: PALETTE.textMuted }}
               >
                 {unitLabel}
@@ -273,15 +301,12 @@ export function TargetWeightSelectStep({
       </div>
 
       {/* Continue */}
-      <div
-        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
-        style={{ backgroundColor: PALETTE.bg }}
-      >
+      <div className="shrink-0 px-5 pt-3 pb-4 [@media(max-height:700px)]:pt-2 [@media(max-height:700px)]:pb-3 [@media(min-height:800px)]:pt-5 [@media(min-height:800px)]:pb-6">
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-semibold text-white transition-all [@media(max-height:700px)]:h-11 [@media(max-height:700px)]:text-[14px] [@media(min-height:800px)]:h-[58px] [@media(min-height:800px)]:text-[17px]"
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
@@ -289,7 +314,7 @@ export function TargetWeightSelectStep({
           }}
         >
           {buttonLabel[lng]}
-          <ChevronRight className="size-5" strokeWidth={2.5} />
+          <ChevronRight className="size-5 [@media(min-height:800px)]:size-6" strokeWidth={2.5} />
         </motion.button>
       </div>
     </div>

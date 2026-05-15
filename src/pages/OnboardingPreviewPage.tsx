@@ -1,6 +1,7 @@
 /**
  * QA / Entwicklung: Onboarding ohne Index-Checks (immer erreichbar unter /onboarding-preview).
- * Optional: `?step=apple-health-connect` (oder einen anderen Eintrag aus `onboardingSteps`).
+ * Optional kann ein Start-Schritt über `?step=weight` (oder einen anderen `OnboardingStep`)
+ * vorgegeben werden, damit man Screens isoliert testen kann.
  * Danach zurück zur Startseite.
  */
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -13,7 +14,6 @@ export default function OnboardingPreviewPage() {
   const requestedStep = searchParams.get("step") as OnboardingStep | null;
   const initialStep =
     requestedStep && onboardingSteps.includes(requestedStep) ? requestedStep : undefined;
-
   return (
     <OnboardingFlow
       initialStep={initialStep}
