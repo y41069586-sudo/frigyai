@@ -13,3 +13,5 @@ workflows:
     artifacts:
       - build/**/*.apk
       - build/**/*.aab
+      environment_variables:
+  EXPO_TOKEN: b2TWZmLz0pJk1MgXxPR939cl3SLF8ApTxqqWoXTt
