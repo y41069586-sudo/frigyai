@@ -5,14 +5,14 @@ import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  primaryDeep: "#2DAA82",
-  bg: "#F7FFFB",
-  highlight: "#E8FFF4",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  primaryDeep: "#0A8550",
+  bg: "#F0FFF7",
+  highlight: "#D4FFEA",
   text: "#1F2937",
   textMuted: "#6B7280",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
   badLine: "#C8232C",
   badLineDeep: "#A0181F",
 };
@@ -22,8 +22,6 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 function formatKg(kg: number): string {
@@ -35,8 +33,6 @@ export function GoalPreviewStep({
   userData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language } = useLanguage();
 
@@ -55,8 +51,8 @@ export function GoalPreviewStep({
   const labels = {
     de: {
       maintain: "BEREIT, DEIN GEWICHT ZU HALTEN — EIN ERREICHBARES ZIEL!",
-      trust:
-        "Die Veränderungen nach der Anwendung unserer App Frigy sind deutlich und dauerhaft.",
+      subtitle:
+        "Die Veränderungen nach der Anwendung von Frigy sind deutlich und dauerhaft.",
       yourWeight: "Ihr Gewicht",
       withFrigy: "Mit Frigy",
       withoutFrigy: "Ohne Frigy",
@@ -64,8 +60,8 @@ export function GoalPreviewStep({
     },
     en: {
       maintain: "READY TO MAINTAIN YOUR WEIGHT — AN ACHIEVABLE GOAL!",
-      trust:
-        "The changes after using our app Frigy are noticeable and lasting.",
+      subtitle:
+        "Illustrative comparison from your inputs — motivational only, not a medical forecast.",
       yourWeight: "Your weight",
       withFrigy: "With Frigy",
       withoutFrigy: "Without Frigy",
@@ -73,8 +69,8 @@ export function GoalPreviewStep({
     },
     fr: {
       maintain: "PRÊT À MAINTENIR TON POIDS — UN OBJECTIF ATTEIGNABLE !",
-      trust:
-        "Les changements après l'utilisation de notre app Frigy sont nets et durables.",
+      subtitle:
+        "Les changements après l’utilisation de Frigy sont nets et durables.",
       yourWeight: "Ton poids",
       withFrigy: "Avec Frigy",
       withoutFrigy: "Sans Frigy",
@@ -137,11 +133,11 @@ export function GoalPreviewStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -150,7 +146,7 @@ export function GoalPreviewStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -160,37 +156,25 @@ export function GoalPreviewStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
       </div>
 
-      {/* Headline */}
+      {/* Headline + subtext */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-6 pb-4 shrink-0"
+        className="min-w-0 shrink-0 overflow-visible px-6 pb-3 pt-1"
       >
         {headlineParts.kind === "maintain" ? (
           <h1
-            className="text-[24px] font-extrabold uppercase leading-[1.15] tracking-tight"
+            className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-tight"
             style={{ color: PALETTE.text }}
           >
             {headlineParts.full}
           </h1>
         ) : (
           <h1
-            className="text-[24px] font-extrabold uppercase leading-[1.15] tracking-tight"
+            className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-tight"
             style={{ color: PALETTE.text }}
           >
             {headlineParts.pre}{" "}
@@ -205,12 +189,15 @@ export function GoalPreviewStep({
             {headlineParts.post}
           </h1>
         )}
-        <p
-          className="mt-4 text-[14px] leading-relaxed"
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+          className="mt-2 max-w-prose text-[15px] font-medium leading-snug"
           style={{ color: PALETTE.textMuted }}
         >
-          {L.trust}
-        </p>
+          {L.subtitle}
+        </motion.p>
       </motion.div>
 
       {/* Chart card */}
@@ -227,7 +214,7 @@ export function GoalPreviewStep({
             WebkitBackdropFilter: "blur(18px)",
             border: `1px solid ${PALETTE.cardBorderIdle}`,
             boxShadow:
-              "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
+              "0 24px 50px -24px rgba(10,120,75,0.18), 0 4px 14px -6px rgba(10,120,75,0.08)",
           }}
         >
           <div className="relative w-full" style={{ aspectRatio: `${W} / ${H}` }}>
@@ -352,7 +339,7 @@ export function GoalPreviewStep({
               style={{
                 left: `${endXPct}%`,
                 top: `${endMitYPct}%`,
-                transform: "translate(-50%, calc(-100% - 10px))",
+                transform: "translate(-50%, calc(-100% - 14px))",
                 color: PALETTE.primaryDeep,
                 whiteSpace: "nowrap",
               }}
@@ -370,7 +357,7 @@ export function GoalPreviewStep({
                 style={{
                   left: `${endXPct}%`,
                   top: `${endOhneYPct}%`,
-                  transform: "translate(-50%, 10px)",
+                  transform: "translate(-50%, calc(100% + 12px))",
                   color: PALETTE.badLineDeep,
                   whiteSpace: "nowrap",
                 }}
@@ -383,7 +370,10 @@ export function GoalPreviewStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-6 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -392,7 +382,7 @@ export function GoalPreviewStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {L.next}

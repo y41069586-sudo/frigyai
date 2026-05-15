@@ -99,9 +99,9 @@ export function MintWheelColumn({
   const containerHeight = WHEEL_VISIBLE_ITEMS * WHEEL_ITEM_HEIGHT;
   const textAlignClass =
     align === "left"
-      ? "justify-start pl-2"
+      ? "justify-start pl-1"
       : align === "right"
-        ? "justify-end pr-2"
+        ? "justify-end pr-1"
         : "justify-center";
 
   return (
@@ -140,7 +140,7 @@ export function MintWheelColumn({
               style={{
                 height: WHEEL_ITEM_HEIGHT,
                 scrollSnapAlign: "center",
-                fontSize: isSelected ? "22px" : "17px",
+                fontSize: isSelected ? "20px" : "15px",
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected ? "#1F2937" : "#6B7280",
                 opacity,

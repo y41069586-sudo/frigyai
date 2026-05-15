@@ -12,13 +12,12 @@ import {
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
   text: "#1F2937",
   textMuted: "#6B7280",
-  cardBorderIdle: "#EEF2EF",
 };
 
 const CM_PER_INCH = 2.54;
@@ -29,8 +28,6 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 export function HeightSelectStep({
@@ -38,8 +35,6 @@ export function HeightSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
 
@@ -104,13 +99,6 @@ export function HeightSelectStep({
         ? "Quelle est ta taille ?"
         : "How tall are you?";
 
-  const subtitle =
-    language === "de"
-      ? "Das hilft uns deinen Plan besser anzupassen."
-      : language === "fr"
-        ? "Cela nous aide à mieux adapter ton plan."
-        : "This helps us tailor your plan better.";
-
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
     {
       id: "metric",
@@ -121,11 +109,11 @@ export function HeightSelectStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -134,7 +122,7 @@ export function HeightSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -144,40 +132,25 @@ export function HeightSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-8 pb-6 shrink-0"
+        className="min-w-0 shrink-0 overflow-visible px-6 pb-5 pt-1"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
-        <p className="mt-3 text-[15px] leading-relaxed" style={{ color: PALETTE.textMuted }}>
-          {subtitle}
-        </p>
       </motion.div>
 
-      {/* Unit toggle */}
-      <div className="flex justify-center px-5 pb-6 shrink-0">
+      {/* Unit toggle — Abstand zur Überschrift */}
+      <div className="mt-1 flex shrink-0 justify-center px-5 pb-3">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}
@@ -186,49 +159,38 @@ export function HeightSelectStep({
         />
       </div>
 
-      {/* Wheel picker card */}
-      <div className="flex flex-1 min-h-0 items-center justify-center px-5">
+      {/* Wheel — direkt auf Mint-Hintergrund */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0 mt-6">
         <motion.div
           key={unit}
-          initial={{ opacity: 0, y: 16, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-          className="relative w-full max-w-md rounded-[28px] p-4"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%)",
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-            border: `1px solid ${PALETTE.cardBorderIdle}`,
-            boxShadow:
-              "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
-          }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+          className="relative mx-auto w-full max-w-[320px] shrink-0 py-0.5"
         >
-          {/* Selection band */}
           <div
-            className="pointer-events-none absolute inset-x-4 z-0 rounded-2xl"
+            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
             style={{
               top: `calc(50% - ${WHEEL_ITEM_HEIGHT / 2}px)`,
               height: WHEEL_ITEM_HEIGHT,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 4px rgba(123,224,184,0.18)",
-            }}
-          />
-          {/* Fades */}
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[28px]"
-            style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 16,
-              background:
-                "linear-gradient(180deg, rgba(247,255,251,0.95) 0%, rgba(247,255,251,0.65) 50%, rgba(247,255,251,0) 100%)",
+              boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
             }}
           />
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[28px]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-20"
             style={{
-              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 16,
+              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
               background:
-                "linear-gradient(0deg, rgba(247,255,251,0.95) 0%, rgba(247,255,251,0.65) 50%, rgba(247,255,251,0) 100%)",
+                "linear-gradient(180deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
+            style={{
+              height: WHEEL_PAD_ITEMS * WHEEL_ITEM_HEIGHT + 12,
+              background:
+                "linear-gradient(0deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
             }}
           />
 
@@ -239,13 +201,13 @@ export function HeightSelectStep({
                 options={cmOptions}
                 value={heightCm}
                 onChange={handleCmChange}
-                align="right"
-                width={150}
+                align="center"
+                width={120}
                 ariaLabel="cm"
               />
-              <div className="relative shrink-0" style={{ width: 70 }}>
+              <div className="relative flex w-11 shrink-0 items-center justify-center pl-0.5">
                 <span
-                  className="absolute inset-0 flex items-center pl-3 text-[18px] font-medium"
+                  className="text-[16px] font-medium"
                   style={{ color: PALETTE.textMuted }}
                 >
                   cm
@@ -259,12 +221,12 @@ export function HeightSelectStep({
                 value={feetFromCm}
                 onChange={handleFeetChange}
                 align="right"
-                width={80}
+                width={62}
                 ariaLabel="Fuß"
               />
-              <div className="relative shrink-0" style={{ width: 50 }}>
+              <div className="relative shrink-0" style={{ width: 36 }}>
                 <span
-                  className="absolute inset-0 flex items-center pl-2 text-[18px] font-medium"
+                  className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
                   style={{ color: PALETTE.textMuted }}
                 >
                   ft
@@ -275,12 +237,12 @@ export function HeightSelectStep({
                 value={inchesFromCm}
                 onChange={handleInchesChange}
                 align="right"
-                width={70}
+                width={52}
                 ariaLabel="Zoll"
               />
-              <div className="relative shrink-0" style={{ width: 50 }}>
+              <div className="relative shrink-0" style={{ width: 36 }}>
                 <span
-                  className="absolute inset-0 flex items-center pl-2 text-[18px] font-medium"
+                  className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
                   style={{ color: PALETTE.textMuted }}
                 >
                   in
@@ -292,7 +254,10 @@ export function HeightSelectStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-6 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -301,7 +266,7 @@ export function HeightSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

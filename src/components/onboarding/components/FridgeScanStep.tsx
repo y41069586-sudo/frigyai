@@ -9,19 +9,16 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  primaryDeep: "#2DAA82",
-  bg: "#F7FFFB",
-  accent: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  primaryDeep: "#0A8550",
+  bg: "#F0FFF7",
+  accent: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
   fridgeBody: "#FBFEFC",
   fridgeBorder: "#D8E8E0",
   shelfLine: "#E2EFE7",
@@ -50,7 +47,7 @@ function CameraIcon() {
           height: 22,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(91,203,159,0.25) 0%, rgba(91,203,159,0) 70%)",
+            "radial-gradient(ellipse, rgba(18,217,120,0.25) 0%, rgba(18,217,120,0) 70%)",
           filter: "blur(2px)",
         }}
       />
@@ -62,7 +59,7 @@ function CameraIcon() {
           width: 200,
           height: 200,
           background:
-            "radial-gradient(circle, rgba(123,224,184,0.25) 0%, rgba(123,224,184,0) 65%)",
+            "radial-gradient(circle, rgba(36,255,143,0.25) 0%, rgba(36,255,143,0) 65%)",
         }}
         animate={{ scale: [1, 1.08, 1], opacity: [0.6, 0.9, 0.6] }}
         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
@@ -77,10 +74,10 @@ function CameraIcon() {
           width: 140,
           height: 140,
           background:
-            "linear-gradient(135deg, #BCF1DA 0%, #7BE0B8 100%)",
+            "linear-gradient(135deg, #B0FFDC 0%, #24FF8F 100%)",
           color: "#fff",
           boxShadow:
-            "0 24px 50px -16px rgba(91,203,159,0.55), 0 6px 14px -4px rgba(91,203,159,0.30), inset 0 1px 2px rgba(255,255,255,0.6)",
+            "0 24px 50px -16px rgba(18,217,120,0.55), 0 6px 14px -4px rgba(18,217,120,0.30), inset 0 1px 2px rgba(255,255,255,0.6)",
         }}
       >
         <Camera className="size-[78px]" strokeWidth={1.6} />
@@ -92,8 +89,6 @@ function CameraIcon() {
 export function FridgeScanStep({
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language } = useLanguage();
   const lng: Lng = (["de", "en", "fr"] as const).includes(language as never)
@@ -103,22 +98,16 @@ export function FridgeScanStep({
   const L = {
     de: {
       title: "Scanne deinen Kühlschrank",
-      subtitle:
-        "Entdecke sofort, welche Zutaten du bereits hast und was dir für deinen Plan noch fehlt.",
       cta: "Weiter",
       back: "Zurück",
     },
     en: {
       title: "Scan your fridge",
-      subtitle:
-        "Instantly see which ingredients you already have and what's missing for your plan.",
       cta: "Next",
       back: "Back",
     },
     fr: {
       title: "Scanne ton frigo",
-      subtitle:
-        "Découvre tout de suite ce que tu as déjà et ce qu'il te manque pour ton plan.",
       cta: "Suivant",
       back: "Retour",
     },
@@ -127,11 +116,11 @@ export function FridgeScanStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -140,7 +129,7 @@ export function FridgeScanStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -150,48 +139,33 @@ export function FridgeScanStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-6 pb-2 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[24px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {t.title}
         </h1>
-        <p
-          className="mt-2.5 text-[14.5px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {t.subtitle}
-        </p>
       </motion.div>
 
       {/* Hero: camera icon */}
-      <div className="flex flex-1 min-h-0 items-center justify-center px-5">
+      <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
         <CameraIcon />
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-2 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -200,7 +174,7 @@ export function FridgeScanStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.cta}

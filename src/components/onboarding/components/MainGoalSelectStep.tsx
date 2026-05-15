@@ -19,20 +19,17 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
   textMuted: "#6B7280",
-  subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
 };
 
 export function MainGoalSelectStep({
@@ -40,32 +37,27 @@ export function MainGoalSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
 
   const labels = {
     de: {
       title: "Was ist dein Ziel?",
-      subtitle: "Wir passen deine Reise individuell an deine Wünsche an.",
-      lose: { title: "Gewicht abnehmen", sub: "In deinem eigenen Tempo" },
-      maintain: { title: "Gewicht beibehalten", sub: "Gesund & ausgeglichen" },
-      gain: { title: "Gewicht zulegen", sub: "Stark & kontrolliert aufbauen" },
+      lose: { a: "Gewicht", b: "abnehmen" },
+      maintain: { a: "Gewicht", b: "beibehalten" },
+      gain: { a: "Gewicht", b: "zulegen" },
     },
     en: {
       title: "What's your goal?",
-      subtitle: "We'll tailor your journey to what you want.",
-      lose: { title: "Lose weight", sub: "At your own pace" },
-      maintain: { title: "Maintain weight", sub: "Healthy & balanced" },
-      gain: { title: "Gain weight", sub: "Build strength steadily" },
+      lose: { a: "Lose", b: "weight" },
+      maintain: { a: "Maintain", b: "weight" },
+      gain: { a: "Gain", b: "weight" },
     },
     fr: {
       title: "Quel est ton objectif ?",
-      subtitle: "Nous adapterons ton parcours à tes envies.",
-      lose: { title: "Perdre du poids", sub: "À ton propre rythme" },
-      maintain: { title: "Maintenir le poids", sub: "Sain et équilibré" },
-      gain: { title: "Prendre du poids", sub: "Construire progressivement" },
+      lose: { a: "Perdre", b: "du poids" },
+      maintain: { a: "Maintenir", b: "le poids" },
+      gain: { a: "Prendre", b: "du poids" },
     },
   } as const;
 
@@ -73,13 +65,13 @@ export function MainGoalSelectStep({
 
   const options: {
     id: GoalId;
-    title: string;
-    sub: string;
+    titleA: string;
+    titleB: string;
     Icon: LucideIcon;
   }[] = [
-    { id: "lose", title: L.lose.title, sub: L.lose.sub, Icon: TrendingDown },
-    { id: "maintain", title: L.maintain.title, sub: L.maintain.sub, Icon: Minus },
-    { id: "gain", title: L.gain.title, sub: L.gain.sub, Icon: TrendingUp },
+    { id: "lose", titleA: L.lose.a, titleB: L.lose.b, Icon: TrendingDown },
+    { id: "maintain", titleA: L.maintain.a, titleB: L.maintain.b, Icon: Minus },
+    { id: "gain", titleA: L.gain.a, titleB: L.gain.b, Icon: TrendingUp },
   ];
 
   const selected = userData.goalMode ?? null;
@@ -88,11 +80,11 @@ export function MainGoalSelectStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -101,7 +93,7 @@ export function MainGoalSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -111,43 +103,25 @@ export function MainGoalSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-10 pb-8 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {L.title}
         </h1>
-        <p
-          className="mt-3 text-[15px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </p>
       </motion.div>
 
       {/* Option cards */}
-      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-5">
+      <div className="mt-6 flex flex-1 min-h-0 flex-col gap-2.5 overflow-y-auto px-5 pt-1">
         {options.map((opt, i) => {
           const isSelected = selected === opt.id;
           const Icon = opt.Icon;
@@ -168,37 +142,37 @@ export function MainGoalSelectStep({
               }}
               whileTap={{ scale: isSelected ? 1.0 : 0.985 }}
               onClick={() => setUserData({ ...userData, goalMode: opt.id })}
-              className="relative flex w-full items-center gap-4 rounded-[20px] px-5 py-4 text-left transition-all duration-200"
+              className="relative flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-all duration-200"
               style={{
                 backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                 border: `1.5px solid ${isSelected ? PALETTE.border : PALETTE.cardBorderIdle}`,
                 boxShadow: isSelected
-                  ? "0 8px 24px -10px rgba(123,224,184,0.55), 0 2px 6px rgba(15,40,30,0.04)"
+                  ? "0 8px 24px -10px rgba(36,255,143,0.55), 0 2px 6px rgba(15,40,30,0.04)"
                   : "0 1px 2px rgba(15,40,30,0.03)",
               }}
             >
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors"
                 style={{
-                  backgroundColor: isSelected ? "#D6F8E8" : "#F2FAF6",
+                  backgroundColor: isSelected ? "#C0FFD9" : "#EAFFF5",
                   color: PALETTE.primaryDark,
                 }}
                 aria-hidden
               >
-                <Icon className="size-5" strokeWidth={2.2} />
+                <Icon className="size-[18px]" strokeWidth={2.2} />
               </div>
-              <div className="flex flex-1 flex-col">
+              <div className="flex min-w-0 flex-1 flex-row flex-wrap items-baseline gap-x-1.5 gap-y-0">
                 <span
-                  className="text-[16px] font-medium tracking-tight"
+                  className="text-[15px] font-medium tracking-tight"
                   style={{ color: PALETTE.text }}
                 >
-                  {opt.title}
+                  {opt.titleA}
                 </span>
                 <span
-                  className="mt-1 text-[13px]"
-                  style={{ color: PALETTE.subtext }}
+                  className="text-[15px] font-semibold tracking-tight"
+                  style={{ color: PALETTE.text }}
                 >
-                  {opt.sub}
+                  {opt.titleB}
                 </span>
               </div>
               <motion.span
@@ -211,7 +185,7 @@ export function MainGoalSelectStep({
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: PALETTE.primary,
-                  boxShadow: "0 4px 10px -3px rgba(123,224,184,0.6)",
+                  boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
                 }}
                 aria-hidden
               >
@@ -223,7 +197,10 @@ export function MainGoalSelectStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-6 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -233,9 +210,9 @@ export function MainGoalSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #CFEEDD 0%, #BCE3CE 100%)",
+              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

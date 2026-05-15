@@ -11,20 +11,17 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
   subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
 };
 
 export function ActivitySelectStep({
@@ -32,15 +29,12 @@ export function ActivitySelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
 
   const labels = {
     de: {
       title: "Wie aktiv bist du?",
-      subtitle: "Wähle das Level, das am besten zu deinem Alltag passt.",
       sedentary: { title: "Wenig aktiv", sub: "0 Tage pro Woche" },
       light: { title: "Leicht aktiv", sub: "1–2 Tage pro Woche" },
       moderate: { title: "Aktiv", sub: "3–5 Tage pro Woche" },
@@ -48,7 +42,6 @@ export function ActivitySelectStep({
     },
     en: {
       title: "How active are you?",
-      subtitle: "Pick the level that best fits your everyday life.",
       sedentary: { title: "Not active", sub: "0 days per week" },
       light: { title: "Lightly active", sub: "1–2 days per week" },
       moderate: { title: "Active", sub: "3–5 days per week" },
@@ -56,7 +49,6 @@ export function ActivitySelectStep({
     },
     fr: {
       title: "Quel est ton niveau d'activité ?",
-      subtitle: "Choisis le niveau qui correspond le mieux à ton quotidien.",
       sedentary: { title: "Peu actif", sub: "0 jours par semaine" },
       light: { title: "Légèrement actif", sub: "1–2 jours par semaine" },
       moderate: { title: "Actif", sub: "3–5 jours par semaine" },
@@ -78,11 +70,11 @@ export function ActivitySelectStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar: back + progress */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -91,7 +83,7 @@ export function ActivitySelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -101,43 +93,25 @@ export function ActivitySelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-10 pb-8 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {L.title}
         </h1>
-        <p
-          className="mt-3 text-[15px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </p>
       </motion.div>
 
       {/* Option cards */}
-      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-5">
+      <div className="mt-6 flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-5 pt-1">
         {options.map((opt, i) => {
           const isSelected = selected === opt.id;
           return (
@@ -164,7 +138,7 @@ export function ActivitySelectStep({
                 backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                 border: `1.5px solid ${isSelected ? PALETTE.border : PALETTE.cardBorderIdle}`,
                 boxShadow: isSelected
-                  ? "0 8px 24px -10px rgba(123,224,184,0.55), 0 2px 6px rgba(15,40,30,0.04)"
+                  ? "0 8px 24px -10px rgba(36,255,143,0.55), 0 2px 6px rgba(15,40,30,0.04)"
                   : "0 1px 2px rgba(15,40,30,0.03)",
               }}
             >
@@ -192,7 +166,7 @@ export function ActivitySelectStep({
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: PALETTE.primary,
-                  boxShadow: "0 4px 10px -3px rgba(123,224,184,0.6)",
+                  boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
                 }}
                 aria-hidden
               >
@@ -204,7 +178,10 @@ export function ActivitySelectStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-6 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -214,9 +191,9 @@ export function ActivitySelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #CFEEDD 0%, #BCE3CE 100%)",
+              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

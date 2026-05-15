@@ -9,21 +9,18 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  primaryDeep: "#2DAA82",
-  bg: "#F7FFFB",
-  accent: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  primaryDeep: "#0A8550",
+  bg: "#F0FFF7",
+  accent: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
   subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
   pageLine: "#EDF7F1",
 };
 
@@ -50,14 +47,14 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
           height: 18,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(91,203,159,0.22) 0%, rgba(91,203,159,0) 70%)",
+            "radial-gradient(ellipse, rgba(18,217,120,0.22) 0%, rgba(18,217,120,0) 70%)",
           filter: "blur(2px)",
         }}
       />
 
       {/* Floating food emojis around the book */}
       <motion.span
-        className="absolute select-none text-[28px]"
+        className="absolute select-none text-[22px]"
         style={{ top: 4, left: -6 }}
         initial={{ opacity: 0, y: 8, rotate: -8 }}
         animate={{ opacity: 1, y: [0, -6, 0], rotate: -8 }}
@@ -70,7 +67,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
         🥑
       </motion.span>
       <motion.span
-        className="absolute select-none text-[26px]"
+        className="absolute select-none text-[20px]"
         style={{ top: -2, right: -4 }}
         initial={{ opacity: 0, y: 8, rotate: 10 }}
         animate={{ opacity: 1, y: [0, -5, 0], rotate: 10 }}
@@ -83,7 +80,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
         🥕
       </motion.span>
       <motion.span
-        className="absolute select-none text-[24px]"
+        className="absolute select-none text-[19px]"
         style={{ bottom: 38, left: -10 }}
         initial={{ opacity: 0, y: -8, rotate: -4 }}
         animate={{ opacity: 1, y: [0, 6, 0], rotate: -4 }}
@@ -96,7 +93,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
         🍅
       </motion.span>
       <motion.span
-        className="absolute select-none text-[24px]"
+        className="absolute select-none text-[19px]"
         style={{ bottom: 30, right: -8 }}
         initial={{ opacity: 0, y: -8, rotate: 14 }}
         animate={{ opacity: 1, y: [0, 5, 0], rotate: 14 }}
@@ -133,7 +130,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
             background: "#F1FBF6",
             transform: "translate(4px, 4px)",
             border: `1px solid ${PALETTE.cardBorderIdle}`,
-            boxShadow: "0 14px 30px -16px rgba(60,120,90,0.20)",
+            boxShadow: "0 14px 30px -16px rgba(10,120,75,0.20)",
           }}
         />
         {/* Page */}
@@ -144,7 +141,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
               "linear-gradient(180deg, #FFFFFF 0%, #FAFFFC 100%)",
             border: `1px solid ${PALETTE.cardBorderIdle}`,
             boxShadow:
-              "0 22px 50px -24px rgba(60,120,90,0.30), 0 4px 12px -6px rgba(60,120,90,0.08)",
+              "0 22px 50px -24px rgba(10,120,75,0.30), 0 4px 12px -6px rgba(10,120,75,0.08)",
           }}
         >
           {/* Spiral binding stripe */}
@@ -153,7 +150,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
             style={{
               width: 22,
               background:
-                "linear-gradient(180deg, #BCF1DA 0%, #7BE0B8 100%)",
+                "linear-gradient(180deg, #B0FFDC 0%, #24FF8F 100%)",
             }}
           />
           {/* Spiral rings */}
@@ -167,7 +164,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
                 width: 10,
                 height: 10,
                 background: "#FFFFFF",
-                border: "2px solid #5BCB9F",
+                border: "2px solid #12D978",
                 boxShadow: "inset 0 1px 1px rgba(15,40,30,0.1)",
               }}
             />
@@ -178,7 +175,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
             {/* Title row with sparkle */}
             <div className="flex items-center gap-1.5 pb-2">
               <Sparkles
-                className="size-4"
+                className="size-3.5"
                 strokeWidth={2.4}
                 style={{ color: PALETTE.primaryDark }}
               />
@@ -250,8 +247,6 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
 export function WeeklyPlanPreviewStep({
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language } = useLanguage();
   const lng: Lng = (["de", "en", "fr"] as const).includes(language as never)
@@ -262,7 +257,6 @@ export function WeeklyPlanPreviewStep({
     de: {
       title:
         "Erreiche dein Ziel durch einen Wochenplan gezielt auf dein Kalorienziel.",
-      subtitle: "Kein Kalorientracken mehr! – Wir machen es für dich.",
       bookHeader: "Mein Plan",
       next: "Weiter",
       back: "Zurück",
@@ -270,7 +264,6 @@ export function WeeklyPlanPreviewStep({
     en: {
       title:
         "Hit your goal with a weekly plan dialled in to your calorie target.",
-      subtitle: "No more calorie tracking — we do it for you.",
       bookHeader: "My plan",
       next: "Next",
       back: "Back",
@@ -278,7 +271,6 @@ export function WeeklyPlanPreviewStep({
     fr: {
       title:
         "Atteins ton objectif grâce à un plan hebdomadaire calé sur ton apport calorique.",
-      subtitle: "Plus besoin de compter — on s'en charge pour toi.",
       bookHeader: "Mon plan",
       next: "Suivant",
       back: "Retour",
@@ -288,11 +280,11 @@ export function WeeklyPlanPreviewStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -301,7 +293,7 @@ export function WeeklyPlanPreviewStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -311,26 +303,14 @@ export function WeeklyPlanPreviewStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-6 pb-2 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
           className="text-[22px] font-semibold leading-snug tracking-tight"
@@ -338,21 +318,18 @@ export function WeeklyPlanPreviewStep({
         >
           {t.title}
         </h1>
-        <p
-          className="mt-2.5 text-[14px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {t.subtitle}
-        </p>
       </motion.div>
 
       {/* Hero: notebook with food */}
-      <div className="flex flex-1 min-h-0 items-center justify-center px-5">
+      <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
         <MealNotebook headerTitle={t.bookHeader} lng={lng} />
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-2 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -361,7 +338,7 @@ export function WeeklyPlanPreviewStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}
