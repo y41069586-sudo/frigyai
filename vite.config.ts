@@ -9,6 +9,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Prevent browser / proxy from caching HTML & hashed chunks during dev — avoids
+    // "Failed to fetch dynamically imported module" after HMR or server restarts.
+    ...(mode === "development"
+      ? {
+          headers: {
+            "Cache-Control": "no-store",
+          },
+        }
+      : {}),
   },
   preview: {
     host: "::",
@@ -20,6 +29,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      devOptions: {
+        // Never install Workbox in `vite dev`; a stale SW can serve old chunk names
+        // (e.g. Index_<oldhash>.js) and break lazy-loaded routes after rebuilds.
+        enabled: false,
+      },
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "Frigy",
