@@ -1,12 +1,15 @@
 workflows:
-  react-native-workflow:
-    name: React Native Workflow
+  android-build:
+    name: Android Build
 
     environment:
       node: latest
 
     scripts:
       - npm install
+      - npm install -g eas-cli
+      - eas build --platform android --non-interactive
 
     artifacts:
-      - android/app/build/outputs/**/*.apk
+      - build/**/*.apk
+      - build/**/*.aab
