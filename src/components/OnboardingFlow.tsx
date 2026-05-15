@@ -38,6 +38,7 @@ import { BirthdateSelectStep } from "./onboarding/components/BirthdateSelectStep
 import { WeightSelectStep } from "./onboarding/components/WeightSelectStep";
 import { HeightSelectStep } from "./onboarding/components/HeightSelectStep";
 import { ActivitySelectStep } from "./onboarding/components/ActivitySelectStep";
+import { AppleHealthConnectStep } from "./onboarding/components/AppleHealthConnectStep";
 import { MainGoalSelectStep } from "./onboarding/components/MainGoalSelectStep";
 import { TargetWeightSelectStep } from "./onboarding/components/TargetWeightSelectStep";
 import { GoalPreviewStep } from "./onboarding/components/GoalPreviewStep";
@@ -1297,6 +1298,18 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
+          />
+        );
+
+      case "apple-health-connect":
+        return (
+          <AppleHealthConnectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+            currentIndex={currentIndex}
+            totalSteps={totalSteps}
           />
         );
 
@@ -3864,11 +3877,16 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex min-h-0 flex-col bg-background safe-area-inset"
     >
+ cursor/apple-health-connect-screen-e370
+      {/* Progress Bar at Top */}
+      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'apple-health-connect' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
+=======
       {/* Global progress bar (not on mint body / splash / tutorial / analyzing) */}
       {currentStep !== "analyzing" &&
         currentStep !== "tutorial" &&
         currentStep !== "splash" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
+ main
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
@@ -3876,6 +3894,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         />
       )}
 
+ cursor/apple-health-connect-screen-e370
+      {/* Header - hidden for tutorial, splash, gender, birthdate, weight, height, activity, main-goal, target-weight, goal-preview, speed-select, health-goals, dietary-preferences, allergies, weekly-plan-preview, scan-fridge, shopping-list, notebook chrome steps */}
+      {currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'apple-health-connect' && currentStep !== 'main-goal' && currentStep !== 'target-weight' && currentStep !== 'goal-preview' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
+=======
       {/* Thin mint progress line on main onboarding flow */}
       {ONBOARDING_MINT_PROGRESS_LINE_STEPS.has(currentStep) && (
         <div
@@ -3903,6 +3925,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       {currentStep !== "tutorial" &&
         currentStep !== "splash" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
+ main
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
@@ -3929,9 +3952,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       )}
 
       {/* Main content */}
+ cursor/apple-health-connect-screen-e370
+      {currentStep === 'tutorial' || currentStep === 'splash' || currentStep === 'gender' || currentStep === 'birthdate' || currentStep === 'weight' || currentStep === 'height' || currentStep === 'activity' || currentStep === 'apple-health-connect' || currentStep === 'main-goal' || currentStep === 'target-weight' || currentStep === 'goal-preview' || currentStep === 'speed-select' || currentStep === 'health-goals' || currentStep === 'dietary-preferences' || currentStep === 'allergies' || currentStep === 'weekly-plan-preview' || currentStep === 'scan-fridge' || currentStep === 'shopping-list' ? (
+=======
       {currentStep === "tutorial" ||
         currentStep === "splash" ||
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
+ main
         // These steps render fullscreen with their own layout
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {renderStepContent()}
@@ -3981,7 +4008,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender", "birthdate", "weight", "height", "activity", "apple-health-connect", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}
