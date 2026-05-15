@@ -1,0 +1,12 @@
+workflows:
+  react-native-workflow:
+    name: React Native Workflow
+
+    environment:
+      node: latest
+
+    scripts:
+      - npm install
+
+    artifacts:
+      - android/app/build/outputs/**/*.apk
