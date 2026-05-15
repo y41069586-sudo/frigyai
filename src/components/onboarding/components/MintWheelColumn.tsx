@@ -160,9 +160,9 @@ export function MintWheelColumn({
   const containerHeight = WHEEL_VISIBLE_ITEMS * rowHeight;
   const textAlignClass =
     align === "left"
-      ? "justify-start pl-2"
+      ? "justify-start pl-1"
       : align === "right"
-        ? "justify-end pr-2"
+        ? "justify-end pr-1"
         : "justify-center";
 
   const selectedFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 19 : 24;

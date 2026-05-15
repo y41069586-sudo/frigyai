@@ -13,13 +13,12 @@ import {
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
   text: "#1F2937",
   textMuted: "#6B7280",
-  cardBorderIdle: "#EEF2EF",
 };
 
 const CM_PER_INCH = 2.54;
@@ -30,8 +29,6 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 export function HeightSelectStep({
@@ -39,8 +36,6 @@ export function HeightSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
   const wheelRow = useMintWheelRowHeight();
@@ -112,13 +107,6 @@ export function HeightSelectStep({
         ? "Quelle est ta taille ?"
         : "How tall are you?";
 
-  const subtitle =
-    language === "de"
-      ? "Das hilft uns deinen Plan besser anzupassen."
-      : language === "fr"
-        ? "Cela nous aide à mieux adapter ton plan."
-        : "This helps us tailor your plan better.";
-
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
     {
       id: "metric",
@@ -129,6 +117,7 @@ export function HeightSelectStep({
 
   return (
     <div
+ cursor/wheelpicker-weight-step-e370
       className="fixed inset-0 z-[100] flex flex-col"
       style={{
         backgroundColor: PALETTE.bg,
@@ -139,6 +128,13 @@ export function HeightSelectStep({
     >
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 pt-3 pb-1 shrink-0">
+=======
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
+      style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
+    >
+      {/* Top bar */}
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+ main
         {onBack ? (
           <motion.button
             type="button"
@@ -147,7 +143,7 @@ export function HeightSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -157,21 +153,9 @@ export function HeightSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -220,17 +204,15 @@ export function HeightSelectStep({
               "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
           }}
         >
-          {/* Selection band */}
           <div
-            className="pointer-events-none absolute inset-x-4 z-0 rounded-2xl"
+            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
             style={{
               top: `calc(50% - ${wheelRow / 2}px)`,
               height: wheelRow,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 4px rgba(123,224,184,0.18)",
+              boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
             }}
           />
-          {/* Fades */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
             style={{
@@ -321,7 +303,7 @@ export function HeightSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

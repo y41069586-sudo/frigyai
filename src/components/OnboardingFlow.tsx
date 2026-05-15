@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  ChevronRight, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
+  ChevronRight, ChevronLeft, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
   Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe,
   Zap, Clock, Rocket, TrendingUp, Flame, BarChart3, Activity, User,
   Ruler, Calendar, Brain, AlertTriangle, Salad, Fish, Utensils, Wheat,
@@ -24,11 +24,13 @@ import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 
 import { 
-  OnboardingStep, UserData, defaultUserData, onboardingSteps 
+  OnboardingStep, UserData, defaultUserData, onboardingSteps,
+  ONBOARDING_MINT_BODY_STEPS,
+  ONBOARDING_MINT_PROGRESS_LINE_STEPS,
 } from "./onboarding/types";
 import { calculateMacros, calculateWeeksToGoal, saveOnboardingData } from "./onboarding/utils";
 import {
-  StepCard, ProgressDots, AnimatedCounter, SelectionCard,
+  StepCard, AnimatedCounter, SelectionCard,
   AnimatedBicycle, AnimatedMotorcycle, AnimatedRocket, OnboardingProgressBar
 } from "./onboarding/components";
 import { GenderSelectStep } from "./onboarding/components/GenderSelectStep";
@@ -113,12 +115,12 @@ const NotebookOnboardingChrome = ({
         : "Your data will be deleted after the plan is created.";
   return (
     <div className="flex flex-1 min-h-0 flex-col bg-background">
-      {/* Fortschritt wie Referenz: kurze Striche, erster Block schwarz */}
-      <div className="flex justify-center gap-1 px-4 pt-14 pb-4">
+      {/* Fortschritt: nur Punkte */}
+      <div className="flex flex-wrap justify-center gap-2 px-4 pt-14 pb-4">
         {Array.from({ length: totalProgressSegments }).map((_, i) => (
           <div
             key={i}
-            className={`h-[3px] w-7 shrink-0 rounded-none transition-colors ${i <= progressFilledIndex ? "bg-neutral-950" : "bg-neutral-300"}`}
+            className={`size-2 shrink-0 rounded-full transition-colors ${i <= progressFilledIndex ? "bg-neutral-950" : "bg-neutral-400"}`}
           />
         ))}
       </div>
@@ -1172,13 +1174,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               {/* Three wheel pickers side by side */}
               <div className="w-full max-w-md grid grid-cols-3 gap-2">
                 {/* Height Picker */}
-                <motion.div 
-                  className="rounded-2xl bg-card border-2 border-border overflow-hidden"
+                <motion.div
+                  className="overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.3 }}
                 >
-                  <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
+                  <div className="flex items-center justify-center gap-1.5 py-2">
                     <PersonStanding className="w-4 h-4 text-primary" />
                     <span className="text-xs font-medium">{t.onboardingHeight}</span>
                   </div>
@@ -1193,13 +1195,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 </motion.div>
                 
                 {/* Weight Picker */}
-                <motion.div 
-                  className="rounded-2xl bg-card border-2 border-border overflow-hidden"
+                <motion.div
+                  className="overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.3 }}
                 >
-                  <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
+                  <div className="flex items-center justify-center gap-1.5 py-2">
                     <Scale className="w-4 h-4 text-primary" />
                     <span className="text-xs font-medium">{t.onboardingWeightLabel}</span>
                   </div>
@@ -1214,13 +1216,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 </motion.div>
                 
                 {/* Age Picker */}
-                <motion.div 
-                  className="rounded-2xl bg-card border-2 border-border overflow-hidden"
+                <motion.div
+                  className="overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3, duration: 0.3 }}
                 >
-                  <div className="flex items-center justify-center gap-1.5 py-2 bg-muted/30 border-b border-border">
+                  <div className="flex items-center justify-center gap-1.5 py-2">
                     <Calendar className="w-4 h-4 text-primary" />
                     <span className="text-xs font-medium">{t.onboardingAgeLabel}</span>
                   </div>
@@ -1255,8 +1257,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1267,8 +1267,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1279,8 +1277,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1291,8 +1287,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1303,8 +1297,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1315,8 +1307,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1327,8 +1317,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1339,8 +1327,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1351,8 +1337,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1363,8 +1347,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1375,8 +1357,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1387,8 +1367,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1399,8 +1377,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1464,238 +1440,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </StepCard>
         );
 
-      case "target-weight":
-        const minTarget = userData.goalMode === 'lose' ? Math.max(40, userData.weight - 50) : userData.weight;
-        const maxTarget = userData.goalMode === 'lose' ? userData.weight - 1 : userData.weight + 50;
-        const weightDiff = Math.abs(userData.targetWeight - userData.weight);
-        
-        return (
-          <StepCard step="target-weight">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg">
-                <Scale className="w-8 h-8 text-primary-foreground" />
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">{t.onboardingTargetWeight}</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                {userData.goalMode === 'lose' 
-                  ? (language === 'de' ? 'Wie viel möchtest du verlieren?' : language === 'fr' ? 'Combien voulez-vous perdre?' : 'How much do you want to lose?')
-                  : (language === 'de' ? 'Wie viel möchtest du zunehmen?' : language === 'fr' ? 'Combien voulez-vous prendre?' : 'How much do you want to gain?')}
-              </p>
-              
-              <div className="w-full max-w-sm space-y-6">
-                <motion.div 
-                  className="relative h-40 flex items-end justify-center gap-8 pt-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
-                >
-                  <div className="flex flex-col items-center">
-                    <motion.div 
-                      className="w-16 bg-muted-foreground/30 rounded-t-xl"
-                      initial={{ height: 0 }}
-                      animate={{ height: 80 }}
-                      transition={{ delay: 0.3, duration: 0.4 }}
-                    />
-                    <span className="text-xs text-muted-foreground/60 mt-2">{language === 'de' ? 'Aktuell' : language === 'fr' ? 'Actuel' : 'Current'}</span>
-                    <span className="text-lg font-bold">{userData.weight}kg</span>
-                  </div>
-                  
-                  <motion.div 
-                    className="flex items-center gap-1 mb-16"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5, duration: 0.3 }}
-                  >
-                    <span className="text-2xl">→</span>
-                  </motion.div>
-                  
-                  <div className="flex flex-col items-center">
-                    <motion.div 
-                      className="w-16 bg-primary rounded-t-xl"
-                      initial={{ height: 0 }}
-                      animate={{ height: userData.goalMode === 'lose' ? 80 - weightDiff * 4 : 80 + weightDiff * 2 }}
-                      transition={{ delay: 0.4, duration: 0.4 }}
-                      style={{ minHeight: 30, maxHeight: 120 }}
-                    />
-                    <span className="text-xs text-primary mt-2">{t.goal}</span>
-                    <span className="text-lg font-bold text-primary">{userData.targetWeight}kg</span>
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  className="p-4 rounded-2xl bg-card border-2 border-border"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5, duration: 0.3 }}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium">
-                      {userData.goalMode === 'lose' 
-                        ? (language === 'de' ? 'Gewichtsverlust' : language === 'fr' ? 'Perte de poids' : 'Weight loss')
-                        : (language === 'de' ? 'Gewichtszunahme' : language === 'fr' ? 'Prise de poids' : 'Weight gain')}
-                    </span>
-                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold">
-                      {userData.goalMode === 'lose' ? '-' : '+'}{weightDiff}kg
-                    </div>
-                  </div>
-                  <input
-                    type="range" min={minTarget} max={maxTarget} value={userData.targetWeight}
-                    onChange={(e) => setUserData({ ...userData, targetWeight: parseInt(e.target.value) })}
-                    className="w-full h-3 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground/40 mt-1">
-                    <span>{minTarget}kg</span>
-                    <span>{maxTarget}kg</span>
-                  </div>
-                </motion.div>
-                
-                <motion.p className="text-xs text-muted-foreground/40 text-center flex items-center justify-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
-                  <Sparkles className="w-3 h-3 text-primary" /> 
-                  {language === 'de' 
-                    ? `Max. 10kg ${userData.goalMode === 'lose' ? 'Verlust' : 'Zunahme'} für nachhaltige Ergebnisse`
-                    : language === 'fr'
-                      ? `Max. 10kg ${userData.goalMode === 'lose' ? 'de perte' : 'de gain'} pour résultats durables`
-                      : `Max. 10kg ${userData.goalMode === 'lose' ? 'loss' : 'gain'} for sustainable results`}
-                </motion.p>
-              </div>
-            </div>
-          </StepCard>
-        );
-
-      case "speed-select":
-        // Slider-based tempo selection (0.1 - 1.5 kg/week)
-        const minSpeed = 0.1;
-        const maxSpeed = 1.5;
-        const currentSpeed = userData.weeklyGoal || 0.5;
-        
-        // Determine category for visual feedback with animated icons
-        const getSpeedCategory = (speed: number): { label: string; desc: string; Component: typeof AnimatedBicycle; color: string } => {
-          if (speed <= 0.5) return { label: t.onboardingSlow, desc: t.onboardingGentle, Component: AnimatedBicycle, color: "text-green-500" };
-          if (speed <= 0.9) return { label: t.onboardingModerate, desc: t.onboardingSteady, Component: AnimatedMotorcycle, color: "text-blue-500" };
-          return { label: t.onboardingFast, desc: t.onboardingAmbitious, Component: AnimatedRocket, color: "text-orange-500" };
-        };
-        
-        const speedCategory = getSpeedCategory(currentSpeed);
-        const SpeedIcon = speedCategory.Component;
-        
-        return (
-          <StepCard step="speed-select">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              {/* Animated Speed Icon */}
-              <motion.div 
-                key={speedCategory.label}
-                initial={{ scale: 0.5, opacity: 0 }} 
-                animate={{ scale: 1, opacity: 1 }} 
-                transition={{ duration: 0.3, type: "spring" }} 
-                className={`mb-4 ${speedCategory.color}`}
-              >
-                <SpeedIcon selected={true} />
-              </motion.div>
-              
-              <h1 className="text-2xl font-bold mb-1">{t.onboardingYourSpeed}</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">
-                {t.onboardingHowFast}
-              </p>
-              
-              {/* Speed Display */}
-              <motion.div 
-                className="mb-6 text-center"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="text-5xl font-bold text-primary mb-1">
-                  {currentSpeed.toFixed(1)}
-                  <span className="text-lg font-normal text-muted-foreground ml-1">kg/{language === 'de' ? 'Woche' : language === 'fr' ? 'semaine' : 'week'}</span>
-                </div>
-                <motion.div 
-                  key={speedCategory.label}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`text-sm font-medium ${speedCategory.color}`}
-                >
-                  {speedCategory.label} – {speedCategory.desc}
-                </motion.div>
-              </motion.div>
-              
-              {/* Animated Icons as Markers */}
-              <div className="w-full max-w-sm px-2 mb-2">
-                <div className="flex justify-between items-end px-1 mb-1">
-                  <div className={`transition-all duration-200 ${currentSpeed <= 0.5 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
-                    <AnimatedBicycle selected={currentSpeed <= 0.5} />
-                  </div>
-                  <div className={`transition-all duration-200 ${currentSpeed > 0.5 && currentSpeed <= 0.9 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
-                    <AnimatedMotorcycle selected={currentSpeed > 0.5 && currentSpeed <= 0.9} />
-                  </div>
-                  <div className={`transition-all duration-200 ${currentSpeed > 0.9 ? 'opacity-100 scale-110' : 'opacity-40 scale-90'}`}>
-                    <AnimatedRocket selected={currentSpeed > 0.9} />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Slider */}
-              <div className="w-full max-w-sm px-2">
-                <input
-                  type="range"
-                  min={minSpeed * 10}
-                  max={maxSpeed * 10}
-                  step={1}
-                  value={currentSpeed * 10}
-                  onChange={(e) => {
-                    const newValue = parseInt(e.target.value) / 10;
-                    selectionTap();
-                    setUserData({ ...userData, weeklyGoal: newValue });
-                  }}
-                  className="w-full h-3 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
-                  style={{
-                    background: `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${((currentSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100}%, hsl(var(--muted)) ${((currentSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100}%, hsl(var(--muted)) 100%)`
-                  }}
-                />
-                
-                {/* Labels */}
-                <div className="flex justify-between mt-2 text-xs text-muted-foreground/60">
-                  <span>0.1 kg</span>
-                  <span>0.5 kg</span>
-                  <span>1.0 kg</span>
-                  <span>1.5 kg</span>
-                </div>
-              </div>
-              
-              {/* Quick Select Buttons */}
-              <div className="flex gap-2 mt-6">
-                {[0.3, 0.5, 0.8, 1.0, 1.2].map((speed) => (
-                  <motion.button
-                    key={speed}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      selectionTap();
-                      setUserData({ ...userData, weeklyGoal: speed });
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      Math.abs(currentSpeed - speed) < 0.05
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {speed}
-                  </motion.button>
-                ))}
-              </div>
-              
-              <motion.p 
-                className="text-xs text-muted-foreground/40 mt-6 flex items-center gap-1" 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                transition={{ delay: 0.4, duration: 0.3 }}
-              >
-                <AlertTriangle className="w-3 h-3 text-yellow-500" /> 
-                {currentSpeed >= 1.0 ? t.onboardingHighTempoWarning : t.onboardingRecommendedTempo}
-              </motion.p>
-            </div>
-          </StepCard>
-        );
-
       case "dietary-preferences":
         return (
           <DietStyleSelectStep
@@ -1703,8 +1447,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -1715,8 +1457,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
-            currentIndex={currentIndex}
-            totalSteps={totalSteps}
           />
         );
 
@@ -4122,10 +3862,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex flex-col bg-background safe-area-inset"
+      className="fixed inset-0 z-[100] flex min-h-0 flex-col bg-background safe-area-inset"
     >
-      {/* Progress Bar at Top */}
-      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
+      {/* Global progress bar (not on mint body / splash / tutorial / analyzing) */}
+      {currentStep !== "analyzing" &&
+        currentStep !== "tutorial" &&
+        currentStep !== "splash" &&
+        !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
@@ -4133,8 +3876,33 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         />
       )}
 
-      {/* Header - hidden for tutorial, splash, gender, birthdate, weight, height, activity, main-goal, target-weight, goal-preview, speed-select, health-goals, dietary-preferences, allergies, weekly-plan-preview, scan-fridge, shopping-list, notebook chrome steps */}
-      {currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'main-goal' && currentStep !== 'target-weight' && currentStep !== 'goal-preview' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
+      {/* Thin mint progress line on main onboarding flow */}
+      {ONBOARDING_MINT_PROGRESS_LINE_STEPS.has(currentStep) && (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-0 z-[110] px-5 pt-[calc(env(safe-area-inset-top,0px)+6px)]"
+          aria-hidden
+        >
+          <div className="mx-auto h-[3px] max-w-md overflow-hidden rounded-full bg-black/10">
+            <motion.div
+              key={currentStep}
+              className="h-full rounded-full"
+              style={{
+                background: "linear-gradient(90deg,#24FF8F,#12D978)",
+              }}
+              initial={{ width: "0%" }}
+              animate={{
+                width: `${Math.min(100, ((currentIndex + 1) / Math.max(1, totalSteps)) * 100)}%`,
+              }}
+              transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Header - hidden on mint body steps, splash, tutorial, notebook chrome */}
+      {currentStep !== "tutorial" &&
+        currentStep !== "splash" &&
+        !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
@@ -4161,9 +3929,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       )}
 
       {/* Main content */}
-      {currentStep === 'tutorial' || currentStep === 'splash' || currentStep === 'gender' || currentStep === 'birthdate' || currentStep === 'weight' || currentStep === 'height' || currentStep === 'activity' || currentStep === 'main-goal' || currentStep === 'target-weight' || currentStep === 'goal-preview' || currentStep === 'speed-select' || currentStep === 'health-goals' || currentStep === 'dietary-preferences' || currentStep === 'allergies' || currentStep === 'weekly-plan-preview' || currentStep === 'scan-fridge' || currentStep === 'shopping-list' ? (
+      {currentStep === "tutorial" ||
+        currentStep === "splash" ||
+        ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
         // These steps render fullscreen with their own layout
-        <div className="flex-1 min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {renderStepContent()}
         </div>
       ) : NOTEBOOK_MASKOT_STEPS.includes(currentStep) ? (

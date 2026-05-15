@@ -268,6 +268,11 @@ const Index = () => {
       localStorage.removeItem('onboardingUserData');
       localStorage.removeItem('userName');
       localStorage.removeItem('onboardingScanUsed');
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('reminderConfig');
+      localStorage.removeItem('weeklyMealPlan');
+      localStorage.removeItem('mealPlanGenerationCount');
+      localStorage.removeItem('scanFeedback');
       await saveProgress({ onboarding_complete: false });
       window.history.replaceState({}, '', '/');
       window.location.reload();

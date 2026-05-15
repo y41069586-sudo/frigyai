@@ -9,20 +9,16 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
-  textMuted: "#6B7280",
-  subtext: "#7C9388",
-  cardBorderIdle: "#EEF2EF",
+  cardBorderIdle: "#D1D5DB",
 };
 
 type GoalId =
@@ -38,114 +34,62 @@ export function HealthGoalsSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
 
   const labels = {
     de: {
       title: "Was möchtest du erreichen?",
-      subtitle:
-        "Wähle aus, was dir am wichtigsten ist (Mehrfachauswahl möglich).",
-      fitness: {
-        title: "Fitness & Straffung",
-        sub: "Definierter, straffer Körper",
-      },
-      performance: {
-        title: "Sportliche Leistung verbessern",
-        sub: "Mehr Power & Ausdauer",
-      },
-      antiInflammatory: {
-        title: "Entzündungshemmende Ernährung",
-        sub: "Sanft für Körper & Darm",
-      },
-      energy: {
-        title: "Energie steigern",
-        sub: "Mehr Fokus durch den Tag",
-      },
-      pregnancy: {
-        title: "Ernährung während der Schwangerschaft",
-        sub: "Sicher & nährstoffreich",
-      },
-      digestion: {
-        title: "Verdauungsgesundheit verbessern",
-        sub: "Leichter & ausgeglichener",
-      },
+      fitness: { title: "Fitness & Straffung" },
+      performance: { title: "Sportliche Leistung verbessern" },
+      antiInflammatory: { title: "Entzündungshemmende Ernährung" },
+      energy: { title: "Energie steigern" },
+      pregnancy: { title: "Ernährung während der Schwangerschaft" },
+      digestion: { title: "Verdauungsgesundheit verbessern" },
     },
     en: {
       title: "What do you want to achieve?",
-      subtitle: "Pick what matters most (multiple choices possible).",
-      fitness: { title: "Fitness & toning", sub: "Defined, toned body" },
-      performance: {
-        title: "Improve athletic performance",
-        sub: "More power & endurance",
-      },
-      antiInflammatory: {
-        title: "Anti-inflammatory eating",
-        sub: "Gentle for body & gut",
-      },
-      energy: { title: "Boost energy", sub: "More focus through the day" },
-      pregnancy: {
-        title: "Pregnancy nutrition",
-        sub: "Safe & nutrient-rich",
-      },
-      digestion: {
-        title: "Improve digestive health",
-        sub: "Lighter & more balanced",
-      },
+      fitness: { title: "Fitness & toning" },
+      performance: { title: "Improve athletic performance" },
+      antiInflammatory: { title: "Anti-inflammatory eating" },
+      energy: { title: "Boost energy" },
+      pregnancy: { title: "Pregnancy nutrition" },
+      digestion: { title: "Improve digestive health" },
     },
     fr: {
       title: "Que veux-tu atteindre ?",
-      subtitle: "Choisis ce qui compte le plus (sélection multiple possible).",
-      fitness: { title: "Fitness & tonification", sub: "Corps défini et tonique" },
-      performance: {
-        title: "Améliorer la performance sportive",
-        sub: "Plus de puissance & d'endurance",
-      },
-      antiInflammatory: {
-        title: "Alimentation anti-inflammatoire",
-        sub: "Douce pour le corps et l'intestin",
-      },
-      energy: { title: "Booster l'énergie", sub: "Plus de focus chaque jour" },
-      pregnancy: {
-        title: "Nutrition pendant la grossesse",
-        sub: "Sûre & riche en nutriments",
-      },
-      digestion: {
-        title: "Améliorer la digestion",
-        sub: "Plus légère & équilibrée",
-      },
+      fitness: { title: "Fitness & tonification" },
+      performance: { title: "Améliorer la performance sportive" },
+      antiInflammatory: { title: "Alimentation anti-inflammatoire" },
+      energy: { title: "Booster l'énergie" },
+      pregnancy: { title: "Nutrition pendant la grossesse" },
+      digestion: { title: "Améliorer la digestion" },
     },
   } as const;
 
   const L = labels[(language as "de" | "en" | "fr")] ?? labels.de;
 
-  const options: { id: GoalId; title: string; sub: string; emoji: string }[] = [
-    { id: "fitness", title: L.fitness.title, sub: L.fitness.sub, emoji: "🏋️" },
+  const options: { id: GoalId; title: string; emoji: string }[] = [
+    { id: "fitness", title: L.fitness.title, emoji: "🏋️" },
     {
       id: "performance",
       title: L.performance.title,
-      sub: L.performance.sub,
       emoji: "⚡",
     },
     {
       id: "anti-inflammatory",
       title: L.antiInflammatory.title,
-      sub: L.antiInflammatory.sub,
       emoji: "🌿",
     },
-    { id: "energy", title: L.energy.title, sub: L.energy.sub, emoji: "🔋" },
+    { id: "energy", title: L.energy.title, emoji: "🔋" },
     {
       id: "pregnancy",
       title: L.pregnancy.title,
-      sub: L.pregnancy.sub,
       emoji: "🤰",
     },
     {
       id: "digestion",
       title: L.digestion.title,
-      sub: L.digestion.sub,
       emoji: "✨",
     },
   ];
@@ -161,11 +105,11 @@ export function HealthGoalsSelectStep({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-2 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -174,7 +118,7 @@ export function HealthGoalsSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -184,43 +128,25 @@ export function HealthGoalsSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-8 pb-6 shrink-0"
+        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
       >
         <h1
-          className="text-[28px] font-semibold leading-tight tracking-tight"
+          className="text-[22px] font-semibold leading-tight tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {L.title}
         </h1>
-        <p
-          className="mt-3 text-[15px] leading-relaxed"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </p>
       </motion.div>
 
       {/* Option cards (scrollable) */}
-      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-5 pb-2">
+      <div className="mt-6 flex flex-1 min-h-0 flex-col gap-2.5 overflow-y-auto px-5 pb-2 pt-1">
         {options.map((opt, i) => {
           const isSelected = selected.includes(opt.id);
           return (
@@ -241,36 +167,30 @@ export function HealthGoalsSelectStep({
               whileTap={{ scale: isSelected ? 1.0 : 0.985 }}
               onClick={() => toggle(opt.id)}
               aria-pressed={isSelected}
-              className="relative flex w-full items-center gap-4 rounded-[20px] px-5 py-4 text-left transition-all duration-200"
+              className="relative flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-all duration-200"
               style={{
                 backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                 border: `1.5px solid ${isSelected ? PALETTE.primary : PALETTE.cardBorderIdle}`,
                 boxShadow: isSelected
-                  ? "0 8px 24px -10px rgba(123,224,184,0.55), 0 2px 6px rgba(15,40,30,0.04)"
+                  ? "0 8px 24px -10px rgba(36,255,143,0.55), 0 2px 6px rgba(15,40,30,0.04)"
                   : "0 1px 2px rgba(15,40,30,0.03)",
               }}
             >
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[22px] transition-colors"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-[20px] transition-colors"
                 style={{
-                  backgroundColor: isSelected ? "#D6F8E8" : "#F2FAF6",
+                  backgroundColor: isSelected ? "#C0FFD9" : "#EAFFF5",
                 }}
                 aria-hidden
               >
                 <span>{opt.emoji}</span>
               </div>
-              <div className="flex flex-1 flex-col">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <span
-                  className="text-[16px] font-medium tracking-tight"
+                  className="text-[15px] font-medium tracking-tight"
                   style={{ color: PALETTE.text }}
                 >
                   {opt.title}
-                </span>
-                <span
-                  className="mt-1 text-[13px]"
-                  style={{ color: PALETTE.subtext }}
-                >
-                  {opt.sub}
                 </span>
               </div>
               <motion.span
@@ -283,7 +203,7 @@ export function HealthGoalsSelectStep({
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: PALETTE.primary,
-                  boxShadow: "0 4px 10px -3px rgba(123,224,184,0.6)",
+                  boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
                 }}
                 aria-hidden
               >
@@ -295,7 +215,10 @@ export function HealthGoalsSelectStep({
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-4 pb-10">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -305,9 +228,9 @@ export function HealthGoalsSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #CFEEDD 0%, #BCE3CE 100%)",
+              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

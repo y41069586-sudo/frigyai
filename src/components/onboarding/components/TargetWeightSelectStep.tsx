@@ -14,14 +14,12 @@ import {
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  primaryDeep: "#2DAA82",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
   text: "#1F2937",
   textMuted: "#6B7280",
-  cardBorderIdle: "#EEF2EF",
 };
 
 const KG_PER_LB = 0.45359237;
@@ -31,8 +29,6 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 export function TargetWeightSelectStep({
@@ -40,8 +36,6 @@ export function TargetWeightSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language } = useLanguage();
   const wheelRow = useMintWheelRowHeight();
@@ -131,11 +125,6 @@ export function TargetWeightSelectStep({
       fallback: "Quel est ton poids cible ?",
     },
   } as const;
-  const subtitles = {
-    de: "Wir berechnen daraufhin deine ideale Kalorienzufuhr.",
-    en: "We'll then calculate your ideal calorie intake.",
-    fr: "Nous calculerons ensuite ton apport calorique idéal.",
-  } as const;
   const buttonLabel = {
     de: "Ziel festlegen",
     en: "Set goal",
@@ -152,7 +141,6 @@ export function TargetWeightSelectStep({
         : goal === "maintain"
           ? titles[lng].maintain
           : titles[lng].fallback;
-  const subtitle = subtitles[lng];
 
   const sepChar = isMetric ? "," : ".";
   const unitLabel = isMetric ? "kg" : "lbs";
@@ -185,7 +173,7 @@ export function TargetWeightSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -195,21 +183,9 @@ export function TargetWeightSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* Title + subtitle */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -257,17 +233,15 @@ export function TargetWeightSelectStep({
               "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
           }}
         >
-          {/* Selection band */}
           <div
-            className="pointer-events-none absolute inset-x-4 z-0 rounded-2xl"
+            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
             style={{
               top: `calc(50% - ${wheelRow / 2}px)`,
               height: wheelRow,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 4px rgba(123,224,184,0.18)",
+              boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
             }}
           />
-          {/* Fades */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
             style={{
@@ -336,7 +310,7 @@ export function TargetWeightSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {buttonLabel[lng]}

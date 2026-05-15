@@ -7,14 +7,13 @@ import type { Dispatch, SetStateAction } from "react";
 import { useMintWheelRowHeight } from "./MintWheelColumn";
 
 const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  selectedBg: "#E8FFF4",
-  border: "#B7F0D7",
+  primary: "#24FF8F",
+  primaryDark: "#12D978",
+  bg: "#F0FFF7",
+  selectedBg: "#D4FFEA",
+  border: "#6EECC0",
   text: "#1F2937",
   textMuted: "#6B7280",
-  cardBorderIdle: "#EEF2EF",
 };
 
 const VISIBLE_ITEMS = 5;
@@ -109,7 +108,7 @@ function WheelColumn({
 
   const containerHeight = VISIBLE_ITEMS * rowHeight;
   const textAlignClass =
-    align === "left" ? "justify-start pl-4" : align === "right" ? "justify-end pr-4" : "justify-center";
+    align === "left" ? "justify-start pl-2" : align === "right" ? "justify-end pr-2" : "justify-center";
 
   const selectedPx = rowHeight <= 40 ? 18 : 22;
   const idlePx = rowHeight <= 40 ? 15 : 16;
@@ -150,7 +149,11 @@ function WheelColumn({
               style={{
                 height: rowHeight,
                 scrollSnapAlign: "center",
+ cursor/wheelpicker-weight-step-e370
                 fontSize: isSelected ? `${selectedPx}px` : `${idlePx}px`,
+=======
+                fontSize: isSelected ? "19px" : "15px",
+ main
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected ? PALETTE.text : PALETTE.textMuted,
                 opacity,
@@ -190,8 +193,6 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  currentIndex?: number;
-  totalSteps?: number;
 };
 
 export function BirthdateSelectStep({
@@ -199,8 +200,6 @@ export function BirthdateSelectStep({
   setUserData,
   onBack,
   onNext,
-  currentIndex = 0,
-  totalSteps = 1,
 }: Props) {
   const { language, t } = useLanguage();
   const wheelRow = useMintWheelRowHeight();
@@ -250,17 +249,11 @@ export function BirthdateSelectStep({
         ? "Quand es-tu né(e) ?"
         : "When were you born?";
 
-  const subtitle =
-    language === "de"
-      ? "Das hilft uns deinen Plan zu personalisieren."
-      : language === "fr"
-        ? "Cela nous aide à personnaliser ton plan."
-        : "This helps us personalize your plan.";
-
   const canProceed = true;
 
   return (
     <div
+ cursor/wheelpicker-weight-step-e370
       className="fixed inset-0 z-[100] flex flex-col"
       style={{
         backgroundColor: PALETTE.bg,
@@ -271,6 +264,13 @@ export function BirthdateSelectStep({
     >
       {/* ── Top bar: back + progress ── */}
       <div className="flex items-center gap-3 px-5 pt-3 pb-1 shrink-0">
+=======
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
+      style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
+    >
+      {/* ── Top bar: back + progress ── */}
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+ main
         {onBack ? (
           <motion.button
             type="button"
@@ -279,7 +279,7 @@ export function BirthdateSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: "#E4FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -289,33 +289,29 @@ export function BirthdateSelectStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-        <div className="flex flex-1 items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[4px] flex-1 rounded-full transition-colors"
-              style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
-              }}
-            />
-          ))}
-        </div>
-        <div className="h-9 w-9 shrink-0" />
-      </div>
+</div>
 
-      {/* ── Title + subtitle ── */}
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+ cursor/wheelpicker-weight-step-e370
         className="px-6 pt-3 pb-3 shrink-0 [@media(max-height:700px)]:pt-3 [@media(max-height:700px)]:pb-3 [@media(min-height:701px)]:pt-5 [@media(min-height:701px)]:pb-4 [@media(min-height:800px)]:pt-8 [@media(min-height:800px)]:pb-6"
       >
         <h1
           className="text-[24px] font-semibold leading-tight tracking-tight [@media(max-height:700px)]:text-[21px] [@media(min-height:800px)]:text-[30px]"
+=======
+        className="min-w-0 shrink-0 overflow-visible px-6 pb-4 pt-1"
+      >
+        <h1
+          className="text-[22px] font-semibold leading-tight tracking-tight"
+ main
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
+ cursor/wheelpicker-weight-step-e370
         <p
           className="mt-1.5 text-[15px] leading-snug [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:text-[13px] [@media(min-height:800px)]:mt-3 [@media(min-height:800px)]:text-[17px]"
           style={{ color: PALETTE.textMuted }}
@@ -340,34 +336,57 @@ export function BirthdateSelectStep({
             boxShadow:
               "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
           }}
+
+      </motion.div>
+
+      {/* Datumswheels — ohne weiße Kachel */}
+      <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+          className="relative mx-auto w-full max-w-[288px] shrink-0 py-0.5"
+ main
         >
-          {/* Selection band (mint highlight across whole row) */}
           <div
-            className="pointer-events-none absolute inset-x-4 z-0 rounded-2xl"
+            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
             style={{
               top: `calc(50% - ${wheelRow / 2}px)`,
               height: wheelRow,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 4px rgba(123,224,184,0.18)",
+              boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
             }}
           />
 
-          {/* Top fade */}
           <div
+ cursor/wheelpicker-weight-step-e370
             className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
             style={{
               height: PAD_ITEMS * wheelRow + 12,
               background:
                 "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
+
+            className="pointer-events-none absolute inset-x-0 top-0 z-20"
+            style={{
+              height: PAD_ITEMS * ITEM_HEIGHT + 12,
+              background:
+                "linear-gradient(180deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
+ main
             }}
           />
-          {/* Bottom fade */}
           <div
+ cursor/wheelpicker-weight-step-e370
             className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px] [@media(min-height:800px)]:rounded-b-[28px]"
             style={{
               height: PAD_ITEMS * wheelRow + 12,
               background:
                 "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
+            style={{
+              height: PAD_ITEMS * ITEM_HEIGHT + 12,
+              background:
+                "linear-gradient(0deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
+ main
             }}
           />
 
@@ -404,8 +423,16 @@ export function BirthdateSelectStep({
         </motion.div>
       </div>
 
+ cursor/wheelpicker-weight-step-e370
       {/* ── Continue button ── */}
       <div className="shrink-0 px-5 pt-3 pb-4 [@media(max-height:700px)]:pt-2 [@media(max-height:700px)]:pb-3 [@media(min-height:800px)]:pt-5 [@media(min-height:800px)]:pb-6">
+
+      {/* Continue */}
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
+ main
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -415,9 +442,9 @@ export function BirthdateSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #CFEEDD 0%, #BCE3CE 100%)",
+              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(91,203,159,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

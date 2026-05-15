@@ -30,8 +30,8 @@ export function MintSegmentedControl<T extends string>({
       aria-label={ariaLabel}
       className="relative inline-flex h-10 items-center rounded-full p-1 [@media(min-height:701px)]:h-11 [@media(min-height:800px)]:h-[52px]"
       style={{
-        backgroundColor: "#EFF6F2",
-        border: "1px solid #E3EFE7",
+        backgroundColor: "#E8FFF2",
+        border: "1px solid #CDF5E0",
         boxShadow: "inset 0 1px 1px rgba(15,40,30,0.04)",
       }}
     >
@@ -47,9 +47,9 @@ export function MintSegmentedControl<T extends string>({
           top: 4,
           bottom: 4,
           width: `calc((100% - 8px) / ${count})`,
-          background: "linear-gradient(135deg, #7BE0B8 0%, #5BCB9F 100%)",
+          background: "linear-gradient(135deg, #24FF8F 0%, #12D978 100%)",
           boxShadow:
-            "0 6px 14px -6px rgba(91,203,159,0.55), 0 1px 2px rgba(15,40,30,0.05)",
+            "0 6px 14px -6px rgba(18,217,120,0.55), 0 1px 2px rgba(15,40,30,0.05)",
           pointerEvents: "none",
         }}
       />
