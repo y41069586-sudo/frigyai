@@ -10,9 +10,11 @@ workflows:
     scripts:
       - npm ci --legacy-peer-deps
       - npm install -g eas-cli
-      - eas build --platform android --non-interactive
+      - mkdir -p build
+      - eas build --platform android --non-interactive --wait --json > build/eas-build.json
+      - node scripts/download-eas-artifact.mjs build/eas-build.json build
 
     artifacts:
-      - build/**/*.apk
-      - build/**/*.aab
+      - build/*.apk
+      - build/*.aab
    
