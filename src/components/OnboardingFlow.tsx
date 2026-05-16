@@ -17,7 +17,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
 import frigySplashSrc from "@/assets/frigy-hero-nobg.png";
-import frigyNotebookSrc from "@/assets/frigy-notebook.png";
 import confetti from "canvas-confetti";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
@@ -33,6 +32,7 @@ import {
   StepCard, AnimatedCounter, SelectionCard,
   AnimatedBicycle, AnimatedMotorcycle, AnimatedRocket, OnboardingProgressBar
 } from "./onboarding/components";
+import { OnboardingDataNotice } from "./onboarding/components/OnboardingDataNotice";
 import { GenderSelectStep } from "./onboarding/components/GenderSelectStep";
 import { BirthdateSelectStep } from "./onboarding/components/BirthdateSelectStep";
 import { WeightSelectStep } from "./onboarding/components/WeightSelectStep";
@@ -49,6 +49,7 @@ import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep
 import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
 import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
+import { HealthConnectStep } from "./onboarding/components/HealthConnectStep";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
 import { WheelPicker } from "./WheelPicker";
@@ -108,12 +109,6 @@ const NotebookOnboardingChrome = ({
 }: NotebookChromeProps) => {
   const { language, t } = useLanguage();
   const { displayed, done } = useTypewriter(questionLines, 34, 140);
-  const disclaimer =
-    language === "de"
-      ? "Ihre Daten werden nach der Erstellung eines Plans gelöscht."
-      : language === "fr"
-        ? "Vos données seront supprimées après la création du plan."
-        : "Your data will be deleted after the plan is created.";
   return (
     <div className="flex flex-1 min-h-0 flex-col bg-background">
       {/* Fortschritt: nur Punkte */}
@@ -126,34 +121,20 @@ const NotebookOnboardingChrome = ({
         ))}
       </div>
 
-      {/* Persistent header: GIF + bubble (stable img so animation is not reset by React remounts below) */}
-      <div className="flex items-start gap-2 px-4 pb-4 shrink-0">
-        <img
-          key="onboarding-notebook-mascot"
-          src={frigyNotebookSrc}
-          alt="Frigy"
-          className="h-[72px] w-[72px] shrink-0 object-contain"
-        />
-        <div className="relative mt-1 min-w-0 flex-1">
-          <div className="relative rounded-xl border-2 border-emerald-400 bg-emerald-50 px-4 py-3 shadow-sm before:absolute before:left-[-6px] before:top-[18px] before:z-0 before:h-3 before:w-3 before:rotate-45 before:border-l-2 before:border-b-2 before:border-emerald-400 before:bg-emerald-50">
-            <p className="whitespace-pre-line font-black text-[13px] uppercase leading-snug tracking-wide text-neutral-900">
-              {displayed}
-              {!done ? (
-                <span className="inline-block ml-0.5 h-[1em] w-0.5 animate-pulse bg-emerald-700 align-middle" />
-              ) : null}
-            </p>
-          </div>
-        </div>
+      <div className="shrink-0 px-4 pb-4">
+        <p className="whitespace-pre-line font-black text-[15px] uppercase leading-snug tracking-wide text-neutral-900">
+          {displayed}
+          {!done ? (
+            <span className="ml-0.5 inline-block h-[1em] w-0.5 animate-pulse bg-emerald-700 align-middle" />
+          ) : null}
+        </p>
       </div>
 
       {/* Middle + actions: scroll together so „Weiter“ sits under content, not pinned to viewport bottom */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {children}
         <div className="shrink-0 border-t border-border/40 px-4 pt-5 pb-8">
-          <p className="mb-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
-            <span className="text-xs">ⓘ</span>
-            {disclaimer}
-          </p>
+          <OnboardingDataNotice className="mb-6" />
           <div className="flex items-center gap-4">
             {showBack ? (
               <Button
@@ -223,7 +204,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
       <div className="shrink-0 z-20 mx-6 mt-10 pb-6">
         <div
           className="relative px-6 py-4"
-          style={{ background: "hsl(148 100% 52%)", border: "3px solid black", overflow: "visible" }}
+          style={{ background: "hsl(155 76% 48%)", border: "3px solid black", overflow: "visible" }}
         >
           <p className="font-black text-[20px] text-white text-center leading-tight">
             {t.welcomeToFrigy}! 👋
@@ -241,7 +222,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
             bottom: -16, marginLeft: 3, width: 0, height: 0,
             borderLeft: "13px solid transparent",
             borderRight: "13px solid transparent",
-            borderTop: "17px solid hsl(148 100% 52%)",
+            borderTop: "17px solid hsl(155 76% 48%)",
           }} />
         </div>
       </div>
@@ -268,7 +249,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           whileTap={{ scale: 0.97 }}
           onClick={onNext}
           className="w-full rounded-2xl font-black text-[18px] flex items-center justify-center gap-2 shadow-md"
-          style={{ background: "hsl(148 100% 52%)", color: "white", height: "56px" }}
+          style={{ background: "hsl(155 76% 48%)", color: "white", height: "56px" }}
         >
           Los geht's!
           <ArrowRight className="w-5 h-5" />
@@ -1346,6 +1327,16 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       case "speed-select":
         return (
           <PaceSelectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+          />
+        );
+
+      case "health-sync":
+        return (
+          <HealthConnectStep
             userData={userData}
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
@@ -3909,7 +3900,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               key={currentStep}
               className="h-full rounded-full"
               style={{
-                background: "linear-gradient(90deg,#24FF8F,#12D978)",
+                background: "linear-gradient(90deg,#1ED78A,#18A872)",
               }}
               initial={{ width: "0%" }}
               animate={{

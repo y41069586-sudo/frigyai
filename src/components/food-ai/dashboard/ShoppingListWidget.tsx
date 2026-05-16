@@ -29,7 +29,7 @@ export function ShoppingListWidget({
   onToggleExpand,
   onOpenList,
 }: ShoppingListWidgetProps) {
-  const top6 = useMemo(() => items.slice(0, 6), [items]);
+  const top6 = useMemo(() => items.slice(0, 4), [items]);
   const [checkedNames, setCheckedNames] = useState<Set<string>>(readCheckedShoppingNames);
 
   useEffect(() => {
@@ -84,12 +84,12 @@ export function ShoppingListWidget({
       className="w-full"
     >
       <div className="flex items-start gap-2.5">
-        <div className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 items-center justify-center rounded-xl min-[360px]:rounded-2xl rounded-tl-md bg-violet-500/10">
-          <ShoppingBag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10">
+          <ShoppingBag className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Einkauf</p>
-          <h3 className="text-base min-[360px]:text-lg font-semibold tracking-tight">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Einkauf</p>
+          <h3 className="text-sm min-[360px]:text-base font-semibold tracking-tight">
             {top6.length === 0
               ? "Keine Liste"
               : allDone
@@ -97,14 +97,14 @@ export function ShoppingListWidget({
                 : "Zutaten fehlen"}
           </h3>
           {top6.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-[10px] text-muted-foreground mt-0.5">
               {top6.length} aktuelle Eintraege aus deiner Einkaufsliste
             </p>
           )}
         </div>
       </div>
 
-      <div className="mt-3.5 min-[360px]:mt-4 space-y-3">
+      <div className="mt-2 space-y-2">
         {top6.length === 0 && (
           <p className="text-sm leading-relaxed text-muted-foreground">
             Deine Einkaufsliste ist gerade leer. Sobald ein Plan erstellt ist, siehst du hier die fehlenden Zutaten live.
@@ -123,7 +123,7 @@ export function ShoppingListWidget({
                       type="button"
                       onClick={(e) => toggle(it.name, e)}
                       className={cn(
-                        "flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 min-[360px]:px-3 py-2.5 text-left text-sm backdrop-blur-sm transition-colors touch-manipulation",
+                        "flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-2 text-left text-xs backdrop-blur-sm transition-colors touch-manipulation",
                         isChecked
                           ? "border-border/30 bg-muted/30 text-muted-foreground line-through"
                           : "border-border/50 bg-background/50 font-medium text-foreground hover:border-primary/25",
@@ -159,7 +159,7 @@ export function ShoppingListWidget({
       <Button
         type="button"
         variant="secondary"
-        className="mt-4 sm:mt-5 h-10 min-[360px]:h-11 touch-target w-full rounded-xl min-[360px]:rounded-2xl rounded-br-2xl rounded-tl-md font-semibold"
+        className="mt-2.5 h-9 touch-target w-full rounded-xl font-semibold text-xs"
         onClick={(e) => {
           e.stopPropagation();
           onOpenList();

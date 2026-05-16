@@ -115,7 +115,7 @@ export function HealthDashboard({
   };
 
   return (
-    <div className="space-y-4 min-[360px]:space-y-5 sm:space-y-6">
+    <div className="space-y-2.5 min-[360px]:space-y-3 sm:space-y-4">
       {scansRemaining != null && (
         <p className="px-1 text-[11px] min-[360px]:text-xs text-muted-foreground">
           Free: noch <span className="font-semibold text-foreground">{scansRemaining}</span> Scan(s) diese Woche
@@ -124,15 +124,17 @@ export function HealthDashboard({
 
       <WidgetContainer>
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-          <AnimatePresence mode="wait">
-            {dashboardPage === 0 ? (
-              <motion.div
-                key="tracker-page"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
+          <motion.div className="relative min-h-[280px] min-[360px]:min-h-[300px] overflow-hidden">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {dashboardPage === 0 ? (
+                <motion.div
+                  key="tracker-page"
+                  className="w-full"
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -24 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                >
                 <TrackerWidget
                   delay={0.02}
                   caloriesEaten={caloriesEaten}
@@ -143,25 +145,27 @@ export function HealthDashboard({
                   targetCarbs={targetCarbs}
                   fatEaten={fatEaten}
                   targetFat={targetFat}
-                  onAddMeal={(slot) => navigate(`/meal-plans?tab=tracker&mealFocus=${slot}`)}
+                  onAddMeal={(slot) => navigate(`/?logMeal=1&mealFocus=${slot}`)}
                   onOpenMealPlanner={() => navigate("/meal-plans?tab=meals")}
-                  onOpenTracker={() => navigate("/meal-plans?tab=tracker")}
+                  onOpenTracker={() => navigate("/?editMacros=1")}
                   expanded={expandedId === "tracker"}
                   onToggleExpand={() => toggle("tracker")}
                 />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="weight-page"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <DashboardWeightWidget />
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="weight-page"
+                  className="w-full"
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -24 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <DashboardWeightWidget embedded />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
           <div className="mt-2 flex items-center justify-center gap-1.5">
             <button
@@ -183,7 +187,7 @@ export function HealthDashboard({
           <AiChatPromptWidget delay={0.055} onSubmit={onAiChatPromptSubmit} />
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 min-[360px]:gap-2.5">
           <WaterWidget
             delay={0.08}
             waterGlasses={waterGlasses}

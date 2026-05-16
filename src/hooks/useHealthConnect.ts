@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-interface HealthData {
-  weight?: number;
-  steps?: number;
-  caloriesBurned?: number;
-  heartRate?: number;
-  date: string;
-}
+import {
+  checkHealthSyncAvailability,
+  isNativeHealthPlatform,
+  persistSyncedSteps,
+  requestNativeHealthPermissions,
+  syncNativeHealthData,
+  type HealthSyncData,
+} from '@/lib/healthSyncService';
 
 interface HealthPermissions {
   weight: boolean;
@@ -23,36 +23,12 @@ interface UseHealthConnectReturn {
   platform: 'ios' | 'android' | 'web';
   isConnected: boolean;
   permissions: HealthPermissions;
-  healthData: HealthData | null;
+  healthData: HealthSyncData | null;
   isLoading: boolean;
   requestPermissions: () => Promise<boolean>;
   syncHealthData: () => Promise<void>;
   disconnect: () => void;
   saveWeight: (weight: number, userId: string) => Promise<boolean>;
-}
-
-// Native bridge for Health APIs
-declare global {
-  interface Window {
-    Capacitor?: {
-      isNativePlatform: () => boolean;
-      getPlatform: () => string;
-      Plugins?: {
-        HealthKit?: {
-          requestAuthorization: (options: any) => Promise<any>;
-          queryWeight: () => Promise<{ value: number; unit: string }[]>;
-          querySteps: (options: any) => Promise<{ value: number }>;
-          saveWeight: (options: { value: number; unit: string }) => Promise<void>;
-        };
-        GoogleFit?: {
-          requestAuthorization: (options: any) => Promise<any>;
-          getWeight: () => Promise<{ value: number }[]>;
-          getSteps: (options: any) => Promise<{ value: number }>;
-          saveWeight: (options: { value: number }) => Promise<void>;
-        };
-      };
-    };
-  }
 }
 
 export function useHealthConnect(): UseHealthConnectReturn {
@@ -63,23 +39,25 @@ export function useHealthConnect(): UseHealthConnectReturn {
     calories: false,
     heartRate: false,
   });
-  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [healthData, setHealthData] = useState<HealthSyncData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isNativeApp = Capacitor.isNativePlatform();
+  const isNativeApp = isNativeHealthPlatform();
   const platform = (Capacitor.getPlatform() as 'ios' | 'android' | 'web') || 'web';
 
-  // Load saved connection state
   useEffect(() => {
     const savedState = localStorage.getItem('healthConnectState');
     if (savedState) {
-      const state = JSON.parse(savedState);
-      setIsConnected(state.isConnected);
-      setPermissions(state.permissions);
+      try {
+        const state = JSON.parse(savedState);
+        setIsConnected(state.isConnected);
+        setPermissions(state.permissions);
+      } catch {
+        /* ignore */
+      }
     }
   }, []);
 
-  // Save connection state
   useEffect(() => {
     localStorage.setItem('healthConnectState', JSON.stringify({
       isConnected,
@@ -91,56 +69,41 @@ export function useHealthConnect(): UseHealthConnectReturn {
     if (!isNativeApp) {
       toast({
         title: 'Native App erforderlich',
-        description: 'Health-Synchronisierung ist nur in der iOS/Android App verfügbar.',
+        description: 'Health Sync funktioniert in der installierten iOS/Android-App — nicht im Browser.',
       });
       return false;
     }
 
-    setIsLoading(true);
-    
-    try {
-      if (platform === 'ios') {
-        // Apple HealthKit
-        const healthKit = window.Capacitor?.Plugins?.HealthKit;
-        if (healthKit) {
-          await healthKit.requestAuthorization({
-            read: ['weight', 'stepCount', 'activeEnergyBurned', 'heartRate'],
-            write: ['weight'],
-          });
-          
-          setPermissions({
-            weight: true,
-            steps: true,
-            calories: true,
-            heartRate: true,
-          });
-          setIsConnected(true);
-          
-          toast({ title: 'Apple Health verbunden! 🍎' });
-          return true;
-        }
-      } else if (platform === 'android') {
-        // Google Fit / Health Connect
-        const googleFit = window.Capacitor?.Plugins?.GoogleFit;
-        if (googleFit) {
-          await googleFit.requestAuthorization({
-            dataTypes: ['weight', 'steps', 'calories'],
-          });
-          
-          setPermissions({
-            weight: true,
-            steps: true,
-            calories: true,
-            heartRate: false,
-          });
-          setIsConnected(true);
-          
-          toast({ title: 'Google Fit verbunden! 🏃' });
-          return true;
-        }
+    const availability = await checkHealthSyncAvailability();
+    if (!availability.ok) {
+      if (availability.reason === 'not_installed') {
+        toast({
+          title: 'Health Connect fehlt',
+          description: 'Bitte „Health Connect“ aus dem Play Store installieren.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Nicht verfügbar',
+          description: availability.detail ?? 'Health Sync ist auf diesem Gerät nicht verfügbar.',
+          variant: 'destructive',
+        });
       }
-      
-      // Simulated connection for development
+      return false;
+    }
+
+    setIsLoading(true);
+    try {
+      const granted = await requestNativeHealthPermissions();
+      if (!granted) {
+        toast({
+          title: 'Verbindung fehlgeschlagen',
+          description: 'Bitte erlaube den Zugriff in den Systemeinstellungen.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       setPermissions({
         weight: true,
         steps: true,
@@ -148,13 +111,12 @@ export function useHealthConnect(): UseHealthConnectReturn {
         heartRate: platform === 'ios',
       });
       setIsConnected(true);
-      
-      toast({ 
-        title: platform === 'ios' ? 'Apple Health verbunden! 🍎' : 'Google Fit verbunden! 🏃',
-        description: 'Gesundheitsdaten werden synchronisiert.',
+
+      toast({
+        title: platform === 'ios' ? 'Apple Health verbunden! 🍎' : 'Health Connect verbunden! 🏃',
+        description: 'Deine Gesundheitsdaten können jetzt synchronisiert werden.',
       });
       return true;
-      
     } catch (error) {
       console.error('Health authorization error:', error);
       toast({
@@ -170,73 +132,27 @@ export function useHealthConnect(): UseHealthConnectReturn {
 
   const syncHealthData = useCallback(async () => {
     if (!isConnected) return;
-    
+
     setIsLoading(true);
-    
     try {
-      let data: HealthData = { date: new Date().toISOString() };
-      
-      if (platform === 'ios') {
-        const healthKit = window.Capacitor?.Plugins?.HealthKit;
-        if (healthKit) {
-          // Get weight
-          if (permissions.weight) {
-            const weightData = await healthKit.queryWeight();
-            if (weightData?.length > 0) {
-              data.weight = weightData[0].value;
-            }
-          }
-          
-          // Get steps
-          if (permissions.steps) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const stepsData = await healthKit.querySteps({
-              startDate: today.toISOString(),
-              endDate: new Date().toISOString(),
-            });
-            data.steps = stepsData?.value || 0;
-          }
-        }
-      } else if (platform === 'android') {
-        const googleFit = window.Capacitor?.Plugins?.GoogleFit;
-        if (googleFit) {
-          // Get weight
-          if (permissions.weight) {
-            const weightData = await googleFit.getWeight();
-            if (weightData?.length > 0) {
-              data.weight = weightData[0].value;
-            }
-          }
-          
-          // Get steps
-          if (permissions.steps) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const stepsData = await googleFit.getSteps({
-              startDate: today.getTime(),
-              endDate: Date.now(),
-            });
-            data.steps = stepsData?.value || 0;
-          }
-        }
+      const data = await syncNativeHealthData();
+
+      if (!data || (data.weight == null && data.steps == null && data.caloriesBurned == null)) {
+        toast({
+          title: 'Keine neuen Daten',
+          description: 'In Apple Health / Health Connect wurden keine passenden Einträge für heute gefunden.',
+        });
+        return;
       }
-      
-      // Fallback with simulated data for development
-      if (!data.weight && !data.steps) {
-        data = {
-          weight: 72.5,
-          steps: Math.floor(Math.random() * 5000) + 3000,
-          caloriesBurned: Math.floor(Math.random() * 300) + 200,
-          date: new Date().toISOString(),
-        };
+
+      if (data.steps != null) {
+        persistSyncedSteps(data.steps);
       }
-      
+
       setHealthData(data);
       localStorage.setItem('healthSyncLastSync', new Date().toISOString());
-      
+
       toast({ title: 'Daten synchronisiert! ✅' });
-      
     } catch (error) {
       console.error('Health sync error:', error);
       toast({
@@ -246,7 +162,7 @@ export function useHealthConnect(): UseHealthConnectReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, platform, permissions]);
+  }, [isConnected]);
 
   const disconnect = useCallback(() => {
     setIsConnected(false);
@@ -258,13 +174,12 @@ export function useHealthConnect(): UseHealthConnectReturn {
     });
     setHealthData(null);
     localStorage.removeItem('healthConnectState');
-    
+
     toast({ title: 'Health-Verbindung getrennt' });
   }, []);
 
   const saveWeight = useCallback(async (weight: number, userId: string): Promise<boolean> => {
     try {
-      // Save to Supabase
       const { error } = await supabase
         .from('weight_entries')
         .insert({
@@ -274,28 +189,12 @@ export function useHealthConnect(): UseHealthConnectReturn {
         });
 
       if (error) throw error;
-
-      // Also save to native health app if connected
-      if (isConnected && isNativeApp) {
-        try {
-          if (platform === 'ios') {
-            const healthKit = window.Capacitor?.Plugins?.HealthKit;
-            await healthKit?.saveWeight({ value: weight, unit: 'kg' });
-          } else if (platform === 'android') {
-            const googleFit = window.Capacitor?.Plugins?.GoogleFit;
-            await googleFit?.saveWeight({ value: weight });
-          }
-        } catch (nativeError) {
-          console.warn('Could not save to native health app:', nativeError);
-        }
-      }
-
       return true;
     } catch (error) {
       console.error('Error saving weight:', error);
       return false;
     }
-  }, [isConnected, isNativeApp, platform]);
+  }, []);
 
   return {
     isNativeApp,

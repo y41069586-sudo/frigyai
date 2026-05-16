@@ -32,6 +32,7 @@ export type OnboardingStep =
   | "goal-mode"
   | "target-weight"
   | "speed-select"
+  | "health-sync"
   | "health-goals"
   | "dietary-preferences"
   | "allergies"
@@ -160,6 +161,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "weekly-plan-preview",
   "scan-fridge",
   "shopping-list",
+  "health-sync",
 ];
 
 /** Steps after splash: mint fullscreen body (no global progress bar). */

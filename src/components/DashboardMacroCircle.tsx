@@ -143,7 +143,7 @@ export const DashboardMacroCircle = ({
                 transition={{ duration: 0.8, delay: index * 0.15, ease: "easeOut" }}
                 onMouseEnter={() => setHoveredSegment(seg.id)}
                 onMouseLeave={() => setHoveredSegment(null)}
-                onClick={() => navigate('/meal-plans?tab=tracker')}
+                onClick={() => navigate('/')}
                 style={{
                   opacity: hoveredSegment && hoveredSegment !== seg.id ? 0.5 : 1,
                 }}
@@ -208,7 +208,7 @@ export const DashboardMacroCircle = ({
             transition={{ delay: 0.6 + index * 0.1 }}
             onMouseEnter={() => setHoveredSegment(seg.id)}
             onMouseLeave={() => setHoveredSegment(null)}
-            onClick={() => navigate('/meal-plans?tab=tracker')}
+            onClick={() => navigate('/')}
           >
             <div 
               className="w-3 h-3 rounded-full"
@@ -238,7 +238,7 @@ export const DashboardMacroCircle = ({
           variant="outline"
           size="sm"
           className="w-full rounded-xl gap-2 text-sm font-medium border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
-          onClick={() => navigate('/meal-plans?tab=tracker')}
+          onClick={() => navigate('/')}
         >
           Zu meinem MacroTracker-Plan
           <ArrowRight className="w-4 h-4" />

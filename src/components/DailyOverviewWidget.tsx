@@ -87,7 +87,7 @@ export const DailyOverviewWidget = ({
     >
       <div 
         className="rounded-2xl bg-card border border-border/30 overflow-hidden cursor-pointer group hover:border-primary/40 transition-all"
-        onClick={() => navigate('/meal-plans?tab=tracker')}
+        onClick={() => navigate('/')}
       >
         {/* Header */}
         <div className="px-4 py-3 flex items-center justify-between border-b border-border/20">

@@ -547,7 +547,7 @@ const RecipesPage = () => {
                   <Calendar className="h-5 w-5 mr-2" />
                   Im Wochenplan ersetzen
                 </Button>
-                <Button onClick={() => navigate('/meal-plans?tab=tracker')} variant="outline" className="w-full h-12">
+                <Button onClick={() => navigate('/')} variant="outline" className="w-full h-12">
                   Zum Tracker
                 </Button>
                 <Button onClick={() => navigate('/')} variant="ghost" className="w-full h-10 text-muted-foreground">

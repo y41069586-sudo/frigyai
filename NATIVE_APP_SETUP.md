@@ -70,12 +70,18 @@ Füge folgende Keys in `ios/App/App/Info.plist` hinzu:
 <string>Fridgie möchte dein Gewicht in Apple Health speichern, um deine Fortschritte zu tracken.</string>
 ```
 
-### 3.3 HealthKit Plugin installieren
+### 3.3 HealthKit Plugin (bereits im Projekt)
+
+Plugins: `@perfood/capacitor-healthkit` (iOS), `@devmaxime/capacitor-health-connect` (Android).
+
+Nach `npx cap add ios` / `npx cap add android`:
 
 ```bash
-npm install @nicepeer/capacitor-healthkit
-npx cap sync ios
+npm run health:native
+npm run cap:sync
 ```
+
+`health:native` trägt Info.plist- und AndroidManifest-Einträge automatisch ein. In Xcode noch **HealthKit** unter Signing & Capabilities aktivieren.
 
 ## Schritt 4: Google Fit Setup (Android)
 

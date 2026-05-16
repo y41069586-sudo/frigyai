@@ -156,7 +156,7 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
     >
       <div 
         className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card to-card/80 border border-border/30 cursor-pointer group hover:border-primary/40 transition-all duration-300"
-        onClick={() => navigate('/meal-plans?tab=tracker')}
+        onClick={() => navigate('/')}
       >
         {/* Header */}
         <div className="px-4 pt-4 pb-2">

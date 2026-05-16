@@ -12,7 +12,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/hooks/use-toast";
 import { useFeatureAccess, type Feature } from "@/hooks/useFeatureAccess";
 import { motion } from "framer-motion";
-
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
@@ -40,16 +39,17 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const { canAccessFeature } = useFeatureAccess();
 
   const pathname = location.pathname;
-  const tab = searchParams.get("tab") || "tracker";
+  const tab = searchParams.get("tab") || "meals";
   const isMealPlans = pathname === "/meal-plans";
+  const isHome = pathname === "/";
 
   const isTabActive = (id: NavId): boolean => {
-    if (id === "home") return pathname === "/";
+    if (id === "home") return isHome;
     if (!isMealPlans) return false;
     return tab === id;
   };
 
-  const trackerActive = isMealPlans && tab === "tracker";
+  const trackerActive = isHome && searchParams.get("logMeal") === "1";
 
   const go = (id: NavId) => {
     if (id === "home") {
@@ -66,7 +66,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
             description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
           });
         }
-        navigate("/meal-plans?tab=tracker", { replace: isMealPlans });
+        navigate("/?setupTracker=1", { replace: isHome });
         return;
       }
     }
@@ -82,10 +82,10 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
         });
       }
-      navigate("/meal-plans?tab=tracker", { replace: isMealPlans });
+      navigate("/?setupTracker=1", { replace: isHome });
       return;
     }
-    navigate("/meal-plans?tab=tracker", { replace: isMealPlans });
+    navigate("/?logMeal=1", { replace: isHome });
   };
 
   const trackerLocked = !canAccessFeature("tracker_full").canAccess;

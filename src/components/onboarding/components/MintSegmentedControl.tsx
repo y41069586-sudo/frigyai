@@ -47,9 +47,9 @@ export function MintSegmentedControl<T extends string>({
           top: 4,
           bottom: 4,
           width: `calc((100% - 8px) / ${count})`,
-          background: "linear-gradient(135deg, #24FF8F 0%, #12D978 100%)",
+          background: "linear-gradient(135deg, #1ED78A 0%, #18A872 100%)",
           boxShadow:
-            "0 6px 14px -6px rgba(18,217,120,0.55), 0 1px 2px rgba(15,40,30,0.05)",
+            "0 6px 14px -6px rgba(24,168,114,0.55), 0 1px 2px rgba(15,40,30,0.05)",
           pointerEvents: "none",
         }}
       />

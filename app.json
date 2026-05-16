@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Fridgie",
+    "slug": "vite_react_shadcn_ts",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "com.frigy.app",
+    "android": {
+      "package": "com.frigy.app",
+      "versionCode": 1
+    },
+    "ios": {
+      "bundleIdentifier": "com.frigy.app",
+      "buildNumber": "1"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a01455f7-becb-4abb-9b41-6e60b0ba85cd"
+      }
+    },
+    "owner": "yousef.172539"
+  }
+}

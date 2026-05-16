@@ -3,16 +3,18 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
 import type { UserData } from "../types";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
+  primary: "#1ED78A",
+  primaryDark: "#18A872",
   primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  trackActive: "#24FF8F",
-  trackInactive: "#D4FFEA",
+  bg: "#EDFAF4",
+  trackActive: "#1ED78A",
+  trackInactive: "#C8F5E0",
   text: "#1F2937",
   textMuted: "#6B7280",
   textSubtle: "#9CA3AF",
@@ -142,7 +144,7 @@ function MintSlider({
               height: 7,
               width: `${pct}%`,
               background: `linear-gradient(90deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
-              boxShadow: "0 2px 6px rgba(18,217,120,0.35)",
+              boxShadow: "0 2px 6px rgba(24,168,114,0.35)",
             }}
           />
           {/* Major-marker dots on the track */}
@@ -159,7 +161,7 @@ function MintSlider({
                   transform: "translate(-50%, -50%)",
                   width: 3,
                   height: 3,
-                  backgroundColor: isActive ? "rgba(255,255,255,0.85)" : "rgba(18,217,120,0.45)",
+                  backgroundColor: isActive ? "rgba(255,255,255,0.85)" : "rgba(24,168,114,0.45)",
                 }}
               />
             );
@@ -175,10 +177,10 @@ function MintSlider({
               width: 22,
               height: 22,
               borderRadius: 9999,
-              background: "linear-gradient(180deg, #FFFFFF 0%, #F0FFF7 100%)",
+              background: "linear-gradient(180deg, #FFFFFF 0%, #EDFAF4 100%)",
               border: `3px solid ${PALETTE.primary}`,
               boxShadow:
-                "0 6px 16px -5px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+                "0 6px 16px -5px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
             }}
           />
         </div>
@@ -252,8 +254,8 @@ export function PaceSelectStep({
   const L = {
     de: {
       title: "Wie schnell möchtest du dein Ziel erreichen?",
-      labelLose: "Geschwindigkeit der Gewichtsabnahme",
-      labelGain: "Geschwindigkeit der Gewichtszunahme",
+      labelLose: "Geschwindigkeit der Gewichtsabnahme pro Woche",
+      labelGain: "Geschwindigkeit der Gewichtszunahme pro Woche",
       labelMaintain: "Wöchentliche Veränderung",
       next: "Weiter",
       back: "Zurück",
@@ -262,8 +264,8 @@ export function PaceSelectStep({
     },
     en: {
       title: "How fast do you want to reach your goal?",
-      labelLose: "Weight loss pace",
-      labelGain: "Weight gain pace",
+      labelLose: "Weight loss pace per week",
+      labelGain: "Weight gain pace per week",
       labelMaintain: "Weekly change",
       next: "Next",
       back: "Back",
@@ -272,8 +274,8 @@ export function PaceSelectStep({
     },
     fr: {
       title: "À quelle vitesse veux-tu atteindre ton objectif ?",
-      labelLose: "Vitesse de perte de poids",
-      labelGain: "Vitesse de prise de poids",
+      labelLose: "Vitesse de perte de poids par semaine",
+      labelGain: "Vitesse de prise de poids par semaine",
       labelMaintain: "Variation hebdomadaire",
       next: "Suivant",
       back: "Retour",
@@ -304,7 +306,7 @@ export function PaceSelectStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar: back + progress */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -313,7 +315,7 @@ export function PaceSelectStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#DCF5EA",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -325,28 +327,22 @@ export function PaceSelectStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {t.title}
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
       {/* Slider area */}
-      <div className="mt-6 flex flex-1 min-h-0 flex-col justify-center px-6 pt-1">
+      <div className="mt-6 flex flex-1 min-h-0 flex-col justify-center px-4 pt-1">
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="text-center text-[14px] font-medium"
+          className="whitespace-nowrap text-center text-[11.5px] font-medium leading-tight tracking-tight"
           style={{ color: PALETTE.textMuted }}
         >
           {directionLabel}
@@ -391,7 +387,7 @@ export function PaceSelectStep({
         />
 
         {/* Unit toggle */}
-        <div className="mt-7 flex justify-center">
+        <div className="mt-10 flex justify-center">
           <MintSegmentedControl
             options={unitOptions}
             value={userData.weightUnit}
@@ -406,6 +402,7 @@ export function PaceSelectStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -414,7 +411,7 @@ export function PaceSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

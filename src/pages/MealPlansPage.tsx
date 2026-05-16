@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
 import frigyMascot from '@/assets/frigy-mascot.png';
 import { ShoppingList } from '@/components/ShoppingList';
-import { MacroTracker } from '@/components/MacroTracker';
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { useReminders } from '@/hooks/useReminders';
@@ -109,7 +108,7 @@ const MealPlansPage = () => {
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
 
   // Sync activeTab with URL params
-  const activeTab = searchParams.get('tab') || 'tracker';
+  const activeTab = searchParams.get('tab') || 'meals';
 
   const setActiveTab = useCallback((tab: string) => {
     const params = new URLSearchParams(searchParams);
@@ -118,12 +117,19 @@ const MealPlansPage = () => {
   }, [searchParams, setSearchParams]);
 
   useEffect(() => {
-    const currentTab = searchParams.get('tab') || 'tracker';
-    const allowedTabs = new Set(['tracker', 'meals', 'shopping', 'reminders']);
+    const currentTab = searchParams.get('tab') || 'meals';
+    const allowedTabs = new Set(['meals', 'shopping', 'reminders']);
     if (!allowedTabs.has(currentTab)) {
-      setActiveTab('tracker');
+      if (currentTab === 'tracker') {
+        const p = new URLSearchParams(searchParams);
+        p.delete('tab');
+        const qs = p.toString();
+        navigate(qs ? `/?${qs}` : '/', { replace: true });
+        return;
+      }
+      setActiveTab('meals');
     }
-  }, [searchParams, setActiveTab]);
+  }, [searchParams, setActiveTab, navigate]);
 
   // Initialize reminder system
   useReminders();
@@ -304,7 +310,7 @@ const MealPlansPage = () => {
   // Handle tracker reset from chatbot
   const handleResetTracker = () => {
     reloadSettings();
-    setActiveTab('tracker');
+    navigate('/?setupTracker=1', { replace: true });
   };
 
   const generateMealPlan = useCallback(async () => {
@@ -314,7 +320,7 @@ const MealPlansPage = () => {
         description: t.setupTrackerFirst,
         variant: 'destructive',
       });
-      setActiveTab('tracker');
+      navigate('/?setupTracker=1');
       return;
     }
 
@@ -555,10 +561,6 @@ const MealPlansPage = () => {
 
       <div className="container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
-
-          <TabsContent value="tracker">
-            <MacroTracker onSetupComplete={handleTrackerSetup} />
-          </TabsContent>
 
           <TabsContent value="reminders">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

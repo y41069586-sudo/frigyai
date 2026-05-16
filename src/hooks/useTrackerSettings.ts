@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -22,6 +22,7 @@ export const useTrackerSettings = () => {
   const [settings, setSettings] = useState<TrackerSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
   // Parse database row to settings
   const parseDbSettings = (data: any): TrackerSettings => ({
@@ -36,72 +37,6 @@ export const useTrackerSettings = () => {
     dailyFat: data.daily_fat || 0,
     mealsPerDay: data.meals_per_day || 5,
   });
-
-  // Load settings from database or localStorage
-  const loadSettings = useCallback(async () => {
-    setLoading(true);
-    
-    try {
-      if (user) {
-        // Try to load from database first
-        const { data, error } = await supabase
-          .from('user_tracker_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (data && !error) {
-          const dbSettings = parseDbSettings(data);
-          
-          setSettings(dbSettings);
-          setIsConfigured(dbSettings.dailyCalories > 0);
-          
-          // Also sync to localStorage for offline access
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbSettings));
-          
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Fallback to localStorage
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setSettings(parsed);
-          setIsConfigured(parsed.dailyCalories > 0);
-          
-          // If user is logged in and has localStorage data but no DB data, migrate it
-          if (user && parsed.dailyCalories > 0) {
-            await saveToDatabase(parsed);
-          }
-        } catch {
-          setSettings(null);
-          setIsConfigured(false);
-        }
-      } else {
-        setSettings(null);
-        setIsConfigured(false);
-      }
-    } catch (error) {
-      console.error('Error loading tracker settings:', error);
-      // Fallback to localStorage on error
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setSettings(parsed);
-          setIsConfigured(parsed.dailyCalories > 0);
-        } catch {
-          setSettings(null);
-          setIsConfigured(false);
-        }
-      }
-    }
-    
-    setLoading(false);
-  }, [user]);
 
   // Save to database
   const saveToDatabase = async (data: TrackerSettings) => {
@@ -130,15 +65,78 @@ export const useTrackerSettings = () => {
     }
   };
 
+  const applyLocalStorageFallback = async () => {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setSettings(parsed);
+        setIsConfigured(parsed.dailyCalories > 0);
+
+        if (user && parsed.dailyCalories > 0) {
+          await saveToDatabase(parsed);
+        }
+        return;
+      } catch {
+        setSettings(null);
+        setIsConfigured(false);
+        return;
+      }
+    }
+    setSettings(null);
+    setIsConfigured(false);
+  };
+
+  // Load settings from database or localStorage
+  const loadSettings = useCallback(async (silent = false) => {
+    if (!silent && !hasLoadedOnceRef.current) {
+      setLoading(true);
+    }
+
+    try {
+      if (user) {
+        const { data, error } = await supabase
+          .from('user_tracker_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (data && !error) {
+          const dbSettings = parseDbSettings(data);
+          setSettings(dbSettings);
+          setIsConfigured(dbSettings.dailyCalories > 0);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbSettings));
+          return;
+        }
+      }
+
+      await applyLocalStorageFallback();
+    } catch (error) {
+      console.error('Error loading tracker settings:', error);
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setSettings(parsed);
+          setIsConfigured(parsed.dailyCalories > 0);
+        } catch {
+          setSettings(null);
+          setIsConfigured(false);
+        }
+      }
+    } finally {
+      hasLoadedOnceRef.current = true;
+      setLoading(false);
+    }
+  }, [user]);
+
   // Save settings
   const saveSettings = useCallback(async (newSettings: TrackerSettings) => {
     setSettings(newSettings);
     setIsConfigured(newSettings.dailyCalories > 0);
-    
-    // Always save to localStorage for quick access
+
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newSettings));
-    
-    // If user is logged in, also save to database
+
     if (user) {
       await saveToDatabase(newSettings);
     }
@@ -148,8 +146,9 @@ export const useTrackerSettings = () => {
   const resetSettings = useCallback(async () => {
     setSettings(null);
     setIsConfigured(false);
+    hasLoadedOnceRef.current = false;
     localStorage.removeItem(LOCAL_STORAGE_KEY);
-    
+
     if (user) {
       await supabase
         .from('user_tracker_settings')
@@ -158,18 +157,16 @@ export const useTrackerSettings = () => {
     }
   }, [user]);
 
-  // Load on mount and when user changes
   useEffect(() => {
-    loadSettings();
+    hasLoadedOnceRef.current = false;
+    void loadSettings(false);
   }, [loadSettings]);
 
-  // Periodic refresh instead of real-time subscription (more stable)
   useEffect(() => {
     if (!user) return;
 
-    // Refresh every 30 seconds to catch updates from other devices
     const intervalId = setInterval(() => {
-      loadSettings();
+      void loadSettings(true);
     }, 30000);
 
     return () => clearInterval(intervalId);
@@ -181,6 +178,6 @@ export const useTrackerSettings = () => {
     isConfigured,
     saveSettings,
     resetSettings,
-    reloadSettings: loadSettings,
+    reloadSettings: () => loadSettings(true),
   };
 };

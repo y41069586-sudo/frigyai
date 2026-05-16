@@ -81,7 +81,7 @@ export function WaterWidget({
       transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onToggleExpand}
       className={cn(
-        "relative h-[210px] w-full overflow-hidden rounded-[1.75rem]",
+        "relative h-[158px] min-[360px]:h-[168px] w-full overflow-hidden rounded-xl min-[360px]:rounded-2xl",
         "border border-sky-200/70",
         "bg-gradient-to-b from-[#f5fbff] via-[#eaf6ff] to-[#dff1ff]",
         "shadow-[0_14px_30px_-12px_rgba(56,189,248,0.45)]",
@@ -104,31 +104,31 @@ export function WaterWidget({
       />
 
       {/* Foreground */}
-      <div className="absolute inset-0 z-[10] flex flex-col justify-between p-4">
+      <motion.div className="absolute inset-0 z-[10] flex flex-col justify-between p-3">
         <div className="flex items-center gap-1.5">
           <Droplet className="h-4 w-4 fill-sky-500 text-sky-500" />
-          <span className="text-[14px] font-bold tracking-tight text-sky-900">Wasser</span>
+          <span className="text-[12px] font-bold tracking-tight text-sky-900">Wasser</span>
         </div>
 
         <div className="flex flex-col items-center text-center">
           <div className="flex items-baseline justify-center gap-1.5 leading-none">
-            <motion.span className="text-[34px] font-black tabular-nums text-sky-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+            <motion.span className="text-[26px] min-[360px]:text-[30px] font-black tabular-nums text-sky-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
               {litersText}
             </motion.span>
-            <span className="text-[12px] font-semibold text-sky-700/80">
+            <span className="text-[11px] font-semibold text-sky-700/80">
               / {goalLiters.toFixed(1).replace(".", ",")} l
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2">
           <motion.button
             type="button"
             whileTap={{ scale: 0.9 }}
             disabled={!canSubtract}
             onClick={(e) => { e.stopPropagation(); onSubtract250ml(); }}
             className={cn(
-              "flex h-11 items-center justify-center rounded-2xl",
+              "flex h-9 items-center justify-center rounded-xl",
               "bg-white/85 text-sky-700 shadow-[0_6px_14px_-6px_rgba(14,165,233,0.45)] backdrop-blur-sm",
               "border border-white/80",
               "transition-colors hover:bg-white",
@@ -136,14 +136,14 @@ export function WaterWidget({
             )}
             aria-label="Wasser verringern"
           >
-            <Minus className="h-[18px] w-[18px]" strokeWidth={2.6} />
+            <Minus className="h-4 w-4" strokeWidth={2.6} />
           </motion.button>
           <motion.button
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { e.stopPropagation(); onAdd250ml(); }}
             className={cn(
-              "flex h-11 items-center justify-center rounded-2xl",
+              "flex h-9 items-center justify-center rounded-xl",
               "bg-white/85 text-sky-700 shadow-[0_6px_14px_-6px_rgba(14,165,233,0.45)] backdrop-blur-sm",
               "border border-white/80",
               "transition-colors hover:bg-white",
@@ -151,10 +151,10 @@ export function WaterWidget({
             )}
             aria-label="Wasser erhöhen"
           >
-            <Plus className="h-[18px] w-[18px]" strokeWidth={2.6} />
+            <Plus className="h-4 w-4" strokeWidth={2.6} />
           </motion.button>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

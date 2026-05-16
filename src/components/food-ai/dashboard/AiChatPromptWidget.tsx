@@ -31,17 +31,17 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
 
   return (
     <WidgetCard delay={delay} variant="glass" interactive={false} className="w-full">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">KI-Berater</p>
-      <h3 className="mt-1 text-lg font-semibold tracking-tight">Frage stellen</h3>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">KI-Berater</p>
+      <h3 className="mt-0.5 text-sm font-semibold tracking-tight">Frage stellen</h3>
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: delay + 0.05 }}
-        className="mt-4 flex items-center gap-2 sm:gap-3 rounded-2xl border border-border/40 bg-background/50 px-2 py-2 sm:px-3 sm:py-2.5 backdrop-blur-sm"
+        className="mt-2.5 flex items-center gap-2 rounded-xl border border-border/40 bg-background/50 px-2 py-1.5 backdrop-blur-sm"
       >
         <span
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
             "bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/15",
           )}
           aria-hidden
@@ -56,7 +56,7 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
           placeholder={PLACEHOLDER}
           enterKeyHint="send"
           className={cn(
-            "min-w-0 flex-1 bg-transparent text-base sm:text-sm text-foreground placeholder:text-muted-foreground/70",
+            "min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70",
             "outline-none focus:outline-none",
           )}
           autoComplete="off"
@@ -66,7 +66,7 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
           type="button"
           size="icon"
           variant="default"
-          className="h-11 w-11 shrink-0 touch-manipulation rounded-xl sm:h-10 sm:w-10"
+          className="h-9 w-9 shrink-0 touch-manipulation rounded-lg"
           onClick={submit}
           disabled={!value.trim()}
           aria-label="Senden und Chat öffnen"

@@ -29,10 +29,10 @@ const MEAL_SLOTS: { key: MealFocusKey; label: string }[] = [
 ];
 
 // Arc geometry: semicircle from left → top → right
-const ARC_R = 78;
+const ARC_R = 64;
 const ARC_CX = 100;
 const ARC_CY = 100;
-const ARC_HALF = Math.PI * ARC_R; // half circumference ≈ 245
+const ARC_HALF = Math.PI * ARC_R;
 
 export function TrackerWidget({
   delay = 0,
@@ -62,37 +62,37 @@ export function TrackerWidget({
       variant="gradient"
       interactive={!!onToggleExpand}
       onClick={onToggleExpand}
-      className="w-full rounded-[1.4rem] sm:rounded-[1.8rem]"
+      className="w-full rounded-xl sm:rounded-2xl"
     >
-      <div className="space-y-3 text-foreground">
+      <div className="space-y-2 text-foreground">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Flame className="h-5 w-5 text-orange-400" />
-            <h3 className="text-lg font-semibold">Kalorien</h3>
+            <Flame className="h-4 w-4 text-orange-400" />
+            <h3 className="text-[15px] font-semibold">Kalorien</h3>
           </div>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onOpenMealPlanner?.(); }}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60"
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted/60"
               aria-label="Wochenplan öffnen"
             >
-              <CalendarDays className="h-5 w-5" />
+              <CalendarDays className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onOpenTracker?.(); }}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60"
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted/60"
               aria-label="Tracker bearbeiten"
             >
-              <Pencil className="h-5 w-5" />
+              <Pencil className="h-4 w-4" />
             </button>
           </div>
         </div>
 
         {/* Arc gauge + calorie stats */}
-        <div className="relative h-[130px]">
+        <div className="relative h-[96px] min-[360px]:h-[104px]">
           {/* Semicircular SVG arc */}
           <svg
             viewBox="0 0 200 130"
@@ -106,7 +106,7 @@ export function TrackerWidget({
               r={ARC_R}
               fill="none"
               stroke="hsl(148 42% 88%)"
-              strokeWidth="11"
+              strokeWidth="9"
               strokeLinecap="round"
               strokeDasharray={`${ARC_HALF} ${ARC_HALF * 2}`}
               transform={`rotate(180, ${ARC_CX}, ${ARC_CY})`}
@@ -118,7 +118,7 @@ export function TrackerWidget({
               r={ARC_R}
               fill="none"
               stroke="hsl(150 100% 46%)"
-              strokeWidth="11"
+              strokeWidth="9"
               strokeLinecap="round"
               strokeDasharray={`${ARC_HALF} ${ARC_HALF * 2}`}
               transform={`rotate(180, ${ARC_CX}, ${ARC_CY})`}
@@ -129,49 +129,48 @@ export function TrackerWidget({
           </svg>
 
           {/* Calorie numbers overlaid at bottom of arc */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between pb-2 text-center">
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-0.5 pb-1 text-center">
             <div className="text-center">
-              <p className="text-lg font-semibold tabular-nums leading-tight">{Math.round(caloriesEaten)}</p>
-              <p className="text-[11px] text-muted-foreground">Gegessen</p>
+              <p className="text-sm font-semibold tabular-nums leading-tight">{Math.round(caloriesEaten)}</p>
+              <p className="text-[10px] text-muted-foreground">Gegessen</p>
             </div>
             <div className="text-center">
-              <p className="text-[1.7rem] font-bold tabular-nums leading-tight">{caloriesRemaining.toLocaleString("de-DE")}</p>
-              <p className="text-[11px] text-muted-foreground">kcal Übrig</p>
+              <p className="text-xl font-bold tabular-nums leading-tight min-[360px]:text-2xl">{caloriesRemaining.toLocaleString("de-DE")}</p>
+              <p className="text-[10px] text-muted-foreground">kcal Übrig</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-semibold tabular-nums leading-tight">0</p>
-              <p className="text-[11px] text-muted-foreground">Verbrannt</p>
+              <p className="text-sm font-semibold tabular-nums leading-tight">0</p>
+              <p className="text-[10px] text-muted-foreground">Verbrannt</p>
             </div>
           </div>
         </div>
 
-        {/* Macro stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <MacroStat label="Carbs" current={carbsEaten} target={targetCarbs} pct={cPct} />
           <MacroStat label="Eiweiß" current={proteinEaten} target={targetProtein} pct={pPct} />
           <MacroStat label="Fett" current={fatEaten} target={targetFat} pct={fPct} />
         </div>
 
         {/* Meal slots */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {MEAL_SLOTS.map((slot) => (
-            <div
+            <motion.div
               key={slot.key}
-              className="flex items-center justify-between rounded-xl border border-border/40 bg-card/65 px-2.5 py-2"
+              className="flex items-center justify-between rounded-lg border border-border/40 bg-card/65 px-2 py-1.5"
             >
-              <span className="text-sm">{slot.label}</span>
+              <span className="text-xs font-medium">{slot.label}</span>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onAddMeal?.(slot.key); }}
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400 text-emerald-950",
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#DCF5EA]",
                   "transition-transform active:scale-95",
                 )}
                 aria-label={`${slot.label} hinzufügen`}
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-3.5 w-3.5 text-[#1ED78A]" strokeWidth={2.5} />
               </button>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -201,9 +200,9 @@ function MacroStat({
   pct: number;
 }) {
   return (
-    <div className="space-y-1.5">
-      <p className="text-center text-xs text-muted-foreground">{label}</p>
-      <div className="h-[3px] rounded-full bg-muted/80">
+    <div className="space-y-1">
+      <p className="text-center text-[10px] text-muted-foreground">{label}</p>
+      <div className="h-[2px] rounded-full bg-muted/80">
         <motion.div
           className="h-full rounded-full bg-primary"
           initial={{ width: 0 }}
@@ -211,7 +210,7 @@ function MacroStat({
           transition={{ duration: 0.5, ease: "easeOut" }}
         />
       </div>
-      <p className="text-center text-sm font-medium tabular-nums leading-tight">
+      <p className="text-center text-[11px] font-medium tabular-nums leading-tight">
         {Math.round(current)}/{Math.round(target)} g
       </p>
     </div>

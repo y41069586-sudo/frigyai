@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Scale, ArrowUp, Plus, Crown } from 'lucide-react';
+import { Scale, ArrowUp, Plus, Crown, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
@@ -15,6 +15,8 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 interface DashboardWeightWidgetProps {
   onWeightUpdate?: (weight: number) => void;
   targetWeight?: number;
+  /** Im Dashboard-Karussell: keine Scroll-Animation, feste Höhe */
+  embedded?: boolean;
 }
 
 interface WeightEntry {
@@ -23,7 +25,7 @@ interface WeightEntry {
   recorded_at: string;
 }
 
-export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: DashboardWeightWidgetProps) => {
+export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded = false }: DashboardWeightWidgetProps) => {
   const { user, subscriptionStatus } = useAuth();
   const { settings } = useTrackerSettings();
   const navigate = useNavigate();
@@ -146,43 +148,58 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const progressToGoal = currentWeight && goal ? Math.max(0, 100 - (Math.abs(goal - currentWeight) / Math.abs(goal)) * 100) : 0;
 
   const handleCardClick = () => {
-    if (!isAdding) {
+    if (!isAdding && !embedded) {
       if (!isPremium) {
         setShowPremiumOverlay(true);
       } else {
-        navigate('/meal-plans?tab=tracker&view=weight');
+        navigate('/');
       }
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-30px" }}
-      transition={{ delay: 0.15, duration: 0.4 }}
-      onClick={handleCardClick}
-      className="relative"
+  const openWeightEditor = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isPremium) {
+      setShowPremiumOverlay(true);
+      return;
+    }
+    setInputWeight(currentWeight != null ? String(currentWeight) : '');
+    setIsAdding(true);
+  };
+
+  const root = (
+    <div
+      onClick={embedded ? undefined : handleCardClick}
+      className={`relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${!isPremium ? 'cursor-pointer' : 'cursor-pointer'} active:scale-[0.99] transition-transform ${showPremiumOverlay ? 'blur-sm' : ''}`}>
-        {/* Header with Icon and Premium Badge */}
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
-              <Scale className="h-5 w-5 text-emerald-500" />
+      <Card className={`p-3 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${!isPremium ? 'cursor-pointer' : 'cursor-pointer'} active:scale-[0.99] transition-transform ${showPremiumOverlay ? 'blur-sm' : ''}`}>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
+              <Scale className="h-4 w-4 text-emerald-500" />
             </div>
-            <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
+            <h3 className="font-semibold text-xs">Gewichtsverlauf</h3>
           </div>
-          {!isPremium && (
-            <Badge className="bg-primary/20 text-primary border-primary/30">
-              <Crown className="h-3 w-3 mr-1" />
-              Premium
-            </Badge>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isPremium && (
+              <Badge className="bg-primary/20 text-primary border-primary/30">
+                <Crown className="h-3 w-3 mr-1" />
+                Premium
+              </Badge>
+            )}
+            <button
+              type="button"
+              onClick={openWeightEditor}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-primary"
+              aria-label="Aktuelles Gewicht bearbeiten"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Top Section: Current Weight + Goal + Change */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3">
           {/* Left: Current Weight & Goal */}
           {currentWeight !== null ? (
             <div className="flex gap-4">
@@ -193,7 +210,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               <div className="border-l border-emerald-300/50" />
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Ziel</p>
-                <p className="text-3xl font-bold text-muted-foreground">{goal}<span className="text-sm">kg</span></p>
+                <p className="text-2xl font-bold text-muted-foreground">{goal}<span className="text-xs">kg</span></p>
               </div>
             </div>
           ) : (
@@ -234,7 +251,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
         {weightHistory.length > 1 && (
           <div className="mb-4 relative">
             <p className="text-xs text-muted-foreground mb-2">Verlauf</p>
-            <div className="h-28 relative overflow-hidden rounded-lg">
+            <div className="h-20 relative overflow-hidden rounded-lg">
               {/* Fade out overlay on both sides */}
               <div className="absolute inset-0 bg-gradient-to-r from-card via-transparent to-card pointer-events-none z-10" />
 
@@ -411,6 +428,21 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           </motion.div>
         </motion.div>
       )}
+    </div>
+  );
+
+  if (embedded) {
+    return root;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-30px" }}
+      transition={{ delay: 0.15, duration: 0.4 }}
+    >
+      {root}
     </motion.div>
   );
 };

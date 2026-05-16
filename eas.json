@@ -1,0 +1,51 @@
+{
+  "cli": {
+    "version": ">= 18.13.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "env": {
+        "EAS_NO_FROZEN_LOCKFILE": "1"
+      },
+      "android": {
+        "image": "latest",
+        "buildType": "apk"
+      },
+      "ios": {
+        "scheme": "App",
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EAS_NO_FROZEN_LOCKFILE": "1"
+      },
+      "android": {
+        "image": "latest",
+        "buildType": "apk"
+      },
+      "ios": {
+        "scheme": "App",
+        "simulator": true
+      }
+    },
+    "production": {
+      "env": {
+        "EAS_NO_FROZEN_LOCKFILE": "1"
+      },
+      "android": {
+        "image": "latest",
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "scheme": "App"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

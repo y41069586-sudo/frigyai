@@ -12,6 +12,7 @@ import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { useReminders } from "@/hooks/useReminders";
 import { HealthDashboard } from "@/components/food-ai";
+import { MacroTracker } from "@/components/MacroTracker";
 import type { UserGoal } from "@/lib/food-ai/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ import { FRIGY_STORAGE_UPDATED, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from "@/
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription } = useAuth();
   const { t, language } = useLanguage();
-  const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading } = useTrackerSettings();
+  const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
@@ -479,7 +480,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="relative flex-1 flex flex-col px-3 sm:px-5 pb-bottom-nav pt-6 sm:pt-8 safe-top">
-        <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-6 sm:space-y-8">
+        <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-4 sm:space-y-6">
           
           {/* Header - Clean & Modern */}
           <motion.header
@@ -552,6 +553,10 @@ const Index = () => {
           />
         </div>
       </main>
+
+      {user && onboardingComplete && (
+        <MacroTracker onSetupComplete={reloadSettings} />
+      )}
 
       {/* Bottom Navigation - Show for all logged in users */}
       {user && onboardingComplete && (

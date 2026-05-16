@@ -3,6 +3,8 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
 
 type Props = {
   userData: UserData;
@@ -12,11 +14,11 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
+  primary: "#1ED78A",
+  primaryDark: "#18A872",
   primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  selectedBg: "#D4FFEA",
+  bg: "#EDFAF4",
+  selectedBg: "#C8F5E0",
   border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
@@ -137,7 +139,7 @@ export function AllergiesSelectStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -146,7 +148,7 @@ export function AllergiesSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#DCF5EA",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -158,20 +160,14 @@ export function AllergiesSelectStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {L.title}
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
       {/* Cards (scrollable) */}
       <div className="mt-6 flex flex-1 min-h-0 flex-col gap-2.5 overflow-y-auto px-5 pb-2 pt-1">
@@ -201,7 +197,7 @@ export function AllergiesSelectStep({
                   backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                   border: `1.5px solid ${isSelected ? PALETTE.primary : PALETTE.cardBorderIdle}`,
                   boxShadow: isSelected
-                    ? "0 6px 18px -8px rgba(36,255,143,0.55), 0 1px 4px rgba(15,40,30,0.04)"
+                    ? "0 6px 18px -8px rgba(30,215,138,0.55), 0 1px 4px rgba(15,40,30,0.04)"
                     : "0 1px 2px rgba(15,40,30,0.03)",
                 }}
               >
@@ -230,7 +226,7 @@ export function AllergiesSelectStep({
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                   style={{
                     backgroundColor: PALETTE.primary,
-                    boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
+                    boxShadow: "0 4px 10px -3px rgba(30,215,138,0.6)",
                   }}
                   aria-hidden
                 >
@@ -265,7 +261,7 @@ export function AllergiesSelectStep({
                         border: `1.5px solid ${PALETTE.border}`,
                         color: PALETTE.text,
                         boxShadow:
-                          "0 4px 14px -6px rgba(36,255,143,0.35), inset 0 1px 1px rgba(15,40,30,0.02)",
+                          "0 4px 14px -6px rgba(30,215,138,0.35), inset 0 1px 1px rgba(15,40,30,0.02)",
                       }}
                       autoFocus
                     />
@@ -282,6 +278,7 @@ export function AllergiesSelectStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
@@ -293,7 +290,7 @@ export function AllergiesSelectStep({
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
               : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

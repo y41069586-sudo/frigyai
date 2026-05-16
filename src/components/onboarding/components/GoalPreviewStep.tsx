@@ -3,13 +3,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
+  primary: "#1ED78A",
+  primaryDark: "#18A872",
   primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  highlight: "#D4FFEA",
+  bg: "#EDFAF4",
+  highlight: "#C8F5E0",
   text: "#1F2937",
   textMuted: "#6B7280",
   cardBorderIdle: "#D1D5DB",
@@ -137,7 +139,7 @@ export function GoalPreviewStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -146,7 +148,7 @@ export function GoalPreviewStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#DCF5EA",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -158,23 +160,17 @@ export function GoalPreviewStep({
         )}
       </div>
 
-      {/* Headline + subtext */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 overflow-visible px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion className="pb-1">
         {headlineParts.kind === "maintain" ? (
           <h1
-            className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-tight"
+            className="text-[17px] font-extrabold uppercase leading-[1.15] tracking-tight"
             style={{ color: PALETTE.text }}
           >
             {headlineParts.full}
           </h1>
         ) : (
           <h1
-            className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-tight"
+            className="text-[17px] font-extrabold uppercase leading-[1.15] tracking-tight"
             style={{ color: PALETTE.text }}
           >
             {headlineParts.pre}{" "}
@@ -189,16 +185,16 @@ export function GoalPreviewStep({
             {headlineParts.post}
           </h1>
         )}
-        <motion.p
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-          className="mt-2 max-w-prose text-[15px] font-medium leading-snug"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </motion.p>
-      </motion.div>
+      </OnboardingMascotQuestion>
+      <motion.p
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+        className="mx-auto mt-1 max-w-prose px-6 text-[15px] font-medium leading-snug"
+        style={{ color: PALETTE.textMuted }}
+      >
+        {L.subtitle}
+      </motion.p>
 
       {/* Chart card */}
       <div className="flex flex-1 min-h-0 items-center justify-center px-5">
@@ -374,6 +370,7 @@ export function GoalPreviewStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -382,7 +379,7 @@ export function GoalPreviewStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {L.next}

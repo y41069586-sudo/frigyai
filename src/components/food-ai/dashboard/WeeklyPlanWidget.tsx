@@ -32,19 +32,19 @@ export function WeeklyPlanWidget({
       variant="gradient"
       interactive={!!onToggleExpand}
       onClick={onToggleExpand}
-      className="w-full pb-2.5 min-[360px]:pb-3 sm:pb-4"
+      className="w-full pb-1.5 sm:pb-2"
     >
       <div className="flex items-center gap-2.5 text-primary">
-        <div className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 items-center justify-center rounded-xl min-[360px]:rounded-2xl rounded-br-md bg-primary/15">
-          <CalendarRange className="h-4 w-4" />
+        <div className="flex h-7 w-7 min-[360px]:h-8 min-[360px]:w-8 items-center justify-center rounded-lg bg-primary/15">
+          <CalendarRange className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Wochenplan</p>
-          <h3 className="text-base min-[360px]:text-lg font-semibold tracking-tight text-foreground truncate">{preview.weekLabel}</h3>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Wochenplan</p>
+          <h3 className="text-sm min-[360px]:text-base font-semibold tracking-tight text-foreground truncate">{preview.weekLabel}</h3>
         </div>
       </div>
 
-      <div className="mt-3 flex gap-1.5 min-[360px]:gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {preview.days.map((d, i) => (
           <motion.div
             key={d.dayLabel + i}
@@ -52,12 +52,12 @@ export function WeeklyPlanWidget({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.05 * i }}
             className={cn(
-              "min-w-[88px] min-[360px]:min-w-[96px] sm:min-w-[112px] rounded-xl sm:rounded-2xl rounded-tr-lg border border-border/50 bg-background/60 px-2 min-[360px]:px-2.5 sm:px-3 py-2 backdrop-blur-sm",
+              "min-w-[76px] min-[360px]:min-w-[84px] rounded-lg border border-border/50 bg-background/60 px-2 py-1.5 backdrop-blur-sm",
               d.dayLabel === "Heute" && "border-primary/35 ring-1 ring-primary/20",
             )}
           >
-            <p className="text-[11px] font-bold text-muted-foreground">{d.dayLabel}</p>
-            <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-foreground">{d.meals.join(" · ")}</p>
+            <p className="text-[10px] font-bold text-muted-foreground">{d.dayLabel}</p>
+            <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-foreground">{d.meals.join(" · ")}</p>
           </motion.div>
         ))}
       </div>
@@ -95,7 +95,7 @@ export function WeeklyPlanWidget({
             type="button"
             size="sm"
             variant="outline"
-            className="h-11 touch-target flex-1 rounded-2xl border-dashed border-primary/30 bg-background/50"
+            className="h-9 touch-target flex-1 rounded-xl border-dashed border-primary/30 bg-background/50 text-xs"
             onClick={(e) => {
               e.stopPropagation();
               onRegenerate();

@@ -44,14 +44,14 @@ export function WidgetCard({
       whileTap={onClick ? { scale: 0.992 } : undefined}
       onClick={onClick}
       className={cn(
-        "relative w-full min-w-0 overflow-hidden rounded-2xl rounded-tl-xl rounded-br-3xl p-3.5 min-[360px]:p-4 sm:rounded-[1.75rem] sm:rounded-tl-2xl sm:rounded-br-[2.25rem] sm:p-6 transition-shadow duration-300 touch-manipulation",
+        "relative w-full min-w-0 overflow-hidden rounded-xl rounded-tl-lg rounded-br-2xl p-2.5 min-[360px]:p-3 sm:rounded-2xl sm:rounded-tl-xl sm:rounded-br-[1.75rem] sm:p-4 transition-shadow duration-300 touch-manipulation",
         interactive && onClick && "cursor-pointer hover:shadow-[0_20px_50px_-18px_rgba(0,0,0,0.12)]",
         variantStyles[variant],
         className,
       )}
     >
-      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/[0.08] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-emerald-400/[0.06] blur-2xl" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/[0.08] blur-2xl" />
+      <div className="pointer-events-none absolute -bottom-6 -left-6 h-20 w-20 rounded-full bg-emerald-400/[0.06] blur-xl" />
       <div className="relative z-[1]">{children}</div>
     </motion.div>
   );

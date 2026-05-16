@@ -11,7 +11,7 @@ export function WidgetContainer({ children, className }: WidgetContainerProps) {
   return (
     <div
       className={cn(
-        "flex w-full max-w-full flex-col gap-3.5 min-[360px]:gap-4 sm:max-w-xl sm:gap-5 lg:max-w-2xl",
+        "flex w-full max-w-full flex-col gap-2 min-[360px]:gap-2.5 sm:max-w-xl sm:gap-3.5 lg:max-w-2xl",
         className,
       )}
     >

@@ -18,17 +18,17 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 152 28% 11%;
 
-    /* Primär: leuchtendes Grün, gut lesbar auf Weiß */
-    --primary: 150 100% 46%;
+    /* Primär: #1ED78A */
+    --primary: 155 76% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 148 55% 96%;
-    --secondary-foreground: 152 22% 16%;
+    --secondary: 155 45% 96%;
+    --secondary-foreground: 155 22% 16%;
 
-    --muted: 148 42% 96%;
-    --muted-foreground: 152 12% 40%;
+    --muted: 155 35% 96%;
+    --muted-foreground: 155 12% 40%;
 
-    --accent: 148 100% 44%;
+    --accent: 155 76% 44%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -36,25 +36,25 @@ All colors MUST be HSL.
 
     --border: 148 48% 90%;
     --input: 148 42% 94%;
-    --ring: 150 100% 46%;
+    --ring: 155 76% 48%;
 
     --radius: 1rem;
 
     /* Neon-Varianten (Tailwind neon / neon-dark) */
-    --neon-green: 148 100% 52%;
-    --neon-green-dark: 152 100% 34%;
-    --neon-green-light: 148 90% 88%;
-    --soft-green: 148 45% 97%;
+    --neon-green: 155 76% 48%;
+    --neon-green-dark: 155 76% 38%;
+    --neon-green-light: 155 55% 88%;
+    --soft-green: 155 45% 97%;
     
     /* Verläufe: weiß → sehr helles Mint, kräftiges Grün für Akzente */
-    --gradient-bg: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(148, 55%, 98%) 55%, hsl(0, 0%, 100%) 100%);
-    --gradient-neon: linear-gradient(135deg, hsl(148, 100%, 52%) 0%, hsl(152, 100%, 38%) 100%);
-    --gradient-card: linear-gradient(145deg, hsla(0, 0%, 100%, 0.98) 0%, hsla(148, 60%, 99%, 0.95) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(148, 100%, 50%) 0%, hsl(152, 100%, 36%) 100%);
+    --gradient-bg: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(155, 45%, 98%) 55%, hsl(0, 0%, 100%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(155, 76%, 48%) 0%, hsl(155, 76%, 38%) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(0, 0%, 100%, 0.98) 0%, hsla(155, 50%, 99%, 0.95) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(155, 76%, 48%) 0%, hsl(155, 76%, 38%) 100%);
     
     /* Schatten mit Grün-Glow */
-    --shadow-glow: 0 0 32px hsla(148, 100%, 50%, 0.35);
-    --shadow-glow-lg: 0 0 56px hsla(148, 100%, 55%, 0.42);
+    --shadow-glow: 0 0 32px hsla(155, 76%, 48%, 0.35);
+    --shadow-glow-lg: 0 0 56px hsla(155, 76%, 48%, 0.42);
     --shadow-soft: 0 4px 24px -4px hsla(152, 45%, 35%, 0.1);
     --shadow-card: 0 10px 36px -10px hsla(152, 50%, 40%, 0.12);
     
@@ -145,7 +145,7 @@ All colors MUST be HSL.
   
   
   .hero-gradient {
-    background: linear-gradient(135deg, hsl(148, 100%, 52%) 0%, hsl(152, 100%, 38%) 100%);
+    background: linear-gradient(135deg, hsl(155, 76%, 48%) 0%, hsl(155, 76%, 38%) 100%);
   }
   
   .mesh-gradient {

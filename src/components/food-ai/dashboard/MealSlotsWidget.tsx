@@ -42,13 +42,12 @@ export function MealSlotsWidget({ delay = 0, onAddMeal, onFindMeals }: MealSlots
               type="button"
               onClick={() => onAddMeal(s.key)}
               className={cn(
-                "flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg min-[360px]:rounded-xl",
-                "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                "flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-full bg-[#DCF5EA]",
                 "transition-transform active:scale-95",
               )}
               aria-label={`${s.label} hinzufügen`}
             >
-              <Plus className="h-4 w-4 min-[360px]:h-5 min-[360px]:w-5" strokeWidth={2.5} />
+              <Plus className="h-4 w-4 min-[360px]:h-5 min-[360px]:w-5 text-[#1ED78A]" strokeWidth={2.5} />
             </button>
           </motion.li>
         ))}
