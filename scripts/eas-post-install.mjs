@@ -28,7 +28,3 @@ appendFileSync(
   "\norg.gradle.java.home=/usr/lib/jvm/java-21-openjdk-amd64\n",
 );
 
-// EAS builds from tracked git files, while Capacitor ignores generated Android
-// Cordova plugin files. Regenerate them on the builder before Gradle runs.
-run("npm", ["run", "build"]);
-run("npx", ["cap", "sync", "android"]);
