@@ -28,3 +28,5 @@ appendFileSync(
   "\norg.gradle.java.home=/usr/lib/jvm/java-21-openjdk-amd64\n",
 );
 
+run("npm", ["run", "build"]);
+run("node", ["scripts/prepare-android-web-assets.mjs"]);

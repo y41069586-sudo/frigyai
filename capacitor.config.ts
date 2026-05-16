@@ -13,10 +13,6 @@ const config: CapacitorConfig = {
       iconColor: "#4ADE80",
     },
   },
-  server: {
-    url: 'https://38287fff-a52b-43ff-b7d7-4ca0ea11b4ff.lovableproject.com?forceHideBadge=true',
-    cleartext: true
-  },
   ios: {
     contentInset: 'automatic',
     backgroundColor: '#000000',
