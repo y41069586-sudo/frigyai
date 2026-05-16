@@ -3,11 +3,12 @@ workflows:
     name: Android Build
 
     environment:
-      vars: 
+      vars:
+         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
          EXPO_TOKEN: b2TWZmLz0pJk1MgXxPR939cl3SLF8ApTxqqWoXTt
 
     scripts:
-      - npm install
+      - npm ci --legacy-peer-deps
       - npm install -g eas-cli
       - eas build --platform android --non-interactive
 
