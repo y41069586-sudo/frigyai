@@ -3868,16 +3868,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex min-h-0 flex-col bg-background safe-area-inset"
     >
- cursor/apple-health-connect-screen-e370
-      {/* Progress Bar at Top */}
-      {currentStep !== 'analyzing' && currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'apple-health-connect' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
-=======
       {/* Global progress bar (not on mint body / splash / tutorial / analyzing) */}
       {currentStep !== "analyzing" &&
         currentStep !== "tutorial" &&
         currentStep !== "splash" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
- main
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <OnboardingProgressBar
           currentStep={currentIndex + 1}
@@ -3885,10 +3880,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         />
       )}
 
- cursor/apple-health-connect-screen-e370
-      {/* Header - hidden for tutorial, splash, gender, birthdate, weight, height, activity, main-goal, target-weight, goal-preview, speed-select, health-goals, dietary-preferences, allergies, weekly-plan-preview, scan-fridge, shopping-list, notebook chrome steps */}
-      {currentStep !== 'tutorial' && currentStep !== 'splash' && currentStep !== 'gender' && currentStep !== 'birthdate' && currentStep !== 'weight' && currentStep !== 'height' && currentStep !== 'activity' && currentStep !== 'apple-health-connect' && currentStep !== 'main-goal' && currentStep !== 'target-weight' && currentStep !== 'goal-preview' && currentStep !== 'speed-select' && currentStep !== 'health-goals' && currentStep !== 'dietary-preferences' && currentStep !== 'allergies' && currentStep !== 'weekly-plan-preview' && currentStep !== 'scan-fridge' && currentStep !== 'shopping-list' &&
-=======
       {/* Thin mint progress line on main onboarding flow */}
       {ONBOARDING_MINT_PROGRESS_LINE_STEPS.has(currentStep) && (
         <div
@@ -3916,7 +3907,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       {currentStep !== "tutorial" &&
         currentStep !== "splash" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
- main
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
           {currentIndex > 0 ? (
@@ -3943,13 +3933,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       )}
 
       {/* Main content */}
- cursor/apple-health-connect-screen-e370
-      {currentStep === 'tutorial' || currentStep === 'splash' || currentStep === 'gender' || currentStep === 'birthdate' || currentStep === 'weight' || currentStep === 'height' || currentStep === 'activity' || currentStep === 'apple-health-connect' || currentStep === 'main-goal' || currentStep === 'target-weight' || currentStep === 'goal-preview' || currentStep === 'speed-select' || currentStep === 'health-goals' || currentStep === 'dietary-preferences' || currentStep === 'allergies' || currentStep === 'weekly-plan-preview' || currentStep === 'scan-fridge' || currentStep === 'shopping-list' ? (
-=======
       {currentStep === "tutorial" ||
         currentStep === "splash" ||
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
- main
         // These steps render fullscreen with their own layout
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {renderStepContent()}

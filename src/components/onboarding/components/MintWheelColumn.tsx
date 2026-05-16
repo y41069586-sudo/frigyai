@@ -7,6 +7,7 @@ export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
 const COMPACT_HEIGHT_MQ = "(max-height: 700px)";
 export const WHEEL_ROW_COMPACT = 40;
 export const WHEEL_ROW_COMFORT = 46;
+export const WHEEL_ITEM_HEIGHT = WHEEL_ROW_COMFORT;
 
 export function useMintWheelRowHeight(): number {
   return useSyncExternalStore(
@@ -52,7 +53,7 @@ export function MintWheelColumn({
   align = "center",
   width = "100%",
   ariaLabel,
-  rowHeight,
+  rowHeight = WHEEL_ROW_COMFORT,
   circular = false,
 }: MintWheelColumnProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
