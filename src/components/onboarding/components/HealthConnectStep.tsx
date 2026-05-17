@@ -20,9 +20,9 @@ type Props = {
 const HEALTH_SYNC_HERO_BG = "rgb(127, 216, 182)";
 
 const PALETTE = {
-  primary: "#1ED78A",
-  primaryDark: "#18A872",
-  activateBg: "#1ED78A",
+  primary: "#24F59B",
+  primaryDark: "#10C878",
+  activateBg: "#24F59B",
   text: "#1F2937",
   subtext: "#4B5563",
 };

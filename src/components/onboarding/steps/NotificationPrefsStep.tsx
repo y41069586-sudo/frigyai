@@ -6,8 +6,8 @@ import notificationOnboarding from "@/assets/notification-onboarding.png";
 import type { StepProps } from "../types";
 
 const PALETTE = {
-  primary: "#1ED78A",
-  primaryDark: "#18A872",
+  primary: "#24F59B",
+  primaryDark: "#10C878",
   bg: "#FFFFFF",
   text: "#101827",
   muted: "#53645C",
@@ -125,7 +125,7 @@ export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }:
           aria-label="Zurück"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
           style={{
-            backgroundColor: "#DCF5EA",
+            backgroundColor: "#E6FFF2",
             color: PALETTE.primaryDark,
             boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
           }}
@@ -169,7 +169,7 @@ export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }:
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)]">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.35rem] bg-[#DCF5EA] shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.35rem] bg-[#E6FFF2] shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">
           <Bell className="h-5 w-5" style={{ color: PALETTE.primaryDark }} />
         </div>
         <div className="pointer-events-auto grid h-12 w-[58%] max-w-[230px] shrink-0 grid-cols-2 overflow-hidden rounded-[1.35rem] border-2 border-black bg-white shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">

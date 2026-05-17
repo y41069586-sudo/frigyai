@@ -14,11 +14,11 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#1ED78A",
-  primaryDark: "#18A872",
+  primary: "#24F59B",
+  primaryDark: "#10C878",
   primaryDeep: "#0A8550",
-  bg: "#EDFAF4",
-  accent: "#C8F5E0",
+  bg: "#F2FFF8",
+  accent: "#D6FFE9",
   border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
@@ -77,7 +77,7 @@ function CameraIcon() {
           width: 140,
           height: 140,
           background:
-            "linear-gradient(135deg, #A8EDD0 0%, #1ED78A 100%)",
+            "linear-gradient(135deg, #B9FFD9 0%, #24F59B 100%)",
           color: "#fff",
           boxShadow:
             "0 24px 50px -16px rgba(24,168,114,0.55), 0 6px 14px -4px rgba(24,168,114,0.30), inset 0 1px 2px rgba(255,255,255,0.6)",
@@ -138,7 +138,7 @@ export function FridgeScanStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#DCF5EA",
+              backgroundColor: "#E6FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

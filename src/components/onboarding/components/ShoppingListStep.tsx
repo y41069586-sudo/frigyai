@@ -14,11 +14,11 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#1ED78A",
-  primaryDark: "#18A872",
+  primary: "#24F59B",
+  primaryDark: "#10C878",
   primaryDeep: "#0A8550",
-  bg: "#EDFAF4",
-  accent: "#C8F5E0",
+  bg: "#F2FFF8",
+  accent: "#D6FFE9",
   border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
@@ -84,7 +84,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
             height: 14,
             borderRadius: "8px 8px 5px 5px",
             background:
-              "linear-gradient(180deg, #D4F8E8 0%, #3EE09F 42%, #18A872 100%)",
+              "linear-gradient(180deg, #D4F8E8 0%, #3EE09F 42%, #10C878 100%)",
             boxShadow:
               "0 5px 14px -3px rgba(24,104,72,0.45), inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -3px 5px rgba(10,90,55,0.28)",
           }}
@@ -139,7 +139,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
               className="flex h-3 w-3 shrink-0 items-center justify-center rounded-[4px]"
               style={{
                 background:
-                  "linear-gradient(135deg, #A8EDD0 0%, #1ED78A 100%)",
+                  "linear-gradient(135deg, #B9FFD9 0%, #24F59B 100%)",
                 color: "#fff",
                 boxShadow:
                   "0 1px 4px -2px rgba(24,168,114,0.4), inset 0 1px 0 rgba(255,255,255,0.45)",
@@ -196,7 +196,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
                 className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full"
                 style={{
                   background:
-                    "linear-gradient(135deg, #1ED78A 0%, #18A872 100%)",
+                    "linear-gradient(135deg, #24F59B 0%, #10C878 100%)",
                   boxShadow:
                     "0 3px 8px -2px rgba(24,168,114,0.5), inset 0 1px 1px rgba(255,255,255,0.45)",
                 }}
@@ -273,7 +273,7 @@ export function ShoppingListStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#DCF5EA",
+              backgroundColor: "#E6FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

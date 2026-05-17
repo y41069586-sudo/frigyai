@@ -70,7 +70,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     const elapsed = Math.max(1, performance.now() - start.time);
     const velocityY = deltaY / elapsed;
 
-    if (deltaY > 70 || velocityY > 0.65) {
+    if (deltaY > 42 || velocityY > 0.35) {
       onOpenChange(false);
     }
   };
@@ -141,9 +141,9 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
           onPointerCancel={() => {
             dragStartRef.current = null;
           }}
-          className="mx-auto mt-2 flex h-6 w-20 touch-none items-center justify-center rounded-full sm:hidden"
+          className="mx-auto mt-2 flex h-10 w-28 cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing sm:hidden"
         >
-          <span className="h-1.5 w-12 rounded-full bg-slate-300/80" />
+          <span className="h-1.5 w-16 rounded-full bg-slate-300/90" />
         </button>
         <div className="max-h-[92dvh] overflow-y-auto px-5 pb-28 pt-4 sm:max-h-[88vh] sm:px-6 sm:pb-24">
         <DialogHeader className="text-left">

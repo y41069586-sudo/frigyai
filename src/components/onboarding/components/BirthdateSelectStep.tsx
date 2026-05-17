@@ -8,10 +8,10 @@ import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
 
 const PALETTE = {
-  primary: "#1ED78A",
-  primaryDark: "#18A872",
-  bg: "#EDFAF4",
-  selectedBg: "#C8F5E0",
+  primary: "#24F59B",
+  primaryDark: "#10C878",
+  bg: "#F2FFF8",
+  selectedBg: "#D6FFE9",
   border: "#6EECC0",
   text: "#1F2937",
   textMuted: "#6B7280",
@@ -262,7 +262,7 @@ export function BirthdateSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#DCF5EA",
+              backgroundColor: "#E6FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

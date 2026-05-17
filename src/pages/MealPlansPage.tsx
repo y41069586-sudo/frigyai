@@ -21,7 +21,7 @@ import StreakBadge from '@/components/StreakBadge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
-import { notifyFrigyStorageUpdated, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
+import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
 import { useIsMobile } from '@/hooks/use-mobile';
 interface UserProfile {
   age: number;
@@ -186,29 +186,6 @@ const MealPlansPage = () => {
     }
   }, [user, loading, navigate, searchParams]);
 
-  // Validate if meal plan meets current calorie target
-  const validateMealPlanCalories = (plan: DayPlan[], targetCalories: number): boolean => {
-    if (!Array.isArray(plan) || plan.length === 0) return false;
-
-    const dailyAnalysis = plan.map((day) => {
-      const dayCalories = (day.meals || []).reduce((sum, meal) => sum + (meal.calories || 0), 0);
-      const percentage = (dayCalories / targetCalories) * 100;
-      return { day: day.day, calories: dayCalories, percentage };
-    });
-
-    const daysMeetingTarget = dailyAnalysis.filter(d => d.percentage >= 85).length;
-    const isValid = daysMeetingTarget >= 5;
-
-    console.log('[MEALPLANS] Calorie validation:', {
-      isValid,
-      daysMeetingTarget,
-      targetCalories,
-      dailyAnalysis
-    });
-
-    return isValid;
-  };
-
   // Sync meal plan and shopping list from global context or localStorage
   useEffect(() => {
     console.log('[MEALPLANS] Syncing meal plan from context:', {
@@ -221,23 +198,11 @@ const MealPlansPage = () => {
       setMealPlan(globalMealPlan);
     } else {
       const saved = localStorage.getItem('weeklyMealPlan');
-      if (saved && trackerSettings && trackerSettings.dailyCalories > 0) {
+      if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          const isValid = validateMealPlanCalories(parsed, trackerSettings.dailyCalories);
-
-          if (isValid) {
+          if (Array.isArray(parsed)) {
             setMealPlan(parsed);
-          } else {
-            console.warn('[MEALPLANS] Saved meal plan does not meet current calorie target - clearing');
-            localStorage.removeItem('weeklyMealPlan');
-            notifyFrigyStorageUpdated();
-            setMealPlan([]);
-            toast({
-              title: 'Wochenplan veraltet',
-              description: `Ihr gespeicherter Plan erfüllt das Kalorienziel von ${trackerSettings.dailyCalories} kcal nicht. Bitte generieren Sie einen neuen Plan.`,
-              variant: 'destructive',
-            });
           }
         } catch (e) {
           console.error('[MEALPLANS] Failed to load saved meal plan:', e);
@@ -263,7 +228,7 @@ const MealPlansPage = () => {
         }
       }
     }
-  }, [globalMealPlan, globalShoppingList, trackerSettings]);
+  }, [globalMealPlan, globalShoppingList]);
 
   // Auto-generate meal plan on login was removed: plans are persisted and should never regenerate automatically.
 
@@ -280,16 +245,6 @@ const MealPlansPage = () => {
   };
 
   const generateMealPlan = useCallback(async () => {
-    if (!trackerSetup || !trackerSettings) {
-      toast({
-        title: t.setupTracker,
-        description: t.setupTrackerFirst,
-        variant: 'destructive',
-      });
-      navigate('/?setupTracker=1');
-      return;
-    }
-
     if (!session) {
       toast({ title: t.notLoggedIn, variant: 'destructive' });
       navigate('/auth');
@@ -297,11 +252,11 @@ const MealPlansPage = () => {
     }
 
     // Use tracker settings from database/hook (single source of truth)
-    const dailyCalories = trackerSettings.dailyCalories || 1600;
-    const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
-    const dailyCarbs = trackerSettings.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
-    const dailyFat = trackerSettings.dailyFat || Math.round(dailyCalories * 0.3 / 9);
-    const mealsPerDay = trackerSettings.mealsPerDay || 5;
+    const dailyCalories = trackerSettings?.dailyCalories || 1800;
+    const dailyProtein = trackerSettings?.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
+    const dailyCarbs = trackerSettings?.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
+    const dailyFat = trackerSettings?.dailyFat || Math.round(dailyCalories * 0.3 / 9);
+    const mealsPerDay = trackerSettings?.mealsPerDay || 5;
 
     console.log('[MEAL-PLAN] Using global context for generation:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat, mealsPerDay });
 
@@ -314,19 +269,17 @@ const MealPlansPage = () => {
       mealsPerDay,
     });
   }, [
-    trackerSetup,
     trackerSettings,
     session,
     navigate,
     globalGenerateMealPlan,
-    setActiveTab,
     t,
   ]);
 
   useEffect(() => {
     const shouldRegenerate = activeTab === 'meals' && searchParams.get('regenerate') === '1';
 
-    if (!shouldRegenerate || trackerLoading || pendingMealPlanRefreshRef.current) {
+    if (!shouldRegenerate || pendingMealPlanRefreshRef.current) {
       return;
     }
 
@@ -343,7 +296,7 @@ const MealPlansPage = () => {
         pendingMealPlanRefreshRef.current = false;
       }
     })();
-  }, [activeTab, generateMealPlan, searchParams, setSearchParams, trackerLoading]);
+  }, [activeTab, generateMealPlan, searchParams, setSearchParams]);
 
   const openMealDetail = (meal: Meal) => {
     // Ensure meal has all required fields with safe defaults
@@ -413,19 +366,8 @@ const MealPlansPage = () => {
   };
 
   const handleTabChange = (value: string) => {
-    // Only shopping requires tracker setup
-    if (value === 'shopping' && !trackerSetup) {
-      toast({ 
-        title: t.setupTracker, 
-        description: t.setupTrackerFirst, 
-        variant: 'destructive' 
-      });
-      return;
-    }
     setActiveTab(value);
   };
-
-  const canAccessPremiumFeatures = trackerSetup;
 
   // Check if user has generated their own plan (not demo)
   const hasGeneratedPlan = localStorage.getItem('weeklyMealPlan') !== null;

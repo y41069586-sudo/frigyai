@@ -9,12 +9,12 @@ import type { UserData } from "../types";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#1ED78A",
-  primaryDark: "#18A872",
+  primary: "#24F59B",
+  primaryDark: "#10C878",
   primaryDeep: "#0A8550",
-  bg: "#EDFAF4",
-  trackActive: "#1ED78A",
-  trackInactive: "#C8F5E0",
+  bg: "#F2FFF8",
+  trackActive: "#24F59B",
+  trackInactive: "#D6FFE9",
   text: "#1F2937",
   textMuted: "#6B7280",
   textSubtle: "#9CA3AF",
@@ -177,7 +177,7 @@ function MintSlider({
               width: 22,
               height: 22,
               borderRadius: 9999,
-              background: "linear-gradient(180deg, #FFFFFF 0%, #EDFAF4 100%)",
+              background: "linear-gradient(180deg, #FFFFFF 0%, #F2FFF8 100%)",
               border: `3px solid ${PALETTE.primary}`,
               boxShadow:
                 "0 6px 16px -5px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
@@ -316,7 +316,7 @@ export function PaceSelectStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#DCF5EA",
+              backgroundColor: "#E6FFF2",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

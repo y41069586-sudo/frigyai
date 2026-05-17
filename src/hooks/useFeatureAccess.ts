@@ -25,11 +25,11 @@ export const useFeatureAccess = () => {
   const canAccessFeature = (feature: Feature): FeatureAccessResult => {
     // Define feature requirements
     const featureRequirements: Record<Feature, { requiresPremium: boolean; requiresTracker: boolean }> = {
-      meal_plans: { requiresPremium: true, requiresTracker: true },
-      shopping_list: { requiresPremium: true, requiresTracker: true },
+      meal_plans: { requiresPremium: true, requiresTracker: false },
+      shopping_list: { requiresPremium: true, requiresTracker: false },
       tracker_full: { requiresPremium: false, requiresTracker: false },
       water: { requiresPremium: false, requiresTracker: false },
-      progress: { requiresPremium: true, requiresTracker: true },
+      progress: { requiresPremium: true, requiresTracker: false },
       scan: { requiresPremium: true, requiresTracker: false },
       ai_chatbot: { requiresPremium: true, requiresTracker: false },
       recipes: { requiresPremium: false, requiresTracker: false },

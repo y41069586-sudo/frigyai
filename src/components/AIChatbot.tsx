@@ -67,7 +67,7 @@ export const AIChatbot = ({
   const isPremium = subscriptionStatus?.subscribed === true;
 
   const handleSheetDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.y > 90 || info.velocity.y > 700) {
+    if (info.offset.y > 56 || info.velocity.y > 450) {
       setIsOpen(false);
     }
   };
@@ -238,7 +238,7 @@ export const AIChatbot = ({
               dragControls={dragControls}
               dragListener={false}
               dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.28 }}
+              dragElastic={{ top: 0, bottom: 0.45 }}
               onDragEnd={handleSheetDragEnd}
               className="fixed inset-x-0 bottom-0 z-[51] flex h-[92dvh] flex-col px-3 pb-3 gpu-smooth md:inset-x-auto md:right-4 md:w-[28rem]"
             >
@@ -247,9 +247,9 @@ export const AIChatbot = ({
                 type="button"
                 aria-label="KI-Chat nach unten ziehen zum Schließen"
                 onPointerDown={(e) => dragControls.start(e)}
-                className="mx-auto mt-2 flex h-6 w-20 touch-none items-center justify-center rounded-full"
+                className="mx-auto mt-2 flex h-10 w-28 cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing"
               >
-                <span className="h-1.5 w-12 rounded-full bg-slate-300/80" />
+                <span className="h-1.5 w-16 rounded-full bg-slate-300/90" />
               </button>
               {/* Header */}
               <div className="p-4 pt-3 border-b border-emerald-200/40 flex items-center justify-between bg-gradient-to-r from-emerald-100/60 to-green-50/40">
