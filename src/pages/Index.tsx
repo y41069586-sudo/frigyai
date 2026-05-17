@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import frigyLogo from "@/assets/frigy-mascot.png";
 import { AIChatbot } from "@/components/AIChatbot";
+import type { MealFocusKey } from "@/lib/mealFocus";
 import {
   WATER_GLASSES_CHANGED,
   WATER_GOAL_CUPS_CHANGED,
@@ -63,7 +64,7 @@ const Index = () => {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [waterGoalMl, setWaterGoalMl] = useState(() => goalCupsToMl(readWaterGoalCupsFromStorage()));
-  const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number }[]>([]);
+  const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number; mealType?: MealFocusKey }[]>([]);
   const [caloriesEaten, setCaloriesEaten] = useState(0);
   const [proteinEaten, setProteinEaten] = useState(0);
   const [carbsEaten, setCarbsEaten] = useState(0);
@@ -173,6 +174,7 @@ const Index = () => {
               name: entry.name || 'Mahlzeit',
               time: entry.time || new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
               calories: entry.calories || 0,
+              mealType: entry.meal_type,
             }));
             setTodayMeals(meals);
           }
@@ -290,7 +292,6 @@ const Index = () => {
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
-  const [dailyScansUsed, setDailyScansUsed] = useState(0);
   const navigate = useNavigate();
 
   // Ohne bestätigte E-Mail kein Dashboard – zur Bestätigungs-/Warteseite
@@ -353,35 +354,6 @@ const Index = () => {
     return () => window.clearTimeout(t);
   }, [user, onboardingComplete]);
 
-  // Fetch daily scan usage for free users - updated to weekly
-  useEffect(() => {
-    const fetchScanUsage = async () => {
-      if (!user || subscriptionStatus?.subscribed) return;
-
-      try {
-        const weekStart = new Date();
-        const day = weekStart.getDay();
-        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(weekStart.setDate(diff)).toISOString().split('T')[0];
-
-        const { data, error } = await supabase
-          .from('scan_usage')
-          .select('scan_count')
-          .eq('user_id', user.id)
-          .eq('week_start', monday)
-          .maybeSingle();
-
-        if (!error && data) {
-          setDailyScansUsed(data.scan_count);
-        }
-      } catch (e) {
-        console.error('Failed to fetch scan usage');
-      }
-    };
-
-    fetchScanUsage();
-  }, [user, subscriptionStatus]);
-  
   const handleOnboardingComplete = () => {
     // Im Testmodus: Onboarding neu starten statt zum Dashboard
     if (ONBOARDING_TEST_MODE) {
@@ -438,7 +410,6 @@ const Index = () => {
     navigate("/scan");
   };
 
-  const scansRemaining = Math.max(0, 1 - dailyScansUsed);
   const targetCalories = trackerSettings?.dailyCalories || 2000;
   const targetProtein = trackerSettings?.dailyProtein || 150;
   const targetCarbs = trackerSettings?.dailyCarbs || 200;
@@ -471,50 +442,49 @@ const Index = () => {
     );
   }
 
-  const displayName = userName || (user?.email?.split('@')[0]) || '';
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[#F7FAF7] flex flex-col">
       {/* Subtle background */}
-      <div className="fixed inset-0 bg-gradient-to-b from-primary/3 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.12),transparent_34%),linear-gradient(to_bottom,#F7FAF7,white)] pointer-events-none" />
 
       {/* Main Content */}
-      <main className="relative flex-1 flex flex-col px-3 sm:px-5 pb-bottom-nav pt-6 sm:pt-8 safe-top">
-        <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-4 sm:space-y-6">
+      <main className="relative flex-1 flex flex-col px-6 pb-bottom-nav pt-9 sm:pt-11 safe-top">
+        <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-8">
           
           {/* Header - Clean & Modern */}
           <motion.header
-            className="flex items-center justify-between gap-4"
+            className="flex items-start justify-between gap-4"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground font-medium">
-                {new Date().toLocaleDateString(language === 'de' ? 'de-DE' : language === 'fr' ? 'fr-FR' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
-              </p>
-              <h1 className="text-xl font-bold text-foreground mt-0.5 truncate">
-                {displayName ? `Hey, ${displayName}` : t.welcome} 👋
+              <h1 className="bg-gradient-to-r from-primary via-emerald-400 to-primary/60 bg-clip-text text-[26px] font-black leading-tight tracking-[-0.05em] text-transparent drop-shadow-[0_10px_22px_hsl(var(--primary)/0.24)]">
+                Frigy
               </h1>
             </div>
             
             <div className="flex items-center gap-2 flex-shrink-0">
               {currentStreak > 0 && (
-                <motion.div
-                  className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 rounded-full"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring" }}
+                <motion.button
+                  type="button"
+                  onClick={() => navigate("/badges")}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-full bg-amber-400/14 px-3 text-amber-700 transition-colors hover:bg-amber-400/20"
+                  initial={{ scale: 0.94, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 420, damping: 28 }}
+                  aria-label="Badge-Seite öffnen"
                 >
-                  <span className="text-sm">🔥</span>
-                  <span className="text-xs font-bold text-amber-600">{currentStreak}</span>
-                </motion.div>
+                  <span className="text-base">🔥</span>
+                  <span className="text-[13px] font-bold tabular-nums">{currentStreak}</span>
+                </motion.button>
               )}
 
               {/* AI Chatbot Button - Only for Premium users */}
               {subscriptionStatus?.subscribed && (
                 <motion.button
                   onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-                  className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center hover:bg-card/80 transition-colors"
+                  className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors"
                   whileTap={{ scale: 0.95 }}
                   title="AI Chatbot"
                 >
@@ -524,7 +494,7 @@ const Index = () => {
 
               <motion.button
                 onClick={() => navigate('/profile')}
-                className="w-9 h-9 rounded-full bg-card border border-border/50 flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center"
                 whileTap={{ scale: 0.95 }}
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
@@ -541,10 +511,10 @@ const Index = () => {
             targetCarbs={trackerSettings?.dailyCarbs ?? 200}
             fatEaten={fatEaten}
             targetFat={trackerSettings?.dailyFat ?? 65}
+            loggedMealTypes={Array.from(new Set(todayMeals.map((meal) => meal.mealType).filter(Boolean))) as MealFocusKey[]}
             waterGlasses={waterGlasses}
             waterGoalMl={waterGoalMl}
             onWaterGlassesChange={updateWaterGlasses}
-            scansRemaining={!subscriptionStatus?.subscribed ? scansRemaining : null}
             aiChatEnabled={!!subscriptionStatus?.subscribed}
             onAiChatPromptSubmit={(text) => {
               setChatBootstrapMessage(text);

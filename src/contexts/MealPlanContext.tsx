@@ -7,19 +7,20 @@ import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigySto
 import { buildGermanConstraintPrompt } from '@/lib/mealAllergySafety';
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 
-function readUserProfileDiet(): { allergies: string[]; dietaryPreferences: string[] } {
+function readUserProfileDiet(): { allergies: string[]; allergiesOther: string; dietaryPreferences: string[] } {
   try {
     const raw = localStorage.getItem('userProfile');
-    if (!raw) return { allergies: [], dietaryPreferences: [] };
+    if (!raw) return { allergies: [], allergiesOther: '', dietaryPreferences: [] };
     const p = JSON.parse(raw);
     return {
       allergies: Array.isArray(p.allergies) ? p.allergies.filter((x: string) => x && x !== 'none') : [],
+      allergiesOther: typeof p.allergiesOther === 'string' ? p.allergiesOther.trim() : '',
       dietaryPreferences: Array.isArray(p.dietaryPreferences)
         ? p.dietaryPreferences.filter((x: string) => x && x !== 'none')
         : [],
     };
   } catch {
-    return { allergies: [], dietaryPreferences: [] };
+    return { allergies: [], allergiesOther: '', dietaryPreferences: [] };
   }
 }
 
@@ -314,7 +315,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       try {
         const diet = readUserProfileDiet();
-        const constraintPrompt = buildGermanConstraintPrompt(diet.allergies, diet.dietaryPreferences);
+        const constraintPrompt = buildGermanConstraintPrompt(diet.allergies, diet.dietaryPreferences, diet.allergiesOther);
 
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
           headers: session?.access_token
@@ -328,6 +329,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             dailyFat: settings.dailyFat,
             mealsPerDay: settings.mealsPerDay || 5,
             allergies: diet.allergies,
+            allergiesOther: diet.allergiesOther,
             dietaryPreferences: diet.dietaryPreferences,
             constraintPrompt,
             fridgeIngredients: options?.fridgeIngredients ?? [],
@@ -448,7 +450,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           toast({
             title: '✅ Wochenplan generiert!',
-            description: `Plan mit ${settings.dailyCalories} kcal pro Tag`
+            description: options?.fridgeIngredients?.length
+              ? `Plan mit ${settings.dailyCalories} kcal pro Tag`
+              : 'Scanne jetzt deinen Kühlschrank, damit Frigy prüft, was du hast und was auf die Einkaufsliste muss.'
           });
           return true;
         } else {

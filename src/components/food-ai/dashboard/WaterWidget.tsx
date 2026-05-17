@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, animate } from "framer-motion";
-import { Plus, Minus, Droplet } from "lucide-react";
-import confetti from "canvas-confetti";
+import { AnimatePresence, motion } from "framer-motion";
+import { Droplet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ML_PER_GLASS = 200;
+const ML_PER_GLASS = 250;
 
 type WaterWidgetProps = {
   waterGlasses: number;
@@ -26,175 +24,125 @@ export function WaterWidget({
 }: WaterWidgetProps) {
   const safeGoalMl = Math.min(goalMl, 2000);
   const currentMl = waterGlasses * ML_PER_GLASS;
-  const canSubtract = currentMl > 0;
   const goalLiters = safeGoalMl / 1000;
-
-  // 0 ml -> 8% baseline (just covers buttons area), full goal -> 96%
-  const fillPct = Math.max(0, Math.min(1, currentMl / safeGoalMl));
-
-  // ── Smooth liter counter ────────────────────────────────────────────────
-  // Animate the displayed number on its own timeline so it eases up/down
-  // independently of the React state, making +/- feel "alive".
-  const liters = useMotionValue(currentMl / 1000);
-  const litersDisplay = useTransform(liters, (v) => v.toFixed(2).replace(".", ","));
-  const [litersText, setLitersText] = useState(litersDisplay.get());
-
-  useEffect(() => {
-    const target = currentMl / 1000;
-    const controls = animate(liters, target, {
-      duration: 0.55,
-      ease: [0.22, 1, 0.36, 1],
-    });
-    const unsub = litersDisplay.on("change", setLitersText);
-    return () => {
-      controls.stop();
-      unsub();
-    };
-  }, [currentMl, liters, litersDisplay]);
-
-  // Spring-driven height so + / – feels bouncy and smooth instead of linear
-  const heightSpring = useSpring(0, { stiffness: 140, damping: 18, mass: 0.9 });
-  useEffect(() => {
-    heightSpring.set(8 + fillPct * 88);
-  }, [fillPct, heightSpring]);
-  const heightStyle = useTransform(heightSpring, (v) => `${v}%`);
-
-  // Confetti once when goal is reached
-  const wasFullRef = useRef(false);
-  useEffect(() => {
-    const isFull = currentMl >= safeGoalMl;
-    if (isFull && !wasFullRef.current) {
-      confetti({
-        particleCount: 120,
-        spread: 90,
-        origin: { y: 0.55 },
-        colors: ["#7dd3fc", "#38bdf8", "#0ea5e9", "#bae6fd", "#fff"],
-      });
-    }
-    wasFullRef.current = isFull;
-  }, [currentMl, safeGoalMl]);
+  const litersText = (currentMl / 1000).toFixed(2);
+  const waterFillPct = safeGoalMl > 0 ? Math.min(100, (currentMl / safeGoalMl) * 100) : 0;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onToggleExpand}
       className={cn(
-        "relative h-[158px] min-[360px]:h-[168px] w-full overflow-hidden rounded-xl min-[360px]:rounded-2xl",
-        "border border-sky-200/70",
-        "bg-gradient-to-b from-[#f5fbff] via-[#eaf6ff] to-[#dff1ff]",
-        "shadow-[0_14px_30px_-12px_rgba(56,189,248,0.45)]",
+        "relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
+        "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
+        "backdrop-blur-xl touch-manipulation",
       )}
     >
-      {/* soft top glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-8 -top-8 h-28 w-28 rounded-full bg-sky-300/30 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-10 top-2 h-20 w-20 rounded-full bg-cyan-200/40 blur-2xl"
-      />
-
-      {/* Water fill — flat single color, straight top edge */}
-      <motion.div
-        style={{ height: heightStyle }}
-        className="absolute inset-x-0 bottom-0 z-[1] bg-[#5cccf9]"
-      />
-
-      {/* Foreground */}
-      <motion.div className="absolute inset-0 z-[10] flex flex-col justify-between p-3">
-        <div className="flex items-center gap-1.5">
-          <Droplet className="h-4 w-4 fill-sky-500 text-sky-500" />
-          <span className="text-[12px] font-bold tracking-tight text-sky-900">Wasser</span>
-        </div>
-
-        <div className="flex flex-col items-center text-center">
-          <div className="flex items-baseline justify-center gap-1.5 leading-none">
-            <motion.span className="text-[26px] min-[360px]:text-[30px] font-black tabular-nums text-sky-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
-              {litersText}
-            </motion.span>
-            <span className="text-[11px] font-semibold text-sky-700/80">
-              / {goalLiters.toFixed(1).replace(".", ",")} l
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            disabled={!canSubtract}
-            onClick={(e) => { e.stopPropagation(); onSubtract250ml(); }}
-            className={cn(
-              "flex h-9 items-center justify-center rounded-xl",
-              "bg-white/85 text-sky-700 shadow-[0_6px_14px_-6px_rgba(14,165,233,0.45)] backdrop-blur-sm",
-              "border border-white/80",
-              "transition-colors hover:bg-white",
-              "focus:outline-none focus-visible:ring-0 disabled:opacity-35 disabled:shadow-none",
-            )}
-            aria-label="Wasser verringern"
-          >
-            <Minus className="h-4 w-4" strokeWidth={2.6} />
-          </motion.button>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => { e.stopPropagation(); onAdd250ml(); }}
-            className={cn(
-              "flex h-9 items-center justify-center rounded-xl",
-              "bg-white/85 text-sky-700 shadow-[0_6px_14px_-6px_rgba(14,165,233,0.45)] backdrop-blur-sm",
-              "border border-white/80",
-              "transition-colors hover:bg-white",
-              "focus:outline-none focus-visible:ring-0",
-            )}
-            aria-label="Wasser erhöhen"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.6} />
-          </motion.button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────── */
-
-function WaveTop({
-  fill,
-  duration,
-  direction,
-  wobble,
-  opacity = 1,
-  offsetY = 0,
-}: {
-  fill: string;
-  duration: number;
-  direction: "left" | "right";
-  wobble: ReturnType<typeof useMotionValue<number>>;
-  opacity?: number;
-  offsetY?: number;
-}) {
-  const animateX = direction === "left" ? ["0%", "-50%"] : ["-50%", "0%"];
-
-  // small vertical splash on +/- changes
-  const yOffset = useTransform(wobble, (w) => -w * 3 + offsetY);
-
-  return (
-    <motion.div
-      aria-hidden
-      style={{ y: yOffset, opacity }}
-      animate={{ x: animateX }}
-      transition={{ duration, repeat: Infinity, ease: "linear" }}
-      className="absolute -top-3 left-0 h-4 w-[200%]"
-    >
-      <svg viewBox="0 0 800 16" preserveAspectRatio="none" className="h-full w-full">
-        <path
-          fill={fill}
-          d="M0 8 Q 100 0 200 8 T 400 8 T 600 8 T 800 8 V 16 H 0 Z"
+      {currentMl > 0 && (
+        <motion.div
+          initial={{ height: 0 }}
+          animate={{ height: `${Math.max(12, waterFillPct)}%` }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-[1.85rem] bg-gradient-to-t from-sky-500/65 to-sky-300/35"
         />
-      </svg>
+      )}
+      <div className="pointer-events-none absolute inset-x-5 top-10 h-20 rounded-full bg-sky-300/55 blur-2xl" />
+
+      <div className="relative z-[10] grid min-h-[185px] grid-rows-[auto_1fr_auto] justify-items-center p-4">
+        <div className="justify-self-start flex items-center gap-1.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+            <Droplet className="h-4 w-4 fill-sky-500 text-sky-500" />
+          </span>
+          <h3 className="min-w-0 text-[14px] font-semibold tracking-[-0.03em] text-foreground">Wasser</h3>
+        </div>
+
+        <div className="flex w-full items-center justify-center px-1 py-1 text-center">
+          <AnimatePresence mode="wait">
+            {currentMl === 0 ? (
+              <motion.p
+                key="water-empty"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full text-center text-[11px] font-semibold leading-snug tracking-[-0.04em] text-foreground"
+              >
+                Noch durstig? Fang<br />
+                mit einem Glas<br />
+                Wasser an
+              </motion.p>
+            ) : (
+              <motion.div
+                key="water-filled"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <p className="text-[11px] font-medium text-muted-foreground">Heute</p>
+                <p className="mt-1 text-[22px] font-semibold leading-none tracking-[-0.04em] text-foreground">
+                  {litersText} <span className="text-[15px] text-muted-foreground">/ {goalLiters.toFixed(1)} l</span>
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {currentMl === 0 ? (
+            <motion.button
+              key="add-glass"
+              type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              whileTap={{ scale: 0.96 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd250ml();
+              }}
+              className="mx-auto flex h-9 w-full min-w-0 items-center justify-center rounded-2xl border-2 border-sky-300 bg-white/45 px-1 text-[9px] font-medium leading-none whitespace-nowrap text-sky-900 transition-colors active:bg-sky-50"
+            >
+              <span className="whitespace-nowrap">Glas&nbsp;hinzufügen</span>
+            </motion.button>
+          ) : (
+            <motion.div
+              key="water-controls"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="grid w-full grid-cols-2 gap-3"
+            >
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.96 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSubtract250ml();
+                }}
+                className="flex h-10 min-w-0 items-center justify-center rounded-2xl border-2 border-sky-300 bg-white/55 text-[18px] font-medium text-sky-900"
+              >
+                -
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.96 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAdd250ml();
+                }}
+                className="flex h-10 min-w-0 items-center justify-center rounded-2xl border-2 border-sky-300 bg-white/55 text-[18px] font-medium text-sky-900"
+              >
+                +
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }

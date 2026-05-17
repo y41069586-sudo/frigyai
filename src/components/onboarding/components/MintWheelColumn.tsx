@@ -35,14 +35,14 @@ type MintWheelColumnProps = {
   width?: number | string;
   ariaLabel?: string;
   /** Row height in px — must match overlay math in parent (use `useMintWheelRowHeight()`). */
-  rowHeight: number;
+  rowHeight?: number;
   /** Repeat options in a loop so short lists (e.g. 0–9) show digits above/below the ends */
   circular?: boolean;
 };
 
 const haptic = () => {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    navigator.vibrate?.(4);
+    navigator.vibrate?.(2);
   }
 };
 
@@ -60,6 +60,8 @@ export function MintWheelColumn({
   const lastPhysicalIndexRef = useRef(0);
   const isProgrammaticRef = useRef(false);
   const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastHapticAtRef = useRef(0);
 
   const segmentLen = options.length;
   const circularActive = Boolean(circular && segmentLen > 1);
@@ -113,6 +115,12 @@ export function MintWheelColumn({
 
   const handleScroll = useCallback(() => {
     if (!scrollRef.current || isProgrammaticRef.current) return;
+    if (rafRef.current != null) return;
+
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      if (!scrollRef.current || isProgrammaticRef.current) return;
+
     const top = scrollRef.current.scrollTop;
     const idx = Math.round(top / rowHeight);
     const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
@@ -120,9 +128,12 @@ export function MintWheelColumn({
     setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
 
     if (clamped !== lastPhysicalIndexRef.current) {
-      haptic();
+      const now = performance.now();
+      if (now - lastHapticAtRef.current > 120) {
+        haptic();
+        lastHapticAtRef.current = now;
+      }
       lastPhysicalIndexRef.current = clamped;
-      onChange(displayOptions[clamped].value);
     }
 
     if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
@@ -143,17 +154,23 @@ export function MintWheelColumn({
 
       lastPhysicalIndexRef.current = physical;
       setVisualPhysicalIndex(physical);
+      const nextValue = displayOptions[physical].value;
+      if (nextValue !== value) {
+        onChange(nextValue);
+      }
       const targetTop = physical * rowHeight;
       const currentTop = scrollRef.current.scrollTop;
       if (Math.abs(currentTop - targetTop) > 0.5) {
-        scrollToIndex(physical, true);
+        scrollToIndex(physical, false);
       }
-    }, 90);
-  }, [displayOptions, onChange, scrollToIndex, circularActive, segmentLen, rowHeight]);
+    }, 190);
+    });
+  }, [displayOptions, onChange, scrollToIndex, circularActive, segmentLen, rowHeight, value]);
 
   useEffect(
     () => () => {
       if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     },
     [],
   );
@@ -166,7 +183,6 @@ export function MintWheelColumn({
         ? "justify-end pr-1"
         : "justify-center";
 
-  const selectedFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 19 : 24;
   const idleFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 14 : 17;
 
   return (
@@ -180,13 +196,14 @@ export function MintWheelColumn({
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide select-none"
         style={{
-          scrollSnapType: "y mandatory",
+          scrollSnapType: "y proximity",
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
           WebkitUserSelect: "none",
           userSelect: "none",
           willChange: "scroll-position",
           transform: "translateZ(0)",
+          touchAction: "pan-y",
         }}
         onScroll={handleScroll}
       >
@@ -196,6 +213,7 @@ export function MintWheelColumn({
           const isSelected = idx === visualPhysicalIndex;
           const opacity =
             distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
+          const scale = distance === 0 ? 1.12 : distance === 1 ? 0.98 : 0.9;
           return (
             <div
               key={circularActive ? `wheel-${idx}` : opt.value}
@@ -205,13 +223,14 @@ export function MintWheelColumn({
               style={{
                 height: rowHeight,
                 scrollSnapAlign: "center",
-                fontSize: isSelected ? `${selectedFontPx}px` : `${idleFontPx}px`,
+                fontSize: `${idleFontPx}px`,
                 fontWeight: isSelected ? 600 : 400,
                 color: isSelected ? "#1F2937" : "#4B5563",
                 opacity,
+                transform: `translateZ(0) scale(${scale})`,
                 letterSpacing: "-0.01em",
-                transition:
-                  "font-size 160ms cubic-bezier(0.4,0,0.2,1), color 160ms, opacity 160ms",
+                transition: "transform 120ms ease-out, color 120ms, opacity 120ms",
+                willChange: "transform, opacity",
                 WebkitTapHighlightColor: "transparent",
               }}
             >

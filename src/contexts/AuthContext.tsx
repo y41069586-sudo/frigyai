@@ -15,8 +15,6 @@ interface AuthContextType {
   session: Session | null;
   subscriptionStatus: SubscriptionStatus | null;
   loading: boolean;
-  /** True when user is logged in but has no subscription and no active trial */
-  isFreeMode: boolean;
   /** True when user has premium access (subscribed or in trial) */
   isPremium: boolean;
   signUp: (
@@ -356,9 +354,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // Computed values for free mode and premium access
+  // Computed value for premium access.
   const isPremium = subscriptionStatus?.subscribed || user?.email?.toLowerCase() === 'yousef0089mohamed@gmail.com' || false;
-  const isFreeMode = !!user && !isPremium;
 
   return (
     <AuthContext.Provider
@@ -367,7 +364,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         subscriptionStatus,
         loading,
-        isFreeMode,
         isPremium,
         signUp,
         signIn,

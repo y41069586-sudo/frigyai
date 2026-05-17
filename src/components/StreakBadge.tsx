@@ -22,12 +22,16 @@ const BADGE_CATEGORIES = [
   },
 ];
 
-const StreakBadge = () => {
+export function BadgeOverview() {
   const { streak, badges, loading } = useGamification();
 
   if (loading) {
     return (
-      <div className="w-10 h-10 rounded-full bg-orange-500/20 animate-pulse" />
+      <div className="space-y-3">
+        <div className="h-32 rounded-2xl bg-orange-500/10 animate-pulse" />
+        <div className="h-20 rounded-2xl bg-muted/40 animate-pulse" />
+        <div className="h-20 rounded-2xl bg-muted/40 animate-pulse" />
+      </div>
     );
   }
 
@@ -43,40 +47,7 @@ const StreakBadge = () => {
     : ((streak.current_streak - prevStreakGoal) / (nextStreakGoal - prevStreakGoal)) * 100;
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/40 hover:border-orange-500/60 transition-all"
-        >
-          <Flame className="h-4 w-4 text-orange-400" />
-          <span className="text-xs font-bold text-orange-400">
-            {badges.length}/{totalBadges}
-          </span>
-          {streak.current_streak > 0 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-            >
-              {streak.current_streak}
-            </motion.div>
-          )}
-        </motion.button>
-      </DialogTrigger>
-
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            Deine Erfolge
-          </DialogTitle>
-          <DialogDescription>
-            Sammle Badges durch tägliche Aktivität
-          </DialogDescription>
-        </DialogHeader>
-
+    <div className="space-y-5">
         {/* Streak Card with Progress */}
         <div className="p-4 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30">
           <div className="flex items-center gap-4 mb-3">
@@ -186,6 +157,56 @@ const StreakBadge = () => {
           </div>
           <Progress value={(badges.length / totalBadges) * 100} className="h-2" />
         </div>
+    </div>
+  );
+}
+
+const StreakBadge = () => {
+  const { streak, badges, loading } = useGamification();
+
+  if (loading) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-orange-500/20 animate-pulse" />
+    );
+  }
+
+  const totalBadges = BADGE_DEFINITIONS.length;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/40 hover:border-orange-500/60 transition-all"
+        >
+          <Flame className="h-4 w-4 text-orange-400" />
+          <span className="text-xs font-bold text-orange-400">
+            {badges.length}/{totalBadges}
+          </span>
+          {streak.current_streak > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+            >
+              {streak.current_streak}
+            </motion.div>
+          )}
+        </motion.button>
+      </DialogTrigger>
+
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Deine Erfolge
+          </DialogTitle>
+          <DialogDescription>
+            Sammle Badges durch tägliche Aktivität
+          </DialogDescription>
+        </DialogHeader>
+        <BadgeOverview />
       </DialogContent>
     </Dialog>
   );

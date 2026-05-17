@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, Activity, RotateCcw, BarChart3, FileText, Shield, Scale, Bell } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, RotateCcw, BarChart3, FileText, Shield, Scale, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,7 +12,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
-import { HealthSync } from "@/components/HealthSync";
 import { ReminderSettings } from "@/components/ReminderSettings";
 
 import frigyBrand from "@/assets/frigy-mascot.png";
@@ -180,20 +179,6 @@ const ProfilePage = () => {
                     Community
                   </Button>
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Activity className="h-4 w-4 mr-2" />
-                        Health Sync
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Health Sync</DialogTitle>
-                      </DialogHeader>
-                      <HealthSync />
-                    </DialogContent>
-                  </Dialog>
                 </>
               )}
 

@@ -25,7 +25,7 @@ import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
-import { FreeModePaywallOverlay } from './FreeModePaywallOverlay';
+import { PremiumLockOverlay } from './PremiumLockOverlay';
 import {
   parseMealFocus,
   type MealFocusKey,
@@ -49,6 +49,7 @@ export interface FoodEntry {
   fat: number;
   time: string;
   image_url?: string;
+  meal_type?: MealFocusKey;
 }
 
 interface UserProfile {
@@ -256,6 +257,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       fat: entry.fat,
       time: new Date(entry.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
       image_url: entry.image_url,
+      meal_type: parseMealFocus(entry.meal_type ?? null) ?? undefined,
     }));
   }, []);
 
@@ -455,7 +457,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     syncMacrosToDatabase(entries);
   }, [syncMacrosToDatabase]);
 
-  const analyzeFood = async (food: string, imageBase64?: string) => {
+  const analyzeFood = async (food: string, imageBase64?: string, mealType: MealFocusKey | null = mealPromptKey) => {
     setIsAnalyzing(true);
     if (imageBase64) {
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
@@ -507,6 +509,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           protein: Math.round(data.protein || 0),
           carbs: Math.round(data.carbs || 0),
           fat: Math.round(data.fat || 0),
+          meal_type: mealType ?? undefined,
           image_url: data.image_url,
         });
       } catch (dbError: any) {
@@ -525,6 +528,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         fat: data.fat,
         time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
         image_url: data.image_url,
+        meal_type: mealType ?? undefined,
       };
 
       saveFoodEntries([...foodEntries, newEntry]);
@@ -567,7 +571,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = (reader.result as string).split(',')[1];
-        analyzeFood('', base64);
+        analyzeFood('', base64, mealPromptKey);
       };
       reader.readAsDataURL(file);
     }
@@ -575,7 +579,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const removeEntry = async (id: string) => {
     // Remove from local state first
-    saveFoodEntries(foodEntries.filter(e => e.id !== id));
+    const nextEntries = foodEntries.filter(e => e.id !== id);
+    saveFoodEntries(nextEntries);
 
     // Try to delete from database if user is logged in
     // UUID format check: if it looks like a database ID (contains hyphens or is long), delete from DB
@@ -621,6 +626,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           protein: recipe.protein,
           carbs: recipe.carbs,
           fat: recipe.fat,
+          meal_type: mealPromptKey ?? undefined,
         });
       } catch {
         savedEntry = null;
@@ -634,6 +640,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         carbs: recipe.carbs,
         fat: recipe.fat,
         time: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        meal_type: mealPromptKey ?? undefined,
       };
       saveFoodEntries([...foodEntries, newEntry]);
       toast({
@@ -649,14 +656,29 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
   };
 
-  const handleBarcodeScanned = (food: any) => {
+  const handleBarcodeScanned = async (food: any) => {
     setScannedProductData(food);
     setShowSuccessOverlay(true);
     setShowBarcodeScanner(false);
 
+    let savedEntry;
+    try {
+      savedEntry = await addDbEntry({
+        name: food.name,
+        calories: Math.round(food.calories || 0),
+        protein: Math.round(food.protein || 0),
+        carbs: Math.round(food.carbs || 0),
+        fat: Math.round(food.fat || 0),
+        meal_type: mealPromptKey ?? undefined,
+        image_url: food.image,
+      });
+    } catch {
+      savedEntry = null;
+    }
+
     // Automatically add to entries
     const newEntry: FoodEntry = {
-      id: Date.now().toString(),
+      id: savedEntry?.id || Date.now().toString(),
       name: food.name,
       calories: food.calories,
       protein: food.protein,
@@ -664,6 +686,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       fat: food.fat,
       time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
       image_url: food.image,
+      meal_type: mealPromptKey ?? undefined,
     };
     saveFoodEntries([...foodEntries, newEntry]);
     recordActivity();
@@ -1261,15 +1284,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             key="tracker-add-meal-panel"
             mealFocus={mealPromptKey}
             onClose={closeLogMealPanel}
-            onSearchSubmit={(text) => analyzeFood(text)}
+            onSearchSubmit={(text) => analyzeFood(text, undefined, mealPromptKey)}
             onCamera={handleCameraClick}
             onBarcode={handleBarcodeClick}
             onAddRecipe={addRecipeToTracker}
+            onDeleteMeal={removeEntry}
             loggedMeals={foodEntries.map((e) => ({
               id: e.id,
               name: e.name,
               calories: e.calories,
               time: e.time,
+              mealType: e.meal_type,
             }))}
             isAnalyzing={isAnalyzing}
             isPremium={isPremium}
@@ -1285,21 +1310,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[65] flex items-center justify-center bg-black/80 p-4"
+            className="fixed inset-0 z-[65] flex items-center justify-center bg-black/90"
           >
-            {/* Background Image with Dark Overlay */}
-            <div className="relative aspect-video w-full">
+            <div className="relative h-full w-full overflow-hidden">
               <img
                 src={analyzingImage}
                 alt="Analyzing food"
-                className="w-full h-full object-cover"
+                className="h-full w-full object-contain"
               />
               {/* Dark Overlay */}
-              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute inset-0 bg-black/45" />
               
               {/* Neon Glow Border */}
               <div 
-                className="absolute inset-0 rounded-2xl"
+                className="absolute inset-3 rounded-3xl"
                 style={{
                   boxShadow: 'inset 0 0 30px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.3)',
                   border: '2px solid rgba(34, 197, 94, 0.5)'
@@ -1309,8 +1333,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               {/* Scanning Line Animation */}
               <motion.div
                 className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
-                initial={{ top: 0 }}
-                animate={{ top: '100%' }}
+                initial={{ top: '8%' }}
+                animate={{ top: '92%' }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               />
               
@@ -1390,7 +1414,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           className="fixed inset-0 z-50"
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <FreeModePaywallOverlay
+            <PremiumLockOverlay
               title="Premium freischalten"
               description="Nutze Foto für schnellere Erfassung"
               className="relative"

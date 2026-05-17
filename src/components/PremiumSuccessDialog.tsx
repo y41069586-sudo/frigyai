@@ -4,7 +4,7 @@ import { Crown, Check, Sparkles, Calendar, ShoppingCart, Droplets, Activity, Ref
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
-import confetti from "canvas-confetti";
+import { confettiBurst } from "@/lib/mobileEffects";
 
 interface PremiumSuccessDialogProps {
   open: boolean;
@@ -20,7 +20,7 @@ export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuc
   useEffect(() => {
     if (open) {
       // Trigger confetti
-      confetti({
+      confettiBurst({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },

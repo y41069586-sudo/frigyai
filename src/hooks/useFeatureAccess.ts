@@ -15,14 +15,12 @@ export interface FeatureAccessResult {
  * Determines if a user can access a specific feature based on:
  * - Subscription status (premium)
  * - Tracker setup status
- * - Feature quotas (for free users)
  */
 export const useFeatureAccess = () => {
-  const { subscriptionStatus, user } = useAuth();
+  const { subscriptionStatus } = useAuth();
   const { settings: trackerSettings, isConfigured: trackerSetup } = useTrackerSettings();
   
   const isPremium = subscriptionStatus?.subscribed ?? false;
-  const isFreeModeUser = user && !isPremium;
 
   const canAccessFeature = (feature: Feature): FeatureAccessResult => {
     // Define feature requirements
@@ -70,6 +68,5 @@ export const useFeatureAccess = () => {
     canAccessFeature,
     isPremium,
     trackerSetup,
-    isFreeModeUser,
   };
 };

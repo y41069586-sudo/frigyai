@@ -234,26 +234,26 @@ export const CommunityPage = () => {
     return `vor ${Math.floor(hours / 24)} Tagen`;
   };
 
-  // Free users can view community but not post
+  // Community posting is currently reserved for Premium members.
   const isPremium = subscriptionStatus?.subscribed === true;
 
   return (
-    <div className="min-h-screen bg-background pb-bottom-nav">
+    <div className="min-h-screen bg-[#F7FAF7] pb-bottom-nav">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl safe-top">
+        <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/meal-plans')}>
+            <Button variant="ghost" size="icon" className="rounded-full bg-muted/40" onClick={() => navigate('/meal-plans')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Community</h1>
-              <p className="text-xs text-muted-foreground">Teile & entdecke Rezepte</p>
+              <h1 className="text-[24px] font-bold tracking-[-0.04em]">Community</h1>
+              <p className="text-xs font-medium text-muted-foreground">Rezepte, Ideen & Motivation</p>
             </div>
           </div>
           
           {isPremium ? (
-            <Button size="sm" className="gap-2 gradient-neon text-black" onClick={() => setUploadDialogOpen(true)}>
+            <Button size="sm" className="gap-2 rounded-full bg-primary text-primary-foreground shadow-[0_12px_28px_-18px_hsl(var(--primary))]" onClick={() => setUploadDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Rezept teilen
             </Button>
@@ -278,19 +278,19 @@ export const CommunityPage = () => {
       </div>
 
       {/* Stats Bar */}
-      <div className="max-w-2xl mx-auto px-4 py-4">
+      <div className="max-w-2xl mx-auto px-5 py-5">
         <div className="grid grid-cols-3 gap-3">
-          <Card className="p-3 text-center bg-card/50">
+          <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
             <Users className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-lg font-bold">1.2k</p>
             <p className="text-xs text-muted-foreground">Mitglieder</p>
           </Card>
-          <Card className="p-3 text-center bg-card/50">
+          <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
             <ChefHat className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-lg font-bold">{communityRecipes.length}</p>
             <p className="text-xs text-muted-foreground">Rezepte</p>
           </Card>
-          <Card className="p-3 text-center bg-card/50">
+          <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
             <TrendingUp className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-lg font-bold">89%</p>
             <p className="text-xs text-muted-foreground">Erfolgsrate</p>
@@ -299,9 +299,9 @@ export const CommunityPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-2xl mx-auto px-5">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="grid w-full grid-cols-2 mb-4 rounded-full bg-white/80 p-1 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.28)]">
             <TabsTrigger value="recipes">
               <ChefHat className="h-4 w-4 mr-2" />
               Rezepte
@@ -339,7 +339,7 @@ export const CommunityPage = () => {
                     transition={{ delay: index * 0.05 }}
                   >
                     <Card 
-                      className="p-4 bg-card/50 backdrop-blur cursor-pointer hover:border-primary/50 transition-all"
+                      className="cursor-pointer rounded-[1.75rem] border-slate-200/85 bg-white/78 p-4 shadow-[0_16px_44px_-32px_rgba(15,23,42,0.34)] backdrop-blur transition-all hover:border-primary/35"
                       onClick={() => {
                         // Navigate to recipe detail with community recipe data
                         const recipeData = {
@@ -435,7 +435,7 @@ export const CommunityPage = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="p-4 bg-card/50 backdrop-blur">
+                    <Card className="rounded-[1.75rem] border-slate-200/85 bg-white/78 p-4 shadow-[0_16px_44px_-32px_rgba(15,23,42,0.34)] backdrop-blur">
                     {/* Author */}
                     <div className="flex items-center gap-3 mb-3">
                       <Avatar className="h-10 w-10">

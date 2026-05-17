@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Settings, XCircle, Check, Bell, User, Crown, Refrigerator } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,15 +16,11 @@ import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { useReminders } from '@/hooks/useReminders';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import StreakBadge from '@/components/StreakBadge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
-import { PremiumLockOverlay } from '@/components/PremiumLockOverlay';
-import { FreeModePaywallOverlay } from '@/components/FreeModePaywallOverlay';
 import { notifyFrigyStorageUpdated, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
 interface UserProfile {
   age: number;
@@ -61,7 +57,7 @@ interface DayPlan {
 // Empty placeholder - no more demo plan, real plan gets auto-generated
 
 const MealPlansPage = () => {
-  const { user, session, subscriptionStatus, loading, checkSubscription, isFreeMode, isPremium } = useAuth();
+  const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -71,7 +67,7 @@ const MealPlansPage = () => {
     mealPlan: globalMealPlan,
     shoppingList: globalShoppingList,
     generateMealPlan: globalGenerateMealPlan,
-    generationCount: globalGenerationCount,
+    isGenerating,
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
@@ -100,7 +96,6 @@ const MealPlansPage = () => {
   });
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
   
@@ -164,36 +159,6 @@ const MealPlansPage = () => {
     }
   }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
 
-  const handleManageSubscription = async () => {
-    if (!session) {
-      toast({ title: t.notLoggedIn, variant: 'destructive' });
-      return;
-    }
-    setPortalLoading(true);
-    toast({ title: t.loadingStripePortal, description: t.pleaseWait });
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        const newWindow = window.open(data.url, '_blank');
-        if (!newWindow) {
-          window.location.href = data.url;
-        }
-      }
-    } catch (error: any) {
-      toast({ title: t.error, description: error.message, variant: 'destructive' });
-    } finally {
-      setPortalLoading(false);
-    }
-  };
-
-  // isPremium now comes from useAuth() hook above
-
-  // Free users: can regenerate meal plan only once after the onboarding plan
-  const maxFreeGenerations = 1;
-  const canGenerateMealPlan = isPremium || globalGenerationCount < maxFreeGenerations;
   const pendingMealPlanRefreshRef = useRef(false);
 
   useEffect(() => {
@@ -217,7 +182,6 @@ const MealPlansPage = () => {
     if (!user) {
       navigate('/auth');
     }
-    // Remove premium redirect - allow free users to access with limitations
   }, [user, loading, navigate, searchParams]);
 
   // Validate if meal plan meets current calorie target
@@ -330,16 +294,6 @@ const MealPlansPage = () => {
       return;
     }
 
-    // Check if free user has reached generation limit
-    if (!isPremium && globalGenerationCount >= maxFreeGenerations) {
-      toast({
-        title: "Limit erreicht",
-        description: "Upgrade auf Premium für unbegrenzte Generierungen",
-        variant: 'destructive',
-      });
-      return;
-    }
-
     // Use tracker settings from database/hook (single source of truth)
     const dailyCalories = trackerSettings.dailyCalories || 1600;
     const dailyProtein = trackerSettings.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
@@ -361,9 +315,6 @@ const MealPlansPage = () => {
     trackerSetup,
     trackerSettings,
     session,
-    isPremium,
-    globalGenerationCount,
-    maxFreeGenerations,
     navigate,
     globalGenerateMealPlan,
     setActiveTab,
@@ -505,56 +456,30 @@ const MealPlansPage = () => {
   return (
     <>
       <div className="min-h-screen bg-gradient-primary safe-area-inset">
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center">
+      <nav className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
+        <div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
+          <div className="flex min-w-0 items-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate('/')}
-              className="mr-2 touch-target h-10 w-10"
+              className="mr-1 h-9 w-9 shrink-0 rounded-full"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <NavLink to="/">
-              <div className="flex items-center gap-2">
-                <img src={frigyMascot} alt="Frigy" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
-                <h1 className="text-lg sm:text-xl font-bold neon-text hidden sm:block">Frigy</h1>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="rounded-xl bg-primary/10 p-0.5 shadow-[0_10px_28px_-14px_hsl(var(--primary)/0.45)]">
+                  <img src={frigyMascot} alt="Frigy" className="h-6 w-6 rounded-lg sm:h-7 sm:w-7" />
+                </span>
+                <h1 className="bg-gradient-to-r from-primary via-emerald-400 to-primary/60 bg-clip-text text-[18px] font-black tracking-[-0.04em] text-transparent drop-shadow-[0_8px_18px_hsl(var(--primary)/0.2)] sm:text-xl">
+                  Frigy
+                </h1>
               </div>
             </NavLink>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             <StreakBadge />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="flex items-center space-x-1 sm:space-x-2 hover:bg-primary/10 touch-target">
-                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-pulse" />
-                  <span className="text-xs sm:text-sm font-medium">Premium</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="end">
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start touch-target"
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    {t.manageSubscription}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    {t.cancelSubscription}
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
           </div>
         </div>
       </nav>
@@ -574,30 +499,42 @@ const MealPlansPage = () => {
 
           <TabsContent value="meals">
             <div className="relative">
-              {!isPremium && (
-                <FreeModePaywallOverlay
-                  title="Wochenplan freischalten"
-                  description="Lass dir automatisch deine perfekte Woche zusammenstellen"
-                />
-              )}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={!isPremium ? "pointer-events-none" : ""}
               >
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <ExportMealPlan mealPlan={mealPlan} pdfOnly />
-                    <div className="flex flex-1 flex-wrap items-center justify-start min-[400px]:justify-end gap-2 min-w-0">
+                    <div className="ml-auto grid min-w-0 shrink grid-cols-2 gap-1.5 min-[390px]:gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-9 min-[360px]:h-10 sm:h-9 touch-target gap-2 shrink-0 border-primary/30 px-2.5 min-[360px]:px-3"
+                        className="h-9 min-w-0 rounded-2xl border-primary/30 px-2 text-[10px] min-[360px]:h-10 min-[390px]:px-2.5 min-[390px]:text-xs sm:h-9 sm:text-sm"
                         onClick={() => navigate("/scan")}
                       >
-                        <Refrigerator className="h-4 w-4 text-primary shrink-0" />
-                        <span className="text-[11px] min-[360px]:text-xs sm:text-sm whitespace-nowrap">Wochenplan erstellen</span>
+                        <span className="truncate">
+                          Zutaten erkennen
+                        </span>
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 min-w-0 rounded-2xl bg-primary px-2 text-[10px] text-primary-foreground min-[360px]:h-10 min-[390px]:px-2.5 min-[390px]:text-xs sm:h-9 sm:text-sm"
+                        onClick={generateMealPlan}
+                        disabled={isGenerating}
+                      >
+                        <span className="truncate">
+                          {isGenerating ? (
+                            "Erstellt..."
+                          ) : (
+                            <>
+                              <span className="min-[390px]:hidden">Erstellen</span>
+                              <span className="hidden min-[390px]:inline">Wochenplan erstellen</span>
+                            </>
+                          )}
+                        </span>
                       </Button>
                     </div>
                   </div>
@@ -617,7 +554,7 @@ const MealPlansPage = () => {
                           {day.meals.map((meal, mealIndex) => (
                             <div
                               key={mealIndex}
-                              onClick={() => !isFreeMode && openMealDetail(meal)}
+                              onClick={() => openMealDetail(meal)}
                               className="min-w-0 p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98] touch-manipulation"
                             >
                               <div className="flex items-center justify-between mb-1">
@@ -652,13 +589,7 @@ const MealPlansPage = () => {
 
           <TabsContent value="shopping">
             <div className="relative">
-              {!isPremium && (
-                <FreeModePaywallOverlay
-                  title="Einkaufsliste freischalten"
-                  description="Deine personalisierte Einkaufsliste für deine Mahlzeiten"
-                />
-              )}
-              <div className={!isPremium ? "pointer-events-none" : ""}>
+              <div>
                 {mealPlan.length === 0 && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
                     <p className="text-sm text-amber-700">

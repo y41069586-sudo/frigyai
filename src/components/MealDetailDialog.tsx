@@ -32,6 +32,23 @@ interface MealDetailDialogProps {
   onMealLogged?: () => void;
 }
 
+function getDetailedInstructions(meal: Meal): string[] {
+  if (Array.isArray(meal.instructions) && meal.instructions.length > 0) {
+    return meal.instructions.filter((step) => step.trim().length > 0);
+  }
+
+  const ingredientNames = meal.ingredients
+    .map((ingredient) => ingredient.name)
+    .filter(Boolean)
+    .join(", ");
+
+  return [
+    ingredientNames ? `Bereite die Zutaten vor: ${ingredientNames}.` : "Bereite alle Zutaten passend vor.",
+    "Koche oder brate die Zutaten nach Bedarf, bis alles gar ist.",
+    "Richte die Mahlzeit an und schmecke sie nach Wunsch ab.",
+  ];
+}
+
 export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: MealDetailDialogProps) => {
   const { t } = useLanguage();
   const { addEntry } = useFoodEntries();
@@ -84,92 +101,81 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
   if (!meal) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg rounded-3xl">
           <p className="text-center text-muted-foreground">Keine Mahlzeit ausgewählt</p>
         </DialogContent>
       </Dialog>
     );
   }
 
+  const detailedInstructions = getDetailedInstructions(meal);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-card border-primary/20">
-        <DialogHeader>
-          <Badge className="w-fit mb-2" variant="secondary">{meal.type}</Badge>
-          <DialogTitle className="text-2xl neon-text">{meal.name}</DialogTitle>
+      <DialogContent className="left-0 top-auto bottom-0 max-h-[92dvh] w-full max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-t-[2rem] border-primary/20 bg-[#F7FAF7] p-0 shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] data-[state=open]:slide-in-from-bottom-full data-[state=closed]:slide-out-to-bottom-full data-[state=open]:slide-in-from-left-0 data-[state=closed]:slide-out-to-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-top-0 sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:max-h-[88vh] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-3xl">
+        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-300/80 sm:hidden" />
+        <div className="max-h-[92dvh] overflow-y-auto px-5 pb-28 pt-4 sm:max-h-[88vh] sm:px-6 sm:pb-24">
+        <DialogHeader className="text-left">
+          <Badge className="w-fit rounded-full bg-primary/10 text-primary border-primary/20 mb-2" variant="secondary">{meal.type}</Badge>
+          <DialogTitle className="pr-8 text-[24px] font-black leading-tight tracking-[-0.04em] text-foreground">{meal.name}</DialogTitle>
         </DialogHeader>
 
         {/* Macros */}
-        <div className="grid grid-cols-4 gap-3 my-4">
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Flame className="h-5 w-5 mx-auto text-orange-500 mb-1" />
-            <p className="text-lg font-bold">{meal.calories}</p>
-            <p className="text-xs text-muted-foreground">kcal</p>
-          </div>
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Beef className="h-5 w-5 mx-auto text-red-500 mb-1" />
-            <p className="text-lg font-bold">{meal.protein}g</p>
-            <p className="text-xs text-muted-foreground">Protein</p>
-          </div>
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Wheat className="h-5 w-5 mx-auto text-amber-500 mb-1" />
-            <p className="text-lg font-bold">{meal.carbs}g</p>
-            <p className="text-xs text-muted-foreground">Carbs</p>
-          </div>
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Droplets className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-            <p className="text-lg font-bold">{meal.fat}g</p>
-            <p className="text-xs text-muted-foreground">Fett</p>
-          </div>
+        <div className="my-4 grid grid-cols-4 gap-2">
+          <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(meal.calories)} label="kcal" />
+          <MacroCard icon={Beef} iconClass="text-rose-500 bg-rose-50" value={Math.round(meal.protein)} label="Protein" unit="g" />
+          <MacroCard icon={Wheat} iconClass="text-amber-500 bg-amber-50" value={Math.round(meal.carbs)} label="Carbs" unit="g" />
+          <MacroCard icon={Droplets} iconClass="text-sky-500 bg-sky-50" value={Math.round(meal.fat)} label="Fett" unit="g" />
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2 text-sm text-muted-foreground">
           <Clock className="h-4 w-4" />
           <span>{meal.prepTime} Minuten Zubereitung</span>
         </div>
 
         {/* Ingredients */}
-        <div className="mb-4">
-          <h4 className="font-semibold mb-2 text-primary">Zutaten</h4>
+        <section className="mb-5 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
+          <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">Zutaten</h4>
           <ul className="space-y-2">
             {meal.ingredients.map((ing, idx) => (
-              <li key={idx} className="flex justify-between items-center p-2 bg-background/30 rounded-lg">
-                <span>{ing.amount} {ing.name}</span>
-                <span className="text-muted-foreground">€{ing.price.toFixed(2)}</span>
+              <li key={idx} className="flex items-center justify-between gap-3 rounded-2xl bg-muted/35 px-3 py-2.5">
+                <span className="min-w-0 text-sm font-medium text-foreground">
+                  <span className="text-muted-foreground">{ing.amount}</span> {ing.name}
+                </span>
+                <span className="shrink-0 text-xs font-semibold text-muted-foreground">€{(Number(ing.price) || 0).toFixed(2)}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-2 pt-2 border-t border-primary/20 flex justify-between font-semibold">
+          <div className="mt-3 flex justify-between border-t border-slate-200/80 pt-3 text-sm font-semibold">
             <span>Gesamt</span>
             <span className="text-primary">
-              €{meal.ingredients.reduce((sum, ing) => sum + ing.price, 0).toFixed(2)}
+              €{meal.ingredients.reduce((sum, ing) => sum + (Number(ing.price) || 0), 0).toFixed(2)}
             </span>
           </div>
-        </div>
+        </section>
 
         {/* Instructions */}
-        {meal.instructions && meal.instructions.length > 0 && (
-          <div className="mb-6">
-            <h4 className="font-semibold mb-2 text-primary">Zubereitung</h4>
-            <ol className="space-y-3">
-              {meal.instructions.map((step, idx) => (
-                <li key={idx} className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-medium">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+        <section className="mb-6 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
+          <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">Zubereitung</h4>
+          <ol className="space-y-3">
+            {detailedInstructions.map((step, idx) => (
+              <li key={idx} className="flex gap-3 rounded-2xl bg-muted/30 p-3">
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+                  {idx + 1}
+                </span>
+                <span className="text-sm leading-relaxed text-foreground">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+        </div>
 
         {/* Log as eaten button */}
-        <div className="flex gap-2 mt-6 pt-4 border-t border-primary/20">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex gap-2 border-t border-slate-200/80 bg-white/90 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-3 backdrop-blur-xl">
           <Button
             onClick={handleLogMeal}
             disabled={isLogging || isLogged}
-            className="flex-1 bg-primary hover:bg-primary/90"
+            className="h-12 min-w-0 flex-1 rounded-2xl bg-primary px-3 text-xs font-bold hover:bg-primary/90 min-[380px]:text-sm"
           >
             {isLogged ? (
               <>
@@ -191,7 +197,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
           <Button
             onClick={() => onOpenChange(false)}
             variant="outline"
-            className="flex-1"
+            className="h-12 w-24 shrink-0 rounded-2xl px-2 text-xs font-bold min-[380px]:w-28 min-[380px]:text-sm"
           >
             Schließen
           </Button>
@@ -200,3 +206,29 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     </Dialog>
   );
 };
+
+function MacroCard({
+  icon: Icon,
+  iconClass,
+  value,
+  label,
+  unit = "",
+}: {
+  icon: typeof Flame;
+  iconClass: string;
+  value: number;
+  label: string;
+  unit?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/75 bg-white/75 px-1.5 py-2.5 text-center">
+      <span className={`mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full ${iconClass}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="text-[14px] font-black leading-none tabular-nums text-foreground">
+        {value}{unit}
+      </p>
+      <p className="mt-1 text-[9px] font-semibold leading-none text-muted-foreground">{label}</p>
+    </div>
+  );
+}

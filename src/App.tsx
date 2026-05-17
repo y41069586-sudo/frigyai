@@ -1,43 +1,44 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 // Force rebuild to clear Vite cache
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { MealPlanProvider } from "@/contexts/MealPlanContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
-import { FreeTrialReminder } from "@/components/FreeTrialReminder";
-import { ReEngagementBanner } from "@/components/ReEngagementBanner";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
+import { lazyWithReload } from "@/lib/lazyWithReload";
 
 // Lazy load all pages for better performance
-const Index = lazy(() => import("./pages/Index"));
-const ScanPage = lazy(() => import("./pages/ScanPage"));
-const ManualPage = lazy(() => import("./pages/ManualPage"));
-const RecipesPage = lazy(() => import("./pages/RecipesPage"));
-const RecipeDetailPage = lazy(() => import("./pages/RecipeDetailPage"));
-const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const AuthPage = lazy(() => import("./pages/AuthPage"));
-const PremiumPage = lazy(() => import("./pages/PremiumPage"));
-const MealPlansPage = lazy(() => import("./pages/MealPlansPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
-const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
-const EmailConfirmationPage = lazy(() => import("./pages/EmailConfirmationPage"));
-const PlanSelectionPage = lazy(() => import("./pages/PlanSelectionPage"));
-const PremiumPricingPage = lazy(() => import("./pages/PremiumPricingPage"));
-const LandingPage = lazy(() => import("./pages/LandingPage"));
-const CommunityPage = lazy(() => import("./pages/CommunityPage"));
-const AdminPage = lazy(() => import("./pages/AdminPage"));
-const LegalPage = lazy(() => import("./pages/LegalPage"));
-const FoodEntryDetailPage = lazy(() => import("./pages/FoodEntryDetailPage"));
-const OnboardingPreviewPage = lazy(() => import("./pages/OnboardingPreviewPage"));
+const Index = lazyWithReload(() => import("./pages/Index"));
+const ScanPage = lazyWithReload(() => import("./pages/ScanPage"));
+const ManualPage = lazyWithReload(() => import("./pages/ManualPage"));
+const RecipesPage = lazyWithReload(() => import("./pages/RecipesPage"));
+const RecipeDetailPage = lazyWithReload(() => import("./pages/RecipeDetailPage"));
+const FavoritesPage = lazyWithReload(() => import("./pages/FavoritesPage"));
+const NotFound = lazyWithReload(() => import("./pages/NotFound"));
+const AuthPage = lazyWithReload(() => import("./pages/AuthPage"));
+const PremiumPage = lazyWithReload(() => import("./pages/PremiumPage"));
+const MealPlansPage = lazyWithReload(() => import("./pages/MealPlansPage"));
+const ProfilePage = lazyWithReload(() => import("./pages/ProfilePage"));
+const ResetPasswordPage = lazyWithReload(() => import("./pages/ResetPasswordPage"));
+const UpdatePasswordPage = lazyWithReload(() => import("./pages/UpdatePasswordPage"));
+const EmailConfirmationPage = lazyWithReload(() => import("./pages/EmailConfirmationPage"));
+const PlanSelectionPage = lazyWithReload(() => import("./pages/PlanSelectionPage"));
+const PremiumPricingPage = lazyWithReload(() => import("./pages/PremiumPricingPage"));
+const LandingPage = lazyWithReload(() => import("./pages/LandingPage"));
+const CommunityPage = lazyWithReload(() => import("./pages/CommunityPage"));
+const AdminPage = lazyWithReload(() => import("./pages/AdminPage"));
+const LegalPage = lazyWithReload(() => import("./pages/LegalPage"));
+const FoodEntryDetailPage = lazyWithReload(() => import("./pages/FoodEntryDetailPage"));
+const OnboardingPreviewPage = lazyWithReload(() => import("./pages/OnboardingPreviewPage"));
+const BadgesPage = lazyWithReload(() => import("./pages/BadgesPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,38 +53,49 @@ const queryClient = new QueryClient({
 
 
 const AppContent = () => {
+  const location = useLocation();
+
   return (
     <>
       <OfflineIndicator />
-      <FreeTrialReminder />
-      <ReEngagementBanner />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/community" element={<CommunityPage />} />
-          <Route path="/scan" element={<ScanPage />} />
-          <Route path="/manual" element={<ManualPage />} />
-          <Route path="/recipes" element={<RecipesPage />} />
-          <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/premium" element={<PremiumPage />} />
-          <Route path="/meal-plans" element={<MealPlansPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/update-password" element={<UpdatePasswordPage />} />
-          <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
-          <Route path="/plan-selection" element={<PlanSelectionPage />} />
-          <Route path="/premium-pricing" element={<PremiumPricingPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/legal/:type" element={<LegalPage />} />
-          <Route path="/food-entry/:id" element={<FoodEntryDetailPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, x: 34 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -22 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Suspense fallback={<PageLoader />}>
+            <Routes location={location}>
+              <Route path="/" element={<Index />} />
+              <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/scan" element={<ScanPage />} />
+              <Route path="/manual" element={<ManualPage />} />
+              <Route path="/recipes" element={<RecipesPage />} />
+              <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/meal-plans" element={<MealPlansPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/badges" element={<BadgesPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
+              <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
+              <Route path="/plan-selection" element={<PlanSelectionPage />} />
+              <Route path="/premium-pricing" element={<PremiumPricingPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/legal/:type" element={<LegalPage />} />
+              <Route path="/food-entry/:id" element={<FoodEntryDetailPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </motion.div>
+      </AnimatePresence>
     </>
   );
 };

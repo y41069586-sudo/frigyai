@@ -23,6 +23,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 5180,
     strictPort: true,
+    headers: {
+      "Cache-Control": "no-store",
+    },
   },
   plugins: [
     react(),

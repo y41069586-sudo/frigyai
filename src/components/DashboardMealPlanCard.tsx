@@ -48,7 +48,7 @@ const getNextMeal = (meals: Meal[]): Meal | null => {
 
 export const DashboardMealPlanCard = () => {
   const navigate = useNavigate();
-  const { isFreeMode, isPremium } = useAuth();
+  const { isPremium } = useAuth();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [todayPlan, setTodayPlan] = useState<DayPlan | null>(null);
   const [isVisible, setIsVisible] = useState(false);

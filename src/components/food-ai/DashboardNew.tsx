@@ -22,7 +22,6 @@ type DashboardNewProps = {
   targetCalories: number;
   proteinEaten: number;
   targetProtein: number;
-  scansRemaining?: number | null;
 };
 
 const goals: { id: UserGoal; label: string }[] = [
@@ -41,7 +40,6 @@ export function DashboardNew({
   targetCalories,
   proteinEaten,
   targetProtein,
-  scansRemaining,
 }: DashboardNewProps) {
   const navigate = useNavigate();
 
@@ -86,11 +84,6 @@ export function DashboardNew({
               Wochenplan
             </Button>
           </div>
-          {scansRemaining !== null && scansRemaining !== undefined && (
-            <p className="text-xs text-muted-foreground">
-              Noch {scansRemaining} Scan(s) diese Woche (Free)
-            </p>
-          )}
         </div>
       </motion.section>
 

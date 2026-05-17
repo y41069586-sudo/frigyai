@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Calendar, Sparkles } from "lucide-react";
 import { useEffect } from "react";
-import confetti from "canvas-confetti";
+import { confettiBurst } from "@/lib/mobileEffects";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface MealPlanSuccessOverlayProps {
@@ -26,32 +26,8 @@ const MealPlanSuccessOverlay = ({
       // Play success sound
       playGoalReached();
 
-      // Trigger confetti
-      const duration = 2000;
-      const end = Date.now() + duration;
-
       const colors = ["#22c55e", "#4ade80", "#86efac", "#bbf7d0"];
-
-      (function frame() {
-        confetti({
-          particleCount: 3,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.7 },
-          colors: colors,
-        });
-        confetti({
-          particleCount: 3,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.7 },
-          colors: colors,
-        });
-
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      })();
+      confettiBurst({ particleCount: 80, spread: 70, origin: { y: 0.65 }, colors });
 
       // Auto-close after animation
       const timer = setTimeout(() => {

@@ -5,7 +5,6 @@ import { Check, Sparkles, Crown, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
 
 
 const PremiumPricingPage = () => {
@@ -20,13 +19,9 @@ const PremiumPricingPage = () => {
   // Note: We allow unauthenticated users to view the pricing page
   // They will be redirected to auth when they try to checkout
 
-  // If user already has premium, redirect to home or show message
+  // If user already has premium, redirect to home silently.
   useEffect(() => {
     if (subscriptionStatus?.subscribed && !isPreview) {
-      toast({
-        title: "Du bist bereits Premium!",
-        description: "Du hast bereits ein aktives Abonnement.",
-      });
       navigate('/', { replace: true });
     }
   }, [subscriptionStatus, navigate, isPreview]);

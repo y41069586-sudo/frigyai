@@ -15,11 +15,11 @@ export type WidgetCardProps = {
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
   glass:
-    "border border-white/50 bg-white/55 shadow-[0_12px_40px_-12px_rgba(15,40,30,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]",
+    "border border-slate-200/85 bg-white/62 shadow-[0_10px_28px_-18px_rgba(15,40,30,0.18)] backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.06]",
   soft:
-    "border border-border/40 bg-card/80 shadow-[0_8px_32px_-10px_rgba(0,0,0,0.08)] backdrop-blur-md",
+    "border border-slate-200/80 bg-card/82 shadow-[0_8px_24px_-18px_rgba(0,0,0,0.16)] backdrop-blur-md",
   gradient:
-    "border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-background/90 to-muted/30 shadow-[0_16px_48px_-16px_hsl(var(--primary)/0.25)] backdrop-blur-sm",
+    "border border-slate-200/80 bg-gradient-to-br from-primary/[0.055] via-background/[0.92] to-muted/[0.24] shadow-[0_10px_32px_-22px_hsl(var(--primary)/0.35)] backdrop-blur-sm",
 };
 
 export function WidgetCard({
@@ -32,10 +32,9 @@ export function WidgetCard({
 }: WidgetCardProps) {
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.32, delay, ease: [0.22, 1, 0.36, 1] }}
       whileHover={
         interactive
           ? { y: -3, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
@@ -43,8 +42,9 @@ export function WidgetCard({
       }
       whileTap={onClick ? { scale: 0.992 } : undefined}
       onClick={onClick}
+      style={{ transform: "translateZ(0)" }}
       className={cn(
-        "relative w-full min-w-0 overflow-hidden rounded-xl rounded-tl-lg rounded-br-2xl p-2.5 min-[360px]:p-3 sm:rounded-2xl sm:rounded-tl-xl sm:rounded-br-[1.75rem] sm:p-4 transition-shadow duration-300 touch-manipulation",
+        "relative w-full min-w-0 overflow-hidden rounded-2xl p-2.5 min-[360px]:p-3 sm:rounded-[1.35rem] sm:p-4 transition-shadow duration-300 touch-manipulation will-change-transform",
         interactive && onClick && "cursor-pointer hover:shadow-[0_20px_50px_-18px_rgba(0,0,0,0.12)]",
         variantStyles[variant],
         className,

@@ -67,6 +67,7 @@ export function isMealSafeForUser(
 export function buildGermanConstraintPrompt(
   allergies: string[],
   dietaryPreferences: string[],
+  allergiesOther = "",
 ): string {
   const lines: string[] = [];
   const a = (allergies || []).filter((x) => x && x !== "none");
@@ -83,6 +84,14 @@ export function buildGermanConstraintPrompt(
     lines.push(
       "STRIKTE ALLERGEN-REGELN (absolut einhalten):",
       ...a.map((id) => `- ${map[id] || id}: KEINE Zutaten und keine Gerichte, die dies enthalten könnten.`),
+    );
+  }
+
+  const customAllergy = allergiesOther.trim();
+  if (customAllergy) {
+    lines.push(
+      "Zusätzliche Nutzer-Unverträglichkeit / Allergie (absolut einhalten):",
+      `- ${customAllergy}: KEINE Zutaten und keine Gerichte, die dies enthalten oder wahrscheinlich enthalten könnten.`,
     );
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
           .from('weight_entries')
           .select('*')
           .eq('user_id', user.id)
-          .order('recorded_at', { ascending: true });
+          .order('recorded_at', { ascending: false })
+          .limit(30);
 
         if (error) {
           console.error('Error loading weight entries:', error);
@@ -61,19 +62,20 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         }
 
         if (data && data.length > 0) {
-          const weights = data.map((entry: WeightEntry) => entry.weight);
+          const orderedData = [...data].reverse() as WeightEntry[];
+          const weights = orderedData.map((entry) => entry.weight);
           setWeightHistory(weights);
 
           // Set initial weight (oldest entry)
           setInitialWeight(weights[0]);
 
           // Set current weight (newest entry)
-          const latest = data[data.length - 1] as WeightEntry;
+          const latest = orderedData[orderedData.length - 1];
           setCurrentWeight(latest.weight);
           setLastUpdated(latest.recorded_at);
 
-          if (data.length > 1) {
-            const previous = data[data.length - 2] as WeightEntry;
+          if (orderedData.length > 1) {
+            const previous = orderedData[orderedData.length - 2];
             setPreviousWeight(previous.weight);
           }
         }
@@ -146,6 +148,19 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
   const isBelowInitial = currentWeight && initialWeight ? currentWeight < initialWeight : false;
   const isAboveInitial = currentWeight && initialWeight ? currentWeight >= initialWeight : false;
   const progressToGoal = currentWeight && goal ? Math.max(0, 100 - (Math.abs(goal - currentWeight) / Math.abs(goal)) * 100) : 0;
+  const chartData = useMemo(
+    () =>
+      weightHistory.map((weight, index, arr) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (arr.length - 1 - index));
+
+        return {
+          date: d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+          weight,
+        };
+      }),
+    [weightHistory],
+  );
 
   const handleCardClick = () => {
     if (!isAdding && !embedded) {
@@ -172,7 +187,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       onClick={embedded ? undefined : handleCardClick}
       className={`relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`p-3 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${!isPremium ? 'cursor-pointer' : 'cursor-pointer'} active:scale-[0.99] transition-transform ${showPremiumOverlay ? 'blur-sm' : ''}`}>
+      <Card className={`p-3 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'} ${showPremiumOverlay ? 'blur-sm' : ''}`}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
@@ -225,21 +240,14 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, type: 'spring' }}
             >
-              <motion.div
-                className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`}
-                animate={isBelowInitial ? { y: [0, -6, 0] } : { y: 0 }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <motion.div
-                  animate={isBelowInitial ? { y: -4 } : { y: 0 }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
+              <div className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`}>
+                <div>
                   <ArrowUp className={`h-4 w-4 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`} />
-                </motion.div>
+                </div>
                 <span className="font-semibold text-sm">
                   {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg
                 </span>
-              </motion.div>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {lastUpdated ? new Date(lastUpdated).toLocaleDateString('de-DE') : ''}
               </p>
@@ -257,18 +265,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
 
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={weightHistory.map((weight, index, arr) => {
-                    let date = '';
-                    if (index < arr.length) {
-                      const d = new Date();
-                      d.setDate(d.getDate() - (arr.length - 1 - index));
-                      date = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-                    }
-                    return {
-                      date,
-                      weight,
-                    };
-                  })}
+                  data={chartData}
                   margin={{ top: 10, right: 10, left: -15, bottom: 20 }}
                 >
                   <defs>
@@ -317,7 +314,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
-                initial={{ width: 0 }}
+                initial={embedded ? false : { width: 0 }}
                 animate={{ width: `${Math.min(Math.abs(progressToGoal), 100)}%` }}
                 transition={{ duration: 0.8 }}
               />

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, Camera, ChevronLeft, Crown, Plus, Search, X } from "lucide-react";
+import { Barcode, Camera, ChevronLeft, Crown, Plus, Search, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brandColors";
 import {
@@ -18,6 +18,9 @@ export type TrackerRecipeExample = {
   protein: number;
   carbs: number;
   fat: number;
+  ingredients?: string[];
+  instructions?: string[];
+  prepTime?: number;
 };
 
 export type TrackerLoggedMeal = {
@@ -25,6 +28,7 @@ export type TrackerLoggedMeal = {
   name: string;
   calories: number;
   time?: string;
+  mealType?: MealFocusKey;
 };
 
 type InputMode = "search" | "camera" | "barcode";
@@ -37,6 +41,7 @@ type Props = {
   onCamera: () => void;
   onBarcode: () => void;
   onAddRecipe: (recipe: TrackerRecipeExample) => void;
+  onDeleteMeal?: (id: string) => void;
   loggedMeals?: TrackerLoggedMeal[];
   isAnalyzing?: boolean;
   isPremium?: boolean;
@@ -86,6 +91,28 @@ function RoundPlusButton({
   );
 }
 
+function DetailMacro({
+  label,
+  value,
+  unit = "",
+  tint,
+}: {
+  label: string;
+  value: number;
+  unit?: string;
+  tint: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-zinc-50 px-1.5 py-2 text-center">
+      <p className="text-[15px] font-black leading-none tabular-nums" style={{ color: tint }}>
+        {Math.round(value)}
+        {unit}
+      </p>
+      <p className="mt-1 text-[9px] font-semibold text-zinc-500">{label}</p>
+    </div>
+  );
+}
+
 const INPUT_MODES: {
   id: InputMode;
   label: string;
@@ -99,6 +126,155 @@ const INPUT_MODES: {
 ];
 
 let cachedExampleRecipes: TrackerRecipeExample[] | null = null;
+
+const BUILTIN_EXAMPLE_RECIPES: TrackerRecipeExample[] = [
+  {
+    id: "example-chicken-rice",
+    title: "Hähnchen-Reis-Bowl",
+    calories: 620,
+    protein: 48,
+    carbs: 72,
+    fat: 14,
+    prepTime: 25,
+    ingredients: ["150g Hähnchenbrust", "90g Reis", "150g Brokkoli", "1 TL Olivenöl", "Gewürze"],
+    instructions: ["Reis nach Packungsangabe kochen.", "Hähnchen würzen und in wenig Öl braten.", "Brokkoli dünsten.", "Alles in einer Bowl anrichten."],
+  },
+  {
+    id: "example-protein-oats",
+    title: "Protein-Haferbrei",
+    calories: 510,
+    protein: 36,
+    carbs: 62,
+    fat: 12,
+    prepTime: 10,
+    ingredients: ["70g Haferflocken", "250ml Milch oder Pflanzendrink", "30g Proteinpulver", "1 Banane", "Zimt"],
+    instructions: ["Haferflocken mit Milch aufkochen.", "Kurz abkühlen lassen und Proteinpulver einrühren.", "Banane schneiden und mit Zimt servieren."],
+  },
+  {
+    id: "example-salmon-potatoes",
+    title: "Lachs mit Kartoffeln",
+    calories: 680,
+    protein: 42,
+    carbs: 55,
+    fat: 30,
+    prepTime: 30,
+    ingredients: ["160g Lachsfilet", "250g Kartoffeln", "150g Gemüse", "1 TL Öl", "Zitrone"],
+    instructions: ["Kartoffeln kochen.", "Lachs würzen und in der Pfanne braten.", "Gemüse dünsten und alles mit Zitrone servieren."],
+  },
+  {
+    id: "example-quark-bowl",
+    title: "Quark-Beeren-Bowl",
+    calories: 390,
+    protein: 38,
+    carbs: 42,
+    fat: 6,
+    prepTime: 5,
+    ingredients: ["250g Magerquark", "150g Beeren", "30g Haferflocken", "1 TL Honig"],
+    instructions: ["Quark cremig rühren.", "Beeren und Haferflocken darübergeben.", "Mit Honig abrunden."],
+  },
+  {
+    id: "example-turkey-wrap",
+    title: "Puten-Wrap",
+    calories: 560,
+    protein: 44,
+    carbs: 58,
+    fat: 16,
+    prepTime: 15,
+    ingredients: ["1 großer Wrap", "140g Putenbrust", "Salat", "Tomate", "40g Joghurt-Dip"],
+    instructions: ["Putenbrust anbraten.", "Wrap kurz erwärmen.", "Mit Gemüse und Dip füllen und einrollen."],
+  },
+  {
+    id: "example-lentil-curry",
+    title: "Linsen-Curry",
+    calories: 590,
+    protein: 28,
+    carbs: 78,
+    fat: 18,
+    prepTime: 25,
+    ingredients: ["100g rote Linsen", "200ml Kokosmilch light", "Tomaten", "Spinat", "Currypulver"],
+    instructions: ["Linsen mit Tomaten und Gewürzen köcheln.", "Kokosmilch zugeben.", "Spinat unterheben und abschmecken."],
+  },
+  {
+    id: "example-egg-bread",
+    title: "Vollkornbrot mit Ei",
+    calories: 450,
+    protein: 24,
+    carbs: 42,
+    fat: 20,
+    prepTime: 10,
+    ingredients: ["2 Scheiben Vollkornbrot", "2 Eier", "Tomaten", "Schnittlauch"],
+    instructions: ["Eier kochen oder braten.", "Brot belegen.", "Mit Tomaten und Schnittlauch servieren."],
+  },
+  {
+    id: "example-pasta-tuna",
+    title: "Thunfisch-Pasta",
+    calories: 650,
+    protein: 45,
+    carbs: 82,
+    fat: 14,
+    prepTime: 20,
+    ingredients: ["100g Pasta", "1 Dose Thunfisch", "Tomatensauce", "Mais", "Kräuter"],
+    instructions: ["Pasta kochen.", "Sauce mit Thunfisch und Mais erwärmen.", "Pasta unterheben und würzen."],
+  },
+  {
+    id: "example-tofu-rice",
+    title: "Tofu-Gemüse-Reis",
+    calories: 610,
+    protein: 32,
+    carbs: 76,
+    fat: 20,
+    prepTime: 25,
+    ingredients: ["180g Tofu", "90g Reis", "Gemüsemix", "Sojasauce", "1 TL Öl"],
+    instructions: ["Reis kochen.", "Tofu würfeln und knusprig braten.", "Gemüse zugeben und mit Sojasauce abschmecken."],
+  },
+  {
+    id: "example-greek-salad",
+    title: "Griechischer Salat mit Brot",
+    calories: 520,
+    protein: 22,
+    carbs: 48,
+    fat: 26,
+    prepTime: 12,
+    ingredients: ["Feta", "Gurke", "Tomaten", "Oliven", "2 Scheiben Brot"],
+    instructions: ["Gemüse schneiden.", "Feta und Oliven zugeben.", "Mit Brot servieren."],
+  },
+  {
+    id: "example-beef-potato",
+    title: "Rinderhack-Kartoffel-Pfanne",
+    calories: 720,
+    protein: 46,
+    carbs: 60,
+    fat: 32,
+    prepTime: 30,
+    ingredients: ["160g Rinderhack", "300g Kartoffeln", "Paprika", "Zwiebel", "Gewürze"],
+    instructions: ["Kartoffeln würfeln und vorgaren.", "Hackfleisch anbraten.", "Gemüse und Kartoffeln zugeben und fertig braten."],
+  },
+  {
+    id: "example-smoothie",
+    title: "Protein-Smoothie",
+    calories: 360,
+    protein: 32,
+    carbs: 45,
+    fat: 6,
+    prepTime: 5,
+    ingredients: ["250ml Milch", "30g Proteinpulver", "1 Banane", "100g Beeren"],
+    instructions: ["Alle Zutaten in den Mixer geben.", "Cremig mixen.", "Direkt trinken."],
+  },
+];
+
+function mergeUniqueRecipes(...lists: TrackerRecipeExample[][]): TrackerRecipeExample[] {
+  const seen = new Set<string>();
+  const out: TrackerRecipeExample[] = [];
+  for (const list of lists) {
+    for (const recipe of list) {
+      const key = recipe.title.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(recipe);
+    }
+  }
+  return out;
+}
 
 function mealPlanFallbackRecipes(): TrackerRecipeExample[] {
   try {
@@ -126,8 +302,11 @@ function mealPlanFallbackRecipes(): TrackerRecipeExample[] {
           protein: meal.protein ?? 0,
           carbs: meal.carbs ?? 0,
           fat: meal.fat ?? 0,
+          ingredients: (meal as any).ingredients?.map((i: any) => `${i.amount ?? ""} ${i.name ?? ""}`.trim()).filter(Boolean),
+          instructions: (meal as any).instructions,
+          prepTime: (meal as any).prepTime,
         });
-        if (out.length >= 8) return out;
+        if (out.length >= 12) return out;
       }
     }
     return out;
@@ -143,6 +322,7 @@ export function TrackerAddMealPanel({
   onCamera,
   onBarcode,
   onAddRecipe,
+  onDeleteMeal,
   loggedMeals = [],
   isAnalyzing = false,
   isPremium = true,
@@ -153,6 +333,7 @@ export function TrackerAddMealPanel({
   const [recipes, setRecipes] = useState<TrackerRecipeExample[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(() => cachedExampleRecipes === null);
   const [loggedListOpen, setLoggedListOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<TrackerRecipeExample | null>(null);
   const mealCount = loggedMeals.length;
   const inputRef = useRef<HTMLInputElement>(null);
   const recipesFetchStarted = useRef(false);
@@ -178,9 +359,9 @@ export function TrackerAddMealPanel({
       try {
         const { data, error } = await supabase
           .from("community_recipes")
-          .select("id, title, calories, protein, carbs, fat")
+          .select("id, title, calories, protein, carbs, fat, ingredients, instructions, prep_time")
           .order("likes_count", { ascending: false })
-          .limit(12);
+          .limit(24);
 
         if (error) throw error;
 
@@ -191,15 +372,18 @@ export function TrackerAddMealPanel({
           protein: Math.round(r.protein ?? 0),
           carbs: Math.round(r.carbs ?? 0),
           fat: Math.round(r.fat ?? 0),
+          ingredients: Array.isArray((r as any).ingredients) ? (r as any).ingredients : undefined,
+          instructions: Array.isArray((r as any).instructions) ? (r as any).instructions : undefined,
+          prepTime: Math.round((r as any).prep_time ?? 0) || undefined,
         }));
 
-        const list = mapped.length > 0 ? mapped : mealPlanFallbackRecipes();
+        const list = mergeUniqueRecipes(mapped, mealPlanFallbackRecipes(), BUILTIN_EXAMPLE_RECIPES);
         if (!cancelled) {
           cachedExampleRecipes = list;
           setRecipes(list);
         }
       } catch {
-        const list = mealPlanFallbackRecipes();
+        const list = mergeUniqueRecipes(mealPlanFallbackRecipes(), BUILTIN_EXAMPLE_RECIPES);
         if (!cancelled) {
           cachedExampleRecipes = list;
           setRecipes(list);
@@ -249,17 +433,17 @@ export function TrackerAddMealPanel({
 
   return (
     <motion.div
-      initial={false}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", stiffness: 260, damping: 30, mass: 1.05 }}
       className="fixed inset-0 z-[60] flex flex-col"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       <div
         className="flex shrink-0 items-center px-3 pb-2"
         style={{
-          paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.25rem)",
           minHeight: showMealTitle ? undefined : "3.25rem",
         }}
       >
@@ -298,7 +482,7 @@ export function TrackerAddMealPanel({
       </div>
 
       <div className="relative flex min-h-0 flex-1 flex-col">
-        <div className="shrink-0 px-3">
+        <div className="shrink-0 px-3 pt-1">
           <div className="grid grid-cols-3 gap-2">
             {INPUT_MODES.map((item) => {
               const Icon = item.icon;
@@ -395,8 +579,10 @@ export function TrackerAddMealPanel({
             <ul className="space-y-2">
               {recipes.map((recipe) => (
                 <li key={recipe.id}>
-                  <div
-                    className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3"
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecipe(recipe)}
+                    className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left transition-transform active:scale-[0.99]"
                     style={{ boxShadow: GREEN_SHADOW }}
                   >
                     <div className="min-w-0 flex-1">
@@ -409,11 +595,11 @@ export function TrackerAddMealPanel({
                       {recipe.calories} kcal
                     </span>
                     <RoundPlusButton
-                      onClick={() => onAddRecipe(recipe)}
+                      onClick={() => setSelectedRecipe(recipe)}
                       disabled={isAnalyzing}
-                      label={`${recipe.title} hinzufügen`}
+                      label={`${recipe.title} Details anzeigen`}
                     />
-                  </div>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -421,6 +607,103 @@ export function TrackerAddMealPanel({
         </div>
 
         <AnimatePresence>
+          {selectedRecipe && (
+            <>
+              <motion.button
+                type="button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-20 bg-black/25"
+                aria-label="Details schließen"
+                onClick={() => setSelectedRecipe(null)}
+              />
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 280 }}
+                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white"
+                style={{
+                  paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
+                  boxShadow: "0 -18px 48px -18px rgba(15,40,30,0.28)",
+                }}
+              >
+                <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-zinc-300" />
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: PALETTE.textMuted }}>
+                    Mahlzeit
+                  </p>
+                  <h2 className="mt-1 text-[24px] font-black leading-tight tracking-[-0.04em]">
+                    {selectedRecipe.title}
+                  </h2>
+
+                  <div className="mt-4 grid grid-cols-4 gap-2">
+                    <DetailMacro label="kcal" value={selectedRecipe.calories} tint="#F97316" />
+                    <DetailMacro label="Protein" value={selectedRecipe.protein} unit="g" tint="#E11D48" />
+                    <DetailMacro label="Carbs" value={selectedRecipe.carbs} unit="g" tint="#D97706" />
+                    <DetailMacro label="Fett" value={selectedRecipe.fat} unit="g" tint="#0284C7" />
+                  </div>
+
+                  {selectedRecipe.ingredients?.length ? (
+                    <section className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3">
+                      <h3 className="mb-2 text-[16px] font-bold">Zutaten</h3>
+                      <ul className="space-y-1.5">
+                        {selectedRecipe.ingredients.map((ingredient, idx) => (
+                          <li key={`${ingredient}-${idx}`} className="rounded-xl bg-white px-3 py-2 text-sm font-medium">
+                            {ingredient}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+
+                  <section className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3">
+                    <h3 className="mb-2 text-[16px] font-bold">Zubereitung</h3>
+                    <ol className="space-y-2">
+                      {(selectedRecipe.instructions?.length
+                        ? selectedRecipe.instructions
+                        : [
+                            "Zutaten vorbereiten und passend portionieren.",
+                            "Alles frisch zubereiten und nach Geschmack würzen.",
+                            "Direkt servieren und bei Bedarf im Tracker anpassen.",
+                          ]
+                      ).map((step, idx) => (
+                        <li key={`${step}-${idx}`} className="flex gap-2 rounded-xl bg-white px-3 py-2 text-sm">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#DCF5EA] text-xs font-bold" style={{ color: PALETTE.primaryDark }}>
+                            {idx + 1}
+                          </span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                </div>
+
+                <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-zinc-200 px-4 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecipe(null)}
+                    className="flex h-12 items-center justify-center rounded-2xl border border-zinc-200 text-sm font-bold"
+                  >
+                    Zurück
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isAnalyzing}
+                    onClick={() => {
+                      onAddRecipe(selectedRecipe);
+                      setSelectedRecipe(null);
+                    }}
+                    className="flex h-12 items-center justify-center rounded-2xl text-sm font-bold text-white disabled:opacity-50"
+                    style={{ backgroundColor: PALETTE.primary }}
+                  >
+                    Hinzufügen
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
           {loggedListOpen && (
             <>
               <motion.button
@@ -472,8 +755,9 @@ export function TrackerAddMealPanel({
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[15px] font-semibold">{meal.name}</p>
-                          {meal.time ? (
+                          {meal.time || meal.mealType ? (
                             <p className="text-xs" style={{ color: PALETTE.textMuted }}>
+                              {meal.mealType ? `${MEAL_FOCUS_TITLES_DE[meal.mealType]} · ` : ""}
                               {meal.time}
                             </p>
                           ) : null}
@@ -484,6 +768,17 @@ export function TrackerAddMealPanel({
                         >
                           {meal.calories} kcal
                         </span>
+                        {onDeleteMeal ? (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteMeal(meal.id)}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95"
+                            style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
+                            aria-label={`${meal.name} löschen`}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        ) : null}
                       </li>
                     ))
                   )}

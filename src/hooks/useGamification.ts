@@ -2,37 +2,17 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { confettiBurst } from '@/lib/mobileEffects';
 
 // Confetti function for badge celebrations
 const triggerConfetti = async () => {
   try {
-    const confetti = (await import('canvas-confetti')).default;
-    
-    // Main burst
-    confetti({
+    confettiBurst({
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
       colors: ['#FFFFFF', '#E8FFF5', '#66FFAA', '#33FF99', '#16D978'],
     });
-    
-    // Side bursts
-    setTimeout(() => {
-      confetti({
-        particleCount: 50,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: ['#FFD700', '#FFA500', '#FF6347'],
-      });
-      confetti({
-        particleCount: 50,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors: ['#FFD700', '#FFA500', '#FF6347'],
-      });
-    }, 150);
   } catch (error) {
     console.log('Confetti not available');
   }

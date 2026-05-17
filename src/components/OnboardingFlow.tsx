@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
 import frigySplashSrc from "@/assets/frigy-hero-nobg.png";
-import confetti from "canvas-confetti";
+import { confettiBurst } from "@/lib/mobileEffects";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
@@ -383,7 +383,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const [fridgeScan, setFridgeScan] = useState(false);
   const [macroAnimate, setMacroAnimate] = useState(false);
   const [chartAnimate, setChartAnimate] = useState(false);
-  const [selectedPlanOption, setSelectedPlanOption] = useState<'free' | 'premium' | null>(null);
+  const [selectedPlanOption, setSelectedPlanOption] = useState<'premium' | null>(null);
   const [introPhase, setIntroPhase] = useState<'rising' | 'greeting' | 'settling' | 'done'>('rising');
   
   // Save progress auth state
@@ -434,7 +434,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
     if (currentStep === "celebration") {
       timeouts.push(setTimeout(() => {
-        confetti({
+        confettiBurst({
           particleCount: 120,
           spread: 80,
           origin: { y: 0.4 },
@@ -444,7 +444,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
     if (currentStep === "done") {
       timeouts.push(setTimeout(() => {
-        confetti({
+        confettiBurst({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.6 },
@@ -3524,13 +3524,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         );
 
       case "premium-hint":
-        const freeFeatures = [
-          t.weeklyPlan1Gen,
-          t.waterTrackerLabel,
-          t.scansPerDay2,
-          t.basicRecipeSuggestions
-        ];
-        
         const premiumFeaturesOnboarding = [
           t.unlimitedScansLabel,
           t.unlimitedMealPlanGen,
@@ -3540,9 +3533,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         ];
         
         const handlePlanContinue = () => {
-          if (selectedPlanOption === 'free') {
-            goNext();
-          } else if (selectedPlanOption === 'premium') {
+          if (selectedPlanOption === 'premium') {
             // Save onboarding data and navigate using react-router
             saveOnboardingData(userData);
             // Use navigate from react-router to avoid SPA routing conflicts
@@ -3556,56 +3547,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           <StepCard step="premium-hint">
             <div className="flex flex-col items-center text-center px-4 w-full">
               <h1 className="text-2xl font-bold mb-1">{t.chooseYourPlan}</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">{t.startFreeOrPremium}</p>
+              <p className="text-muted-foreground/40 text-xs mb-6">{t.trial7DaysFree}</p>
               
-              <div className="w-full max-w-sm grid grid-cols-2 gap-3 mb-6">
-                {/* Free Plan */}
-                <motion.div
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1, duration: 0.3 }}
-                  onClick={() => setSelectedPlanOption('free')}
-                  className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
-                    selectedPlanOption === 'free'
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border bg-card hover:border-primary/50'
-                  }`}
-                >
-                  <div className="text-center mb-3">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted mb-2">
-                      <Check className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-bold">{t.freeLabel}</h3>
-                    <div className="mt-1">
-                      <span className="text-2xl font-bold">€0</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    {freeFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-start gap-1.5 text-[10px]">
-                        <Check className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                        <span className="text-muted-foreground text-left">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Selection indicator */}
-                  <div className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    selectedPlanOption === 'free' 
-                      ? 'border-primary bg-primary' 
-                      : 'border-muted-foreground/30'
-                  }`}>
-                    {selectedPlanOption === 'free' && (
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    )}
-                  </div>
-                </motion.div>
-
+              <div className="w-full max-w-sm grid grid-cols-1 gap-3 mb-6">
                 {/* Premium Plan */}
                 <motion.div
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.3 }}
                   onClick={() => setSelectedPlanOption('premium')}
                   className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
@@ -3661,12 +3609,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 disabled={!selectedPlanOption}
                 className="w-full max-w-sm h-12 rounded-xl"
               >
-                {selectedPlanOption === 'free' && (
-                  <>
-                    Mit Free starten
-                    <ChevronRight className="w-5 h-5 ml-1" />
-                  </>
-                )}
                 {selectedPlanOption === 'premium' && (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
@@ -3675,16 +3617,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 )}
                 {!selectedPlanOption && "Wähle einen Plan"}
               </Button>
-              
-              {selectedPlanOption === 'free' && (
-                <motion.p 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  className="text-[10px] text-muted-foreground/40 mt-3"
-                >
-                  Du hast den kostenlosen Plan ausgewählt. Drücke den Button um zu starten!
-                </motion.p>
-              )}
             </div>
           </StepCard>
         );

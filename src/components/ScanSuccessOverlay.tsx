@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Flame } from 'lucide-react';
 import { useEffect } from 'react';
-import confetti from 'canvas-confetti';
+import { confettiBurst } from '@/lib/mobileEffects';
 
 interface ScanSuccessOverlayProps {
   isVisible: boolean;
@@ -25,7 +25,7 @@ export const ScanSuccessOverlay = ({
   useEffect(() => {
     if (isVisible) {
       // Trigger confetti
-      confetti({
+      confettiBurst({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },

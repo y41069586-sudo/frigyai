@@ -27,7 +27,7 @@ const ITEMS: {
   feature: Feature | null;
 }[] = [
   { id: "home", label: "Start", icon: Home, activeClass: "text-primary", feature: null },
-  { id: "meals", label: "Wochenplan", icon: Calendar, activeClass: "text-orange-500", feature: "meal_plans" },
+  { id: "meals", label: "Plan", icon: Calendar, activeClass: "text-primary", feature: "meal_plans" },
   { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary", feature: "shopping_list" },
 ];
 
@@ -91,11 +91,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const trackerLocked = !canAccessFeature("tracker_full").canAccess;
 
   return (
-    <nav className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-3 safe-bottom">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 safe-bottom">
       <div
         className={cn(
-          "pointer-events-auto flex w-full max-w-lg items-end gap-0.5 rounded-[2rem] border border-white/30 bg-background/90 px-1.5 py-2",
-          "shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/80",
+          "pointer-events-auto flex w-full max-w-sm items-center gap-1 rounded-full border border-white/60 bg-white/86 px-2 py-1.5",
+          "shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/80",
         )}
       >
         {ITEMS.map((item) => {
@@ -108,12 +108,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               key={item.id}
               type="button"
               onClick={() => go(item.id)}
-              className="relative flex min-h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-2xl px-0.5 py-1 transition-transform active:scale-[0.97]"
+              className="relative flex min-h-[46px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-full px-0.5 py-1 transition-transform active:scale-[0.96]"
             >
               {active && (
                 <motion.div
                   layoutId="bottom-nav-active-pill"
-                  className="absolute inset-0 rounded-2xl bg-primary/[0.12] dark:bg-primary/20"
+                  className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 />
               )}
@@ -130,7 +130,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               />
               <span
                 className={cn(
-                  "relative z-[1] max-w-full truncate px-0.5 text-[8px] font-bold leading-tight sm:text-[9px]",
+                  "relative z-[1] max-w-full truncate px-0.5 text-[8px] font-bold leading-tight",
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
@@ -145,7 +145,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           onClick={openTracker}
           whileTap={{ scale: 0.96 }}
           className={cn(
-            "relative -mt-6 ml-0.5 flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl text-primary-foreground shadow-xl",
+            "relative ml-0.5 flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-lg",
             trackerActive
               ? "bg-primary ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
               : "bg-primary shadow-primary/30",
@@ -157,7 +157,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               <Lock className="h-2.5 w-2.5 text-muted-foreground" />
             </span>
           )}
-          <Plus className="h-7 w-7 stroke-[2.5]" />
+          <Plus className="h-6 w-6 stroke-[2.5]" />
         </motion.button>
       </div>
     </nav>

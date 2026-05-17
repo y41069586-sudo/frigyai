@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
+import { X, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+
+type QuaggaApi = typeof import('@ericblade/quagga2').default;
 
 interface NutritionInfo {
   name: string;
@@ -26,34 +28,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const [error, setError] = useState<string | null>(null);
   const [productData, setProductData] = useState<NutritionInfo | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
-  const quaggaRef = useRef<any>(null);
+  const quaggaRef = useRef<QuaggaApi | null>(null);
   const detectionLockRef = useRef(false);
   const detectionHandlerRef = useRef<((data: any) => void) | null>(null);
-
-  // Load Quagga2 library from CDN
-  useEffect(() => {
-    // Only load if not already loaded
-    if ((window as any).Quagga) {
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('[BarcodeScanner] Quagga2 loaded successfully');
-    };
-    script.onerror = () => {
-      console.error('[BarcodeScanner] Failed to load Quagga2');
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -76,7 +53,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const stopScanner = async () => {
     try {
-      const Quagga = (window as any).Quagga;
+      const Quagga = quaggaRef.current;
       if (Quagga && quaggaRef.current) {
         // Remove the detection handler
         if (detectionHandlerRef.current && Quagga.offDetected) {
@@ -104,17 +81,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsScannerActive(false);
       detectionLockRef.current = false;
 
-      // Wait for Quagga to be loaded (max 5 seconds)
-      let attempts = 0;
-      while (!(window as any).Quagga && attempts < 50) {
-        await new Promise(r => setTimeout(r, 100));
-        attempts++;
-      }
-
-      const Quagga = (window as any).Quagga;
+      const Quagga = (await import('@ericblade/quagga2')).default;
       if (!Quagga) {
-        console.error('[BarcodeScanner] Quagga2 failed to load after 5 seconds');
-        setError('❌ Quagga2 Library konnte nicht geladen werden');
+        console.error('[BarcodeScanner] Quagga2 failed to load');
+        setError('❌ Barcode-Scanner konnte nicht geladen werden');
         return;
       }
 
@@ -135,8 +105,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               target: document.querySelector('#barcode-reader'),
               constraints: {
                 facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: { ideal: 640 },
+                height: { ideal: 480 },
               },
               area: {
                 top: '0%',
@@ -150,7 +120,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               halfSample: true,
             },
             locate: true,
-            numOfWorkers: 4,
+            numOfWorkers: Math.min(2, navigator.hardwareConcurrency || 1),
             decoder: {
               readers: [
                 'ean_reader',
@@ -215,7 +185,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
     try {
       // Stop scanner
-      const Quagga = (window as any).Quagga;
+      const Quagga = quaggaRef.current;
       if (Quagga) {
         try {
           Quagga.stop();
@@ -279,7 +249,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         });
 
         // Resume scanning if product not found
-        const Quagga = (window as any).Quagga;
+        const Quagga = quaggaRef.current;
         if (Quagga) {
           try {
             Quagga.start();
@@ -299,7 +269,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       });
 
       // Resume scanning on error
-      const Quagga = (window as any).Quagga;
+      const Quagga = quaggaRef.current;
       if (Quagga) {
         try {
           Quagga.start();
@@ -317,7 +287,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const handleScanAnother = async () => {
     detectionLockRef.current = false;
     setProductData(null);
-    const Quagga = (window as any).Quagga;
+    const Quagga = quaggaRef.current;
     if (Quagga) {
       try {
         Quagga.start();
@@ -346,38 +316,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] bg-black flex flex-col"
       >
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between p-4 bg-gradient-to-b from-black/90 via-black/70 to-transparent absolute top-0 left-0 right-0 z-10"
+          className="absolute right-3 top-3 z-10 flex justify-end pt-[env(safe-area-inset-top,0px)]"
         >
-          <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            >
-              <ShoppingCart className="h-6 w-6 text-lime-400" />
-            </motion.div>
-            <div>
-              <h2 className="text-white font-bold text-lg">📦 Barcode scannen</h2>
-              <p className="text-lime-400/80 text-[10px] font-medium">
-                🎯 Produkt erfassen
-              </p>
-            </div>
-          </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="text-white hover:bg-white/20"
+            className="h-11 w-11 rounded-full bg-black/45 text-white backdrop-blur-md hover:bg-white/20"
+            aria-label="Scanner schließen"
           >
             <X className="h-6 w-6" />
           </Button>
         </motion.div>
 
         {/* Scanner Container */}
-        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden pt-16">
+        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
           {error ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -478,34 +434,30 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 className="absolute inset-0 w-full h-full overflow-hidden"
               />
               
-              {/* Scan Box Overlay */}
               {isScannerActive && !isLoading && (
                 <motion.div
                   className="absolute inset-0 flex items-center justify-center pointer-events-none"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  {/* Scan Frame */}
-                  <div className="relative w-64 h-32">
+                  <div className="relative h-32 w-[82vw] max-w-[360px] rounded-xl">
                     <div 
-                      className="absolute inset-0 border-4 border-lime-400 rounded-lg"
+                      className="absolute inset-0 rounded-xl border-4 border-lime-400"
                       style={{
                         boxShadow: '0 0 20px rgba(132, 255, 136, 0.8), inset 0 0 20px rgba(132, 255, 136, 0.2)',
                       }}
                     />
                     
-                    {/* Corner brackets */}
-                    <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-lime-400" />
-                    <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-lime-400" />
-                    <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-lime-400" />
-                    <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-lime-400" />
+                    <div className="absolute top-2 left-2 h-5 w-5 border-l-2 border-t-2 border-lime-400" />
+                    <div className="absolute top-2 right-2 h-5 w-5 border-r-2 border-t-2 border-lime-400" />
+                    <div className="absolute bottom-2 left-2 h-5 w-5 border-b-2 border-l-2 border-lime-400" />
+                    <div className="absolute bottom-2 right-2 h-5 w-5 border-b-2 border-r-2 border-lime-400" />
                     
-                    {/* Animated scan line */}
                     <motion.div
-                      className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-lime-400 to-transparent"
-                      initial={{ top: '0%' }}
-                      animate={{ top: '100%' }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-x-3 h-1 rounded-full bg-gradient-to-r from-transparent via-lime-300 to-transparent"
+                      initial={{ y: 12 }}
+                      animate={{ y: 112 }}
+                      transition={{ duration: 1.35, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
                       style={{
                         boxShadow: '0 0 15px rgba(132, 255, 136, 1)',
                       }}
@@ -529,21 +481,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           )}
         </div>
 
-        {/* Footer Info */}
-        {!productData && !error && isScannerActive && (
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/98 via-black/80 to-transparent text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <p className="text-lime-400 text-sm font-semibold">
-              🎯 Kamera bereit - Barcode scannen
-            </p>
-            <p className="text-white/60 text-xs mt-1">
-              Halte den Barcode ins Sichtfeld
-            </p>
-          </motion.div>
-        )}
       </motion.div>
     </AnimatePresence>
   );

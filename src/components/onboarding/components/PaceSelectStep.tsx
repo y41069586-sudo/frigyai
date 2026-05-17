@@ -145,6 +145,7 @@ function MintSlider({
               width: `${pct}%`,
               background: `linear-gradient(90deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
               boxShadow: "0 2px 6px rgba(24,168,114,0.35)",
+              transition: draggingRef.current ? "none" : "width 120ms ease-out",
             }}
           />
           {/* Major-marker dots on the track */}
@@ -167,11 +168,10 @@ function MintSlider({
             );
           })}
           {/* Thumb */}
-          <motion.div
+          <div
             className="absolute"
-            animate={{ left: `${pct}%` }}
-            transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.6 }}
             style={{
+              left: `${pct}%`,
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: 22,
@@ -181,6 +181,7 @@ function MintSlider({
               border: `3px solid ${PALETTE.primary}`,
               boxShadow:
                 "0 6px 16px -5px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+              transition: draggingRef.current ? "none" : "left 120ms ease-out",
             }}
           />
         </div>

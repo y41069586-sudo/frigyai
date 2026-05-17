@@ -206,19 +206,31 @@ export const AIChatbot = ({
         </motion.button>
       )}
 
-      {/* Chat Panel */}
+      {/* Chat Bottom Sheet */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-x-4 top-[88px] z-50 flex flex-col md:inset-auto md:right-4 md:top-24 md:w-96 md:h-[500px]"
-          >
-            <Card className="flex flex-col h-full bg-gradient-to-br from-white to-emerald-50/30 backdrop-blur-xl border-emerald-200/40 overflow-hidden">
+          <>
+            <motion.button
+              type="button"
+              aria-label="KI-Chat schließen"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-[2px]"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 260, damping: 30, mass: 1.05 }}
+              className="fixed inset-x-0 bottom-0 z-[51] flex h-[92dvh] flex-col px-3 pb-3 md:inset-x-auto md:right-4 md:w-[28rem]"
+            >
+            <Card className="flex h-full flex-col overflow-hidden rounded-t-[2rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] backdrop-blur-xl md:rounded-[2rem]">
+              <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-300/80" />
               {/* Header */}
-              <div className="p-4 border-b border-emerald-200/40 flex items-center justify-between bg-gradient-to-r from-emerald-100/60 to-green-50/40">
+              <div className="p-4 pt-3 border-b border-emerald-200/40 flex items-center justify-between bg-gradient-to-r from-emerald-100/60 to-green-50/40">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-full bg-emerald-200/50">
                     <Sparkles className="h-5 w-5 text-emerald-600" />
@@ -234,7 +246,7 @@ export const AIChatbot = ({
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain">
                 {messages.length === 0 && (
                   <div className="text-center text-emerald-600 py-8">
                     <Bot className="h-12 w-12 mx-auto mb-3 text-emerald-400" />
@@ -301,7 +313,7 @@ export const AIChatbot = ({
               </div>
 
               {/* Input */}
-              <div className="p-4 border-t border-emerald-200/40 bg-gradient-to-t from-emerald-50/40">
+              <div className="p-4 border-t border-emerald-200/40 bg-gradient-to-t from-emerald-50/40 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)]">
                 <div className="flex gap-2">
                   <Input
                     placeholder={t.askMeSomething}
@@ -323,6 +335,7 @@ export const AIChatbot = ({
               </div>
             </Card>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

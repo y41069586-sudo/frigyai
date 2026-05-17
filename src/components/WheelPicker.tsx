@@ -25,12 +25,11 @@ export const WheelPicker = ({
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef(value);
+  const [selectedValue, setSelectedValue] = useState(value);
   const isScrollingRef = useRef(false);
   const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProgrammaticScrollRef = useRef(false);
-  const lastScrollTopRef = useRef(0);
-  const velocityRef = useRef(0);
-  const lastScrollTimeRef = useRef(Date.now());
+  const lastHapticValueRef = useRef(value);
 
   const itemHeight = 48;
   const visibleItems = 3;
@@ -68,10 +67,9 @@ export const WheelPicker = ({
       scrollRef.current.scrollTop = targetTop;
     }
 
-    // Reset flag after scroll completes - shorter delay for Android
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, smooth ? 250 : 30);
+    }, smooth ? 180 : 30);
   }, [itemHeight]);
 
   // Initialize scroll position
@@ -79,6 +77,7 @@ export const WheelPicker = ({
     const index = getIndexFromValue(value);
     scrollToIndex(index, false);
     lastValueRef.current = value;
+    setSelectedValue(value);
   }, []); // Only on mount
 
   // Sync when value changes externally
@@ -89,6 +88,7 @@ export const WheelPicker = ({
       const index = getIndexFromValue(value);
       scrollToIndex(index, false);
       lastValueRef.current = value;
+      setSelectedValue(value);
     }
   }, [value, getIndexFromValue, scrollToIndex]);
 
@@ -104,51 +104,36 @@ export const WheelPicker = ({
       clearTimeout(scrollEndTimeoutRef.current);
     }
 
-    // Calculate scroll velocity for better Android handling
-    const currentTime = Date.now();
-    const timeDelta = currentTime - lastScrollTimeRef.current;
     const scrollTop = scrollRef.current.scrollTop;
-    const scrollDelta = scrollTop - lastScrollTopRef.current;
-
-    if (timeDelta > 0) {
-      velocityRef.current = scrollDelta / timeDelta;
-    }
-
-    lastScrollTopRef.current = scrollTop;
-    lastScrollTimeRef.current = currentTime;
-
-    // Get current value from scroll position
     const newValue = getValueFromScrollPosition(scrollTop);
+    setSelectedValue(newValue);
 
-    // Only trigger onChange if value actually changed
-    if (newValue !== lastValueRef.current) {
+    if (newValue !== lastHapticValueRef.current) {
       triggerHaptic();
-      lastValueRef.current = newValue;
-      onChange(newValue);
+      lastHapticValueRef.current = newValue;
     }
 
-    // Detect scroll end and snap with faster response time
     scrollEndTimeoutRef.current = setTimeout(() => {
       if (!scrollRef.current) return;
 
       const currentScrollTop = scrollRef.current.scrollTop;
       const nearestIndex = Math.round(currentScrollTop / itemHeight);
-      const targetScrollTop = nearestIndex * itemHeight;
+      const clampedIndex = Math.max(0, Math.min(items.length - 1, nearestIndex));
+      const targetScrollTop = clampedIndex * itemHeight;
+      const snappedValue = items[clampedIndex];
 
-      // Snap to nearest if not already aligned
-      if (Math.abs(currentScrollTop - targetScrollTop) > 1) {
-        isProgrammaticScrollRef.current = true;
-        scrollRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-
-        setTimeout(() => {
-          isProgrammaticScrollRef.current = false;
-          isScrollingRef.current = false;
-        }, 150);
-      } else {
-        isScrollingRef.current = false;
+      isScrollingRef.current = false;
+      if (snappedValue !== lastValueRef.current) {
+        lastValueRef.current = snappedValue;
+        setSelectedValue(snappedValue);
+        onChange(snappedValue);
       }
-    }, 60); // Reduced from 100ms for snappier feel
-  }, [getValueFromScrollPosition, onChange, itemHeight]);
+
+      if (Math.abs(currentScrollTop - targetScrollTop) > 1) {
+        scrollRef.current.scrollTo({ top: targetScrollTop, behavior: 'auto' });
+      }
+    }, 190);
+  }, [getValueFromScrollPosition, onChange, itemHeight, items]);
 
   // Handle direct item click
   const handleItemClick = useCallback((item: number) => {
@@ -156,6 +141,7 @@ export const WheelPicker = ({
     if (index >= 0) {
       triggerHaptic();
       lastValueRef.current = item;
+      setSelectedValue(item);
       onChange(item);
       scrollToIndex(index, true);
     }
@@ -171,7 +157,7 @@ export const WheelPicker = ({
   }, []);
 
   const containerHeight = visibleItems * itemHeight;
-  const currentIndex = getIndexFromValue(lastValueRef.current);
+  const currentIndex = getIndexFromValue(selectedValue);
 
   return (
     <div className="relative mx-auto w-full" style={{ height: containerHeight }}>
@@ -207,10 +193,10 @@ export const WheelPicker = ({
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide select-none"
         style={{
-          scrollSnapType: 'y mandatory',
+          scrollSnapType: 'y proximity',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
-          scrollBehavior: 'smooth',
+          scrollBehavior: 'auto',
           WebkitUserSelect: 'none',
           userSelect: 'none',
           // Better performance on Android
@@ -224,7 +210,7 @@ export const WheelPicker = ({
 
         {/* Items */}
         {items.map((item, index) => {
-          const isSelected = item === lastValueRef.current;
+          const isSelected = item === selectedValue;
           const distanceFromSelected = Math.abs(index - currentIndex);
           const opacity = distanceFromSelected === 0 ? 1 : distanceFromSelected === 1 ? 0.5 : 0.25;
 

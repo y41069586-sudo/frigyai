@@ -12,7 +12,7 @@ interface ShoppingItem {
 
 export const DashboardShoppingCard = () => {
   const navigate = useNavigate();
-  const { isFreeMode, isPremium } = useAuth();
+  const { isPremium } = useAuth();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState(0);

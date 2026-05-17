@@ -170,7 +170,7 @@ All colors MUST be HSL.
   }
 
   .safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
   }
   
   .safe-area-inset {

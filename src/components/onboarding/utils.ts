@@ -91,6 +91,7 @@ export const saveOnboardingData = (userData: UserData) => {
     dailyFat,
     dietaryPreferences: userData.dietaryPreferences,
     allergies: userData.allergies,
+    allergiesOther: userData.allergiesOther,
     cookingExperience: userData.cookingExperience,
     cookingTime: userData.cookingTime,
     notificationPrefs: userData.notificationPrefs,
@@ -118,7 +119,11 @@ export const saveOnboardingData = (userData: UserData) => {
   const allergyList = (userData.allergies || []).filter((a) => a && a !== "none");
 
   // Generate and save initial meal plan based on user's macros
-  const initialMealPlan = generateInitialMealPlan(dailyCalories, allergyList, dietaryOnly);
+  const initialMealPlan = generateInitialMealPlan(dailyCalories, allergyList, dietaryOnly, {
+    protein: dailyProtein,
+    carbs: dailyCarbs,
+    fat: dailyFat,
+  });
   localStorage.setItem('weeklyMealPlan', JSON.stringify(initialMealPlan));
   notifyFrigyStorageUpdated();
   
@@ -131,6 +136,7 @@ const generateInitialMealPlan = (
   targetCalories: number,
   allergies: string[] = [],
   dietaryPreferences: string[] = [],
+  macroTargets?: { protein: number; carbs: number; fat: number },
 ) => {
   const breakfastCal = Math.round(targetCalories * 0.25);
   const snack1Cal = Math.round(targetCalories * 0.1);
@@ -188,7 +194,7 @@ const generateInitialMealPlan = (
     return use[index % use.length];
   };
   
-  return days.map((day, index) => ({
+  const plan = days.map((day, index) => ({
     day,
     meals: [
       { type: "Frühstück", ...pickMeal(mealOptions.breakfast, index), calories: breakfastCal },
@@ -198,4 +204,37 @@ const generateInitialMealPlan = (
       { type: "Abendessen", ...pickMeal(mealOptions.dinner, index), calories: dinnerCal },
     ],
   }));
+
+  if (!macroTargets) return plan;
+
+  return plan.map((day) => {
+    const sums = day.meals.reduce(
+      (acc, meal) => ({
+        protein: acc.protein + (meal.protein || 0),
+        carbs: acc.carbs + (meal.carbs || 0),
+        fat: acc.fat + (meal.fat || 0),
+      }),
+      { protein: 0, carbs: 0, fat: 0 },
+    );
+
+    const proteinFactor = macroTargets.protein / Math.max(1, sums.protein);
+    const carbsFactor = macroTargets.carbs / Math.max(1, sums.carbs);
+    const fatFactor = macroTargets.fat / Math.max(1, sums.fat);
+
+    return {
+      ...day,
+      meals: day.meals.map((meal) => {
+        const protein = Math.max(0, Math.round((meal.protein || 0) * proteinFactor));
+        const carbs = Math.max(0, Math.round((meal.carbs || 0) * carbsFactor));
+        const fat = Math.max(0, Math.round((meal.fat || 0) * fatFactor));
+        return {
+          ...meal,
+          protein,
+          carbs,
+          fat,
+          calories: Math.max(50, Math.round(protein * 4 + carbs * 4 + fat * 9)),
+        };
+      }),
+    };
+  });
 };

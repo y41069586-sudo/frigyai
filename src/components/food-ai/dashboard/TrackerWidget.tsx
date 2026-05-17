@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CalendarDays, Flame, Pencil, Plus } from "lucide-react";
+import { Beef, Check, Droplet, Plus, Wheat } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
@@ -14,25 +14,23 @@ type TrackerWidgetProps = {
   targetCarbs: number;
   fatEaten: number;
   targetFat: number;
+  waterMl?: number;
+  waterGoalMl?: number;
+  steps?: number;
   onAddMeal?: (slot: MealFocusKey) => void;
   onOpenTracker?: () => void;
   onOpenMealPlanner?: () => void;
+  loggedMealTypes?: MealFocusKey[];
   expanded?: boolean;
   onToggleExpand?: () => void;
 };
 
-const MEAL_SLOTS: { key: MealFocusKey; label: string }[] = [
-  { key: "breakfast", label: "Frühstück" },
-  { key: "lunch", label: "Mittagessen" },
-  { key: "dinner", label: "Abendessen" },
-  { key: "snack", label: "Snacks" },
+const MEAL_SLOTS: { key: MealFocusKey; label: string; icon: string }[] = [
+  { key: "breakfast", label: "Frühstück", icon: "🍳" },
+  { key: "lunch", label: "Mittag", icon: "🥗" },
+  { key: "dinner", label: "Abend", icon: "🍝" },
+  { key: "snack", label: "Snack", icon: "🍎" },
 ];
-
-// Arc geometry: semicircle from left → top → right
-const ARC_R = 64;
-const ARC_CX = 100;
-const ARC_CY = 100;
-const ARC_HALF = Math.PI * ARC_R;
 
 export function TrackerWidget({
   delay = 0,
@@ -46,173 +44,135 @@ export function TrackerWidget({
   targetFat,
   onAddMeal,
   onOpenTracker,
-  onOpenMealPlanner,
-  expanded,
-  onToggleExpand,
+  loggedMealTypes = [],
 }: TrackerWidgetProps) {
   const caloriesRemaining = Math.max(0, Math.round(targetCalories - caloriesEaten));
-  const calPct = targetCalories > 0 ? Math.min(1, caloriesEaten / targetCalories) : 0;
-  const pPct = targetProtein > 0 ? (proteinEaten / targetProtein) * 100 : 0;
-  const cPct = targetCarbs > 0 ? (carbsEaten / targetCarbs) * 100 : 0;
-  const fPct = targetFat > 0 ? (fatEaten / targetFat) * 100 : 0;
+  const calPct = targetCalories > 0 ? Math.min(100, (caloriesEaten / targetCalories) * 100) : 0;
+  const proteinText = `${Math.round(proteinEaten)} / ${Math.round(targetProtein)}g`;
+  const carbsText = `${Math.round(carbsEaten)} / ${Math.round(targetCarbs)}g`;
+  const fatText = `${Math.round(fatEaten)} / ${Math.round(targetFat)}g`;
+  const proteinPct = targetProtein > 0 ? Math.min(100, (proteinEaten / targetProtein) * 100) : 0;
+  const carbsPct = targetCarbs > 0 ? Math.min(100, (carbsEaten / targetCarbs) * 100) : 0;
+  const fatPct = targetFat > 0 ? Math.min(100, (fatEaten / targetFat) * 100) : 0;
 
   return (
-    <WidgetCard
-      delay={delay}
-      variant="gradient"
-      interactive={!!onToggleExpand}
-      onClick={onToggleExpand}
-      className="w-full rounded-xl sm:rounded-2xl"
-    >
-      <div className="space-y-2 text-foreground">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="h-4 w-4 text-orange-400" />
-            <h3 className="text-[15px] font-semibold">Kalorien</h3>
-          </div>
-          <div className="flex items-center gap-1.5">
+    <div className="space-y-6">
+      <WidgetCard
+        delay={delay}
+        variant="glass"
+        interactive={false}
+        className="-mx-1 w-[calc(100%+0.5rem)] rounded-[2rem] border border-slate-200/85 bg-white/78 p-5 shadow-[0_26px_70px_-34px_rgba(22,101,52,0.45)] sm:mx-0 sm:w-full sm:p-6"
+      >
+        <div className="space-y-7 text-foreground">
+          <div className="space-y-1.5">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary/75">Heute</p>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); onOpenMealPlanner?.(); }}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted/60"
-              aria-label="Wochenplan öffnen"
+              onClick={onOpenTracker}
+              className="block text-left text-[34px] font-black leading-none tracking-[-0.04em] tabular-nums text-foreground active:scale-[0.99] sm:text-[38px]"
             >
-              <CalendarDays className="h-4 w-4" />
+              {caloriesRemaining.toLocaleString("de-DE")} kcal
             </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onOpenTracker?.(); }}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted/60"
-              aria-label="Tracker bearbeiten"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
+            <p className="text-[13px] font-medium text-muted-foreground">übrig von {targetCalories.toLocaleString("de-DE")} kcal</p>
           </div>
-        </div>
 
-        {/* Arc gauge + calorie stats */}
-        <div className="relative h-[96px] min-[360px]:h-[104px]">
-          {/* Semicircular SVG arc */}
-          <svg
-            viewBox="0 0 200 130"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden
-          >
-            {/* Track (full semicircle) */}
-            <circle
-              cx={ARC_CX}
-              cy={ARC_CY}
-              r={ARC_R}
-              fill="none"
-              stroke="hsl(148 42% 88%)"
-              strokeWidth="9"
-              strokeLinecap="round"
-              strokeDasharray={`${ARC_HALF} ${ARC_HALF * 2}`}
-              transform={`rotate(180, ${ARC_CX}, ${ARC_CY})`}
-            />
-            {/* Progress arc */}
-            <motion.circle
-              cx={ARC_CX}
-              cy={ARC_CY}
-              r={ARC_R}
-              fill="none"
-              stroke="hsl(150 100% 46%)"
-              strokeWidth="9"
-              strokeLinecap="round"
-              strokeDasharray={`${ARC_HALF} ${ARC_HALF * 2}`}
-              transform={`rotate(180, ${ARC_CX}, ${ARC_CY})`}
-              initial={{ strokeDashoffset: ARC_HALF }}
-              animate={{ strokeDashoffset: ARC_HALF * (1 - calPct) }}
-              transition={{ duration: 0.9, ease: "easeOut", delay }}
-            />
-          </svg>
-
-          {/* Calorie numbers overlaid at bottom of arc */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-0.5 pb-1 text-center">
-            <div className="text-center">
-              <p className="text-sm font-semibold tabular-nums leading-tight">{Math.round(caloriesEaten)}</p>
-              <p className="text-[10px] text-muted-foreground">Gegessen</p>
+          <div className="space-y-3">
+            <div className="h-3 overflow-hidden rounded-full bg-primary/10">
+              <motion.div
+                className="h-full rounded-full bg-primary"
+                initial={{ width: 0 }}
+                animate={{ width: `${calPct}%` }}
+                transition={{ duration: 0.85, delay: delay + 0.05, ease: [0.22, 1, 0.36, 1] }}
+              />
             </div>
-            <div className="text-center">
-              <p className="text-xl font-bold tabular-nums leading-tight min-[360px]:text-2xl">{caloriesRemaining.toLocaleString("de-DE")}</p>
-              <p className="text-[10px] text-muted-foreground">kcal Übrig</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold tabular-nums leading-tight">0</p>
-              <p className="text-[10px] text-muted-foreground">Verbrannt</p>
+            <div className="flex items-center justify-between text-[12px] font-medium text-muted-foreground">
+              <span>{Math.round(caloriesEaten).toLocaleString("de-DE")} gegessen</span>
+              <span>{Math.round(calPct)}%</span>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <MacroStat label="Carbs" current={carbsEaten} target={targetCarbs} pct={cPct} />
-          <MacroStat label="Eiweiß" current={proteinEaten} target={targetProtein} pct={pPct} />
-          <MacroStat label="Fett" current={fatEaten} target={targetFat} pct={fPct} />
+          <div className="grid grid-cols-3 gap-2">
+            <InlineStat icon={Beef} colorClass="text-rose-500 bg-rose-50" ringColor="#fb7185" label="Protein" value={proteinText} progress={proteinPct} />
+            <InlineStat icon={Wheat} colorClass="text-amber-500 bg-amber-50" ringColor="#fbbf24" label="Carbs" value={carbsText} progress={carbsPct} />
+            <InlineStat icon={Droplet} colorClass="text-sky-500 bg-sky-50" ringColor="#38bdf8" label="Fett" value={fatText} progress={fatPct} />
+          </div>
         </div>
+      </WidgetCard>
 
-        {/* Meal slots */}
-        <div className="grid grid-cols-2 gap-1.5">
-          {MEAL_SLOTS.map((slot) => (
-            <motion.div
-              key={slot.key}
-              className="flex items-center justify-between rounded-lg border border-border/40 bg-card/65 px-2 py-1.5"
-            >
-              <span className="text-xs font-medium">{slot.label}</span>
-              <button
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">Heute</h2>
+          <span className="text-[12px] font-medium text-muted-foreground">Schnell eintragen</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2.5">
+          {MEAL_SLOTS.map((slot, index) => {
+            const logged = loggedMealTypes.includes(slot.key);
+            return (
+              <motion.button
+                key={slot.key}
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onAddMeal?.(slot.key); }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: delay + 0.08 + index * 0.03, duration: 0.28 }}
+                whileTap={{ scale: 0.92, y: 2 }}
+                onClick={() => onAddMeal?.(slot.key)}
                 className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#DCF5EA]",
-                  "transition-transform active:scale-95",
+                  "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/72 px-1.5 text-center shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)] backdrop-blur-xl transition-colors",
+                  logged
+                    ? "border-slate-300/90 bg-primary/12 text-primary"
+                    : "border-slate-200/85 text-foreground hover:bg-primary/8",
                 )}
                 aria-label={`${slot.label} hinzufügen`}
               >
-                <Plus className="h-3.5 w-3.5 text-[#1ED78A]" strokeWidth={2.5} />
-              </button>
-            </motion.div>
-          ))}
+                <span className="text-[24px]" aria-hidden>{slot.icon}</span>
+                <span className="text-[11px] font-bold leading-tight">{slot.label}</span>
+                <span className={cn("flex h-5 w-5 items-center justify-center rounded-full", logged ? "bg-primary" : "bg-primary/12")}>
+                  {logged ? (
+                    <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
+                  ) : (
+                    <Plus className="h-3 w-3 text-primary" strokeWidth={3} />
+                  )}
+                </span>
+              </motion.button>
+            );
+          })}
         </div>
-
-        {expanded && (
-          <motion.p
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="text-xs text-muted-foreground"
-          >
-            Werte aus deinen heutigen Einträgen.
-          </motion.p>
-        )}
-      </div>
-    </WidgetCard>
+      </section>
+    </div>
   );
 }
 
-function MacroStat({
+function InlineStat({
+  icon: Icon,
+  colorClass,
+  ringColor,
   label,
-  current,
-  target,
-  pct,
+  value,
+  progress,
 }: {
+  icon: typeof Beef;
+  colorClass: string;
+  ringColor: string;
   label: string;
-  current: number;
-  target: number;
-  pct: number;
+  value: string;
+  progress: number;
 }) {
   return (
-    <div className="space-y-1">
-      <p className="text-center text-[10px] text-muted-foreground">{label}</p>
-      <div className="h-[2px] rounded-full bg-muted/80">
-        <motion.div
-          className="h-full rounded-full bg-primary"
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, pct)}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
+    <div className="relative rounded-2xl px-2.5 py-3 text-center">
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{
+          background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(148,163,184,0.22) 0deg)`,
+        }}
+      />
+      <div className="pointer-events-none absolute inset-[2px] rounded-[0.9rem] bg-[#f6f8f6]" />
+      <div className="relative z-[1]">
+        <span className={cn("mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full", colorClass)}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        <p className="mt-1 text-[10px] font-bold leading-none tabular-nums text-foreground">{value}</p>
       </div>
-      <p className="text-center text-[11px] font-medium tabular-nums leading-tight">
-        {Math.round(current)}/{Math.round(target)} g
-      </p>
     </div>
   );
 }

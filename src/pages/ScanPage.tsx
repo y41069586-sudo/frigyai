@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon, Lock } from "lucide-react";
+import { Upload, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -24,16 +24,7 @@ import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { SHOPPING_CHECKED_NAMES_KEY } from "@/lib/shoppingSync";
 
-const FREE_SCAN_LIMIT = 1;
 const MIN_INGREDIENTS_FOR_WEEKPLAN = 4;
-
-const getWeekStart = () => {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // ISO week (starts on Monday)
-  const monday = new Date(now.setDate(diff));
-  return monday.toISOString().split('T')[0];
-};
 
 interface RecentDish {
   id: string;
@@ -47,20 +38,18 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, language } = useLanguage();
-  const { user, session, subscriptionStatus, isFreeMode, isPremium } = useAuth();
+  const { user, session, isPremium } = useAuth();
   const { generateMealPlan } = useMealPlanGeneration();
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
-  const [scansRemaining, setScansRemaining] = useState<number | null>(null);
-  const [scanLimitReached, setScanLimitReached] = useState(false);
   const [showPrefsSelector, setShowPrefsSelector] = useState(false);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const [showLowIngredientConfirm, setShowLowIngredientConfirm] = useState(false);
   const [lowIngredientProcessing, setLowIngredientProcessing] = useState(false);
   const [lowIngredientReason, setLowIngredientReason] = useState("");
-  const [pendingUpload, setPendingUpload] = useState<React.ChangeEvent<HTMLInputElement> | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<File[] | null>(null);
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
   const [syncedItems, setSyncedItems] = useState<string[]>([]);
   const [imageQualityIssue, setImageQualityIssue] = useState<ImageQualityResult | null>(null);
@@ -75,8 +64,6 @@ const ScanPage = () => {
 
   const { syncWithScannedIngredients } = useShoppingListSync();
   const { getCached, setCached, cacheHits } = useAICache();
-
-  const isSubscribed = subscriptionStatus?.subscribed;
 
   useEffect(() => {
     localStorage.setItem("userFoodGoal", mealGoal);
@@ -249,27 +236,8 @@ const ScanPage = () => {
   const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
     localStorage.getItem('onboardingScanUsed') !== 'true';
 
-  // Load scan usage and recent dishes on mount
+  // Load recent dishes on mount
   useEffect(() => {
-    const loadScanUsage = async () => {
-      if (!user || isSubscribed) {
-        setScansRemaining(null);
-        return;
-      }
-
-      const weekStart = getWeekStart();
-      const { data } = await supabase
-        .from('scan_usage')
-        .select('scan_count')
-        .eq('user_id', user.id)
-        .eq('week_start', weekStart)
-        .maybeSingle();
-
-      const usedScans = data?.scan_count || 0;
-      setScansRemaining(Math.max(0, FREE_SCAN_LIMIT - usedScans));
-      setScanLimitReached(usedScans >= FREE_SCAN_LIMIT);
-    };
-
     // Load recent dishes from localStorage
     const loadRecentDishes = () => {
       try {
@@ -283,37 +251,79 @@ const ScanPage = () => {
       }
     };
 
-    loadScanUsage();
     loadRecentDishes();
-  }, [user, isSubscribed]);
+  }, []);
+
+  const mergeIngredients = (nextIngredients: string[]) => {
+    let currentIngredients = ingredients;
+    try {
+      const raw = localStorage.getItem("lastFridgeIngredientList");
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) currentIngredients = parsed;
+    } catch {
+      currentIngredients = ingredients;
+    }
+
+    const merged = Array.from(
+      new Set([
+        ...currentIngredients,
+        ...nextIngredients.map((item) => item.trim()).filter(Boolean),
+      ]),
+    );
+    setIngredients(merged);
+    localStorage.setItem("lastFridgeIngredientList", JSON.stringify(merged));
+    if (merged.length > 0) {
+      const syncResult = syncWithScannedIngredients(merged);
+      setSyncedItems(syncResult.matchedItems);
+    }
+    return merged;
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
 
     // Check if permissions have been granted (mocked one-time request)
     const hasGrantedPermissions = localStorage.getItem('frig_scan_permissions_granted');
     if (!hasGrantedPermissions) {
-      setPendingUpload(e);
+      setPendingUpload(files);
       setShowPermissionRequest(true);
       return;
     }
 
-    // Proceed with actual upload logic...
-    await processImageUpload(file);
+    await processImageUploads(files);
   };
 
   const confirmPermissions = async () => {
     localStorage.setItem('frig_scan_permissions_granted', 'true');
     setShowPermissionRequest(false);
     if (pendingUpload) {
-      const file = pendingUpload.target.files?.[0];
-      if (file) await processImageUpload(file);
+      await processImageUploads(pendingUpload);
       setPendingUpload(null);
     }
   };
 
-  const processImageUpload = async (file: File) => {
+  const processImageUploads = async (files: File[]) => {
+    if (files.length > 1) {
+      setIngredients([]);
+      localStorage.removeItem("lastFridgeIngredientList");
+      setSyncedItems([]);
+    }
+
+    for (const file of files) {
+      await processImageUpload(file, files.length > 1);
+    }
+
+    if (files.length > 1) {
+      toast({
+        title: t.ingredientsRecognized,
+        description: `${files.length} Fotos analysiert: Speisekammer, Kühlschrank oder Schränke können kombiniert werden.`,
+      });
+    }
+  };
+
+  const processImageUpload = async (file: File, append = false) => {
     // Validate file size before processing
     const fileSizeValidation = validateImageFileSize(file.size);
     if (!fileSizeValidation.valid) {
@@ -327,31 +337,6 @@ const ScanPage = () => {
 
     // Reset quality issue
     setImageQualityIssue(null);
-
-    // Allow onboarding users ONE free scan
-    const canScanAsOnboarding = isOnboardingMode && !user;
-
-    // Free mode users cannot scan - redirect to paywall (unless onboarding)
-    if (isFreeMode && !canScanAsOnboarding) {
-      toast({
-        title: "Premium Feature",
-        description: "Kühlschrank-Scan ist nur für Premium-Nutzer verfügbar",
-        variant: "destructive",
-      });
-      navigate('/premium-pricing');
-      return;
-    }
-
-    // Check scan limit for logged-in free users (not onboarding)
-    if (!canScanAsOnboarding && !isSubscribed && scansRemaining !== null && scansRemaining <= 0) {
-      setScanLimitReached(true);
-      toast({
-        title: t.scanLimitReached,
-        description: t.usedScansToday,
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Convert image to base64
     const base64 = await new Promise<string>((resolve) => {
@@ -379,10 +364,17 @@ const ScanPage = () => {
     const cachedResult = getCached(base64);
     if (cachedResult) {
       console.log('[SCAN] Using cached result');
-      setIngredients(cachedResult.ingredients || []);
+      const cachedIngredients = cachedResult.ingredients || [];
+      let nextList = cachedIngredients;
+      if (append) {
+        nextList = mergeIngredients(cachedIngredients);
+      } else {
+        setIngredients(cachedIngredients);
+        localStorage.setItem("lastFridgeIngredientList", JSON.stringify(cachedIngredients));
+      }
       
-      if (cachedResult.ingredients && cachedResult.ingredients.length > 0) {
-        const syncResult = syncWithScannedIngredients(cachedResult.ingredients);
+      if (cachedIngredients.length > 0) {
+        const syncResult = syncWithScannedIngredients(nextList);
         setSyncedItems(syncResult.matchedItems);
       }
       
@@ -429,28 +421,13 @@ const ScanPage = () => {
       }
 
       if (error) {
-        // Check for scan limit error
-        if (error.message?.includes("429") || data?.error === "scan_limit_exceeded") {
-          setScanLimitReached(true);
-          setScansRemaining(0);
-          toast({
-            title: t.scanLimitReached,
-            description: t.usedScansToday,
-            variant: "destructive",
-          });
-          setImagePreview(null);
-          return;
-        }
         throw error;
       }
 
-      // Check for scan limit in response
       if (data?.error === "scan_limit_exceeded") {
-        setScanLimitReached(true);
-        setScansRemaining(0);
         toast({
-          title: t.scanLimitReached,
-          description: data.message || t.upgradeToPremium,
+          title: t.error,
+          description: data.message || t.couldNotAnalyze,
           variant: "destructive",
         });
         setImagePreview(null);
@@ -460,20 +437,21 @@ const ScanPage = () => {
       // Cache the result for future use
       setCached(base64, data);
 
-      setIngredients(data.ingredients || []);
-      localStorage.setItem("lastFridgeIngredientList", JSON.stringify(data.ingredients || []));
+      const recognizedIngredients = data.ingredients || [];
+      let nextList = recognizedIngredients;
+      if (append) {
+        nextList = mergeIngredients(recognizedIngredients);
+      } else {
+        setIngredients(recognizedIngredients);
+        localStorage.setItem("lastFridgeIngredientList", JSON.stringify(recognizedIngredients));
+      }
       
       // Sync mit Einkaufsliste
-      if (data.ingredients && data.ingredients.length > 0) {
-        const syncResult = syncWithScannedIngredients(data.ingredients);
+      if (recognizedIngredients.length > 0) {
+        const syncResult = syncWithScannedIngredients(nextList);
         setSyncedItems(syncResult.matchedItems);
       }
       
-      // Update remaining scans
-      if (data.scansRemaining !== undefined && data.scansRemaining !== null) {
-        setScansRemaining(data.scansRemaining);
-      }
-
       toast({
         title: t.ingredientsRecognized,
         description: `${data.ingredients?.length || 0} ${t.ingredientsFound}.`,
@@ -482,7 +460,11 @@ const ScanPage = () => {
       console.error("Error analyzing image:", error);
       try {
         const mockIngs = await analyzeImageMock(file);
-        setIngredients(mockIngs);
+        if (append) {
+          mergeIngredients(mockIngs);
+        } else {
+          setIngredients(mockIngs);
+        }
         toast({
           title: "Demo-Analyse",
           description: "Zutaten simuliert (API nicht erreichbar).",
@@ -617,36 +599,6 @@ const ScanPage = () => {
             </h1>
           </div>
 
-          {/* Scan counter for free users */}
-          {user && !isSubscribed && scansRemaining !== null && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full shrink-0 text-xs sm:text-sm ${
-                scansRemaining > 0
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-destructive/10 text-destructive'
-              }`}
-            >
-              <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="font-semibold">
-                {scansRemaining}/1 <span className="hidden min-[360px]:inline">{language === 'de' ? 'Woche' : 'Week'}</span>
-              </span>
-            </motion.div>
-          )}
-
-          {/* Free mode badge */}
-          {isFreeMode && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full bg-muted text-muted-foreground shrink-0 text-xs sm:text-sm"
-            >
-              <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="font-semibold hidden sm:inline">Free Mode</span>
-            </motion.div>
-          )}
-
           {isPremium && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -661,33 +613,6 @@ const ScanPage = () => {
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
-          {/* Scan Limit Warning */}
-          {scanLimitReached && !isPremium && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20"
-            >
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-destructive">{t.dailyScanLimitReached}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t.usedScansToday}
-                  </p>
-                  <Button
-                    onClick={() => navigate("/premium")}
-                    className="mt-3 gradient-neon text-black font-semibold"
-                    size="sm"
-                  >
-                    <Crown className="h-4 w-4 mr-2" />
-                    {t.upgradeToPremium}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {/* Image Quality Warning - Friendly message for dark/bright images */}
           {imageQualityIssue && !imageQualityIssue.isGoodQuality && (
             <motion.div
@@ -732,18 +657,14 @@ const ScanPage = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-4 min-[360px]:p-6 sm:p-12 text-center transition-all bg-card ${
-                  scanLimitReached && !isPremium
-                    ? 'border-muted cursor-not-allowed opacity-50'
-                    : 'border-primary/50'
-                }`}
+                className="border-2 border-dashed rounded-2xl sm:rounded-3xl p-4 min-[360px]:p-6 sm:p-12 text-center transition-all bg-card border-primary/50"
               >
                 <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary" />
                 <h2 className="text-xl sm:text-2xl font-semibold mb-2">
-                  {t.uploadPhoto}
+                  Zutaten erkennen
                 </h2>
                 <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-2">
-                  {t.takePhotoOrSelect}
+                  Scanne Speisekammer, Kühlschrank oder Schränke. Du kannst mehrere Fotos auswählen und gemeinsam analysieren.
                 </p>
                 
                 {/* Two buttons: Camera and Gallery */}
@@ -751,9 +672,7 @@ const ScanPage = () => {
                   {/* Camera Button */}
                   <Button 
                     className="gradient-neon text-black font-semibold glow-button touch-target flex-1 sm:flex-none text-xs min-[360px]:text-sm"
-                    disabled={scanLimitReached && !isPremium}
                     onClick={() => {
-                      if (scanLimitReached && !isPremium) return;
                       document.getElementById("cameraInput")?.click();
                     }}
                   >
@@ -765,14 +684,12 @@ const ScanPage = () => {
                   <Button 
                     variant="outline"
                     className="touch-target flex-1 sm:flex-none text-xs min-[360px]:text-sm"
-                    disabled={scanLimitReached && !isPremium}
                     onClick={() => {
-                      if (scanLimitReached && !isPremium) return;
                       document.getElementById("galleryInput")?.click();
                     }}
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    {language === 'de' ? 'Aus Galerie wählen' : language === 'fr' ? 'Choisir de la galerie' : 'Choose from Gallery'}
+                    {language === 'de' ? 'Mehrere Fotos wählen' : language === 'fr' ? 'Choisir plusieurs photos' : 'Choose multiple photos'}
                   </Button>
                 </div>
                 
@@ -784,7 +701,6 @@ const ScanPage = () => {
                   capture="environment"
                   onChange={handleImageUpload}
                   className="hidden"
-                  disabled={scanLimitReached && !isPremium}
                 />
                 
                 {/* Hidden Gallery Input - opens photo library */}
@@ -792,9 +708,9 @@ const ScanPage = () => {
                   id="galleryInput"
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageUpload}
                   className="hidden"
-                  disabled={scanLimitReached && !isPremium}
                 />
               </motion.div>
 

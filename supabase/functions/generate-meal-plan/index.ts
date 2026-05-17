@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
     const fridgeHint =
       fridgeIngredients.length > 0
         ? `\n\nKühlschrank (bereits vorhanden – priorisiere diese Zutaten, darfst aber beliebig weitere ergänzen):\n${fridgeIngredients.join(", ")}`
-        : "";
+        : "\n\nKein Kühlschrankscan vorhanden: Erstelle trotzdem einen vollständigen Wochenplan frei aus passenden Zutaten. Die Einkaufsliste enthält danach alle benötigten Zutaten, bis ein Kühlschrankscan vorhandene Zutaten abzieht.";
 
     const systemPrompt = `Du bist ein deutscher Ernährungsexperte und planst realistische Mahlzeiten.
 
@@ -223,12 +223,13 @@ REGELN:
 - Genau 7 Tage (Montag–Sonntag)
 - Pro Tag genau ${mealsPerDay} Mahlzeiten
 - Einfache Hausmannskost, keine exotischen Zutaten
-- Nutze Kühlschrankzutaten wo sinnvoll, ergänze fehlende Zutaten frei für Makroziele und Abwechslung
+- Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
+- Nutze Kühlschrankzutaten nur wenn vorhanden und sinnvoll; ergänze fehlende Zutaten frei für Makroziele und Abwechslung
 - Nährwerte müssen realistisch sein (keine Fantasiewerte)
 - Kalorien jeder Mahlzeit müssen zu den Makros passen: kcal ≈ 4*Protein + 4*Kohlenhydrate + 9*Fett (max. ±10% Abweichung)
 ${
       constraintPrompt
-        ? `- Allergien/Ernährungsform unten sind ABSOLUT bindend.`
+        ? `- Allergien, Unverträglichkeiten und Ernährungsform unten sind ABSOLUT bindend. Wenn z. B. Eier verboten sind, darf kein Ei, Rührei, Omelett, Mayonnaise oder eihaltiges Gericht vorkommen.`
         : ""
     }
 

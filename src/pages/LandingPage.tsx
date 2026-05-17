@@ -199,38 +199,15 @@ export const LandingPage = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Einfache Preise</h2>
-            <p className="text-muted-foreground">Starte kostenlos, upgrade wenn du bereit bist</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Premium starten</h2>
+            <p className="text-muted-foreground">Teste Frigy 7 Tage gratis und nutze alle Funktionen</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Free Plan */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <Card className="p-8 h-full bg-card/50 backdrop-blur">
-                <h3 className="text-xl font-bold mb-2">Free</h3>
-                <p className="text-3xl font-bold mb-6">€0<span className="text-sm text-muted-foreground">/Monat</span></p>
-                <ul className="space-y-3 mb-8">
-                  {["2 Scans pro Tag", "Basis-Rezepte", "Kalorien-Anzeige"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4 text-primary" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>
-                  Kostenlos starten
-                </Button>
-              </Card>
-            </motion.div>
-
+          <div className="grid gap-8">
             {/* Premium Plan */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
               <Card className="p-8 h-full bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 relative overflow-hidden">
