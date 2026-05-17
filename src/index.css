@@ -197,6 +197,16 @@ All colors MUST be HSL.
     input, textarea, select {
       font-size: 16px; /* Prevents zoom on iOS */
     }
+
+    html {
+      scroll-behavior: auto;
+    }
+
+    .dashboard-fast-scroll {
+      content-visibility: auto;
+      contain-intrinsic-size: 900px;
+      transform: translateZ(0);
+    }
   }
 
   /* Better scrolling on mobile */

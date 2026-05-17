@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 type StepsWidgetProps = {
   steps: number;
@@ -10,7 +10,7 @@ type StepsWidgetProps = {
   onToggleExpand?: () => void;
 };
 
-export function StepsWidget({
+export const StepsWidget = memo(function StepsWidget({
   steps,
   goal = 10_000,
   delay = 0,
@@ -41,9 +41,9 @@ export function StepsWidget({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onToggleExpand}
-      className="relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem] border border-primary/25 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 backdrop-blur-xl"
+      className="relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem] border border-primary/25 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70"
     >
-      <div className="pointer-events-none absolute inset-x-5 top-10 h-20 rounded-full bg-primary/30 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-5 top-10 hidden h-20 rounded-full bg-primary/30 blur-2xl sm:block" />
 
       <div className="relative z-[10] grid min-h-[185px] grid-rows-[auto_1fr_auto] justify-items-center p-4">
         <div className="justify-self-start flex items-center gap-1.5">
@@ -68,4 +68,4 @@ export function StepsWidget({
       </div>
     </motion.div>
   );
-}
+});

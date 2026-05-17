@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Settings, Bot } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -65,6 +65,10 @@ const Index = () => {
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [waterGoalMl, setWaterGoalMl] = useState(() => goalCupsToMl(readWaterGoalCupsFromStorage()));
   const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number; mealType?: MealFocusKey }[]>([]);
+  const loggedMealTypes = useMemo(
+    () => Array.from(new Set(todayMeals.map((meal) => meal.mealType).filter(Boolean))) as MealFocusKey[],
+    [todayMeals],
+  );
   const [caloriesEaten, setCaloriesEaten] = useState(0);
   const [proteinEaten, setProteinEaten] = useState(0);
   const [carbsEaten, setCarbsEaten] = useState(0);
@@ -164,6 +168,8 @@ const Index = () => {
 
   // Load today's meals from localStorage
   useEffect(() => {
+    let frameId: number | null = null;
+
     const loadTodayMeals = () => {
       const saved = localStorage.getItem('todayFood');
       if (saved) {
@@ -183,22 +189,31 @@ const Index = () => {
         }
       }
     };
+
+    const scheduleLoadTodayMeals = () => {
+      if (frameId != null) return;
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        loadTodayMeals();
+      });
+    };
     
     loadTodayMeals();
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "todayFood") loadTodayMeals();
+      if (e.key === "todayFood") scheduleLoadTodayMeals();
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener(FRIGY_STORAGE_UPDATED, loadTodayMeals);
+    window.addEventListener("storage", handleStorageChange, { passive: true });
+    window.addEventListener(FRIGY_STORAGE_UPDATED, scheduleLoadTodayMeals, { passive: true });
 
-    const interval = setInterval(loadTodayMeals, 15000);
+    const interval = setInterval(scheduleLoadTodayMeals, 30000);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(FRIGY_STORAGE_UPDATED, loadTodayMeals);
+      window.removeEventListener(FRIGY_STORAGE_UPDATED, scheduleLoadTodayMeals);
       clearInterval(interval);
+      if (frameId != null) window.cancelAnimationFrame(frameId);
     };
   }, []);
   
@@ -214,7 +229,6 @@ const Index = () => {
         .eq('date', today)
         .maybeSingle();
       if (data) {
-        console.log('[DASHBOARD] Updated macros:', data);
         setCaloriesEaten(data.calories);
         setProteinEaten(data.protein);
         setCarbsEaten(data.carbs);
@@ -226,16 +240,14 @@ const Index = () => {
 
     // Listen for food entry changes - update immediately when meal is added from meal plan
     const handleFoodEntryAdded = () => {
-      console.log('[DASHBOARD] Food entry added event detected, refreshing macros...');
       fetchDailyMacros();
     };
 
-    window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
+    window.addEventListener('foodEntryAdded', handleFoodEntryAdded, { passive: true });
 
-    // Also periodic refresh as fallback (every 10 seconds instead of 30)
+    // Also periodic refresh as fallback; keep it sparse to avoid interrupting scroll.
     if (user) {
       const intervalId = setInterval(async () => {
-        console.log('[DASHBOARD] Periodic macro refresh...');
         const today = new Date().toISOString().split('T')[0];
         const { data } = await supabase
           .from('daily_macros')
@@ -250,7 +262,7 @@ const Index = () => {
           setCarbsEaten(data.carbs || 0);
           setFatEaten(data.fat || 0);
         }
-      }, 10000);
+      }, 30000);
 
       return () => {
         clearInterval(intervalId);
@@ -502,25 +514,27 @@ const Index = () => {
             </div>
           </motion.header>
 
-          <HealthDashboard
-            caloriesEaten={caloriesEaten}
-            targetCalories={targetCalories}
-            proteinEaten={proteinEaten}
-            targetProtein={targetProtein}
-            carbsEaten={carbsEaten}
-            targetCarbs={trackerSettings?.dailyCarbs ?? 200}
-            fatEaten={fatEaten}
-            targetFat={trackerSettings?.dailyFat ?? 65}
-            loggedMealTypes={Array.from(new Set(todayMeals.map((meal) => meal.mealType).filter(Boolean))) as MealFocusKey[]}
-            waterGlasses={waterGlasses}
-            waterGoalMl={waterGoalMl}
-            onWaterGlassesChange={updateWaterGlasses}
-            aiChatEnabled={!!subscriptionStatus?.subscribed}
-            onAiChatPromptSubmit={(text) => {
-              setChatBootstrapMessage(text);
-              setIsChatbotOpen(true);
-            }}
-          />
+          <div className="dashboard-fast-scroll">
+            <HealthDashboard
+              caloriesEaten={caloriesEaten}
+              targetCalories={targetCalories}
+              proteinEaten={proteinEaten}
+              targetProtein={targetProtein}
+              carbsEaten={carbsEaten}
+              targetCarbs={trackerSettings?.dailyCarbs ?? 200}
+              fatEaten={fatEaten}
+              targetFat={trackerSettings?.dailyFat ?? 65}
+              loggedMealTypes={loggedMealTypes}
+              waterGlasses={waterGlasses}
+              waterGoalMl={waterGoalMl}
+              onWaterGlassesChange={updateWaterGlasses}
+              aiChatEnabled={!!subscriptionStatus?.subscribed}
+              onAiChatPromptSubmit={(text) => {
+                setChatBootstrapMessage(text);
+                setIsChatbotOpen(true);
+              }}
+            />
+          </div>
         </div>
       </main>
 

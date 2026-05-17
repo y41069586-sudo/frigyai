@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Droplet } from "lucide-react";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 
 const ML_PER_GLASS = 250;
@@ -14,7 +15,7 @@ type WaterWidgetProps = {
   onToggleExpand?: () => void;
 };
 
-export function WaterWidget({
+export const WaterWidget = memo(function WaterWidget({
   waterGlasses,
   goalMl = 2000,
   delay = 0,
@@ -37,18 +38,18 @@ export function WaterWidget({
       className={cn(
         "relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
         "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
-        "backdrop-blur-xl touch-manipulation",
+        "touch-manipulation",
       )}
     >
       {currentMl > 0 && (
         <motion.div
-          initial={{ height: 0 }}
-          animate={{ height: `${Math.max(12, waterFillPct)}%` }}
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: Math.max(0.12, waterFillPct / 100) }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-[1.85rem] bg-gradient-to-t from-sky-500/65 to-sky-300/35"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-full origin-bottom rounded-b-[1.85rem] bg-gradient-to-t from-sky-500/65 to-sky-300/35"
         />
       )}
-      <div className="pointer-events-none absolute inset-x-5 top-10 h-20 rounded-full bg-sky-300/55 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-5 top-10 hidden h-20 rounded-full bg-sky-300/55 blur-2xl sm:block" />
 
       <div className="relative z-[10] grid min-h-[185px] grid-rows-[auto_1fr_auto] justify-items-center p-4">
         <div className="justify-self-start flex items-center gap-1.5">
@@ -145,4 +146,4 @@ export function WaterWidget({
       </div>
     </motion.div>
   );
-}
+});

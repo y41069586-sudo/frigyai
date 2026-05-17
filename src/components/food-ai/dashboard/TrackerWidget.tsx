@@ -61,7 +61,7 @@ export function TrackerWidget({
         delay={delay}
         variant="glass"
         interactive={false}
-        className="-mx-1 w-[calc(100%+0.5rem)] rounded-[2rem] border border-slate-200/85 bg-white/78 p-5 shadow-[0_26px_70px_-34px_rgba(22,101,52,0.45)] sm:mx-0 sm:w-full sm:p-6"
+        className="-mx-1 w-[calc(100%+0.5rem)] rounded-[2rem] border border-slate-200/85 bg-white/82 p-5 shadow-[0_18px_44px_-32px_rgba(22,101,52,0.36)] sm:mx-0 sm:w-full sm:bg-white/78 sm:p-6 sm:shadow-[0_26px_70px_-34px_rgba(22,101,52,0.45)]"
       >
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
@@ -79,9 +79,9 @@ export function TrackerWidget({
           <div className="space-y-3">
             <div className="h-3 overflow-hidden rounded-full bg-primary/10">
               <motion.div
-                className="h-full rounded-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: `${calPct}%` }}
+                className="h-full origin-left rounded-full bg-primary"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: calPct / 100 }}
                 transition={{ duration: 0.85, delay: delay + 0.05, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
@@ -117,7 +117,7 @@ export function TrackerWidget({
                 whileTap={{ scale: 0.92, y: 2 }}
                 onClick={() => onAddMeal?.(slot.key)}
                 className={cn(
-                  "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/72 px-1.5 text-center shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)] backdrop-blur-xl transition-colors",
+                  "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/82 px-1.5 text-center shadow-[0_8px_20px_-18px_rgba(15,23,42,0.2)] transition-colors sm:bg-white/72 sm:backdrop-blur-xl sm:shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)]",
                   logged
                     ? "border-slate-300/90 bg-primary/12 text-primary"
                     : "border-slate-200/85 text-foreground hover:bg-primary/8",

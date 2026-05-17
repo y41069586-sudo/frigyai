@@ -94,8 +94,8 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 safe-bottom">
       <div
         className={cn(
-          "pointer-events-auto flex w-full max-w-sm items-center gap-1 rounded-full border border-white/60 bg-white/86 px-2 py-1.5",
-          "shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/80",
+          "pointer-events-auto flex w-full max-w-sm items-center gap-1 rounded-full border border-white/70 bg-white/95 px-2 py-1.5",
+          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-background/92 sm:dark:bg-background/80",
         )}
       >
         {ITEMS.map((item) => {

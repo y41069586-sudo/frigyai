@@ -37,7 +37,7 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: delay + 0.05 }}
-        className="mt-4 flex items-center gap-2 rounded-2xl bg-muted/35 px-2.5 py-2 backdrop-blur-sm"
+        className="mt-4 flex items-center gap-2 rounded-2xl bg-muted/45 px-2.5 py-2 sm:bg-muted/35 sm:backdrop-blur-sm"
       >
         <span
           className={cn(

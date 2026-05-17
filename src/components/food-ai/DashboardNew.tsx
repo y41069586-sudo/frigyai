@@ -138,9 +138,9 @@ export function DashboardNew({
           <div className="flex-1 max-w-md w-full">
             <div className="h-3 rounded-full bg-muted overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400"
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, calorieProgress)}%` }}
+                className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-emerald-400"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: Math.min(100, calorieProgress) / 100 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>
