@@ -31,11 +31,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const quaggaRef = useRef<QuaggaApi | null>(null);
   const detectionLockRef = useRef(false);
   const detectionHandlerRef = useRef<((data: any) => void) | null>(null);
+  const readerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    let startTimer: number | undefined;
+
     if (!isOpen) {
       stopScanner();
-      return;
+      return undefined;
     }
 
     setError(null);
@@ -44,9 +47,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     setIsScannerActive(false);
     detectionLockRef.current = false;
 
-    startScanner();
+    startTimer = window.setTimeout(() => {
+      void startScanner();
+    }, 100);
 
     return () => {
+      if (startTimer) window.clearTimeout(startTimer);
       stopScanner();
     };
   }, [isOpen]);
@@ -81,6 +87,23 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsScannerActive(false);
       detectionLockRef.current = false;
 
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError('❌ Dein Browser unterstützt keinen Kamera-Zugriff');
+        return;
+      }
+
+      if (!window.isSecureContext) {
+        setError('❌ Kamera braucht HTTPS. Öffne die App über localhost, HTTPS oder als installierte App.');
+        return;
+      }
+
+      const reader = readerRef.current;
+      if (!reader) {
+        setError('❌ Scanner konnte nicht geöffnet werden');
+        return;
+      }
+      reader.innerHTML = '';
+
       const Quagga = (await import('@ericblade/quagga2')).default;
       if (!Quagga) {
         console.error('[BarcodeScanner] Quagga2 failed to load');
@@ -102,9 +125,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             frequency: 10,
             inputStream: {
               type: 'LiveStream',
-              target: document.querySelector('#barcode-reader'),
+              target: reader,
               constraints: {
-                facingMode: 'environment',
+                facingMode: { ideal: 'environment' },
                 width: { ideal: 640 },
                 height: { ideal: 480 },
               },
@@ -120,7 +143,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               halfSample: true,
             },
             locate: true,
-            numOfWorkers: Math.min(2, navigator.hardwareConcurrency || 1),
+            numOfWorkers: 0,
             decoder: {
               readers: [
                 'ean_reader',
@@ -159,13 +182,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.error('[BarcodeScanner] Scanner init error:', err);
 
       let errorMsg = '❌ Kamera konnte nicht gestartet werden';
-      if (err.message?.includes('NotAllowedError')) {
+      const errorName = `${err?.name ?? ''} ${err?.message ?? ''}`;
+      if (errorName.includes('NotAllowedError') || errorName.includes('PermissionDeniedError')) {
         errorMsg = '❌ Kamera-Zugriff verweigert!';
-      } else if (err.message?.includes('NotFoundError')) {
+      } else if (errorName.includes('NotFoundError') || errorName.includes('DevicesNotFoundError')) {
         errorMsg = '❌ Keine Kamera gefunden!';
-      } else if (err.message?.includes('NotReadableError')) {
+      } else if (errorName.includes('NotReadableError') || errorName.includes('TrackStartError')) {
         errorMsg = '❌ Kamera wird bereits verwendet!';
-      } else if (err.message?.includes('timeout')) {
+      } else if (errorName.includes('NotSupportedError') || errorName.includes('SecurityError')) {
+        errorMsg = '❌ Kamera braucht HTTPS oder localhost';
+      } else if (errorName.includes('timeout')) {
         errorMsg = '❌ Kamera-Initialisierung zu langsam';
       }
 
@@ -431,6 +457,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               `}</style>
               <div
                 id="barcode-reader"
+                ref={readerRef}
                 className="absolute inset-0 w-full h-full overflow-hidden"
               />
               
