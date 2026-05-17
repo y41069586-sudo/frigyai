@@ -148,9 +148,9 @@ const ProfilePage = () => {
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-lg">
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <h2 className="min-w-0 break-words text-lg font-bold leading-tight">
                     {user.user_metadata?.full_name || user.email?.split("@")[0]}
                   </h2>
                   {isPremium && (
@@ -160,9 +160,9 @@ const ProfilePage = () => {
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
-                  {user.email}
+                <p className="mt-1 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
+                  <Mail className="mt-0.5 h-3 w-3 shrink-0" />
+                  <span className="min-w-0 break-all leading-snug">{user.email}</span>
                 </p>
               </div>
             </div>

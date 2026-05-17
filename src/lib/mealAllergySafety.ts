@@ -6,11 +6,21 @@
 const ALLERGY_PATTERNS: Record<string, RegExp> = {
   gluten:
     /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel|lasagne)/i,
+  wheat:
+    /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel|lasagne)/i,
   lactose:
     /(milch|käse|joghurt|quark|sahne|butter|mozzarella|parmesan|frischkäse|griechisch|emmental|cheddar|ricotta|schmand|crème|crème fraîche)/i,
+  milk:
+    /(milch|käse|joghurt|quark|sahne|butter|mozzarella|parmesan|frischkäse|griechisch|emmental|cheddar|ricotta|schmand|crème|crème fraîche)/i,
   nuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|müsli|musliriegel)/i,
+  peanuts: /(erdnuss|erdnüsse|peanut|peanuts|erdnussbutter|erdnussmus)/i,
+  treeNuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
+  "tree-nuts": /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
   soy: /(soja|soy|tofu|tempeh|edamame|sojasauce)/i,
   eggs: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
+  egg: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
+  fish: /(fisch|lachs|thunfisch|forelle|seelachs|kabeljau|sardine|makrele)/i,
+  shellfish: /(garnele|garnelen|shrimp|krabbe|krebs|hummer|muschel|auster|scampi)/i,
 };
 
 const MEAT_FISH: RegExp =
@@ -63,6 +73,33 @@ export function isMealSafeForUser(
   return true;
 }
 
+export function findMealSafetyViolations(
+  meal: { name: string; ingredients: { name: string }[] },
+  allergies: string[],
+  dietaryPreferences: string[],
+  allergiesOther = "",
+): string[] {
+  const blob = mealTextBlob(meal);
+  const violations: string[] = [];
+
+  for (const allergy of allergies || []) {
+    if (!allergy || allergy === "none" || allergy === "other") continue;
+    if (violatesAllergy(blob, allergy)) violations.push(allergy);
+  }
+
+  const custom = allergiesOther.trim().toLowerCase();
+  if (custom) {
+    const customTerms = custom
+      .split(/[,;/\n]+/)
+      .map((term) => term.trim())
+      .filter((term) => term.length >= 3);
+    if (customTerms.some((term) => blob.includes(term))) violations.push("other");
+  }
+
+  if (violatesDietaryPreferences(blob, dietaryPreferences || [])) violations.push("dietaryPreferences");
+  return [...new Set(violations)];
+}
+
 /** Für Supabase Edge Function / Prompts */
 export function buildGermanConstraintPrompt(
   allergies: string[],
@@ -76,10 +113,18 @@ export function buildGermanConstraintPrompt(
   if (a.length) {
     const map: Record<string, string> = {
       gluten: "Gluten / Weizen, Roggen, Gerste, Dinkel, Bulgur, normale Nudeln, Brot, Paniermehl",
+      wheat: "Weizen / Glutenhaltiges Getreide, Brot, Nudeln, Mehl, Wraps, Paniermehl",
       lactose: "Laktose / Milch, Käse, Joghurt, Quark, Sahne, Butter",
+      milk: "Milchprodukte / Milch, Käse, Joghurt, Quark, Sahne, Butter",
       nuts: "Nüsse und Mandeln (inkl. Nussmus, Mandelmilch wenn relevant)",
+      peanuts: "Erdnüsse und Erdnussprodukte",
+      treeNuts: "Baumnüsse / Mandeln, Haselnüsse, Walnüsse, Cashew, Pistazien usw.",
+      "tree-nuts": "Baumnüsse / Mandeln, Haselnüsse, Walnüsse, Cashew, Pistazien usw.",
       soy: "Soja (Tofu, Sojasauce, Sojadrink)",
       eggs: "Eier und Eiprodukte",
+      egg: "Eier und Eiprodukte",
+      fish: "Fisch und Fischprodukte",
+      shellfish: "Schalentiere / Garnelen, Krabben, Muscheln, Hummer",
     };
     lines.push(
       "STRIKTE ALLERGEN-REGELN (absolut einhalten):",

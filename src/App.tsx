@@ -14,6 +14,7 @@ import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
 import { lazyWithReload } from "@/lib/lazyWithReload";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Lazy load all pages for better performance
 const Index = lazyWithReload(() => import("./pages/Index"));
@@ -54,17 +55,19 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   return (
     <>
       <OfflineIndicator />
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode={isMobile ? "sync" : "wait"} initial={false}>
         <motion.div
           key={location.pathname}
-          initial={{ opacity: 0, x: 34 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -22 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          initial={isMobile ? { opacity: 0 } : { opacity: 0, x: 34 }}
+          animate={isMobile ? { opacity: 1 } : { opacity: 1, x: 0 }}
+          exit={isMobile ? { opacity: 0 } : { opacity: 0, x: -22 }}
+          transition={isMobile ? { duration: 0.12, ease: "linear" } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="min-h-screen"
         >
           <Suspense fallback={<PageLoader />}>
             <Routes location={location}>

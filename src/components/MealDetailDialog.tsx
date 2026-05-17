@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, Flame, Beef, Wheat, Droplets, Check, Loader2 } from 'lucide-react';
@@ -54,6 +54,26 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
   const { addEntry } = useFoodEntries();
   const [isLogging, setIsLogging] = useState(false);
   const [isLogged, setIsLogged] = useState(false);
+  const dragStartRef = useRef<{ y: number; time: number } | null>(null);
+
+  const handleSheetHandlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    dragStartRef.current = { y: event.clientY, time: performance.now() };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleSheetHandlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const start = dragStartRef.current;
+    dragStartRef.current = null;
+    if (!start) return;
+
+    const deltaY = event.clientY - start.y;
+    const elapsed = Math.max(1, performance.now() - start.time);
+    const velocityY = deltaY / elapsed;
+
+    if (deltaY > 70 || velocityY > 0.65) {
+      onOpenChange(false);
+    }
+  };
 
   const handleLogMeal = async () => {
     if (!meal) return;
@@ -113,7 +133,18 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="left-0 top-auto bottom-0 max-h-[92dvh] w-full max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-t-[2rem] border-primary/20 bg-[#F7FAF7] p-0 shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] data-[state=open]:slide-in-from-bottom-full data-[state=closed]:slide-out-to-bottom-full data-[state=open]:slide-in-from-left-0 data-[state=closed]:slide-out-to-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-top-0 sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:max-h-[88vh] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-3xl">
-        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-300/80 sm:hidden" />
+        <button
+          type="button"
+          aria-label="Essensdetail nach unten ziehen zum Schließen"
+          onPointerDown={handleSheetHandlePointerDown}
+          onPointerUp={handleSheetHandlePointerUp}
+          onPointerCancel={() => {
+            dragStartRef.current = null;
+          }}
+          className="mx-auto mt-2 flex h-6 w-20 touch-none items-center justify-center rounded-full sm:hidden"
+        >
+          <span className="h-1.5 w-12 rounded-full bg-slate-300/80" />
+        </button>
         <div className="max-h-[92dvh] overflow-y-auto px-5 pb-28 pt-4 sm:max-h-[88vh] sm:px-6 sm:pb-24">
         <DialogHeader className="text-left">
           <Badge className="w-fit rounded-full bg-primary/10 text-primary border-primary/20 mb-2" variant="secondary">{meal.type}</Badge>

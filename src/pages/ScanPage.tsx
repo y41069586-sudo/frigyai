@@ -1,30 +1,20 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Upload, ArrowLeft, Camera, Crown, AlertCircle, Clock, ChefHat, ShoppingCart, Check, Sun, Moon } from "lucide-react";
+import { motion } from "framer-motion";
+import { Upload, ArrowLeft, Camera, Crown, Clock, ChefHat, Check, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import IngredientsList from "@/components/IngredientsList";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import CookingPrefsSelector from "@/components/CookingPrefsSelector";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useShoppingListSync } from "@/hooks/useShoppingListSync";
 import { useAICache } from "@/hooks/useAICache";
 import { checkImageQuality, ImageQualityResult } from "@/utils/imageQualityCheck";
 import { validateImageFileSize, VALIDATION_RULES } from "@/utils/validation";
-import { ScanResultActions } from "@/components/food-ai";
-import { generateWeekPlan, analyzeImage as analyzeImageMock } from "@/lib/food-ai/mock";
-import { assessFridgeForWeek } from "@/lib/food-ai/assessFridgeWeek";
-import type { UserGoal } from "@/lib/food-ai/types";
-import { setMealPlanShoppingSource } from "@/lib/mealPlanSource";
-import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
+import { analyzeImage as analyzeImageMock } from "@/lib/food-ai/mock";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { SHOPPING_CHECKED_NAMES_KEY } from "@/lib/shoppingSync";
-
-const MIN_INGREDIENTS_FOR_WEEKPLAN = 4;
 
 interface RecentDish {
   id: string;
@@ -34,204 +24,128 @@ interface RecentDish {
   date: string;
 }
 
+interface ScanShoppingItem {
+  name: string;
+  amount: string;
+  price: number;
+}
+
 const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, language } = useLanguage();
-  const { user, session, isPremium } = useAuth();
-  const { generateMealPlan } = useMealPlanGeneration();
-  const [uploading, setUploading] = useState(false);
+  const { user, isPremium } = useAuth();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
+  const [missingIngredients, setMissingIngredients] = useState<ScanShoppingItem[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
-  const [showPrefsSelector, setShowPrefsSelector] = useState(false);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
-  const [showLowIngredientConfirm, setShowLowIngredientConfirm] = useState(false);
-  const [lowIngredientProcessing, setLowIngredientProcessing] = useState(false);
-  const [lowIngredientReason, setLowIngredientReason] = useState("");
   const [pendingUpload, setPendingUpload] = useState<File[] | null>(null);
   const [recentDishes, setRecentDishes] = useState<RecentDish[]>([]);
-  const [syncedItems, setSyncedItems] = useState<string[]>([]);
   const [imageQualityIssue, setImageQualityIssue] = useState<ImageQualityResult | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
-  const [mealGoal, setMealGoal] = useState<UserGoal>(() => {
-    const s = localStorage.getItem("userFoodGoal") as UserGoal | null;
-    if (s === "lose" || s === "gain" || s === "maintain") return s;
-    return "maintain";
-  });
-  const [weekPlanLoading, setWeekPlanLoading] = useState(false);
-  const [weekPlanPhase, setWeekPlanPhase] = useState<"idle" | "planning">("idle");
 
-  const { syncWithScannedIngredients } = useShoppingListSync();
   const { getCached, setCached, cacheHits } = useAICache();
 
-  useEffect(() => {
-    localStorage.setItem("userFoodGoal", mealGoal);
-  }, [mealGoal]);
+  const normalizeIngredientName = (name: string) =>
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9äöüß\s]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-  const readMacroTargets = () => {
-    const raw = localStorage.getItem("userProfile");
-    if (raw) {
-      try {
-        const p = JSON.parse(raw);
-        return {
-          dailyCalories: Number(p.dailyCalories) || 2000,
-          dailyProtein: Number(p.dailyProtein) || 150,
-          dailyCarbs: Number(p.dailyCarbs) || 200,
-          dailyFat: Number(p.dailyFat) || 70,
-          mealsPerDay: Number(p.mealsPerDay) || 5,
-        };
-      } catch {
-        /* fallthrough */
+  const readShoppingSource = (): ScanShoppingItem[] => {
+    try {
+      const rawList = localStorage.getItem("weeklyShoppingList");
+      if (rawList) {
+        const parsed = JSON.parse(rawList) as ScanShoppingItem[];
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((item) => item?.name)
+            .map((item) => ({
+              name: item.name,
+              amount: item.amount || "—",
+              price: typeof item.price === "number" ? item.price : 0,
+            }));
+        }
       }
+    } catch {
+      /* fall through to meal plan */
     }
-    return {
-      dailyCalories: 2000,
-      dailyProtein: 150,
-      dailyCarbs: 200,
-      dailyFat: 70,
-      mealsPerDay: 5,
-    };
+
+    try {
+      const rawPlan = localStorage.getItem("weeklyMealPlan");
+      const plan = rawPlan ? JSON.parse(rawPlan) : [];
+      if (!Array.isArray(plan)) return [];
+
+      const map = new Map<string, ScanShoppingItem>();
+      plan.forEach((day: any) => {
+        day.meals?.forEach((meal: any) => {
+          meal.ingredients?.forEach((ingredient: ScanShoppingItem) => {
+            if (!ingredient?.name) return;
+            const key = normalizeIngredientName(ingredient.name);
+            if (!key || map.has(key)) return;
+            map.set(key, {
+              name: ingredient.name,
+              amount: ingredient.amount || "—",
+              price: typeof ingredient.price === "number" ? ingredient.price : 0,
+            });
+          });
+        });
+      });
+      return Array.from(map.values());
+    } catch {
+      return [];
+    }
   };
 
-  const handleGenerateWeekFromScan = async (forceProceed = false) => {
-    if (ingredients.length === 0) return;
-    let needsExtraIngredients = ingredients.length < MIN_INGREDIENTS_FOR_WEEKPLAN;
+  const ingredientMatches = (shoppingName: string, scannedName: string) => {
+    const shopping = normalizeIngredientName(shoppingName);
+    const scanned = normalizeIngredientName(scannedName);
+    if (!shopping || !scanned) return false;
+    if (shopping.includes(scanned) || scanned.includes(shopping)) return true;
+    return shopping
+      .split(" ")
+      .some((word) =>
+        word.length > 3 &&
+        scanned.split(" ").some((scannedWord) => scannedWord.length > 3 && (word.includes(scannedWord) || scannedWord.includes(word))),
+      );
+  };
 
-    if (!forceProceed && !needsExtraIngredients) {
-      try {
-        const assessment = await assessFridgeForWeek(ingredients);
-        if (!assessment.sufficient) {
-          needsExtraIngredients = true;
-          setLowIngredientReason(assessment.reason || "");
-        } else {
-          setLowIngredientReason("");
-        }
-      } catch {
-        /* fallback keeps default heuristic */
-      }
-    } else if (needsExtraIngredients) {
-      setLowIngredientReason("Zu wenig Vielfalt fuer 7 Tage erkannt.");
-    }
+  const applyScannedIngredientsToShoppingList = (nextIngredients: string[]) => {
+    localStorage.setItem("lastFridgeIngredientList", JSON.stringify(nextIngredients));
 
-    if (needsExtraIngredients && !forceProceed) {
-      setLowIngredientProcessing(false);
-      setShowLowIngredientConfirm(true);
+    const source = readShoppingSource();
+    if (source.length === 0) {
+      setMissingIngredients([]);
+      notifyFrigyStorageUpdated();
       return;
     }
-    if (needsExtraIngredients && forceProceed) {
-      setLowIngredientProcessing(true);
-      setShowLowIngredientConfirm(true);
-    }
-    setWeekPlanLoading(true);
-    setWeekPlanPhase("planning");
-    try {
-      // New fridge scan should always rebuild the shopping list from scratch.
-      localStorage.removeItem("weeklyShoppingList");
-      localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
-      notifyFrigyStorageUpdated();
 
-      const getMissingItemsCount = () => {
-        try {
-          const raw = localStorage.getItem("weeklyShoppingList");
-          if (!raw) return 0;
-          const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed.length : 0;
-        } catch {
-          return 0;
-        }
-      };
+    const missing = source.filter(
+      (item) => !nextIngredients.some((ingredient) => ingredientMatches(item.name, ingredient)),
+    );
 
-      localStorage.setItem("lastFridgeIngredientList", JSON.stringify(ingredients));
-      const macros = readMacroTargets();
-
-      if (session) {
-        const ok = await generateMealPlan(
-          {
-            dailyCalories: macros.dailyCalories,
-            dailyProtein: macros.dailyProtein,
-            dailyCarbs: macros.dailyCarbs,
-            dailyFat: macros.dailyFat,
-            mealsPerDay: macros.mealsPerDay,
-          },
-          { fridgeIngredients: ingredients },
-        );
-        if (ok) {
-          notifyFrigyStorageUpdated();
-          const missingCount = getMissingItemsCount();
-          toast({
-            title: "✅ Fertig!",
-            description: needsExtraIngredients
-              ? "Dein Wochenplan wurde mit sinnvollen Zusatz-Zutaten erstellt. Die Einkaufsliste zeigt dir alles, was noch fehlt."
-              : "Wochenplan und Einkaufsliste (nur fehlende Zutaten) sind im Wochenplan-Tab.",
-          });
-          if (missingCount > 0) {
-            toast({
-              title: "Fehlende Zutaten erkannt",
-              description: `${missingCount} Zutaten wurden zur Einkaufsliste hinzugefügt.`,
-            });
-          }
-          navigate("/meal-plans?tab=meals");
-        }
-        return;
-      }
-
-      const result = await generateWeekPlan(ingredients, mealGoal, macros);
-      const dayPlans = result.days.map((day) => ({
-        day: day.day,
-        meals: day.meals.map((m) => ({
-          type: m.type,
-          name: m.name,
-          calories: m.calories,
-          protein: m.protein,
-          carbs: m.carbs,
-          fat: m.fat,
-          prepTime: m.prepTime,
-          ingredients: m.ingredients.map((i) => ({ name: i.name, amount: i.amount, price: i.price ?? 0 })),
-          instructions: m.instructions,
-        })),
-      }));
-      const shopSimple = result.shoppingList.map(({ name, amount, price }) => ({ name, amount, price }));
-      localStorage.setItem("weeklyMealPlan", JSON.stringify(dayPlans));
-      localStorage.setItem("weeklyShoppingList", JSON.stringify(shopSimple));
-      if (result.scanMeta) {
-        localStorage.setItem(
-          "fridgeScanStats",
-          JSON.stringify({
-            percentHave: result.scanMeta.percentHave,
-            eurosSaved: result.scanMeta.eurosSaved,
-          }),
-        );
-      }
-      setMealPlanShoppingSource("frigy");
-      notifyFrigyStorageUpdated();
-      const missingCount = shopSimple.length;
-      toast({
-        title: "✅ Wochenplan gespeichert",
-        description: needsExtraIngredients
-          ? "Plan erstellt. Fehlende Zutaten wurden automatisch ergänzt und in die Einkaufsliste übernommen."
-          : "Einkaufsliste enthält nur Zutaten, die noch nicht im Kühlschrank sind.",
-      });
-      if (missingCount > 0) {
-        toast({
-          title: "Fehlende Zutaten erkannt",
-          description: `${missingCount} Zutaten wurden zur Einkaufsliste hinzugefügt.`,
-        });
-      }
-      navigate("/meal-plans?tab=meals");
-    } catch (e) {
-      console.error(e);
-      toast({ title: t.error, variant: "destructive" });
-    } finally {
-      setLowIngredientProcessing(false);
-      setShowLowIngredientConfirm(false);
-      setLowIngredientReason("");
-      setWeekPlanLoading(false);
-      setWeekPlanPhase("idle");
-    }
+    setMissingIngredients(missing);
+    localStorage.setItem("weeklyShoppingList", JSON.stringify(missing));
+    localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
+    notifyFrigyStorageUpdated();
   };
 
-  
+  const resetScanResult = () => {
+    setImagePreview(null);
+    setIngredients([]);
+    setMissingIngredients([]);
+    localStorage.removeItem("lastFridgeIngredientList");
+  };
+
+  const finishScanResult = () => {
+    applyScannedIngredientsToShoppingList(ingredients);
+    navigate("/meal-plans?tab=shopping");
+  };
+
   // Check if user is in onboarding mode (free trial scan)
   const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
     localStorage.getItem('onboardingScanUsed') !== 'true';
@@ -271,11 +185,7 @@ const ScanPage = () => {
       ]),
     );
     setIngredients(merged);
-    localStorage.setItem("lastFridgeIngredientList", JSON.stringify(merged));
-    if (merged.length > 0) {
-      const syncResult = syncWithScannedIngredients(merged);
-      setSyncedItems(syncResult.matchedItems);
-    }
+    applyScannedIngredientsToShoppingList(merged);
     return merged;
   };
 
@@ -307,8 +217,8 @@ const ScanPage = () => {
   const processImageUploads = async (files: File[]) => {
     if (files.length > 1) {
       setIngredients([]);
+      setMissingIngredients([]);
       localStorage.removeItem("lastFridgeIngredientList");
-      setSyncedItems([]);
     }
 
     for (const file of files) {
@@ -365,17 +275,11 @@ const ScanPage = () => {
     if (cachedResult) {
       console.log('[SCAN] Using cached result');
       const cachedIngredients = cachedResult.ingredients || [];
-      let nextList = cachedIngredients;
       if (append) {
-        nextList = mergeIngredients(cachedIngredients);
+        mergeIngredients(cachedIngredients);
       } else {
         setIngredients(cachedIngredients);
-        localStorage.setItem("lastFridgeIngredientList", JSON.stringify(cachedIngredients));
-      }
-      
-      if (cachedIngredients.length > 0) {
-        const syncResult = syncWithScannedIngredients(nextList);
-        setSyncedItems(syncResult.matchedItems);
+        applyScannedIngredientsToShoppingList(cachedIngredients);
       }
       
       toast({
@@ -385,7 +289,6 @@ const ScanPage = () => {
       return;
     }
 
-    setUploading(true);
     setAnalyzing(true);
     setScanProgress(0);
 
@@ -438,18 +341,11 @@ const ScanPage = () => {
       setCached(base64, data);
 
       const recognizedIngredients = data.ingredients || [];
-      let nextList = recognizedIngredients;
       if (append) {
-        nextList = mergeIngredients(recognizedIngredients);
+        mergeIngredients(recognizedIngredients);
       } else {
         setIngredients(recognizedIngredients);
-        localStorage.setItem("lastFridgeIngredientList", JSON.stringify(recognizedIngredients));
-      }
-      
-      // Sync mit Einkaufsliste
-      if (recognizedIngredients.length > 0) {
-        const syncResult = syncWithScannedIngredients(nextList);
-        setSyncedItems(syncResult.matchedItems);
+        applyScannedIngredientsToShoppingList(recognizedIngredients);
       }
       
       toast({
@@ -464,6 +360,7 @@ const ScanPage = () => {
           mergeIngredients(mockIngs);
         } else {
           setIngredients(mockIngs);
+          applyScannedIngredientsToShoppingList(mockIngs);
         }
         toast({
           title: "Demo-Analyse",
@@ -480,83 +377,10 @@ const ScanPage = () => {
       clearInterval(progressInterval);
       setScanProgress(100);
       setTimeout(() => {
-        setUploading(false);
         setAnalyzing(false);
         setScanProgress(0);
       }, 300);
     }
-  };
-
-  const handleGenerateRecipes = () => {
-    setShowPrefsSelector(true);
-  };
-
-  const handlePrefsConfirm = (cookingTime: number, mood: 'tired' | 'normal' | 'motivated' | 'stressed') => {
-    // Lade aktuelles Makro-Budget aus localStorage
-    const storedProfile = localStorage.getItem('userProfile');
-    const storedMacros = localStorage.getItem('todayMacros');
-    
-    let macroBudget = undefined;
-    let userProfile = undefined;
-    
-    if (storedProfile) {
-      try {
-        const profile = JSON.parse(storedProfile);
-        userProfile = {
-          goalMode: profile.goalMode,
-          age: profile.age,
-          weight: profile.weight,
-        };
-        
-        // Berechne restliches Budget
-        const todayMacros = storedMacros ? JSON.parse(storedMacros) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-        macroBudget = {
-          remainingCalories: Math.max(0, (profile.dailyCalories || 2000) - (todayMacros.calories || 0)),
-          remainingProtein: Math.max(0, (profile.dailyProtein || 150) - (todayMacros.protein || 0)),
-          remainingCarbs: Math.max(0, (profile.dailyCarbs || 200) - (todayMacros.carbs || 0)),
-          remainingFat: Math.max(0, (profile.dailyFat || 70) - (todayMacros.fat || 0)),
-        };
-      } catch (e) {
-        console.error('Error parsing profile:', e);
-      }
-    }
-    
-    navigate("/recipes", { 
-      state: { 
-        ingredients, 
-        cookingTime, 
-        mood,
-        macroBudget,
-        userProfile,
-        mealToReplace: 'Mittagessen', // Standard-Mahlzeit
-      } 
-    });
-  };
-
-  // Berechne Makro-Budget für die Anzeige
-  const getMacroBudget = () => {
-    const storedProfile = localStorage.getItem('userProfile');
-    const storedMacros = localStorage.getItem('todayMacros');
-    
-    if (storedProfile) {
-      try {
-        const profile = JSON.parse(storedProfile);
-        const todayMacros = storedMacros ? JSON.parse(storedMacros) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-        return {
-          remainingCalories: Math.max(0, (profile.dailyCalories || 2000) - (todayMacros.calories || 0)),
-          remainingProtein: Math.max(0, (profile.dailyProtein || 150) - (todayMacros.protein || 0)),
-          remainingCarbs: Math.max(0, (profile.dailyCarbs || 200) - (todayMacros.carbs || 0)),
-          remainingFat: Math.max(0, (profile.dailyFat || 70) - (todayMacros.fat || 0)),
-        };
-      } catch (e) {
-        return undefined;
-      }
-    }
-    return undefined;
-  };
-
-  const handlePrefsBack = () => {
-    setShowPrefsSelector(false);
   };
 
   // language and t already destructured at line 27
@@ -853,79 +677,77 @@ const ScanPage = () => {
               </div>
 
               {!analyzing && (
-                <AnimatePresence mode="wait">
-                  {showPrefsSelector ? (
-                    <motion.div
-                      key="prefs"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                    >
-                      <CookingPrefsSelector
-                        onConfirm={handlePrefsConfirm}
-                        onBack={handlePrefsBack}
-                        macroBudget={getMacroBudget()}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="ingredients"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="space-y-6"
-                    >
-                      {/* Synced Shopping List Items */}
-                      {syncedItems.length > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="p-4 rounded-xl bg-green-500/10 border border-green-500/20"
+                <motion.div
+                  key="ingredients"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <Card className="p-4 bg-card/90 border-primary/20">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h2 className="text-base font-bold">Vorhandene Zutaten</h2>
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                        {ingredients.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {ingredients.map((ingredient) => (
+                        <span
+                          key={ingredient}
+                          className="inline-flex items-center gap-1 rounded-full bg-green-500/12 px-3 py-1.5 text-sm font-medium text-green-700"
                         >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-full bg-green-500/20">
-                              <ShoppingCart className="h-4 w-4 text-green-500" />
-                            </div>
-                            <span className="font-medium text-green-600 dark:text-green-400">
-                              Von Einkaufsliste abgehakt
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {syncedItems.map((item, i) => (
-                              <span 
-                                key={i}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 text-green-700 dark:text-green-300 text-sm"
-                              >
-                                <Check className="h-3 w-3" />
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
+                          <Check className="h-3.5 w-3.5" />
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  </Card>
 
-                      {/* Ingredients List */}
-                      <IngredientsList
-                        ingredients={ingredients}
-                        onIngredientsChange={setIngredients}
-                      />
+                  <Card className="p-4 bg-card/90 border-amber-500/20">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h2 className="text-base font-bold">Fehlende Zutaten</h2>
+                      <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600">
+                        {missingIngredients.length}
+                      </span>
+                    </div>
+                    {missingIngredients.length > 0 ? (
+                      <div className="space-y-2">
+                        {missingIngredients.map((item) => (
+                          <div
+                            key={`${item.name}-${item.amount}`}
+                            className="flex items-center justify-between gap-3 rounded-2xl bg-amber-500/8 px-3 py-2 text-sm"
+                          >
+                            <span className="min-w-0 font-medium">{item.name}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{item.amount}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Keine fehlenden Zutaten erkannt.
+                      </p>
+                    )}
+                  </Card>
 
-                      {ingredients.length > 0 && (
-                        <ScanResultActions
-                          onWeekPlan={handleGenerateWeekFromScan}
-                          onNewPhoto={() => {
-                            setImagePreview(null);
-                            setIngredients([]);
-                            setShowPrefsSelector(false);
-                          }}
-                          loading={weekPlanLoading}
-                          planPhase={weekPlanPhase}
-                          planningLabel={t.creatingWeeklyPlanFromScan}
-                        />
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      className="h-12 rounded-2xl bg-primary text-primary-foreground"
+                      onClick={finishScanResult}
+                    >
+                      Fertig
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-12 rounded-2xl"
+                      onClick={resetScanResult}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Neues Foto
+                    </Button>
+                  </div>
+                </motion.div>
               )}
             </motion.div>
           )}
@@ -967,60 +789,6 @@ const ScanPage = () => {
               {language === 'de' ? 'Zulassen' : 'Allow'}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation shown only when ingredients are too low */}
-      <Dialog
-        open={showLowIngredientConfirm}
-        onOpenChange={(open) => {
-          if (!lowIngredientProcessing) {
-            setShowLowIngredientConfirm(open);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-              Zu wenig Zutaten fuer Wochenplan
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              Die erkannten Zutaten reichen nicht fuer einen vollstaendigen Wochenplan.
-            </p>
-            {lowIngredientReason && (
-              <p className="text-sm text-muted-foreground">{lowIngredientReason}</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Wir koennen fehlende Zutaten automatisch ergaenzen und direkt zu deiner Einkaufsliste hinzufuegen.
-            </p>
-          </div>
-          {lowIngredientProcessing ? (
-            <div className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 animate-spin" />
-              Wochenplan wird erstellt...
-            </div>
-          ) : (
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowLowIngredientConfirm(false)}
-              >
-                Abbrechen
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  void handleGenerateWeekFromScan(true);
-                }}
-              >
-                Weiter
-              </Button>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>

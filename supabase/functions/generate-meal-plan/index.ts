@@ -23,6 +23,51 @@ function normalizeIngredientKey(name: string): string {
     .trim();
 }
 
+const ALLERGY_PATTERNS: Record<string, RegExp> = {
+  gluten: /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel)/i,
+  wheat: /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel)/i,
+  lactose: /(milch|käse|joghurt|quark|sahne|butter|mozzarella|parmesan|frischkäse|griechisch|emmental|cheddar|ricotta|schmand|crème|crème fraîche)/i,
+  milk: /(milch|käse|joghurt|quark|sahne|butter|mozzarella|parmesan|frischkäse|griechisch|emmental|cheddar|ricotta|schmand|crème|crème fraîche)/i,
+  nuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|müsli|musliriegel)/i,
+  peanuts: /(erdnuss|erdnüsse|peanut|peanuts|erdnussbutter|erdnussmus)/i,
+  treeNuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
+  "tree-nuts": /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
+  soy: /(soja|soy|tofu|tempeh|edamame|sojasauce)/i,
+  eggs: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
+  egg: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
+  fish: /(fisch|lachs|thunfisch|forelle|seelachs|kabeljau|sardine|makrele)/i,
+  shellfish: /(garnele|garnelen|shrimp|krabbe|krebs|hummer|muschel|auster|scampi)/i,
+};
+
+function mealTextBlob(meal: any): string {
+  return `${meal?.name ?? ""} ${(meal?.ingredients ?? []).map((i: any) => i?.name ?? "").join(" ")}`.toLowerCase();
+}
+
+function findSafetyViolations(mealPlan: any[], allergies: string[], dietaryPreferences: string[], allergiesOther: string) {
+  const unsafe: string[] = [];
+  const customTerms = String(allergiesOther || "")
+    .toLowerCase()
+    .split(/[,;/\n]+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 3);
+
+  for (const day of mealPlan || []) {
+    for (const meal of day.meals || []) {
+      const blob = mealTextBlob(meal);
+      const violations: string[] = [];
+      for (const allergy of allergies || []) {
+        if (!allergy || allergy === "none" || allergy === "other") continue;
+        if (ALLERGY_PATTERNS[allergy]?.test(blob)) violations.push(allergy);
+      }
+      if (customTerms.some((term) => blob.includes(term))) violations.push("other");
+      if (dietaryPreferences?.includes("vegan") && /(milch|käse|ei|eier|joghurt|quark|butter|sahne|honig|fleisch|hähnchen|lachs|fisch|thunfisch|wurst|hack|speck|schinken|schnitzel|schwein|pute)/i.test(blob)) violations.push("vegan");
+      if (dietaryPreferences?.includes("vegetarian") && /(hackfleisch|hähnchen|pute|schwein|fleisch|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell|lachs|thunfisch|fisch)/i.test(blob)) violations.push("vegetarian");
+      if (violations.length) unsafe.push(`${day.day}: ${meal.name} (${[...new Set(violations)].join(", ")})`);
+    }
+  }
+  return unsafe;
+}
+
 function stemToken(token: string): string {
   return token
     .replace(/(chen|lein)$/i, "")
@@ -209,6 +254,13 @@ Deno.serve(async (req) => {
     const fridgeIngredients = Array.isArray(body.fridgeIngredients)
       ? body.fridgeIngredients.map((s: unknown) => String(s).trim()).filter(Boolean)
       : [];
+    const allergies = Array.isArray(body.allergies)
+      ? body.allergies.map((s: unknown) => String(s).trim()).filter(Boolean)
+      : [];
+    const dietaryPreferences = Array.isArray(body.dietaryPreferences)
+      ? body.dietaryPreferences.map((s: unknown) => String(s).trim()).filter(Boolean)
+      : [];
+    const allergiesOther = typeof body.allergiesOther === "string" ? body.allergiesOther.trim() : "";
 
     const fridgeHint =
       fridgeIngredients.length > 0
@@ -307,6 +359,10 @@ Antwort NUR als JSON:
       dailyFat,
     });
     mealPlan = enforceMacroEnergyConsistency(mealPlan);
+    const unsafeMeals = findSafetyViolations(mealPlan, allergies, dietaryPreferences, allergiesOther);
+    if (unsafeMeals.length > 0) {
+      throw new Error(`Allergy safety validation failed: ${unsafeMeals.slice(0, 5).join("; ")}`);
+    }
 
     const shoppingList = generateGapShoppingList(mealPlan, fridgeIngredients);
     const scanMeta = computeScanMeta(mealPlan, fridgeIngredients, shoppingList);

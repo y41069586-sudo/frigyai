@@ -3,9 +3,9 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  TrendingDown,
-  TrendingUp,
-  Minus,
+  Dumbbell,
+  Flame,
+  Scale,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -71,9 +71,9 @@ export function MainGoalSelectStep({
     titleB: string;
     Icon: LucideIcon;
   }[] = [
-    { id: "lose", titleA: L.lose.a, titleB: L.lose.b, Icon: TrendingDown },
-    { id: "maintain", titleA: L.maintain.a, titleB: L.maintain.b, Icon: Minus },
-    { id: "gain", titleA: L.gain.a, titleB: L.gain.b, Icon: TrendingUp },
+    { id: "lose", titleA: L.lose.a, titleB: L.lose.b, Icon: Flame },
+    { id: "maintain", titleA: L.maintain.a, titleB: L.maintain.b, Icon: Scale },
+    { id: "gain", titleA: L.gain.a, titleB: L.gain.b, Icon: Dumbbell },
   ];
 
   const selected = userData.goalMode ?? null;

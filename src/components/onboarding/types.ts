@@ -26,7 +26,6 @@ export type OnboardingStep =
   | "weight"
   | "height"
   | "activity"
-  | "apple-health-connect"
   | "main-goal"
   | "goal-preview"
   | "goal-mode"
@@ -150,7 +149,6 @@ export const onboardingSteps: OnboardingStep[] = [
   "weight",
   "height",
   "activity",
-  "apple-health-connect",
   "main-goal",
   "target-weight",
   "goal-preview",
@@ -162,6 +160,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "scan-fridge",
   "shopping-list",
   "health-sync",
+  "notification-prefs",
 ];
 
 /** Steps after splash: mint fullscreen body (no global progress bar). */

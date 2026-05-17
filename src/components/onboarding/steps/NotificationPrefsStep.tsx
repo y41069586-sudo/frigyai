@@ -1,131 +1,197 @@
 import { motion } from "framer-motion";
-import { StepCard } from "../components";
-import { StepProps } from "../types";
-import { Bell, Droplets, Scale, Utensils } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Bell, ChevronLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import notificationOnboarding from "@/assets/notification-onboarding.png";
+import type { StepProps } from "../types";
 
-export const NotificationPrefsStep = ({ userData, setUserData }: StepProps) => {
+const PALETTE = {
+  primary: "#1ED78A",
+  primaryDark: "#18A872",
+  bg: "#FFFFFF",
+  text: "#101827",
+  muted: "#53645C",
+};
+
+type NotificationPermissionState = "granted" | "denied" | "prompt";
+
+export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }: StepProps) => {
   const { language } = useLanguage();
-  
-  const notifications = [
-    { 
-      id: 'meals' as const, 
-      label: language === 'de' ? 'Mahlzeiten' : language === 'fr' ? 'Repas' : 'Meals', 
-      desc: language === 'de' ? 'Erinnere mich ans Essen loggen' : language === 'fr' ? 'Rappel de noter les repas' : 'Remind me to log meals',
-      icon: Utensils,
-      color: 'text-orange-500'
-    },
-    { 
-      id: 'water' as const, 
-      label: language === 'de' ? 'Wasser trinken' : language === 'fr' ? 'Boire de l\'eau' : 'Drink water', 
-      desc: language === 'de' ? 'Regelmäßige Trink-Erinnerungen' : language === 'fr' ? 'Rappels réguliers de boire' : 'Regular drink reminders',
-      icon: Droplets,
-      color: 'text-blue-500'
-    },
-    { 
-      id: 'weight' as const, 
-      label: language === 'de' ? 'Tägliches Wiegen' : language === 'fr' ? 'Pesée quotidienne' : 'Daily weigh-in', 
-      desc: language === 'de' ? 'Morgens ans Wiegen erinnern' : language === 'fr' ? 'Rappel de pesée le matin' : 'Morning weigh reminder',
-      icon: Scale,
-      color: 'text-purple-500'
-    },
-  ];
 
-  const toggleNotification = (key: 'meals' | 'water' | 'weight') => {
+  const copy = {
+    de: {
+      app: "Frigy",
+      notifTitle: "Es ist Mittagszeit 🥗",
+      notifBody: "Mahlzeit vergessen? Ein Foto reicht - logge sie jetzt!",
+      title: "ERREICHE DEINE ZIELE MIT BENACHRICHTIGUNGEN",
+      body: "Erinnerungen helfen dir, Mahlzeiten, Wasser und Gewicht nicht zu vergessen.",
+      later: "Nicht jetzt",
+      enable: "Aktivieren",
+      settingsHint: "Bitte aktiviere Benachrichtigungen in den App-Einstellungen deines Geräts.",
+    },
+    en: {
+      app: "Frigy",
+      notifTitle: "It's lunch time 🥗",
+      notifBody: "Missed logging your meal? It only takes a second - snap it now!",
+      title: "REACH YOUR GOALS WITH NOTIFICATIONS",
+      body: "Reminders help you keep meals, water and weight tracking on your radar.",
+      later: "Not now",
+      enable: "Enable",
+      settingsHint: "Please enable notifications in your device's app settings.",
+    },
+    fr: {
+      app: "Frigy",
+      notifTitle: "C'est l'heure du repas 🥗",
+      notifBody: "Tu as oublié de noter ton repas ? Une photo suffit.",
+      title: "ATTEINS TES OBJECTIFS AVEC LES NOTIFICATIONS",
+      body: "Les rappels t'aident à suivre tes repas, ton eau et ton poids.",
+      later: "Pas maintenant",
+      enable: "Activer",
+      settingsHint: "Active les notifications dans les paramètres de l'appareil.",
+    },
+  } as const;
+
+  const t = copy[(language as "de" | "en" | "fr")] ?? copy.de;
+
+  const setAllNotifications = (enabled: boolean) => {
     setUserData({
       ...userData,
       notificationPrefs: {
         ...userData.notificationPrefs,
-        [key]: !userData.notificationPrefs[key]
-      }
+        meals: enabled,
+        water: enabled,
+        weight: enabled,
+      },
     });
   };
 
+  const showSettingsHint = () => {
+    window.alert(t.settingsHint);
+  };
+
+  const requestNativeNotificationPermission = async () => {
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const current = await LocalNotifications.checkPermissions();
+    if (current.display === "granted") return true;
+
+    const result = await LocalNotifications.requestPermissions();
+    const granted = result.display === "granted";
+    if (!granted) showSettingsHint();
+    return granted;
+  };
+
+  const requestWebNotificationPermission = async () => {
+    if (!("Notification" in window)) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") {
+      showSettingsHint();
+      return false;
+    }
+
+    const result = (await Notification.requestPermission()) as NotificationPermissionState;
+    const granted = result === "granted";
+    if (!granted) showSettingsHint();
+    return granted;
+  };
+
+  const enableNotifications = async () => {
+    try {
+      const granted = Capacitor.isNativePlatform()
+        ? await requestNativeNotificationPermission()
+        : await requestWebNotificationPermission();
+      setAllNotifications(granted);
+    } catch {
+      showSettingsHint();
+      setAllNotifications(false);
+    }
+    goNext();
+  };
+
+  const skipNotifications = () => {
+    setAllNotifications(false);
+    goNext();
+  };
+
   return (
-    <StepCard step="notification-prefs">
-      <div className="flex flex-col items-center text-center px-6 w-full">
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4"
+    <div
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
+      style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
+    >
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.92 }}
+          onClick={goBack}
+          aria-label="Zurück"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
+          style={{
+            backgroundColor: "#DCF5EA",
+            color: PALETTE.primaryDark,
+            boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
+          }}
         >
-          <Bell className="w-8 h-8 text-primary" />
-        </motion.div>
-        
-        <motion.h1
-          className="text-2xl font-bold mb-1"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
-        >
-          {language === 'de' ? 'Erinnerungen' : language === 'fr' ? 'Rappels' : 'Reminders'}
-        </motion.h1>
-        <motion.p
-          className="text-muted-foreground/50 text-xs mb-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
-        >
-          {language === 'de' ? 'Woran sollen wir dich erinnern?' : language === 'fr' ? 'À quoi devons-nous te rappeler?' : 'What should we remind you about?'}
-        </motion.p>
-        
-        <div className="w-full max-w-sm space-y-3">
-          {notifications.map((item, index) => {
-            const Icon = item.icon;
-            const isEnabled = userData.notificationPrefs[item.id];
-            
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + index * 0.08, duration: 0.3, ease: "easeOut" }}
-                className="flex items-center justify-between p-4 rounded-2xl border-2 border-border bg-card"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${item.color}`} />
-                  </div>
-                  <div className="text-left">
-                    <span className="font-medium block text-sm">{item.label}</span>
-                    <span className="text-[10px] text-muted-foreground/50">{item.desc}</span>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => toggleNotification(item.id)}
-                  className={`w-12 h-7 rounded-full transition-all duration-200 ${
-                    isEnabled ? "bg-primary" : "bg-muted"
-                  }`}
-                >
-                  <motion.div
-                    className="w-5 h-5 bg-white rounded-full shadow-sm"
-                    animate={{ x: isEnabled ? 22 : 2 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                  />
-                </button>
-              </motion.div>
-            );
-          })}
-        </div>
-        
-        <motion.p
-          className="text-xs text-muted-foreground/40 mt-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.3 }}
-        >
-          {language === 'de' ? 'Erinnerungen helfen 94% der Nutzer, ihre Ziele zu erreichen' : language === 'fr' ? 'Les rappels aident 94% des utilisateurs à atteindre leurs objectifs' : 'Reminders help 94% of users reach their goals'}
-        </motion.p>
-        <p className="text-[10px] text-muted-foreground/50 mt-3 max-w-sm mx-auto leading-snug">
-          {language === 'de'
-            ? 'Tipp: Unter Einstellungen → Erinnerungen kannst du die Browser-Berechtigung für Push-Benachrichtigungen erteilen – dann funktionieren die Erinnerungen zuverlässig.'
-            : language === 'fr'
-              ? 'Astuce : dans Réglages → Rappels, autorise les notifications du navigateur pour des rappels fiables.'
-              : 'Tip: In Settings → Reminders, allow browser notifications so reminders work reliably.'}
-        </p>
+          <ChevronLeft className="size-5" strokeWidth={2.4} />
+        </motion.button>
       </div>
-    </StepCard>
+
+      <div className="flex min-h-0 flex-1 flex-col px-4 pb-24">
+        <div className="relative z-10 -mx-4 flex h-[315px] shrink-0 items-start justify-center overflow-hidden bg-white pt-0 max-[380px]:h-[285px]">
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-[390px]"
+          >
+            <img
+              src={notificationOnboarding}
+              alt=""
+              className="block w-full select-none object-contain"
+              draggable={false}
+            />
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.4 }}
+          className="relative z-0 -mx-4 flex-1 rounded-t-[2rem] bg-white px-4 pt-6 pb-24 max-[380px]:pt-5"
+        >
+          <div>
+            <h1 className="max-w-[300px] text-[18px] font-black uppercase leading-[1.08] tracking-[-0.05em] text-black max-[380px]:text-[17px]">
+              {t.title}
+            </h1>
+            <p className="mt-3 max-w-[310px] text-[13px] font-medium leading-snug tracking-[-0.025em] text-[#53645C] max-[380px]:text-[12px]">
+              {t.body}
+            </p>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.35rem] bg-[#DCF5EA] shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">
+          <Bell className="h-5 w-5" style={{ color: PALETTE.primaryDark }} />
+        </div>
+        <div className="pointer-events-auto grid h-12 w-[58%] max-w-[230px] shrink-0 grid-cols-2 overflow-hidden rounded-[1.35rem] border-2 border-black bg-white shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={skipNotifications}
+          className="h-full bg-white text-[12px] font-bold text-black min-[380px]:text-[13px]"
+        >
+          {t.later}
+        </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={enableNotifications}
+          className="h-full text-[12px] font-bold text-white min-[380px]:text-[13px]"
+          style={{ background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)` }}
+        >
+          {t.enable}
+        </motion.button>
+        </div>
+      </div>
+    </div>
   );
 };

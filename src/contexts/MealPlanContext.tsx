@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
 import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
-import { buildGermanConstraintPrompt } from '@/lib/mealAllergySafety';
+import { buildGermanConstraintPrompt, findMealSafetyViolations } from '@/lib/mealAllergySafety';
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 
 function readUserProfileDiet(): { allergies: string[]; allergiesOther: string; dietaryPreferences: string[] } {
@@ -22,6 +22,27 @@ function readUserProfileDiet(): { allergies: string[]; allergiesOther: string; d
   } catch {
     return { allergies: [], allergiesOther: '', dietaryPreferences: [] };
   }
+}
+
+function findUnsafeMeals(
+  plan: DayPlan[],
+  diet: { allergies: string[]; allergiesOther: string; dietaryPreferences: string[] },
+): string[] {
+  const unsafe: string[] = [];
+  for (const day of plan || []) {
+    for (const meal of day.meals || []) {
+      const violations = findMealSafetyViolations(
+        meal,
+        diet.allergies,
+        diet.dietaryPreferences,
+        diet.allergiesOther,
+      );
+      if (violations.length > 0) {
+        unsafe.push(`${day.day}: ${meal.name} (${violations.join(', ')})`);
+      }
+    }
+  }
+  return unsafe;
 }
 
 interface Ingredient {
@@ -378,6 +399,16 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const newPlan = (data as any).mealPlan;
           const newShoppingList = (data as any).shoppingList || [];
+          const unsafeMeals = findUnsafeMeals(newPlan, diet);
+
+          if (unsafeMeals.length > 0) {
+            console.error('[MEAL-PLAN-SAFETY] Unsafe meals returned:', unsafeMeals);
+            throw new Error(
+              `Der generierte Plan enthält Zutaten, die nicht zu deinen Allergien/Unverträglichkeiten passen: ${unsafeMeals
+                .slice(0, 3)
+                .join('; ')}. Bitte Plan erneut generieren.`,
+            );
+          }
 
           // Debug: Check if ingredients are present
           console.log('[MEAL-PLAN] Generated plan structure:', {

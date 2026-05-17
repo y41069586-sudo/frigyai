@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import {
   checkHealthSyncAvailability,
   isNativeHealthPlatform,
@@ -131,10 +132,19 @@ export function useHealthConnect(): UseHealthConnectReturn {
   }, [isNativeApp, platform]);
 
   const syncHealthData = useCallback(async () => {
-    if (!isConnected) return;
-
     setIsLoading(true);
     try {
+      if (!isConnected) {
+        const savedState = localStorage.getItem('healthConnectState');
+        let savedConnected = false;
+        try {
+          savedConnected = savedState ? JSON.parse(savedState)?.isConnected === true : false;
+        } catch {
+          savedConnected = false;
+        }
+        if (!savedConnected && !isNativeApp) return;
+      }
+
       const data = await syncNativeHealthData();
 
       if (!data || (data.weight == null && data.steps == null && data.caloriesBurned == null)) {
@@ -147,6 +157,7 @@ export function useHealthConnect(): UseHealthConnectReturn {
 
       if (data.steps != null) {
         persistSyncedSteps(data.steps);
+        notifyFrigyStorageUpdated();
       }
 
       setHealthData(data);
@@ -162,7 +173,7 @@ export function useHealthConnect(): UseHealthConnectReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected]);
+  }, [isConnected, isNativeApp]);
 
   const disconnect = useCallback(() => {
     setIsConnected(false);

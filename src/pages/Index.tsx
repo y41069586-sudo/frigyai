@@ -26,6 +26,7 @@ import {
 import frigyLogo from "@/assets/frigy-mascot.png";
 import { AIChatbot } from "@/components/AIChatbot";
 import type { MealFocusKey } from "@/lib/mealFocus";
+import { useGamification } from "@/hooks/useGamification";
 import {
   WATER_GLASSES_CHANGED,
   WATER_GOAL_CUPS_CHANGED,
@@ -39,6 +40,7 @@ const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription } = useAuth();
   const { t, language } = useLanguage();
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const { streak, recordActivity, checkAndAwardBadge } = useGamification();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
@@ -105,6 +107,10 @@ const Index = () => {
     };
     fetchStreak();
   }, [user]);
+
+  useEffect(() => {
+    setCurrentStreak(streak.current_streak || 0);
+  }, [streak.current_streak]);
   
   // Fetch water intake
   useEffect(() => {
@@ -152,8 +158,14 @@ const Index = () => {
 
   const updateWaterGlasses = async (newGlasses: number) => {
     if (!user) return;
+    const previousMl = waterGlasses * 250;
+    const nextMl = newGlasses * 250;
     setWaterGlasses(newGlasses);
     dispatchWaterGlassesChanged(newGlasses);
+    if (previousMl < 2000 && nextMl >= 2000) {
+      void recordActivity();
+      void checkAndAwardBadge('water_goal');
+    }
     const today = new Date().toISOString().split("T")[0];
     try {
       const { error } = await supabase.from("water_intake").upsert(

@@ -4,6 +4,7 @@ import { ShoppingBag, ArrowRight, Check, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ShoppingItem {
   name: string;
@@ -13,6 +14,7 @@ interface ShoppingItem {
 export const DashboardShoppingCard = () => {
   const navigate = useNavigate();
   const { isPremium } = useAuth();
+  const isMobile = useIsMobile();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState(0);
@@ -92,7 +94,7 @@ export const DashboardShoppingCard = () => {
     <motion.div
       onClick={handleClick}
       className="relative overflow-hidden p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent rounded-2xl border border-emerald-500/20 cursor-pointer group"
-      whileHover={{ scale: 1.02, y: -2 }}
+      whileHover={isMobile ? undefined : { scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
@@ -120,9 +122,10 @@ export const DashboardShoppingCard = () => {
             <div className="h-1.5 bg-emerald-500/15 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: progressPercent / 100 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
+                style={{ transformOrigin: "left" }}
               />
             </div>
           </>

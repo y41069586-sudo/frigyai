@@ -30,6 +30,7 @@ export const WheelPicker = ({
   const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProgrammaticScrollRef = useRef(false);
   const lastHapticValueRef = useRef(value);
+  const isTouchActiveRef = useRef(false);
 
   const itemHeight = 48;
   const visibleItems = 3;
@@ -92,7 +93,39 @@ export const WheelPicker = ({
     }
   }, [value, getIndexFromValue, scrollToIndex]);
 
-  // Handle scroll with improved snapping
+  const commitNearestValue = useCallback(() => {
+    if (!scrollRef.current) return;
+
+    const currentScrollTop = scrollRef.current.scrollTop;
+    const nearestIndex = Math.round(currentScrollTop / itemHeight);
+    const clampedIndex = Math.max(0, Math.min(items.length - 1, nearestIndex));
+    const targetScrollTop = clampedIndex * itemHeight;
+    const snappedValue = items[clampedIndex];
+
+    isScrollingRef.current = false;
+    if (snappedValue !== lastValueRef.current) {
+      lastValueRef.current = snappedValue;
+      setSelectedValue(snappedValue);
+      onChange(snappedValue);
+    }
+
+    if (Math.abs(currentScrollTop - targetScrollTop) > 1) {
+      scrollRef.current.scrollTo({ top: targetScrollTop, behavior: 'auto' });
+    }
+  }, [itemHeight, items, onChange]);
+
+  const scheduleCommitNearestValue = useCallback((delayMs = 160) => {
+    if (scrollEndTimeoutRef.current) {
+      clearTimeout(scrollEndTimeoutRef.current);
+    }
+
+    scrollEndTimeoutRef.current = setTimeout(() => {
+      if (isTouchActiveRef.current) return;
+      commitNearestValue();
+    }, delayMs);
+  }, [commitNearestValue]);
+
+  // Handle scroll without native snapping while the finger is still down.
   const handleScroll = useCallback(() => {
     if (isProgrammaticScrollRef.current) return;
     if (!scrollRef.current) return;
@@ -113,27 +146,22 @@ export const WheelPicker = ({
       lastHapticValueRef.current = newValue;
     }
 
-    scrollEndTimeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
+    if (!isTouchActiveRef.current) {
+      scheduleCommitNearestValue();
+    }
+  }, [getValueFromScrollPosition, scheduleCommitNearestValue]);
 
-      const currentScrollTop = scrollRef.current.scrollTop;
-      const nearestIndex = Math.round(currentScrollTop / itemHeight);
-      const clampedIndex = Math.max(0, Math.min(items.length - 1, nearestIndex));
-      const targetScrollTop = clampedIndex * itemHeight;
-      const snappedValue = items[clampedIndex];
+  const handleTouchStart = useCallback(() => {
+    isTouchActiveRef.current = true;
+    if (scrollEndTimeoutRef.current) {
+      clearTimeout(scrollEndTimeoutRef.current);
+    }
+  }, []);
 
-      isScrollingRef.current = false;
-      if (snappedValue !== lastValueRef.current) {
-        lastValueRef.current = snappedValue;
-        setSelectedValue(snappedValue);
-        onChange(snappedValue);
-      }
-
-      if (Math.abs(currentScrollTop - targetScrollTop) > 1) {
-        scrollRef.current.scrollTo({ top: targetScrollTop, behavior: 'auto' });
-      }
-    }, 190);
-  }, [getValueFromScrollPosition, onChange, itemHeight, items]);
+  const handleTouchEnd = useCallback(() => {
+    isTouchActiveRef.current = false;
+    scheduleCommitNearestValue(80);
+  }, [scheduleCommitNearestValue]);
 
   // Handle direct item click
   const handleItemClick = useCallback((item: number) => {
@@ -193,7 +221,7 @@ export const WheelPicker = ({
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide select-none"
         style={{
-          scrollSnapType: 'y proximity',
+          scrollSnapType: 'none',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
           scrollBehavior: 'auto',
@@ -204,6 +232,9 @@ export const WheelPicker = ({
           transform: 'translateZ(0)', // GPU acceleration
         } as React.CSSProperties}
         onScroll={handleScroll}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         {/* Top padding */}
         <div style={{ height: paddingItems * itemHeight }} />
@@ -222,7 +253,7 @@ export const WheelPicker = ({
               }`}
               style={{
                 height: itemHeight,
-                scrollSnapAlign: 'center',
+                scrollSnapAlign: 'none',
                 fontSize: isSelected ? '1.5rem' : '1rem',
                 opacity,
                 transform: isSelected ? 'scale(1.05)' : 'scale(0.9)',

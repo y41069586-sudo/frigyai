@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { memo, useMemo } from "react";
+import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
+import { useHealthConnect } from "@/hooks/useHealthConnect";
 
 type StepsWidgetProps = {
   steps: number;
@@ -16,6 +18,7 @@ export const StepsWidget = memo(function StepsWidget({
   delay = 0,
   onToggleExpand,
 }: StepsWidgetProps) {
+  const { isNativeApp, isConnected, isLoading, requestPermissions, syncHealthData } = useHealthConnect();
   const healthSyncProvider = useMemo(() => {
     try {
       const raw = localStorage.getItem("onboardingUserData") || localStorage.getItem("userProfile");
@@ -26,12 +29,27 @@ export const StepsWidget = memo(function StepsWidget({
       return null;
     }
   }, []);
-  const addSteps = () => {
+  const addSteps = async () => {
+    if (isLoading) return;
+
+    if (isNativeApp) {
+      const connected = isConnected || await requestPermissions();
+      if (connected) {
+        await syncHealthData();
+      }
+      return;
+    }
+
+    const key = `frigy_steps_${new Date().toISOString().split("T")[0]}`;
+    const current = parseInt(localStorage.getItem(key) || String(steps || 0), 10) || 0;
+    const next = current + 500;
+    localStorage.setItem(key, String(next));
+    notifyFrigyStorageUpdated();
     toast({
-      title: "Schritte",
+      title: "Schritte hinzugefügt",
       description: healthSyncProvider
-        ? `Mit ${healthSyncProvider === "apple" ? "Apple Health" : "Google Fit"} verbunden.`
-        : "Verbinde Apple Health oder Google Fit, damit Schritte automatisch synchronisiert werden.",
+        ? "Im Browser wurden 500 Schritte testweise ergänzt. In der App werden Health-Daten synchronisiert."
+        : "Im Browser wurden 500 Schritte ergänzt. Health Sync funktioniert in der installierten App.",
     });
   };
 
@@ -60,10 +78,11 @@ export const StepsWidget = memo(function StepsWidget({
         <motion.button
           type="button"
           whileTap={{ scale: 0.97 }}
-          onClick={(e) => { e.stopPropagation(); addSteps(); }}
+          disabled={isLoading}
+          onClick={(e) => { e.stopPropagation(); void addSteps(); }}
           className="flex h-9 w-full min-w-0 items-center justify-center rounded-2xl border-2 border-emerald-200 bg-white/45 px-1 text-[9px] font-medium leading-none whitespace-nowrap text-foreground transition-colors active:bg-emerald-50"
         >
-          <span className="whitespace-nowrap">Schritte&nbsp;hinzufügen</span>
+          <span className="whitespace-nowrap">{isLoading ? "Synchronisiere..." : "Schritte\u00a0hinzufügen"}</span>
         </motion.button>
       </div>
     </motion.div>

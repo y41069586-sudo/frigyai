@@ -182,19 +182,34 @@ export const useGamification = () => {
 
   const awardBadge = async (badgeType: string, badgeName: string) => {
     if (!user) return;
+    if (badges.some((badge) => badge.badge_type === badgeType)) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_badges')
         .insert({
           user_id: user.id,
           badge_type: badgeType,
           badge_name: badgeName,
-        });
+        })
+        .select('*')
+        .maybeSingle();
 
-      if (error && !error.message.includes('duplicate')) throw error;
+      if (error) {
+        const duplicate = error.message?.includes('duplicate') || error.code === '23505';
+        if (duplicate) {
+          await fetchGamificationData();
+          return;
+        }
+        throw error;
+      }
 
       const badgeDef = BADGE_DEFINITIONS.find(b => b.type === badgeType);
+      if (data) {
+        setBadges((prev) =>
+          prev.some((badge) => badge.badge_type === badgeType) ? prev : [...prev, data],
+        );
+      }
       
       // Trigger confetti animation
       triggerConfetti();
@@ -204,8 +219,8 @@ export const useGamification = () => {
         description: badgeName,
       });
 
-      // Refresh badges
-      fetchGamificationData();
+      // Refresh badges from the backend for cross-device consistency.
+      void fetchGamificationData();
     } catch (error) {
       console.error('Error awarding badge:', error);
     }

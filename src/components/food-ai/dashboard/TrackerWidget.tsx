@@ -162,10 +162,10 @@ function InlineStat({
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl"
         style={{
-          background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(148,163,184,0.22) 0deg)`,
+          background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(100,116,139,0.34) 0deg)`,
         }}
       />
-      <div className="pointer-events-none absolute inset-[2px] rounded-[0.9rem] bg-[#f6f8f6]" />
+      <div className="pointer-events-none absolute inset-[3px] rounded-[0.82rem] border border-slate-200/80 bg-[#f6f8f6]/95" />
       <div className="relative z-[1]">
         <span className={cn("mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full", colorClass)}>
           <Icon className="h-3.5 w-3.5" />

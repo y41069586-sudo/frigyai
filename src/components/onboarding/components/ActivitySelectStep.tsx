@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Armchair, Check, ChevronLeft, ChevronRight, Dumbbell, Footprints, Zap, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
@@ -60,11 +60,11 @@ export function ActivitySelectStep({
 
   const L = labels[language as "de" | "en" | "fr"] ?? labels.de;
 
-  const options: { id: ActivityId; title: string; sub: string }[] = [
-    { id: "sedentary", title: L.sedentary.title, sub: L.sedentary.sub },
-    { id: "light", title: L.light.title, sub: L.light.sub },
-    { id: "moderate", title: L.moderate.title, sub: L.moderate.sub },
-    { id: "active", title: L.active.title, sub: L.active.sub },
+  const options: { id: ActivityId; title: string; sub: string; icon: LucideIcon; color: string; bg: string }[] = [
+    { id: "sedentary", title: L.sedentary.title, sub: L.sedentary.sub, icon: Armchair, color: "#64748B", bg: "#EEF2F7" },
+    { id: "light", title: L.light.title, sub: L.light.sub, icon: Footprints, color: "#16A34A", bg: "#DCFCE7" },
+    { id: "moderate", title: L.moderate.title, sub: L.moderate.sub, icon: Dumbbell, color: "#0EA5E9", bg: "#E0F2FE" },
+    { id: "active", title: L.active.title, sub: L.active.sub, icon: Zap, color: "#F97316", bg: "#FFEDD5" },
   ];
 
   const selected = (userData.activityLevel ?? null) as ActivityId | null;
@@ -110,6 +110,7 @@ export function ActivitySelectStep({
       <div className="mt-6 flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-5 pt-1">
         {options.map((opt, i) => {
           const isSelected = selected === opt.id;
+          const Icon = opt.icon;
           return (
             <motion.button
               key={opt.id}
@@ -138,6 +139,22 @@ export function ActivitySelectStep({
                   : "0 1px 2px rgba(15,40,30,0.03)",
               }}
             >
+              <motion.span
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.12 + i * 0.06, duration: 0.25 }}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                style={{
+                  backgroundColor: isSelected ? "#FFFFFF" : opt.bg,
+                  color: opt.color,
+                  boxShadow: isSelected
+                    ? "0 8px 18px -10px rgba(15,40,30,0.35)"
+                    : "0 1px 2px rgba(15,40,30,0.04)",
+                }}
+                aria-hidden
+              >
+                <Icon className="size-6" strokeWidth={2.5} />
+              </motion.span>
               <div className="flex flex-1 flex-col">
                 <span
                   className="text-[16px] font-medium tracking-tight"

@@ -13,6 +13,7 @@ import {
   readCheckedShoppingNames,
   writeCheckedShoppingNames,
 } from '@/lib/shoppingSync';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Ingredient {
   name: string;
@@ -34,6 +35,7 @@ const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -381,9 +383,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         {/* Progress bar */}
         <div className="mt-3 h-2 bg-background/50 rounded-full overflow-hidden">
           <motion.div 
-            className="h-full bg-primary"
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPct}%` }}
+            className="h-full origin-left bg-primary"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: progressPct / 100 }}
             transition={{ duration: 0.3 }}
           />
         </div>
@@ -442,20 +444,20 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               {/* Category Items */}
               <motion.div
                 initial={false}
-                animate={{
+                animate={isMobile ? undefined : {
                   height: isExpanded ? 'auto' : 0,
                   opacity: isExpanded ? 1 : 0,
                   marginBottom: isExpanded ? 16 : 0
                 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden space-y-2"
+                className={isMobile ? (isExpanded ? "space-y-2 pb-4" : "hidden") : "overflow-hidden space-y-2"}
               >
                 {group.items.map((item, index) => (
                   <motion.div
                     key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.02 }}
+                    initial={isMobile ? false : { opacity: 0, x: -10 }}
+                    animate={isMobile ? undefined : { opacity: 1, x: 0 }}
+                    transition={isMobile ? { duration: 0 } : { delay: index * 0.02 }}
                   >
                     <Card
                       className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${

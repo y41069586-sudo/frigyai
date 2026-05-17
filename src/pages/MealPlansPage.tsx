@@ -22,6 +22,7 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { notifyFrigyStorageUpdated, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
+import { useIsMobile } from '@/hooks/use-mobile';
 interface UserProfile {
   age: number;
   weight: number;
@@ -60,6 +61,7 @@ const MealPlansPage = () => {
   const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const { addEntry } = useFoodEntries();
   // Use global meal plan context for background generation
@@ -456,7 +458,7 @@ const MealPlansPage = () => {
   return (
     <>
       <div className="min-h-screen bg-gradient-primary safe-area-inset">
-      <nav className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-primary/20 safe-top">
+      <nav className="sticky top-0 z-40 bg-background/95 border-b border-primary/20 safe-top sm:bg-background/80 sm:backdrop-blur-lg">
         <div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center">
             <Button
@@ -500,8 +502,8 @@ const MealPlansPage = () => {
           <TabsContent value="meals">
             <div className="relative">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={isMobile ? false : { opacity: 0, y: 20 }}
+                animate={isMobile ? undefined : { opacity: 1, y: 0 }}
               >
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
@@ -544,11 +546,11 @@ const MealPlansPage = () => {
                   {mealPlan.map((day, index) => (
                     <motion.div
                       key={day.day}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      initial={isMobile ? false : { opacity: 0, x: -20 }}
+                      animate={isMobile ? undefined : { opacity: 1, x: 0 }}
+                      transition={isMobile ? { duration: 0 } : { delay: index * 0.05 }}
                     >
-                      <Card className="p-3 sm:p-4 bg-card/80 backdrop-blur-lg border-primary/20 hover:shadow-neon transition-all duration-300">
+                      <Card className="p-3 sm:p-4 bg-card/90 sm:bg-card/80 sm:backdrop-blur-lg border-primary/20 hover:shadow-neon transition-colors sm:transition-all sm:duration-300">
                         <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
                         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                           {day.meals.map((meal, mealIndex) => (

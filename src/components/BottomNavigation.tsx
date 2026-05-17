@@ -12,6 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/hooks/use-toast";
 import { useFeatureAccess, type Feature } from "@/hooks/useFeatureAccess";
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
@@ -37,6 +38,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { canAccessFeature } = useFeatureAccess();
+  const isMobile = useIsMobile();
 
   const pathname = location.pathname;
   const tab = searchParams.get("tab") || "meals";
@@ -94,7 +96,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 safe-bottom">
       <div
         className={cn(
-          "pointer-events-auto flex w-full max-w-sm items-center gap-1 rounded-full border border-white/70 bg-white/95 px-2 py-1.5",
+          "pointer-events-auto flex w-full max-w-sm items-center gap-1 overflow-visible rounded-full border border-white/70 bg-white/95 px-2 py-1.5 pr-1",
           "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-background/92 sm:dark:bg-background/80",
         )}
       >
@@ -110,7 +112,10 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               onClick={() => go(item.id)}
               className="relative flex min-h-[46px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-full px-0.5 py-1 transition-transform active:scale-[0.96]"
             >
-              {active && (
+              {active && isMobile && (
+                <div className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20" />
+              )}
+              {active && !isMobile && (
                 <motion.div
                   layoutId="bottom-nav-active-pill"
                   className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
@@ -143,12 +148,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
         <motion.button
           type="button"
           onClick={openTracker}
-          whileTap={{ scale: 0.96 }}
+          whileTap={{ scale: 0.94 }}
           className={cn(
-            "relative ml-0.5 flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-lg",
+            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
             trackerActive
-              ? "bg-primary ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
-              : "bg-primary shadow-primary/30",
+              ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"
+              : "bg-primary",
           )}
           aria-label={t.navTracker}
         >
@@ -157,7 +162,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               <Lock className="h-2.5 w-2.5 text-muted-foreground" />
             </span>
           )}
-          <Plus className="h-6 w-6 stroke-[2.5]" />
+          <Plus className="h-8 w-8 stroke-[3]" />
         </motion.button>
       </div>
     </nav>

@@ -49,19 +49,32 @@ export const ReminderSettings = () => {
       return;
     }
 
-    const result = await Notification.requestPermission();
-    setPermission(result);
+    let result: NotificationPermission = 'default';
+    try {
+      result = await Notification.requestPermission();
+      setPermission(result);
+    } catch (error) {
+      toast({
+        title: 'Benachrichtigung nicht möglich',
+        description: 'Bitte aktiviere Benachrichtigungen in den App- oder Browser-Einstellungen.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (result === 'granted') {
       toast({
         title: 'Benachrichtigungen aktiviert ✓',
         description: 'Du erhältst jetzt Erinnerungen.',
       });
-      // Test notification
-      new Notification('Frigy Erinnerungen', {
-        body: 'Benachrichtigungen wurden erfolgreich aktiviert!',
-        icon: '/favicon.ico',
-      });
+      try {
+        new Notification('Frigy Erinnerungen', {
+          body: 'Benachrichtigungen wurden erfolgreich aktiviert!',
+          icon: '/favicon.ico',
+        });
+      } catch {
+        // Some mobile browsers allow permission but block immediate test notifications.
+      }
     } else {
       toast({
         title: 'Berechtigung abgelehnt',
@@ -71,7 +84,16 @@ export const ReminderSettings = () => {
     }
   };
 
-  const updateWaterReminder = (enabled: boolean) => {
+  const ensurePermission = async (): Promise<boolean> => {
+    if (permission === 'granted') return true;
+    await requestPermission();
+    const nextPermission = 'Notification' in window ? Notification.permission : permission;
+    setPermission(nextPermission);
+    return nextPermission === 'granted';
+  };
+
+  const updateWaterReminder = async (enabled: boolean) => {
+    if (enabled && !(await ensurePermission())) return;
     setConfig(prev => ({
       ...prev,
       water: { ...prev.water, enabled },
@@ -85,14 +107,16 @@ export const ReminderSettings = () => {
     }));
   };
 
-  const updateMealsReminder = (enabled: boolean) => {
+  const updateMealsReminder = async (enabled: boolean) => {
+    if (enabled && !(await ensurePermission())) return;
     setConfig(prev => ({
       ...prev,
       meals: { ...prev.meals, enabled },
     }));
   };
 
-  const updateWeightReminder = (enabled: boolean) => {
+  const updateWeightReminder = async (enabled: boolean) => {
+    if (enabled && !(await ensurePermission())) return;
     setConfig(prev => ({
       ...prev,
       weight: { ...prev.weight, enabled },
@@ -111,13 +135,15 @@ export const ReminderSettings = () => {
       {/* Permission Card */}
       {permission !== 'granted' && (
         <Card className="p-4 border-amber-500/30 bg-amber-500/10">
-          <div className="flex items-center gap-3">
-            <BellOff className="h-5 w-5 text-amber-400" />
-            <div className="flex-1">
+          <div className="flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center">
+            <div className="flex min-w-0 items-start gap-3">
+            <BellOff className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">Benachrichtigungen deaktiviert</p>
               <p className="text-xs text-muted-foreground">Aktiviere Benachrichtigungen um Erinnerungen zu erhalten</p>
             </div>
-            <Button size="sm" onClick={requestPermission} className="bg-primary hover:bg-primary/90">
+            </div>
+            <Button size="sm" onClick={requestPermission} className="w-full shrink-0 bg-primary hover:bg-primary/90 min-[380px]:w-auto">
               <Bell className="h-4 w-4 mr-1" />
               Aktivieren
             </Button>
@@ -138,7 +164,6 @@ export const ReminderSettings = () => {
           <Switch
             checked={config.water.enabled}
             onCheckedChange={updateWaterReminder}
-            disabled={permission !== 'granted'}
           />
         </div>
         {config.water.enabled && (
@@ -172,7 +197,6 @@ export const ReminderSettings = () => {
           <Switch
             checked={config.meals.enabled}
             onCheckedChange={updateMealsReminder}
-            disabled={permission !== 'granted'}
           />
         </div>
         {config.meals.enabled && (
@@ -198,7 +222,6 @@ export const ReminderSettings = () => {
           <Switch
             checked={config.weight.enabled}
             onCheckedChange={updateWeightReminder}
-            disabled={permission !== 'granted'}
           />
         </div>
         {config.weight.enabled && (

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls, type PanInfo } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Message {
   id: string;
@@ -47,21 +48,29 @@ export const AIChatbot = ({
   const { session, subscriptionStatus } = useAuth();
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const isMobile = useIsMobile();
   const [localIsOpen, setLocalIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dragControls = useDragControls();
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: isMobile ? 'auto' : 'smooth' });
+  }, [isMobile, messages]);
 
   // Use external state if provided, otherwise use local state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
   const setIsOpen = externalSetIsOpen || setLocalIsOpen;
 
   const isPremium = subscriptionStatus?.subscribed === true;
+
+  const handleSheetDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (info.offset.y > 90 || info.velocity.y > 700) {
+      setIsOpen(false);
+    }
+  };
 
   const processActions = (response: string): string => {
     let processedResponse = response;
@@ -195,11 +204,11 @@ export const AIChatbot = ({
         <motion.button
           onClick={() => setIsOpen(true)}
           className="fixed right-4 top-20 z-[60] p-4 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-xl ring-4 ring-emerald-200/50"
-          whileHover={{ scale: 1.08 }}
+          whileHover={isMobile ? undefined : { scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
-          initial={{ scale: 0, opacity: 0 }}
+          initial={isMobile ? { opacity: 0 } : { scale: 0, opacity: 0 }}
           animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: isMobile ? 0.12 : 0.2 }}
         >
           <Bot className="h-6 w-6" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-background animate-pulse" />
@@ -216,19 +225,32 @@ export const AIChatbot = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: isMobile ? 0.12 : 0.2 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-[2px]"
+              className="fixed inset-0 z-50 bg-black/20 sm:backdrop-blur-[2px]"
             />
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 260, damping: 30, mass: 1.05 }}
-              className="fixed inset-x-0 bottom-0 z-[51] flex h-[92dvh] flex-col px-3 pb-3 md:inset-x-auto md:right-4 md:w-[28rem]"
+              transition={isMobile ? { duration: 0.18, ease: [0.22, 1, 0.36, 1] } : { type: "spring", stiffness: 260, damping: 30, mass: 1.05 }}
+              drag="y"
+              dragControls={dragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.28 }}
+              onDragEnd={handleSheetDragEnd}
+              className="fixed inset-x-0 bottom-0 z-[51] flex h-[92dvh] flex-col px-3 pb-3 gpu-smooth md:inset-x-auto md:right-4 md:w-[28rem]"
             >
-            <Card className="flex h-full flex-col overflow-hidden rounded-t-[2rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] backdrop-blur-xl md:rounded-[2rem]">
-              <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-300/80" />
+            <Card className="flex h-full flex-col overflow-hidden rounded-t-[2rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_-18px_42px_-30px_rgba(15,23,42,0.5)] sm:shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] sm:backdrop-blur-xl md:rounded-[2rem]">
+              <button
+                type="button"
+                aria-label="KI-Chat nach unten ziehen zum Schließen"
+                onPointerDown={(e) => dragControls.start(e)}
+                className="mx-auto mt-2 flex h-6 w-20 touch-none items-center justify-center rounded-full"
+              >
+                <span className="h-1.5 w-12 rounded-full bg-slate-300/80" />
+              </button>
               {/* Header */}
               <div className="p-4 pt-3 border-b border-emerald-200/40 flex items-center justify-between bg-gradient-to-r from-emerald-100/60 to-green-50/40">
                 <div className="flex items-center gap-2">
@@ -264,8 +286,8 @@ export const AIChatbot = ({
                 {messages.map((msg) => (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={isMobile ? false : { opacity: 0, y: 10 }}
+                    animate={isMobile ? undefined : { opacity: 1, y: 0 }}
                     className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {msg.role === 'assistant' && (
