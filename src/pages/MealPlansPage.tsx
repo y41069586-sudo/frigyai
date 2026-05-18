@@ -57,6 +57,56 @@ interface DayPlan {
 
 // Empty placeholder - no more demo plan, real plan gets auto-generated
 
+const normalizeMeal = (meal: Partial<Meal> | null | undefined, fallbackType: string): Meal => ({
+  type: typeof meal?.type === 'string' ? meal.type : fallbackType,
+  name: typeof meal?.name === 'string' ? meal.name : 'Mahlzeit',
+  calories: Number(meal?.calories) || 0,
+  protein: Number(meal?.protein) || 0,
+  carbs: Number(meal?.carbs) || 0,
+  fat: Number(meal?.fat) || 0,
+  prepTime: Number(meal?.prepTime) || 20,
+  ingredients: Array.isArray(meal?.ingredients) ? meal.ingredients : [],
+  instructions: Array.isArray(meal?.instructions) ? meal.instructions : [],
+});
+
+const normalizeMealPlan = (value: unknown): DayPlan[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((day): day is Partial<DayPlan> => Boolean(day) && typeof day === 'object')
+    .map((day, index) => ({
+      day: typeof day.day === 'string' && day.day.trim() ? day.day : `Tag ${index + 1}`,
+      meals: Array.isArray(day.meals)
+        ? day.meals.map((meal, mealIndex) => normalizeMeal(meal, `Mahlzeit ${mealIndex + 1}`))
+        : [],
+    }));
+};
+
+const normalizeShoppingList = (value: unknown): Ingredient[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is Partial<Ingredient> => Boolean(item) && typeof item === 'object')
+    .map((item) => ({
+      name: typeof item.name === 'string' && item.name.trim() ? item.name : 'Zutat',
+      amount: typeof item.amount === 'string' && item.amount.trim() ? item.amount : '—',
+      price: Number(item.price) || 0,
+    }));
+};
+
+const readJsonArray = (key: string): unknown[] => {
+  const saved = localStorage.getItem(key);
+  if (!saved) return [];
+
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    localStorage.removeItem(key);
+    return [];
+  }
+};
+
 const MealPlansPage = () => {
   const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
@@ -73,28 +123,10 @@ const MealPlansPage = () => {
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
-    // Initialize from localStorage - no demo plan fallback
-    const saved = localStorage.getItem('weeklyMealPlan');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
-    }
-    return [];
+    return normalizeMealPlan(readJsonArray('weeklyMealPlan'));
   });
   const [shoppingList, setShoppingList] = useState<Ingredient[]>(() => {
-    // Initialize from localStorage
-    const saved = localStorage.getItem('weeklyShoppingList');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
-    }
-    return [];
+    return normalizeShoppingList(readJsonArray('weeklyShoppingList'));
   });
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -105,7 +137,8 @@ const MealPlansPage = () => {
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
 
   // Sync activeTab with URL params
-  const activeTab = searchParams.get('tab') || 'meals';
+  const rawTab = searchParams.get('tab') || 'meals';
+  const activeTab = ['meals', 'shopping', 'reminders'].includes(rawTab) ? rawTab : 'meals';
 
   const setActiveTab = useCallback((tab: string) => {
     const params = new URLSearchParams(searchParams);
@@ -195,38 +228,15 @@ const MealPlansPage = () => {
     });
 
     if (globalMealPlan && globalMealPlan.length > 0) {
-      setMealPlan(globalMealPlan);
+      setMealPlan(normalizeMealPlan(globalMealPlan));
     } else {
-      const saved = localStorage.getItem('weeklyMealPlan');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setMealPlan(parsed);
-          }
-        } catch (e) {
-          console.error('[MEALPLANS] Failed to load saved meal plan:', e);
-          setMealPlan([]);
-        }
-      } else if (!saved) {
-        setMealPlan([]);
-      }
+      setMealPlan(normalizeMealPlan(readJsonArray('weeklyMealPlan')));
     }
 
     if (globalShoppingList && globalShoppingList.length > 0) {
-      setShoppingList(globalShoppingList as Ingredient[]);
+      setShoppingList(normalizeShoppingList(globalShoppingList));
     } else {
-      const sl = localStorage.getItem('weeklyShoppingList');
-      if (sl) {
-        try {
-          const parsed = JSON.parse(sl);
-          if (Array.isArray(parsed)) {
-            setShoppingList(parsed as Ingredient[]);
-          }
-        } catch {
-          /* ignore */
-        }
-      }
+      setShoppingList(normalizeShoppingList(readJsonArray('weeklyShoppingList')));
     }
   }, [globalMealPlan, globalShoppingList]);
 

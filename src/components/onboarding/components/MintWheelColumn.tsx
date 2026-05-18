@@ -184,6 +184,7 @@ export function MintWheelColumn({
         : "justify-center";
 
   const idleFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 14 : 17;
+  const selectedFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 18 : 22;
 
   return (
     <div
@@ -223,11 +224,12 @@ export function MintWheelColumn({
               style={{
                 height: rowHeight,
                 scrollSnapAlign: "center",
-                fontSize: `${idleFontPx}px`,
+                fontSize: `${isSelected ? selectedFontPx : idleFontPx}px`,
                 fontWeight: isSelected ? 600 : 400,
+                lineHeight: 1,
                 color: isSelected ? "#1F2937" : "#4B5563",
                 opacity,
-                transform: `translateZ(0) scale(${scale})`,
+                transform: `translateZ(0) scale(${isSelected ? 1 : scale})`,
                 letterSpacing: "-0.01em",
                 transition: "transform 120ms ease-out, color 120ms, opacity 120ms",
                 willChange: "transform, opacity",

@@ -127,7 +127,7 @@ export const saveOnboardingData = (userData: UserData) => {
   localStorage.setItem('weeklyMealPlan', JSON.stringify(initialMealPlan));
   notifyFrigyStorageUpdated();
   
-  // Set generation count to 0 - user gets 1 free regeneration
+  // Reset generation count for the freshly created initial plan.
   localStorage.setItem('mealPlanGenerationCount', '0');
 };
 

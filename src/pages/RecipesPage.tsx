@@ -76,9 +76,7 @@ const RecipesPage = () => {
   const userProfile = location.state?.userProfile;
   const mealToReplace = location.state?.mealToReplace;
   
-  // Check if user is in onboarding mode
-  const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
-    localStorage.getItem('onboardingScanUsed') !== 'true';
+  const isOnboardingMode = false;
 
   useEffect(() => {
     if (ingredients.length === 0) {

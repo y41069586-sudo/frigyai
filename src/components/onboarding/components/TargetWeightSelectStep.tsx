@@ -14,10 +14,10 @@ import { MintSegmentedControl } from "./MintSegmentedControl";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
 const PALETTE = {
-  primary: "#24F59B",
-  primaryDark: "#10C878",
-  bg: "#F2FFF8",
-  selectedBg: "#D6FFE9",
+  primary: "#20D86B",
+  primaryDark: "#0EA84E",
+  bg: "#FAFFF5",
+  selectedBg: "#BFF4D4",
   text: "#1F2937",
   textMuted: "#6B7280",
 };
@@ -163,7 +163,7 @@ export function TargetWeightSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E6FFF2",
+              backgroundColor: "#E9FFF1",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -209,7 +209,7 @@ export function TargetWeightSelectStep({
               top: `calc(50% - ${WHEEL_ITEM_HEIGHT / 2}px)`,
               height: WHEEL_ITEM_HEIGHT,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(30,215,138,0.16)",
+              boxShadow: "0 0 0 3px rgba(32,216,107,0.16)",
             }}
           />
 {/* Wheels */}
@@ -266,7 +266,7 @@ export function TargetWeightSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {buttonLabel[lng]}

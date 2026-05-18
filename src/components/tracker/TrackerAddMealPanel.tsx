@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, Camera, ChevronLeft, Crown, Plus, Search, Trash2, X } from "lucide-react";
+import { Barcode, Camera, ChevronLeft, Plus, Search, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brandColors";
 import {
@@ -44,8 +44,6 @@ type Props = {
   onDeleteMeal?: (id: string) => void;
   loggedMeals?: TrackerLoggedMeal[];
   isAnalyzing?: boolean;
-  isPremium?: boolean;
-  onPremiumRequired?: () => void;
 };
 
 const PALETTE = {
@@ -118,11 +116,10 @@ const INPUT_MODES: {
   label: string;
   icon: typeof Search;
   tint: string;
-  premium?: boolean;
 }[] = [
   { id: "search", label: "Suche", icon: Search, tint: PALETTE.primary },
-  { id: "camera", label: "Kamera", icon: Camera, tint: "#EC4899", premium: true },
-  { id: "barcode", label: "Barcode", icon: Barcode, tint: "#EF4444", premium: true },
+  { id: "camera", label: "Kamera", icon: Camera, tint: "#EC4899" },
+  { id: "barcode", label: "Barcode", icon: Barcode, tint: "#EF4444" },
 ];
 
 let cachedExampleRecipes: TrackerRecipeExample[] | null = null;
@@ -325,8 +322,6 @@ export function TrackerAddMealPanel({
   onDeleteMeal,
   loggedMeals = [],
   isAnalyzing = false,
-  isPremium = true,
-  onPremiumRequired,
 }: Props) {
   const [mode, setMode] = useState<InputMode>("search");
   const [query, setQuery] = useState("");
@@ -405,22 +400,14 @@ export function TrackerAddMealPanel({
     }
   }, [mode]);
 
-  const runPremiumAction = (action: () => void) => {
-    if (!isPremium) {
-      onPremiumRequired?.();
-      return;
-    }
-    action();
-  };
-
   const handleModeSelect = (next: InputMode) => {
     setMode(next);
     if (next === "camera") {
-      runPremiumAction(onCamera);
+      onCamera();
       return;
     }
     if (next === "barcode") {
-      runPremiumAction(onBarcode);
+      onBarcode();
     }
   };
 
@@ -500,13 +487,6 @@ export function TrackerAddMealPanel({
                     borderColor: active ? PALETTE.primary : "transparent",
                   }}
                 >
-                  {item.premium && !isPremium && (
-                    <Crown
-                      className="absolute right-1.5 top-1.5 size-2.5 rotate-12"
-                      style={{ color: PALETTE.primary }}
-                      fill={PALETTE.primary}
-                    />
-                  )}
                   <Icon
                     className="size-5"
                     style={{ color: active ? item.tint : PALETTE.textMuted }}

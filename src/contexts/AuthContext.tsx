@@ -354,8 +354,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // Computed value for premium access.
-  const isPremium = subscriptionStatus?.subscribed || user?.email?.toLowerCase() === 'yousef0089mohamed@gmail.com' || false;
+  // Free-mode gating is disabled: app features should stay available without transient locks.
+  const isPremium = true;
 
   return (
     <AuthContext.Provider

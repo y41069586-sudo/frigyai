@@ -510,8 +510,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await refreshGenerationCount();
 
         toast({
-          title: "Limit erreicht",
-          description: "Upgrade auf Premium für unbegrenzte Pläne!",
+          title: "Wochenplan konnte nicht generiert werden",
+          description: "Bitte versuche es gleich erneut.",
           variant: 'destructive',
         });
       } else if (message.includes('Load failed') || message.includes('Failed to fetch')) {

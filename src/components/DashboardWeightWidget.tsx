@@ -3,13 +3,11 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Scale, ArrowUp, Plus, Crown, Pencil } from 'lucide-react';
+import { Scale, ArrowUp, Plus, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { toast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 interface DashboardWeightWidgetProps {
@@ -26,11 +24,8 @@ interface WeightEntry {
 }
 
 export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded = false }: DashboardWeightWidgetProps) => {
-  const { user, subscriptionStatus } = useAuth();
+  const { user } = useAuth();
   const { settings } = useTrackerSettings();
-  const navigate = useNavigate();
-  const [showPremiumOverlay, setShowPremiumOverlay] = useState(false);
-  const isPremium = subscriptionStatus?.subscribed;
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const [inputWeight, setInputWeight] = useState('');
@@ -164,20 +159,13 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
 
   const handleCardClick = () => {
     if (!isAdding && !embedded) {
-      if (!isPremium) {
-        setShowPremiumOverlay(true);
-      } else {
-        navigate('/');
-      }
+      setInputWeight(currentWeight != null ? String(currentWeight) : '');
+      setIsAdding(true);
     }
   };
 
   const openWeightEditor = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isPremium) {
-      setShowPremiumOverlay(true);
-      return;
-    }
     setInputWeight(currentWeight != null ? String(currentWeight) : '');
     setIsAdding(true);
   };
@@ -187,7 +175,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       onClick={embedded ? undefined : handleCardClick}
       className={`relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`p-3 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'} ${showPremiumOverlay ? 'blur-sm' : ''}`}>
+      <Card className={`p-3 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
@@ -196,12 +184,6 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
             <h3 className="font-semibold text-xs">Gewichtsverlauf</h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {!isPremium && (
-              <Badge className="bg-primary/20 text-primary border-primary/30">
-                <Crown className="h-3 w-3 mr-1" />
-                Premium
-              </Badge>
-            )}
             <button
               type="button"
               onClick={openWeightEditor}
@@ -383,48 +365,6 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         )}
       </Card>
 
-      {/* Premium Overlay */}
-      {showPremiumOverlay && !isPremium && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 rounded-xl bg-black/60 backdrop-blur-md flex items-center justify-center z-50"
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center justify-center gap-4 px-6"
-          >
-            <Crown className="h-12 w-12 text-amber-400" />
-            <div className="text-center">
-              <h3 className="font-bold text-white text-lg mb-1">Gewichtsverlauf freischalten</h3>
-              <p className="text-sm text-white/70">
-                Um den Gewichtsverlauf freizuschalten, kaufe Premium
-              </p>
-            </div>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate('/premium');
-              }}
-              className="w-full gradient-neon text-black font-semibold mt-2"
-            >
-              Zu Premium
-            </Button>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowPremiumOverlay(false);
-              }}
-              variant="ghost"
-              className="text-white hover:text-white/80"
-            >
-              Abbrechen
-            </Button>
-          </motion.div>
-        </motion.div>
-      )}
     </div>
   );
 

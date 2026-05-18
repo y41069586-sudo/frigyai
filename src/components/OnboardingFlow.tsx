@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import frigyLogoSrc from "@/assets/frigy-onboarding-logo-transparent.png";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
-import frigySplashSrc from "@/assets/frigy-hero-nobg.png";
 import { confettiBurst } from "@/lib/mobileEffects";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
@@ -49,6 +49,8 @@ import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreview
 import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { HealthConnectStep } from "./onboarding/components/HealthConnectStep";
+import { DataConsentStep } from "./onboarding/components/DataConsentStep";
+import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
 import { WheelPicker } from "./WheelPicker";
@@ -164,96 +166,84 @@ const NotebookOnboardingChrome = ({
   );
 };
 
-// ─── Splash Screen ────────────────────────────────────────────────────────────
-const FloatingFood = ({ emoji, delay, x, y }: { emoji: string; delay: number; x: string; y: string }) => (
-  <motion.div
-    className="absolute text-3xl select-none pointer-events-none z-0"
-    style={{ left: x, top: y }}
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{
-      opacity: 1,
-      scale: 1,
-      y: [0, -10, 0],
-    }}
-    transition={{
-      opacity: { delay, duration: 0.4 },
-      scale: { delay, duration: 0.4, type: "spring", stiffness: 200 },
-      y: { delay: delay + 0.4, duration: 2.5, repeat: Infinity, ease: "easeInOut" },
-    }}
-  >
-    {emoji}
-  </motion.div>
-);
-
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
-  const { t } = useLanguage();
-
-  const featureItems = [
-    { icon: Camera, label: "KI-Scan" },
-    { icon: ChefHat, label: "Rezepte" },
-    { icon: Scale, label: "Kalorien" },
-  ];
-
-
-
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-white">
+    <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FEFFFC] text-neutral-950">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(32,216,107,0.26),transparent_30%),radial-gradient(circle_at_86%_64%,rgba(32,216,107,0.15),transparent_24%),linear-gradient(180deg,#ffffff_0%,#fbfff5_48%,#ffffff_100%)]" />
+      <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#20D86B]/18 blur-[76px]" />
+      <div className="pointer-events-none absolute -right-28 top-40 h-64 w-64 rounded-full border border-[#20D86B]/20" />
+      <div className="pointer-events-none absolute -left-24 bottom-24 h-60 w-60 rounded-full bg-neutral-100/70 blur-3xl" />
 
-      {/* ── Speech bubble ── */}
-      <div className="shrink-0 z-20 mx-6 mt-10 pb-6">
-        <div
-          className="relative px-6 py-4"
-          style={{ background: "hsl(155 76% 48%)", border: "3px solid black", overflow: "visible" }}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
+        <motion.p
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#20D86B] drop-shadow-[0_0_18px_rgba(32,216,107,0.56)]"
         >
-          <p className="font-black text-[20px] text-white text-center leading-tight">
-            {t.welcomeToFrigy}! 👋
+          Frigy
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mx-auto flex h-[35svh] min-h-[230px] w-full max-w-[370px] shrink-0 items-center justify-center max-[380px]:min-h-[210px]"
+        >
+          <motion.div
+            aria-hidden
+            className="absolute h-[220px] w-[220px] rounded-full bg-[#20D86B]/18 blur-3xl"
+            animate={{ scale: [1, 1.08, 1], opacity: [0.55, 0.85, 0.55] }}
+            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="relative flex h-[196px] w-[196px] items-center justify-center"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <img
+              src={frigyLogoSrc}
+              alt="Frigy"
+              className="h-full w-full object-contain drop-shadow-[0_30px_45px_rgba(46,125,50,0.16)]"
+              draggable={false}
+            />
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.16, duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
+          className="flex min-h-0 flex-1 flex-col items-center text-center"
+        >
+          <h1 className="max-w-[345px] text-[43px] font-extrabold leading-[0.92] tracking-[-0.08em] text-black max-[380px]:text-[38px]">
+            Iss smarter.
+            <br />
+            <span className="relative inline-block">
+              <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#20D86B]/70 blur-[2px]" />
+              <span className="relative">Leb leichter.</span>
+            </span>
+          </h1>
+
+          <p className="mt-5 max-w-[318px] text-[15px] font-semibold leading-relaxed tracking-[-0.03em] text-neutral-500 max-[380px]:mt-4 max-[380px]:text-[14px]">
+            Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.
           </p>
 
-          {/* black triangle (outline layer) */}
-          <div className="absolute left-[35%]" style={{
-            bottom: -22, width: 0, height: 0,
-            borderLeft: "16px solid transparent",
-            borderRight: "16px solid transparent",
-            borderTop: "22px solid black",
-          }} />
-          {/* green triangle on top covers the seam */}
-          <div className="absolute left-[35%]" style={{
-            bottom: -16, marginLeft: 3, width: 0, height: 0,
-            borderLeft: "13px solid transparent",
-            borderRight: "13px solid transparent",
-            borderTop: "17px solid hsl(155 76% 48%)",
-          }} />
-        </div>
+          <div className="mt-auto w-full pb-[max(1.15rem,env(safe-area-inset-bottom,0px)+0.85rem)] pt-6">
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.015 }}
+              whileTap={{ scale: 0.965 }}
+              onClick={onNext}
+              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#20D86B] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(14,168,78,0.88),0_0_42px_rgba(32,216,107,0.38)]"
+            >
+              <span className="absolute inset-x-8 top-1 h-5 rounded-full bg-white/55 blur-md" />
+              <span className="relative">Loslegen</span>
+              <ArrowRight className="relative h-5 w-5 stroke-[2.6]" />
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
-
-      {/* ── Mascot ── */}
-      <div className="relative flex-1 min-h-0 flex items-end justify-center z-10">
-        <img
-          src={frigySplashSrc}
-          alt="Frigy"
-          className="w-full h-full object-contain select-none pointer-events-none"
-          style={{ transform: "scale(1.08)" }}
-          draggable={false}
-        />
-      </div>
-
-      {/* ── Button ── */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.05, duration: 0.2 }}
-        className="shrink-0 z-20 px-5 pt-2 pb-8"
-      >
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={onNext}
-          className="w-full rounded-2xl font-black text-[18px] flex items-center justify-center gap-2 shadow-md"
-          style={{ background: "hsl(155 76% 48%)", color: "white", height: "56px" }}
-        >
-          Los geht's!
-          <ArrowRight className="w-5 h-5" />
-        </motion.button>
-      </motion.div>
     </div>
   );
 };
@@ -370,7 +360,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   // Check if returning from scan with feedback request
   const showScanFeedback = location.state?.showScanFeedback === true;
   const fallbackStep: OnboardingStep =
-    showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : "splash";
+    showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : onboardingSteps[0];
   const initialStep: OnboardingStep =
     initialStepOverride && onboardingSteps.includes(initialStepOverride)
       ? initialStepOverride
@@ -527,14 +517,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
     let nextIndex = currentIndex + 1;
 
-    // Check if user already used their free onboarding scan (persists across sessions)
-    const scanUsed = localStorage.getItem('onboardingScanUsed') === 'true';
-
-    // Skip fridge-intro if scan was already used in a previous session
-    if (scanUsed && onboardingSteps[nextIndex] === "fridge-intro") {
-      nextIndex++; // Skip fridge-intro
-    }
-
     // Skip scan-feedback if user didn't actually scan (no showScanFeedback state)
     const didScan = location.state?.showScanFeedback === true;
     if (onboardingSteps[nextIndex] === "scan-feedback" && !didScan) {
@@ -551,18 +533,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const goBack = () => {
     lightTap(); // Haptic feedback on navigation
     let prevIndex = currentIndex - 1;
-    
-    // Check if user already used their free onboarding scan
-    const scanUsed = localStorage.getItem('onboardingScanUsed') === 'true';
-    
-    // If scan was used, prevent going back to fridge-intro step
-    if (scanUsed && prevIndex >= 0) {
-      const prevStep = onboardingSteps[prevIndex];
-      if (prevStep === "fridge-intro") {
-        // Skip fridge-intro and go to the step before it
-        prevIndex--;
-      }
-    }
     
     if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
@@ -1321,16 +1291,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           />
         );
 
-      case "health-sync":
-        return (
-          <HealthConnectStep
-            userData={userData}
-            setUserData={setUserData}
-            onBack={currentIndex > 0 ? goBack : undefined}
-            onNext={goNext}
-          />
-        );
-
       case "health-goals":
         return (
           <HealthGoalsSelectStep
@@ -1366,6 +1326,32 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           <ShoppingListStep
             userData={userData}
             setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+          />
+        );
+
+      case "health-sync":
+        return (
+          <HealthConnectStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+          />
+        );
+
+      case "data-consent":
+        return (
+          <DataConsentStep
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+          />
+        );
+
+      case "referral-code":
+        return (
+          <ReferralCodeStep
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
           />
@@ -3825,29 +3811,35 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       {/* Header - hidden on mint body steps, splash, tutorial, notebook chrome */}
       {currentStep !== "tutorial" &&
         currentStep !== "splash" &&
+        currentStep !== "analyzing" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
-        <div className={`flex items-center justify-between p-4 mt-12 ${currentStep === 'analyzing' ? 'opacity-0 pointer-events-none' : ''}`}>
+        <div className={`flex items-center justify-between p-4 ${currentStep === "macro-preview" ? "mt-5" : "mt-12"}`}>
           {currentIndex > 0 ? (
             <motion.button
               onClick={goBack}
               whileTap={{ scale: 0.95 }}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+              className="flex h-12 w-12 items-center justify-center rounded-full transition-colors"
+              style={{ backgroundColor: "#F4F7EF", color: "#050505" }}
             >
-              <ChevronRight className="w-5 h-5 rotate-180 text-muted-foreground" />
+              <ChevronRight className="w-6 h-6 rotate-180" strokeWidth={2.8} />
             </motion.button>
           ) : (
-            <div className="w-10" />
+            <div className="h-12 w-12" />
           )}
           
           {/* Progress bar only - no dots */}
 
-          <button 
-            onClick={handleSkip} 
-            className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1"
-          >
-            {t.skip || "Überspringen"}
-          </button>
+          {currentStep === "macro-preview" ? (
+            <div className="h-12 w-12" aria-hidden />
+          ) : (
+            <button
+              onClick={handleSkip}
+              className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1"
+            >
+              {t.skip || "Überspringen"}
+            </button>
+          )}
         </div>
       )}
 
@@ -3857,7 +3849,21 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
         // These steps render fullscreen with their own layout
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {renderStepContent()}
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={currentStep}
+              className="flex min-h-0 flex-1 flex-col"
+              initial={{ opacity: 0, x: 18, scale: 0.995 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -14, scale: 0.995, position: "absolute", inset: 0 }}
+              transition={{
+                duration: 0.22,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              {renderStepContent()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       ) : NOTEBOOK_MASKOT_STEPS.includes(currentStep) ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

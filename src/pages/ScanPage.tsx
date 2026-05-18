@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Upload, ArrowLeft, Camera, Crown, Clock, ChefHat, Check, Sun, Moon } from "lucide-react";
+import { Upload, ArrowLeft, Camera, Clock, ChefHat, Check, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -34,7 +33,6 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t, language } = useLanguage();
-  const { user, isPremium } = useAuth();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [missingIngredients, setMissingIngredients] = useState<ScanShoppingItem[]>([]);
@@ -145,10 +143,6 @@ const ScanPage = () => {
     applyScannedIngredientsToShoppingList(ingredients);
     navigate("/meal-plans?tab=shopping");
   };
-
-  // Check if user is in onboarding mode (free trial scan)
-  const isOnboardingMode = !localStorage.getItem('onboardingComplete') || 
-    localStorage.getItem('onboardingScanUsed') !== 'true';
 
   // Load recent dishes on mount
   useEffect(() => {
@@ -304,24 +298,16 @@ const ScanPage = () => {
     }, 300);
 
     try {
-      // Determine if this is an onboarding scan
-      const isOnboardingScan = isOnboardingMode && !user;
-      
       // Call edge function to analyze image
       const { data, error } = await supabase.functions.invoke(
         "analyze-ingredients",
         {
           body: { 
             image: base64,
-            isOnboarding: isOnboardingScan 
+            isOnboarding: false 
           },
         }
       );
-      
-      // Mark onboarding scan as used
-      if (isOnboardingScan && data?.ingredients?.length > 0) {
-        localStorage.setItem('onboardingScanUsed', 'true');
-      }
 
       if (error) {
         throw error;
@@ -330,7 +316,7 @@ const ScanPage = () => {
       if (data?.error === "scan_limit_exceeded") {
         toast({
           title: t.error,
-          description: data.message || t.couldNotAnalyze,
+          description: t.couldNotAnalyze,
           variant: "destructive",
         });
         setImagePreview(null);
@@ -423,17 +409,6 @@ const ScanPage = () => {
             </h1>
           </div>
 
-          {isPremium && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0 text-xs sm:text-sm"
-            >
-              <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="font-semibold hidden sm:inline">{t.unlimited}</span>
-              <span className="font-semibold sm:hidden">∞</span>
-            </motion.div>
-          )}
         </motion.div>
 
         <div className="max-w-4xl mx-auto">

@@ -20,36 +20,46 @@ type Props = {
 const HEALTH_SYNC_HERO_BG = "rgb(127, 216, 182)";
 
 const PALETTE = {
-  primary: "#24F59B",
-  primaryDark: "#10C878",
-  activateBg: "#24F59B",
+  primary: "#20D86B",
+  primaryDark: "#0EA84E",
+  activateBg: "#20D86B",
   text: "#1F2937",
   subtext: "#4B5563",
 };
 
 export function HealthConnectStep({ userData, setUserData, onBack, onNext }: Props) {
   const { language } = useLanguage();
-  const { isNativeApp, requestPermissions, isLoading } = useHealthConnect();
+  const { isNativeApp, platform, requestPermissions, isLoading } = useHealthConnect();
   const [connecting, setConnecting] = useState(false);
+  const providerName =
+    platform === "ios" ? "Apple Health" : platform === "android" ? "Health Connect" : "Health Sync";
+  const syncValue =
+    platform === "ios" ? "apple-health" : platform === "android" ? "health-connect" : null;
 
   const L = {
     de: {
-      question: "Mit Apple Health verbinden",
-      body: "Bitte erlaube Frigy, deine Apple-Health-Daten zu synchronisieren, um eine genaue Kalorienberechnung zu erhalten.",
+      question: `${providerName} verbinden`,
+      body: isNativeApp
+        ? `Erlaube Frigy den Zugriff auf ${providerName}, damit Schritte, Gewicht und Aktivitätsdaten automatisch synchronisiert werden.`
+        : "Bitte erlaube Frigy, deine Apple-Health-Daten zu synchronisieren, um eine genaue Kalorienberechnung zu erhalten.",
       notNow: "Nicht jetzt",
       activate: "Aktivieren",
       back: "Zurück",
     },
     en: {
-      question: "Connect with Apple Health",
-      body: "Please allow Frigy to sync your Apple Health data for accurate calorie calculations.",
+      question: `Connect ${providerName}`,
+      body: isNativeApp
+        ? `Allow Frigy to access ${providerName} so steps, weight and activity data can sync automatically.`
+        : "Please allow Frigy to sync your Apple Health data for accurate calorie calculations.",
       notNow: "Not now",
       activate: "Activate",
       back: "Back",
     },
     fr: {
-      question: "Connecter Apple Health",
-      body: "Autorise Frigy à synchroniser tes données Apple Health pour un calcul précis des calories.",
+      question: `Connecter ${providerName}`,
+      body: isNativeApp
+        ? `Autorise Frigy à accéder à ${providerName} pour synchroniser automatiquement les pas, le poids et l'activité.`
+        : "Autorise Frigy à synchroniser tes données Apple Health pour un calcul précis des calories.",
       notNow: "Pas maintenant",
       activate: "Activer",
       back: "Retour",
@@ -60,12 +70,22 @@ export function HealthConnectStep({ userData, setUserData, onBack, onNext }: Pro
 
   const activate = async () => {
     setConnecting(true);
-    setUserData({ ...userData, healthSync: "apple" });
-    if (isNativeApp) {
-      await requestPermissions();
+    if (!isNativeApp) {
+      setUserData({ ...userData, healthSync: null });
+      setConnecting(false);
+      onNext?.();
+      return;
     }
+
+    const granted = await requestPermissions();
+    if (granted) {
+      setUserData({ ...userData, healthSync: syncValue });
+      setConnecting(false);
+      onNext?.();
+      return;
+    }
+
     setConnecting(false);
-    onNext?.();
   };
 
   const skip = () => {

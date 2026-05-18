@@ -7,11 +7,11 @@ import { OnboardingDataNotice } from "./OnboardingDataNotice";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
 const PALETTE = {
-  primary: "#24F59B",
-  primaryDark: "#10C878",
+  primary: "#20D86B",
+  primaryDark: "#0EA84E",
   primaryDeep: "#0A8550",
-  bg: "#F2FFF8",
-  highlight: "#D6FFE9",
+  bg: "#FAFFF5",
+  highlight: "#BFF4D4",
   text: "#1F2937",
   textMuted: "#6B7280",
   cardBorderIdle: "#D1D5DB",
@@ -148,7 +148,7 @@ export function GoalPreviewStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E6FFF2",
+              backgroundColor: "#E9FFF1",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -266,6 +266,21 @@ export function GoalPreviewStep({
                 animate={{ pathLength: 1 }}
                 transition={{ delay: 0.3, duration: 1.5, ease: [0.4, 0, 0.2, 1] }}
               />
+              <motion.path
+                d={mainPath}
+                fill="none"
+                stroke={PALETTE.primary}
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray="18 260"
+                initial={{ opacity: 0, pathLength: 0, strokeDashoffset: 0 }}
+                animate={{ opacity: [0, 0.45, 0], pathLength: 1, strokeDashoffset: [80, -180] }}
+                transition={{
+                  opacity: { delay: 1.2, duration: 1.3, repeat: Infinity, repeatDelay: 1.5 },
+                  pathLength: { delay: 1.2, duration: 1.3, repeat: Infinity, repeatDelay: 1.5 },
+                  strokeDashoffset: { delay: 1.2, duration: 1.3, repeat: Infinity, repeatDelay: 1.5 },
+                }}
+              />
 
               {/* Start dot */}
               <motion.circle
@@ -282,6 +297,16 @@ export function GoalPreviewStep({
               />
 
               {/* End dot success */}
+              <motion.circle
+                cx={x1}
+                cy={yEnd}
+                r="11"
+                fill={PALETTE.primary}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0.7, 1.55, 0.7], opacity: [0.35, 0, 0.35] }}
+                transition={{ delay: 1.55, duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                style={{ transformOrigin: `${x1}px ${yEnd}px` }}
+              />
               <motion.circle
                 cx={x1}
                 cy={yEnd}
@@ -335,7 +360,7 @@ export function GoalPreviewStep({
               style={{
                 left: `${endXPct}%`,
                 top: `${endMitYPct}%`,
-                transform: "translate(-50%, calc(-100% - 14px))",
+                transform: "translate(calc(-100% + 10px), calc(-100% - 12px))",
                 color: PALETTE.primaryDeep,
                 whiteSpace: "nowrap",
               }}
@@ -353,7 +378,7 @@ export function GoalPreviewStep({
                 style={{
                   left: `${endXPct}%`,
                   top: `${endOhneYPct}%`,
-                  transform: "translate(-50%, calc(100% + 12px))",
+                  transform: "translate(calc(-100% + 10px), calc(100% + 10px))",
                   color: PALETTE.badLineDeep,
                   whiteSpace: "nowrap",
                 }}
@@ -379,7 +404,7 @@ export function GoalPreviewStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {L.next}

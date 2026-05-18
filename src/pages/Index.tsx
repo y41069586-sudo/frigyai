@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
@@ -23,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import frigyLogo from "@/assets/frigy-mascot.png";
 import { AIChatbot } from "@/components/AIChatbot";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { useGamification } from "@/hooks/useGamification";
@@ -54,6 +54,10 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isFromSubscription = searchParams.get("subscription") === "success";
   const resetOnboarding = searchParams.get("resetOnboarding") === "true";
+  const onboardingResumeStep = useMemo(() => {
+    const step = searchParams.get("onboardingStep");
+    return onboardingSteps.includes(step as OnboardingStep) ? (step as OnboardingStep) : undefined;
+  }, [searchParams]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("subscription") === "success") {
@@ -294,7 +298,6 @@ const Index = () => {
       localStorage.removeItem('onboardingComplete');
       localStorage.removeItem('onboardingUserData');
       localStorage.removeItem('userName');
-      localStorage.removeItem('onboardingScanUsed');
       localStorage.removeItem('userProfile');
       localStorage.removeItem('reminderConfig');
       localStorage.removeItem('weeklyMealPlan');
@@ -333,11 +336,17 @@ const Index = () => {
   // Update onboarding visibility when loading completes
   useEffect(() => {
     if (!onboardingLoading && !loading) {
+      if (onboardingResumeStep) {
+        setShowOnboarding(true);
+        setOnboardingComplete(false);
+        return;
+      }
+
       const skip = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
       setShowOnboarding(!skip);
       setOnboardingComplete(skip);
     }
-  }, [onboardingLoading, loading, user, dbOnboardingComplete, hasCompletedOnboarding]);
+  }, [onboardingLoading, loading, user, dbOnboardingComplete, hasCompletedOnboarding, onboardingResumeStep]);
   
   // Skip onboarding only if coming from subscription success
   useEffect(() => {
@@ -394,7 +403,8 @@ const Index = () => {
     if (user) {
       navigate('/premium-pricing', { replace: true });
     } else {
-      navigate('/auth?from=onboarding', { replace: true });
+      window.history.replaceState(window.history.state, '', '/?onboardingStep=macro-preview');
+      navigate('/auth?from=onboarding', { replace: false });
     }
   };
 
@@ -434,6 +444,11 @@ const Index = () => {
     navigate("/scan");
   };
 
+  useEffect(() => {
+    if (loading || showOnboarding || user || onboardingResumeStep) return;
+    navigate("/auth", { replace: true });
+  }, [loading, showOnboarding, user, onboardingResumeStep, navigate]);
+
   const targetCalories = trackerSettings?.dailyCalories || 2000;
   const targetProtein = trackerSettings?.dailyProtein || 150;
   const targetCarbs = trackerSettings?.dailyCarbs || 200;
@@ -447,23 +462,12 @@ const Index = () => {
 
   // Show onboarding with mascot intro (no separate splash screen)
   if (showOnboarding) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+    return <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />;
   }
 
-  // If not logged in and onboarding is done, show login prompt
+  // If not logged in and onboarding is done, redirect to auth without showing an intermediate screen.
   if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
-        <img src={frigyLogo} alt="Frigy" className="h-20 w-20 object-contain mb-6" />
-        <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          Melde dich an, um dein Dashboard zu sehen
-        </p>
-        <Button onClick={() => navigate("/auth")} className="w-full max-w-xs">
-          {t.login}
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -504,17 +508,14 @@ const Index = () => {
                 </motion.button>
               )}
 
-              {/* AI Chatbot Button - Only for Premium users */}
-              {subscriptionStatus?.subscribed && (
-                <motion.button
-                  onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-                  className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors"
-                  whileTap={{ scale: 0.95 }}
-                  title="AI Chatbot"
-                >
-                  <Bot className="w-4 h-4 text-primary" />
-                </motion.button>
-              )}
+              <motion.button
+                onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors"
+                whileTap={{ scale: 0.95 }}
+                title="AI Chatbot"
+              >
+                <Bot className="w-4 h-4 text-primary" />
+              </motion.button>
 
               <motion.button
                 onClick={() => navigate('/profile')}
@@ -540,7 +541,7 @@ const Index = () => {
               waterGlasses={waterGlasses}
               waterGoalMl={waterGoalMl}
               onWaterGlassesChange={updateWaterGlasses}
-              aiChatEnabled={!!subscriptionStatus?.subscribed}
+              aiChatEnabled
               onAiChatPromptSubmit={(text) => {
                 setChatBootstrapMessage(text);
                 setIsChatbotOpen(true);
@@ -593,7 +594,6 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* AI Chatbot - Premium Only */}
       <AIChatbot
         isOpen={isChatbotOpen}
         setIsOpen={setIsChatbotOpen}

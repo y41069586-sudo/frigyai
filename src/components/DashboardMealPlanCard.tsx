@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Sparkles, ArrowRight, Utensils, Clock, Crown } from 'lucide-react';
+import { Calendar, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 
 interface Meal {
   type?: string;
@@ -48,11 +46,9 @@ const getNextMeal = (meals: Meal[]): Meal | null => {
 
 export const DashboardMealPlanCard = () => {
   const navigate = useNavigate();
-  const { isPremium } = useAuth();
   const [mealPlan, setMealPlan] = useState<DayPlan[]>([]);
   const [todayPlan, setTodayPlan] = useState<DayPlan | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [showPremiumOverlay, setShowPremiumOverlay] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('weeklyMealPlan');
@@ -72,11 +68,7 @@ export const DashboardMealPlanCard = () => {
   }, []);
 
   const handleClick = () => {
-    if (!isPremium) {
-      setShowPremiumOverlay(true);
-    } else {
-      navigate('/meal-plans?tab=meals');
-    }
+    navigate('/meal-plans?tab=meals');
   };
 
   const totalCalories = todayPlan?.meals ? todayPlan.meals.reduce((sum, m) => sum + (m?.calories || 0), 0) : 0;
@@ -213,46 +205,6 @@ export const DashboardMealPlanCard = () => {
         </AnimatePresence>
       </div>
 
-      {/* Premium Overlay */}
-      {showPremiumOverlay && !isPremium && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 rounded-2xl bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-6"
-        >
-          <div className="flex flex-col items-center justify-center gap-4">
-            <Crown className="h-12 w-12 text-amber-400" />
-            <div className="text-center">
-              <h3 className="font-bold text-white text-lg mb-1">Wochenplan freischalten</h3>
-              <p className="text-sm text-white/70">
-                Um den Wochenplan freizuschalten, kaufe Premium
-              </p>
-            </div>
-            <div className="w-full flex flex-col gap-2">
-              <Button
-                className="w-full gradient-neon text-black font-semibold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/premium');
-                }}
-              >
-                Zu Premium
-              </Button>
-              <Button
-                variant="ghost"
-                className="text-white hover:text-white/80"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPremiumOverlay(false);
-                }}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </motion.div>
   );
 };

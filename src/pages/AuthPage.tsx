@@ -26,6 +26,30 @@ const AuthPage = () => {
   const isFromOnboarding = fromParam === 'onboarding';
   const isFromPremiumPricing = fromParam === 'premium-pricing';
 
+  const handleBack = () => {
+    if (isFromOnboarding) {
+      navigate('/?onboardingStep=macro-preview', { replace: true });
+      return;
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
+  useEffect(() => {
+    if (!isFromOnboarding) return;
+
+    const handleBrowserBack = () => {
+      navigate('/?onboardingStep=macro-preview', { replace: true });
+    };
+
+    window.addEventListener('popstate', handleBrowserBack);
+    return () => window.removeEventListener('popstate', handleBrowserBack);
+  }, [isFromOnboarding, navigate]);
+
   // Redirect if already logged in (nur mit bestätigter E-Mail – sonst zur Bestätigungsseite)
   useEffect(() => {
     if (!user || loading) return;
@@ -128,34 +152,34 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-primary safe-area-inset">
+    <div className="flex min-h-dvh flex-col bg-gradient-primary safe-area-inset">
       {/* Back Button Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 safe-top">
-        <div className="container mx-auto px-3 py-3">
+      <div className="shrink-0 safe-top">
+        <div className="container mx-auto px-4 py-2">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
-            className="touch-target h-10 w-10"
+            onClick={handleBack}
+            className="touch-target h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex flex-1 items-start justify-center px-4 pb-6 pt-3 sm:items-center sm:pt-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-6 sm:p-8 border border-primary/20">
-            <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-5 sm:p-8 border border-primary/20">
+            <div className="flex items-center justify-center mb-5 sm:mb-8">
               <img src={frigLogo} alt="Frigy" className="h-12 w-12 rounded-xl" />
               <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">Frigy</h1>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-8">
               {isLogin ? t.signIn : t.signUp}
             </h2>
 

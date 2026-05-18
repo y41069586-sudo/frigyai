@@ -3,14 +3,11 @@ import {
   Calendar,
   ShoppingCart,
   Plus,
-  Lock,
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { toast } from "@/hooks/use-toast";
-import { useFeatureAccess, type Feature } from "@/hooks/useFeatureAccess";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 interface BottomNavigationProps {
@@ -25,11 +22,10 @@ const ITEMS: {
   label: string;
   icon: LucideIcon;
   activeClass: string;
-  feature: Feature | null;
 }[] = [
-  { id: "home", label: "Start", icon: Home, activeClass: "text-primary", feature: null },
-  { id: "meals", label: "Plan", icon: Calendar, activeClass: "text-primary", feature: "meal_plans" },
-  { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary", feature: "shopping_list" },
+  { id: "home", label: "Start", icon: Home, activeClass: "text-primary" },
+  { id: "meals", label: "Plan", icon: Calendar, activeClass: "text-primary" },
+  { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary" },
 ];
 
 export const BottomNavigation = (_props: BottomNavigationProps) => {
@@ -37,7 +33,6 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { canAccessFeature } = useFeatureAccess();
   const isMobile = useIsMobile();
 
   const pathname = location.pathname;
@@ -58,39 +53,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       navigate("/");
       return;
     }
-    const meta = ITEMS.find((x) => x.id === id);
-    if (meta?.feature) {
-      const access = canAccessFeature(meta.feature);
-      if (!access.canAccess) {
-        if (access.lockReason === "tracker_not_setup") {
-          toast({
-            title: t.setupTracker || "Tracker einrichten",
-            description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
-          });
-        }
-        navigate("/?setupTracker=1", { replace: isHome });
-        return;
-      }
-    }
     navigate(`/meal-plans?tab=${id}`, { replace: isMealPlans });
   };
 
   const openTracker = () => {
-    const access = canAccessFeature("tracker_full");
-    if (!access.canAccess) {
-      if (access.lockReason === "tracker_not_setup") {
-        toast({
-          title: t.setupTracker || "Tracker einrichten",
-          description: access.message || t.setupTrackerFirst || "Bitte richte zuerst deinen Tracker ein",
-        });
-      }
-      navigate("/?setupTracker=1", { replace: isHome });
-      return;
-    }
     navigate("/?logMeal=1", { replace: isHome });
   };
-
-  const trackerLocked = !canAccessFeature("tracker_full").canAccess;
 
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 safe-bottom">
@@ -103,7 +71,6 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
         {ITEMS.map((item) => {
           const active = isTabActive(item.id);
           const Icon = item.icon;
-          const locked = item.feature ? !canAccessFeature(item.feature).canAccess : false;
 
           return (
             <button
@@ -121,11 +88,6 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
                   className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 />
-              )}
-              {locked && (
-                <span className="absolute right-1 top-0 z-[2] flex h-3.5 w-3.5 items-center justify-center rounded-full bg-muted/90">
-                  <Lock className="h-2 w-2 text-muted-foreground" />
-                </span>
               )}
               <Icon
                 className={cn(
@@ -157,11 +119,6 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           )}
           aria-label={t.navTracker}
         >
-          {trackerLocked && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted ring-2 ring-background">
-              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
-            </span>
-          )}
           <Plus className="h-8 w-8 stroke-[3]" />
         </motion.button>
       </div>

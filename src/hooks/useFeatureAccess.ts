@@ -1,12 +1,8 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { useTrackerSettings } from '@/hooks/useTrackerSettings';
-
 export type Feature = 'meal_plans' | 'shopping_list' | 'tracker_full' | 'water' | 'progress' | 'scan' | 'ai_chatbot' | 'recipes';
 
 export interface FeatureAccessResult {
   canAccess: boolean;
   isLocked: boolean;
-  lockReason?: 'not_premium' | 'tracker_not_setup' | 'quota_exceeded';
   message?: string;
 }
 
@@ -17,47 +13,7 @@ export interface FeatureAccessResult {
  * - Tracker setup status
  */
 export const useFeatureAccess = () => {
-  const { subscriptionStatus } = useAuth();
-  const { settings: trackerSettings, isConfigured: trackerSetup } = useTrackerSettings();
-  
-  const isPremium = subscriptionStatus?.subscribed ?? false;
-
-  const canAccessFeature = (feature: Feature): FeatureAccessResult => {
-    // Define feature requirements
-    const featureRequirements: Record<Feature, { requiresPremium: boolean; requiresTracker: boolean }> = {
-      meal_plans: { requiresPremium: true, requiresTracker: false },
-      shopping_list: { requiresPremium: true, requiresTracker: false },
-      tracker_full: { requiresPremium: false, requiresTracker: false },
-      water: { requiresPremium: false, requiresTracker: false },
-      progress: { requiresPremium: true, requiresTracker: false },
-      scan: { requiresPremium: true, requiresTracker: false },
-      ai_chatbot: { requiresPremium: true, requiresTracker: false },
-      recipes: { requiresPremium: false, requiresTracker: false },
-    };
-
-    const requirements = featureRequirements[feature];
-
-    // Check premium requirement
-    if (requirements.requiresPremium && !isPremium) {
-      return {
-        canAccess: false,
-        isLocked: true,
-        lockReason: 'not_premium',
-        message: 'Dieses Feature ist nur für Premium-Nutzer verfügbar',
-      };
-    }
-
-    // Check tracker setup requirement
-    if (requirements.requiresTracker && !trackerSetup) {
-      return {
-        canAccess: false,
-        isLocked: true,
-        lockReason: 'tracker_not_setup',
-        message: 'Bitte richte zuerst deinen Tracker ein',
-      };
-    }
-
-    // Feature is accessible
+  const canAccessFeature = (_feature: Feature): FeatureAccessResult => {
     return {
       canAccess: true,
       isLocked: false,
@@ -66,7 +22,7 @@ export const useFeatureAccess = () => {
 
   return {
     canAccessFeature,
-    isPremium,
-    trackerSetup,
+    isPremium: true,
+    trackerSetup: true,
   };
 };

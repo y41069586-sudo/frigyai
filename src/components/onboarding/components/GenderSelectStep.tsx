@@ -15,13 +15,13 @@ type GenderSelectStepProps = {
 };
 
 const PALETTE = {
-  primary: "#24F59B",
-  primaryDark: "#10C878",
-  bg: "#F2FFF8",
-  selectedBg: "#D6FFE9",
-  border: "#6EECC0",
+  primary: "#20D86B",
+  primaryDark: "#0EA84E",
+  bg: "#FAFFF5",
+  selectedBg: "#BFF4D4",
+  border: "#20D86B",
   text: "#1F2937",
-  cardBorderIdle: "#D1D5DB",
+  cardBorderIdle: "#DDEECD",
 };
 
 const GENDER_IMAGES = {
@@ -203,9 +203,9 @@ export function GenderSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
+              : "linear-gradient(135deg, #E9FFF1 0%, #BFF4D4 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

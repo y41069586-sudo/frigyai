@@ -120,7 +120,7 @@ const ProfilePage = () => {
   }
 
   const userInitials = user.email?.substring(0, 2).toUpperCase() || "U";
-  const isPremium = subscriptionStatus?.subscribed;
+  const isPremium = true;
 
   return (
     <div className="min-h-screen bg-gradient-primary safe-area-inset">
@@ -262,40 +262,27 @@ const ProfilePage = () => {
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               </Button>
             </div>
-            {isPremium ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-primary">
-                  <Crown className="h-5 w-5" />
-                  <span className="font-medium">{t.premiumActive}</span>
-                </div>
-                {subscriptionStatus?.subscription_end && (
-                  <p className="text-sm text-muted-foreground">
-                    {t.renewsOn}: {new Date(subscriptionStatus.subscription_end).toLocaleDateString("de-DE")}
-                  </p>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  className="w-full mt-2"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  {t.manageSubscription}
-                </Button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-primary">
+                <Crown className="h-5 w-5" />
+                <span className="font-medium">{t.premiumActive}</span>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">{t.freePlanLabel}</p>
-                <Button
-                  onClick={() => navigate("/premium")}
-                  className="w-full glow-button"
-                >
-                  <Crown className="h-4 w-4 mr-2" />
-                  {t.unlockPremium}
-                </Button>
-              </div>
-            )}
+              {subscriptionStatus?.subscription_end && (
+                <p className="text-sm text-muted-foreground">
+                  {t.renewsOn}: {new Date(subscriptionStatus.subscription_end).toLocaleDateString("de-DE")}
+                </p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="w-full mt-2"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                {t.manageSubscription}
+              </Button>
+            </div>
           </Card>
         </motion.div>
 

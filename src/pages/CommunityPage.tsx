@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Heart, MessageCircle, Share2, Plus, ArrowLeft, 
-  Flame, Users, TrendingUp, Star, Clock, ChefHat, Loader2, Lock
+  Flame, Users, TrendingUp, Star, Clock, ChefHat, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,7 +55,7 @@ interface Post {
 
 export const CommunityPage = () => {
   const navigate = useNavigate();
-  const { user, subscriptionStatus } = useAuth();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [communityRecipes, setCommunityRecipes] = useState<CommunityRecipe[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
@@ -234,9 +234,6 @@ export const CommunityPage = () => {
     return `vor ${Math.floor(hours / 24)} Tagen`;
   };
 
-  // Community posting is currently reserved for Premium members.
-  const isPremium = subscriptionStatus?.subscribed === true;
-
   return (
     <div className="min-h-screen bg-[#F7FAF7] pb-bottom-nav">
       {/* Header */}
@@ -252,28 +249,10 @@ export const CommunityPage = () => {
             </div>
           </div>
           
-          {isPremium ? (
-            <Button size="sm" className="gap-2 rounded-full bg-primary text-primary-foreground shadow-[0_12px_28px_-18px_hsl(var(--primary))]" onClick={() => setUploadDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Rezept teilen
-            </Button>
-          ) : (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="gap-2 opacity-70"
-              onClick={() => {
-                toast({
-                  title: 'Premium Feature',
-                  description: 'Upgrade auf Premium, um Rezepte zu teilen.',
-                });
-                navigate('/premium');
-              }}
-            >
-              <Lock className="h-4 w-4" />
-              Rezept teilen
-            </Button>
-          )}
+          <Button size="sm" className="gap-2 rounded-full bg-primary text-primary-foreground shadow-[0_12px_28px_-18px_hsl(var(--primary))]" onClick={() => setUploadDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Rezept teilen
+          </Button>
         </div>
       </div>
 

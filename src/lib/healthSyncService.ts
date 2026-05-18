@@ -72,7 +72,7 @@ export async function requestNativeHealthPermissions(): Promise<boolean> {
     if (Capacitor.getPlatform() === "android") {
       const { HealthConnect } = await import("@devmaxime/capacitor-health-connect");
       await HealthConnect.requestPermissions({
-        read: ["Steps", "Weight", "ActivitySession"],
+        read: ["Steps", "Weight", "ActivitySession", "TotalCaloriesBurned"],
         write: ["Weight"],
       });
       return true;

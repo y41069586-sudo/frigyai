@@ -13,8 +13,10 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ThemeProvider } from "next-themes";
 import { PageLoader } from "@/components/PageLoader";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithReload } from "@/lib/lazyWithReload";
 import { useIsMobile } from "@/hooks/use-mobile";
+import MealPlansPage from "./pages/MealPlansPage";
 
 // Lazy load all pages for better performance
 const Index = lazyWithReload(() => import("./pages/Index"));
@@ -26,7 +28,6 @@ const FavoritesPage = lazyWithReload(() => import("./pages/FavoritesPage"));
 const NotFound = lazyWithReload(() => import("./pages/NotFound"));
 const AuthPage = lazyWithReload(() => import("./pages/AuthPage"));
 const PremiumPage = lazyWithReload(() => import("./pages/PremiumPage"));
-const MealPlansPage = lazyWithReload(() => import("./pages/MealPlansPage"));
 const ProfilePage = lazyWithReload(() => import("./pages/ProfilePage"));
 const ResetPasswordPage = lazyWithReload(() => import("./pages/ResetPasswordPage"));
 const UpdatePasswordPage = lazyWithReload(() => import("./pages/UpdatePasswordPage"));
@@ -60,45 +61,47 @@ const AppContent = () => {
   return (
     <>
       <OfflineIndicator />
-      <AnimatePresence mode={isMobile ? "sync" : "wait"} initial={false}>
-        <motion.div
-          key={location.pathname}
-          initial={isMobile ? { opacity: 0 } : { opacity: 0, x: 34 }}
-          animate={isMobile ? { opacity: 1 } : { opacity: 1, x: 0 }}
-          exit={isMobile ? { opacity: 0 } : { opacity: 0, x: -22 }}
-          transition={isMobile ? { duration: 0.12, ease: "linear" } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="min-h-screen"
-        >
-          <Suspense fallback={<PageLoader />}>
-            <Routes location={location}>
-              <Route path="/" element={<Index />} />
-              <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/community" element={<CommunityPage />} />
-              <Route path="/scan" element={<ScanPage />} />
-              <Route path="/manual" element={<ManualPage />} />
-              <Route path="/recipes" element={<RecipesPage />} />
-              <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-              <Route path="/favorites" element={<FavoritesPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/premium" element={<PremiumPage />} />
-              <Route path="/meal-plans" element={<MealPlansPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/badges" element={<BadgesPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/update-password" element={<UpdatePasswordPage />} />
-              <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
-              <Route path="/plan-selection" element={<PlanSelectionPage />} />
-              <Route path="/premium-pricing" element={<PremiumPricingPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/legal/:type" element={<LegalPage />} />
-              <Route path="/food-entry/:id" element={<FoodEntryDetailPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </motion.div>
-      </AnimatePresence>
+      <RouteErrorBoundary resetKey={`${location.pathname}${location.search}`}>
+        <AnimatePresence mode={isMobile ? "sync" : "wait"} initial={false}>
+          <motion.div
+            key={location.pathname}
+            initial={isMobile ? { opacity: 0 } : { opacity: 0, x: 34 }}
+            animate={isMobile ? { opacity: 1 } : { opacity: 1, x: 0 }}
+            exit={isMobile ? { opacity: 0 } : { opacity: 0, x: -22 }}
+            transition={isMobile ? { duration: 0.12, ease: "linear" } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="min-h-screen"
+          >
+            <Suspense fallback={<PageLoader />}>
+              <Routes location={location}>
+                <Route path="/" element={<Index />} />
+                <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/community" element={<CommunityPage />} />
+                <Route path="/scan" element={<ScanPage />} />
+                <Route path="/manual" element={<ManualPage />} />
+                <Route path="/recipes" element={<RecipesPage />} />
+                <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+                <Route path="/favorites" element={<FavoritesPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/premium" element={<PremiumPage />} />
+                <Route path="/meal-plans" element={<MealPlansPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/badges" element={<BadgesPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/update-password" element={<UpdatePasswordPage />} />
+                <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
+                <Route path="/plan-selection" element={<PlanSelectionPage />} />
+                <Route path="/premium-pricing" element={<PremiumPricingPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/legal/:type" element={<LegalPage />} />
+                <Route path="/food-entry/:id" element={<FoodEntryDetailPage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
+      </RouteErrorBoundary>
     </>
   );
 };

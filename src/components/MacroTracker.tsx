@@ -8,7 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import {
   User, Scale, Target, Flame, Camera, Plus, Trash2,
   ChevronRight, Sparkles, TrendingDown, Pencil, Barcode,
-  Armchair, Footprints, PersonStanding, Dumbbell, Crown
+  Armchair, Footprints, PersonStanding, Dumbbell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -18,14 +18,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
-import { PremiumLockOverlay } from './PremiumLockOverlay';
 import {
   parseMealFocus,
   type MealFocusKey,
@@ -72,12 +70,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useLanguage();
-  const { user, subscriptionStatus, isPremium } = useAuth();
+  const { user } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
   const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
-  const { canAccessFeature } = useFeatureAccess();
   
   const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -140,7 +137,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
   const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
     name: string;
@@ -599,20 +595,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const handleCameraClick = () => {
-    const access = canAccessFeature('scan');
-    if (!access.canAccess) {
-      setShowPaywall(true);
-      return;
-    }
     cameraInputRef.current?.click();
   };
 
   const handleBarcodeClick = () => {
-    const access = canAccessFeature('scan');
-    if (!access.canAccess) {
-      setShowPaywall(true);
-      return;
-    }
     setShowBarcodeScanner(true);
   };
 
@@ -1297,8 +1283,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               mealType: e.meal_type,
             }))}
             isAnalyzing={isAnalyzing}
-            isPremium={isPremium}
-            onPremiumRequired={() => setShowPaywall(true)}
           />
         )}
       </AnimatePresence>
@@ -1405,23 +1389,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         onFoodScanned={handleBarcodeScanned}
       />
 
-      {/* Paywall Overlay for Premium Features */}
-      {showPaywall && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => setShowPaywall(false)}
-          className="fixed inset-0 z-50"
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            <PremiumLockOverlay
-              title="Premium freischalten"
-              description="Nutze Foto für schnellere Erfassung"
-              className="relative"
-            />
-          </div>
-        </motion.div>
-      )}
     </>
   );
 };

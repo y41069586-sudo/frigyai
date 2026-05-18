@@ -45,7 +45,7 @@ export const AIChatbot = ({
   onBootstrapConsumed,
 }: AIChatbotProps) => {
   // All hooks MUST be called unconditionally, before any conditional returns
-  const { session, subscriptionStatus } = useAuth();
+  const { session } = useAuth();
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
@@ -63,8 +63,6 @@ export const AIChatbot = ({
   // Use external state if provided, otherwise use local state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
   const setIsOpen = externalSetIsOpen || setLocalIsOpen;
-
-  const isPremium = subscriptionStatus?.subscribed === true;
 
   const handleSheetDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.y > 56 || info.velocity.y > 450) {
@@ -182,20 +180,16 @@ export const AIChatbot = ({
   sendMessageWithTextRef.current = sendMessageWithText;
 
   useEffect(() => {
-    if (!isPremium || !bootstrapMessage?.trim() || !isOpen) return;
+    if (!bootstrapMessage?.trim() || !isOpen) return;
     const msg = bootstrapMessage.trim();
     onBootstrapConsumed?.();
     void sendMessageWithTextRef.current(msg);
-  }, [bootstrapMessage, isOpen, isPremium, onBootstrapConsumed]);
+  }, [bootstrapMessage, isOpen, onBootstrapConsumed]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
     await sendMessageWithText(input);
   };
-
-  if (!isPremium) {
-    return null;
-  }
 
   return (
     <>

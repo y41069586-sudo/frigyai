@@ -9,12 +9,12 @@ import type { UserData } from "../types";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#24F59B",
-  primaryDark: "#10C878",
+  primary: "#20D86B",
+  primaryDark: "#0EA84E",
   primaryDeep: "#0A8550",
-  bg: "#F2FFF8",
-  trackActive: "#24F59B",
-  trackInactive: "#D6FFE9",
+  bg: "#FAFFF5",
+  trackActive: "#20D86B",
+  trackInactive: "#BFF4D4",
   text: "#1F2937",
   textMuted: "#6B7280",
   textSubtle: "#9CA3AF",
@@ -144,7 +144,7 @@ function MintSlider({
               height: 7,
               width: `${pct}%`,
               background: `linear-gradient(90deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
-              boxShadow: "0 2px 6px rgba(24,168,114,0.35)",
+              boxShadow: "0 2px 6px rgba(14,168,78,0.35)",
               transition: draggingRef.current ? "none" : "width 120ms ease-out",
             }}
           />
@@ -162,7 +162,7 @@ function MintSlider({
                   transform: "translate(-50%, -50%)",
                   width: 3,
                   height: 3,
-                  backgroundColor: isActive ? "rgba(255,255,255,0.85)" : "rgba(24,168,114,0.45)",
+                  backgroundColor: isActive ? "rgba(255,255,255,0.85)" : "rgba(14,168,78,0.45)",
                 }}
               />
             );
@@ -177,10 +177,10 @@ function MintSlider({
               width: 22,
               height: 22,
               borderRadius: 9999,
-              background: "linear-gradient(180deg, #FFFFFF 0%, #F2FFF8 100%)",
+              background: "linear-gradient(180deg, #FFFFFF 0%, #FAFFF5 100%)",
               border: `3px solid ${PALETTE.primary}`,
               boxShadow:
-                "0 6px 16px -5px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+                "0 6px 16px -5px rgba(14,168,78,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
               transition: draggingRef.current ? "none" : "left 120ms ease-out",
             }}
           />
@@ -316,7 +316,7 @@ export function PaceSelectStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E6FFF2",
+              backgroundColor: "#E9FFF1",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -412,7 +412,7 @@ export function PaceSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(24,168,114,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

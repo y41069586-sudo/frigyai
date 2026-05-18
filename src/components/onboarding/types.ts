@@ -31,13 +31,15 @@ export type OnboardingStep =
   | "goal-mode"
   | "target-weight"
   | "speed-select"
-  | "health-sync"
   | "health-goals"
   | "dietary-preferences"
   | "allergies"
   | "weekly-plan-preview"
   | "scan-fridge"
   | "shopping-list"
+  | "health-sync"
+  | "data-consent"
+  | "referral-code"
   | "cooking-time"
   | "cooking-experience"
   | "planning-setup"
@@ -159,12 +161,20 @@ export const onboardingSteps: OnboardingStep[] = [
   "weekly-plan-preview",
   "scan-fridge",
   "shopping-list",
-  "health-sync",
   "notification-prefs",
+  "health-sync",
+  "data-consent",
+  "referral-code",
+  "analyzing",
+  "macro-preview",
 ];
 
-/** Steps after splash: mint fullscreen body (no global progress bar). */
-export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(onboardingSteps.slice(1));
+/** Fullscreen mint body steps after the splash welcome screen. */
+export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(
+  onboardingSteps.slice(1).filter((step) => step !== "analyzing" && step !== "macro-preview"),
+);
 
-/** Thin top progress line on these steps (includes splash). */
-export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(onboardingSteps);
+/** Thin top progress line starts after the splash welcome screen. */
+export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(
+  onboardingSteps.slice(1).filter((step) => step !== "analyzing" && step !== "macro-preview"),
+);
