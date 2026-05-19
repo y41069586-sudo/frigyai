@@ -15,9 +15,13 @@ import { PageLoader } from "@/components/PageLoader";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithReload } from "@/lib/lazyWithReload";
-import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  isMainNavRoute,
+  mainNavPageTransition,
+  defaultPageTransition,
+} from "@/lib/routeTransitions";
+import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import MealPlansPage from "./pages/MealPlansPage";
-
 // Lazy load all pages for better performance
 const Index = lazyWithReload(() => import("./pages/Index"));
 const ScanPage = lazyWithReload(() => import("./pages/ScanPage"));
@@ -56,20 +60,22 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   const location = useLocation();
-  const isMobile = useIsMobile();
+  const pageTransition = isMainNavRoute(location.pathname)
+    ? mainNavPageTransition
+    : defaultPageTransition;
 
   return (
     <>
       <OfflineIndicator />
       <RouteErrorBoundary resetKey={`${location.pathname}${location.search}`}>
-        <AnimatePresence mode={isMobile ? "sync" : "wait"} initial={false}>
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={isMobile ? { opacity: 0 } : { opacity: 0, x: 34 }}
-            animate={isMobile ? { opacity: 1 } : { opacity: 1, x: 0 }}
-            exit={isMobile ? { opacity: 0 } : { opacity: 0, x: -22 }}
-            transition={isMobile ? { duration: 0.12, ease: "linear" } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="min-h-screen"
+            initial={pageTransition.initial}
+            animate={pageTransition.animate}
+            exit={pageTransition.exit}
+            transition={pageTransition.transition}
+            className="min-h-screen gpu-smooth"
           >
             <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
@@ -118,6 +124,7 @@ const App = () => {
               <BrowserRouter>
                 <AuthProvider>
                   <MealPlanProvider>
+                    <NotificationBootstrap />
                     <AppContent />
                   </MealPlanProvider>
                 </AuthProvider>

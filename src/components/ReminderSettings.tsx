@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
-
-interface ReminderConfig {
-  water: { enabled: boolean; interval: number }; // interval in hours
-  meals: { enabled: boolean; times: string[] };
-  weight: { enabled: boolean; time: string };
-}
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  sendTestNotification,
+  syncRemindersFromConfig,
+  type ReminderConfig,
+} from '@/lib/notifications';
 
 const DEFAULT_CONFIG: ReminderConfig = {
   water: { enabled: false, interval: 2 },
@@ -20,65 +22,43 @@ const DEFAULT_CONFIG: ReminderConfig = {
   weight: { enabled: false, time: '07:00' },
 };
 
-export const ReminderSettings = () => {
+interface ReminderSettingsProps {
+  compact?: boolean;
+}
+
+export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => {
   const { toast } = useToast();
-  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('prompt');
   const [config, setConfig] = useState<ReminderConfig>(() => {
     const saved = localStorage.getItem('reminderConfig');
     return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
   });
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setPermission(Notification.permission);
-    }
+    void getNotificationPermission().then(setPermission);
   }, []);
 
   useEffect(() => {
     localStorage.setItem('reminderConfig', JSON.stringify(config));
     notifyFrigyStorageUpdated();
+    void syncRemindersFromConfig(config);
   }, [config]);
 
   const requestPermission = async () => {
-    if (!('Notification' in window)) {
-      toast({
-        title: 'Nicht unterstützt',
-        description: 'Dein Browser unterstützt keine Benachrichtigungen.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    const granted = await requestNotificationPermission();
+    const next = await getNotificationPermission();
+    setPermission(next);
 
-    let result: NotificationPermission = 'default';
-    try {
-      result = await Notification.requestPermission();
-      setPermission(result);
-    } catch (error) {
-      toast({
-        title: 'Benachrichtigung nicht möglich',
-        description: 'Bitte aktiviere Benachrichtigungen in den App- oder Browser-Einstellungen.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (result === 'granted') {
+    if (granted) {
       toast({
         title: 'Benachrichtigungen aktiviert ✓',
-        description: 'Du erhältst jetzt Erinnerungen.',
+        description: 'Du erhältst jetzt Erinnerungen auf dem Gerät.',
       });
-      try {
-        new Notification('Frigy Erinnerungen', {
-          body: 'Benachrichtigungen wurden erfolgreich aktiviert!',
-          icon: '/favicon.ico',
-        });
-      } catch {
-        // Some mobile browsers allow permission but block immediate test notifications.
-      }
+      await sendTestNotification();
     } else {
       toast({
         title: 'Berechtigung abgelehnt',
-        description: 'Aktiviere Benachrichtigungen in deinen Browser-Einstellungen.',
+        description: 'Aktiviere Benachrichtigungen in den Einstellungen deines Geräts.',
         variant: 'destructive',
       });
     }
@@ -87,9 +67,9 @@ export const ReminderSettings = () => {
   const ensurePermission = async (): Promise<boolean> => {
     if (permission === 'granted') return true;
     await requestPermission();
-    const nextPermission = 'Notification' in window ? Notification.permission : permission;
-    setPermission(nextPermission);
-    return nextPermission === 'granted';
+    const next = await getNotificationPermission();
+    setPermission(next);
+    return next === 'granted';
   };
 
   const updateWaterReminder = async (enabled: boolean) => {
@@ -130,20 +110,29 @@ export const ReminderSettings = () => {
     }));
   };
 
+  const rowClass = compact
+    ? "rounded-xl border border-slate-100 bg-slate-50/50 p-3"
+    : "p-4 bg-background/50 border-border/50";
+
   return (
-    <div className="space-y-4">
-      {/* Permission Card */}
+    <div className={compact ? "space-y-2.5" : "space-y-4"}>
       {permission !== 'granted' && (
-        <Card className="p-4 border-amber-500/30 bg-amber-500/10">
+        <Card className={compact ? "p-3 border-amber-500/25 bg-amber-500/8 shadow-none" : "p-4 border-amber-500/30 bg-amber-500/10"}>
           <div className="flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center">
             <div className="flex min-w-0 items-start gap-3">
-            <BellOff className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Benachrichtigungen deaktiviert</p>
-              <p className="text-xs text-muted-foreground">Aktiviere Benachrichtigungen um Erinnerungen zu erhalten</p>
+              <BellOff className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Benachrichtigungen deaktiviert</p>
+                <p className="text-xs text-muted-foreground">
+                  Tippe auf Aktivieren – dein Handy fragt dann nach der Berechtigung.
+                </p>
+              </div>
             </div>
-            </div>
-            <Button size="sm" onClick={requestPermission} className="w-full shrink-0 bg-primary hover:bg-primary/90 min-[380px]:w-auto">
+            <Button
+              size="sm"
+              onClick={requestPermission}
+              className="w-full shrink-0 bg-primary hover:bg-primary/90 min-[380px]:w-auto"
+            >
               <Bell className="h-4 w-4 mr-1" />
               Aktivieren
             </Button>
@@ -151,8 +140,7 @@ export const ReminderSettings = () => {
         </Card>
       )}
 
-      {/* Water Reminder */}
-      <Card className="p-4 bg-background/50 border-border/50">
+      <Card className={cn("border-border/50 shadow-none", rowClass)}>
         <div className="flex items-center gap-3 mb-3">
           <div className="p-2 rounded-lg bg-blue-500/20">
             <Droplets className="h-5 w-5 text-blue-400" />
@@ -161,10 +149,7 @@ export const ReminderSettings = () => {
             <Label className="text-sm font-medium">Wasser-Erinnerung</Label>
             <p className="text-xs text-muted-foreground">Regelmäßig ans Trinken erinnern</p>
           </div>
-          <Switch
-            checked={config.water.enabled}
-            onCheckedChange={updateWaterReminder}
-          />
+          <Switch checked={config.water.enabled} onCheckedChange={updateWaterReminder} />
         </div>
         {config.water.enabled && (
           <div className="flex items-center gap-2 ml-11">
@@ -184,8 +169,7 @@ export const ReminderSettings = () => {
         )}
       </Card>
 
-      {/* Meal Reminder */}
-      <Card className="p-4 bg-background/50 border-border/50">
+      <Card className={cn("border-border/50 shadow-none", rowClass)}>
         <div className="flex items-center gap-3 mb-3">
           <div className="p-2 rounded-lg bg-green-500/20">
             <Utensils className="h-5 w-5 text-green-400" />
@@ -194,10 +178,7 @@ export const ReminderSettings = () => {
             <Label className="text-sm font-medium">Mahlzeiten-Erinnerung</Label>
             <p className="text-xs text-muted-foreground">Frühstück, Mittag & Abendessen loggen</p>
           </div>
-          <Switch
-            checked={config.meals.enabled}
-            onCheckedChange={updateMealsReminder}
-          />
+          <Switch checked={config.meals.enabled} onCheckedChange={updateMealsReminder} />
         </div>
         {config.meals.enabled && (
           <div className="flex items-center gap-2 ml-11 flex-wrap">
@@ -209,8 +190,7 @@ export const ReminderSettings = () => {
         )}
       </Card>
 
-      {/* Weight Reminder */}
-      <Card className="p-4 bg-background/50 border-border/50">
+      <Card className={cn("border-border/50 shadow-none", rowClass)}>
         <div className="flex items-center gap-3 mb-3">
           <div className="p-2 rounded-lg bg-purple-500/20">
             <Scale className="h-5 w-5 text-purple-400" />
@@ -219,10 +199,7 @@ export const ReminderSettings = () => {
             <Label className="text-sm font-medium">Wiege-Erinnerung</Label>
             <p className="text-xs text-muted-foreground">Täglich morgens wiegen</p>
           </div>
-          <Switch
-            checked={config.weight.enabled}
-            onCheckedChange={updateWeightReminder}
-          />
+          <Switch checked={config.weight.enabled} onCheckedChange={updateWeightReminder} />
         </div>
         {config.weight.enabled && (
           <div className="flex items-center gap-2 ml-11">
@@ -244,3 +221,4 @@ export const ReminderSettings = () => {
     </div>
   );
 };
+

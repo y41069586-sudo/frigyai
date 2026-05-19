@@ -1,176 +1,27 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintWheelColumn, type MintWheelOption } from "./MintWheelColumn";
 
 const PALETTE = {
-  primary: "#20D86B",
-  primaryDark: "#0EA84E",
-  bg: "#FAFFF5",
-  selectedBg: "#BFF4D4",
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
+  bg: "#FEFFFE",
+  selectedBg: "#E0FDEC",
   border: "#6EECC0",
   text: "#1F2937",
   textMuted: "#6B7280",
 };
 
-const ITEM_HEIGHT = 44;
-const VISIBLE_ITEMS = 5;
-const PAD_ITEMS = Math.floor(VISIBLE_ITEMS / 2);
+const BIRTH_WHEEL_ROW = 44;
 
-type WheelOption = { value: number; label: string };
-
-type WheelColumnProps = {
-  options: WheelOption[];
-  value: number;
-  onChange: (value: number) => void;
-  align?: "left" | "center" | "right";
-  width?: number | string;
-  ariaLabel?: string;
-};
-
-const haptic = () => {
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    navigator.vibrate?.(4);
-  }
-};
-
-function WheelColumn({
-  options,
-  value,
-  onChange,
-  align = "center",
-  width = "100%",
-  ariaLabel,
-}: WheelColumnProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastIndexRef = useRef(0);
-  const isProgrammaticRef = useRef(false);
-  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const selectedIndex = useMemo(() => {
-    const idx = options.findIndex((o) => o.value === value);
-    return idx >= 0 ? idx : 0;
-  }, [options, value]);
-
-  const scrollToIndex = useCallback((idx: number, smooth: boolean) => {
-    if (!scrollRef.current) return;
-    isProgrammaticRef.current = true;
-    scrollRef.current.scrollTo({
-      top: idx * ITEM_HEIGHT,
-      behavior: smooth ? "smooth" : "auto",
-    });
-    setTimeout(
-      () => {
-        isProgrammaticRef.current = false;
-      },
-      smooth ? 260 : 30,
-    );
-  }, []);
-
-  useEffect(() => {
-    scrollToIndex(selectedIndex, false);
-    lastIndexRef.current = selectedIndex;
-  }, []);
-
-  useEffect(() => {
-    if (selectedIndex !== lastIndexRef.current) {
-      scrollToIndex(selectedIndex, false);
-      lastIndexRef.current = selectedIndex;
-    }
-  }, [selectedIndex, scrollToIndex]);
-
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current || isProgrammaticRef.current) return;
-    const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(options.length - 1, idx));
-
-    if (clamped !== lastIndexRef.current) {
-      haptic();
-      lastIndexRef.current = clamped;
-      onChange(options[clamped].value);
-    }
-
-    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-    snapTimeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
-      const currentTop = scrollRef.current.scrollTop;
-      const targetTop = lastIndexRef.current * ITEM_HEIGHT;
-      if (Math.abs(currentTop - targetTop) > 0.5) {
-        scrollToIndex(lastIndexRef.current, true);
-      }
-    }, 90);
-  }, [options, onChange, scrollToIndex]);
-
-  useEffect(() => () => {
-    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-  }, []);
-
-  const containerHeight = VISIBLE_ITEMS * ITEM_HEIGHT;
-  const textAlignClass =
-    align === "left" ? "justify-start pl-2" : align === "right" ? "justify-end pr-2" : "justify-center";
-
-  return (
-    <div
-      className="relative shrink-0"
-      style={{ height: containerHeight, width }}
-      role="listbox"
-      aria-label={ariaLabel}
-    >
-      <div
-        ref={scrollRef}
-        className="h-full overflow-y-scroll scrollbar-hide select-none"
-        style={{
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          WebkitUserSelect: "none",
-          userSelect: "none",
-          willChange: "scroll-position",
-          transform: "translateZ(0)",
-        }}
-        onScroll={handleScroll}
-      >
-        <div style={{ height: PAD_ITEMS * ITEM_HEIGHT }} />
-        {options.map((opt, idx) => {
-          const distance = Math.abs(idx - selectedIndex);
-          const isSelected = idx === selectedIndex;
-          const opacity =
-            distance === 0 ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.28 : 0.15;
-          return (
-            <div
-              key={opt.value}
-              role="option"
-              aria-selected={isSelected}
-              className={`flex items-center ${textAlignClass}`}
-              style={{
-                height: ITEM_HEIGHT,
-                scrollSnapAlign: "center",
-                fontSize: isSelected ? "19px" : "15px",
-                fontWeight: isSelected ? 600 : 400,
-                color: isSelected ? PALETTE.text : PALETTE.textMuted,
-                opacity,
-                letterSpacing: "-0.01em",
-                transition: "font-size 160ms cubic-bezier(0.4,0,0.2,1), color 160ms",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {opt.label}
-            </div>
-          );
-        })}
-        <div style={{ height: PAD_ITEMS * ITEM_HEIGHT }} />
-      </div>
-    </div>
-  );
-}
 
 const MONTHS_DE = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
+  "Januar", "Februar", "MÃ¤rz", "April", "Mai", "Juni",
   "Juli", "August", "September", "Oktober", "November", "Dezember",
 ];
 const MONTHS_EN = [
@@ -178,8 +29,8 @@ const MONTHS_EN = [
   "July", "August", "September", "October", "November", "December",
 ];
 const MONTHS_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+  "Janvier", "FÃ©vrier", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "AoÃ»t", "Septembre", "Octobre", "Novembre", "DÃ©cembre",
 ];
 
 const daysInMonth = (month: number, year: number) =>
@@ -212,18 +63,18 @@ export function BirthdateSelectStep({
     year: maxYear - 12,
   };
 
-  const monthOptions: WheelOption[] = monthNames.map((label, i) => ({
+  const monthOptions: MintWheelOption[] = monthNames.map((label, i) => ({
     value: i + 1,
     label,
   }));
 
   const maxDay = daysInMonth(birth.month, birth.year);
-  const dayOptions: WheelOption[] = Array.from({ length: maxDay }, (_, i) => ({
+  const dayOptions: MintWheelOption[] = Array.from({ length: maxDay }, (_, i) => ({
     value: i + 1,
     label: String(i + 1).padStart(2, "0"),
   }));
 
-  const yearOptions: WheelOption[] = Array.from(
+  const yearOptions: MintWheelOption[] = Array.from(
     { length: maxYear - minYear + 1 },
     (_, i) => {
       const v = maxYear - i;
@@ -242,7 +93,7 @@ export function BirthdateSelectStep({
     language === "de"
       ? "Wann bist du geboren?"
       : language === "fr"
-        ? "Quand es-tu né(e) ?"
+        ? "Quand es-tu nÃ©(e) ?"
         : "When were you born?";
 
   const canProceed = true;
@@ -252,17 +103,17 @@ export function BirthdateSelectStep({
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
-      {/* ── Top bar: back + progress ── */}
+      {/* â”€â”€ Top bar: back + progress â”€â”€ */}
       <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label="ZurÃ¼ck"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E9FFF1",
+              backgroundColor: "#F5FFF9",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -283,7 +134,7 @@ export function BirthdateSelectStep({
         </h1>
       </OnboardingMascotQuestion>
 
-      {/* Datumswheels — ohne weiße Kachel */}
+      {/* Datumswheels â€” ohne weiÃŸe Kachel */}
       <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -294,36 +145,39 @@ export function BirthdateSelectStep({
           <div
             className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
             style={{
-              top: `calc(50% - ${ITEM_HEIGHT / 2}px)`,
-              height: ITEM_HEIGHT,
+              top: `calc(50% - ${BIRTH_WHEEL_ROW / 2}px)`,
+              height: BIRTH_WHEEL_ROW,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(32,216,107,0.16)",
+              boxShadow: "0 0 0 3px rgba(110, 240, 168,0.16)",
             }}
           />
-{/* Three columns — equal width and centered for consistent spacing */}
+{/* Three columns â€” equal width and centered for consistent spacing */}
           <div className="relative z-10 flex items-stretch">
-            <WheelColumn
+            <MintWheelColumn
               options={monthOptions}
               value={birth.month}
               onChange={(m) => updateBirth({ month: m })}
               align="center"
               width="33.3333%"
+              rowHeight={BIRTH_WHEEL_ROW}
               ariaLabel="Monat"
             />
-            <WheelColumn
+            <MintWheelColumn
               options={dayOptions}
               value={birth.day}
               onChange={(d) => updateBirth({ day: d })}
               align="center"
               width="33.3333%"
+              rowHeight={BIRTH_WHEEL_ROW}
               ariaLabel="Tag"
             />
-            <WheelColumn
+            <MintWheelColumn
               options={yearOptions}
               value={birth.year}
               onChange={(y) => updateBirth({ year: y })}
               align="center"
               width="33.3333%"
+              rowHeight={BIRTH_WHEEL_ROW}
               ariaLabel="Jahr"
             />
           </div>
@@ -347,7 +201,7 @@ export function BirthdateSelectStep({
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
               : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

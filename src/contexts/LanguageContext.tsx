@@ -620,6 +620,20 @@ interface Translations {
   mealPlanGenerating6: string;
   mealPlanGenerating7: string;
   mealPlanBackgroundHint: string;
+
+  // First weekly plan (post-registration)
+  firstWeeklyPlanTitle: string;
+  firstWeeklyPlanSubtitle: string;
+  firstWeeklyPlanCreateBtn: string;
+  firstWeeklyPlanSuccessTitle: string;
+  firstWeeklyPlanSuccessSubtitle: string;
+  firstWeeklyPlanContinueBtn: string;
+  firstWeeklyPlanFeatureMeals: string;
+  firstWeeklyPlanFeatureMacros: string;
+  firstWeeklyPlanFeatureShopping: string;
+  firstWeeklyPlanStayOnTab: string;
+  firstWeeklyPlanPreviewTitle: string;
+  firstWeeklyPlanPreviewSubtitle: string;
   
   // Dashboard & Home
   goodMorning: string;
@@ -1212,6 +1226,21 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Noch ein kleiner Moment…",
     mealPlanGenerating7: "Deine Mahlzeiten werden vorbereitet",
     mealPlanBackgroundHint: "Du kannst weiterstöbern – Frigy arbeitet im Hintergrund",
+
+    firstWeeklyPlanTitle: "Erstelle deinen ersten Wochenplan",
+    firstWeeklyPlanSubtitle:
+      "7 Tage voller passender Mahlzeiten — abgestimmt auf deine Ziele und Vorlieben.",
+    firstWeeklyPlanCreateBtn: "Wochenplan erstellen",
+    firstWeeklyPlanSuccessTitle: "Wochenplan erstellt!",
+    firstWeeklyPlanSuccessSubtitle:
+      "Deine Woche ist geplant. Du findest deinen Plan jederzeit unter „Plan“.",
+    firstWeeklyPlanContinueBtn: "Weiter",
+    firstWeeklyPlanFeatureMeals: "5 Mahlzeiten pro Tag",
+    firstWeeklyPlanFeatureMacros: "Passend zu deinen Makros",
+    firstWeeklyPlanFeatureShopping: "Automatische Einkaufsliste",
+    firstWeeklyPlanStayOnTab: "Bitte verlasse diesen Tab nicht — Frigy erstellt gerade deinen Wochenplan.",
+    firstWeeklyPlanPreviewTitle: "Dein Wochenplan ist fertig!",
+    firstWeeklyPlanPreviewSubtitle: "So sieht deine Woche aus. Unter „Plan“ findest du alles jederzeit wieder.",
     
     // Dashboard & Home
     goodMorning: "Guten Morgen",
@@ -2042,6 +2071,21 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Just a moment longer…",
     mealPlanGenerating7: "Your meals are being prepared",
     mealPlanBackgroundHint: "You can browse around – Frigy is working in the background",
+
+    firstWeeklyPlanTitle: "Create your first weekly plan",
+    firstWeeklyPlanSubtitle:
+      "7 days of meals tailored to your goals and preferences.",
+    firstWeeklyPlanCreateBtn: "Create weekly plan",
+    firstWeeklyPlanSuccessTitle: "Weekly plan created!",
+    firstWeeklyPlanSuccessSubtitle:
+      "Your week is planned. Find your plan anytime under “Plan”.",
+    firstWeeklyPlanContinueBtn: "Continue",
+    firstWeeklyPlanFeatureMeals: "5 meals per day",
+    firstWeeklyPlanFeatureMacros: "Matched to your macros",
+    firstWeeklyPlanFeatureShopping: "Automatic shopping list",
+    firstWeeklyPlanStayOnTab: "Please don't leave this tab — Frigy is creating your weekly plan.",
+    firstWeeklyPlanPreviewTitle: "Your weekly plan is ready!",
+    firstWeeklyPlanPreviewSubtitle: "Here's your week at a glance. Find everything anytime under “Plan”.",
     
     // Dashboard & Home
     goodMorning: "Good morning",
@@ -2872,6 +2916,21 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Encore un petit moment…",
     mealPlanGenerating7: "Tes repas sont en préparation",
     mealPlanBackgroundHint: "Tu peux continuer à naviguer – Frigy travaille en arrière-plan",
+
+    firstWeeklyPlanTitle: "Crée ton premier plan de la semaine",
+    firstWeeklyPlanSubtitle:
+      "7 jours de repas adaptés à tes objectifs et préférences.",
+    firstWeeklyPlanCreateBtn: "Créer le plan hebdomadaire",
+    firstWeeklyPlanSuccessTitle: "Plan hebdomadaire créé !",
+    firstWeeklyPlanSuccessSubtitle:
+      "Ta semaine est prête. Retrouve ton plan à tout moment sous « Plan ».",
+    firstWeeklyPlanContinueBtn: "Continuer",
+    firstWeeklyPlanFeatureMeals: "5 repas par jour",
+    firstWeeklyPlanFeatureMacros: "Adapté à tes macros",
+    firstWeeklyPlanFeatureShopping: "Liste de courses automatique",
+    firstWeeklyPlanStayOnTab: "Ne quitte pas cet onglet — Frigy prépare ton plan de la semaine.",
+    firstWeeklyPlanPreviewTitle: "Ton plan de la semaine est prêt !",
+    firstWeeklyPlanPreviewSubtitle: "Voici ta semaine. Retrouve tout sous « Plan » à tout moment.",
     
     // Dashboard & Home
     goodMorning: "Bonjour",

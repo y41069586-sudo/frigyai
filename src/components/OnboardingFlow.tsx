@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   ONBOARDING_MINT_BODY_STEPS,
   ONBOARDING_MINT_PROGRESS_LINE_STEPS,
 } from "./onboarding/types";
-import { calculateMacros, calculateWeeksToGoal, saveOnboardingData } from "./onboarding/utils";
+import { calculateMacros, calculateWeeksToGoal, saveOnboardingData, saveOnboardingAfterSignup } from "./onboarding/utils";
 import {
   StepCard, AnimatedCounter, SelectionCard,
   AnimatedBicycle, AnimatedMotorcycle, AnimatedRocket, OnboardingProgressBar
@@ -51,10 +51,19 @@ import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { HealthConnectStep } from "./onboarding/components/HealthConnectStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
+import { FIRST_WEEKLY_PLAN_DONE_KEY } from "@/lib/frigyStorageSync";
+import { resolveAuthErrorMessage } from "@/lib/authErrors";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
 import { WheelPicker } from "./WheelPicker";
 import { MacroRing } from "./MacroRing";
+import { EditMacroGoalsDialog, type FocusMacro } from "./EditMacroGoalsDialog";
+import {
+  OnboardingPaywallStep,
+  STRIPE_PAYMENT_LINKS,
+  type PaywallBillingPlan,
+} from "./onboarding/components/OnboardingPaywallStep";
 import HeroAnimation from "./HeroAnimation";
 import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
 
@@ -169,9 +178,8 @@ const NotebookOnboardingChrome = ({
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   return (
     <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FEFFFC] text-neutral-950">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(32,216,107,0.26),transparent_30%),radial-gradient(circle_at_86%_64%,rgba(32,216,107,0.15),transparent_24%),linear-gradient(180deg,#ffffff_0%,#fbfff5_48%,#ffffff_100%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#20D86B]/18 blur-[76px]" />
-      <div className="pointer-events-none absolute -right-28 top-40 h-64 w-64 rounded-full border border-[#20D86B]/20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(110, 240, 168,0.26),transparent_30%),radial-gradient(circle_at_86%_64%,rgba(110, 240, 168,0.15),transparent_24%),linear-gradient(180deg,#ffffff_0%,#fbfff5_48%,#ffffff_100%)]" />
+      <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#6EF0A8]/18 blur-[76px]" />
       <div className="pointer-events-none absolute -left-24 bottom-24 h-60 w-60 rounded-full bg-neutral-100/70 blur-3xl" />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
@@ -179,7 +187,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#20D86B] drop-shadow-[0_0_18px_rgba(32,216,107,0.56)]"
+          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#6EF0A8] drop-shadow-[0_0_18px_rgba(110, 240, 168,0.56)]"
         >
           Frigy
         </motion.p>
@@ -192,7 +200,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         >
           <motion.div
             aria-hidden
-            className="absolute h-[220px] w-[220px] rounded-full bg-[#20D86B]/18 blur-3xl"
+            className="absolute h-[220px] w-[220px] rounded-full bg-[#6EF0A8]/18 blur-3xl"
             animate={{ scale: [1, 1.08, 1], opacity: [0.55, 0.85, 0.55] }}
             transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -220,7 +228,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
             Iss smarter.
             <br />
             <span className="relative inline-block">
-              <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#20D86B]/70 blur-[2px]" />
+              <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#6EF0A8]/70 blur-[2px]" />
               <span className="relative">Leb leichter.</span>
             </span>
           </h1>
@@ -235,7 +243,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.965 }}
               onClick={onNext}
-              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#20D86B] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(14,168,78,0.88),0_0_42px_rgba(32,216,107,0.38)]"
+              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#6EF0A8] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(74, 232, 150,0.88),0_0_42px_rgba(110, 240, 168,0.38)]"
             >
               <span className="absolute inset-x-8 top-1 h-5 rounded-full bg-white/55 blur-md" />
               <span className="relative">Loslegen</span>
@@ -354,9 +362,42 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
-  const { user, signUp, signIn, signInWithGoogle } = useAuth();
+  const { user, signUp, signIn } = useAuth();
   const { toast } = useToast();
-  
+  const isMobile = useIsMobile();
+
+  const mintStepEase = [0.22, 1, 0.36, 1] as const;
+  const mintStepTransition = {
+    duration: isMobile ? 0.16 : 0.22,
+    ease: mintStepEase,
+  };
+  const mintStepVariants = isMobile
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+      }
+    : {
+        initial: { opacity: 0, x: 16 },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: -12 },
+      };
+  const legacyStepTransition = {
+    duration: isMobile ? 0.2 : 0.32,
+    ease: [0.4, 0, 0.2, 1] as const,
+  };
+  const legacyStepVariants = isMobile
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+      }
+    : {
+        initial: { opacity: 0, y: 16 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -12 },
+      };
+
   // Check if returning from scan with feedback request
   const showScanFeedback = location.state?.showScanFeedback === true;
   const fallbackStep: OnboardingStep =
@@ -385,6 +426,29 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   // Scan feedback state (moved to top level to avoid hooks in switch)
   const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
   const [selectedFeedbackReason, setSelectedFeedbackReason] = useState<string | null>(null);
+
+  const [macroEditOpen, setMacroEditOpen] = useState(false);
+  const [macroEditFocus, setMacroEditFocus] = useState<FocusMacro>(null);
+
+  const calculatedMacroGoals = useMemo(() => calculateMacros(userData), [userData]);
+  const macroGoalsForEdit = useMemo(
+    () => ({
+      dailyCalories: userData.dailyCalories || calculatedMacroGoals.dailyCalories,
+      dailyProtein: userData.dailyProtein || calculatedMacroGoals.dailyProtein,
+      dailyCarbs: userData.dailyCarbs || calculatedMacroGoals.dailyCarbs,
+      dailyFat: userData.dailyFat || calculatedMacroGoals.dailyFat,
+    }),
+    [userData, calculatedMacroGoals],
+  );
+
+  const openMacroEdit = useCallback(
+    (focus: FocusMacro) => {
+      selectionTap();
+      setMacroEditFocus(focus);
+      setMacroEditOpen(true);
+    },
+    [selectionTap],
+  );
 
   // Ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -447,6 +511,36 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       timeouts.forEach(timeout => clearTimeout(timeout));
     };
   }, [currentStep]);
+
+  useEffect(() => {
+    if (currentStep === "save-progress") {
+      setAuthMode("signup");
+    }
+  }, [currentStep]);
+
+  const finishOnboardingExit = () => {
+    saveOnboardingData(userData, { markOnboardingComplete: true, writeInitialMealPlan: true });
+    localStorage.setItem(FIRST_WEEKLY_PLAN_DONE_KEY, "1");
+    onComplete();
+  };
+
+  const goToPaywall = () => {
+    if (onboardingSteps.includes("paywall")) {
+      setCurrentStep("paywall");
+    } else {
+      finishOnboardingExit();
+    }
+  };
+
+  const handlePaywallCheckout = (plan: PaywallBillingPlan) => {
+    lightTap();
+    localStorage.setItem("selectedPlan", plan);
+    window.top!.location.href = STRIPE_PAYMENT_LINKS[plan];
+  };
+
+  const handlePaywallSkip = () => {
+    finishOnboardingExit();
+  };
 
   const goNext = () => {
     // Check if user can proceed from current step before allowing navigation
@@ -521,6 +615,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     const didScan = location.state?.showScanFeedback === true;
     if (onboardingSteps[nextIndex] === "scan-feedback" && !didScan) {
       nextIndex++; // Skip to next step after scan-feedback
+    }
+
+    if (currentStep === "macro-preview") {
+      if (user) {
+        goToPaywall();
+      } else {
+        setCurrentStep("save-progress");
+      }
+      return;
     }
 
     if (nextIndex < onboardingSteps.length) {
@@ -1632,16 +1735,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           setTimeout(() => setUserData(prev => ({ ...prev, ...calculatedMacros })), 0);
         }
 
-        const handleMacroEdit = (field: string, currentValue: number) => {
-          const newValue = prompt(`${field} anpassen:`, currentValue.toString());
-          if (newValue !== null) {
-            const num = parseInt(newValue);
-            if (!isNaN(num) && num > 0) {
-              setUserData(prev => ({ ...prev, [field]: num }));
-            }
-          }
-        };
-
         return (
           <StepCard step="macro-preview">
             <div className="flex flex-col items-center text-center px-4 w-full">
@@ -1729,8 +1822,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   />
                 </div>
                 <button
-                  onClick={() => handleMacroEdit('dailyCalories', userData.dailyCalories || calculatedMacros.dailyCalories)}
-                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-background border-2 border-primary/30 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all shadow-md"
+                  type="button"
+                  onClick={() => openMacroEdit("calories")}
+                  aria-label={t.changeGoal}
+                  className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-background border-2 border-primary/30 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all shadow-md touch-manipulation"
                 >
                   <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1755,8 +1850,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     size="sm"
                   />
                   <button
-                    onClick={() => handleMacroEdit('dailyProtein', userData.dailyProtein || calculatedMacros.dailyProtein)}
-                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-background border border-blue-300 flex items-center justify-center hover:bg-blue-50 transition-colors shadow-sm"
+                    type="button"
+                    onClick={() => openMacroEdit("protein")}
+                    aria-label={language === "de" ? "Protein anpassen" : "Edit protein"}
+                    className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-background border border-blue-300 flex items-center justify-center hover:bg-blue-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1774,8 +1871,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     size="sm"
                   />
                   <button
-                    onClick={() => handleMacroEdit('dailyCarbs', userData.dailyCarbs || calculatedMacros.dailyCarbs)}
-                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-background border border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors shadow-sm"
+                    type="button"
+                    onClick={() => openMacroEdit("carbs")}
+                    aria-label={language === "de" ? "Kohlenhydrate anpassen" : "Edit carbs"}
+                    className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-background border border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1793,8 +1892,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     size="sm"
                   />
                   <button
-                    onClick={() => handleMacroEdit('dailyFat', userData.dailyFat || calculatedMacros.dailyFat)}
-                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-background border border-rose-300 flex items-center justify-center hover:bg-rose-50 transition-colors shadow-sm"
+                    type="button"
+                    onClick={() => openMacroEdit("fat")}
+                    aria-label={language === "de" ? "Fett anpassen" : "Edit fat"}
+                    className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-background border border-rose-300 flex items-center justify-center hover:bg-rose-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -3252,42 +3353,46 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           setIsAuthLoading(true);
           try {
             if (authMode === 'signup') {
-              const redirectTo = `${window.location.origin}/email-confirmation?confirmed=true&from=onboarding&next=/premium-pricing`;
+              const redirectTo = `${window.location.origin}/?onboardingStep=paywall`;
               const { error } = await signUp(authEmail, authPassword, { emailRedirectTo: redirectTo });
               if (error) {
-                toast({
-                  title: t.onboardingRegistrationFailed,
-                  description: error.message === "User already registered" 
-                    ? t.onboardingEmailAlreadyRegistered
-                    : error.message,
-                  variant: "destructive",
-                });
-                if (error.message === "User already registered") {
-                  setAuthMode('login');
+                const resolved = resolveAuthErrorMessage(error, language, "signup");
+                if (resolved) {
+                  toast({
+                    title:
+                      resolved.variant === "info"
+                        ? t.onboardingSuccessfullyRegistered
+                        : t.onboardingRegistrationFailed,
+                    description: resolved.message,
+                    variant: resolved.variant === "info" ? "default" : "destructive",
+                  });
+                  if (resolved.switchToLogin) setAuthMode("login");
                 }
               } else {
                 toast({
                   title: t.onboardingSuccessfullyRegistered,
                   description: t.onboardingProgressSavedMsg,
                 });
-                saveOnboardingData(userData);
-                goNext();
+                saveOnboardingAfterSignup(userData);
+                goToPaywall();
               }
             } else {
               const { error } = await signIn(authEmail, authPassword);
               if (error) {
+                const resolved = resolveAuthErrorMessage(error, language, "login");
                 toast({
                   title: t.onboardingLoginFailed,
-                  description: error.message,
-                  variant: "destructive",
+                  description: resolved?.message ?? error.message,
+                  variant: resolved?.variant === "info" ? "default" : "destructive",
                 });
+                if (resolved?.switchToLogin) setAuthMode("login");
               } else {
                 toast({
                   title: t.onboardingWelcomeBack,
                   description: t.onboardingProgressLoaded,
                 });
                 saveOnboardingData(userData);
-                goNext();
+                goToPaywall();
               }
             }
           } finally {
@@ -3309,78 +3414,21 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </motion.div>
               
               <motion.h1 
-                className="text-2xl font-bold mb-1"
+                className="text-2xl font-bold mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
               >
                 {t.saveYourProgress}
               </motion.h1>
-              <motion.p 
-                className="text-muted-foreground/60 text-sm mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
-              >
-                {authMode === 'signup' 
-                  ? t.createAccountToSave
-                  : t.signInToContinue}
-              </motion.p>
-              
+
               {/* Auth form */}
               <motion.div 
-                className="w-full max-w-sm space-y-4"
+                className="mt-8 w-full max-w-sm space-y-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
               >
-                {/* Google Sign In Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    setIsAuthLoading(true);
-                    try {
-                      const { error } = await signInWithGoogle();
-                      if (error) {
-                        toast({
-                          title: t.error,
-                          description: error.message || 'Google sign-in failed. Please try again.',
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (err) {
-                      toast({
-                        title: t.error,
-                        description: 'An unexpected error occurred during Google sign-in.',
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setIsAuthLoading(false);
-                    }
-                  }}
-                  disabled={isAuthLoading}
-                  className="w-full h-12 rounded-xl bg-card border-border hover:bg-muted/50 flex items-center justify-center gap-3"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  <span>{t.signInWithGoogle}</span>
-                </Button>
-                
-                {/* Divider */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border"></div>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-3 text-muted-foreground/50">{t.or}</span>
-                  </div>
-                </div>
-                
                 {/* Email input */}
                 <div className="relative">
                   <label htmlFor="auth-email" className="sr-only">{t.emailAddressPlaceholder}</label>
@@ -3449,6 +3497,21 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     ? t.alreadyRegisteredSignIn
                     : t.noAccountRegister}
                 </motion.button>
+
+                {user && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      saveOnboardingData(userData);
+                      goToPaywall();
+                    }}
+                    className="w-full h-12 rounded-xl"
+                  >
+                    {t.next}
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                )}
               </motion.div>
               
               {/* Benefits reminder */}
@@ -3486,7 +3549,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   transition={{ delay: 0.6, duration: 0.3 }}
                   className="mt-4"
                 >
-                  <Button variant="ghost" onClick={goNext} className="text-muted-foreground/60">
+                  <Button variant="ghost" onClick={goToPaywall} className="text-muted-foreground/60">
                     {t.alreadyLoggedInContinue}
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
@@ -3494,6 +3557,16 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               )}
             </div>
           </StepCard>
+        );
+
+      case "paywall":
+        return (
+          <OnboardingPaywallStep
+            language={language}
+            onBack={goBack}
+            onSkip={handlePaywallSkip}
+            onCheckout={handlePaywallCheckout}
+          />
         );
 
       case "premium-hint":
@@ -3767,14 +3840,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       : "";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex min-h-0 flex-col bg-background safe-area-inset"
-    >
+        <motion.div
+          initial={false}
+          animate={{ opacity: 1 }}
+          className="onboarding-flow-root fixed inset-0 z-[100] flex min-h-0 flex-col overflow-hidden bg-background safe-area-inset"
+        >
       {/* Global progress bar (not on mint body / splash / tutorial / analyzing) */}
       {currentStep !== "analyzing" &&
+        currentStep !== "save-progress" &&
+        currentStep !== "paywall" &&
         currentStep !== "tutorial" &&
         currentStep !== "splash" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
@@ -3793,16 +3867,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         >
           <div className="mx-auto h-[3px] max-w-md overflow-hidden rounded-full bg-black/10">
             <motion.div
-              key={currentStep}
-              className="h-full rounded-full"
+              className="h-full w-full origin-left rounded-full"
               style={{
                 background: "linear-gradient(90deg,#1ED78A,#18A872)",
               }}
-              initial={{ width: "0%" }}
+              initial={false}
               animate={{
-                width: `${Math.min(100, ((currentIndex + 1) / Math.max(1, totalSteps)) * 100)}%`,
+                scaleX: Math.min(1, (currentIndex + 1) / Math.max(1, totalSteps)),
               }}
-              transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: isMobile ? 0.22 : 0.32, ease: [0.4, 0, 0.2, 1] }}
             />
           </div>
         </div>
@@ -3812,6 +3885,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       {currentStep !== "tutorial" &&
         currentStep !== "splash" &&
         currentStep !== "analyzing" &&
+        currentStep !== "save-progress" &&
+        currentStep !== "paywall" &&
         !ONBOARDING_MINT_BODY_STEPS.has(currentStep) &&
         !NOTEBOOK_MASKOT_STEPS.includes(currentStep) && (
         <div className={`flex items-center justify-between p-4 ${currentStep === "macro-preview" ? "mt-5" : "mt-12"}`}>
@@ -3844,27 +3919,40 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       )}
 
       {/* Main content */}
-      {currentStep === "tutorial" ||
-        currentStep === "splash" ||
-        ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
-        // These steps render fullscreen with their own layout
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <AnimatePresence initial={false}>
+      {currentStep === "paywall" ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+          <AnimatePresence initial={false} mode="wait">
             <motion.div
-              key={currentStep}
+              key="paywall"
               className="flex min-h-0 flex-1 flex-col"
-              initial={{ opacity: 0, x: 18, scale: 0.995 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -14, scale: 0.995, position: "absolute", inset: 0 }}
-              transition={{
-                duration: 0.22,
-                ease: [0.22, 1, 0.36, 1],
-              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
             >
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
         </div>
+      ) : currentStep === "tutorial" ||
+        currentStep === "splash" ||
+        ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
+        // These steps render fullscreen with their own layout
+        <motion.div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={currentStep}
+              className="onboarding-step-surface flex min-h-0 flex-1 flex-col"
+              variants={mintStepVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={mintStepTransition}
+            >
+              {renderStepContent()}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
       ) : NOTEBOOK_MASKOT_STEPS.includes(currentStep) ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <NotebookOnboardingChrome
@@ -3876,14 +3964,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             canProceedNext={canProceed()}
             showBack={currentIndex > 0}
           >
-            <AnimatePresence mode="wait">
+            <AnimatePresence initial={false} mode="wait">
               <motion.div
                 key={currentStep}
-                className="mx-auto w-full max-w-lg pb-6"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.28 }}
+                className="onboarding-step-surface mx-auto w-full max-w-lg pb-6"
+                variants={legacyStepVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={legacyStepTransition}
               >
                 {renderStepContent()}
               </motion.div>
@@ -3895,22 +3984,20 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           ref={scrollContainerRef}
           className="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-6"
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={currentStep}
-              className="w-full max-w-md"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{
-                duration: 0.4,
-                ease: [0.4, 0, 0.2, 1] // cubic-bezier for smooth easing
-              }}
+              className="onboarding-step-surface w-full max-w-md"
+              variants={legacyStepVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={legacyStepTransition}
             >
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}
@@ -3932,6 +4019,25 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           )}
         </div>
       )}
+
+      <EditMacroGoalsDialog
+        open={macroEditOpen}
+        onOpenChange={(open) => {
+          setMacroEditOpen(open);
+          if (!open) setMacroEditFocus(null);
+        }}
+        currentGoals={macroGoalsForEdit}
+        focusMacro={macroEditFocus}
+        onSave={(goals) => {
+          setUserData((prev) => ({
+            ...prev,
+            dailyCalories: goals.dailyCalories,
+            dailyProtein: goals.dailyProtein,
+            dailyCarbs: goals.dailyCarbs,
+            dailyFat: goals.dailyFat,
+          }));
+        }}
+      />
     </motion.div>
   );
 };

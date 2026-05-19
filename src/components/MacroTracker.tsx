@@ -146,7 +146,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     fat: number;
   } | null>(null);
   const [scannedProductData, setScannedProductData] = useState<any>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const logMealDeepLinkHandled = useRef(false);
 
   const openLogMealPanel = useCallback((focus: MealFocusKey | null = null) => {
@@ -561,18 +560,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        analyzeFood('', base64, mealPromptKey);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const removeEntry = async (id: string) => {
     // Remove from local state first
     const nextEntries = foodEntries.filter(e => e.id !== id);
@@ -594,11 +581,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     navigate(`/food-entry/${entry.id}`);
   };
 
-  const handleCameraClick = () => {
-    cameraInputRef.current?.click();
+  const processCameraFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      if (base64) analyzeFood("", base64, mealPromptKey);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleBarcodeClick = () => {
+    setLogMealPanelOpen(false);
     setShowBarcodeScanner(true);
   };
 
@@ -1255,15 +1248,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         }}
       />
 
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
-
       <AnimatePresence mode="popLayout">
         {logMealPanelOpen && (
           <TrackerAddMealPanel
@@ -1271,7 +1255,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             mealFocus={mealPromptKey}
             onClose={closeLogMealPanel}
             onSearchSubmit={(text) => analyzeFood(text, undefined, mealPromptKey)}
-            onCamera={handleCameraClick}
+            onCameraFile={processCameraFile}
             onBarcode={handleBarcodeClick}
             onAddRecipe={addRecipeToTracker}
             onDeleteMeal={removeEntry}

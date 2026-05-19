@@ -1,6 +1,25 @@
 import { UserData } from "./types";
-import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
+import {
+  FIRST_WEEKLY_PLAN_DONE_KEY,
+  notifyFrigyStorageUpdated,
+} from "@/lib/frigyStorageSync";
+import { saveReminderConfigFromOnboarding, syncRemindersFromStorage } from "@/lib/notifications";
 import { isMealSafeForUser } from "@/lib/mealAllergySafety";
+import { clearPendingReferralCode } from "@/lib/referralCode";
+
+/** Nach Abmelden: Onboarding von vorne (lokaler Zustand). */
+export function clearOnboardingForLogout() {
+  localStorage.removeItem("onboardingComplete");
+  localStorage.removeItem("onboardingUserData");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userProfile");
+  localStorage.removeItem("reminderConfig");
+  localStorage.removeItem("weeklyMealPlan");
+  localStorage.removeItem(FIRST_WEEKLY_PLAN_DONE_KEY);
+  localStorage.removeItem("mealPlanGenerationCount");
+  localStorage.removeItem("scanFeedback");
+  clearPendingReferralCode();
+}
 
 // Macro calculation using Mifflin-St Jeor BMR formula
 export const calculateMacros = (userData: UserData) => {
@@ -60,10 +79,25 @@ export const calculateWeeksToGoal = (userData: UserData) => {
   return Math.ceil(weightDiff / userData.weeklyGoal);
 };
 
-// Save onboarding data to localStorage and generate initial meal plan
-export const saveOnboardingData = (userData: UserData) => {
+export type SaveOnboardingOptions = {
+  /** Default true — set false until paywall / post-signup flow is done */
+  markOnboardingComplete?: boolean;
+  /** Default true — set false to skip demo plan until user generates one in the app */
+  writeInitialMealPlan?: boolean;
+};
+
+// Save onboarding data to localStorage and optionally a demo meal plan
+export const saveOnboardingData = (
+  userData: UserData,
+  options: SaveOnboardingOptions = {},
+) => {
+  const markComplete = options.markOnboardingComplete ?? true;
+  const writeInitialMealPlan = options.writeInitialMealPlan ?? true;
+
   localStorage.setItem('onboardingUserData', JSON.stringify(userData));
-  localStorage.setItem('onboardingComplete', 'true');
+  if (markComplete) {
+    localStorage.setItem('onboardingComplete', 'true');
+  }
   
   // Save user name for personalized greetings
   if (userData.name) {
@@ -90,6 +124,7 @@ export const saveOnboardingData = (userData: UserData) => {
     dailyCarbs,
     dailyFat,
     dietaryPreferences: userData.dietaryPreferences,
+    healthGoals: userData.healthGoals,
     allergies: userData.allergies,
     allergiesOther: userData.allergiesOther,
     cookingExperience: userData.cookingExperience,
@@ -114,21 +149,37 @@ export const saveOnboardingData = (userData: UserData) => {
     },
   };
   localStorage.setItem('reminderConfig', JSON.stringify(reminderConfig));
-  
+
+  if (
+    userData.notificationPrefs.meals ||
+    userData.notificationPrefs.water ||
+    userData.notificationPrefs.weight
+  ) {
+    saveReminderConfigFromOnboarding(userData.notificationPrefs);
+    void syncRemindersFromStorage();
+  }
+
   const dietaryOnly = (userData.dietaryPreferences || []).filter((d) => d && d !== "none");
   const allergyList = (userData.allergies || []).filter((a) => a && a !== "none");
 
-  // Generate and save initial meal plan based on user's macros
-  const initialMealPlan = generateInitialMealPlan(dailyCalories, allergyList, dietaryOnly, {
-    protein: dailyProtein,
-    carbs: dailyCarbs,
-    fat: dailyFat,
+  if (writeInitialMealPlan) {
+    const initialMealPlan = generateInitialMealPlan(dailyCalories, allergyList, dietaryOnly, {
+      protein: dailyProtein,
+      carbs: dailyCarbs,
+      fat: dailyFat,
+    });
+    localStorage.setItem('weeklyMealPlan', JSON.stringify(initialMealPlan));
+    notifyFrigyStorageUpdated();
+    localStorage.setItem('mealPlanGenerationCount', '0');
+  }
+};
+
+/** Nach Registrierung: Daten speichern, Onboarding endet nach Paywall */
+export const saveOnboardingAfterSignup = (userData: UserData) => {
+  saveOnboardingData(userData, {
+    markOnboardingComplete: false,
+    writeInitialMealPlan: false,
   });
-  localStorage.setItem('weeklyMealPlan', JSON.stringify(initialMealPlan));
-  notifyFrigyStorageUpdated();
-  
-  // Reset generation count for the freshly created initial plan.
-  localStorage.setItem('mealPlanGenerationCount', '0');
 };
 
 // Generate an initial personalized meal plan with simple, everyday German foods

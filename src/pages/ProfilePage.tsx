@@ -1,11 +1,27 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, User, Mail, Crown, Settings, LogOut, RefreshCw, Trash2, Users, RotateCcw, BarChart3, FileText, Shield, Scale, Bell } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  Mail,
+  Crown,
+  LogOut,
+  RefreshCw,
+  Trash2,
+  Users,
+  RotateCcw,
+  Globe,
+  ChevronRight,
+  CreditCard,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,17 +29,107 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
 import { ReminderSettings } from "@/components/ReminderSettings";
+import { ReferralCodesAdmin } from "@/components/ReferralCodesAdmin";
+import { isReferralAdmin } from "@/lib/admin";
+import { clearOnboardingForLogout } from "@/components/onboarding/utils";
+import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
+import { cn } from "@/lib/utils";
 
-import frigyBrand from "@/assets/frigy-mascot.png";
+function SettingsGroup({
+  title,
+  children,
+  className,
+}: {
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("space-y-2", className)}>
+      {title && (
+        <h2 className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          {title}
+        </h2>
+      )}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 divide-y divide-slate-100">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SettingsRow({
+  icon: Icon,
+  label,
+  description,
+  onClick,
+  trailing,
+  destructive,
+  className,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  description?: string;
+  onClick?: () => void;
+  trailing?: React.ReactNode;
+  destructive?: boolean;
+  className?: string;
+}) {
+  const Comp = onClick ? "button" : "div";
+  return (
+    <Comp
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors",
+        onClick && "hover:bg-slate-50/90 active:bg-slate-100/80",
+        destructive && "text-destructive",
+        className,
+      )}
+    >
+      {Icon && (
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+            destructive ? "bg-destructive/10" : "bg-primary/8 text-primary",
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className={cn("block text-[15px] font-medium", destructive && "text-destructive")}>
+          {label}
+        </span>
+        {description && (
+          <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>
+        )}
+      </span>
+      {trailing ?? (onClick && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />)}
+    </Comp>
+  );
+}
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, session, subscriptionStatus, signOut, checkSubscription } = useAuth();
+  const { saveProgress } = useOnboardingProgress();
   const { t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await saveProgress({ onboarding_complete: false });
+    } catch {
+      /* still log out if DB update fails */
+    }
+    clearOnboardingForLogout();
+    await signOut();
+    navigate("/", { replace: true });
+  };
 
   const handleRefreshSubscription = async () => {
     setRefreshing(true);
@@ -44,12 +150,11 @@ const ProfilePage = () => {
       });
       if (error) throw error;
       if (data?.url) {
-        // On mobile/in-app browsers, window.open can be blocked.
-        // Using same-tab navigation makes "Abo kündigen" reliably reachable.
         window.location.href = data.url;
       }
-    } catch (error: any) {
-      toast({ title: t.error, description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unbekannter Fehler";
+      toast({ title: t.error, description: message, variant: "destructive" });
     } finally {
       setPortalLoading(false);
     }
@@ -60,310 +165,218 @@ const ProfilePage = () => {
       toast({
         title: t.error,
         description: "Benutzer nicht authentifiziert",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setDeleteLoading(true);
     try {
-      // Server function handles all deletions atomically (DB + Auth)
-      const { error: functionError } = await supabase.functions.invoke('delete-user', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const { error: functionError } = await supabase.functions.invoke("delete-user", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
-
-      if (functionError) {
-        throw functionError;
-      }
+      if (functionError) throw functionError;
 
       toast({
         title: "Konto gelöscht",
         description: "Dein Konto wurde erfolgreich gelöscht",
-        variant: "default"
       });
 
-      // Clear local storage and logout
       localStorage.clear();
       await signOut();
-
-      // Redirect to auth page
-      navigate('/auth');
-    } catch (error: any) {
-      console.error('Error deleting account:', error);
-      toast({
-        title: t.error,
-        description: error.message || "Fehler beim Löschen des Kontos",
-        variant: "destructive"
-      });
+      navigate("/auth");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Fehler beim Löschen des Kontos";
+      toast({ title: t.error, description: message, variant: "destructive" });
     } finally {
       setDeleteLoading(false);
       setDeleteDialogOpen(false);
     }
   };
 
+  useEffect(() => {
+    if (!user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
-        <img src={frigyBrand} alt="Frigy" className="h-16 w-16 rounded-2xl mb-6" />
-        <h1 className="text-xl font-bold text-foreground mb-2">{t.notLoggedIn}</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          Melde dich an, um dein Profil zu sehen
-        </p>
-        <Button onClick={() => navigate("/auth")} className="w-full max-w-xs">
-          {t.login}
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   const userInitials = user.email?.substring(0, 2).toUpperCase() || "U";
-  const isPremium = true;
+  const displayName = user.user_metadata?.full_name || user.email?.split("@")[0];
 
   return (
-    <div className="min-h-screen bg-gradient-primary safe-area-inset">
-      {/* Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border/50 safe-top">
-        <div className="container mx-auto px-3 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+    <div className="min-h-screen bg-[#F7FAF7] safe-area-inset">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-[#F7FAF7]/90 backdrop-blur-md safe-top">
+        <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/")}
+            className="h-9 w-9 rounded-full"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-bold">{t.settings}</h1>
+          <h1 className="text-[17px] font-bold tracking-[-0.02em]">{t.settings}</h1>
         </div>
-      </div>
+      </header>
 
-      <div className="container mx-auto px-4 py-6 max-w-md space-y-6">
-        {/* Profile Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card className="p-6 bg-card/80 backdrop-blur-lg border-primary/20">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-primary/30">
-                <AvatarImage src={user.user_metadata?.avatar_url} />
-                <AvatarFallback className="bg-primary/20 text-primary text-lg font-bold">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h2 className="min-w-0 break-words text-lg font-bold leading-tight">
-                    {user.user_metadata?.full_name || user.email?.split("@")[0]}
-                  </h2>
-                  {isPremium && (
-                    <Badge className="bg-primary/20 text-primary border-primary/30">
-                      <Crown className="h-3 w-3 mr-1" />
-                      Premium
-                    </Badge>
-                  )}
-                </div>
-                <p className="mt-1 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
-                  <Mail className="mt-0.5 h-3 w-3 shrink-0" />
-                  <span className="min-w-0 break-all leading-snug">{user.email}</span>
-                </p>
-              </div>
+      <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-md flex-col px-4 py-6">
+        <div className="space-y-6">
+          {/* Profile */}
+          <div className="flex items-center gap-4 px-1">
+            <Avatar className="h-[4.25rem] w-[4.25rem] border-2 border-white shadow-sm ring-1 ring-slate-200/80">
+              <AvatarImage src={user.user_metadata?.avatar_url} />
+              <AvatarFallback className="bg-primary/12 text-lg font-bold text-primary">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[18px] font-bold tracking-[-0.03em] text-foreground">
+                {displayName}
+              </p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{user.email}</span>
+              </p>
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                <Crown className="h-3 w-3" />
+                Premium
+              </span>
             </div>
+          </div>
 
-            <div className="mt-5 pt-5 border-t border-border/60 space-y-2">
-              {isPremium && (
-                <>
+          <SettingsGroup title="Abo">
+            <SettingsRow
+              icon={Crown}
+              label={t.premiumActive}
+              description={
+                subscriptionStatus?.subscription_end
+                  ? `${t.renewsOn}: ${new Date(subscriptionStatus.subscription_end).toLocaleDateString("de-DE")}`
+                  : undefined
+              }
+              trailing={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleRefreshSubscription();
+                  }}
+                  disabled={refreshing}
+                >
+                  <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+                </Button>
+              }
+            />
+            <SettingsRow
+              icon={CreditCard}
+              label={t.manageSubscription}
+              description={portalLoading ? "Wird geöffnet…" : undefined}
+              onClick={() => void handleManageSubscription()}
+            />
+          </SettingsGroup>
+
+          <SettingsGroup title={t.settingsLabel}>
+            <LanguageSettings
+              trigger={
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50/90 active:bg-slate-100/80"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary">
+                    <Globe className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-[15px] font-medium">{t.languageSettings}</span>
+                  <Settings className="h-4 w-4 shrink-0 text-muted-foreground/55" aria-hidden />
+                </button>
+              }
+            />
+            {isReferralAdmin(user.email) && (
+              <div className="px-4 py-3">
+                <ReferralCodesAdmin />
+              </div>
+            )}
+          </SettingsGroup>
+
+          <SettingsGroup title={t.reminders}>
+            <div className="px-4 py-4">
+              <ReminderSettings compact />
+            </div>
+          </SettingsGroup>
+
+          <SettingsGroup title="Konto">
+            <SettingsRow icon={Users} label="Community" onClick={() => navigate("/community")} />
+            <SettingsRow
+              icon={RotateCcw}
+              label="Onboarding erneut starten"
+              onClick={() => navigate("/?resetOnboarding=true")}
+            />
+            <SettingsRow icon={LogOut} label={t.logout} onClick={() => void handleSignOut()} />
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogTrigger asChild>
+                <SettingsRow icon={Trash2} label={t.deleteAccount} destructive />
+              </DialogTrigger>
+              <DialogContent className="max-w-sm rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten werden gelöscht.
+                </p>
+                <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => navigate("/community")}
+                    className="flex-1 rounded-xl"
+                    onClick={() => setDeleteDialogOpen(false)}
+                    disabled={deleteLoading}
                   >
-                    <Users className="h-4 w-4 mr-2" />
-                    Community
+                    Abbrechen
                   </Button>
-
-                </>
-              )}
-
-              <Button variant="outline" className="w-full justify-start" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                {t.logout}
-              </Button>
-
-              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogTrigger asChild>
                   <Button
-                    variant="ghost"
-                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                    variant="destructive"
+                    className="flex-1 rounded-xl"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteLoading}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {t.deleteAccount}
+                    {deleteLoading ? "Wird gelöscht…" : "Löschen"}
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <p className="text-sm text-muted-foreground">
-                      Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten werden permanent gelöscht:
-                    </p>
-                    <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
-                      <li>Deine Mahlzeitseinträge</li>
-                      <li>Deine Makro-Ziele</li>
-                      <li>Dein Profil</li>
-                      <li>Alle Einstellungen</li>
-                    </ul>
-                  </div>
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setDeleteDialogOpen(false)}
-                      disabled={deleteLoading}
-                    >
-                      Abbrechen
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteAccount}
-                      disabled={deleteLoading}
-                      className="flex-1"
-                    >
-                      {deleteLoading ? "Wird gelöscht..." : "Konto löschen"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </SettingsGroup>
+        </div>
 
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => navigate("/?resetOnboarding=true")}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Onboarding erneut starten
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Subscription Status */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">{t.subscriptionStatus}</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefreshSubscription}
-                disabled={refreshing}
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-primary">
-                <Crown className="h-5 w-5" />
-                <span className="font-medium">{t.premiumActive}</span>
-              </div>
-              {subscriptionStatus?.subscription_end && (
-                <p className="text-sm text-muted-foreground">
-                  {t.renewsOn}: {new Date(subscriptionStatus.subscription_end).toLocaleDateString("de-DE")}
-                </p>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManageSubscription}
-                disabled={portalLoading}
-                className="w-full mt-2"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                {t.manageSubscription}
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Language Settings */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20 space-y-4">
-            <h3 className="font-semibold">{t.settingsLabel}</h3>
-            <div>
-              <h4 className="text-sm font-medium mb-2">{t.languageSettings}</h4>
-              <LanguageSettings />
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Reminder Settings */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">{t.reminders}</h3>
-            </div>
-            <ReminderSettings />
-          </Card>
-        </motion.div>
-        {/* Legal Links */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-            <h3 className="font-semibold mb-3">{t.legal}</h3>
-            <div className="space-y-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/legal/datenschutz", { state: { from: "/profile" } })}
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                {t.privacyPolicy}
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/legal/agb")}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                {t.termsOfService}
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
-                onClick={() => navigate("/legal/impressum", { state: { from: "/profile" } })}
-              >
-                <Scale className="h-4 w-4 mr-2" />
-                {t.imprint}
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* App Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-center py-4"
-        >
-          <img src={frigyBrand} alt="Frigy" className="h-10 w-10 mx-auto mb-2 rounded-lg" />
-          <p className="text-xs text-muted-foreground">Frigy v1.0.0</p>
-          <p className="text-xs text-muted-foreground mt-1">© 2026 Frigy</p>
-        </motion.div>
-      </div>
+        <footer className="mt-auto pt-10 pb-4">
+          <nav className="flex flex-col items-start gap-1" aria-label={t.legal}>
+            <button
+              type="button"
+              onClick={() => navigate("/legal/impressum", { state: { from: "/profile" } })}
+              className="text-left text-[11px] font-medium text-primary/55 transition-colors hover:text-primary/80"
+            >
+              {t.imprint}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/legal/agb", { state: { from: "/profile" } })}
+              className="text-left text-[11px] font-medium text-primary/55 transition-colors hover:text-primary/80"
+            >
+              {t.termsOfService}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/legal/datenschutz", { state: { from: "/profile" } })}
+              className="text-left text-[11px] font-medium text-primary/55 transition-colors hover:text-primary/80"
+            >
+              {t.privacyPolicy}
+            </button>
+          </nav>
+          <p className="mt-4 text-[10px] text-muted-foreground/60">Frigy v1.0.0</p>
+        </footer>
+      </main>
     </div>
   );
 };

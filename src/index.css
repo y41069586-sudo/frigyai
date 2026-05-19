@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Hell leuchtendes Mint-Grün + Weiß — zentrale App-Farbe #20D86B */
+    /* Helles Mint-Grün + Weiß — zentrale App-Farbe #6EF0A8 */
     --background: 0 0% 100%;
     --foreground: 95 28% 10%;
 
@@ -18,8 +18,8 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 95 28% 10%;
 
-    /* Primär: glowing Hellgrün #20D86B */
-    --primary: 144 74% 49%;
+    /* Primär: helles Mint-Grün #6EF0A8 */
+    --primary: 144 78% 68%;
     --primary-foreground: 95 32% 9%;
 
     --secondary: 95 72% 96%;
@@ -28,7 +28,7 @@ All colors MUST be HSL.
     --muted: 95 48% 96%;
     --muted-foreground: 95 10% 39%;
 
-    --accent: 144 74% 49%;
+    --accent: 144 78% 68%;
     --accent-foreground: 95 32% 9%;
 
     --destructive: 0 72% 51%;
@@ -36,25 +36,25 @@ All colors MUST be HSL.
 
     --border: 95 64% 88%;
     --input: 95 58% 93%;
-    --ring: 144 74% 49%;
+    --ring: 144 78% 68%;
 
     --radius: 1rem;
 
     /* Neon-Varianten (Tailwind neon / neon-dark) */
-    --neon-green: 144 74% 49%;
-    --neon-green-dark: 145 85% 36%;
-    --neon-green-light: 142 81% 92%;
-    --soft-green: 95 72% 97%;
+    --neon-green: 144 78% 68%;
+    --neon-green-dark: 146 72% 58%;
+    --neon-green-light: 142 100% 96%;
+    --soft-green: 95 78% 98%;
     
-    /* Verläufe: weiß → sehr helles Mint, kräftiges Hellgrün für Akzente */
-    --gradient-bg: radial-gradient(circle at 50% 0%, hsla(144, 74%, 49%, 0.2), transparent 34%), linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(142, 100%, 98%) 55%, hsl(0, 0%, 100%) 100%);
-    --gradient-neon: linear-gradient(135deg, hsl(144, 74%, 49%) 0%, hsl(145, 85%, 36%) 100%);
+    /* Verläufe: weiß → sehr helles Mint, helles Mint-Grün für Akzente */
+    --gradient-bg: radial-gradient(circle at 50% 0%, hsla(144, 78%, 68%, 0.16), transparent 34%), linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(142, 100%, 98%) 55%, hsl(0, 0%, 100%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(144, 78%, 68%) 0%, hsl(146, 72%, 58%) 100%);
     --gradient-card: linear-gradient(145deg, hsla(0, 0%, 100%, 0.98) 0%, hsla(95, 80%, 99%, 0.95) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(144, 74%, 49%) 0%, hsl(145, 85%, 36%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(144, 78%, 68%) 0%, hsl(146, 72%, 58%) 100%);
     
     /* Schatten mit Grün-Glow */
-    --shadow-glow: 0 0 36px hsla(144, 74%, 49%, 0.46);
-    --shadow-glow-lg: 0 0 64px hsla(144, 74%, 49%, 0.58);
+    --shadow-glow: 0 0 36px hsla(144, 78%, 68%, 0.46);
+    --shadow-glow-lg: 0 0 64px hsla(144, 78%, 68%, 0.58);
     --shadow-soft: 0 4px 24px -4px hsla(95, 45%, 35%, 0.1);
     --shadow-card: 0 10px 36px -10px hsla(95, 50%, 40%, 0.12);
     
@@ -117,10 +117,10 @@ All colors MUST be HSL.
   
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 22px hsla(144, 74%, 49%, 0.38);
+      box-shadow: 0 0 22px hsla(144, 78%, 68%, 0.38);
     }
     50% {
-      box-shadow: 0 0 48px hsla(144, 74%, 49%, 0.58);
+      box-shadow: 0 0 48px hsla(144, 78%, 68%, 0.58);
     }
   }
   
@@ -145,13 +145,13 @@ All colors MUST be HSL.
   
   
   .hero-gradient {
-    background: linear-gradient(135deg, hsl(144, 74%, 49%) 0%, hsl(145, 85%, 36%) 100%);
+    background: linear-gradient(135deg, hsl(144, 78%, 68%) 0%, hsl(146, 72%, 58%) 100%);
   }
   
   .mesh-gradient {
     background: 
-      radial-gradient(at 40% 20%, hsla(144, 74%, 49%, 0.34) 0px, transparent 52%),
-      radial-gradient(at 80% 0%, hsla(144, 74%, 49%, 0.22) 0px, transparent 50%),
+      radial-gradient(at 40% 20%, hsla(144, 78%, 68%, 0.34) 0px, transparent 52%),
+      radial-gradient(at 80% 0%, hsla(144, 78%, 68%, 0.22) 0px, transparent 50%),
       radial-gradient(at 0% 50%, hsla(142, 81%, 82%, 0.22) 0px, transparent 50%);
   }
 
@@ -359,6 +359,26 @@ All colors MUST be HSL.
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
+    }
+  }
+
+  /* Onboarding: promote step surfaces to their own layer to reduce mobile transition jank */
+  .onboarding-flow-root {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .onboarding-step-surface {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: opacity;
+  }
+
+  @media (max-width: 767px) {
+    .onboarding-step-surface {
+      will-change: opacity;
     }
   }
 }

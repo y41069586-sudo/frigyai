@@ -9,8 +9,8 @@ type DataConsentStepProps = {
 };
 
 const PALETTE = {
-  primary: "#20D86B",
-  primaryDark: "#0EA84E",
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
   bg: "#FFFFFF",
   text: "#050505",
   muted: "#3F3F46",
@@ -82,13 +82,13 @@ export function DataConsentStep({ onBack, onNext }: DataConsentStepProps) {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-[330px] text-[26px] font-black uppercase leading-[1.08] tracking-[-0.045em] min-[390px]:text-[29px]"
-          style={{ color: PALETTE.text }}
+          className="max-w-full text-[28px] font-black uppercase leading-[1.12] tracking-[-0.035em] min-[360px]:text-[30px] min-[390px]:text-[32px]"
+          style={{ color: PALETTE.text, WebkitTextSizeAdjust: "100%" }}
         >
           {t.title}
         </motion.h1>
 
-        <div className="relative mt-8 space-y-6 min-[390px]:mt-9 min-[390px]:space-y-7">
+        <motion.div className="relative mt-7 space-y-5 min-[390px]:mt-8 min-[390px]:space-y-6">
           <div className="absolute left-[15px] top-8 bottom-8 border-l-[3px] border-dashed border-black" aria-hidden />
           {steps.map((text, index) => (
             <motion.div
@@ -105,14 +105,17 @@ export function DataConsentStep({ onBack, onNext }: DataConsentStepProps) {
                 <Check className="h-5 w-5 text-white" strokeWidth={4} />
               </div>
               <p
-                className="pt-0.5 text-[14px] font-bold leading-snug tracking-[-0.03em] min-[390px]:text-[16px]"
-                style={{ color: index === 0 ? PALETTE.text : PALETTE.muted }}
+                className="pt-0.5 text-[16px] font-semibold leading-relaxed tracking-[-0.02em] min-[390px]:text-[17px]"
+                style={{
+                  color: index === 0 ? PALETTE.text : PALETTE.muted,
+                  WebkitTextSizeAdjust: "100%",
+                }}
               >
                 {text}
               </p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       <div className="shrink-0 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-2">

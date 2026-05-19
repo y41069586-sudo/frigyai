@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { redeemPendingReferralCode } from '@/lib/referralCode';
+import { isEmailNotConfirmed, isUserAlreadyRegistered } from '@/lib/authErrors';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -110,6 +112,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Fast load from DB, then background refresh from Stripe
   const loadSubscriptionFast = async (userId: string, accessToken: string) => {
+    const referral = await redeemPendingReferralCode(accessToken);
+    if (referral.success && referral.message && !referral.already_redeemed) {
+      toast({
+        title: "Empfehlungscode aktiviert",
+        description: referral.message,
+      });
+    }
+
     // Step 1: Load from DB cache instantly (~50ms)
     const dbCache = await loadFromDbCache(userId);
     if (dbCache) {
@@ -262,9 +272,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     password: string,
     options?: { emailRedirectTo?: string }
   ) => {
-    // Redirect target for email confirmation flow (used when email confirmation is enabled)
-    const defaultRedirectUrl = `${window.location.origin}/email-confirmation?confirmed=true&next=/premium-pricing&from=signup`;
-    const redirectUrl = options?.emailRedirectTo ?? defaultRedirectUrl;
+    const redirectUrl =
+      options?.emailRedirectTo ?? `${window.location.origin}/premium-pricing`;
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -275,25 +284,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (error) {
-      toast({
-        title: "Registrierung fehlgeschlagen",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else if (data.user && !data.session) {
-      // E-Mail-Bestätigung in Supabase aktiviert: noch kein Login bis zum Link in der E-Mail
-      toast({
-        title: "Bestätige deine E-Mail",
-        description: "Wir haben dir einen Link geschickt. Nach dem Klick wirst du zur App und zur Mitgliedschaft weitergeleitet.",
-      });
-    } else {
-      toast({
-        title: "Registrierung erfolgreich!",
-        description: "Du kannst jetzt fortfahren.",
-      });
+      if (!isUserAlreadyRegistered(error)) {
+        toast({
+          title: "Registrierung fehlgeschlagen",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      return { error };
     }
 
-    return { error };
+    if (!data.session) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        if (!isEmailNotConfirmed(signInError) && !isUserAlreadyRegistered(signInError)) {
+          toast({
+            title: "Registrierung erfolgreich",
+            description: "Bitte melde dich jetzt an.",
+            variant: "destructive",
+          });
+        }
+        return { error: signInError };
+      }
+    }
+
+    toast({
+      title: "Registrierung erfolgreich!",
+      description: "Du kannst jetzt fortfahren.",
+    });
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
@@ -302,7 +325,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       password,
     });
 
-    if (error) {
+    if (error && !isEmailNotConfirmed(error)) {
       toast({
         title: "Login fehlgeschlagen",
         description: error.message,

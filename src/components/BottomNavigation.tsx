@@ -79,14 +79,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               onClick={() => go(item.id)}
               className="relative flex min-h-[46px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-full px-0.5 py-1 transition-transform active:scale-[0.96]"
             >
-              {active && isMobile && (
-                <div className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20" />
-              )}
-              {active && !isMobile && (
+              {active && (
                 <motion.div
                   layoutId="bottom-nav-active-pill"
                   className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.85 }}
                 />
               )}
               <Icon

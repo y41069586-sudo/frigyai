@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { FRIGY_STORAGE_UPDATED } from '@/lib/frigyStorageSync';
+import { isNativeApp } from '@/lib/notifications';
 
 interface ReminderConfig {
   water: { enabled: boolean; interval: number };
@@ -30,6 +31,9 @@ export const useReminders = () => {
   const lastWeightReminderRef = useRef<string>('');
 
   useEffect(() => {
+    // Native app: reminders are scheduled via Capacitor LocalNotifications (see notifications.ts)
+    if (isNativeApp()) return;
+
     // Check if notifications are supported and permitted
     const checkNotificationPermission = () => {
       if (!('Notification' in window)) {

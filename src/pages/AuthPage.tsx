@@ -8,9 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
+import { resolveAuthErrorMessage } from '@/lib/authErrors';
 
 const AuthPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +29,7 @@ const AuthPage = () => {
 
   const handleBack = () => {
     if (isFromOnboarding) {
-      navigate('/?onboardingStep=macro-preview', { replace: true });
+      navigate('/?onboardingStep=save-progress', { replace: true });
       return;
     }
 
@@ -43,28 +44,23 @@ const AuthPage = () => {
     if (!isFromOnboarding) return;
 
     const handleBrowserBack = () => {
-      navigate('/?onboardingStep=macro-preview', { replace: true });
+      navigate('/?onboardingStep=save-progress', { replace: true });
     };
 
     window.addEventListener('popstate', handleBrowserBack);
     return () => window.removeEventListener('popstate', handleBrowserBack);
   }, [isFromOnboarding, navigate]);
 
-  // Redirect if already logged in (nur mit bestätigter E-Mail – sonst zur Bestätigungsseite)
+  // Redirect if already logged in
   useEffect(() => {
     if (!user || loading) return;
 
-    if (!user.email_confirmed_at) {
-      const q = new URLSearchParams();
-      if (user.email) q.set('email', user.email);
-      q.set('next', '/premium-pricing');
-      q.set('from', 'signup');
-      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
-      return;
-    }
-
     if (isFromOnboarding || isFromPremiumPricing) {
-      navigate('/premium-pricing', { replace: true });
+      if (localStorage.getItem('frigy_first_weekly_plan_done') === '1') {
+        navigate('/', { replace: true });
+        return;
+      }
+      navigate('/?onboardingStep=macro-preview', { replace: true });
       return;
     }
 
@@ -86,18 +82,13 @@ const AuthPage = () => {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          // Better error messages for login
-          if (error.message?.includes('Invalid login credentials')) {
-            setError('Email oder Passwort ist falsch');
-          } else if (error.message?.includes('Email not confirmed')) {
-            setError('E-Mail bestätigung ausstehend. Bitte überprüfen Sie Ihren Posteingang');
-          } else {
-            setError(error.message || 'Login fehlgeschlagen');
-          }
+          const resolved = resolveAuthErrorMessage(error, language, 'login');
+          setError(resolved?.message ?? error.message ?? 'Login fehlgeschlagen');
+          if (resolved?.switchToLogin) setIsLogin(true);
         } else {
           // Coming from onboarding or premium-pricing: go to paywall
           if (isFromOnboarding || isFromPremiumPricing) {
-            navigate('/premium-pricing', { replace: true });
+            navigate('/?onboardingStep=macro-preview', { replace: true });
             return;
           }
 
@@ -111,14 +102,14 @@ const AuthPage = () => {
         }
       } else {
         const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;
-        // Nach Klick in der Bestätigungs-Mail: immer zurück in die App zur Paywall
-        const redirectTo = `${window.location.origin}/email-confirmation?confirmed=true&next=/premium-pricing&from=${shouldGoToPricing ? 'premium' : 'signup'}`;
+        const redirectTo = `${window.location.origin}/premium-pricing`;
 
         const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
         if (error) {
-          // Better error messages for signup
-          if (error.message?.includes('already registered')) {
-            setError('Dieses Konto existiert bereits. Bitte melden Sie sich an');
+          const resolved = resolveAuthErrorMessage(error, language, 'signup');
+          if (resolved) {
+            setError(resolved.message);
+            if (resolved.switchToLogin) setIsLogin(true);
           } else if (error.message?.includes('Password should be at least')) {
             setError('Passwort muss mindestens 6 Zeichen lang sein');
           } else if (error.message?.includes('Invalid email')) {
@@ -126,12 +117,10 @@ const AuthPage = () => {
           } else {
             setError(error.message || 'Registrierung fehlgeschlagen');
           }
+        } else if (shouldGoToPricing) {
+          navigate('/?onboardingStep=macro-preview', { replace: true });
         } else {
-          const params = new URLSearchParams();
-          params.set('email', email);
-          params.set('next', '/premium-pricing');
-          params.set('from', shouldGoToPricing ? 'premium' : 'signup');
-          navigate(`/email-confirmation?${params.toString()}`, { replace: true });
+          navigate('/', { replace: true });
         }
       }
     } finally {
@@ -179,7 +168,7 @@ const AuthPage = () => {
               <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">Frigy</h1>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-center mb-3 sm:mb-4">
               {isLogin ? t.signIn : t.signUp}
             </h2>
 
@@ -193,7 +182,7 @@ const AuthPage = () => {
               </motion.div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:mt-8 sm:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">{t.email}</Label>
                 <Input

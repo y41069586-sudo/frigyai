@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
@@ -59,7 +67,9 @@ export function MintWheelColumn({
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastPhysicalIndexRef = useRef(0);
   const isProgrammaticRef = useRef(false);
-  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isUserDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastHapticAtRef = useRef(0);
 
@@ -82,7 +92,6 @@ export function MintWheelColumn({
 
   const centerPhysicalIndex = physicalOffset + selectedIndex;
 
-  /** Keeps fade/scale aligned with scroll position while dragging (circular wheels need this). */
   const [visualPhysicalIndex, setVisualPhysicalIndex] = useState(centerPhysicalIndex);
 
   useEffect(() => {
@@ -102,16 +111,105 @@ export function MintWheelColumn({
         () => {
           isProgrammaticRef.current = false;
         },
-        smooth ? 260 : 30,
+        smooth ? 280 : 40,
       );
     },
     [rowHeight],
   );
 
+  const normalizeCircularPhysical = useCallback(
+    (physical: number): number => {
+      if (!circularActive) return physical;
+      if (physical < segmentLen) {
+        scrollToIndex(physical + segmentLen, false);
+        return physical + segmentLen;
+      }
+      if (physical >= 2 * segmentLen) {
+        scrollToIndex(physical - segmentLen, false);
+        return physical - segmentLen;
+      }
+      return physical;
+    },
+    [circularActive, scrollToIndex, segmentLen],
+  );
+
+  const commitScrollPosition = useCallback(
+    (smooth: boolean) => {
+      if (!scrollRef.current || isProgrammaticRef.current) return;
+
+      let physical = Math.round(scrollRef.current.scrollTop / rowHeight);
+      physical = Math.max(0, Math.min(displayOptions.length - 1, physical));
+      physical = normalizeCircularPhysical(physical);
+
+      const targetTop = physical * rowHeight;
+      const currentTop = scrollRef.current.scrollTop;
+
+      lastPhysicalIndexRef.current = physical;
+      setVisualPhysicalIndex(physical);
+
+      const nextValue = displayOptions[physical].value;
+      if (nextValue !== value) {
+        onChange(nextValue);
+        const now = performance.now();
+        if (now - lastHapticAtRef.current > 80) {
+          haptic();
+          lastHapticAtRef.current = now;
+        }
+      }
+
+      if (Math.abs(currentTop - targetTop) > 0.5) {
+        scrollToIndex(physical, smooth);
+      }
+    },
+    [displayOptions, normalizeCircularPhysical, onChange, rowHeight, scrollToIndex, value],
+  );
+
+  const scheduleSettle = useCallback(
+    (delayMs: number, smooth: boolean) => {
+      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
+      settleTimeoutRef.current = setTimeout(() => {
+        if (isUserDraggingRef.current) return;
+        commitScrollPosition(smooth);
+      }, delayMs);
+    },
+    [commitScrollPosition],
+  );
+
   useEffect(() => {
     const targetPhysical = physicalOffset + selectedIndex;
     scrollToIndex(targetPhysical, false);
-  }, [selectedIndex, physicalOffset, scrollToIndex, rowHeight]);
+  }, [selectedIndex, physicalOffset, scrollToIndex]);
+
+  const beginDrag = useCallback(() => {
+    isUserDraggingRef.current = true;
+    setIsDragging(true);
+    if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
+  }, []);
+
+  const endDrag = useCallback(() => {
+    isUserDraggingRef.current = false;
+    setIsDragging(false);
+    scheduleSettle(40, true);
+  }, [scheduleSettle]);
+
+  const handlePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      beginDrag();
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [beginDrag],
+  );
+
+  const handlePointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      endDrag();
+    },
+    [endDrag],
+  );
 
   const handleScroll = useCallback(() => {
     if (!scrollRef.current || isProgrammaticRef.current) return;
@@ -121,55 +219,33 @@ export function MintWheelColumn({
       rafRef.current = null;
       if (!scrollRef.current || isProgrammaticRef.current) return;
 
-    const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / rowHeight);
-    const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
+      const top = scrollRef.current.scrollTop;
+      const idx = Math.round(top / rowHeight);
+      const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
 
-    setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
+      setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
 
-    if (clamped !== lastPhysicalIndexRef.current) {
-      const now = performance.now();
-      if (now - lastHapticAtRef.current > 120) {
-        haptic();
-        lastHapticAtRef.current = now;
-      }
-      lastPhysicalIndexRef.current = clamped;
-    }
+      if (isUserDraggingRef.current) return;
 
-    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-    snapTimeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
-      let physical = Math.round(scrollRef.current.scrollTop / rowHeight);
-      physical = Math.max(0, Math.min(displayOptions.length - 1, physical));
-
-      if (circularActive) {
-        if (physical < segmentLen) {
-          scrollToIndex(physical + segmentLen, false);
-          physical += segmentLen;
-        } else if (physical >= 2 * segmentLen) {
-          scrollToIndex(physical - segmentLen, false);
-          physical -= segmentLen;
-        }
-      }
-
-      lastPhysicalIndexRef.current = physical;
-      setVisualPhysicalIndex(physical);
-      const nextValue = displayOptions[physical].value;
-      if (nextValue !== value) {
-        onChange(nextValue);
-      }
-      const targetTop = physical * rowHeight;
-      const currentTop = scrollRef.current.scrollTop;
-      if (Math.abs(currentTop - targetTop) > 0.5) {
-        scrollToIndex(physical, false);
-      }
-    }, 190);
+      scheduleSettle(140, true);
     });
-  }, [displayOptions, onChange, scrollToIndex, circularActive, segmentLen, rowHeight, value]);
+  }, [displayOptions.length, rowHeight, scheduleSettle]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onScrollEnd = () => {
+      if (!isUserDraggingRef.current) commitScrollPosition(true);
+    };
+
+    el.addEventListener("scrollend", onScrollEnd);
+    return () => el.removeEventListener("scrollend", onScrollEnd);
+  }, [commitScrollPosition]);
 
   useEffect(
     () => () => {
-      if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
+      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     },
     [],
@@ -197,7 +273,7 @@ export function MintWheelColumn({
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide select-none"
         style={{
-          scrollSnapType: "y proximity",
+          scrollSnapType: "none",
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
           WebkitUserSelect: "none",
@@ -207,6 +283,9 @@ export function MintWheelColumn({
           touchAction: "pan-y",
         }}
         onScroll={handleScroll}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         <div style={{ height: WHEEL_PAD_ITEMS * rowHeight }} />
         {displayOptions.map((opt, idx) => {
@@ -223,7 +302,6 @@ export function MintWheelColumn({
               className={`flex items-center ${textAlignClass}`}
               style={{
                 height: rowHeight,
-                scrollSnapAlign: "center",
                 fontSize: `${isSelected ? selectedFontPx : idleFontPx}px`,
                 fontWeight: isSelected ? 600 : 400,
                 lineHeight: 1,
@@ -231,7 +309,9 @@ export function MintWheelColumn({
                 opacity,
                 transform: `translateZ(0) scale(${isSelected ? 1 : scale})`,
                 letterSpacing: "-0.01em",
-                transition: "transform 120ms ease-out, color 120ms, opacity 120ms",
+                transition: isDragging
+                  ? "none"
+                  : "transform 120ms ease-out, color 120ms, opacity 120ms",
                 willChange: "transform, opacity",
                 WebkitTapHighlightColor: "transparent",
               }}

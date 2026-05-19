@@ -11,7 +11,6 @@ import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/ty
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
-import { useReminders } from "@/hooks/useReminders";
 import { HealthDashboard } from "@/components/food-ai";
 import { MacroTracker } from "@/components/MacroTracker";
 import type { UserGoal } from "@/lib/food-ai/types";
@@ -34,7 +33,10 @@ import {
   goalCupsToMl,
   readWaterGoalCupsFromStorage,
 } from "@/lib/waterSync";
-import { FRIGY_STORAGE_UPDATED, POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from "@/lib/frigyStorageSync";
+import {
+  FRIGY_STORAGE_UPDATED,
+  POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY,
+} from "@/lib/frigyStorageSync";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription } = useAuth();
@@ -49,8 +51,6 @@ const Index = () => {
   const landedFromSubscriptionSuccessRef = useRef(false);
 
   // Initialize reminders system
-  useReminders();
-
   const [searchParams, setSearchParams] = useSearchParams();
   const isFromSubscription = searchParams.get("subscription") === "success";
   const resetOnboarding = searchParams.get("resetOnboarding") === "true";
@@ -295,14 +295,8 @@ const Index = () => {
   useEffect(() => {
     if (!resetOnboarding || loading) return;
     const run = async () => {
-      localStorage.removeItem('onboardingComplete');
-      localStorage.removeItem('onboardingUserData');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userProfile');
-      localStorage.removeItem('reminderConfig');
-      localStorage.removeItem('weeklyMealPlan');
-      localStorage.removeItem('mealPlanGenerationCount');
-      localStorage.removeItem('scanFeedback');
+      const { clearOnboardingForLogout } = await import("@/components/onboarding/utils");
+      clearOnboardingForLogout();
       await saveProgress({ onboarding_complete: false });
       window.history.replaceState({}, '', '/');
       window.location.reload();
@@ -320,18 +314,6 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const navigate = useNavigate();
-
-  // Ohne bestätigte E-Mail kein Dashboard – zur Bestätigungs-/Warteseite
-  useEffect(() => {
-    if (!user || loading) return;
-    if (!user.email_confirmed_at) {
-      const q = new URLSearchParams();
-      if (user.email) q.set("email", user.email);
-      q.set("next", "/premium-pricing");
-      q.set("from", "signup");
-      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
-    }
-  }, [user, loading, navigate]);
 
   // Update onboarding visibility when loading completes
   useEffect(() => {
@@ -395,16 +377,12 @@ const Index = () => {
       return;
     }
 
-    // After onboarding slides, mark complete and go to paywall (if logged in) or auth
-    localStorage.setItem('onboardingComplete', 'true');
     setShowOnboarding(false);
-    setOnboardingComplete(true);
 
-    if (user) {
-      navigate('/premium-pricing', { replace: true });
-    } else {
-      window.history.replaceState(window.history.state, '', '/?onboardingStep=macro-preview');
-      navigate('/auth?from=onboarding', { replace: false });
+    if (!user) {
+      window.history.replaceState(window.history.state, '', '/?onboardingStep=save-progress');
+      setShowOnboarding(true);
+      setOnboardingComplete(false);
     }
   };
 
@@ -446,8 +424,14 @@ const Index = () => {
 
   useEffect(() => {
     if (loading || showOnboarding || user || onboardingResumeStep) return;
+    const completedLocally = localStorage.getItem("onboardingComplete") === "true";
+    if (!completedLocally && !dbOnboardingComplete) {
+      setShowOnboarding(true);
+      setOnboardingComplete(false);
+      return;
+    }
     navigate("/auth", { replace: true });
-  }, [loading, showOnboarding, user, onboardingResumeStep, navigate]);
+  }, [loading, showOnboarding, user, onboardingResumeStep, navigate, dbOnboardingComplete]);
 
   const targetCalories = trackerSettings?.dailyCalories || 2000;
   const targetProtein = trackerSettings?.dailyProtein || 150;

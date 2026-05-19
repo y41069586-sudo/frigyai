@@ -16,10 +16,13 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#20D86B",
-  primaryDark: "#0EA84E",
-  bg: "#FAFFF5",
-  selectedBg: "#BFF4D4",
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
+  primaryDeep: "#32D082",
+  bg: "#FEFFFE",
+  selectedBg: "#E0FDEC",
+  iconBgIdle: "#EAFFF5",
+  iconBgSelected: "#C0FFD9",
   border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
@@ -60,11 +63,11 @@ export function ActivitySelectStep({
 
   const L = labels[language as "de" | "en" | "fr"] ?? labels.de;
 
-  const options: { id: ActivityId; title: string; sub: string; icon: LucideIcon; color: string; bg: string }[] = [
-    { id: "sedentary", title: L.sedentary.title, sub: L.sedentary.sub, icon: Armchair, color: "#64748B", bg: "#EEF2F7" },
-    { id: "light", title: L.light.title, sub: L.light.sub, icon: Footprints, color: "#16A34A", bg: "#DCFCE7" },
-    { id: "moderate", title: L.moderate.title, sub: L.moderate.sub, icon: Dumbbell, color: "#0EA5E9", bg: "#E0F2FE" },
-    { id: "active", title: L.active.title, sub: L.active.sub, icon: Zap, color: "#F97316", bg: "#FFEDD5" },
+  const options: { id: ActivityId; title: string; sub: string; icon: LucideIcon }[] = [
+    { id: "sedentary", title: L.sedentary.title, sub: L.sedentary.sub, icon: Armchair },
+    { id: "light", title: L.light.title, sub: L.light.sub, icon: Footprints },
+    { id: "moderate", title: L.moderate.title, sub: L.moderate.sub, icon: Dumbbell },
+    { id: "active", title: L.active.title, sub: L.active.sub, icon: Zap },
   ];
 
   const selected = (userData.activityLevel ?? null) as ActivityId | null;
@@ -85,7 +88,7 @@ export function ActivitySelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E9FFF1",
+              backgroundColor: "#F5FFF9",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -135,7 +138,7 @@ export function ActivitySelectStep({
                 backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",
                 border: `1.5px solid ${isSelected ? PALETTE.border : PALETTE.cardBorderIdle}`,
                 boxShadow: isSelected
-                  ? "0 8px 24px -10px rgba(32,216,107,0.55), 0 2px 6px rgba(15,40,30,0.04)"
+                  ? "0 8px 24px -10px rgba(110, 240, 168,0.55), 0 2px 6px rgba(15,40,30,0.04)"
                   : "0 1px 2px rgba(15,40,30,0.03)",
               }}
             >
@@ -143,17 +146,17 @@ export function ActivitySelectStep({
                 initial={{ scale: 0.92, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.12 + i * 0.06, duration: 0.25 }}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors"
                 style={{
-                  backgroundColor: isSelected ? "#FFFFFF" : opt.bg,
-                  color: opt.color,
+                  backgroundColor: isSelected ? PALETTE.iconBgSelected : PALETTE.iconBgIdle,
+                  color: isSelected ? PALETTE.primaryDeep : PALETTE.primaryDark,
                   boxShadow: isSelected
-                    ? "0 8px 18px -10px rgba(15,40,30,0.35)"
+                    ? "0 4px 12px -6px rgba(110, 240, 168,0.45)"
                     : "0 1px 2px rgba(15,40,30,0.04)",
                 }}
                 aria-hidden
               >
-                <Icon className="size-6" strokeWidth={2.5} />
+                <Icon className="size-6" strokeWidth={2.4} />
               </motion.span>
               <div className="flex flex-1 flex-col">
                 <span
@@ -179,7 +182,7 @@ export function ActivitySelectStep({
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: PALETTE.primary,
-                  boxShadow: "0 4px 10px -3px rgba(32,216,107,0.6)",
+                  boxShadow: "0 4px 10px -3px rgba(110, 240, 168,0.6)",
                 }}
                 aria-hidden
               >
@@ -207,7 +210,7 @@ export function ActivitySelectStep({
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
               : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,

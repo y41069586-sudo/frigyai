@@ -103,9 +103,34 @@ export const useTrackerSettings = () => {
 
         if (data && !error) {
           const dbSettings = parseDbSettings(data);
-          setSettings(dbSettings);
-          setIsConfigured(dbSettings.dailyCalories > 0);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbSettings));
+          let merged = dbSettings as TrackerSettings & Record<string, unknown>;
+          try {
+            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (stored) {
+              merged = { ...JSON.parse(stored), ...dbSettings };
+            }
+            const onboardingRaw = localStorage.getItem('onboardingUserData');
+            if (onboardingRaw) {
+              const onboarding = JSON.parse(onboardingRaw);
+              if (!merged.dietaryPreferences?.length && onboarding.dietaryPreferences?.length) {
+                merged.dietaryPreferences = onboarding.dietaryPreferences;
+              }
+              if (!merged.healthGoals?.length && onboarding.healthGoals?.length) {
+                merged.healthGoals = onboarding.healthGoals;
+              }
+              if (!merged.allergies?.length && onboarding.allergies?.length) {
+                merged.allergies = onboarding.allergies;
+              }
+              if (!merged.allergiesOther && onboarding.allergiesOther) {
+                merged.allergiesOther = onboarding.allergiesOther;
+              }
+            }
+          } catch {
+            /* keep dbSettings only */
+          }
+          setSettings(merged);
+          setIsConfigured(merged.dailyCalories > 0);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
           return;
         }
       }

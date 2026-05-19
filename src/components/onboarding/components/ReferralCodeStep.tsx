@@ -1,7 +1,14 @@
-import { useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Check, Crown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  savePendingReferralCode,
+  redeemReferralCode,
+  validateReferralCode,
+  isReferralLifetime,
+} from "@/lib/referralCode";
 
 type ReferralCodeStepProps = {
   onBack?: () => void;
@@ -9,42 +16,66 @@ type ReferralCodeStepProps = {
 };
 
 const PALETTE = {
-  primary: "#20D86B",
-  primaryDark: "#0EA84E",
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
   bg: "#FFFFFF",
   chip: "#F4F7EF",
   text: "#050505",
   muted: "#3F3F46",
+  error: "#DC2626",
 };
 
 const CODE_LENGTH = 6;
 
+type StepPhase = "input" | "validating" | "check" | "success";
+
 export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const { language } = useLanguage();
+  const { session } = useAuth();
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
+  const [phase, setPhase] = useState<StepPhase>("input");
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [durationDays, setDurationDays] = useState(30);
+  const [isLifetime, setIsLifetime] = useState(false);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const validatingRef = useRef(false);
 
   const L = {
     de: {
       title: "EIN FREUND LÄDT DICH EIN",
-      subtitle: "Gib deinen Empfehlungscode ein, sonst überspringen.",
+      hint: "Der Code wird nach der Anmeldung automatisch aktiviert.",
       label: "Empfehlungscode",
+      invalid: "Ungültig",
+      successTitle: "Premium freigeschaltet!",
+      successBody: "Du hast Premium kostenlos freigeschaltet.",
+      successDays: (d: number) => `${d} Tage kostenloser Vollzugang`,
+      successLifetime: "Lebenslang kostenloser Premium-Zugang",
       skip: "Nicht jetzt",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
       title: "A FRIEND INVITED YOU",
-      subtitle: "Enter your referral code, or skip this step.",
+      hint: "The code is applied automatically after you sign in.",
       label: "Referral code",
+      invalid: "Invalid",
+      successTitle: "Premium unlocked!",
+      successBody: "You've unlocked Premium for free.",
+      successDays: (d: number) => `${d} days of free full access`,
+      successLifetime: "Lifetime free Premium access",
       skip: "Not now",
       next: "Next",
       back: "Back",
     },
     fr: {
       title: "UN AMI T'INVITE",
-      subtitle: "Saisis ton code de parrainage, ou ignore cette étape.",
+      hint: "Le code est activé automatiquement après connexion.",
       label: "Code de parrainage",
+      invalid: "Invalide",
+      successTitle: "Premium débloqué !",
+      successBody: "Tu as débloqué Premium gratuitement.",
+      successDays: (d: number) => `${d} jours d'accès complet gratuit`,
+      successLifetime: "Accès Premium gratuit à vie",
       skip: "Pas maintenant",
       next: "Suivant",
       back: "Retour",
@@ -53,15 +84,77 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
 
   const t = L[language as keyof typeof L] ?? L.de;
 
-  const finish = () => {
-    const value = code.join("").trim().toUpperCase();
-    if (value) {
-      localStorage.setItem("frigy_referral_code", value);
+  const codeValue = code.join("").trim().toUpperCase();
+
+  const runSuccessFlow = useCallback(
+    (days: number, lifetime: boolean) => {
+      setDurationDays(days);
+      setIsLifetime(lifetime);
+      setFieldError(null);
+      setPhase("check");
+      window.setTimeout(() => setPhase("success"), 700);
+      window.setTimeout(() => onNext?.(), 2800);
+    },
+    [onNext],
+  );
+
+  const validateAndProceed = useCallback(
+    async (value: string) => {
+      if (validatingRef.current) return;
+      validatingRef.current = true;
+      setPhase("validating");
+      setFieldError(null);
+
+      const result = await validateReferralCode(value);
+
+      if (!result.valid) {
+        setPhase("input");
+        setFieldError(t.invalid);
+        validatingRef.current = false;
+        return;
+      }
+
+      savePendingReferralCode(value);
+      const days = result.duration_days ?? 30;
+      const lifetime = isReferralLifetime(result.duration_days, result.is_lifetime);
+
+      if (session?.access_token) {
+        const redeem = await redeemReferralCode(session.access_token, value);
+        validatingRef.current = false;
+        if (!redeem.success && !redeem.already_redeemed) {
+          setPhase("input");
+          setFieldError(t.invalid);
+          return;
+        }
+      } else {
+        validatingRef.current = false;
+      }
+
+      runSuccessFlow(days, lifetime);
+    },
+    [session?.access_token, runSuccessFlow, t.invalid],
+  );
+
+  useEffect(() => {
+    if (codeValue.length === CODE_LENGTH && phase === "input" && !fieldError) {
+      void validateAndProceed(codeValue);
     }
-    onNext?.();
+  }, [codeValue, phase, fieldError, validateAndProceed]);
+
+  const handleWeiter = () => {
+    if (phase === "success" || phase === "check" || phase === "validating") return;
+
+    if (codeValue.length === 0 || codeValue.length < CODE_LENGTH) {
+      setFieldError(t.invalid);
+      return;
+    }
+
+    void validateAndProceed(codeValue);
   };
 
   const updateDigit = (index: number, value: string) => {
+    if (phase !== "input") return;
+    setFieldError(null);
     const nextValue = value.replace(/[^a-zA-Z0-9]/g, "").slice(-1).toUpperCase();
     const next = [...code];
     next[index] = nextValue;
@@ -79,7 +172,9 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   };
 
   const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    if (phase !== "input") return;
     event.preventDefault();
+    setFieldError(null);
     const pasted = event.clipboardData
       .getData("text")
       .replace(/[^a-zA-Z0-9]/g, "")
@@ -97,10 +192,73 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
     inputsRef.current[Math.min(pasted.length, CODE_LENGTH - 1)]?.focus();
   };
 
+  const inputsDisabled = phase !== "input";
+  const showCheckOnInputs = phase === "check" || phase === "success";
+
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden" style={{ backgroundColor: PALETTE.bg }}>
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden" style={{ backgroundColor: PALETTE.bg }}>
+      <AnimatePresence>
+        {phase === "success" && (
+          <motion.div
+            key="success-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center px-8"
+            style={{ backgroundColor: PALETTE.bg }}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 18 }}
+              className="relative mb-8 flex h-[120px] w-[120px] items-center justify-center rounded-full"
+              style={{ backgroundColor: "rgba(110, 240, 168, 0.12)" }}
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 16 }}
+                className="flex h-[88px] w-[88px] items-center justify-center rounded-full border-[4px]"
+                style={{ borderColor: PALETTE.primary, backgroundColor: "#fff" }}
+              >
+                <Check className="h-11 w-11" strokeWidth={3} style={{ color: PALETTE.primary }} />
+              </motion.div>
+              <motion.div
+                className="absolute inset-0 rounded-full border-2"
+                style={{ borderColor: PALETTE.primary }}
+                initial={{ scale: 1, opacity: 0.6 }}
+                animate={{ scale: 1.45, opacity: 0 }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.25 }}
+              className="text-center"
+            >
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold"
+                style={{ backgroundColor: "rgba(110, 240, 168, 0.15)", color: PALETTE.primaryDark }}>
+                <Crown className="h-4 w-4" />
+                Premium
+              </div>
+              <h2 className="text-[28px] font-black uppercase leading-tight tracking-[-0.04em]" style={{ color: PALETTE.text }}>
+                {t.successTitle}
+              </h2>
+              <p className="mt-3 max-w-[300px] text-[17px] font-medium leading-snug" style={{ color: PALETTE.muted }}>
+                {t.successBody}
+              </p>
+              <p className="mt-2 text-[15px] font-semibold" style={{ color: PALETTE.primaryDark }}>
+                {isLifetime ? t.successLifetime : t.successDays(durationDays)}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex shrink-0 items-center px-6 pb-4 pt-[calc(env(safe-area-inset-top,0px)+1.125rem)]">
-        {onBack ? (
+        {onBack && phase === "input" ? (
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
@@ -120,70 +278,104 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
         <motion.h1
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-[360px] text-[30px] font-black uppercase leading-[1.04] tracking-[-0.055em] min-[390px]:text-[32px]"
           style={{ color: PALETTE.text }}
         >
           {t.title}
         </motion.h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08, duration: 0.35 }}
-          className="mt-4 max-w-[330px] text-[18px] font-medium leading-snug tracking-[-0.035em]"
-          style={{ color: PALETTE.muted }}
-        >
-          {t.subtitle}
-        </motion.p>
+        <p className="mt-4 max-w-[330px] text-[14px] font-medium leading-snug text-[#6B7280]">{t.hint}</p>
 
         <div className="mt-12">
           <p className="mb-5 text-[18px] font-bold tracking-[-0.035em]" style={{ color: PALETTE.text }}>
             {t.label}
           </p>
-          <div className="grid grid-cols-6 gap-2.5">
+
+          <div className="relative grid grid-cols-6 gap-2.5">
             {code.map((char, index) => (
-              <input
-                key={index}
-                ref={(node) => {
-                  inputsRef.current[index] = node;
-                }}
-                type="text"
-                inputMode="text"
-                autoCapitalize="characters"
-                maxLength={1}
-                value={char}
-                onChange={(event) => updateDigit(index, event.target.value)}
-                onKeyDown={(event) => handleKeyDown(index, event)}
-                onPaste={handlePaste}
-                aria-label={`${t.label} ${index + 1}`}
-                className="h-[54px] min-w-0 rounded-none border-0 text-center text-[22px] font-bold uppercase outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(32,216,107,0.22)]"
-                style={{ backgroundColor: PALETTE.chip, color: PALETTE.text }}
-              />
+              <div key={index} className="relative">
+                <input
+                  ref={(node) => {
+                    inputsRef.current[index] = node;
+                  }}
+                  type="text"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  maxLength={1}
+                  value={char}
+                  disabled={inputsDisabled}
+                  onChange={(event) => updateDigit(index, event.target.value)}
+                  onKeyDown={(event) => handleKeyDown(index, event)}
+                  onPaste={handlePaste}
+                  aria-label={`${t.label} ${index + 1}`}
+                  aria-invalid={!!fieldError}
+                  className="h-[54px] min-w-0 w-full rounded-none border-0 text-center text-[22px] font-bold uppercase outline-none transition-all duration-300 disabled:opacity-70"
+                  style={{
+                    backgroundColor: fieldError ? "#FEF2F2" : showCheckOnInputs ? "rgba(110, 240, 168,0.12)" : PALETTE.chip,
+                    color: PALETTE.text,
+                    boxShadow: showCheckOnInputs ? `0 0 0 2px ${PALETTE.primary}` : fieldError ? `0 0 0 1px ${PALETTE.error}` : undefined,
+                  }}
+                />
+              </div>
             ))}
+
+            <AnimatePresence>
+              {showCheckOnInputs && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="pointer-events-none absolute -right-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-[3px] bg-white"
+                  style={{ borderColor: PALETTE.primary }}
+                >
+                  <Check className="h-5 w-5" strokeWidth={3} style={{ color: PALETTE.primary }} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+
+          <AnimatePresence>
+            {fieldError && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mt-2 text-center text-[13px] font-medium"
+                style={{ color: PALETTE.error }}
+              >
+                {fieldError}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {phase === "validating" && (
+            <p className="mt-3 text-center text-[13px] font-medium text-[#6B7280]">…</p>
+          )}
         </div>
       </div>
 
-      <div className="shrink-0 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-2">
-        <div className="flex w-full overflow-hidden rounded-[25px] border-[3px] border-neutral-950 bg-white">
-          <button
-            type="button"
-            onClick={onNext}
-            className="flex h-[54px] min-w-0 flex-1 items-center justify-center bg-white px-3 text-[17px] font-medium tracking-[-0.02em] text-neutral-950"
-          >
-            {t.skip}
-          </button>
-          <button
-            type="button"
-            onClick={finish}
-            className="flex h-[54px] min-w-0 flex-1 items-center justify-center px-3 text-[17px] font-medium tracking-[-0.02em] text-white"
-            style={{ backgroundColor: PALETTE.primary }}
-          >
-            {t.next}
-          </button>
+      {phase !== "success" && (
+        <div className="shrink-0 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-2">
+          <div className="flex w-full overflow-hidden rounded-[25px] border-[3px] border-neutral-950 bg-white">
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={phase === "validating" || phase === "check"}
+              className="flex h-[54px] min-w-0 flex-1 items-center justify-center bg-white px-3 text-[17px] font-medium tracking-[-0.02em] text-neutral-950 disabled:opacity-50"
+            >
+              {t.skip}
+            </button>
+            <button
+              type="button"
+              onClick={handleWeiter}
+              disabled={phase === "validating" || phase === "check"}
+              className="flex h-[54px] min-w-0 flex-1 items-center justify-center px-3 text-[17px] font-medium tracking-[-0.02em] text-white disabled:opacity-60"
+              style={{ backgroundColor: PALETTE.primary }}
+            >
+              {t.next}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

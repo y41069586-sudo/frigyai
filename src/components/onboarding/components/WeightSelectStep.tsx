@@ -13,10 +13,10 @@ import { MintSegmentedControl } from "./MintSegmentedControl";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
 const PALETTE = {
-  primary: "#20D86B",
-  primaryDark: "#0EA84E",
-  bg: "#FAFFF5",
-  selectedBg: "#BFF4D4",
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
+  bg: "#FEFFFE",
+  selectedBg: "#E0FDEC",
   text: "#1F2937",
   textMuted: "#6B7280",
 };
@@ -109,7 +109,7 @@ export function WeightSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E9FFF1",
+              backgroundColor: "#F5FFF9",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -155,7 +155,7 @@ export function WeightSelectStep({
               top: `calc(50% - ${WHEEL_ITEM_HEIGHT / 2}px)`,
               height: WHEEL_ITEM_HEIGHT,
               backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(32,216,107,0.16)",
+              boxShadow: "0 0 0 3px rgba(110, 240, 168,0.16)",
             }}
           />
 {/* Two wheels + separator + unit label */}
@@ -212,7 +212,7 @@ export function WeightSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 16px 34px -10px rgba(14,168,78,0.72), 0 0 34px rgba(32,216,107,0.36), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

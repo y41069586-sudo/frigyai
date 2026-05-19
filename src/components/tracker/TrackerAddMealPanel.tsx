@@ -38,7 +38,8 @@ type Props = {
   mealFocus: MealFocusKey | null;
   onClose: () => void;
   onSearchSubmit: (text: string) => void;
-  onCamera: () => void;
+  /** Datei direkt aus dem Panel — zuverlässiger Kamera-Trigger auf Mobile */
+  onCameraFile: (file: File) => void;
   onBarcode: () => void;
   onAddRecipe: (recipe: TrackerRecipeExample) => void;
   onDeleteMeal?: (id: string) => void;
@@ -316,7 +317,7 @@ export function TrackerAddMealPanel({
   mealFocus,
   onClose,
   onSearchSubmit,
-  onCamera,
+  onCameraFile,
   onBarcode,
   onAddRecipe,
   onDeleteMeal,
@@ -331,6 +332,7 @@ export function TrackerAddMealPanel({
   const [selectedRecipe, setSelectedRecipe] = useState<TrackerRecipeExample | null>(null);
   const mealCount = loggedMeals.length;
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const recipesFetchStarted = useRef(false);
 
   const showMealTitle = mealFocus != null;
@@ -403,12 +405,18 @@ export function TrackerAddMealPanel({
   const handleModeSelect = (next: InputMode) => {
     setMode(next);
     if (next === "camera") {
-      onCamera();
+      cameraInputRef.current?.click();
       return;
     }
     if (next === "barcode") {
       onBarcode();
     }
+  };
+
+  const handleCameraInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onCameraFile(file);
+    e.target.value = "";
   };
 
   const submitSearch = () => {
@@ -427,6 +435,16 @@ export function TrackerAddMealPanel({
       className="fixed inset-0 z-[60] flex flex-col"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        aria-hidden
+        tabIndex={-1}
+        onChange={handleCameraInputChange}
+      />
       <div
         className="flex shrink-0 items-center px-3 pb-2"
         style={{

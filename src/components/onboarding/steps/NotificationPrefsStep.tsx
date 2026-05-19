@@ -1,19 +1,21 @@
 import { motion } from "framer-motion";
-import { Capacitor } from "@capacitor/core";
 import { Bell, ChevronLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import notificationOnboarding from "@/assets/notification-onboarding.png";
+import {
+  requestNotificationPermission,
+  saveReminderConfigFromOnboarding,
+  sendTestNotification,
+} from "@/lib/notifications";
 import type { StepProps } from "../types";
 
 const PALETTE = {
-  primary: "#20D86B",
-  primaryDark: "#0EA84E",
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
   bg: "#FFFFFF",
   text: "#101827",
   muted: "#53645C",
 };
-
-type NotificationPermissionState = "granted" | "denied" | "prompt";
 
 export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }: StepProps) => {
   const { language } = useLanguage();
@@ -69,37 +71,23 @@ export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }:
     window.alert(t.settingsHint);
   };
 
-  const requestNativeNotificationPermission = async () => {
-    const { LocalNotifications } = await import("@capacitor/local-notifications");
-    const current = await LocalNotifications.checkPermissions();
-    if (current.display === "granted") return true;
-
-    const result = await LocalNotifications.requestPermissions();
-    const granted = result.display === "granted";
-    if (!granted) showSettingsHint();
-    return granted;
-  };
-
-  const requestWebNotificationPermission = async () => {
-    if (!("Notification" in window)) return false;
-    if (Notification.permission === "granted") return true;
-    if (Notification.permission === "denied") {
-      showSettingsHint();
-      return false;
-    }
-
-    const result = (await Notification.requestPermission()) as NotificationPermissionState;
-    const granted = result === "granted";
-    if (!granted) showSettingsHint();
-    return granted;
-  };
-
   const enableNotifications = async () => {
     try {
-      const granted = Capacitor.isNativePlatform()
-        ? await requestNativeNotificationPermission()
-        : await requestWebNotificationPermission();
-      setAllNotifications(granted);
+      const granted = await requestNotificationPermission();
+      const prefs = { meals: true, water: true, weight: true };
+      setUserData({
+        ...userData,
+        notificationPrefs: prefs,
+      });
+      if (granted) {
+        saveReminderConfigFromOnboarding(prefs);
+        await sendTestNotification();
+      } else {
+        showSettingsHint();
+        setAllNotifications(false);
+        goNext();
+        return;
+      }
     } catch {
       showSettingsHint();
       setAllNotifications(false);
@@ -125,7 +113,7 @@ export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }:
           aria-label="Zurück"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
           style={{
-            backgroundColor: "#E9FFF1",
+            backgroundColor: "#F5FFF9",
             color: PALETTE.primaryDark,
             boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
           }}
@@ -169,7 +157,7 @@ export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }:
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)]">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.35rem] bg-[#E9FFF1] shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.35rem] bg-[#F5FFF9] shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">
           <Bell className="h-5 w-5" style={{ color: PALETTE.primaryDark }} />
         </div>
         <div className="pointer-events-auto grid h-12 w-[58%] max-w-[230px] shrink-0 grid-cols-2 overflow-hidden rounded-[1.35rem] border-2 border-black bg-white shadow-[0_12px_30px_-22px_rgba(15,23,42,0.5)]">

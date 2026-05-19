@@ -4,30 +4,15 @@ import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
 import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
-import { buildGermanConstraintPrompt, findMealSafetyViolations } from '@/lib/mealAllergySafety';
+import {
+  buildGermanConstraintPrompt,
+  findMealSafetyViolations,
+  readUserMealPlanProfile,
+  type UserMealPlanProfile,
+} from '@/lib/mealAllergySafety';
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 
-function readUserProfileDiet(): { allergies: string[]; allergiesOther: string; dietaryPreferences: string[] } {
-  try {
-    const raw = localStorage.getItem('userProfile');
-    if (!raw) return { allergies: [], allergiesOther: '', dietaryPreferences: [] };
-    const p = JSON.parse(raw);
-    return {
-      allergies: Array.isArray(p.allergies) ? p.allergies.filter((x: string) => x && x !== 'none') : [],
-      allergiesOther: typeof p.allergiesOther === 'string' ? p.allergiesOther.trim() : '',
-      dietaryPreferences: Array.isArray(p.dietaryPreferences)
-        ? p.dietaryPreferences.filter((x: string) => x && x !== 'none')
-        : [],
-    };
-  } catch {
-    return { allergies: [], allergiesOther: '', dietaryPreferences: [] };
-  }
-}
-
-function findUnsafeMeals(
-  plan: DayPlan[],
-  diet: { allergies: string[]; allergiesOther: string; dietaryPreferences: string[] },
-): string[] {
+function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   const unsafe: string[] = [];
   for (const day of plan || []) {
     for (const meal of day.meals || []) {
@@ -335,8 +320,13 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     try {
       try {
-        const diet = readUserProfileDiet();
-        const constraintPrompt = buildGermanConstraintPrompt(diet.allergies, diet.dietaryPreferences, diet.allergiesOther);
+        const diet = readUserMealPlanProfile();
+        const constraintPrompt = buildGermanConstraintPrompt(
+          diet.allergies,
+          diet.dietaryPreferences,
+          diet.allergiesOther,
+          diet.healthGoals,
+        );
 
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
           headers: session?.access_token
@@ -352,6 +342,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             allergies: diet.allergies,
             allergiesOther: diet.allergiesOther,
             dietaryPreferences: diet.dietaryPreferences,
+            healthGoals: diet.healthGoals,
             constraintPrompt,
             fridgeIngredients: options?.fridgeIngredients ?? [],
           },

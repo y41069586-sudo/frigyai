@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
 import frigyMascot from '@/assets/frigy-mascot.png';
 import { ShoppingList } from '@/components/ShoppingList';
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
-import { useReminders } from '@/hooks/useReminders';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { toast } from '@/hooks/use-toast';
 import StreakBadge from '@/components/StreakBadge';
@@ -22,7 +20,6 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
-import { useIsMobile } from '@/hooks/use-mobile';
 interface UserProfile {
   age: number;
   weight: number;
@@ -111,7 +108,6 @@ const MealPlansPage = () => {
   const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const { addEntry } = useFoodEntries();
   // Use global meal plan context for background generation
@@ -162,8 +158,6 @@ const MealPlansPage = () => {
   }, [searchParams, setActiveTab, navigate]);
 
   // Initialize reminder system
-  useReminders();
-
   // Show success dialog and auto-refresh subscription after purchase
   useEffect(() => {
     const subscriptionParam = searchParams.get('subscription');
@@ -195,29 +189,6 @@ const MealPlansPage = () => {
   }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
 
   const pendingMealPlanRefreshRef = useRef(false);
-
-  useEffect(() => {
-    // Wait for auth to finish loading before redirecting
-    if (loading) return;
-    
-    // Don't redirect if coming from successful subscription - wait for status to update
-    const subscriptionParam = searchParams.get('subscription');
-    if (subscriptionParam === 'success') return;
-
-    if (user && !user.email_confirmed_at) {
-      const q = new URLSearchParams();
-      if (user.email) q.set('email', user.email);
-      q.set('next', '/premium-pricing');
-      q.set('from', 'signup');
-      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
-      return;
-    }
-    
-    // Only redirect to auth if not logged in
-    if (!user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate, searchParams]);
 
   // Sync meal plan and shopping list from global context or localStorage
   useEffect(() => {
@@ -375,12 +346,14 @@ const MealPlansPage = () => {
     }
   };
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
   // Check if user has generated their own plan (not demo)
   const hasGeneratedPlan = localStorage.getItem('weeklyMealPlan') !== null;
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [loading, user, navigate]);
 
   // Show loading screen while activating subscription
   if (isActivatingSubscription) {
@@ -404,6 +377,37 @@ const MealPlansPage = () => {
           </div>
         </motion.div>
       </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-primary safe-area-inset flex flex-col">
+          <nav className="sticky top-0 z-40 bg-background/95 border-b border-primary/20 safe-top">
+            <motion.div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3">
+              <motion.div className="h-9 w-24 rounded-lg bg-muted/60 animate-pulse" />
+              <motion.div className="h-9 w-16 rounded-full bg-muted/60 animate-pulse" />
+            </motion.div>
+          </nav>
+          <motion.div className="flex flex-1 flex-col items-center justify-center gap-3 pb-bottom-nav">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">{t.loading}</p>
+          </motion.div>
+          <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+        </div>
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <motion.div className="min-h-screen bg-gradient-primary flex flex-col">
+        <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </motion.div>
+        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+      </motion.div>
     );
   }
 
@@ -439,24 +443,33 @@ const MealPlansPage = () => {
       </nav>
 
       <div className="container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
-
-          <TabsContent value="reminders">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div className="min-h-[50vh] space-y-4 sm:space-y-6">
+          <AnimatePresence mode="wait" initial={false}>
+          {activeTab === 'reminders' && (
+            <motion.div
+              key="reminders"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+            >
               <div className="mb-6">
                 <h2 className="text-2xl font-bold neon-text mb-1">{t.reminderSettings}</h2>
                 <p className="text-sm text-muted-foreground">{t.reminderSettings}</p>
               </div>
               <ReminderSettings />
             </motion.div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="meals">
-            <div className="relative">
-              <motion.div
-                initial={isMobile ? false : { opacity: 0, y: 20 }}
-                animate={isMobile ? undefined : { opacity: 1, y: 0 }}
-              >
+          {activeTab === 'meals' && (
+            <motion.div
+              key="meals"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+              className="relative"
+            >
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <ExportMealPlan mealPlan={mealPlan} pdfOnly />
@@ -495,14 +508,26 @@ const MealPlansPage = () => {
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">
-                  {mealPlan.map((day, index) => (
-                    <motion.div
-                      key={day.day}
-                      initial={isMobile ? false : { opacity: 0, x: -20 }}
-                      animate={isMobile ? undefined : { opacity: 1, x: 0 }}
-                      transition={isMobile ? { duration: 0 } : { delay: index * 0.05 }}
-                    >
-                      <Card className="p-3 sm:p-4 bg-card/90 sm:bg-card/80 sm:backdrop-blur-lg border-primary/20 hover:shadow-neon transition-colors sm:transition-all sm:duration-300">
+                  {mealPlan.length === 0 && !isGenerating && (
+                    <Card className="p-6 sm:p-8 bg-card/90 border-primary/20 text-center">
+                      <Calendar className="h-10 w-10 mx-auto mb-3 text-primary" />
+                      <h3 className="text-lg font-bold mb-2">{t.weeklyPlan || 'Wochenplan'}</h3>
+                      <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
+                        {t.noMealPlanYet || 'Noch kein Wochenplan vorhanden. Erstelle jetzt deinen persönlichen Plan.'}
+                      </p>
+                      <Button
+                        type="button"
+                        className="rounded-2xl bg-primary"
+                        onClick={() => void generateMealPlan()}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {t.generateMealPlan || 'Wochenplan erstellen'}
+                      </Button>
+                    </Card>
+                  )}
+                  {mealPlan.map((day) => (
+                    <div key={day.day}>
+                      <Card className="p-3 sm:p-4 bg-card/90 sm:bg-card/80 sm:backdrop-blur-lg border-primary/20 transition-colors">
                         <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
                         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                           {day.meals.map((meal, mealIndex) => (
@@ -534,16 +559,20 @@ const MealPlansPage = () => {
                           ))}
                         </div>
                       </Card>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
-              </motion.div>
-            </div>
-          </TabsContent>
+            </motion.div>
+          )}
 
-          <TabsContent value="shopping">
-            <div className="relative">
-              <div>
+          {activeTab === 'shopping' && (
+            <motion.div
+              key="shopping"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+            >
                 {mealPlan.length === 0 && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
                     <p className="text-sm text-amber-700">
@@ -552,11 +581,10 @@ const MealPlansPage = () => {
                   </Card>
                 )}
                 <ShoppingList mealPlan={mealPlan} />
-              </div>
-            </div>
-          </TabsContent>
-
-        </Tabs>
+            </motion.div>
+          )}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       <MealDetailDialog

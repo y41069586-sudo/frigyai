@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { BRAND } from "@/lib/brandColors";
 
 type SegmentedOption<T extends string> = {
   id: T;
@@ -47,9 +48,9 @@ export function MintSegmentedControl<T extends string>({
           top: 4,
           bottom: 4,
           width: `calc((100% - 8px) / ${count})`,
-          background: "linear-gradient(135deg, #20D86B 0%, #0EA84E 100%)",
+          background: `linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%)`,
           boxShadow:
-            "0 6px 14px -6px rgba(14,168,78,0.55), 0 1px 2px rgba(15,40,30,0.05)",
+            "0 6px 14px -6px rgba(74, 232, 150,0.55), 0 1px 2px rgba(15,40,30,0.05)",
           pointerEvents: "none",
         }}
       />

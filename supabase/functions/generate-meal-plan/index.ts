@@ -62,6 +62,13 @@ function findSafetyViolations(mealPlan: any[], allergies: string[], dietaryPrefe
       if (customTerms.some((term) => blob.includes(term))) violations.push("other");
       if (dietaryPreferences?.includes("vegan") && /(milch|käse|ei|eier|joghurt|quark|butter|sahne|honig|fleisch|hähnchen|lachs|fisch|thunfisch|wurst|hack|speck|schinken|schnitzel|schwein|pute)/i.test(blob)) violations.push("vegan");
       if (dietaryPreferences?.includes("vegetarian") && /(hackfleisch|hähnchen|pute|schwein|fleisch|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell|lachs|thunfisch|fisch)/i.test(blob)) violations.push("vegetarian");
+      const highCarb = /(nudel|pasta|spaghetti|brot|brötchen|reis|hafer|müsli|kartoffel|pommes|paniermehl|honig|baguette|lasagne)/i;
+      if ((dietaryPreferences?.includes("keto") || dietaryPreferences?.includes("low-carb")) && highCarb.test(blob)) {
+        violations.push("low-carb");
+      }
+      if (dietaryPreferences?.includes("paleo") && /(nudel|pasta|brot|reis|hafer|müsli|bohnen|linsen|milch|käse|joghurt|quark|sahne|paniermehl)/i.test(blob)) {
+        violations.push("paleo");
+      }
       if (violations.length) unsafe.push(`${day.day}: ${meal.name} (${[...new Set(violations)].join(", ")})`);
     }
   }
@@ -281,7 +288,7 @@ REGELN:
 - Kalorien jeder Mahlzeit müssen zu den Makros passen: kcal ≈ 4*Protein + 4*Kohlenhydrate + 9*Fett (max. ±10% Abweichung)
 ${
       constraintPrompt
-        ? `- Allergien, Unverträglichkeiten und Ernährungsform unten sind ABSOLUT bindend. Wenn z. B. Eier verboten sind, darf kein Ei, Rührei, Omelett, Mayonnaise oder eihaltiges Gericht vorkommen.`
+        ? "- Allergien, Ernährungsziele (z. B. Keto, Vegan, Low-Carb) und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend. Wenn z. B. Eier verboten sind, darf kein Ei, Rührei, Omelett, Mayonnaise oder eihaltiges Gericht vorkommen."
         : ""
     }
 
@@ -296,6 +303,17 @@ type, name, calories, protein, carbs, fat, prepTime, ingredients, instructions
 
 ingredients MUSS pro Zutat enthalten:
 name, amount (mit Einheit), price (geschätzter Preis in EUR für diese Menge)
+
+instructions: Array mit GENAU 10–14 Strings – Kochanleitung für absolute Anfänger, die jeder Schritt für Schritt nachkochen kann.
+PFLICHT-Format JEDES Elements: "[X Min | Phase] Ausführliche Handlung."
+- Phase nur: Vorbereitung | Kochen | Garen | Pause | Anrichten
+- X = geschätzte aktive Zeit für diesen Schritt (Minuten als Zahl)
+- Beschreibe konkret: welches Gerät (Topf/Pfanne/Ofen), Hitze (z. B. mittlere Stufe, 180 °C), Mengen, wann rühren/wenden, wie Garzustand erkennen (Farbe, Konsistenz, Kerntemperatur)
+- Parallelarbeit erwähnen (z. B. während Nudeln kochen Soße vorbereiten)
+- Optional am Ende eines Schritts: "Tipp: …" für typische Fehler
+- Summe der Minuten in [] soll ungefähr prepTime entsprechen (±3 Min)
+- Erster Schritt: Arbeitsplatz vorbereiten; letzter Schritt: Anrichten und Servieren mit Portionierung
+- Keine Ein-Wort-Schritte, keine vagen Formulierungen wie "nach Belieben garen"
 
 Antwort NUR als JSON:
 

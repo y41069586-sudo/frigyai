@@ -53,6 +53,7 @@ export type OnboardingStep =
   | "structured-mode-2"
   | "structured-mode-3"
   | "save-progress"
+  | "paywall"
   | "premium-hint"
   | "community"
   | "celebration"
@@ -167,14 +168,28 @@ export const onboardingSteps: OnboardingStep[] = [
   "referral-code",
   "analyzing",
   "macro-preview",
+  "save-progress",
+  "paywall",
 ];
 
 /** Fullscreen mint body steps after the splash welcome screen. */
 export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(
-  onboardingSteps.slice(1).filter((step) => step !== "analyzing" && step !== "macro-preview"),
+  onboardingSteps.slice(1).filter(
+    (step) =>
+      step !== "analyzing" &&
+      step !== "save-progress" &&
+      step !== "paywall" &&
+      step !== "macro-preview",
+  ),
 );
 
 /** Thin top progress line starts after the splash welcome screen. */
 export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(
-  onboardingSteps.slice(1).filter((step) => step !== "analyzing" && step !== "macro-preview"),
+  onboardingSteps.slice(1).filter(
+    (step) =>
+      step !== "analyzing" &&
+      step !== "save-progress" &&
+      step !== "paywall" &&
+      step !== "macro-preview",
+  ),
 );

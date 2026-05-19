@@ -10,6 +10,9 @@ interface MealPlanGeneratingOverlayProps {
   onMinimize?: () => void;
   onBack?: () => void;
   isMinimized?: boolean;
+  /** Full-screen lock: no back/minimize, show stay-on-tab warning */
+  locked?: boolean;
+  stayOnTabMessage?: string;
 }
 
 // Floating ingredient component
@@ -84,7 +87,9 @@ export const MealPlanGeneratingOverlay = ({
   elapsedSeconds,
   onMinimize,
   onBack,
-  isMinimized = false
+  isMinimized = false,
+  locked = false,
+  stayOnTabMessage,
 }: MealPlanGeneratingOverlayProps) => {
   const { t } = useLanguage();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
@@ -99,8 +104,7 @@ export const MealPlanGeneratingOverlay = ({
     t.mealPlanGenerating7,
   ];
 
-  // Simple: show overlay only when actively generating and not minimized
-  const showOverlay = isGenerating && !isMinimized;
+  const showOverlay = isGenerating && (!isMinimized || locked);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -217,8 +221,7 @@ export const MealPlanGeneratingOverlay = ({
           {/* Very light gradient overlay for modern feel */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 via-white/20 to-teal-50/40 dark:from-emerald-900/20 dark:via-transparent dark:to-teal-900/20" />
 
-          {/* Zurück: direkt zum Dashboard (Generation läuft im Hintergrund) */}
-          {(onBack || onMinimize) && (
+          {!locked && (onBack || onMinimize) && (
             <motion.button
               data-mealplan-overlay-card="true"
               onPointerDown={(e) => {
@@ -333,8 +336,20 @@ export const MealPlanGeneratingOverlay = ({
               ))}
             </div>
 
-            {/* Minimize hint - cleaner */}
-            {onMinimize && (
+            {locked && stayOnTabMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mt-2 max-w-xs rounded-2xl border border-amber-300/60 bg-amber-50/90 px-4 py-3 dark:border-amber-600/40 dark:bg-amber-950/50"
+              >
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                  {stayOnTabMessage}
+                </p>
+              </motion.div>
+            )}
+
+            {!locked && onMinimize && (
               <motion.p 
                 className="text-xs text-slate-400 dark:text-slate-500 mt-4 font-normal"
                 initial={{ opacity: 0 }}
