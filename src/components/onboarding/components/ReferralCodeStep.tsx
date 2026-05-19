@@ -8,6 +8,7 @@ import {
   redeemReferralCode,
   validateReferralCode,
   isReferralLifetime,
+  markReferralSkipPaywall,
 } from "@/lib/referralCode";
 
 type ReferralCodeStepProps = {
@@ -115,6 +116,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       }
 
       savePendingReferralCode(value);
+      markReferralSkipPaywall();
       const days = result.duration_days ?? 30;
       const lifetime = isReferralLifetime(result.duration_days, result.is_lifetime);
 

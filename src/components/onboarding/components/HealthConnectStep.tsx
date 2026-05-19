@@ -70,22 +70,20 @@ export function HealthConnectStep({ userData, setUserData, onBack, onNext }: Pro
 
   const activate = async () => {
     setConnecting(true);
-    if (!isNativeApp) {
+    try {
+      if (!isNativeApp) {
+        setUserData({ ...userData, healthSync: null });
+        return;
+      }
+      const granted = await requestPermissions({ silent: true });
+      setUserData({ ...userData, healthSync: granted ? syncValue : null });
+    } catch (error) {
+      console.warn("[onboarding] health connect failed:", error);
       setUserData({ ...userData, healthSync: null });
+    } finally {
       setConnecting(false);
       onNext?.();
-      return;
     }
-
-    const granted = await requestPermissions();
-    if (granted) {
-      setUserData({ ...userData, healthSync: syncValue });
-      setConnecting(false);
-      onNext?.();
-      return;
-    }
-
-    setConnecting(false);
   };
 
   const skip = () => {
@@ -134,7 +132,7 @@ export function HealthConnectStep({ userData, setUserData, onBack, onNext }: Pro
         <div className="shrink-0 bg-white px-5 pb-4 pt-4">
           <OnboardingMascotQuestion className="px-0">
             <p
-              className="text-[17px] font-bold uppercase leading-snug tracking-wide"
+              className="text-[18px] font-bold uppercase leading-snug tracking-wide min-[390px]:text-[19px]"
               style={{ color: PALETTE.text }}
             >
               {t.question}
@@ -142,7 +140,7 @@ export function HealthConnectStep({ userData, setUserData, onBack, onNext }: Pro
           </OnboardingMascotQuestion>
 
           <p
-            className="mt-2 px-1 text-[14px] leading-relaxed"
+            className="mt-2 px-1 text-[15px] leading-relaxed min-[390px]:text-[16px]"
             style={{ color: PALETTE.subtext }}
           >
             {t.body}

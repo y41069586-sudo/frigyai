@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Flame, Beef, Wheat, Droplets, Check, Loader2, ChefHat, Lightbulb, X } from "lucide-react";
@@ -42,46 +42,43 @@ interface MealDetailDialogProps {
   onMealLogged?: () => void;
 }
 
-const SHEET_SPRING = { type: "spring" as const, stiffness: 340, damping: 36, mass: 0.9 };
-const SHEET_EASE = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
-
 export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: MealDetailDialogProps) => {
   const { t } = useLanguage();
   const { addEntry } = useFoodEntries();
   const isMobile = useIsMobile();
-  const dragControls = useDragControls();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [isLogged, setIsLogged] = useState(false);
+  const [displayMeal, setDisplayMeal] = useState<Meal | null>(null);
 
-  const handleSheetDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.y > 72 || info.velocity.y > 380) {
-      onOpenChange(false);
-    }
-  };
+  useEffect(() => {
+    if (open && meal) setDisplayMeal(meal);
+  }, [open, meal]);
+
+  const activeMeal = displayMeal ?? meal;
 
   const handleLogMeal = async () => {
-    if (!meal) return;
+    if (!activeMeal) return;
 
     setIsLogging(true);
     try {
-      const prepTime = meal.prepTime || 20;
+      const prepTime = activeMeal.prepTime || 20;
 
       const result = await addEntry({
-        name: meal.name,
-        calories: Number(meal.calories) || 0,
-        protein: Number(meal.protein) || 0,
-        carbs: Number(meal.carbs) || 0,
-        fat: Number(meal.fat) || 0,
+        name: activeMeal.name,
+        calories: Number(activeMeal.calories) || 0,
+        protein: Number(activeMeal.protein) || 0,
+        carbs: Number(activeMeal.carbs) || 0,
+        fat: Number(activeMeal.fat) || 0,
         portion: `${prepTime}min`,
-        meal_type: meal.type,
+        meal_type: activeMeal.type,
       });
 
       if (result) {
         setIsLogged(true);
         toast({
           title: "✅ Gegessen geloggt",
-          description: `${meal.name} zu deinem Tracker hinzugefügt`,
+          description: `${activeMeal.name} zu deinem Tracker hinzugefügt`,
         });
         onMealLogged?.();
         setTimeout(() => {
@@ -101,14 +98,14 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     }
   };
 
-  const detailedInstructions = meal ? getDetailedInstructions(meal) : [];
-  const parsedSteps = meal ? parseAllCookingSteps(detailedInstructions) : [];
+  const detailedInstructions = activeMeal ? getDetailedInstructions(activeMeal) : [];
+  const parsedSteps = activeMeal ? parseAllCookingSteps(detailedInstructions) : [];
   const timedMinutes = sumStepMinutes(parsedSteps);
   const phaseGroups = groupStepsByPhase(parsedSteps);
 
   return (
-    <AnimatePresence>
-      {open && meal && (
+    <AnimatePresence onExitComplete={() => { if (!open) setDisplayMeal(null); }}>
+      {open && activeMeal && (
         <>
           <motion.button
             type="button"
@@ -118,54 +115,38 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={() => onOpenChange(false)}
-            className="fixed inset-0 z-[60] bg-black/40 sm:bg-black/50 sm:backdrop-blur-[2px]"
+            className="fixed inset-0 z-[60] bg-black/45"
           />
 
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="meal-detail-title"
-            initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96, y: 20 }}
-            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
-            exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.98, y: 16 }}
-            transition={isMobile ? SHEET_EASE : SHEET_SPRING}
-            drag={isMobile ? "y" : false}
-            dragControls={dragControls}
-            dragListener={false}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0.05, bottom: 0.55 }}
-            onDragEnd={isMobile ? handleSheetDragEnd : undefined}
+            initial={{ opacity: 0, y: 32, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 48, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] gpu-smooth",
+              "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)] gpu-smooth",
               isMobile
-                ? "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-[2rem] border-t border-primary/15"
+                ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5rem,env(safe-area-inset-bottom,0px)+4.5rem)] rounded-[1.75rem] border border-primary/15"
                 : "left-1/2 top-1/2 max-h-[88vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-primary/20",
             )}
           >
-            <div className={cn("shrink-0", !isMobile && "pt-3")}>
-              {isMobile && (
-                <button
-                  type="button"
-                  aria-label="Nach unten ziehen zum Schließen"
-                  onPointerDown={(e) => dragControls.start(e)}
-                  className="mx-auto flex h-11 w-full max-w-[10rem] cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing"
-                >
-                  <span className="h-1.5 w-14 rounded-full bg-slate-300/90" />
-                </button>
-              )}
-              <div className={cn("flex items-start gap-2 px-5", isMobile ? "pb-2 pt-1" : "px-6")}>
+            <div className={cn("shrink-0", !isMobile && "pt-2")}>
+              <div className={cn("flex items-start gap-2 px-5", isMobile ? "pb-2 pt-3" : "px-6 pt-4")}>
                 <div className="min-w-0 flex-1">
                   <Badge
                     className="mb-2 w-fit rounded-full border-primary/20 bg-primary/10 text-primary"
                     variant="secondary"
                   >
-                    {meal.type}
+                    {activeMeal.type}
                   </Badge>
                   <h2
                     id="meal-detail-title"
                     className="pr-2 text-[22px] font-black leading-tight tracking-[-0.04em] text-foreground sm:text-[24px]"
                   >
-                    {meal.name}
+                    {activeMeal.name}
                   </h2>
                 </div>
                 <Button
@@ -187,15 +168,15 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-28 pt-1 sm:px-6 sm:pb-24"
             >
               <div className="my-3 grid grid-cols-4 gap-2">
-                <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(meal.calories)} label="kcal" />
-                <MacroCard icon={Beef} iconClass="text-rose-500 bg-rose-50" value={Math.round(meal.protein)} label="Protein" unit="g" />
-                <MacroCard icon={Wheat} iconClass="text-amber-500 bg-amber-50" value={Math.round(meal.carbs)} label="Carbs" unit="g" />
-                <MacroCard icon={Droplets} iconClass="text-sky-500 bg-sky-50" value={Math.round(meal.fat)} label="Fett" unit="g" />
+                <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(activeMeal.calories)} label="kcal" />
+                <MacroCard icon={Beef} iconClass="text-rose-500 bg-rose-50" value={Math.round(activeMeal.protein)} label="Protein" unit="g" />
+                <MacroCard icon={Wheat} iconClass="text-amber-500 bg-amber-50" value={Math.round(activeMeal.carbs)} label="Carbs" unit="g" />
+                <MacroCard icon={Droplets} iconClass="text-sky-500 bg-sky-50" value={Math.round(activeMeal.fat)} label="Fett" unit="g" />
               </div>
 
               <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2.5 text-sm">
                 <Clock className="h-4 w-4 shrink-0 text-primary" />
-                <span className="font-medium text-foreground">ca. {meal.prepTime} Min Gesamtzeit</span>
+                <span className="font-medium text-foreground">ca. {activeMeal.prepTime} Min Gesamtzeit</span>
                 {timedMinutes > 0 && (
                   <span className="text-xs text-muted-foreground">· {timedMinutes} Min in den Schritten</span>
                 )}
@@ -204,7 +185,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               <section className="mb-5 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
                 <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">Zutaten</h4>
                 <ul className="space-y-2">
-                  {meal.ingredients.map((ing, idx) => (
+                  {activeMeal.ingredients.map((ing, idx) => (
                     <li key={idx} className="flex items-center justify-between gap-3 rounded-2xl bg-muted/35 px-3 py-2.5">
                       <span className="min-w-0 text-sm font-medium text-foreground">
                         <span className="text-muted-foreground">{ing.amount}</span> {ing.name}
@@ -218,7 +199,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                 <div className="mt-3 flex justify-between border-t border-slate-200/80 pt-3 text-sm font-semibold">
                   <span>Gesamt</span>
                   <span className="text-primary">
-                    €{meal.ingredients.reduce((sum, ing) => sum + (Number(ing.price) || 0), 0).toFixed(2)}
+                    €{activeMeal.ingredients.reduce((sum, ing) => sum + (Number(ing.price) || 0), 0).toFixed(2)}
                   </span>
                 </div>
               </section>

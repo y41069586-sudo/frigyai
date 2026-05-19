@@ -5,7 +5,7 @@ import {
 } from "@/lib/frigyStorageSync";
 import { saveReminderConfigFromOnboarding, syncRemindersFromStorage } from "@/lib/notifications";
 import { isMealSafeForUser } from "@/lib/mealAllergySafety";
-import { clearPendingReferralCode } from "@/lib/referralCode";
+import { clearPendingReferralCode, REFERRAL_SKIP_PAYWALL_KEY } from "@/lib/referralCode";
 
 /** Nach Abmelden: Onboarding von vorne (lokaler Zustand). */
 export function clearOnboardingForLogout() {
@@ -19,6 +19,7 @@ export function clearOnboardingForLogout() {
   localStorage.removeItem("mealPlanGenerationCount");
   localStorage.removeItem("scanFeedback");
   clearPendingReferralCode();
+  localStorage.removeItem(REFERRAL_SKIP_PAYWALL_KEY);
 }
 
 // Macro calculation using Mifflin-St Jeor BMR formula

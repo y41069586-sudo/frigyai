@@ -46,6 +46,8 @@ type MintWheelColumnProps = {
   rowHeight?: number;
   /** Repeat options in a loop so short lists (e.g. 0–9) show digits above/below the ends */
   circular?: boolean;
+  /** Smaller type for long labels (e.g. month names) */
+  compactLabels?: boolean;
 };
 
 const haptic = () => {
@@ -63,6 +65,7 @@ export function MintWheelColumn({
   ariaLabel,
   rowHeight = WHEEL_ROW_COMFORT,
   circular = false,
+  compactLabels = false,
 }: MintWheelColumnProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastPhysicalIndexRef = useRef(0);
@@ -211,25 +214,23 @@ export function MintWheelColumn({
     [endDrag],
   );
 
+  const updateVisualFromScroll = useCallback(() => {
+    if (!scrollRef.current || isProgrammaticRef.current) return;
+    const top = scrollRef.current.scrollTop;
+    const idx = Math.round(top / rowHeight);
+    const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
+    setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
+  }, [displayOptions.length, rowHeight]);
+
   const handleScroll = useCallback(() => {
     if (!scrollRef.current || isProgrammaticRef.current) return;
     if (rafRef.current != null) return;
 
     rafRef.current = window.requestAnimationFrame(() => {
       rafRef.current = null;
-      if (!scrollRef.current || isProgrammaticRef.current) return;
-
-      const top = scrollRef.current.scrollTop;
-      const idx = Math.round(top / rowHeight);
-      const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
-
-      setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
-
-      if (isUserDraggingRef.current) return;
-
-      scheduleSettle(140, true);
+      updateVisualFromScroll();
     });
-  }, [displayOptions.length, rowHeight, scheduleSettle]);
+  }, [updateVisualFromScroll]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -259,8 +260,20 @@ export function MintWheelColumn({
         ? "justify-end pr-1"
         : "justify-center";
 
-  const idleFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 14 : 17;
-  const selectedFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 18 : 22;
+  const idleFontPx = compactLabels
+    ? rowHeight <= WHEEL_ROW_COMPACT
+      ? 12
+      : 13
+    : rowHeight <= WHEEL_ROW_COMPACT
+      ? 14
+      : 17;
+  const selectedFontPx = compactLabels
+    ? rowHeight <= WHEEL_ROW_COMPACT
+      ? 14
+      : 15
+    : rowHeight <= WHEEL_ROW_COMPACT
+      ? 18
+      : 22;
 
   return (
     <div
@@ -286,6 +299,9 @@ export function MintWheelColumn({
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onTouchStart={beginDrag}
+        onTouchEnd={endDrag}
+        onTouchCancel={endDrag}
       >
         <div style={{ height: WHEEL_PAD_ITEMS * rowHeight }} />
         {displayOptions.map((opt, idx) => {

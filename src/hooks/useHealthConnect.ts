@@ -26,7 +26,7 @@ interface UseHealthConnectReturn {
   permissions: HealthPermissions;
   healthData: HealthSyncData | null;
   isLoading: boolean;
-  requestPermissions: () => Promise<boolean>;
+  requestPermissions: (options?: { silent?: boolean }) => Promise<boolean>;
   syncHealthData: () => Promise<void>;
   disconnect: () => void;
   saveWeight: (weight: number, userId: string) => Promise<boolean>;
@@ -66,29 +66,35 @@ export function useHealthConnect(): UseHealthConnectReturn {
     }));
   }, [isConnected, permissions]);
 
-  const requestPermissions = useCallback(async (): Promise<boolean> => {
+  const requestPermissions = useCallback(async (options?: { silent?: boolean }): Promise<boolean> => {
+    const silent = options?.silent === true;
+
     if (!isNativeApp) {
-      toast({
-        title: 'Native App erforderlich',
-        description: 'Health Sync funktioniert in der installierten iOS/Android-App — nicht im Browser.',
-      });
+      if (!silent) {
+        toast({
+          title: 'Native App erforderlich',
+          description: 'Health Sync funktioniert in der installierten iOS/Android-App — nicht im Browser.',
+        });
+      }
       return false;
     }
 
     const availability = await checkHealthSyncAvailability();
     if (!availability.ok) {
-      if (availability.reason === 'not_installed') {
-        toast({
-          title: 'Health Connect fehlt',
-          description: 'Bitte „Health Connect“ aus dem Play Store installieren.',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Nicht verfügbar',
-          description: availability.detail ?? 'Health Sync ist auf diesem Gerät nicht verfügbar.',
-          variant: 'destructive',
-        });
+      if (!silent) {
+        if (availability.reason === 'not_installed') {
+          toast({
+            title: 'Health Connect fehlt',
+            description: 'Bitte „Health Connect“ aus dem Play Store installieren.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Nicht verfügbar',
+            description: availability.detail ?? 'Health Sync ist auf diesem Gerät nicht verfügbar.',
+            variant: 'destructive',
+          });
+        }
       }
       return false;
     }
@@ -97,11 +103,13 @@ export function useHealthConnect(): UseHealthConnectReturn {
     try {
       const granted = await requestNativeHealthPermissions();
       if (!granted) {
-        toast({
-          title: 'Verbindung fehlgeschlagen',
-          description: 'Bitte erlaube den Zugriff in den Systemeinstellungen.',
-          variant: 'destructive',
-        });
+        if (!silent) {
+          toast({
+            title: 'Verbindung fehlgeschlagen',
+            description: 'Bitte erlaube den Zugriff in den Systemeinstellungen.',
+            variant: 'destructive',
+          });
+        }
         return false;
       }
 
@@ -113,18 +121,22 @@ export function useHealthConnect(): UseHealthConnectReturn {
       });
       setIsConnected(true);
 
-      toast({
-        title: platform === 'ios' ? 'Apple Health verbunden! 🍎' : 'Health Connect verbunden! 🏃',
-        description: 'Deine Gesundheitsdaten können jetzt synchronisiert werden.',
-      });
+      if (!silent) {
+        toast({
+          title: platform === 'ios' ? 'Apple Health verbunden! 🍎' : 'Health Connect verbunden! 🏃',
+          description: 'Deine Gesundheitsdaten können jetzt synchronisiert werden.',
+        });
+      }
       return true;
     } catch (error) {
       console.error('Health authorization error:', error);
-      toast({
-        title: 'Verbindung fehlgeschlagen',
-        description: 'Bitte erlaube den Zugriff in den Systemeinstellungen.',
-        variant: 'destructive',
-      });
+      if (!silent) {
+        toast({
+          title: 'Verbindung fehlgeschlagen',
+          description: 'Bitte erlaube den Zugriff in den Systemeinstellungen.',
+          variant: 'destructive',
+        });
+      }
       return false;
     } finally {
       setIsLoading(false);

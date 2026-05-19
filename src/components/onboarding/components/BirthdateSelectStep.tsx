@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
@@ -160,6 +160,7 @@ export function BirthdateSelectStep({
               align="center"
               width="33.3333%"
               rowHeight={BIRTH_WHEEL_ROW}
+              compactLabels
               ariaLabel="Monat"
             />
             <MintWheelColumn

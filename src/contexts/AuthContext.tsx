@@ -3,7 +3,11 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { redeemPendingReferralCode } from '@/lib/referralCode';
-import { isEmailNotConfirmed, isUserAlreadyRegistered } from '@/lib/authErrors';
+import {
+  isEmailNotConfirmed,
+  isEmailRateLimited,
+  isUserAlreadyRegistered,
+} from '@/lib/authErrors';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -22,7 +26,7 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    options?: { emailRedirectTo?: string }
+    options?: { emailRedirectTo?: string; silent?: boolean }
   ) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -270,21 +274,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (
     email: string,
     password: string,
-    options?: { emailRedirectTo?: string }
+    options?: { emailRedirectTo?: string; silent?: boolean }
   ) => {
-    const redirectUrl =
-      options?.emailRedirectTo ?? `${window.location.origin}/premium-pricing`;
+    const silent = options?.silent === true;
+    const redirectUrl = options?.emailRedirectTo;
+
+    const signInAfterSignup = async () => {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) return { session: null, error: signInError };
+      return { session: data.session, error: null };
+    };
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
+      options: redirectUrl ? { emailRedirectTo: redirectUrl } : undefined,
     });
 
     if (error) {
-      if (!isUserAlreadyRegistered(error)) {
+      const shouldTrySignIn =
+        isUserAlreadyRegistered(error) || isEmailRateLimited(error);
+
+      if (shouldTrySignIn) {
+        const { session, error: signInError } = await signInAfterSignup();
+        if (session) {
+          if (!silent) {
+            toast({
+              title: "Angemeldet",
+              description: "Du kannst jetzt fortfahren.",
+            });
+          }
+          return { error: null };
+        }
+        if (signInError && !silent && !isEmailNotConfirmed(signInError)) {
+          toast({
+            title: "Registrierung fehlgeschlagen",
+            description: signInError.message,
+            variant: "destructive",
+          });
+        }
+        return { error: signInError ?? error };
+      }
+
+      if (!silent && !isUserAlreadyRegistered(error)) {
         toast({
           title: "Registrierung fehlgeschlagen",
           description: error.message,
@@ -295,15 +330,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (!data.session) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        if (!isEmailNotConfirmed(signInError) && !isUserAlreadyRegistered(signInError)) {
+      const { session, error: signInError } = await signInAfterSignup();
+      if (!session) {
+        if (
+          !silent &&
+          signInError &&
+          !isEmailNotConfirmed(signInError) &&
+          !isUserAlreadyRegistered(signInError)
+        ) {
           toast({
-            title: "Registrierung erfolgreich",
-            description: "Bitte melde dich jetzt an.",
+            title: "Registrierung fehlgeschlagen",
+            description: signInError.message,
             variant: "destructive",
           });
         }
@@ -311,10 +348,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    toast({
-      title: "Registrierung erfolgreich!",
-      description: "Du kannst jetzt fortfahren.",
-    });
+    if (!silent) {
+      toast({
+        title: "Registrierung erfolgreich!",
+        description: "Du kannst jetzt fortfahren.",
+      });
+    }
 
     return { error: null };
   };

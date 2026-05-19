@@ -44,14 +44,36 @@ async function registerWebServiceWorker(): Promise<void> {
   }
 }
 
+export type NotificationPermissionOptions = {
+  /** Onboarding: only ask for local reminders (Android POST_NOTIFICATIONS), skip push registration. */
+  localOnly?: boolean;
+};
+
+async function ensureAndroidReminderChannel(
+  LocalNotifications: typeof import("@capacitor/local-notifications").LocalNotifications,
+): Promise<void> {
+  if (Capacitor.getPlatform() !== "android") return;
+  try {
+    await LocalNotifications.createChannel({
+      id: "frigy_reminders",
+      name: "Frigy Erinnerungen",
+      description: "Wasser-, Mahlzeit- und Wiege-Erinnerungen",
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+    });
+  } catch {
+    /* channel may already exist */
+  }
+}
+
 /** Requests local + push permission on native; browser permission on web. */
-export async function requestNotificationPermission(): Promise<boolean> {
+export async function requestNotificationPermission(
+  options: NotificationPermissionOptions = {},
+): Promise<boolean> {
   if (isNativeApp()) {
     try {
-      const [{ LocalNotifications }, { PushNotifications }] = await Promise.all([
-        import("@capacitor/local-notifications"),
-        import("@capacitor/push-notifications"),
-      ]);
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
 
       let localGranted = (await LocalNotifications.checkPermissions()).display === "granted";
       if (!localGranted) {
@@ -59,21 +81,28 @@ export async function requestNotificationPermission(): Promise<boolean> {
         localGranted = localResult.display === "granted";
       }
 
-      try {
-        let pushGranted = (await PushNotifications.checkPermissions()).receive === "granted";
-        if (!pushGranted) {
-          const pushResult = await PushNotifications.requestPermissions();
-          pushGranted = pushResult.receive === "granted";
-        }
-        if (pushGranted) {
-          await PushNotifications.register();
-        }
-      } catch (error) {
-        console.warn("[notifications] Push registration skipped:", error);
-      }
-
       if (localGranted) {
-        await syncRemindersFromStorage();
+        await ensureAndroidReminderChannel(LocalNotifications);
+        if (!options.localOnly) {
+          try {
+            const { PushNotifications } = await import("@capacitor/push-notifications");
+            let pushGranted = (await PushNotifications.checkPermissions()).receive === "granted";
+            if (!pushGranted) {
+              const pushResult = await PushNotifications.requestPermissions();
+              pushGranted = pushResult.receive === "granted";
+            }
+            if (pushGranted) {
+              await PushNotifications.register();
+            }
+          } catch (error) {
+            console.warn("[notifications] Push registration skipped:", error);
+          }
+        }
+        try {
+          await syncRemindersFromStorage();
+        } catch (error) {
+          console.warn("[notifications] Reminder sync skipped:", error);
+        }
       }
       return localGranted;
     } catch (error) {
@@ -224,6 +253,7 @@ export async function sendTestNotification(): Promise<void> {
 
   if (isNativeApp()) {
     const { LocalNotifications } = await import("@capacitor/local-notifications");
+    await ensureAndroidReminderChannel(LocalNotifications);
     await LocalNotifications.schedule({
       notifications: [
         {

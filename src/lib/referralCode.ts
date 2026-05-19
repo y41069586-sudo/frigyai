@@ -1,6 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "frigy_referral_code";
+/** Valid referral entered during onboarding → skip paywall after signup */
+export const REFERRAL_SKIP_PAYWALL_KEY = "frigy_referral_skip_paywall";
+
+export function markReferralSkipPaywall(): void {
+  localStorage.setItem(REFERRAL_SKIP_PAYWALL_KEY, "1");
+}
+
+export function consumeReferralSkipPaywall(): boolean {
+  const skip = localStorage.getItem(REFERRAL_SKIP_PAYWALL_KEY) === "1";
+  if (skip) localStorage.removeItem(REFERRAL_SKIP_PAYWALL_KEY);
+  return skip;
+}
 
 export function getPendingReferralCode(): string | null {
   const value = localStorage.getItem(STORAGE_KEY)?.trim().toUpperCase();

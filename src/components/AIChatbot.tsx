@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useDragControls, type PanInfo } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +54,6 @@ export const AIChatbot = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const dragControls = useDragControls();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: isMobile ? 'auto' : 'smooth' });
@@ -63,12 +62,6 @@ export const AIChatbot = ({
   // Use external state if provided, otherwise use local state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
   const setIsOpen = externalSetIsOpen || setLocalIsOpen;
-
-  const handleSheetDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.y > 56 || info.velocity.y > 450) {
-      setIsOpen(false);
-    }
-  };
 
   const processActions = (response: string): string => {
     let processedResponse = response;
@@ -221,32 +214,18 @@ export const AIChatbot = ({
               exit={{ opacity: 0 }}
               transition={{ duration: isMobile ? 0.12 : 0.2 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-50 bg-black/20 sm:backdrop-blur-[2px]"
+              className="fixed inset-0 z-50 bg-black/45"
             />
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={isMobile ? { duration: 0.18, ease: [0.22, 1, 0.36, 1] } : { type: "spring", stiffness: 260, damping: 30, mass: 1.05 }}
-              drag="y"
-              dragControls={dragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.45 }}
-              onDragEnd={handleSheetDragEnd}
-              className="fixed inset-x-0 bottom-0 z-[51] flex h-[92dvh] flex-col px-3 pb-3 gpu-smooth md:inset-x-auto md:right-4 md:w-[28rem]"
+              initial={{ opacity: 0, y: 28, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 48, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed z-[51] flex flex-col gpu-smooth left-3 right-3 md:left-auto md:right-4 md:w-[28rem] top-[max(4.75rem,env(safe-area-inset-top,0px)+3.25rem)] bottom-[max(5.25rem,env(safe-area-inset-bottom,0px)+4.75rem)]"
             >
-            <Card className="flex h-full flex-col overflow-hidden rounded-t-[2rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_-18px_42px_-30px_rgba(15,23,42,0.5)] sm:shadow-[0_-24px_70px_-34px_rgba(15,23,42,0.55)] sm:backdrop-blur-xl md:rounded-[2rem]">
-              <button
-                type="button"
-                aria-label="KI-Chat nach unten ziehen zum Schließen"
-                onPointerDown={(e) => dragControls.start(e)}
-                className="mx-auto mt-2 flex h-10 w-28 cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing"
-              >
-                <span className="h-1.5 w-16 rounded-full bg-slate-300/90" />
-              </button>
+            <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]">
               {/* Header */}
-              <div className="p-4 pt-3 border-b border-emerald-200/40 flex items-center justify-between bg-gradient-to-r from-emerald-100/60 to-green-50/40">
+              <div className="flex shrink-0 items-center justify-between border-b border-emerald-200/40 bg-gradient-to-r from-emerald-100/60 to-green-50/40 p-4">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-full bg-emerald-200/50">
                     <Sparkles className="h-5 w-5 text-emerald-600" />

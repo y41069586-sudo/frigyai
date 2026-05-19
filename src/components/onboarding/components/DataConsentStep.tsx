@@ -82,7 +82,7 @@ export function DataConsentStep({ onBack, onNext }: DataConsentStepProps) {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-full text-[28px] font-black uppercase leading-[1.12] tracking-[-0.035em] min-[360px]:text-[30px] min-[390px]:text-[32px]"
+          className="max-w-full text-[26px] font-black uppercase leading-[1.12] tracking-[-0.035em] min-[360px]:text-[30px] min-[390px]:text-[34px]"
           style={{ color: PALETTE.text, WebkitTextSizeAdjust: "100%" }}
         >
           {t.title}
@@ -105,7 +105,7 @@ export function DataConsentStep({ onBack, onNext }: DataConsentStepProps) {
                 <Check className="h-5 w-5 text-white" strokeWidth={4} />
               </div>
               <p
-                className="pt-0.5 text-[16px] font-semibold leading-relaxed tracking-[-0.02em] min-[390px]:text-[17px]"
+                className="pt-0.5 text-[17px] font-semibold leading-relaxed tracking-[-0.02em] min-[390px]:text-[18px]"
                 style={{
                   color: index === 0 ? PALETTE.text : PALETTE.muted,
                   WebkitTextSizeAdjust: "100%",

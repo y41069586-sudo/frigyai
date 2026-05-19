@@ -52,7 +52,14 @@ import { HealthConnectStep } from "./onboarding/components/HealthConnectStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
 import { FIRST_WEEKLY_PLAN_DONE_KEY } from "@/lib/frigyStorageSync";
-import { resolveAuthErrorMessage } from "@/lib/authErrors";
+import {
+  isEmailRateLimited,
+  isUserAlreadyRegistered,
+  resolveAuthErrorMessage,
+} from "@/lib/authErrors";
+import { consumeReferralSkipPaywall } from "@/lib/referralCode";
+import { supabase } from "@/integrations/supabase/client";
+import { MINT_STEP_HEADER_PT } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
@@ -269,7 +276,7 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
   
   useEffect(() => {
     const loadTimer = setTimeout(() => setStatus('loading'), delay);
-    const doneTimer = setTimeout(() => setStatus('done'), delay + 600);
+    const doneTimer = setTimeout(() => setStatus('done'), delay + 720);
     return () => { clearTimeout(loadTimer); clearTimeout(doneTimer); };
   }, [delay]);
   
@@ -282,9 +289,9 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
             ? 'bg-muted/50 border border-border'
             : 'bg-transparent border border-transparent'
       }`}
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay / 1000, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: delay / 1000, duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="w-6 h-6 flex items-center justify-center">
         {status === 'waiting' && <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
@@ -297,21 +304,18 @@ const AnalysisStep = ({ text, delay }: { text: string; delay: number }) => {
         )}
         {status === 'done' && (
           <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 420, damping: 22 }}
             className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
           >
-            <Check className="w-4 h-4 text-primary-foreground" />
+            <Check className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
           </motion.div>
         )}
       </div>
       <span className={`text-sm transition-colors ${status === 'done' ? 'text-primary font-medium' : 'text-muted-foreground/60'}`}>
         {text}
       </span>
-      {status === 'done' && (
-        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-auto text-xs text-primary">✓</motion.span>
-      )}
     </motion.div>
   );
 };
@@ -542,6 +546,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     finishOnboardingExit();
   };
 
+  const goAfterSignup = () => {
+    saveOnboardingAfterSignup(userData);
+    if (consumeReferralSkipPaywall()) {
+      finishOnboardingExit();
+    } else {
+      goToPaywall();
+    }
+  };
+
   const goNext = () => {
     // Check if user can proceed from current step before allowing navigation
     if (!canProceed()) {
@@ -618,8 +631,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
 
     if (currentStep === "macro-preview") {
+      setAuthMode("signup");
       if (user) {
-        goToPaywall();
+        finishOnboardingExit();
       } else {
         setCurrentStep("save-progress");
       }
@@ -3352,30 +3366,38 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
           setIsAuthLoading(true);
           try {
-            if (authMode === 'signup') {
-              const redirectTo = `${window.location.origin}/?onboardingStep=paywall`;
-              const { error } = await signUp(authEmail, authPassword, { emailRedirectTo: redirectTo });
+            if (authMode === "signup") {
+              const { error } = await signUp(authEmail, authPassword, { silent: true });
               if (error) {
                 const resolved = resolveAuthErrorMessage(error, language, "signup");
                 if (resolved) {
                   toast({
-                    title:
-                      resolved.variant === "info"
-                        ? t.onboardingSuccessfullyRegistered
-                        : t.onboardingRegistrationFailed,
+                    title: t.onboardingRegistrationFailed,
                     description: resolved.message,
                     variant: resolved.variant === "info" ? "default" : "destructive",
                   });
-                  if (resolved.switchToLogin) setAuthMode("login");
+                  if (
+                    resolved.switchToLogin &&
+                    (isUserAlreadyRegistered(error) || isEmailRateLimited(error))
+                  ) {
+                    setAuthMode("login");
+                  }
                 }
-              } else {
-                toast({
-                  title: t.onboardingSuccessfullyRegistered,
-                  description: t.onboardingProgressSavedMsg,
-                });
-                saveOnboardingAfterSignup(userData);
-                goToPaywall();
+                return;
               }
+
+              const { data: { session: newSession } } = await supabase.auth.getSession();
+              if (!newSession) {
+                toast({
+                  title: t.onboardingRegistrationFailed,
+                  description: t.onboardingPleaseLoginToProceed,
+                  variant: "destructive",
+                });
+                setAuthMode("login");
+                return;
+              }
+
+              goAfterSignup();
             } else {
               const { error } = await signIn(authEmail, authPassword);
               if (error) {
@@ -3385,15 +3407,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   description: resolved?.message ?? error.message,
                   variant: resolved?.variant === "info" ? "default" : "destructive",
                 });
-                if (resolved?.switchToLogin) setAuthMode("login");
-              } else {
-                toast({
-                  title: t.onboardingWelcomeBack,
-                  description: t.onboardingProgressLoaded,
-                });
-                saveOnboardingData(userData);
-                goToPaywall();
+                return;
               }
+              saveOnboardingData(userData, { markOnboardingComplete: true, writeInitialMealPlan: true });
+              localStorage.setItem(FIRST_WEEKLY_PLAN_DONE_KEY, "1");
+              onComplete();
             }
           } finally {
             setIsAuthLoading(false);
@@ -3402,29 +3420,35 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         
         return (
           <StepCard step="save-progress">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              {/* Header icon */}
+            <motion.div
+              className="flex h-full min-h-0 w-full flex-col overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-lg"
+                className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4"
+                style={{ paddingTop: MINT_STEP_HEADER_PT }}
               >
-                <Save className="w-8 h-8 text-primary-foreground" />
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.35, type: "spring", stiffness: 220 }}
+                className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-lg"
+              >
+                <Save className="h-7 w-7 text-primary-foreground" />
               </motion.div>
-              
-              <motion.h1 
-                className="text-2xl font-bold mb-2"
-                initial={{ opacity: 0, y: 10 }}
+
+              <motion.h1
+                className="text-center text-[22px] font-bold leading-tight tracking-tight min-[390px]:text-2xl"
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
+                transition={{ delay: 0.05, duration: 0.3 }}
               >
                 {t.saveYourProgress}
               </motion.h1>
 
-              {/* Auth form */}
-              <motion.div 
-                className="mt-8 w-full max-w-sm space-y-4"
+              <motion.div
+                className="mx-auto mt-7 w-full max-w-sm space-y-3.5"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
@@ -3485,38 +3509,27 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   )}
                 </Button>
                 
-                {/* Toggle auth mode */}
-                <motion.button
-                  onClick={() => setAuthMode(authMode === 'signup' ? 'login' : 'signup')}
-                  className="text-sm text-muted-foreground/60 hover:text-primary transition-colors"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                >
-                  {authMode === 'signup' 
-                    ? t.alreadyRegisteredSignIn
-                    : t.noAccountRegister}
-                </motion.button>
-
-                {user && (
-                  <Button
+                {authMode === "signup" ? (
+                  <motion.button
                     type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      saveOnboardingData(userData);
-                      goToPaywall();
-                    }}
-                    className="w-full h-12 rounded-xl"
+                    onClick={() => setAuthMode("login")}
+                    className="w-full pt-1 text-sm text-muted-foreground/70 transition-colors hover:text-primary"
                   >
-                    {t.next}
-                    <ChevronRight className="w-5 h-5 ml-2" />
-                  </Button>
+                    {t.alreadyRegisteredSignIn}
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    type="button"
+                    onClick={() => setAuthMode("signup")}
+                    className="w-full pt-1 text-sm text-muted-foreground/70 transition-colors hover:text-primary"
+                  >
+                    {t.noAccountRegister}
+                  </motion.button>
                 )}
               </motion.div>
-              
-              {/* Benefits reminder */}
-              <motion.div 
-                className="mt-6 w-full max-w-sm p-4 rounded-xl bg-primary/5 border border-primary/20"
+
+              <motion.div
+                className="mx-auto mt-5 w-full max-w-sm rounded-xl border border-primary/20 bg-primary/5 p-4"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
@@ -3540,22 +3553,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   </li>
                 </ul>
               </motion.div>
-              
-              {/* Skip option for already logged in users */}
-              {user && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.3 }}
-                  className="mt-4"
-                >
-                  <Button variant="ghost" onClick={goToPaywall} className="text-muted-foreground/60">
-                    {t.alreadyLoggedInContinue}
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </motion.div>
-              )}
-            </div>
+              </motion.div>
+            </motion.div>
           </StepCard>
         );
 

@@ -67,31 +67,30 @@ export const NotificationPrefsStep = ({ userData, setUserData, goNext, goBack }:
     });
   };
 
-  const showSettingsHint = () => {
-    window.alert(t.settingsHint);
-  };
-
   const enableNotifications = async () => {
+    const prefs = { meals: true, water: true, weight: true };
+    setUserData({
+      ...userData,
+      notificationPrefs: prefs,
+    });
+
     try {
-      const granted = await requestNotificationPermission();
-      const prefs = { meals: true, water: true, weight: true };
-      setUserData({
-        ...userData,
-        notificationPrefs: prefs,
-      });
+      const granted = await requestNotificationPermission({ localOnly: true });
       if (granted) {
         saveReminderConfigFromOnboarding(prefs);
-        await sendTestNotification();
+        try {
+          await sendTestNotification();
+        } catch {
+          /* test ping is optional */
+        }
       } else {
-        showSettingsHint();
         setAllNotifications(false);
-        goNext();
-        return;
       }
-    } catch {
-      showSettingsHint();
+    } catch (error) {
+      console.warn("[onboarding] notification permission failed:", error);
       setAllNotifications(false);
     }
+
     goNext();
   };
 
