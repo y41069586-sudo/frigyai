@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Home,
   Calendar,
@@ -8,8 +10,8 @@ import {
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { motion } from "framer-motion";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
@@ -33,7 +35,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const [mounted, setMounted] = useState(false);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const pathname = location.pathname;
   const tab = searchParams.get("tab") || "meals";
@@ -60,8 +67,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     navigate("/?logMeal=1", { replace: isHome });
   };
 
-  return (
-    <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 safe-bottom">
+  const bar = (
+    <nav
+      aria-label="Hauptnavigation"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex justify-center px-5 safe-bottom"
+    >
       <div
         className={cn(
           "pointer-events-auto flex w-full max-w-sm items-center gap-1 overflow-visible rounded-full border border-white/70 bg-white/95 px-2 py-1.5 pr-1",
@@ -81,9 +91,13 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
             >
               {active && (
                 <motion.div
-                  layoutId="bottom-nav-active-pill"
+                  layoutId={isMobile ? undefined : "bottom-nav-active-pill"}
                   className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
-                  transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.85 }}
+                  transition={
+                    isMobile
+                      ? { duration: 0.16, ease: [0.22, 1, 0.36, 1] }
+                      : { type: "spring", stiffness: 380, damping: 32, mass: 0.85 }
+                  }
                 />
               )}
               <Icon
@@ -121,4 +135,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       </div>
     </nav>
   );
+
+  if (!mounted) return null;
+  return createPortal(bar, document.body);
 };

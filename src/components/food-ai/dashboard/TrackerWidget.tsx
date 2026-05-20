@@ -119,8 +119,8 @@ export function TrackerWidget({
                 className={cn(
                   "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/82 px-1.5 text-center shadow-[0_8px_20px_-18px_rgba(15,23,42,0.2)] transition-colors sm:bg-white/72 sm:backdrop-blur-xl sm:shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)]",
                   logged
-                    ? "border-slate-300/90 bg-primary/12 text-primary"
-                    : "border-slate-200/85 text-foreground hover:bg-primary/8",
+                    ? "border border-primary/30 bg-primary/12 text-primary"
+                    : "border border-neutral-200/90 text-foreground hover:bg-primary/8 dark:border-white/10",
                 )}
                 aria-label={`${slot.label} hinzufügen`}
               >

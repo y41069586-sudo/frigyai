@@ -262,15 +262,15 @@ export function MintWheelColumn({
 
   const idleFontPx = compactLabels
     ? rowHeight <= WHEEL_ROW_COMPACT
-      ? 12
-      : 13
+      ? 14
+      : 15
     : rowHeight <= WHEEL_ROW_COMPACT
       ? 14
       : 17;
   const selectedFontPx = compactLabels
     ? rowHeight <= WHEEL_ROW_COMPACT
-      ? 14
-      : 15
+      ? 17
+      : 18
     : rowHeight <= WHEEL_ROW_COMPACT
       ? 18
       : 22;
@@ -291,8 +291,7 @@ export function MintWheelColumn({
           overscrollBehavior: "contain",
           WebkitUserSelect: "none",
           userSelect: "none",
-          willChange: "scroll-position",
-          transform: "translateZ(0)",
+          willChange: isDragging ? "scroll-position" : undefined,
           touchAction: "pan-y",
         }}
         onScroll={handleScroll}
@@ -328,7 +327,7 @@ export function MintWheelColumn({
                 transition: isDragging
                   ? "none"
                   : "transform 120ms ease-out, color 120ms, opacity 120ms",
-                willChange: "transform, opacity",
+                willChange: isDragging ? "transform, opacity" : undefined,
                 WebkitTapHighlightColor: "transparent",
               }}
             >

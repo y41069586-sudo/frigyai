@@ -5,6 +5,7 @@ import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintTextHighlight } from "./MintTextHighlight";
 
 type Props = {
   userData: UserData;
@@ -238,19 +239,25 @@ export function ShoppingListStep({
 
   const L = {
     de: {
-      title: "Einkaufsliste generieren",
+      titleBefore: "",
+      titleHighlight: "Einkaufsliste",
+      titleAfter: " generieren",
       subtitle: "Nur die Zutaten, die dir noch fehlen.",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
-      title: "Generate your shopping list",
+      titleBefore: "Generate your ",
+      titleHighlight: "shopping list",
+      titleAfter: "",
       subtitle: "Only the ingredients you're still missing.",
       next: "Next",
       back: "Back",
     },
     fr: {
-      title: "Générer ta liste de courses",
+      titleBefore: "Générer ta ",
+      titleHighlight: "liste de courses",
+      titleAfter: "",
       subtitle: "Seulement ce qu'il te manque encore.",
       next: "Suivant",
       back: "Retour",
@@ -290,7 +297,9 @@ export function ShoppingListStep({
           className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.title}
+          {t.titleBefore}
+          <MintTextHighlight>{t.titleHighlight}</MintTextHighlight>
+          {t.titleAfter}
         </h1>
       </OnboardingMascotQuestion>
 

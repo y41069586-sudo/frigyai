@@ -1,5 +1,7 @@
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { getPageTransition } from "@/lib/motionPresets";
 import { Toaster } from "@/components/ui/toaster";
 // Force rebuild to clear Vite cache
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -15,12 +17,9 @@ import { PageLoader } from "@/components/PageLoader";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithReload } from "@/lib/lazyWithReload";
-import {
-  isMainNavRoute,
-  mainNavPageTransition,
-  defaultPageTransition,
-} from "@/lib/routeTransitions";
+import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
+import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
 import MealPlansPage from "./pages/MealPlansPage";
 // Lazy load all pages for better performance
 const Index = lazyWithReload(() => import("./pages/Index"));
@@ -60,9 +59,11 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   const location = useLocation();
-  const pageTransition = isMainNavRoute(location.pathname)
-    ? mainNavPageTransition
-    : defaultPageTransition;
+  const isMobile = useIsMobile();
+  const pageTransition = useMemo(
+    () => getPageTransition(isMobile, isMainNavRoute(location.pathname)),
+    [isMobile, location.pathname],
+  );
 
   return (
     <>
@@ -75,7 +76,7 @@ const AppContent = () => {
             animate={pageTransition.animate}
             exit={pageTransition.exit}
             transition={pageTransition.transition}
-            className="min-h-screen gpu-smooth"
+            className="min-h-screen"
           >
             <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
@@ -124,6 +125,7 @@ const App = () => {
               <BrowserRouter>
                 <AuthProvider>
                   <MealPlanProvider>
+                    <AppDeepLinkListener />
                     <NotificationBootstrap />
                     <AppContent />
                   </MealPlanProvider>

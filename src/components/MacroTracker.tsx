@@ -1248,7 +1248,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         }}
       />
 
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="wait">
         {logMealPanelOpen && (
           <TrackerAddMealPanel
             key="tracker-add-meal-panel"
@@ -1278,7 +1278,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[65] flex items-center justify-center bg-black/90"
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
           >
             <div className="relative h-full w-full overflow-hidden">
               <img

@@ -5,6 +5,7 @@ import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintTextHighlight } from "./MintTextHighlight";
 
 type Props = {
   userData: UserData;
@@ -100,21 +101,24 @@ export function FridgeScanStep({
 
   const L = {
     de: {
-      title: "Scanne deinen Kühlschrank",
+      titleBefore: "Scanne deinen ",
+      titleHighlight: "Kühlschrank",
       subtitle:
         "Entdecke sofort, welche Zutaten du bereits hast und was dir für deinen Plan noch fehlt.",
       cta: "Weiter",
       back: "Zurück",
     },
     en: {
-      title: "Scan your fridge",
+      titleBefore: "Scan your ",
+      titleHighlight: "fridge",
       subtitle:
         "Instantly see which ingredients you already have and what's missing for your plan.",
       cta: "Next",
       back: "Back",
     },
     fr: {
-      title: "Scanne ton frigo",
+      titleBefore: "Scanne ton ",
+      titleHighlight: "frigo",
       subtitle:
         "Découvre tout de suite ce que tu as déjà et ce qu'il te manque pour ton plan.",
       cta: "Suivant",
@@ -155,7 +159,8 @@ export function FridgeScanStep({
           className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.title}
+          {t.titleBefore}
+          <MintTextHighlight>{t.titleHighlight}</MintTextHighlight>
         </h1>
       </OnboardingMascotQuestion>
 

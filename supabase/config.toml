@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.manage-referral-codes]
 verify_jwt = false
+
+[functions.register-user]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

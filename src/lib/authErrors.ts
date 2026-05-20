@@ -1,4 +1,5 @@
 import type { Language } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const MESSAGES: Record<
   Language,
@@ -67,6 +68,17 @@ export function isEmailRateLimited(error: { message?: string; code?: string } | 
   );
 }
 
+/** Wait for Supabase session after signUp (auth listener / delayed session). */
+export async function waitForAuthSession(maxMs = 2800): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return true;
+    await new Promise((resolve) => setTimeout(resolve, 160));
+  }
+  return false;
+}
+
 export function resolveAuthErrorMessage(
   error: { message?: string } | null | undefined,
   language: Language,
@@ -86,6 +98,7 @@ export function resolveAuthErrorMessage(
   }
 
   if (isEmailNotConfirmed(error)) {
+    if (mode === "signup") return null;
     return { message: t.emailNotConfirmed, switchToLogin: true, variant: "info" };
   }
 

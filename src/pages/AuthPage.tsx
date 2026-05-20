@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
-import { resolveAuthErrorMessage } from '@/lib/authErrors';
+import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
 
 const AuthPage = () => {
   const { t, language } = useLanguage();
@@ -60,7 +60,7 @@ const AuthPage = () => {
         navigate('/', { replace: true });
         return;
       }
-      navigate('/?onboardingStep=macro-preview', { replace: true });
+      navigate('/?onboardingStep=paywall', { replace: true });
       return;
     }
 
@@ -88,7 +88,7 @@ const AuthPage = () => {
         } else {
           // Coming from onboarding or premium-pricing: go to paywall
           if (isFromOnboarding || isFromPremiumPricing) {
-            navigate('/?onboardingStep=macro-preview', { replace: true });
+            navigate('/?onboardingStep=paywall', { replace: true });
             return;
           }
 
@@ -102,9 +102,8 @@ const AuthPage = () => {
         }
       } else {
         const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;
-        const redirectTo = `${window.location.origin}/premium-pricing`;
 
-        const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
+        const { error } = await signUp(email, password, { silent: true });
         if (error) {
           const resolved = resolveAuthErrorMessage(error, language, 'signup');
           if (resolved) {
@@ -117,10 +116,16 @@ const AuthPage = () => {
           } else {
             setError(error.message || 'Registrierung fehlgeschlagen');
           }
+        } else if (!(await waitForAuthSession(3000))) {
+          setError(
+            language === 'de'
+              ? 'Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.'
+              : 'Could not complete sign-in. Please try again.',
+          );
         } else if (shouldGoToPricing) {
-          navigate('/?onboardingStep=macro-preview', { replace: true });
+          navigate('/?onboardingStep=paywall', { replace: true });
         } else {
-          navigate('/', { replace: true });
+          navigate('/premium-pricing', { replace: true });
         }
       }
     } finally {

@@ -7,8 +7,8 @@ import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
 export type PaywallBillingPlan = "monthly" | "yearly";
 
 export const STRIPE_PAYMENT_LINKS: Record<PaywallBillingPlan, string> = {
-  monthly: "https://buy.stripe.com/aFa6oH2Lu4JhdcudLx87K03",
-  yearly: "https://buy.stripe.com/8x29AT99S3Fd3BUePB87K02",
+  monthly: "https://buy.stripe.com/fZu7sLeuccbJ5K2dLx87K08",
+  yearly: "https://buy.stripe.com/28EaEXeucejR6O60YL87K07",
 };
 
 type OnboardingPaywallStepProps = {
@@ -156,19 +156,16 @@ export function OnboardingPaywallStep({
       icon: Lock,
       title: t.trialToday,
       desc: t.trialTodayDesc,
-      active: true,
     },
     {
       icon: Bell,
       title: t.trialReminder,
       desc: t.trialReminderDesc,
-      active: true,
     },
     {
       icon: Crown,
       title: t.trialBilling,
       desc: `${t.trialBillingPrefix} ${billingDate}${t.trialBillingSuffix}`,
-      active: false,
     },
   ];
 
@@ -233,9 +230,7 @@ export function OnboardingPaywallStep({
                         <div
                           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
                           style={{
-                            background: step.active
-                              ? `linear-gradient(135deg, ${ONBOARDING_PALETTE.primary}, ${ONBOARDING_PALETTE.primaryDark})`
-                              : "#111827",
+                            background: `linear-gradient(135deg, ${ONBOARDING_PALETTE.primary}, ${ONBOARDING_PALETTE.primaryDark})`,
                           }}
                         >
                           <Icon className="h-[15px] w-[15px] text-white" strokeWidth={2.2} />
@@ -244,9 +239,7 @@ export function OnboardingPaywallStep({
                           <div
                             className="my-0.5 w-0.5 min-h-[2rem] flex-1"
                             style={{
-                              background: step.active
-                                ? `linear-gradient(180deg, ${ONBOARDING_PALETTE.primaryDark}, ${ONBOARDING_PALETTE.cardBorderIdle})`
-                                : ONBOARDING_PALETTE.cardBorderIdle,
+                              background: `linear-gradient(180deg, ${ONBOARDING_PALETTE.primaryDark}, ${ONBOARDING_PALETTE.cardBorderIdle})`,
                             }}
                           />
                         )}

@@ -8,6 +8,7 @@ import {
   isEmailRateLimited,
   isUserAlreadyRegistered,
 } from '@/lib/authErrors';
+import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -28,10 +29,14 @@ interface AuthContextType {
     password: string,
     options?: { emailRedirectTo?: string; silent?: boolean }
   ) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (
+    email: string,
+    password: string,
+    options?: { silent?: boolean },
+  ) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  checkSubscription: () => Promise<void>;
+  checkSubscription: () => Promise<SubscriptionStatus | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,8 +147,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const checkSubscription = async () => {
-    if (!session) return;
+  const checkSubscription = async (): Promise<SubscriptionStatus | null> => {
+    if (!session) return null;
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription', {
@@ -153,9 +158,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) throw error;
-      updateSubscriptionStatus(data);
+      const status = (data ?? null) as SubscriptionStatus | null;
+      updateSubscriptionStatus(status);
+      return status;
     } catch (error) {
       console.error('Error checking subscription:', error);
+      return null;
     }
   };
 
@@ -277,21 +285,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     options?: { emailRedirectTo?: string; silent?: boolean }
   ) => {
     const silent = options?.silent === true;
-    const redirectUrl = options?.emailRedirectTo;
+    const normalizedEmail = email.trim().toLowerCase();
 
     const signInAfterSignup = async () => {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
       if (signInError) return { session: null, error: signInError };
       return { session: data.session, error: null };
     };
 
+    const finishWithSession = async () => {
+      const { session, error: signInError } = await signInAfterSignup();
+      if (session) {
+        if (!silent) {
+          toast({
+            title: "Registrierung erfolgreich!",
+            description: "Du kannst jetzt fortfahren.",
+          });
+        }
+        return { error: null };
+      }
+      if (!silent && signInError) {
+        toast({
+          title: "Registrierung fehlgeschlagen",
+          description: signInError.message,
+          variant: "destructive",
+        });
+      }
+      return { error: signInError };
+    };
+
+    const registered = await registerUserWithoutEmailConfirm(normalizedEmail, password);
+    if (registered.ok) {
+      return finishWithSession();
+    }
+
+    if (registered.alreadyRegistered) {
+      const result = await finishWithSession();
+      if (!result.error) return result;
+      return {
+        error: { message: "User already registered" },
+      };
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
-      options: redirectUrl ? { emailRedirectTo: redirectUrl } : undefined,
     });
 
     if (error) {
@@ -299,72 +340,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isUserAlreadyRegistered(error) || isEmailRateLimited(error);
 
       if (shouldTrySignIn) {
-        const { session, error: signInError } = await signInAfterSignup();
-        if (session) {
-          if (!silent) {
-            toast({
-              title: "Angemeldet",
-              description: "Du kannst jetzt fortfahren.",
-            });
-          }
-          return { error: null };
-        }
-        if (signInError && !silent && !isEmailNotConfirmed(signInError)) {
-          toast({
-            title: "Registrierung fehlgeschlagen",
-            description: signInError.message,
-            variant: "destructive",
-          });
-        }
-        return { error: signInError ?? error };
+        return finishWithSession();
       }
 
       if (!silent && !isUserAlreadyRegistered(error)) {
         toast({
           title: "Registrierung fehlgeschlagen",
-          description: error.message,
+          description: registered.error || error.message,
           variant: "destructive",
         });
       }
-      return { error };
+      return { error: { message: registered.error || error.message } };
     }
 
-    if (!data.session) {
-      const { session, error: signInError } = await signInAfterSignup();
-      if (!session) {
-        if (
-          !silent &&
-          signInError &&
-          !isEmailNotConfirmed(signInError) &&
-          !isUserAlreadyRegistered(signInError)
-        ) {
-          toast({
-            title: "Registrierung fehlgeschlagen",
-            description: signInError.message,
-            variant: "destructive",
-          });
-        }
-        return { error: signInError };
+    if (data.session) {
+      if (!silent) {
+        toast({
+          title: "Registrierung erfolgreich!",
+          description: "Du kannst jetzt fortfahren.",
+        });
       }
+      return { error: null };
     }
 
-    if (!silent) {
-      toast({
-        title: "Registrierung erfolgreich!",
-        description: "Du kannst jetzt fortfahren.",
-      });
-    }
-
-    return { error: null };
+    return finishWithSession();
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (
+    email: string,
+    password: string,
+    options?: { silent?: boolean },
+  ) => {
+    const silent = options?.silent === true;
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error && !isEmailNotConfirmed(error)) {
+    if (error && !silent && !isEmailNotConfirmed(error)) {
       toast({
         title: "Login fehlgeschlagen",
         description: error.message,
@@ -416,8 +429,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // Free-mode gating is disabled: app features should stay available without transient locks.
-  const isPremium = true;
+  const isPremium = Boolean(subscriptionStatus?.subscribed);
 
   return (
     <AuthContext.Provider

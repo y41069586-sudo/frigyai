@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
@@ -21,7 +21,7 @@ const BIRTH_WHEEL_ROW = 44;
 
 
 const MONTHS_DE = [
-  "Januar", "Februar", "MÃ¤rz", "April", "Mai", "Juni",
+  "Januar", "Februar", "März", "April", "Mai", "Juni",
   "Juli", "August", "September", "Oktober", "November", "Dezember",
 ];
 const MONTHS_EN = [
@@ -29,8 +29,8 @@ const MONTHS_EN = [
   "July", "August", "September", "October", "November", "December",
 ];
 const MONTHS_FR = [
-  "Janvier", "FÃ©vrier", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "AoÃ»t", "Septembre", "Octobre", "Novembre", "DÃ©cembre",
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 
 const daysInMonth = (month: number, year: number) =>
@@ -93,7 +93,7 @@ export function BirthdateSelectStep({
     language === "de"
       ? "Wann bist du geboren?"
       : language === "fr"
-        ? "Quand es-tu nÃ©(e) ?"
+        ? "Quand es-tu né(e) ?"
         : "When were you born?";
 
   const canProceed = true;
@@ -134,7 +134,7 @@ export function BirthdateSelectStep({
         </h1>
       </OnboardingMascotQuestion>
 
-      {/* Datumswheels â€” ohne weiÃŸe Kachel */}
+      {/* Datumswheels — ohne weiße Kachel */}
       <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -151,7 +151,7 @@ export function BirthdateSelectStep({
               boxShadow: "0 0 0 3px rgba(110, 240, 168,0.16)",
             }}
           />
-{/* Three columns â€” equal width and centered for consistent spacing */}
+{/* Three columns — equal width and centered for consistent spacing */}
           <div className="relative z-10 flex items-stretch">
             <MintWheelColumn
               options={monthOptions}
@@ -170,6 +170,7 @@ export function BirthdateSelectStep({
               align="center"
               width="33.3333%"
               rowHeight={BIRTH_WHEEL_ROW}
+              compactLabels
               ariaLabel="Tag"
             />
             <MintWheelColumn
@@ -179,6 +180,7 @@ export function BirthdateSelectStep({
               align="center"
               width="33.3333%"
               rowHeight={BIRTH_WHEEL_ROW}
+              compactLabels
               ariaLabel="Jahr"
             />
           </div>

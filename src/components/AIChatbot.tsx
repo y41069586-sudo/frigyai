@@ -10,6 +10,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  viewportPanelExit,
+  viewportPanelFrom,
+  viewportPanelTo,
+  viewportPanelTransition,
+} from '@/lib/motionPresets';
+import { cn } from '@/lib/utils';
 
 interface Message {
   id: string;
@@ -217,11 +224,14 @@ export const AIChatbot = ({
               className="fixed inset-0 z-50 bg-black/45"
             />
             <motion.div
-              initial={{ opacity: 0, y: 28, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 48, scale: 0.98 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed z-[51] flex flex-col gpu-smooth left-3 right-3 md:left-auto md:right-4 md:w-[28rem] top-[max(4.75rem,env(safe-area-inset-top,0px)+3.25rem)] bottom-[max(5.25rem,env(safe-area-inset-bottom,0px)+4.75rem)]"
+              initial={viewportPanelFrom(isMobile)}
+              animate={viewportPanelTo()}
+              exit={viewportPanelExit(isMobile)}
+              transition={viewportPanelTransition(isMobile)}
+              className={cn(
+                "fixed z-[51] flex flex-col left-3 right-3 md:left-auto md:right-4 md:w-[28rem] top-[max(4.75rem,env(safe-area-inset-top,0px)+3.25rem)] bottom-[max(5.25rem,env(safe-area-inset-bottom,0px)+4.75rem)]",
+                !isMobile && "gpu-smooth",
+              )}
             >
             <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]">
               {/* Header */}

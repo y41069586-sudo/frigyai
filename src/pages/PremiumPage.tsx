@@ -15,7 +15,7 @@ import frigLogo from '@/assets/frigy-mascot.png';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
@@ -448,10 +448,13 @@ const PremiumPage = () => {
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">
                   Frigy Premium
                 </h2>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <p className="text-3xl sm:text-4xl font-bold text-primary">ab 4,99€</p>
-                </div>
-                <p className="text-sm text-muted-foreground">{t.perMonth} (bei jährlicher Zahlung)</p>
+                <p className="text-sm text-muted-foreground">
+                  {language === "de"
+                    ? "Monatlich oder jährlich – Details beim Checkout"
+                    : language === "fr"
+                      ? "Mensuel ou annuel – détails au paiement"
+                      : "Monthly or yearly – see checkout for details"}
+                </p>
               </div>
 
               <div className="space-y-3 mb-6">
@@ -482,7 +485,11 @@ const PremiumPage = () => {
               </Button>
               
               <p className="text-xs text-center text-muted-foreground mt-3">
-                7 Tage kostenlos testen
+                {language === "de"
+                  ? "3 Tage kostenlos testen · jederzeit kündbar"
+                  : language === "fr"
+                    ? "3 jours gratuits · résiliable à tout moment"
+                    : "3-day free trial · cancel anytime"}
               </p>
             </div>
           )}

@@ -3,15 +3,12 @@ import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  OnboardingPaywallStep,
-  STRIPE_PAYMENT_LINKS,
-  type PaywallBillingPlan,
-} from "@/components/onboarding/components/OnboardingPaywallStep";
+import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
+import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
 
 const PremiumPricingPage = () => {
   const { language } = useLanguage();
-  const { session, subscriptionStatus } = useAuth();
+  const { session, subscriptionStatus, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get("preview") === "1" || searchParams.get("preview") === "true";
@@ -28,7 +25,8 @@ const PremiumPricingPage = () => {
       navigate("/?onboardingStep=save-progress", { replace: true });
       return;
     }
-    window.top!.location.href = STRIPE_PAYMENT_LINKS[plan];
+    markStripeCheckoutPending();
+    window.top!.location.href = buildStripePaymentUrl(plan, user?.email);
   };
 
   return (

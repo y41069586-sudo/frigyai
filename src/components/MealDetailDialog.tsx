@@ -15,6 +15,12 @@ import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  viewportPanelExit,
+  viewportPanelFrom,
+  viewportPanelTo,
+  viewportPanelTransition,
+} from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
 
 interface Ingredient {
@@ -42,8 +48,36 @@ interface MealDetailDialogProps {
   onMealLogged?: () => void;
 }
 
+const LOG_BTN_COPY = {
+  de: {
+    log: "Gegessen loggen",
+    logLong: "Als gegessen markieren",
+    logging: "Wird geloggt…",
+    done: "Gegessen!",
+    close: "Schließen",
+  },
+  en: {
+    log: "Log meal",
+    logLong: "Mark as eaten",
+    logging: "Logging…",
+    done: "Logged!",
+    close: "Close",
+  },
+  fr: {
+    log: "Noter repas",
+    logLong: "Marquer mangé",
+    logging: "Enregistrement…",
+    done: "Noté !",
+    close: "Fermer",
+  },
+} as const;
+
 export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: MealDetailDialogProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
+    ? (language as "de" | "en" | "fr")
+    : "de";
+  const btn = LOG_BTN_COPY[lng];
   const { addEntry } = useFoodEntries();
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -122,12 +156,13 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             role="dialog"
             aria-modal="true"
             aria-labelledby="meal-detail-title"
-            initial={{ opacity: 0, y: 32, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 48, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            initial={viewportPanelFrom(isMobile)}
+            animate={viewportPanelTo()}
+            exit={viewportPanelExit(isMobile)}
+            transition={viewportPanelTransition(isMobile)}
             className={cn(
-              "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)] gpu-smooth",
+              "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
+              !isMobile && "gpu-smooth",
               isMobile
                 ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5rem,env(safe-area-inset-bottom,0px)+4.5rem)] rounded-[1.75rem] border border-primary/15"
                 : "left-1/2 top-1/2 max-h-[88vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-primary/20",
@@ -252,35 +287,35 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               </section>
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 z-10 flex gap-2 border-t border-slate-200/80 bg-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-3 backdrop-blur-xl">
+            <div className="absolute inset-x-0 bottom-0 z-10 flex gap-2 border-t border-slate-200/80 bg-white/95 px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-3 backdrop-blur-xl sm:px-4">
               <Button
                 onClick={handleLogMeal}
                 disabled={isLogging || isLogged}
-                className="h-12 min-w-0 flex-1 rounded-2xl bg-primary px-3 text-xs font-bold hover:bg-primary/90 min-[380px]:text-sm"
+                className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-2xl bg-primary px-2 text-[11px] font-bold leading-tight hover:bg-primary/90 whitespace-normal sm:h-12 sm:px-3 sm:text-xs"
               >
                 {isLogged ? (
                   <>
-                    <Check className="mr-2 h-4 w-4" />
-                    {t.toastFoodLogged || "Gegessen!"}
+                    <Check className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                    <span className="truncate">{t.toastFoodLogged || btn.done}</span>
                   </>
                 ) : isLogging ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Wird geloggt...
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin sm:h-4 sm:w-4" aria-hidden />
+                    <span className="truncate">{btn.logging}</span>
                   </>
                 ) : (
                   <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Als gegessen markieren
+                    <Check className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                    <span className="truncate">{isMobile ? btn.log : btn.logLong}</span>
                   </>
                 )}
               </Button>
               <Button
                 onClick={() => onOpenChange(false)}
                 variant="outline"
-                className="h-12 w-24 shrink-0 rounded-2xl px-2 text-xs font-bold min-[380px]:w-28 min-[380px]:text-sm"
+                className="h-11 w-[4.75rem] shrink-0 rounded-2xl px-2 text-[11px] font-bold sm:h-12 sm:w-24 sm:text-xs"
               >
-                Schließen
+                {btn.close}
               </Button>
             </div>
           </motion.div>

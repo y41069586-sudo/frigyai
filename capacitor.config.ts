@@ -4,6 +4,8 @@ const config: CapacitorConfig = {
   appId: 'com.frigy.app',
   appName: 'Fridgie',
   webDir: 'dist',
+  /** Deep link scheme (also in ios/App/App/Info.plist + AndroidManifest) */
+  // Stripe redirect: frigy://callback?subscription=success
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],

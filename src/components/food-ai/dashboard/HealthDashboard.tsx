@@ -2,6 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFrigyStorageSnapshot } from "@/hooks/useFrigyStorageSnapshot";
 import { getWeekPlanPreviewFromStorage } from "@/lib/food-ai/dashboardMock";
+import { mealPlansUrlForToday } from "@/lib/food-ai/weeklyPlanWidgetData";
 import { WidgetContainer } from "./WidgetContainer";
 import { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 import { TrackerWidget } from "./TrackerWidget";
@@ -110,14 +111,14 @@ export function HealthDashboard({
           steps={stepsDemo}
           loggedMealTypes={loggedMealTypes}
           onAddMeal={(slot) => navigate(`/?logMeal=1&mealFocus=${slot}`)}
-          onOpenMealPlanner={() => navigate("/meal-plans?tab=meals")}
+          onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
           onOpenTracker={() => navigate("/?editMacros=1")}
         />
 
         <WeeklyPlanWidget
           delay={0.1}
           preview={weekPreview}
-          onOpenPlan={() => navigate("/meal-plans?tab=meals")}
+          onOpenPlan={() => navigate(mealPlansUrlForToday())}
         />
 
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 [content-visibility:auto] [contain-intrinsic-size:88px]">

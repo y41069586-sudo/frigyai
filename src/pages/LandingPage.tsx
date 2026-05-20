@@ -200,7 +200,7 @@ export const LandingPage = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Premium starten</h2>
-            <p className="text-muted-foreground">Teste Frigy 7 Tage gratis und nutze alle Funktionen</p>
+            <p className="text-muted-foreground">Premium-Funktionen für deine Ernährung und deinen Fortschritt</p>
           </motion.div>
 
           <div className="grid gap-8">
@@ -214,8 +214,7 @@ export const LandingPage = () => {
                 <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
                   Beliebt
                 </div>
-                <h3 className="text-xl font-bold mb-2">Premium</h3>
-                <p className="text-3xl font-bold mb-6">€4,99<span className="text-sm text-muted-foreground">/Monat</span></p>
+                <h3 className="text-xl font-bold mb-6">Premium</h3>
                 <ul className="space-y-3 mb-8">
                   {[
                     "Unbegrenzte Scans",
@@ -235,7 +234,7 @@ export const LandingPage = () => {
                 </ul>
                 <Button className="w-full" onClick={() => navigate('/auth')}>
                   <Zap className="mr-2 h-4 w-4" />
-                  1 Woche gratis testen
+                  Premium entdecken
                 </Button>
               </Card>
             </motion.div>

@@ -20,6 +20,14 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
+import { resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  tabPanelExit,
+  tabPanelFrom,
+  tabPanelTransition,
+} from '@/lib/motionPresets';
 interface UserProfile {
   age: number;
   weight: number;
@@ -105,6 +113,7 @@ const readJsonArray = (key: string): unknown[] => {
 };
 
 const MealPlansPage = () => {
+  const isMobile = useIsMobile();
   const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -189,6 +198,7 @@ const MealPlansPage = () => {
   }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
 
   const pendingMealPlanRefreshRef = useRef(false);
+  const scrolledToDayRef = useRef<string | null>(null);
 
   // Sync meal plan and shopping list from global context or localStorage
   useEffect(() => {
@@ -278,6 +288,34 @@ const MealPlansPage = () => {
       }
     })();
   }, [activeTab, generateMealPlan, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (activeTab !== 'meals' || mealPlan.length === 0) return;
+
+    const dayParam = searchParams.get('day');
+    const dayIndex =
+      dayParam !== null && dayParam !== ''
+        ? Number.parseInt(dayParam, 10)
+        : resolveTodayMealPlanDayIndex(mealPlan);
+
+    if (Number.isNaN(dayIndex) || dayIndex < 0 || dayIndex >= mealPlan.length) return;
+
+    const scrollKey = `${dayIndex}-${mealPlan.length}`;
+    if (scrolledToDayRef.current === scrollKey) return;
+
+    const scrollToDay = () => {
+      const el = document.getElementById(`meal-plan-day-${dayIndex}`);
+      if (!el) return false;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrolledToDayRef.current = scrollKey;
+      return true;
+    };
+
+    if (scrollToDay()) return;
+
+    const t = window.setTimeout(scrollToDay, 120);
+    return () => window.clearTimeout(t);
+  }, [activeTab, mealPlan, searchParams]);
 
   const openMealDetail = (meal: Meal) => {
     // Ensure meal has all required fields with safe defaults
@@ -448,10 +486,10 @@ const MealPlansPage = () => {
           {activeTab === 'reminders' && (
             <motion.div
               key="reminders"
-              initial={{ opacity: 0, y: 6 }}
+              initial={tabPanelFrom(isMobile)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+              exit={tabPanelExit(isMobile)}
+              transition={tabPanelTransition(isMobile)}
             >
               <div className="mb-6">
                 <h2 className="text-2xl font-bold neon-text mb-1">{t.reminderSettings}</h2>
@@ -464,10 +502,10 @@ const MealPlansPage = () => {
           {activeTab === 'meals' && (
             <motion.div
               key="meals"
-              initial={{ opacity: 0, y: 6 }}
+              initial={tabPanelFrom(isMobile)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+              exit={tabPanelExit(isMobile)}
+              transition={tabPanelTransition(isMobile)}
               className="relative"
             >
                 <div className="mb-4 sm:mb-6">
@@ -525,9 +563,24 @@ const MealPlansPage = () => {
                       </Button>
                     </Card>
                   )}
-                  {mealPlan.map((day) => (
-                    <div key={day.day}>
-                      <Card className="p-3 sm:p-4 bg-card/90 sm:bg-card/80 sm:backdrop-blur-lg border-primary/20 transition-colors">
+                  {mealPlan.map((day, dayIndex) => {
+                    const isFocusedDay =
+                      searchParams.get('day') !== null
+                        ? Number.parseInt(searchParams.get('day') ?? '', 10) === dayIndex
+                        : dayIndex === resolveTodayMealPlanDayIndex(mealPlan);
+
+                    return (
+                    <div
+                      key={`${day.day}-${dayIndex}`}
+                      id={`meal-plan-day-${dayIndex}`}
+                      className="scroll-mt-28"
+                    >
+                      <Card
+                        className={cn(
+                          'p-3 sm:p-4 bg-card/90 sm:bg-card/80 sm:backdrop-blur-lg border-primary/20 transition-colors',
+                          isFocusedDay && 'ring-2 ring-primary/25 border-primary/35',
+                        )}
+                      >
                         <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
                         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                           {day.meals.map((meal, mealIndex) => (
@@ -560,7 +613,8 @@ const MealPlansPage = () => {
                         </div>
                       </Card>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
             </motion.div>
           )}
@@ -568,10 +622,10 @@ const MealPlansPage = () => {
           {activeTab === 'shopping' && (
             <motion.div
               key="shopping"
-              initial={{ opacity: 0, y: 6 }}
+              initial={tabPanelFrom(isMobile)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+              exit={tabPanelExit(isMobile)}
+              transition={tabPanelTransition(isMobile)}
             >
                 {mealPlan.length === 0 && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">

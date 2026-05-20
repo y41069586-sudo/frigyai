@@ -205,7 +205,6 @@ All colors MUST be HSL.
     .dashboard-fast-scroll {
       content-visibility: auto;
       contain-intrinsic-size: 900px;
-      transform: translateZ(0);
     }
   }
 
@@ -215,11 +214,17 @@ All colors MUST be HSL.
     scroll-behavior: smooth;
   }
 
-  /* Rendering helper for animated/smoothed elements */
+  /* Rendering helper for animated/smoothed elements (desktop panels only) */
   .gpu-smooth {
     transform: translateZ(0);
     backface-visibility: hidden;
-    will-change: transform, opacity;
+    will-change: opacity;
+  }
+
+  @media (min-width: 768px) {
+    .gpu-smooth {
+      will-change: transform, opacity;
+    }
   }
 
   /* Hide scrollbar but keep functionality */
@@ -359,6 +364,10 @@ All colors MUST be HSL.
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
+    }
+
+    .animate-pulse {
+      animation: none !important;
     }
   }
 

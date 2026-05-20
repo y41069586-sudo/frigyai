@@ -1,3 +1,6 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { useTrackerSettings } from '@/hooks/useTrackerSettings';
+
 export type Feature = 'meal_plans' | 'shopping_list' | 'tracker_full' | 'water' | 'progress' | 'scan' | 'ai_chatbot' | 'recipes';
 
 export interface FeatureAccessResult {
@@ -13,16 +16,23 @@ export interface FeatureAccessResult {
  * - Tracker setup status
  */
 export const useFeatureAccess = () => {
+  const { isPremium } = useAuth();
+  const { isConfigured: trackerSetup } = useTrackerSettings();
+
   const canAccessFeature = (_feature: Feature): FeatureAccessResult => {
+    if (isPremium) {
+      return { canAccess: true, isLocked: false };
+    }
     return {
-      canAccess: true,
-      isLocked: false,
+      canAccess: false,
+      isLocked: true,
+      message: 'Premium erforderlich',
     };
   };
 
   return {
     canAccessFeature,
-    isPremium: true,
-    trackerSetup: true,
+    isPremium,
+    trackerSetup,
   };
 };

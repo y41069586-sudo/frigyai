@@ -5,6 +5,7 @@ import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintTextHighlight } from "./MintTextHighlight";
 
 type Props = {
   userData: UserData;
@@ -257,22 +258,25 @@ export function WeeklyPlanPreviewStep({
 
   const L = {
     de: {
-      title:
-        "Erreiche dein Ziel durch einen Wochenplan gezielt auf dein Kalorienziel.",
+      titleBefore: "Erreiche dein Ziel durch einen ",
+      titleHighlight: "Wochenplan",
+      titleAfter: " gezielt auf dein Kalorienziel.",
       bookHeader: "Mein Plan",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
-      title:
-        "Hit your goal with a weekly plan dialled in to your calorie target.",
+      titleBefore: "Hit your goal with a ",
+      titleHighlight: "weekly plan",
+      titleAfter: " dialled in to your calorie target.",
       bookHeader: "My plan",
       next: "Next",
       back: "Back",
     },
     fr: {
-      title:
-        "Atteins ton objectif grâce à un plan hebdomadaire calé sur ton apport calorique.",
+      titleBefore: "Atteins ton objectif grâce à un ",
+      titleHighlight: "plan hebdomadaire",
+      titleAfter: " calé sur ton apport calorique.",
       bookHeader: "Mon plan",
       next: "Suivant",
       back: "Retour",
@@ -312,7 +316,9 @@ export function WeeklyPlanPreviewStep({
           className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.title}
+          {t.titleBefore}
+          <MintTextHighlight>{t.titleHighlight}</MintTextHighlight>
+          {t.titleAfter}
         </h1>
       </OnboardingMascotQuestion>
 

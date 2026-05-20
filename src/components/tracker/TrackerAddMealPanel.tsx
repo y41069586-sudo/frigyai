@@ -10,6 +10,17 @@ import {
   type MealFocusKey,
 } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  bottomSheetExit,
+  bottomSheetFrom,
+  bottomSheetTo,
+  bottomSheetTransition,
+  fullScreenExit,
+  fullScreenFrom,
+  fullScreenTo,
+  fullScreenTransition,
+} from "@/lib/motionPresets";
 
 export type TrackerRecipeExample = {
   id: string;
@@ -324,6 +335,7 @@ export function TrackerAddMealPanel({
   loggedMeals = [],
   isAnalyzing = false,
 }: Props) {
+  const isMobile = useIsMobile();
   const [mode, setMode] = useState<InputMode>("search");
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState<TrackerRecipeExample[]>([]);
@@ -428,11 +440,11 @@ export function TrackerAddMealPanel({
 
   return (
     <motion.div
-      initial={{ y: "100%" }}
-      animate={{ y: 0 }}
-      exit={{ y: "100%" }}
-      transition={{ type: "spring", stiffness: 260, damping: 30, mass: 1.05 }}
-      className="fixed inset-0 z-[60] flex flex-col"
+      initial={fullScreenFrom(isMobile)}
+      animate={fullScreenTo(isMobile)}
+      exit={fullScreenExit(isMobile)}
+      transition={fullScreenTransition(isMobile)}
+      className="fixed inset-0 z-[110] flex flex-col"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       <input
@@ -550,7 +562,7 @@ export function TrackerAddMealPanel({
         </div>
 
         <div
-          className="mt-3 min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1"
+          className="mt-3 min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-1 safe-bottom"
           style={{
             backgroundColor: PALETTE.bg,
             boxShadow: GREEN_SHADOW_TOP,
@@ -617,10 +629,10 @@ export function TrackerAddMealPanel({
                 onClick={() => setSelectedRecipe(null)}
               />
               <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 280 }}
+                initial={bottomSheetFrom(isMobile)}
+                animate={bottomSheetTo(isMobile)}
+                exit={bottomSheetExit(isMobile)}
+                transition={bottomSheetTransition(isMobile)}
                 className="absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white"
                 style={{
                   paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
@@ -714,13 +726,12 @@ export function TrackerAddMealPanel({
                 onClick={() => setLoggedListOpen(false)}
               />
               <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[72vh] flex-col rounded-t-[1.75rem] bg-white"
+                initial={bottomSheetFrom(isMobile)}
+                animate={bottomSheetTo(isMobile)}
+                exit={bottomSheetExit(isMobile)}
+                transition={bottomSheetTransition(isMobile)}
+                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom"
                 style={{
-                  paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
                   boxShadow: "0 -16px 40px -12px rgba(30, 215, 138, 0.35)",
                 }}
               >
@@ -739,7 +750,7 @@ export function TrackerAddMealPanel({
                     <X className="size-4" />
                   </button>
                 </motion.div>
-                <ul className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+                <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2">
                   {mealCount === 0 ? (
                     <li className="py-10 text-center text-sm" style={{ color: PALETTE.textMuted }}>
                       Noch keine Mahlzeiten geloggt

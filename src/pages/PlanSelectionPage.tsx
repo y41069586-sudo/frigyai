@@ -114,11 +114,7 @@ const PlanSelectionPage = () => {
                 <Crown className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-lg font-bold text-primary">Premium</h3>
-              <div className="mt-1">
-                <span className="text-2xl font-bold text-primary">€4,99</span>
-                <span className="text-muted-foreground text-xs">/Mo</span>
-              </div>
-              <p className="text-[10px] text-primary mt-0.5">7 Tage gratis</p>
+              <p className="text-[10px] text-primary mt-1">Alle Premium-Funktionen</p>
             </div>
             
             <div className="space-y-1.5">

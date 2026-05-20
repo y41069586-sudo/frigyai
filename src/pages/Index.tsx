@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Settings, Bot } from "lucide-react";
+import { Settings, Bot, Crown } from "lucide-react";
+import { PremiumSuccessDialog } from "@/components/PremiumSuccessDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -37,9 +38,15 @@ import {
   FRIGY_STORAGE_UPDATED,
   POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY,
 } from "@/lib/frigyStorageSync";
+import { STRIPE_CHECKOUT_PENDING_KEY } from "@/lib/stripePaymentLinks";
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isActivatingPremium, setIsActivatingPremium] = useState(
+    () => searchParams.get("subscription") === "success",
+  );
+  const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   const { t, language } = useLanguage();
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
   const { streak, recordActivity, checkAndAwardBadge } = useGamification();
@@ -50,8 +57,6 @@ const Index = () => {
   const [chatBootstrapMessage, setChatBootstrapMessage] = useState<string | null>(null);
   const landedFromSubscriptionSuccessRef = useRef(false);
 
-  // Initialize reminders system
-  const [searchParams, setSearchParams] = useSearchParams();
   const isFromSubscription = searchParams.get("subscription") === "success";
   const resetOnboarding = searchParams.get("resetOnboarding") === "true";
   const onboardingResumeStep = useMemo(() => {
@@ -338,26 +343,81 @@ const Index = () => {
     }
   }, [isFromSubscription]);
   
-  // Nach Zahlung: Abo-Status pollen (wie Mahlzeiten-Seite), ohne vom Dashboard wegzuleiten
+  // Nach Stripe-Rückkehr (URL oder Tab-Wechsel): Premium-Status aktualisieren
   useEffect(() => {
-    if (searchParams.get("subscription") !== "success" || !user) return;
+    if (!user) return;
 
-    let attempts = 0;
-    const maxAttempts = 15;
-    const pollSubscription = setInterval(async () => {
-      attempts++;
-      await checkSubscription();
+    const refresh = () => {
+      void checkSubscription();
+    };
 
-      if (subscriptionStatus?.subscribed || attempts >= maxAttempts) {
-        clearInterval(pollSubscription);
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (localStorage.getItem(STRIPE_CHECKOUT_PENDING_KEY)) {
+        localStorage.removeItem(STRIPE_CHECKOUT_PENDING_KEY);
+        refresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [user, checkSubscription]);
+
+  // Nach Stripe-Rückkehr (?subscription=success): Premium aktivieren + Erfolg anzeigen
+  useEffect(() => {
+    if (searchParams.get("subscription") !== "success" || !user || !session) return;
+
+    localStorage.removeItem(STRIPE_CHECKOUT_PENDING_KEY);
+    let cancelled = false;
+
+    const activatePremium = async () => {
+      setIsActivatingPremium(true);
+      const maxAttempts = 15;
+
+      for (let attempt = 0; attempt < maxAttempts && !cancelled; attempt++) {
+        const status = await checkSubscription();
+        if (status?.subscribed) {
+          if (!cancelled) {
+            setIsActivatingPremium(false);
+            setShowPremiumSuccess(true);
+            setShowOnboarding(false);
+            setOnboardingComplete(true);
+            localStorage.setItem("onboardingComplete", "true");
+            const next = new URLSearchParams(searchParams);
+            next.delete("subscription");
+            setSearchParams(next, { replace: true });
+          }
+          return;
+        }
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+
+      if (!cancelled) {
+        setIsActivatingPremium(false);
+        setShowPremiumSuccess(true);
+        setShowOnboarding(false);
+        setOnboardingComplete(true);
+        localStorage.setItem("onboardingComplete", "true");
         const next = new URLSearchParams(searchParams);
         next.delete("subscription");
         setSearchParams(next, { replace: true });
+        toast({
+          title: language === "de" ? "Zahlung erhalten" : "Payment received",
+          description:
+            language === "de"
+              ? "Premium wird gleich aktiv. Falls nicht, App neu öffnen oder kurz warten."
+              : "Premium will activate shortly. Reopen the app if needed.",
+        });
       }
-    }, 2000);
+    };
 
-    return () => clearInterval(pollSubscription);
-  }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus?.subscribed, user]);
+    void activatePremium();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, setSearchParams, checkSubscription, user, session, language]);
 
   // Erstes Dashboard nach Zahlung: Hinweis nach 6 Sekunden (einmalig)
   useEffect(() => {
@@ -442,6 +502,38 @@ const Index = () => {
   // Wait for auth before showing anything
   if (loading) {
     return null;
+  }
+
+  if (isActivatingPremium) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F7FAF7] safe-area-inset px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="flex w-full max-w-[280px] flex-col items-center text-center"
+        >
+          <div className="relative mb-8 flex h-[88px] w-[88px] items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-[3px] border-primary/15" />
+            <div
+              className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary animate-spin"
+              aria-hidden
+            />
+            <div className="relative flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-[0_12px_32px_-12px_hsl(var(--primary)/0.55)]">
+              <Crown className="h-8 w-8 text-primary-foreground" strokeWidth={2.2} />
+            </div>
+          </div>
+          <h2 className="text-[1.35rem] font-bold leading-tight tracking-tight">
+            {language === "de" ? "Premium wird aktiviert…" : "Activating Premium…"}
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            {language === "de"
+              ? "Einen Moment – wir verbinden deine Zahlung mit deinem Konto."
+              : "One moment — linking your payment to your account."}
+          </p>
+        </motion.div>
+      </div>
+    );
   }
 
   // Show onboarding with mascot intro (no separate splash screen)
@@ -591,6 +683,14 @@ const Index = () => {
           weight: 0, // Will be loaded from DB in chatbot
           targetWeight: 0,
         } : null}
+      />
+
+      <PremiumSuccessDialog
+        open={showPremiumSuccess}
+        onClose={() => {
+          setShowPremiumSuccess(false);
+          void checkSubscription();
+        }}
       />
 
     </div>

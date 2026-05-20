@@ -150,7 +150,7 @@ export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuc
                 Los geht's!
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
-                Nach 7 Tagen: €4,99/Monat • Jederzeit kündbar
+                Jederzeit kündbar
               </p>
             </motion.div>
           </div>

@@ -60,8 +60,8 @@ serve(async (req) => {
 
     // Stripe Payment Links (configured in your Stripe Dashboard)
     const stripeLinks = {
-      monthly: "https://buy.stripe.com/aFa6oH2Lu4JhdcudLx87K03",
-      yearly: "https://buy.stripe.com/8x29AT99S3Fd3BUePB87K02"
+      monthly: "https://buy.stripe.com/fZu7sLeuccbJ5K2dLx87K08",
+      yearly: "https://buy.stripe.com/28EaEXeucejR6O60YL87K07"
     };
 
     // Select the correct payment link

@@ -95,20 +95,20 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     async (barcode: string) => {
       if (!barcode || detectionLockRef.current || productData) return;
 
-      detectionLockRef.current = true;
+    detectionLockRef.current = true;
 
-      try {
-        const Quagga = quaggaRef.current;
-        if (Quagga) {
-          try {
-            Quagga.stop();
+    try {
+      const Quagga = quaggaRef.current;
+      if (Quagga) {
+        try {
+          Quagga.stop();
             setIsScannerActive(false);
-          } catch (stopErr) {
-            console.warn('[BarcodeScanner] Scanner stop error (ignored):', stopErr);
-          }
+        } catch (stopErr) {
+          console.warn('[BarcodeScanner] Scanner stop error (ignored):', stopErr);
         }
+      }
 
-        setIsLoading(true);
+      setIsLoading(true);
 
         const controller = new AbortController();
         const timeoutId = window.setTimeout(() => controller.abort(), 9000);
@@ -119,41 +119,41 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         );
         window.clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data.status === 1 && data.product) {
-          const p = data.product;
-          const servingSize = p.serving_quantity || 100;
-          const multiplier = servingSize / 100;
-          const nutriments = p.nutriments || {};
+      if (data.status === 1 && data.product) {
+        const p = data.product;
+        const servingSize = p.serving_quantity || 100;
+        const multiplier = servingSize / 100;
+        const nutriments = p.nutriments || {};
 
-          const nutritionInfo: NutritionInfo = {
-            name: p.product_name_de || p.product_name || 'Unbekanntes Produkt',
-            calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
-            protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
-            carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
-            fat: Math.round((nutriments.fat_100g || 0) * multiplier),
-            image: p.image_front_small_url || p.image_url,
-            brand: p.brands,
-            barcode: barcode,
-          };
+        const nutritionInfo: NutritionInfo = {
+          name: p.product_name_de || p.product_name || 'Unbekanntes Produkt',
+          calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
+          protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
+          carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
+          fat: Math.round((nutriments.fat_100g || 0) * multiplier),
+          image: p.image_front_small_url || p.image_url,
+          brand: p.brands,
+          barcode: barcode,
+        };
 
-          setProductData(nutritionInfo);
-          toast({
-            title: '✅ Produkt erkannt!',
-            description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
-          });
+        setProductData(nutritionInfo);
+        toast({
+          title: '✅ Produkt erkannt!',
+          description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
+        });
           void onFoodScanned(nutritionInfo);
-        } else {
-          toast({
-            title: '❌ Produkt nicht gefunden',
-            description: 'Dieser Barcode existiert nicht in der Datenbank',
-            variant: 'destructive',
-          });
+      } else {
+        toast({
+          title: '❌ Produkt nicht gefunden',
+          description: 'Dieser Barcode existiert nicht in der Datenbank',
+          variant: 'destructive',
+        });
 
           detectionLockRef.current = false;
           const QuaggaResume = quaggaRef.current;
@@ -162,18 +162,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               QuaggaResume.start();
               window.setTimeout(prepareMobileVideo, 80);
               setIsScannerActive(true);
-            } catch (resumeErr) {
-              console.warn('[BarcodeScanner] Scanner resume error (ignored):', resumeErr);
-            }
+          } catch (resumeErr) {
+            console.warn('[BarcodeScanner] Scanner resume error (ignored):', resumeErr);
           }
         }
-      } catch (err: any) {
-        console.error('[BarcodeScanner] Error:', err);
-        toast({
-          title: '⚠️ Fehler',
-          description: err.message || 'Fehler beim Abrufen der Produktdaten',
-          variant: 'destructive',
-        });
+      }
+    } catch (err: any) {
+      console.error('[BarcodeScanner] Error:', err);
+      toast({
+        title: '⚠️ Fehler',
+        description: err.message || 'Fehler beim Abrufen der Produktdaten',
+        variant: 'destructive',
+      });
 
         detectionLockRef.current = false;
         const QuaggaResume = quaggaRef.current;
@@ -182,11 +182,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             QuaggaResume.start();
             window.setTimeout(prepareMobileVideo, 80);
             setIsScannerActive(true);
-          } catch (resumeErr) {
-            console.warn('[BarcodeScanner] Scanner resume error (ignored):', resumeErr);
-          }
+        } catch (resumeErr) {
+          console.warn('[BarcodeScanner] Scanner resume error (ignored):', resumeErr);
         }
-      } finally {
+      }
+    } finally {
         setIsLoading(false);
       }
     },
@@ -452,38 +452,38 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           ) : null}
 
           {/* Reader mount — always in DOM while open so init finds the target */}
-          <style>{`
-            #barcode-reader {
-              position: absolute !important;
+              <style>{`
+                #barcode-reader {
+                  position: absolute !important;
               inset: 0 !important;
-              width: 100% !important;
-              height: 100% !important;
-              overflow: hidden !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  overflow: hidden !important;
               opacity: ${showScanner ? 1 : 0};
               pointer-events: ${showScanner ? 'auto' : 'none'};
-            }
-            #barcode-reader video {
-              position: absolute !important;
+                }
+                #barcode-reader video {
+                  position: absolute !important;
               inset: 0 !important;
-              width: 100% !important;
-              height: 100% !important;
-              object-fit: cover !important;
-              display: block !important;
-            }
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                  display: block !important;
+                }
             #barcode-reader video::-webkit-media-controls,
             #barcode-reader video::-webkit-media-controls-panel,
             #barcode-reader video::-webkit-media-controls-play-button {
               display: none !important;
               -webkit-appearance: none !important;
             }
-            #barcode-reader canvas {
-              position: absolute !important;
+                #barcode-reader canvas {
+                  position: absolute !important;
               inset: 0 !important;
-              width: 100% !important;
-              height: 100% !important;
-              object-fit: cover !important;
-            }
-          `}</style>
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                }
+              `}</style>
           <div id="barcode-reader" ref={readerRef} className="absolute inset-0 h-full w-full overflow-hidden" />
 
           {showScanner && (
@@ -525,9 +525,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 ))}
 
                 {/* Scan line — smooth continuous sweep */}
-                <motion.div
+                    <motion.div
                   className="absolute left-3 right-3 h-[3px] rounded-full"
-                  style={{
+                      style={{
                     background:
                       'linear-gradient(90deg, transparent 0%, rgba(134,239,172,0.2) 15%, rgba(190,242,100,1) 50%, rgba(134,239,172,0.2) 85%, transparent 100%)',
                     boxShadow: '0 0 16px 3px rgba(74, 222, 128, 0.85), 0 0 4px 1px rgba(255,255,255,0.5)',
@@ -541,8 +541,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   className="absolute left-4 right-4 h-10 rounded-full bg-lime-400/10 blur-md"
                   animate={{ top: ['6%', '90%'] }}
                   transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
-                />
-              </div>
+                    />
+                  </div>
 
               <motion.p
                 className="mt-8 px-6 text-center text-sm font-medium text-white/90"
@@ -556,15 +556,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             </div>
           )}
 
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
               className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75"
-            >
+                >
               <Loader2 className="mb-4 h-16 w-16 animate-spin text-lime-400" />
               <p className="font-semibold text-white">Produkt wird geladen…</p>
-            </motion.div>
+                </motion.div>
           )}
         </motion.div>
       </motion.div>

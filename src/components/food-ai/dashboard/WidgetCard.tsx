@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { entryFrom, entryTo, entryTransition } from "@/lib/motionPresets";
 
 export type WidgetCardProps = {
   children: ReactNode;
@@ -30,21 +32,24 @@ export function WidgetCard({
   interactive = true,
   variant = "glass",
 }: WidgetCardProps) {
+  const isMobile = useIsMobile();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={entryFrom(isMobile, 14)}
+      animate={entryTo(isMobile)}
+      transition={entryTransition(isMobile, delay)}
       whileHover={
-        interactive
+        interactive && !isMobile
           ? { y: -3, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
           : undefined
       }
       whileTap={onClick ? { scale: 0.992 } : undefined}
       onClick={onClick}
-      style={{ transform: "translateZ(0)" }}
+      style={isMobile ? undefined : { transform: "translateZ(0)" }}
       className={cn(
-        "relative w-full min-w-0 overflow-hidden rounded-2xl p-2.5 min-[360px]:p-3 sm:rounded-[1.35rem] sm:p-4 transition-shadow duration-300 touch-manipulation sm:will-change-transform",
+        "relative w-full min-w-0 overflow-hidden rounded-2xl p-2.5 min-[360px]:p-3 sm:rounded-[1.35rem] sm:p-4 transition-shadow duration-300 touch-manipulation",
+        !isMobile && "sm:will-change-transform",
         interactive && onClick && "cursor-pointer hover:shadow-[0_20px_50px_-18px_rgba(0,0,0,0.12)]",
         variantStyles[variant],
         className,

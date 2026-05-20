@@ -56,8 +56,10 @@ import {
   isEmailRateLimited,
   isUserAlreadyRegistered,
   resolveAuthErrorMessage,
+  waitForAuthSession,
 } from "@/lib/authErrors";
 import { consumeReferralSkipPaywall } from "@/lib/referralCode";
+import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { MINT_STEP_HEADER_PT } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
@@ -68,7 +70,6 @@ import { MacroRing } from "./MacroRing";
 import { EditMacroGoalsDialog, type FocusMacro } from "./EditMacroGoalsDialog";
 import {
   OnboardingPaywallStep,
-  STRIPE_PAYMENT_LINKS,
   type PaywallBillingPlan,
 } from "./onboarding/components/OnboardingPaywallStep";
 import HeroAnimation from "./HeroAnimation";
@@ -539,7 +540,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const handlePaywallCheckout = (plan: PaywallBillingPlan) => {
     lightTap();
     localStorage.setItem("selectedPlan", plan);
-    window.top!.location.href = STRIPE_PAYMENT_LINKS[plan];
+    markStripeCheckoutPending();
+    window.top!.location.href = buildStripePaymentUrl(plan, user?.email ?? authEmail);
   };
 
   const handlePaywallSkip = () => {
@@ -3368,32 +3370,43 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           try {
             if (authMode === "signup") {
               const { error } = await signUp(authEmail, authPassword, { silent: true });
+
+              const ensureSessionAfterSignup = async (): Promise<boolean> => {
+                if (await waitForAuthSession(3200)) return true;
+                await signIn(authEmail, authPassword, { silent: true });
+                return waitForAuthSession(2000);
+              };
+
               if (error) {
+                if (
+                  (isUserAlreadyRegistered(error) || isEmailRateLimited(error)) &&
+                  (await ensureSessionAfterSignup())
+                ) {
+                  goAfterSignup();
+                  return;
+                }
+
                 const resolved = resolveAuthErrorMessage(error, language, "signup");
-                if (resolved) {
-                  toast({
-                    title: t.onboardingRegistrationFailed,
-                    description: resolved.message,
-                    variant: resolved.variant === "info" ? "default" : "destructive",
-                  });
-                  if (
-                    resolved.switchToLogin &&
-                    (isUserAlreadyRegistered(error) || isEmailRateLimited(error))
-                  ) {
-                    setAuthMode("login");
-                  }
+                toast({
+                  title: t.onboardingRegistrationFailed,
+                  description: resolved?.message ?? error.message,
+                  variant: resolved?.variant === "info" ? "default" : "destructive",
+                });
+                if (
+                  resolved?.switchToLogin &&
+                  (isUserAlreadyRegistered(error) || isEmailRateLimited(error))
+                ) {
+                  setAuthMode("login");
                 }
                 return;
               }
 
-              const { data: { session: newSession } } = await supabase.auth.getSession();
-              if (!newSession) {
+              if (!(await ensureSessionAfterSignup())) {
                 toast({
                   title: t.onboardingRegistrationFailed,
                   description: t.onboardingPleaseLoginToProceed,
                   variant: "destructive",
                 });
-                setAuthMode("login");
                 return;
               }
 
@@ -3620,11 +3633,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                       <Star className="h-5 w-5 text-primary" fill="currentColor" />
                     </div>
                     <h3 className="text-lg font-bold text-primary">{t.premiumLabel2}</h3>
-                    <div className="mt-1">
-                      <span className="text-2xl font-bold text-primary">€4,99</span>
-                      <span className="text-muted-foreground text-[10px]">/Mo</span>
-                    </div>
-                    <p className="text-[9px] text-primary mt-0.5">{t.trial7DaysFree}</p>
+                    <p className="text-[9px] text-primary mt-1">{t.trial7DaysFree}</p>
                   </div>
                   
                   <div className="space-y-1.5">
