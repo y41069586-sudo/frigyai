@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isReferralAdmin } from "@/lib/admin";
+import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 import { buildSignupDeepLink, buildSignupWebUrl } from "@/lib/chottuLinkConfig";
 
 const LIFETIME_DAYS = 0;
@@ -53,7 +54,9 @@ export function ReferralCodesAdmin() {
         headers: { Authorization: `Bearer ${session?.access_token}` },
         body,
       });
-      if (error) throw error;
+      if (error) {
+        throw new Error(await getEdgeFunctionErrorMessage(error, data));
+      }
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -66,11 +69,19 @@ export function ReferralCodesAdmin() {
       headers: { Authorization: `Bearer ${session.access_token}` },
       body: { action: "revenue_report" },
     });
-    if (error) throw error;
+    if (error) {
+      throw new Error(await getEdgeFunctionErrorMessage(error, data));
+    }
     if (data?.error) throw new Error(data.error);
     setCodes((data?.partners as ReferralCodeRow[]) ?? []);
     setTotals(data?.totals ?? { revenue_cents: 0, commission_cents: 0, payments: 0 });
   }, [session?.access_token]);
+
+  const loadCodesFallback = useCallback(async () => {
+    const data = await invoke({ action: "list" });
+    setCodes((data?.codes as ReferralCodeRow[]) ?? []);
+    setTotals({ revenue_cents: 0, commission_cents: 0, payments: 0 });
+  }, [invoke]);
 
   const loadCodes = useCallback(async () => {
     if (!session?.access_token) return;
@@ -78,12 +89,25 @@ export function ReferralCodesAdmin() {
     try {
       await loadAffiliateStats();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Laden fehlgeschlagen";
-      toast({ title: "Fehler", description: message, variant: "destructive" });
+      try {
+        await loadCodesFallback();
+        const message = e instanceof Error ? e.message : "Laden fehlgeschlagen";
+        toast({
+          title: "Umsatzdaten nicht verfügbar",
+          description:
+            message +
+            " — Partnerliste geladen. Migration/Deploy prüfen (affiliate-admin, 20260521140000_affiliate_tracking).",
+          variant: "destructive",
+        });
+      } catch (fallbackErr: unknown) {
+        const message =
+          fallbackErr instanceof Error ? fallbackErr.message : e instanceof Error ? e.message : "Laden fehlgeschlagen";
+        toast({ title: "Fehler", description: message, variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
-  }, [loadAffiliateStats, session?.access_token]);
+  }, [loadAffiliateStats, loadCodesFallback, session?.access_token]);
 
   useEffect(() => {
     void loadCodes();

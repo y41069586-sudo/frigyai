@@ -12,7 +12,14 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
-const REFERRAL_ADMIN_EMAIL = "yousef0087mohamed@gmail.com";
+const REFERRAL_ADMIN_EMAILS = [
+  "yousef0087mohamed@gmail.com",
+  "yousef0089mohamed@gmail.com",
+];
+
+function isReferralAdminEmail(email: string): boolean {
+  return REFERRAL_ADMIN_EMAILS.includes(email.toLowerCase());
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,7 +50,7 @@ serve(async (req) => {
       });
     }
 
-    if (userData.user.email.toLowerCase() !== REFERRAL_ADMIN_EMAIL) {
+    if (!isReferralAdminEmail(userData.user.email)) {
       return new Response(JSON.stringify({ error: "Keine Berechtigung" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,14 +61,27 @@ serve(async (req) => {
     const action = String(body.action ?? "revenue_report");
 
     if (action === "revenue_report") {
-      const { data: partners, error } = await supabase
+      const fullSelect =
+        "id, code, slug, influencer_name, commission_rate_percent, total_revenue_cents, total_commission_cents, total_payments, duration_days, max_redemptions, redemption_count, active";
+      const baseSelect =
+        "id, code, influencer_name, duration_days, max_redemptions, redemption_count, active";
+
+      let partnersResult = await supabase
         .from("referral_codes")
-        .select(
-          "id, code, slug, influencer_name, commission_rate_percent, total_revenue_cents, total_commission_cents, total_payments, redemption_count, active",
-        )
+        .select(fullSelect)
         .order("total_revenue_cents", { ascending: false });
 
-      if (error) throw error;
+      if (partnersResult.error) {
+        console.warn("[affiliate-admin] full partner select failed, retrying base:", partnersResult.error.message);
+        partnersResult = await supabase
+          .from("referral_codes")
+          .select(baseSelect)
+          .order("created_at", { ascending: false });
+      }
+
+      if (partnersResult.error) throw partnersResult.error;
+
+      const partners = partnersResult.data;
 
       const { data: recentPayments } = await supabase
         .from("affiliate_payments")
@@ -85,7 +105,7 @@ serve(async (req) => {
           success: true,
           totals,
           partners: partners ?? [],
-          recent_payments: recentPayments ?? [],
+          recent_payments: recentPayments,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

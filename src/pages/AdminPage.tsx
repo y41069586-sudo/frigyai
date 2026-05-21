@@ -10,11 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Crown, Gift, Loader2, Shield, Check } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
 
-// Admin emails
-const ADMIN_EMAILS = [
-  "yousef0087mohamed@gmail.com",
-  "yousef0089mohamed@gmail.com",
-];
+import { isPremiumGrantAdmin } from "@/lib/admin";
+import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 
 const AdminPage = () => {
   const { user, session, loading } = useAuth();
@@ -26,7 +23,7 @@ const AdminPage = () => {
   const [lastGranted, setLastGranted] = useState<{ email: string; until: string } | null>(null);
 
   // Check if current user is admin
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isAdmin = isPremiumGrantAdmin(user?.email);
 
   if (loading) {
     return (
@@ -70,9 +67,11 @@ const AdminPage = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(await getEdgeFunctionErrorMessage(error, data));
+      }
 
-      if (data.success) {
+      if (data?.success) {
         toast({ 
           title: "Premium gewährt! 🎉", 
           description: data.message 
@@ -86,12 +85,13 @@ const AdminPage = () => {
       } else {
         throw new Error(data.error || 'Unbekannter Fehler');
       }
-    } catch (error: any) {
-      console.error('Error granting premium:', error);
-      toast({ 
-        title: "Fehler", 
-        description: error.message || 'Konnte Premium nicht gewähren',
-        variant: "destructive" 
+    } catch (error: unknown) {
+      console.error("Error granting premium:", error);
+      const message = error instanceof Error ? error.message : "Konnte Premium nicht gewähren";
+      toast({
+        title: "Fehler",
+        description: message,
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

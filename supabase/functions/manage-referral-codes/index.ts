@@ -8,7 +8,14 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
-const REFERRAL_ADMIN_EMAIL = "yousef0087mohamed@gmail.com";
+const REFERRAL_ADMIN_EMAILS = [
+  "yousef0087mohamed@gmail.com",
+  "yousef0089mohamed@gmail.com",
+];
+
+function isReferralAdminEmail(email: string): boolean {
+  return REFERRAL_ADMIN_EMAILS.includes(email.toLowerCase());
+}
 
 function normalizeCode(raw: string): string {
   return raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 12);
@@ -51,7 +58,7 @@ serve(async (req) => {
       });
     }
 
-    if (userData.user.email.toLowerCase() !== REFERRAL_ADMIN_EMAIL) {
+    if (!isReferralAdminEmail(userData.user.email)) {
       return new Response(JSON.stringify({ error: "Keine Berechtigung" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -75,16 +75,17 @@ serve(async (req) => {
 
     logStep("Granting premium", { email, duration_days, reason });
 
-    // Find user by email
-    const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
-    
+    const { data: userByEmail, error: userError } = await supabaseClient.auth.admin.getUserByEmail(
+      email.trim(),
+    );
+
     if (userError) {
-      logStep("Error listing users", { error: userError.message });
+      logStep("Error looking up user", { error: userError.message });
       throw new Error("Fehler beim Suchen des Nutzers");
     }
 
-    const targetUser = users.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-    
+    const targetUser = userByEmail?.user;
+
     if (!targetUser) {
       return new Response(JSON.stringify({ error: "Nutzer mit dieser E-Mail nicht gefunden" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

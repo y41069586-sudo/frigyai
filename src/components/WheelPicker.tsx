@@ -1,11 +1,9 @@
 import {
-  useRef,
-  useEffect,
   useCallback,
+  useEffect,
   useMemo,
-  useLayoutEffect,
+  useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
   type CSSProperties,
 } from "react";
 
@@ -18,22 +16,18 @@ interface WheelPickerProps {
   unit?: string;
 }
 
+/** Matches existing layout (do not change visual design). */
 const ITEM_HEIGHT = 48;
 const VISIBLE_ITEMS = 3;
 const PAD_ITEMS = Math.floor(VISIBLE_ITEMS / 2);
-const SETTLE_FALLBACK_MS = 120;
-const PROGRAMMATIC_RELEASE_MS = 320;
+const SCROLL_DEBOUNCE_MS = 10;
+const PROGRAMMATIC_SCROLL_MS = 300;
 
 const triggerHaptic = () => {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     navigator.vibrate(5);
   }
 };
-
-function clampIndex(index: number, count: number): number {
-  if (count <= 0) return 0;
-  return Math.max(0, Math.min(count - 1, index));
-}
 
 function buildItems(min: number, max: number, step: number): number[] {
   if (step <= 0 || max < min) return [min];
@@ -44,20 +38,20 @@ function buildItems(min: number, max: number, step: number): number[] {
   return items.length > 0 ? items : [min];
 }
 
-function indexFromValue(value: number, items: number[], min: number, step: number): number {
+function indexFromValue(value: number, items: number[]): number {
   if (items.length === 0) return 0;
   const idx = items.indexOf(value);
-  if (idx >= 0) return idx;
-  const computed = Math.round((value - min) / step);
-  return clampIndex(computed, items.length);
+  return idx >= 0 ? idx : 0;
 }
 
-function indexFromScrollTop(scrollTop: number, itemCount: number): number {
-  return clampIndex(Math.round(scrollTop / ITEM_HEIGHT), itemCount);
-}
-
-function scrollTopFromIndex(index: number): number {
-  return index * ITEM_HEIGHT;
+/**
+ * Web port of RN FlatList wheel logic:
+ * index = round(offsetY / itemHeight), clamped to data bounds.
+ */
+function getRealIndex(offsetY: number, itemCount: number, itemHeight: number): number {
+  if (itemCount <= 0) return 0;
+  const index = Math.round(offsetY / itemHeight);
+  return Math.max(0, Math.min(index, itemCount - 1));
 }
 
 export const WheelPicker = ({
@@ -69,213 +63,145 @@ export const WheelPicker = ({
   unit = "",
 }: WheelPickerProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const items = useMemo(() => buildItems(min, max, step), [min, max, step]);
+  const data = useMemo(() => buildItems(min, max, step), [min, max, step]);
 
-  const isUserInteractingRef = useRef(false);
-  const isProgrammaticScrollRef = useRef(false);
-  const programmaticTokenRef = useRef(0);
-  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const lastEmittedValueRef = useRef(value);
+  const [selectedIndex, setSelectedIndex] = useState(() => indexFromValue(value, data));
+
+  const isProgrammaticScroll = useRef(false);
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHapticIndexRef = useRef(-1);
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
 
-  const [highlightIndex, setHighlightIndex] = useState(() =>
-    indexFromValue(value, items, min, step),
+  const pickerHeight = ITEM_HEIGHT * VISIBLE_ITEMS;
+  const padHeight = PAD_ITEMS * ITEM_HEIGHT;
+
+  const getIndexFromScroll = useCallback(
+    (offsetY: number) => getRealIndex(offsetY, data.length, ITEM_HEIGHT),
+    [data.length],
   );
 
-  const releaseProgrammaticScroll = useCallback((token: number, delayMs: number) => {
+  const scrollToIndex = useCallback((index: number, animated = true) => {
+    const el = scrollRef.current;
+    if (!el || data.length === 0) return;
+
+    const clamped = Math.max(0, Math.min(index, data.length - 1));
+    isProgrammaticScroll.current = true;
+
+    el.scrollTo({
+      top: clamped * ITEM_HEIGHT,
+      behavior: animated ? "smooth" : "auto",
+    });
+
     window.setTimeout(() => {
-      if (programmaticTokenRef.current === token) {
-        isProgrammaticScrollRef.current = false;
-      }
-    }, delayMs);
-  }, []);
+      isProgrammaticScroll.current = false;
+    }, animated ? PROGRAMMATIC_SCROLL_MS : 48);
+  }, [data.length]);
 
-  const scrollToIndex = useCallback(
-    (index: number, behavior: ScrollBehavior = "auto") => {
-      const el = scrollRef.current;
-      if (!el || items.length === 0) return;
-
-      const clamped = clampIndex(index, items.length);
-      const token = ++programmaticTokenRef.current;
-      isProgrammaticScrollRef.current = true;
-
-      el.scrollTo({ top: scrollTopFromIndex(clamped), behavior });
-
-      setHighlightIndex(clamped);
-      lastHapticIndexRef.current = clamped;
-
-      releaseProgrammaticScroll(token, behavior === "smooth" ? PROGRAMMATIC_RELEASE_MS : 48);
-    },
-    [items.length, releaseProgrammaticScroll],
-  );
-
-  const emitValueIfChanged = useCallback(
+  const updateSelectedIndex = useCallback(
     (index: number) => {
-      const clamped = clampIndex(index, items.length);
-      const nextValue = items[clamped];
-      if (nextValue === undefined) return clamped;
+      const clamped = Math.max(0, Math.min(index, data.length - 1));
 
-      if (nextValue !== lastEmittedValueRef.current) {
-        lastEmittedValueRef.current = nextValue;
-        onChange(nextValue);
-      }
+      setSelectedIndex((prev) => {
+        if (prev === clamped) return prev;
+
+        if (clamped !== lastHapticIndexRef.current) {
+          lastHapticIndexRef.current = clamped;
+          triggerHaptic();
+        }
+
+        const item = data[clamped];
+        if (item !== undefined) {
+          onChange(item);
+        }
+
+        return clamped;
+      });
+
       return clamped;
     },
-    [items, onChange],
+    [onChange, data],
   );
 
-  const snapToNearestIndex = useCallback(
-    (smooth: boolean) => {
-      const el = scrollRef.current;
-      if (!el || items.length === 0 || isProgrammaticScrollRef.current) return;
+  /** RN: onMomentumScrollEnd */
+  const handleMomentumEnd = useCallback(() => {
+    if (isProgrammaticScroll.current) return;
 
-      const rawIndex = indexFromScrollTop(el.scrollTop, items.length);
-      const snappedTop = scrollTopFromIndex(rawIndex);
-      const drift = Math.abs(el.scrollTop - snappedTop);
-
-      if (drift > 0.5) {
-        const token = ++programmaticTokenRef.current;
-        isProgrammaticScrollRef.current = true;
-        el.scrollTo({ top: snappedTop, behavior: smooth ? "smooth" : "auto" });
-        releaseProgrammaticScroll(token, smooth ? PROGRAMMATIC_RELEASE_MS : 48);
-      }
-
-      const committed = emitValueIfChanged(rawIndex);
-      setHighlightIndex(committed);
-      lastHapticIndexRef.current = committed;
-    },
-    [items.length, emitValueIfChanged, releaseProgrammaticScroll],
-  );
-
-  const cancelSettle = useCallback(() => {
-    if (settleTimerRef.current !== null) {
-      clearTimeout(settleTimerRef.current);
-      settleTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleSettle = useCallback(
-    (smooth: boolean, delayMs = SETTLE_FALLBACK_MS) => {
-      cancelSettle();
-      settleTimerRef.current = setTimeout(() => {
-        settleTimerRef.current = null;
-        if (!isUserInteractingRef.current) {
-          snapToNearestIndex(smooth);
-        }
-      }, delayMs);
-    },
-    [cancelSettle, snapToNearestIndex],
-  );
-
-  const updateHighlightFromScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (!el || isProgrammaticScrollRef.current) return;
+    if (!el) return;
 
-    const idx = indexFromScrollTop(el.scrollTop, items.length);
-    setHighlightIndex((prev) => (prev === idx ? prev : idx));
+    const index = getIndexFromScroll(el.scrollTop);
+    scrollToIndex(index, true);
+    updateSelectedIndex(index);
+  }, [getIndexFromScroll, scrollToIndex, updateSelectedIndex]);
 
-    if (idx !== lastHapticIndexRef.current) {
-      lastHapticIndexRef.current = idx;
-      triggerHaptic();
-    }
-  }, [items.length]);
-
+  /** RN: onScroll + 10ms debounce */
   const handleScroll = useCallback(() => {
-    if (isProgrammaticScrollRef.current) return;
+    if (isProgrammaticScroll.current) return;
 
-    if (rafRef.current !== null) return;
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      updateHighlightFromScroll();
-      if (!isUserInteractingRef.current) {
-        scheduleSettle(true, SETTLE_FALLBACK_MS);
-      }
-    });
-  }, [updateHighlightFromScroll, scheduleSettle]);
+    const el = scrollRef.current;
+    if (!el) return;
 
-  const beginInteraction = useCallback(() => {
-    isUserInteractingRef.current = true;
-    cancelSettle();
-  }, [cancelSettle]);
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
 
-  const endInteraction = useCallback(() => {
-    isUserInteractingRef.current = false;
-    scheduleSettle(true, 60);
-  }, [scheduleSettle]);
-
-  const handlePointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      beginInteraction();
-      e.currentTarget.setPointerCapture(e.pointerId);
-    },
-    [beginInteraction],
-  );
-
-  const handlePointerUp = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-      endInteraction();
-    },
-    [endInteraction],
-  );
+    scrollTimeout.current = setTimeout(() => {
+      scrollTimeout.current = null;
+      const index = getIndexFromScroll(el.scrollTop);
+      updateSelectedIndex(index);
+    }, SCROLL_DEBOUNCE_MS);
+  }, [getIndexFromScroll, updateSelectedIndex]);
 
   const handleItemClick = useCallback(
     (item: number) => {
-      const index = indexFromValue(item, items, min, step);
-      beginInteraction();
-      lastEmittedValueRef.current = item;
-      onChange(item);
+      const index = indexFromValue(item, data);
       scrollToIndex(index, true);
-      isUserInteractingRef.current = false;
-      cancelSettle();
+      setSelectedIndex(index);
+      lastHapticIndexRef.current = index;
+      onChange(item);
     },
-    [items, min, step, onChange, scrollToIndex, beginInteraction, cancelSettle],
+    [data, onChange, scrollToIndex],
   );
 
-  useLayoutEffect(() => {
-    const targetIndex = indexFromValue(value, items, min, step);
-    lastEmittedValueRef.current = value;
-    setHighlightIndex(targetIndex);
-    lastHapticIndexRef.current = targetIndex;
-
-    if (!isUserInteractingRef.current) {
-      scrollToIndex(targetIndex, false);
+  /** RN: sync when controlled `value` changes */
+  useEffect(() => {
+    const index = indexFromValue(value, data);
+    if (index !== selectedIndexRef.current) {
+      setSelectedIndex(index);
+      lastHapticIndexRef.current = index;
+      scrollToIndex(index, false);
     }
-  }, [value, items, min, step, scrollToIndex]);
+  }, [value, data, scrollToIndex]);
+
+  /** RN: initial scroll to selected index */
+  useEffect(() => {
+    const index = indexFromValue(value, data);
+    requestAnimationFrame(() => {
+      scrollToIndex(index, false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
-    const onScrollEnd = () => {
-      if (!isUserInteractingRef.current && !isProgrammaticScrollRef.current) {
-        snapToNearestIndex(true);
-      }
-    };
-
-    el.addEventListener("scrollend", onScrollEnd, { passive: true });
-    return () => el.removeEventListener("scrollend", onScrollEnd);
-  }, [snapToNearestIndex]);
+    el.addEventListener("scrollend", handleMomentumEnd, { passive: true });
+    return () => el.removeEventListener("scrollend", handleMomentumEnd);
+  }, [handleMomentumEnd]);
 
   useEffect(
     () => () => {
-      cancelSettle();
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
       }
     },
-    [cancelSettle],
+    [],
   );
 
-  const containerHeight = VISIBLE_ITEMS * ITEM_HEIGHT;
-  const padHeight = PAD_ITEMS * ITEM_HEIGHT;
-
   return (
-    <div className="relative mx-auto w-full" style={{ height: containerHeight }}>
+    <div className="relative mx-auto w-full" style={{ height: pickerHeight }}>
       {/* Top gradient */}
       <div
         className="absolute inset-x-0 top-0 z-10 pointer-events-none"
@@ -305,7 +231,7 @@ export const WheelPicker = ({
         }}
       />
 
-      {/* Scroll container - optimized for iOS and Android */}
+      {/* Scroll container — RN: FlatList + snapToInterval + decelerationRate fast */}
       <div
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide select-none"
@@ -323,20 +249,12 @@ export const WheelPicker = ({
           } as CSSProperties
         }
         onScroll={handleScroll}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onTouchStart={beginInteraction}
-        onTouchEnd={endInteraction}
-        onTouchCancel={endInteraction}
       >
-        {/* Top padding */}
         <div style={{ height: padHeight }} />
 
-        {/* Items */}
-        {items.map((item, index) => {
-          const isSelected = index === highlightIndex;
-          const distanceFromSelected = Math.abs(index - highlightIndex);
+        {data.map((item, index) => {
+          const isSelected = index === selectedIndex;
+          const distanceFromSelected = Math.abs(index - selectedIndex);
           const opacity = distanceFromSelected === 0 ? 1 : distanceFromSelected === 1 ? 0.5 : 0.25;
 
           return (
@@ -348,7 +266,6 @@ export const WheelPicker = ({
               style={{
                 height: ITEM_HEIGHT,
                 scrollSnapAlign: "center",
-                scrollSnapStop: "always",
                 fontSize: isSelected ? "1.5rem" : "1rem",
                 opacity,
                 transform: isSelected ? "scale(1.05)" : "scale(0.9)",
@@ -368,7 +285,6 @@ export const WheelPicker = ({
           );
         })}
 
-        {/* Bottom padding */}
         <div style={{ height: padHeight }} />
       </div>
     </div>
