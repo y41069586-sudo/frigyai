@@ -5,34 +5,48 @@ workflows:
     max_build_duration: 90
 
     environment:
+      java: 21
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
-      # In Codemagic UI: Environment variables → EXPO_TOKEN (secret)
-      # Optional für Web-Build auf EAS: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY in expo.dev → Secrets
+      # Optional: EXPO_TOKEN → dann zusätzlich EAS-Build (siehe letzter Script-Schritt)
+      # Optional: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY für eingebettete Config
 
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
 
-      - name: Verify web build (fail fast)
+      - name: Build web app
         script: npm run build
 
-      - name: EAS Android build
+      - name: Sync Capacitor web assets
+        script: node scripts/prepare-android-web-assets.mjs
+
+      - name: Build Android APK (Gradle, kein EXPO_TOKEN nötig)
+        script: |
+          set -e
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p ../build
+          cp -f app/build/outputs/apk/debug/app-debug.apk ../build/frigy-preview.apk
+          echo "APK: build/frigy-preview.apk"
+
+      - name: Optional EAS build (nur wenn EXPO_TOKEN gesetzt)
         script: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "ERROR: EXPO_TOKEN is not set in Codemagic environment variables."
-            exit 1
+            echo "EXPO_TOKEN nicht gesetzt — überspringe EAS (Gradle-APK wurde bereits erstellt)."
+            exit 0
           fi
           npm install -g eas-cli@latest
-          mkdir -p build
           eas build --platform android --profile preview --non-interactive --wait --json > build/eas-build.json
           node scripts/download-eas-artifact.mjs build/eas-build.json build
 
     artifacts:
       - build/*.apk
       - build/*.aab
+      - android/app/build/outputs/**/*.apk
 
     publishing:
       scripts:
         - name: Build finished
-          script: echo "Android artifact ready in build/"
+          script: echo "Download APK from Artifacts (frigy-preview.apk)"

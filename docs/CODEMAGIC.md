@@ -1,37 +1,40 @@
-# Codemagic + EAS Android Build
+# Codemagic Android Build
 
-## Codemagic einrichten
+## Standard (ohne EXPO_TOKEN)
 
-1. Repository verbinden (GitHub).
-2. Unter **Environment variables** anlegen:
-   - `EXPO_TOKEN` — von [expo.dev](https://expo.dev) → Account → Access tokens (als **Secure** markieren).
-3. Optional für die App im gebauten APK (Expo **Project secrets** auf expo.dev):
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `VITE_CHOTTULINK_HOST`, `VITE_APP_WEB_HOST` (falls genutzt)
+Der Workflow baut die APK **direkt mit Gradle** — du musst **keinen** Expo-Token setzen.
+
+1. Repository in Codemagic verbinden (GitHub `main`).
+2. Workflow **Android Build** starten.
+3. APK unter **Artifacts** → `build/frigy-preview.apk`
+
+Optional in Codemagic **Environment variables** (für Supabase in der App):
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+## Optional: EAS-Build
+
+Nur wenn du zusätzlich EAS nutzen willst:
+
+- `EXPO_TOKEN` als Secure Variable in Codemagic setzen ([expo.dev](https://expo.dev) → Access Tokens)
+- Dann läuft nach dem Gradle-Build noch `eas build …`
 
 ## Lokal testen (wie Codemagic)
 
 ```bash
 npm ci --legacy-peer-deps
 npm run build
-npx eas build --platform android --profile preview --non-interactive
+node scripts/prepare-android-web-assets.mjs
+cd android && ./gradlew assembleDebug
 ```
 
-## Workflow
-
-`codemagic.yaml` führt aus:
-
-1. `npm ci --legacy-peer-deps`
-2. `npm run build` — bricht bei TypeScript/Vite-Fehlern sofort ab
-3. `eas build` (Profil `preview` → APK)
-4. APK/AAB nach `build/` laden
+APK: `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ## Häufige Fehler
 
 | Fehler | Lösung |
 |--------|--------|
-| `EXPO_TOKEN is not set` | Secret in Codemagic setzen |
-| EAS `Gradle failed` | Logs auf expo.dev öffnen; lokal `npm run build` + `npx cap sync android` |
-| `No EAS Android artifact URL` | EAS-Build nicht `FINISHED` — JSON in Logs prüfen |
-| Web-Build leer / Supabase | EAS Secrets für `VITE_*` setzen |
+| Gradle failed | Log in Codemagic öffnen; lokal `./gradlew assembleDebug` in `android/` |
+| Web-Build failed | `npm run build` lokal fixen |
+| Leere App / kein Supabase | `VITE_*` in Codemagic setzen und neu bauen |
