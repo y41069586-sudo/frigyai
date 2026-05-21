@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
@@ -16,6 +17,9 @@ const COMPACT_HEIGHT_MQ = "(max-height: 700px)";
 export const WHEEL_ROW_COMPACT = 40;
 export const WHEEL_ROW_COMFORT = 46;
 export const WHEEL_ITEM_HEIGHT = WHEEL_ROW_COMFORT;
+
+const SETTLE_FALLBACK_MS = 200;
+const SMOOTH_SNAP_MS = 380;
 
 export function useMintWheelRowHeight(): number {
   return useSyncExternalStore(
@@ -56,6 +60,10 @@ const haptic = () => {
   }
 };
 
+function clampPhysical(physical: number, max: number): number {
+  return Math.max(0, Math.min(physical, max));
+}
+
 export function MintWheelColumn({
   options,
   value,
@@ -68,13 +76,16 @@ export function MintWheelColumn({
   compactLabels = false,
 }: MintWheelColumnProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastPhysicalIndexRef = useRef(0);
-  const isProgrammaticRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
   const isUserDraggingRef = useRef(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snapEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastHapticAtRef = useRef(0);
+  const lastEmittedValueRef = useRef(value);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [snapDisabled, setSnapDisabled] = useState(false);
 
   const segmentLen = options.length;
   const circularActive = Boolean(circular && segmentLen > 1);
@@ -96,103 +107,175 @@ export function MintWheelColumn({
   const centerPhysicalIndex = physicalOffset + selectedIndex;
 
   const [visualPhysicalIndex, setVisualPhysicalIndex] = useState(centerPhysicalIndex);
+  const visualPhysicalIndexRef = useRef(visualPhysicalIndex);
+  visualPhysicalIndexRef.current = visualPhysicalIndex;
 
-  useEffect(() => {
-    setVisualPhysicalIndex(centerPhysicalIndex);
-  }, [centerPhysicalIndex]);
+  const clearSnapEndTimer = useCallback(() => {
+    if (snapEndTimerRef.current !== null) {
+      clearTimeout(snapEndTimerRef.current);
+      snapEndTimerRef.current = null;
+    }
+  }, []);
+
+  const releaseProgrammaticScroll = useCallback(
+    (ms: number) => {
+      clearSnapEndTimer();
+      snapEndTimerRef.current = setTimeout(() => {
+        snapEndTimerRef.current = null;
+        isProgrammaticScrollRef.current = false;
+      }, ms);
+    },
+    [clearSnapEndTimer],
+  );
 
   const scrollToIndex = useCallback(
     (idx: number, smooth: boolean) => {
-      if (!scrollRef.current) return;
-      isProgrammaticRef.current = true;
-      scrollRef.current.scrollTo({
-        top: idx * rowHeight,
+      const el = scrollRef.current;
+      if (!el) return;
+
+      const clamped = clampPhysical(idx, displayOptions.length - 1);
+      isProgrammaticScrollRef.current = true;
+      el.scrollTo({
+        top: clamped * rowHeight,
         behavior: smooth ? "smooth" : "auto",
       });
-      lastPhysicalIndexRef.current = idx;
-      setTimeout(
-        () => {
-          isProgrammaticRef.current = false;
-        },
-        smooth ? 280 : 40,
-      );
+      visualPhysicalIndexRef.current = clamped;
+      releaseProgrammaticScroll(smooth ? SMOOTH_SNAP_MS : 48);
     },
-    [rowHeight],
+    [displayOptions.length, releaseProgrammaticScroll, rowHeight],
   );
 
   const normalizeCircularPhysical = useCallback(
-    (physical: number): number => {
+    (physical: number, smoothReposition: boolean): number => {
       if (!circularActive) return physical;
       if (physical < segmentLen) {
-        scrollToIndex(physical + segmentLen, false);
-        return physical + segmentLen;
+        const target = physical + segmentLen;
+        scrollToIndex(target, smoothReposition);
+        return target;
       }
       if (physical >= 2 * segmentLen) {
-        scrollToIndex(physical - segmentLen, false);
-        return physical - segmentLen;
+        const target = physical - segmentLen;
+        scrollToIndex(target, smoothReposition);
+        return target;
       }
       return physical;
     },
     [circularActive, scrollToIndex, segmentLen],
   );
 
-  const commitScrollPosition = useCallback(
-    (smooth: boolean) => {
-      if (!scrollRef.current || isProgrammaticRef.current) return;
+  const emitValueIfChanged = useCallback(
+    (physical: number) => {
+      const opt = displayOptions[physical];
+      if (!opt) return;
 
-      let physical = Math.round(scrollRef.current.scrollTop / rowHeight);
-      physical = Math.max(0, Math.min(displayOptions.length - 1, physical));
-      physical = normalizeCircularPhysical(physical);
-
-      const targetTop = physical * rowHeight;
-      const currentTop = scrollRef.current.scrollTop;
-
-      lastPhysicalIndexRef.current = physical;
       setVisualPhysicalIndex(physical);
+      visualPhysicalIndexRef.current = physical;
 
-      const nextValue = displayOptions[physical].value;
-      if (nextValue !== value) {
-        onChange(nextValue);
+      if (opt.value !== lastEmittedValueRef.current) {
+        lastEmittedValueRef.current = opt.value;
+        onChange(opt.value);
         const now = performance.now();
         if (now - lastHapticAtRef.current > 80) {
           haptic();
           lastHapticAtRef.current = now;
         }
       }
-
-      if (Math.abs(currentTop - targetTop) > 0.5) {
-        scrollToIndex(physical, smooth);
-      }
     },
-    [displayOptions, normalizeCircularPhysical, onChange, rowHeight, scrollToIndex, value],
+    [displayOptions, onChange],
   );
+
+  const commitScrollPosition = useCallback(
+    (smooth: boolean) => {
+      const el = scrollRef.current;
+      if (!el || isProgrammaticScrollRef.current || displayOptions.length === 0) return;
+
+      let physical = Math.round(el.scrollTop / rowHeight);
+      physical = clampPhysical(physical, displayOptions.length - 1);
+      physical = normalizeCircularPhysical(physical, false);
+
+      const targetTop = physical * rowHeight;
+      const drift = Math.abs(el.scrollTop - targetTop);
+
+      setVisualPhysicalIndex(physical);
+
+      if (drift > 0.5) {
+        scrollToIndex(physical, smooth);
+        const onSnapDone = () => {
+          el.removeEventListener("scrollend", onSnapDone);
+          emitValueIfChanged(physical);
+        };
+        el.addEventListener("scrollend", onSnapDone, { passive: true });
+        clearSnapEndTimer();
+        snapEndTimerRef.current = setTimeout(() => {
+          el.removeEventListener("scrollend", onSnapDone);
+          emitValueIfChanged(physical);
+        }, SMOOTH_SNAP_MS + 40);
+      } else {
+        emitValueIfChanged(physical);
+      }
+
+      setSnapDisabled(false);
+    },
+    [
+      clearSnapEndTimer,
+      displayOptions.length,
+      emitValueIfChanged,
+      normalizeCircularPhysical,
+      rowHeight,
+      scrollToIndex,
+    ],
+  );
+
+  const cancelSettle = useCallback(() => {
+    if (settleTimerRef.current !== null) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+  }, []);
 
   const scheduleSettle = useCallback(
-    (delayMs: number, smooth: boolean) => {
-      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
-      settleTimeoutRef.current = setTimeout(() => {
-        if (isUserDraggingRef.current) return;
-        commitScrollPosition(smooth);
+    (smooth: boolean, delayMs = SETTLE_FALLBACK_MS) => {
+      cancelSettle();
+      settleTimerRef.current = setTimeout(() => {
+        settleTimerRef.current = null;
+        if (!isUserDraggingRef.current) {
+          commitScrollPosition(smooth);
+        }
       }, delayMs);
     },
-    [commitScrollPosition],
+    [cancelSettle, commitScrollPosition],
   );
 
-  useEffect(() => {
-    const targetPhysical = physicalOffset + selectedIndex;
-    scrollToIndex(targetPhysical, false);
-  }, [selectedIndex, physicalOffset, scrollToIndex]);
+  const updateVisualFromScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || isProgrammaticScrollRef.current) return;
+
+    const idx = clampPhysical(Math.round(el.scrollTop / rowHeight), displayOptions.length - 1);
+    setVisualPhysicalIndex((prev) => (prev === idx ? prev : idx));
+  }, [displayOptions.length, rowHeight]);
+
+  const handleScroll = useCallback(() => {
+    if (isProgrammaticScrollRef.current) return;
+    if (rafRef.current != null) return;
+
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      updateVisualFromScroll();
+    });
+  }, [updateVisualFromScroll]);
 
   const beginDrag = useCallback(() => {
     isUserDraggingRef.current = true;
     setIsDragging(true);
-    if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
-  }, []);
+    setSnapDisabled(true);
+    cancelSettle();
+    clearSnapEndTimer();
+  }, [cancelSettle, clearSnapEndTimer]);
 
   const endDrag = useCallback(() => {
     isUserDraggingRef.current = false;
     setIsDragging(false);
-    scheduleSettle(40, true);
+    scheduleSettle(true, SETTLE_FALLBACK_MS);
   }, [scheduleSettle]);
 
   const handlePointerDown = useCallback(
@@ -214,42 +297,39 @@ export function MintWheelColumn({
     [endDrag],
   );
 
-  const updateVisualFromScroll = useCallback(() => {
-    if (!scrollRef.current || isProgrammaticRef.current) return;
-    const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / rowHeight);
-    const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
-    setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
-  }, [displayOptions.length, rowHeight]);
+  useEffect(() => {
+    if (isUserDraggingRef.current) return;
 
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current || isProgrammaticRef.current) return;
-    if (rafRef.current != null) return;
+    const targetPhysical = centerPhysicalIndex;
+    if (targetPhysical === visualPhysicalIndexRef.current) return;
 
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      updateVisualFromScroll();
-    });
-  }, [updateVisualFromScroll]);
+    lastEmittedValueRef.current = value;
+    setVisualPhysicalIndex(targetPhysical);
+    scrollToIndex(targetPhysical, false);
+  }, [centerPhysicalIndex, scrollToIndex, value]);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
     const onScrollEnd = () => {
-      if (!isUserDraggingRef.current) commitScrollPosition(true);
+      cancelSettle();
+      if (!isUserDraggingRef.current && !isProgrammaticScrollRef.current) {
+        commitScrollPosition(true);
+      }
     };
 
-    el.addEventListener("scrollend", onScrollEnd);
+    el.addEventListener("scrollend", onScrollEnd, { passive: true });
     return () => el.removeEventListener("scrollend", onScrollEnd);
-  }, [commitScrollPosition]);
+  }, [cancelSettle, commitScrollPosition]);
 
   useEffect(
     () => () => {
-      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
+      cancelSettle();
+      clearSnapEndTimer();
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     },
-    [],
+    [cancelSettle, clearSnapEndTimer],
   );
 
   const containerHeight = WHEEL_VISIBLE_ITEMS * rowHeight;
@@ -285,15 +365,19 @@ export function MintWheelColumn({
       <div
         ref={scrollRef}
         className="h-full overflow-y-scroll scrollbar-hide select-none"
-        style={{
-          scrollSnapType: "none",
-          WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          WebkitUserSelect: "none",
-          userSelect: "none",
-          willChange: isDragging ? "scroll-position" : undefined,
-          touchAction: "pan-y",
-        }}
+        style={
+          {
+            scrollSnapType: snapDisabled ? "none" : "y proximity",
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+            scrollBehavior: "auto",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+            willChange: "scroll-position",
+            transform: "translateZ(0)",
+            touchAction: "pan-y",
+          } as CSSProperties
+        }
         onScroll={handleScroll}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -317,6 +401,7 @@ export function MintWheelColumn({
               className={`flex items-center ${textAlignClass}`}
               style={{
                 height: rowHeight,
+                scrollSnapAlign: "center",
                 fontSize: `${isSelected ? selectedFontPx : idleFontPx}px`,
                 fontWeight: isSelected ? 600 : 400,
                 lineHeight: 1,
