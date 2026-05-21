@@ -69,79 +69,88 @@ serve(async (req) => {
   );
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const raw = String(body.code ?? body.ref ?? body.slug ?? "");
-    const slug = normalizeSlug(raw);
-    const code = normalizeCode(raw);
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "auth_required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (slug.length < 3 && code.length !== 6) {
-      return new Response(JSON.stringify({ valid: false, error: "Ungültiger Code" }), {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData.user) {
+      return new Response(JSON.stringify({ error: "invalid_session" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const rawRef = String(body.slug ?? body.ref ?? "");
+    const slug = normalizeSlug(rawRef);
+    if (slug.length < 3) {
+      return new Response(JSON.stringify({ error: "invalid_ref" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const partner = await findReferralBySlugOrCode(supabase, raw);
+    const partner = await findReferralBySlugOrCode(supabase, slug);
     if (!partner) {
-      return new Response(JSON.stringify({ valid: false, error: "Code nicht gefunden" }), {
-        status: 200,
+      return new Response(JSON.stringify({ error: "partner_not_found", slug }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: promo, error } = await supabase
-      .from("referral_codes")
-      .select("code, slug, influencer_name, duration_days, active, valid_until, max_redemptions, redemption_count")
-      .eq("id", partner.id)
+    const userId = userData.user.id;
+    const source = String(body.source ?? "deep_link").slice(0, 40);
+    const deferred = Boolean(body.deferred);
+
+    const { data: existing } = await supabase
+      .from("affiliate_attributions")
+      .select("id, affiliate_slug, referral_code_id")
+      .eq("user_id", userId)
       .maybeSingle();
 
-    if (error || !promo) {
-      return new Response(JSON.stringify({ valid: false, error: "Code nicht gefunden" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (existing) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          attributed: false,
+          slug: existing.affiliate_slug,
+          message: "already_attributed",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    if (!promo.active) {
-      return new Response(JSON.stringify({ valid: false, error: "Code nicht aktiv" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { error: insertError } = await supabase.from("affiliate_attributions").insert({
+      user_id: userId,
+      referral_code_id: partner.id,
+      affiliate_slug: partner.slug ?? slug,
+      source,
+      deferred,
+    });
 
-    if (promo.valid_until && new Date(promo.valid_until) < new Date()) {
-      return new Response(JSON.stringify({ valid: false, error: "Code abgelaufen" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (insertError) {
+      throw insertError;
     }
-
-    if (
-      promo.max_redemptions != null &&
-      promo.redemption_count >= promo.max_redemptions
-    ) {
-      return new Response(JSON.stringify({ valid: false, error: "Code ausgeschöpft" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const isLifetime = promo.duration_days === 0;
 
     return new Response(
       JSON.stringify({
-        valid: true,
-        code: promo.code,
-        slug: promo.slug,
-        influencer_name: promo.influencer_name,
-        duration_days: promo.duration_days,
-        is_lifetime: isLifetime,
+        success: true,
+        attributed: true,
+        slug: partner.slug ?? slug,
+        influencer_name: partner.influencer_name,
+        commission_rate_percent: partner.commission_rate_percent,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ valid: false, error: message }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

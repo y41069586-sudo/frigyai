@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
+import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
 
 const PremiumPricingPage = () => {
   const { language } = useLanguage();
@@ -19,14 +20,15 @@ const PremiumPricingPage = () => {
     }
   }, [subscriptionStatus, navigate, isPreview]);
 
-  const handleCheckout = (plan: PaywallBillingPlan) => {
+  const handleCheckout = async (plan: PaywallBillingPlan) => {
     if (!session) {
       localStorage.setItem("selectedPlan", plan);
       navigate("/?onboardingStep=save-progress", { replace: true });
       return;
     }
     markStripeCheckoutPending();
-    window.top!.location.href = buildStripePaymentUrl(plan, user?.email);
+    await syncAffiliateAttributionToServer(session.access_token, { source: "premium_pricing" });
+    window.top!.location.href = buildStripePaymentUrl(plan, user?.email, { userId: user?.id });
   };
 
   return (

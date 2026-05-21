@@ -4,7 +4,7 @@
     "slug": "vite_react_shadcn_ts",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "com.frigy.app",
+    "scheme": "frigy",
     "android": {
       "package": "com.frigy.app",
       "versionCode": 1

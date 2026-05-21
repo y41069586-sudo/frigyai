@@ -2,19 +2,37 @@ workflows:
   android-build:
     name: Android Build
 
+    max_build_duration: 90
+
     environment:
       vars:
-         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
-         EXPO_TOKEN: b2TWZmLz0pJk1MgXxPR939cl3SLF8ApTxqqWoXTt
+        NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+      # In Codemagic UI: Environment variables → EXPO_TOKEN (secret)
+      # Optional für Web-Build auf EAS: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY in expo.dev → Secrets
 
     scripts:
-      - npm ci --legacy-peer-deps
-      - npm install -g eas-cli
-      - mkdir -p build
-      - eas build --platform android --profile preview --non-interactive --wait --json > build/eas-build.json
-      - node scripts/download-eas-artifact.mjs build/eas-build.json build
+      - name: Install dependencies
+        script: npm ci --legacy-peer-deps
+
+      - name: Verify web build (fail fast)
+        script: npm run build
+
+      - name: EAS Android build
+        script: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "ERROR: EXPO_TOKEN is not set in Codemagic environment variables."
+            exit 1
+          fi
+          npm install -g eas-cli@latest
+          mkdir -p build
+          eas build --platform android --profile preview --non-interactive --wait --json > build/eas-build.json
+          node scripts/download-eas-artifact.mjs build/eas-build.json build
 
     artifacts:
       - build/*.apk
       - build/*.aab
-   
+
+    publishing:
+      scripts:
+        - name: Build finished
+          script: echo "Android artifact ready in build/"

@@ -3,6 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { redeemPendingReferralCode } from '@/lib/referralCode';
+import { syncAffiliateAttributionToServer } from '@/lib/affiliateSync';
+import { applyDeferredReferralOnFirstOpen } from '@/lib/referralAttribution';
 import {
   isEmailNotConfirmed,
   isEmailRateLimited,
@@ -121,6 +123,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Fast load from DB, then background refresh from Stripe
   const loadSubscriptionFast = async (userId: string, accessToken: string) => {
+    applyDeferredReferralOnFirstOpen();
+    await syncAffiliateAttributionToServer(accessToken, { source: "auth" });
+
     const referral = await redeemPendingReferralCode(accessToken);
     if (referral.success && referral.message && !referral.already_redeemed) {
       toast({

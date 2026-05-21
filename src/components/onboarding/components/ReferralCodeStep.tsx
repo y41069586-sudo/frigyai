@@ -10,6 +10,7 @@ import {
   isReferralLifetime,
   markReferralSkipPaywall,
 } from "@/lib/referralCode";
+import { getStoredInfluencerRef } from "@/lib/referralAttribution";
 
 type ReferralCodeStepProps = {
   onBack?: () => void;
@@ -40,6 +41,26 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const [isLifetime, setIsLifetime] = useState(false);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const validatingRef = useRef(false);
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("ref");
+    const stored = getStoredInfluencerRef();
+    const seed = (fromUrl || stored || "")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase()
+      .slice(0, CODE_LENGTH);
+    if (seed.length >= 3) {
+      const chars = seed.split("");
+      setCode([
+        chars[0] ?? "",
+        chars[1] ?? "",
+        chars[2] ?? "",
+        chars[3] ?? "",
+        chars[4] ?? "",
+        chars[5] ?? "",
+      ]);
+    }
+  }, []);
 
   const L = {
     de: {

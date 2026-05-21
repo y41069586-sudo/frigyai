@@ -40,6 +40,11 @@
 
     <script>
       (function () {
+        // Dev (Vite): kein SW-Recovery — verhindert schwarzen/leeren Preview bei localhost
+        if (/localhost|127\.0\.0\.1/.test(location.hostname) && !/^\?.*pwa=/i.test(location.search)) {
+          return;
+        }
+
         const FLAG = "fb_sw_recovered";
         const MAX_RECOVERY_ATTEMPTS = 2;
         let recoveryAttempts = parseInt(sessionStorage.getItem("fb_recovery_count") || "0");

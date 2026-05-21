@@ -135,22 +135,6 @@ export const saveOnboardingData = (
   localStorage.setItem('userProfile', JSON.stringify(trackerSettings));
   
   // Save reminder configuration based on onboarding notification preferences
-  const reminderConfig = {
-    water: { 
-      enabled: userData.notificationPrefs.water, 
-      interval: 2 // Default 2 hours
-    },
-    meals: { 
-      enabled: userData.notificationPrefs.meals, 
-      times: ['08:00', '12:00', '18:00'] // Default meal times
-    },
-    weight: { 
-      enabled: userData.notificationPrefs.weight, 
-      time: '07:00' // Default morning weight reminder
-    },
-  };
-  localStorage.setItem('reminderConfig', JSON.stringify(reminderConfig));
-
   if (
     userData.notificationPrefs.meals ||
     userData.notificationPrefs.water ||

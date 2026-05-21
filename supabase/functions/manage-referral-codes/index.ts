@@ -14,6 +14,10 @@ function normalizeCode(raw: string): string {
   return raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 12);
 }
 
+function normalizeSlug(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9]/g, "").toLowerCase().slice(0, 20);
+}
+
 function isLifetimeDuration(durationDays: unknown, lifetimeFlag?: unknown): boolean {
   return lifetimeFlag === true || Number(durationDays) === 0;
 }
@@ -60,7 +64,7 @@ serve(async (req) => {
     if (action === "list") {
       const { data, error } = await supabase
         .from("referral_codes")
-        .select("id, code, influencer_name, duration_days, max_redemptions, redemption_count, active, valid_until, created_at")
+        .select("id, code, slug, influencer_name, commission_rate_percent, total_revenue_cents, total_commission_cents, total_payments, duration_days, max_redemptions, redemption_count, active, valid_until, created_at")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -85,11 +89,26 @@ serve(async (req) => {
         ? null
         : Math.max(1, Number(body.max_redemptions));
 
+      const slugRaw = String(body.slug ?? "").trim();
+      const slug = slugRaw ? normalizeSlug(slugRaw) : null;
+      if (slug && slug.length < 3) {
+        return new Response(JSON.stringify({ error: "Slug mindestens 3 Zeichen" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const commissionRate = body.commission_rate_percent == null
+        ? 20
+        : Math.min(100, Math.max(0, Number(body.commission_rate_percent)));
+
       const { data, error } = await supabase
         .from("referral_codes")
         .insert({
           code,
+          slug,
           influencer_name: String(body.influencer_name ?? "").trim() || null,
+          commission_rate_percent: commissionRate,
           duration_days: durationDays,
           max_redemptions: maxRedemptions,
           active: body.active !== false,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, Tag, ToggleLeft, ToggleRight } from "lucide-react";
+import { Euro, Loader2, Plus, Tag, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,13 +7,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isReferralAdmin } from "@/lib/admin";
+import { buildSignupDeepLink, buildSignupWebUrl } from "@/lib/chottuLinkConfig";
 
 const LIFETIME_DAYS = 0;
 
 type ReferralCodeRow = {
   id: string;
   code: string;
+  slug: string | null;
   influencer_name: string | null;
+  commission_rate_percent: number;
+  total_revenue_cents: number;
+  total_commission_cents: number;
+  total_payments: number;
   duration_days: number;
   max_redemptions: number | null;
   redemption_count: number;
@@ -24,13 +30,20 @@ function formatDuration(days: number): string {
   return days === LIFETIME_DAYS ? "Lebenslang" : days + "d";
 }
 
+function formatEur(cents: number): string {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(cents / 100);
+}
+
 export function ReferralCodesAdmin() {
   const { user, session } = useAuth();
   const [codes, setCodes] = useState<ReferralCodeRow[]>([]);
+  const [totals, setTotals] = useState({ revenue_cents: 0, commission_cents: 0, payments: 0 });
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newCode, setNewCode] = useState("");
+  const [newSlug, setNewSlug] = useState("");
   const [influencerName, setInfluencerName] = useState("");
+  const [commissionRate, setCommissionRate] = useState("20");
   const [durationDays, setDurationDays] = useState(30);
   const [maxRedemptions, setMaxRedemptions] = useState("");
 
@@ -47,19 +60,30 @@ export function ReferralCodesAdmin() {
     [session?.access_token],
   );
 
+  const loadAffiliateStats = useCallback(async () => {
+    if (!session?.access_token) return;
+    const { data, error } = await supabase.functions.invoke("affiliate-admin", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: { action: "revenue_report" },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    setCodes((data?.partners as ReferralCodeRow[]) ?? []);
+    setTotals(data?.totals ?? { revenue_cents: 0, commission_cents: 0, payments: 0 });
+  }, [session?.access_token]);
+
   const loadCodes = useCallback(async () => {
     if (!session?.access_token) return;
     setLoading(true);
     try {
-      const data = await invoke({ action: "list" });
-      setCodes((data?.codes as ReferralCodeRow[]) ?? []);
+      await loadAffiliateStats();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Laden fehlgeschlagen";
       toast({ title: "Fehler", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [invoke, session?.access_token]);
+  }, [loadAffiliateStats, session?.access_token]);
 
   useEffect(() => {
     void loadCodes();
@@ -82,13 +106,16 @@ export function ReferralCodesAdmin() {
       await invoke({
         action: "create",
         code: normalized,
+        slug: newSlug.trim() || null,
         influencer_name: influencerName.trim() || null,
+        commission_rate_percent: Number(commissionRate) || 20,
         duration_days: durationDays,
         lifetime: durationDays === LIFETIME_DAYS,
         max_redemptions: maxRedemptions ? Number(maxRedemptions) : null,
       });
-      toast({ title: "Code erstellt", description: normalized });
+      toast({ title: "Partner erstellt", description: normalized });
       setNewCode("");
+      setNewSlug("");
       setInfluencerName("");
       setMaxRedemptions("");
       await loadCodes();
@@ -114,7 +141,15 @@ export function ReferralCodesAdmin() {
     <div className="space-y-4 border-t border-border/60 pt-4">
       <div className="flex items-center gap-2">
         <Tag className="h-5 w-5 text-primary" />
-        <h4 className="text-sm font-semibold">Empfehlungscodes</h4>
+        <h4 className="text-sm font-semibold">Affiliate & Empfehlungscodes</h4>
+      </div>
+
+      <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs space-y-1">
+        <p className="flex items-center gap-1 font-medium">
+          <Euro className="h-3.5 w-3.5" />
+          Umsatz gesamt: {formatEur(totals.revenue_cents)} · Provision: {formatEur(totals.commission_cents)}
+        </p>
+        <p className="text-muted-foreground">{totals.payments} Stripe-Zahlungen zugeordnet</p>
       </div>
 
       <form onSubmit={(e) => void handleCreate(e)} className="space-y-3">
@@ -127,11 +162,26 @@ export function ReferralCodesAdmin() {
               id="ref-code"
               value={newCode}
               onChange={(e) => setNewCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
-              placeholder="SARAH1"
+              placeholder="PROMO1"
               className="h-10 font-mono uppercase tracking-widest"
               maxLength={6}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ref-slug" className="text-xs">
+              ChottuLink ?ref=
+            </Label>
+            <Input
+              id="ref-slug"
+              value={newSlug}
+              onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20))}
+              placeholder="proml"
+              className="h-10 font-mono"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label htmlFor="ref-name" className="text-xs">
               Influencer
@@ -141,6 +191,20 @@ export function ReferralCodesAdmin() {
               value={influencerName}
               onChange={(e) => setInfluencerName(e.target.value)}
               placeholder="Name"
+              className="h-10"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ref-commission" className="text-xs">
+              Provision %
+            </Label>
+            <Input
+              id="ref-commission"
+              type="number"
+              min={0}
+              max={100}
+              value={commissionRate}
+              onChange={(e) => setCommissionRate(e.target.value)}
               className="h-10"
             />
           </div>
@@ -186,7 +250,7 @@ export function ReferralCodesAdmin() {
 
         <Button type="submit" className="w-full h-10" disabled={creating}>
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-          Code anlegen
+          Partner anlegen
         </Button>
       </form>
 
@@ -195,20 +259,33 @@ export function ReferralCodesAdmin() {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : codes.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">Noch keine Codes</p>
+        <p className="text-xs text-muted-foreground text-center py-2">Noch keine Partner</p>
       ) : (
-        <ul className="space-y-2 max-h-48 overflow-y-auto">
+        <ul className="space-y-2 max-h-64 overflow-y-auto">
           {codes.map((row) => (
             <li
               key={row.id}
               className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm"
             >
-              <div className="min-w-0">
-                <p className="font-mono font-bold tracking-wide">{row.code}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {row.influencer_name || "—"} · {formatDuration(row.duration_days)} · {row.redemption_count}
-                  {row.max_redemptions != null ? `/${row.max_redemptions}` : ""} genutzt
+              <div className="min-w-0 flex-1">
+                <p className="font-mono font-bold tracking-wide">
+                  {row.code}
+                  {row.slug ? (
+                    <span className="ml-2 text-xs font-normal text-primary">?ref={row.slug}</span>
+                  ) : null}
                 </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {row.influencer_name || "—"} · {row.commission_rate_percent}% · {formatDuration(row.duration_days)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Umsatz {formatEur(Number(row.total_revenue_cents ?? 0))} · Provision{" "}
+                  {formatEur(Number(row.total_commission_cents ?? 0))} · {row.total_payments ?? 0} Zahlungen
+                </p>
+                {row.slug ? (
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5" title={buildSignupWebUrl(row.slug)}>
+                    {buildSignupDeepLink(row.slug)}
+                  </p>
+                ) : null}
               </div>
               <Button
                 type="button"

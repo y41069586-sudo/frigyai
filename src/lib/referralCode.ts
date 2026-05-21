@@ -44,13 +44,13 @@ export function isReferralLifetime(durationDays?: number | null, isLifetime?: bo
 }
 
 export async function validateReferralCode(code: string): Promise<ValidateReferralResult> {
-  const normalized = code.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  if (normalized.length !== 6) {
+  const raw = code.replace(/[^a-zA-Z0-9]/g, "");
+  if (raw.length < 3) {
     return { valid: false, error: "Ungültiger Code" };
   }
 
   const { data, error } = await supabase.functions.invoke("validate-referral-code", {
-    body: { code: normalized },
+    body: { code: raw, ref: raw, slug: raw.toLowerCase() },
   });
 
   if (error) {

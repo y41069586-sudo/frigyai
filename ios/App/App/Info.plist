@@ -47,6 +47,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Frigy nutzt die Kamera, um Zutaten in deinem Kühlschrank und deiner Speisekammer zu erkennen.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Frigy kann Fotos aus deiner Galerie analysieren, um Zutaten zu erkennen.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

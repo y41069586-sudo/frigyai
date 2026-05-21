@@ -1,3 +1,6 @@
+import { isAppLinkHost } from "@/lib/chottuLinkConfig";
+import { extractRefFromSearch } from "@/lib/referralAttribution";
+
 /** Custom URL scheme — must match iOS Info.plist & Android intent-filter */
 export const FRIGY_APP_SCHEME = "frigy";
 
@@ -7,37 +10,104 @@ export const FRIGY_APP_SCHEME = "frigy";
  */
 export const STRIPE_APP_DEEP_LINK_SUCCESS = `${FRIGY_APP_SCHEME}://callback?subscription=success`;
 
+export type DeepLinkResolution = {
+  path: string | null;
+  referralRef: string | null;
+};
+
 /**
- * Maps frigy://… or https://your-domain/… to an in-app react-router path.
+ * Maps frigy://… or https://app-host/… to react-router path + optional ?ref=.
  */
-export function resolveDeepLinkPath(rawUrl: string): string | null {
-  if (!rawUrl?.trim()) return null;
+export function resolveDeepLink(rawUrl: string): DeepLinkResolution {
+  const empty: DeepLinkResolution = { path: null, referralRef: null };
+  if (!rawUrl?.trim()) return empty;
 
   try {
     const url = new URL(rawUrl);
+    const referralRef = extractRefFromSearch(url.search);
 
     if (url.protocol === `${FRIGY_APP_SCHEME}:`) {
-      return resolveFrigySchemePath(url);
+      const path = resolveFrigySchemePath(url);
+      return { path, referralRef };
     }
 
     if (url.protocol === "https:" || url.protocol === "http:") {
+      if (isAppLinkHost(url.hostname)) {
+        const path = resolveHttpsAppLinkPath(url);
+        return { path, referralRef };
+      }
+      if (isSignupPath(url.pathname)) {
+        return { path: buildSignupRoute(url.search), referralRef };
+      }
+      if (url.search.includes("subscription=success")) {
+        return { path: ensureSubscriptionSuccessPath(url.search), referralRef };
+      }
       const path = url.pathname || "/";
       const search = url.search || "";
       if (path.startsWith("/")) {
-        return `${path}${search}`;
+        return { path: `${path}${search}`, referralRef };
       }
     }
   } catch {
-    return resolveFrigySchemePathFallback(rawUrl);
+    const path = resolveFrigySchemePathFallback(rawUrl);
+    const referralRef = extractRefFromSearch(
+      rawUrl.includes("?") ? rawUrl.slice(rawUrl.indexOf("?")) : "",
+    );
+    return { path, referralRef };
+  }
+
+  return empty;
+}
+
+/** @deprecated Use resolveDeepLink — returns path only */
+export function resolveDeepLinkPath(rawUrl: string): string | null {
+  return resolveDeepLink(rawUrl).path;
+}
+
+function resolveHttpsAppLinkPath(url: URL): string | null {
+  const path = url.pathname || "/";
+  const search = url.search || "";
+
+  if (isSignupPath(path)) {
+    return buildSignupRoute(search);
+  }
+
+  if (search.includes("subscription=success")) {
+    return ensureSubscriptionSuccessPath(search);
+  }
+
+  if (path.startsWith("/")) {
+    return `${path}${search}`;
   }
 
   return null;
+}
+
+function isSignupPath(path: string): boolean {
+  const p = path.toLowerCase().replace(/\/+$/, "") || "/";
+  return p === "/signup" || p === "/invite" || p === "/referral";
+}
+
+function buildSignupRoute(search: string): string {
+  const ref = extractRefFromSearch(search);
+  if (ref) {
+    return `/?onboardingStep=referral-code&ref=${encodeURIComponent(ref)}`;
+  }
+  return "/?onboardingStep=referral-code";
 }
 
 function resolveFrigySchemePath(url: URL): string | null {
   const host = url.hostname?.toLowerCase() ?? "";
   const path = url.pathname?.toLowerCase() ?? "";
   const search = url.search ?? "";
+
+  if (host === "signup" || host === "invite" || host === "referral") {
+    return buildSignupRoute(search);
+  }
+
+  if (isSignupPath(path)) {
+    return buildSignupRoute(search);
+  }
 
   if (search.includes("subscription=success")) {
     return ensureSubscriptionSuccessPath(search);
@@ -64,6 +134,10 @@ function resolveFrigySchemePathFallback(raw: string): string | null {
   const normalized = raw.trim().toLowerCase();
   if (normalized.includes("subscription=success")) {
     return "/?subscription=success";
+  }
+  if (normalized.includes("frigy://signup") || normalized.includes("frigy://invite")) {
+    const q = raw.includes("?") ? raw.slice(raw.indexOf("?")) : "";
+    return buildSignupRoute(q);
   }
   if (normalized.startsWith(`${FRIGY_APP_SCHEME}://`)) {
     const rest = raw.slice(`${FRIGY_APP_SCHEME}://`.length);

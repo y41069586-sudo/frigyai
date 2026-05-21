@@ -9,18 +9,29 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import {
+  DEFAULT_MEAL_TIMES,
   getNotificationPermission,
+  normalizeReminderConfig,
   requestNotificationPermission,
-  sendTestNotification,
   syncRemindersFromConfig,
   type ReminderConfig,
 } from '@/lib/notifications';
 
 const DEFAULT_CONFIG: ReminderConfig = {
-  water: { enabled: false, interval: 2 },
-  meals: { enabled: false, times: ['08:00', '12:00', '18:00'] },
-  weight: { enabled: false, time: '07:00' },
+  water: { enabled: false, interval: 3 },
+  meals: { enabled: false, times: [...DEFAULT_MEAL_TIMES] },
+  weight: { enabled: false, time: '07:15' },
 };
+
+function loadReminderConfig(): ReminderConfig {
+  const saved = localStorage.getItem('reminderConfig');
+  if (!saved) return DEFAULT_CONFIG;
+  try {
+    return normalizeReminderConfig(JSON.parse(saved) as ReminderConfig);
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
 
 interface ReminderSettingsProps {
   compact?: boolean;
@@ -29,10 +40,7 @@ interface ReminderSettingsProps {
 export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => {
   const { toast } = useToast();
   const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('prompt');
-  const [config, setConfig] = useState<ReminderConfig>(() => {
-    const saved = localStorage.getItem('reminderConfig');
-    return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
-  });
+  const [config, setConfig] = useState<ReminderConfig>(loadReminderConfig);
 
   useEffect(() => {
     void getNotificationPermission().then(setPermission);
@@ -52,9 +60,8 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     if (granted) {
       toast({
         title: 'Benachrichtigungen aktiviert ✓',
-        description: 'Du erhältst jetzt Erinnerungen auf dem Gerät.',
+        description: 'Erinnerungen kommen verteilt über den Tag (2× Mahlzeit).',
       });
-      await sendTestNotification();
     } else {
       toast({
         title: 'Berechtigung abgelehnt',
@@ -160,9 +167,9 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 Std</SelectItem>
                 <SelectItem value="2">2 Std</SelectItem>
                 <SelectItem value="3">3 Std</SelectItem>
+                <SelectItem value="4">4 Std</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -176,16 +183,18 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
           </div>
           <div className="flex-1">
             <Label className="text-sm font-medium">Mahlzeiten-Erinnerung</Label>
-            <p className="text-xs text-muted-foreground">Frühstück, Mittag & Abendessen loggen</p>
+            <p className="text-xs text-muted-foreground">2× täglich, großer Abstand</p>
           </div>
           <Switch checked={config.meals.enabled} onCheckedChange={updateMealsReminder} />
         </div>
         {config.meals.enabled && (
           <div className="flex items-center gap-2 ml-11 flex-wrap">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs px-2 py-1 rounded bg-muted">08:00</span>
-            <span className="text-xs px-2 py-1 rounded bg-muted">12:00</span>
-            <span className="text-xs px-2 py-1 rounded bg-muted">18:00</span>
+            {normalizeReminderConfig(config).meals.times.map((time) => (
+              <span key={time} className="text-xs px-2 py-1 rounded bg-muted">
+                {time}
+              </span>
+            ))}
           </div>
         )}
       </Card>

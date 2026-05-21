@@ -20,6 +20,7 @@ import { lazyWithReload } from "@/lib/lazyWithReload";
 import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
+import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBootstrap";
 import MealPlansPage from "./pages/MealPlansPage";
 // Lazy load all pages for better performance
 const Index = lazyWithReload(() => import("./pages/Index"));
@@ -43,6 +44,7 @@ const AdminPage = lazyWithReload(() => import("./pages/AdminPage"));
 const LegalPage = lazyWithReload(() => import("./pages/LegalPage"));
 const FoodEntryDetailPage = lazyWithReload(() => import("./pages/FoodEntryDetailPage"));
 const OnboardingPreviewPage = lazyWithReload(() => import("./pages/OnboardingPreviewPage"));
+const SignupDeepLinkPage = lazyWithReload(() => import("./pages/SignupDeepLinkPage"));
 const BadgesPage = lazyWithReload(() => import("./pages/BadgesPage"));
 
 const queryClient = new QueryClient({
@@ -83,6 +85,8 @@ const AppContent = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
                 <Route path="/landing" element={<LandingPage />} />
+                <Route path="/signup" element={<SignupDeepLinkPage />} />
+                <Route path="/invite" element={<SignupDeepLinkPage />} />
                 <Route path="/community" element={<CommunityPage />} />
                 <Route path="/scan" element={<ScanPage />} />
                 <Route path="/manual" element={<ManualPage />} />
@@ -126,6 +130,7 @@ const App = () => {
                 <AuthProvider>
                   <MealPlanProvider>
                     <AppDeepLinkListener />
+                    <ReferralAttributionBootstrap />
                     <NotificationBootstrap />
                     <AppContent />
                   </MealPlanProvider>
