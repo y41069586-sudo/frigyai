@@ -15,7 +15,16 @@ Der Workflow baut die APK **direkt mit Gradle** — du musst **keinen** Expo-Tok
 - Per USB, Drive, WhatsApp oder Mail aufs Handy → Datei öffnen → installieren.
 - Bei Android: „Unbekannte Apps installieren“ für Dateien/Chrome erlauben.
 
-Optional: In Codemagic `BUILD_NOTIFY_EMAIL` setzen → Download-Link per Mail.
+### „Paket steht in Konflikt mit bestehendem Paket“
+
+Deine **alte APK** (`application-….apk` von **EAS/Expo**) hat eine **andere Signatur** als der neue **Frigy.apk** von Codemagic — Android erlaubt kein Überschreiben.
+
+**Einmalig:**
+
+1. **Frigy / Fridgie deinstallieren** (Einstellungen → Apps)
+2. **Frigy.apk** neu installieren
+
+**Für künftige Updates ohne Deinstall:** In Codemagic denselben **Keystore wie bei EAS** hinterlegen (Code signing → `frigy_release`) und in `codemagic.yaml` `android_signing` aktivieren. Keystore von Expo: `eas credentials` → Android → Download keystore.
 
 Optional in Codemagic **Environment variables** (für Supabase in der App):
 

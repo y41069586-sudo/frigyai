@@ -3,12 +3,23 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.frigy.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("CM_KEYSTORE_PATH")
+            if (keystorePath != null && file(keystorePath).exists()) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("CM_KEY_ALIAS")
+                keyPassword System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.frigy.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -20,8 +31,12 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // CI/Preview: Release-APK mit Debug-Signatur → normal auf dem Handy installierbar (Sideload)
-            signingConfig signingConfigs.debug
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            } else {
+                // Fallback CI ohne Keystore — andere Signatur als alte EAS-APKs → einmal deinstallieren
+                signingConfig signingConfigs.debug
+            }
         }
     }
 }

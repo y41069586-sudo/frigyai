@@ -8,8 +8,11 @@ workflows:
       java: 21
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
-      # Optional: BUILD_NOTIFY_EMAIL = deine Mail für Download-Link per E-Mail
       # Optional: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY
+      # Für Updates OHNE Deinstall: in Codemagic → Code signing identities
+      # denselben Keystore wie früher (EAS) hochladen, Referenzname: frigy_release
+      # android_signing:
+      #   - frigy_release
 
     scripts:
       - name: Install dependencies
@@ -40,17 +43,17 @@ workflows:
           Frigy auf dem Android-Handy installieren
           ======================================
 
-          1) Frigy.apk aufs Handy kopieren (nicht Quick Launch):
-             - Codemagic-Build auf dem PC öffnen → Artifacts → Frigy.apk herunterladen
-             - Per USB, Google Drive, WhatsApp oder E-Mail an dich senden
+          PAKET-KONFLIKT (alte EAS-APK z.B. application-xxxxx.apk)?
+          → Zuerst die alte Frigy/Fridgie-App DEINSTALLIEREN:
+            Einstellungen → Apps → Frigy (oder Fridgie) → Deinstallieren
+          → Dann Frigy.apk neu installieren.
+          (Andere Signatur als früherer EAS-Build — einmalig nötig.)
 
-          2) Auf dem Handy die APK-Datei öffnen (Dateien / Downloads).
+          1) Frigy.apk vom PC (Codemagic → Artifacts) aufs Handy kopieren.
+          2) APK öffnen → ggf. „Unbekannte Apps installieren“ erlauben.
+          3) Installieren.
 
-          3) Falls gefragt: „Unbekannte Apps installieren“ für Dateien/Chrome erlauben.
-
-          4) Installieren → Frigy öffnen.
-
-          Hinweis: „Quick Launch“ in Codemagic ist nur Emulator-Vorschau, kein Handy-Download.
+          Ab dann: immer dieselbe Build-Pipeline nutzen, damit Updates drübergehen.
           EOF
           echo "Fertig: build/Frigy.apk (eine Datei, Release-Build)"
 
