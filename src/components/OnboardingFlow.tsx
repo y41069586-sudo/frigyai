@@ -60,6 +60,7 @@ import {
 } from "@/lib/authErrors";
 import { consumeReferralSkipPaywall } from "@/lib/referralCode";
 import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
 import { supabase } from "@/integrations/supabase/client";
 import { MINT_STEP_HEADER_PT } from "./onboarding/layout";
@@ -546,9 +547,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     if (token) {
       await syncAffiliateAttributionToServer(token, { source: "paywall" });
     }
-    window.top!.location.href = buildStripePaymentUrl(plan, user?.email ?? authEmail, {
-      userId: user?.id,
-    });
+    await openExternalUrl(
+      buildStripePaymentUrl(plan, user?.email ?? authEmail, {
+        userId: user?.id,
+      }),
+    );
   };
 
   const handlePaywallSkip = () => {

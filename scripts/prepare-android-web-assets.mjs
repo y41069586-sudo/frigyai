@@ -25,6 +25,10 @@ const appConfig = {
 
 const plugins = [
   {
+    pkg: "@capacitor/browser",
+    classpath: "com.capacitorjs.plugins.browser.BrowserPlugin",
+  },
+  {
     pkg: "@capacitor/local-notifications",
     classpath: "com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin",
   },

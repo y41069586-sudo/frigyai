@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
 
 const PremiumPricingPage = () => {
@@ -28,7 +29,7 @@ const PremiumPricingPage = () => {
     }
     markStripeCheckoutPending();
     await syncAffiliateAttributionToServer(session.access_token, { source: "premium_pricing" });
-    window.top!.location.href = buildStripePaymentUrl(plan, user?.email, { userId: user?.id });
+    await openExternalUrl(buildStripePaymentUrl(plan, user?.email, { userId: user?.id }));
   };
 
   return (

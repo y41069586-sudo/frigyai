@@ -123,13 +123,13 @@ function formatBillingDate(language: Language): string {
 function PlanRadio({ selected }: { selected: boolean }) {
   return (
     <motion.div
-      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
       animate={{
         borderColor: selected ? ONBOARDING_PALETTE.primaryDark : ONBOARDING_PALETTE.cardBorderIdle,
         backgroundColor: selected ? ONBOARDING_PALETTE.primaryDark : "transparent",
       }}
     >
-      {selected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+      {selected && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
     </motion.div>
   );
 }
@@ -199,7 +199,7 @@ export function OnboardingPaywallStep({
         </button>
       </motion.div>
 
-      <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
+      <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={isMonthly ? "trial" : "unlock"}
@@ -207,9 +207,9 @@ export function OnboardingPaywallStep({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="mx-auto w-full max-w-[300px] pb-5 pt-1"
+            className="mx-auto w-full max-w-md pb-6 pt-2"
           >
-            <h1 className="mb-6 text-center text-[1.125rem] font-bold leading-[1.28] tracking-tight min-[390px]:text-[1.2rem]">
+            <h1 className="mb-7 text-center text-[1.35rem] font-bold leading-[1.3] tracking-tight min-[390px]:text-[1.5rem]">
               {isMonthly ? t.trialTitle : t.unlockTitle}
             </h1>
 
@@ -224,29 +224,29 @@ export function OnboardingPaywallStep({
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.08 * i }}
-                      className="flex gap-3"
+                      className="flex gap-3.5"
                     >
                       <div className="flex flex-col items-center">
                         <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
                           style={{
                             background: `linear-gradient(135deg, ${ONBOARDING_PALETTE.primary}, ${ONBOARDING_PALETTE.primaryDark})`,
                           }}
                         >
-                          <Icon className="h-[15px] w-[15px] text-white" strokeWidth={2.2} />
+                          <Icon className="h-[18px] w-[18px] text-white" strokeWidth={2.2} />
                         </div>
                         {!isLast && (
                           <div
-                            className="my-0.5 w-0.5 min-h-[2rem] flex-1"
+                            className="my-1 w-0.5 min-h-[2.25rem] flex-1"
                             style={{
                               background: `linear-gradient(180deg, ${ONBOARDING_PALETTE.primaryDark}, ${ONBOARDING_PALETTE.cardBorderIdle})`,
                             }}
                           />
                         )}
                       </div>
-                      <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-5"}`}>
-                        <p className="text-[13px] font-bold leading-snug">{step.title}</p>
-                        <p className="mt-0.5 text-[12px] leading-relaxed text-[#6B7280]">{step.desc}</p>
+                      <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-6"}`}>
+                        <p className="text-[15px] font-bold leading-snug">{step.title}</p>
+                        <p className="mt-1 text-[14px] leading-relaxed text-[#6B7280]">{step.desc}</p>
                       </div>
                     </motion.div>
                   );
@@ -260,17 +260,17 @@ export function OnboardingPaywallStep({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.06 * i }}
-                    className="flex gap-2.5 text-left"
+                    className="flex gap-3 text-left"
                   >
                     <span
-                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                       style={{ backgroundColor: ONBOARDING_PALETTE.primary }}
                     >
-                      <Check className="h-3.5 w-3.5 text-[#0a0a0a]" strokeWidth={3} />
+                      <Check className="h-4 w-4 text-[#0a0a0a]" strokeWidth={3} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-bold leading-snug">{f.title}</p>
-                      <p className="mt-0.5 text-[12px] leading-relaxed text-[#6B7280]">{f.desc}</p>
+                      <p className="text-[15px] font-bold leading-snug">{f.title}</p>
+                      <p className="mt-1 text-[14px] leading-relaxed text-[#6B7280]">{f.desc}</p>
                     </div>
                   </motion.li>
                 ))}
@@ -281,34 +281,34 @@ export function OnboardingPaywallStep({
         <div className="h-8" aria-hidden />
       </motion.div>
 
-      <div className="relative z-20 shrink-0 border-t border-[#E5E7EB] bg-white px-6 pt-4 shadow-[0_-16px_48px_-12px_rgba(0,0,0,0.12)] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-20 shrink-0 border-t border-[#E5E7EB] bg-white px-4 pt-5 shadow-[0_-16px_48px_-12px_rgba(0,0,0,0.12)] pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
         <div
           className="pointer-events-none absolute -top-10 left-0 right-0 h-10 bg-gradient-to-b from-transparent to-white"
           aria-hidden
         />
-        <div className="mx-auto w-full max-w-[300px]">
-          <div className="grid grid-cols-2 gap-2.5">
+        <div className="mx-auto w-full max-w-md">
+          <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setPlan("monthly")}
-            className="relative min-h-[72px] rounded-[14px] border-2 bg-white px-2.5 pb-2.5 pt-4 text-left transition-all touch-manipulation"
+            className="relative min-h-[88px] rounded-2xl border-2 bg-white px-3 pb-3 pt-5 text-left transition-all touch-manipulation"
             style={{
               borderColor: plan === "monthly" ? ONBOARDING_PALETTE.primaryDark : ONBOARDING_PALETTE.cardBorderIdle,
               boxShadow: plan === "monthly" ? ONBOARDING_PALETTE.shadowCard : "none",
             }}
           >
             <span
-              className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-white"
+              className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
               style={{ backgroundColor: ONBOARDING_PALETTE.primaryDeep }}
             >
               {t.trialBadge}
             </span>
-            <div className="flex items-start justify-between gap-1">
+            <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
-                <p className="text-[11px] font-semibold text-[#374151]">{t.monthly}</p>
-                <p className="mt-1 text-[14px] font-bold leading-none tracking-tight">
+                <p className="text-[13px] font-semibold text-[#374151]">{t.monthly}</p>
+                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
                   {t.monthlyPrice}
-                  <span className="text-[10px] font-medium text-[#6B7280]">{t.monthlySuffix}</span>
+                  <span className="text-[12px] font-medium text-[#6B7280]">{t.monthlySuffix}</span>
                 </p>
               </div>
               <PlanRadio selected={plan === "monthly"} />
@@ -318,24 +318,24 @@ export function OnboardingPaywallStep({
           <button
             type="button"
             onClick={() => setPlan("yearly")}
-            className="relative min-h-[72px] rounded-[14px] border-2 bg-white px-2.5 pb-2.5 pt-3 text-left transition-all touch-manipulation"
+            className="relative min-h-[88px] rounded-2xl border-2 bg-white px-3 pb-3 pt-4 text-left transition-all touch-manipulation"
             style={{
               borderColor: plan === "yearly" ? ONBOARDING_PALETTE.primaryDark : ONBOARDING_PALETTE.cardBorderIdle,
               boxShadow: plan === "yearly" ? ONBOARDING_PALETTE.shadowCard : "none",
             }}
           >
-            <div className="flex items-start justify-between gap-1">
+            <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
-                <p className="text-[11px] font-semibold text-[#374151]">{t.yearly}</p>
-                <p className="mt-1 text-[14px] font-bold leading-none tracking-tight">{t.yearlyPrice}</p>
+                <p className="text-[13px] font-semibold text-[#374151]">{t.yearly}</p>
+                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">{t.yearlyPrice}</p>
               </div>
               <PlanRadio selected={plan === "yearly"} />
             </div>
           </button>
           </div>
 
-          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[13px] text-[#374151]">
-            <Check className="h-4 w-4 shrink-0" style={{ color: ONBOARDING_PALETTE.primaryDeep }} strokeWidth={2.5} />
+          <p className="mt-5 flex items-center justify-center gap-2 text-center text-[15px] text-[#374151]">
+            <Check className="h-5 w-5 shrink-0" style={{ color: ONBOARDING_PALETTE.primaryDeep }} strokeWidth={2.5} />
             {isMonthly ? t.noPaymentNow : t.noCommitment}
           </p>
 
@@ -343,7 +343,7 @@ export function OnboardingPaywallStep({
             type="button"
             whileTap={{ scale: 0.98 }}
             onClick={() => onCheckout(plan)}
-            className="mt-3 w-full rounded-2xl py-3.5 text-[16px] font-bold text-[#0a0a0a] touch-manipulation"
+            className="mt-4 min-h-[52px] w-full rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation"
             style={{
               background: `linear-gradient(135deg, ${ONBOARDING_PALETTE.primary}, ${ONBOARDING_PALETTE.primaryDark})`,
               boxShadow: ONBOARDING_PALETTE.shadowButton,
@@ -352,7 +352,7 @@ export function OnboardingPaywallStep({
             {isMonthly ? t.ctaTrial : t.ctaUnlock}
           </motion.button>
 
-          <p className="mt-2.5 text-center text-[11px] leading-snug text-[#9CA3AF]">
+          <p className="mt-3 text-center text-[13px] leading-snug text-[#9CA3AF]">
             {isMonthly ? t.footerTrial : plan === "yearly" ? t.footerYearly : t.footerMonthly}
           </p>
         </div>
