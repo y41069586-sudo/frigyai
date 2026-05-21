@@ -1,6 +1,6 @@
 /**
- * Web port of React Native FlatList WheelPicker (snapToInterval + momentum settle).
- * Use via WheelPicker (numeric) or MintWheelColumn (onboarding).
+ * Web port of React Native FlatList WheelPicker (1:1 logic).
+ * @see https://reactnative.dev/docs/flatlist — snapToInterval, onMomentumScrollEnd, padded rows
  */
 import React, {
   useCallback,
@@ -16,21 +16,21 @@ export type WebWheelPickerProps<T> = {
   data: T[];
   value?: T;
   onChange?: (item: T, index: number) => void;
-  renderItem?: (item: T, selected: boolean, index: number, selectedIndex: number) => ReactNode;
+  renderItem?: (item: T, selected: boolean) => ReactNode;
   itemHeight?: number;
   visibleItems?: number;
   className?: string;
   style?: CSSProperties;
-  /** Optional overlay (selection band) — absolute inside container */
   selectionOverlay?: ReactNode;
-  /** Transform index before commit (e.g. circular wheel) */
+  /** Map data index before commit (e.g. circular wheel) */
   normalizeIndex?: (index: number) => number;
   getItemKey?: (item: T, index: number) => string | number;
 };
 
 const DEFAULT_ITEM_HEIGHT = 44;
 const DEFAULT_VISIBLE_ITEMS = 5;
-const PROGRAMMATIC_SCROLL_MS = 320;
+
+type PaddedRow<T> = T | null;
 
 export function WebWheelPicker<T>({
   data,
@@ -46,17 +46,13 @@ export function WebWheelPicker<T>({
   getItemKey,
 }: WebWheelPickerProps<T>) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const padCount = Math.floor(visibleItems / 2);
 
-  const indexFromValue = useCallback(
-    (v: T | undefined) => {
-      if (v === undefined || data.length === 0) return 0;
-      const index = data.findIndex((x) => x === v);
-      return index >= 0 ? index : 0;
-    },
-    [data],
-  );
-
-  const [selectedIndex, setSelectedIndex] = useState(() => indexFromValue(value));
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    if (value === undefined || data.length === 0) return 0;
+    const index = data.findIndex((x) => x === value);
+    return index >= 0 ? index : 0;
+  });
 
   const isProgrammaticScroll = useRef(false);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,6 +61,15 @@ export function WebWheelPicker<T>({
 
   const pickerHeight = itemHeight * visibleItems;
   const verticalPadding = (pickerHeight - itemHeight) / 2;
+
+  const paddedData = useMemo((): PaddedRow<T>[] => {
+    return [
+      ...Array<PaddedRow<T>>(padCount).fill(null),
+      ...data,
+      ...Array<PaddedRow<T>>(padCount).fill(null),
+    ];
+  }, [data, padCount]);
+
   const getRealIndex = useCallback(
     (offsetY: number) => {
       const index = Math.round(offsetY / itemHeight);
@@ -86,9 +91,9 @@ export function WebWheelPicker<T>({
         behavior: animated ? "smooth" : "auto",
       });
 
-      window.setTimeout(() => {
+      requestAnimationFrame(() => {
         isProgrammaticScroll.current = false;
-      }, animated ? PROGRAMMATIC_SCROLL_MS : 48);
+      });
     },
     [data.length, itemHeight],
   );
@@ -103,15 +108,16 @@ export function WebWheelPicker<T>({
 
   const updateSelectedIndex = useCallback(
     (index: number) => {
+      const resolved = resolveIndex(index);
       setSelectedIndex((prev) => {
-        if (prev === index) return prev;
-        if (onChange && data[index] !== undefined) {
-          onChange(data[index], index);
+        if (prev === resolved) return prev;
+        if (onChange && data[resolved] !== undefined) {
+          onChange(data[resolved], resolved);
         }
-        return index;
+        return resolved;
       });
     },
-    [data, onChange],
+    [data, onChange, resolveIndex],
   );
 
   const handleMomentumEnd = useCallback(() => {
@@ -120,10 +126,10 @@ export function WebWheelPicker<T>({
     const el = scrollRef.current;
     if (!el) return;
 
-    const index = resolveIndex(getRealIndex(el.scrollTop));
+    const index = getRealIndex(el.scrollTop);
     scrollToIndex(index, true);
     updateSelectedIndex(index);
-  }, [getRealIndex, resolveIndex, scrollToIndex, updateSelectedIndex]);
+  }, [getRealIndex, scrollToIndex, updateSelectedIndex]);
 
   const handleScroll = useCallback(() => {
     if (isProgrammaticScroll.current) return;
@@ -137,25 +143,25 @@ export function WebWheelPicker<T>({
 
     scrollTimeout.current = setTimeout(() => {
       scrollTimeout.current = null;
-      updateSelectedIndex(resolveIndex(getRealIndex(el.scrollTop)));
+      updateSelectedIndex(getRealIndex(el.scrollTop));
     }, 10);
-  }, [getRealIndex, resolveIndex, updateSelectedIndex]);
+  }, [getRealIndex, updateSelectedIndex]);
 
   useEffect(() => {
     if (value === undefined) return;
 
-    const index = indexFromValue(value);
-    if (index !== selectedIndexRef.current) {
+    const index = data.findIndex((x) => x === value);
+    if (index >= 0 && index !== selectedIndexRef.current) {
       setSelectedIndex(index);
       scrollToIndex(index, false);
     }
-  }, [value, data, indexFromValue, scrollToIndex]);
+  }, [value, data, scrollToIndex]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
       scrollToIndex(selectedIndexRef.current, false);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount align
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount
   }, []);
 
   useEffect(() => {
@@ -178,7 +184,7 @@ export function WebWheelPicker<T>({
         style={{
           fontSize: selected ? 24 : 20,
           fontWeight: selected ? 700 : 400,
-          color: selected ? "inherit" : "#777",
+          color: selected ? "#777" : "#777",
         }}
       >
         {String(item)}
@@ -198,9 +204,21 @@ export function WebWheelPicker<T>({
     [pickerHeight, style],
   );
 
+  const defaultOverlay = (
+    <div
+      className="pointer-events-none absolute inset-x-0 z-10"
+      style={{
+        top: verticalPadding,
+        height: itemHeight,
+        borderTop: "1px solid #444",
+        borderBottom: "1px solid #444",
+      }}
+    />
+  );
+
   return (
     <div className={className} style={containerStyle}>
-      {selectionOverlay}
+      {selectionOverlay ?? defaultOverlay}
 
       <div
         ref={scrollRef}
@@ -210,15 +228,20 @@ export function WebWheelPicker<T>({
           paddingBottom: verticalPadding,
           scrollSnapType: "y mandatory",
           WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          scrollBehavior: "auto",
+          overscrollBehavior: "none",
           touchAction: "pan-y",
         }}
         onScroll={handleScroll}
       >
-        {data.map((item, index) => {
-          const selected = index === selectedIndex;
-          const key = getItemKey ? getItemKey(item, index) : index;
+        {paddedData.map((item, flatIndex) => {
+          const realIndex = flatIndex - padCount;
+
+          if (item === null) {
+            return <div key={`pad-${flatIndex}`} style={{ height: itemHeight }} />;
+          }
+
+          const selected = realIndex === selectedIndex;
+          const key = getItemKey ? getItemKey(item, realIndex) : realIndex;
 
           return (
             <div
@@ -226,13 +249,11 @@ export function WebWheelPicker<T>({
               className="flex items-center justify-center"
               style={{
                 height: itemHeight,
-                scrollSnapAlign: "center",
+                scrollSnapAlign: "start",
                 scrollSnapStop: "always",
               }}
             >
-              {renderItem
-                ? renderItem(item, selected, index, selectedIndex)
-                : defaultRenderItem(item, selected)}
+              {renderItem ? renderItem(item, selected) : defaultRenderItem(item, selected)}
             </div>
           );
         })}
