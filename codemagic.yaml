@@ -8,8 +8,8 @@ workflows:
       java: 21
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
-      # Optional: EXPO_TOKEN → dann zusätzlich EAS-Build (siehe letzter Script-Schritt)
-      # Optional: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY für eingebettete Config
+      # Optional: BUILD_NOTIFY_EMAIL = deine Mail für Download-Link per E-Mail
+      # Optional: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY
 
     scripts:
       - name: Install dependencies
@@ -21,32 +21,49 @@ workflows:
       - name: Sync Capacitor web assets
         script: node scripts/prepare-android-web-assets.mjs
 
-      - name: Build Android APK (Gradle, kein EXPO_TOKEN nötig)
+      - name: Build installable Release APK
         script: |
           set -e
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
           mkdir -p ../build
-          cp -f app/build/outputs/apk/debug/app-debug.apk ../build/frigy-preview.apk
-          echo "APK: build/frigy-preview.apk"
-
-      - name: Optional EAS build (nur wenn EXPO_TOKEN gesetzt)
-        script: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN nicht gesetzt — überspringe EAS (Gradle-APK wurde bereits erstellt)."
-            exit 0
+          APK_SRC="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK_SRC" ]; then
+            echo "ERROR: Release APK not found at $APK_SRC"
+            find app/build/outputs -name "*.apk" || true
+            exit 1
           fi
-          npm install -g eas-cli@latest
-          eas build --platform android --profile preview --non-interactive --wait --json > build/eas-build.json
-          node scripts/download-eas-artifact.mjs build/eas-build.json build
+          cp -f "$APK_SRC" ../build/Frigy.apk
+          ls -lh ../build/Frigy.apk
+          cat > ../build/INSTALL-HANDY.txt << 'EOF'
+          Frigy auf dem Android-Handy installieren
+          ======================================
+
+          1) Frigy.apk aufs Handy kopieren (nicht Quick Launch):
+             - Codemagic-Build auf dem PC öffnen → Artifacts → Frigy.apk herunterladen
+             - Per USB, Google Drive, WhatsApp oder E-Mail an dich senden
+
+          2) Auf dem Handy die APK-Datei öffnen (Dateien / Downloads).
+
+          3) Falls gefragt: „Unbekannte Apps installieren“ für Dateien/Chrome erlauben.
+
+          4) Installieren → Frigy öffnen.
+
+          Hinweis: „Quick Launch“ in Codemagic ist nur Emulator-Vorschau, kein Handy-Download.
+          EOF
+          echo "Fertig: build/Frigy.apk (eine Datei, Release-Build)"
 
     artifacts:
-      - build/*.apk
-      - build/*.aab
-      - android/app/build/outputs/**/*.apk
+      - build/Frigy.apk
+      - build/INSTALL-HANDY.txt
 
     publishing:
       scripts:
-        - name: Build finished
-          script: echo "Download APK from Artifacts (frigy-preview.apk)"
+        - name: Download-Hinweis
+          script: |
+            echo "=========================================="
+            echo "  Handy: Artifacts → Frigy.apk herunterladen"
+            echo "  Nicht Quick Launch (nur Emulator)"
+            echo "  APK per Mail/Drive/USB aufs Handy kopieren"
+            echo "=========================================="

@@ -20,6 +20,8 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // CI/Preview: Release-APK mit Debug-Signatur → normal auf dem Handy installierbar (Sideload)
+            signingConfig signingConfigs.debug
         }
     }
 }

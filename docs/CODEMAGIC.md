@@ -6,7 +6,16 @@ Der Workflow baut die APK **direkt mit Gradle** — du musst **keinen** Expo-Tok
 
 1. Repository in Codemagic verbinden (GitHub `main`).
 2. Workflow **Android Build** starten.
-3. APK unter **Artifacts** → `build/frigy-preview.apk`
+3. APK unter **Artifacts** → **`Frigy.apk`** (nur diese eine Datei)
+
+### Aufs Handy installieren
+
+- **Nicht** „Quick Launch“ — das ist nur eine Emulator-Vorschau.
+- `Frigy.apk` am **PC** aus Codemagic → Artifacts herunterladen.
+- Per USB, Drive, WhatsApp oder Mail aufs Handy → Datei öffnen → installieren.
+- Bei Android: „Unbekannte Apps installieren“ für Dateien/Chrome erlauben.
+
+Optional: In Codemagic `BUILD_NOTIFY_EMAIL` setzen → Download-Link per Mail.
 
 Optional in Codemagic **Environment variables** (für Supabase in der App):
 
