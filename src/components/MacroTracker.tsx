@@ -487,12 +487,18 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       }
 
       // Check if the response contains an error field (from the function)
-      if (data?.error) {
-        throw new Error(data.error);
+      if (data?.not_found) {
+        throw new Error(t.foodNotFound);
       }
 
-      if (!data.name || !data.calories) {
-        throw new Error(`Unvollständige Daten erhalten: ${JSON.stringify(data)}`);
+      if (data?.error) {
+        throw new Error(
+          data.not_found ? t.foodNotFound : data.error,
+        );
+      }
+
+      if (!data.name || typeof data.calories !== "number" || data.calories <= 0) {
+        throw new Error(t.foodNotFound);
       }
 
       // Save to database with image_url

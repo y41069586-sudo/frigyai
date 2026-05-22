@@ -418,6 +418,7 @@ interface Translations {
   foodAdded: string;
   entryUpdated: string;
   couldNotAnalyzeFood: string;
+  foodNotFound: string;
   patienceMessage: string;
   calculatingCalories: string;
   determiningNutrients: string;
@@ -1026,6 +1027,7 @@ const translations: Record<Language, Translations> = {
     foodAdded: "Essen hinzugefügt",
     entryUpdated: "Eintrag aktualisiert",
     couldNotAnalyzeFood: "Konnte Essen nicht analysieren",
+    foodNotFound: "Essen nicht gefunden",
     patienceMessage: "Danke für die Geduld...",
     calculatingCalories: "Kalorien werden berechnet...",
     determiningNutrients: "Nährwerte ermitteln...",
@@ -1871,6 +1873,7 @@ const translations: Record<Language, Translations> = {
     foodAdded: "Food added",
     entryUpdated: "Entry updated",
     couldNotAnalyzeFood: "Could not analyze food",
+    foodNotFound: "Food not found",
     patienceMessage: "Thanks for your patience...",
     calculatingCalories: "Calculating calories...",
     determiningNutrients: "Determining nutrients...",
@@ -2716,6 +2719,7 @@ const translations: Record<Language, Translations> = {
     foodAdded: "Aliment ajouté",
     entryUpdated: "Entrée mise à jour",
     couldNotAnalyzeFood: "Impossible d'analyser l'aliment",
+    foodNotFound: "Aliment introuvable",
     patienceMessage: "Merci pour votre patience...",
     calculatingCalories: "Calcul des calories...",
     determiningNutrients: "Détermination des nutriments...",
