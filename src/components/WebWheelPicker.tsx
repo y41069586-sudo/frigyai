@@ -1,11 +1,12 @@
 /**
- * Web wheel picker — iOS-perfect physics (see IOSPerfectWheelPicker).
+ * Web wheel picker — native-like momentum scroll (see NativeLikeWheelPicker).
  */
 export {
-  IOSPerfectWheelPicker as WebWheelPicker,
-  type IOSPerfectWheelPickerProps as WebWheelPickerProps,
+  NativeLikeWheelPicker as WebWheelPicker,
+  type NativeLikeWheelPickerProps as WebWheelPickerProps,
+  type IOSPerfectWheelPickerProps,
   type IOSUltraSmoothWheelPickerProps,
   type IOSStyleWheelPickerProps,
-} from "@/components/IOSPerfectWheelPicker";
+} from "@/components/NativeLikeWheelPicker";
 
-export { default } from "@/components/IOSPerfectWheelPicker";
+export { default } from "@/components/NativeLikeWheelPicker";

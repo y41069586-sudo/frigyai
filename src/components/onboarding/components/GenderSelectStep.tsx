@@ -25,8 +25,8 @@ const PALETTE = {
 };
 
 const GENDER_IMAGES = {
-  male: "/gender-male.png",
-  female: "/gender-female.png",
+  male: { default: "/gender-male.png", selected: "/gender-male-selected.png" },
+  female: { default: "/gender-female.png", selected: "/gender-female-selected.png" },
 } as const;
 
 const SPRING = { type: "spring" as const, stiffness: 420, damping: 32, mass: 0.85 };
@@ -42,11 +42,11 @@ export function GenderSelectStep({
 
   const binaryOptions: {
     id: "male" | "female";
-    image: string;
+    images: (typeof GENDER_IMAGES)["male"];
     label: string;
   }[] = [
-    { id: "male", image: GENDER_IMAGES.male, label: t.onboardingMale },
-    { id: "female", image: GENDER_IMAGES.female, label: t.onboardingFemale },
+    { id: "male", images: GENDER_IMAGES.male, label: t.onboardingMale },
+    { id: "female", images: GENDER_IMAGES.female, label: t.onboardingFemale },
   ];
 
   const nonBinaryLabel =
@@ -132,18 +132,17 @@ export function GenderSelectStep({
                 className="flex flex-col items-center gap-2.5 border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/50"
               >
                 <motion.div
-                  className="relative w-full rounded-2xl"
+                  className="relative w-full"
                   style={{ aspectRatio: "1" }}
-                  animate={{
-                    boxShadow: selected
-                      ? `0 0 0 3px ${PALETTE.selectedBg}, 0 0 0 5px ${PALETTE.border}`
-                      : "0 0 0 3px transparent, 0 0 0 5px transparent",
-                  }}
-                  transition={{ duration: 0.32, ease: EASE }}
+                  transition={{ duration: 0.28, ease: EASE }}
                 >
-                  <img
-                    src={opt.image}
+                  <motion.img
+                    key={selected ? "selected" : "default"}
+                    src={selected ? opt.images.selected : opt.images.default}
                     alt=""
+                    initial={{ opacity: 0.85 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.22, ease: EASE }}
                     className="h-full w-full object-contain"
                     draggable={false}
                   />
