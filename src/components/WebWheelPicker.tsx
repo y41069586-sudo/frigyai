@@ -1,6 +1,5 @@
 /**
- * Web wheel picker — selection commits only when scrolling stops,
- * then eases smoothly to the nearest row (iOS-like, not per-tick snap).
+ * Web wheel picker — live selection while scrolling, smooth snap on release.
  */
 import React, {
   useCallback,
@@ -16,7 +15,6 @@ export type WebWheelPickerProps<T> = {
   data: T[];
   value?: T;
   onChange?: (item: T, index: number) => void;
-  /** `activeIndex` is the committed selection (unchanged while scrolling). */
   renderItem?: (item: T, selected: boolean, index: number, activeIndex: number) => ReactNode;
   itemHeight?: number;
   visibleItems?: number;
@@ -72,6 +70,7 @@ export function WebWheelPicker<T>({
   const isSettling = useRef(false);
   const scrollIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const snapAnimFrameRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
   const selectedIndexRef = useRef(selectedIndex);
   selectedIndexRef.current = selectedIndex;
 
@@ -92,6 +91,22 @@ export function WebWheelPicker<T>({
       return normalizeIndex ? normalizeIndex(clamped) : clamped;
     },
     [data.length, normalizeIndex],
+  );
+
+  const applySelection = useCallback(
+    (rawIndex: number, notify: boolean) => {
+      const resolved = resolveIndex(rawIndex);
+      if (resolved === selectedIndexRef.current) return resolved;
+
+      selectedIndexRef.current = resolved;
+      setSelectedIndex(resolved);
+
+      if (notify && onChange && data[resolved] !== undefined) {
+        onChange(data[resolved], resolved);
+      }
+      return resolved;
+    },
+    [data, onChange, resolveIndex],
   );
 
   const cancelSnapAnimation = useCallback(() => {
@@ -162,21 +177,13 @@ export function WebWheelPicker<T>({
     [cancelSnapAnimation, data.length, itemHeight],
   );
 
-  const commitSelection = useCallback(
-    async (rawIndex: number) => {
-      const resolved = resolveIndex(rawIndex);
-
-      await animateToIndex(resolved);
-
-      if (resolved !== selectedIndexRef.current) {
-        selectedIndexRef.current = resolved;
-        setSelectedIndex(resolved);
-        if (onChange && data[resolved] !== undefined) {
-          onChange(data[resolved], resolved);
-        }
-      }
+  const updateSelectionFromScroll = useCallback(
+    (notify: boolean) => {
+      const el = scrollRef.current;
+      if (!el || isProgrammaticScroll.current) return;
+      applySelection(getRealIndex(el.scrollTop), notify);
     },
-    [animateToIndex, data, onChange, resolveIndex],
+    [applySelection, getRealIndex],
   );
 
   const handleSettle = useCallback(() => {
@@ -186,12 +193,14 @@ export function WebWheelPicker<T>({
     if (!el) return;
 
     const target = resolveIndex(getRealIndex(el.scrollTop));
+    applySelection(target, true);
 
     isSettling.current = true;
-    void commitSelection(target).finally(() => {
+    void animateToIndex(target).finally(() => {
       isSettling.current = false;
+      updateSelectionFromScroll(true);
     });
-  }, [commitSelection, getRealIndex, resolveIndex]);
+  }, [animateToIndex, applySelection, getRealIndex, resolveIndex, updateSelectionFromScroll]);
 
   const scheduleSettleCheck = useCallback(() => {
     if (isProgrammaticScroll.current) return;
@@ -211,6 +220,17 @@ export function WebWheelPicker<T>({
     isSettling.current = false;
     cancelSnapAnimation();
   }, [cancelSnapAnimation]);
+
+  const handleScroll = useCallback(() => {
+    if (isProgrammaticScroll.current) return;
+
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      updateSelectionFromScroll(true);
+      scheduleSettleCheck();
+    });
+  }, [scheduleSettleCheck, updateSelectionFromScroll]);
 
   useEffect(() => {
     if (value === undefined) return;
@@ -248,6 +268,7 @@ export function WebWheelPicker<T>({
   useEffect(
     () => () => {
       if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       cancelSnapAnimation();
     },
     [cancelSnapAnimation],
@@ -282,9 +303,7 @@ export function WebWheelPicker<T>({
         onPointerDown={onUserScrollStart}
         onTouchStart={onUserScrollStart}
         onWheel={onUserScrollStart}
-        onScroll={() => {
-          if (!isProgrammaticScroll.current) scheduleSettleCheck();
-        }}
+        onScroll={handleScroll}
       >
         {data.map((item, index) => {
           const selected = index === selectedIndex;

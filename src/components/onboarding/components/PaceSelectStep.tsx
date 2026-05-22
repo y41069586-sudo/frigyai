@@ -27,7 +27,6 @@ const MAX_PACE_KG = 1.0;
 type PaceMarker = {
   value: number;
   barHeight: number;
-  label?: string;
 };
 
 const haptic = (ms = 8) => {
@@ -122,14 +121,14 @@ function MintSlider({
   return (
     <div className="select-none">
       {paceMarkers && paceMarkers.length > 0 ? (
-        <div className="relative mb-3 h-10 px-0.5" aria-hidden>
+        <div className="relative mb-3 h-7 px-0.5" aria-hidden>
           {paceMarkers.map((marker) => {
             const markerPct = ((marker.value - min) / (max - min)) * 100;
             const isNear = Math.abs(value - marker.value) < step * 0.55;
             return (
               <div
                 key={`pace-${marker.value}`}
-                className="absolute bottom-0 flex flex-col items-center"
+                className="absolute bottom-0 flex items-end justify-center"
                 style={{
                   left: `${markerPct}%`,
                   transform: "translateX(-50%)",
@@ -145,17 +144,6 @@ function MintSlider({
                     transition: "height 160ms ease, background 160ms ease, box-shadow 160ms ease",
                   }}
                 />
-                {marker.label ? (
-                  <span
-                    className="mt-1 text-[9px] font-semibold uppercase tracking-wide"
-                    style={{
-                      color: isNear ? PALETTE.primaryDeep : PALETTE.textSubtle,
-                      transition: "color 160ms ease",
-                    }}
-                  >
-                    {marker.label}
-                  </span>
-                ) : null}
               </div>
             );
           })}
@@ -341,17 +329,10 @@ export function PaceSelectStep({
     { id: "imperial", label: "Imperial" },
   ];
 
-  const paceSpeedLabels = {
-    de: { slow: "langsam", medium: "mittel", fast: "schnell" },
-    en: { slow: "slow", medium: "medium", fast: "fast" },
-    fr: { slow: "lent", medium: "moyen", fast: "rapide" },
-  } as const;
-  const speedLabels = paceSpeedLabels[lng];
-
   const paceMarkers: PaceMarker[] = [
-    { value: ticks[0], barHeight: 10, label: speedLabels.slow },
-    { value: ticks[1], barHeight: 18, label: speedLabels.medium },
-    { value: ticks[2], barHeight: 26, label: speedLabels.fast },
+    { value: ticks[0], barHeight: 10 },
+    { value: ticks[1], barHeight: 18 },
+    { value: ticks[2], barHeight: 26 },
   ];
 
   return (
