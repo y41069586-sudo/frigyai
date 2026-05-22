@@ -1,6 +1,6 @@
 /**
- * Web wheel picker — iOS-like momentum + center-aligned selection.
- * Padding centers rows; highlight follows scroll; value commits on settle.
+ * Web wheel picker — selection commits only when scrolling stops,
+ * then eases smoothly to the nearest row (iOS-like, not per-tick snap).
  */
 import React, {
   useCallback,
@@ -16,12 +16,12 @@ export type WebWheelPickerProps<T> = {
   data: T[];
   value?: T;
   onChange?: (item: T, index: number) => void;
-  renderItem?: (item: T, selected: boolean, index: number, highlightIndex: number) => ReactNode;
+  /** `activeIndex` is the committed selection (unchanged while scrolling). */
+  renderItem?: (item: T, selected: boolean, index: number, activeIndex: number) => ReactNode;
   itemHeight?: number;
   visibleItems?: number;
   className?: string;
   style?: CSSProperties;
-  /** Parent provides green band (onboarding) — no default borders */
   selectionOverlay?: ReactNode | null;
   normalizeIndex?: (index: number) => number;
   getItemKey?: (item: T, index: number) => string | number;
@@ -29,11 +29,17 @@ export type WebWheelPickerProps<T> = {
 
 const DEFAULT_ITEM_HEIGHT = 44;
 const DEFAULT_VISIBLE_ITEMS = 5;
-const PROGRAMMATIC_SCROLL_MS = 320;
+const SCROLL_IDLE_MS = 140;
+const MIN_SNAP_MS = 200;
+const MAX_SNAP_MS = 380;
 
 function clampIndex(index: number, count: number): number {
   if (count <= 0) return 0;
   return Math.max(0, Math.min(index, count - 1));
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
 }
 
 export function WebWheelPicker<T>({
@@ -61,15 +67,13 @@ export function WebWheelPicker<T>({
   );
 
   const [selectedIndex, setSelectedIndex] = useState(() => indexFromValue(value));
-  const [highlightIndex, setHighlightIndex] = useState(() => indexFromValue(value));
 
   const isProgrammaticScroll = useRef(false);
-  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const isSettling = useRef(false);
+  const scrollIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snapAnimFrameRef = useRef<number | null>(null);
   const selectedIndexRef = useRef(selectedIndex);
-  const highlightIndexRef = useRef(highlightIndex);
   selectedIndexRef.current = selectedIndex;
-  highlightIndexRef.current = highlightIndex;
 
   const pickerHeight = itemHeight * visibleItems;
   const verticalPadding = (pickerHeight - itemHeight) / 2;
@@ -90,39 +94,79 @@ export function WebWheelPicker<T>({
     [data.length, normalizeIndex],
   );
 
-  const scrollToIndex = useCallback(
-    (index: number, animated: boolean) => {
+  const cancelSnapAnimation = useCallback(() => {
+    if (snapAnimFrameRef.current !== null) {
+      cancelAnimationFrame(snapAnimFrameRef.current);
+      snapAnimFrameRef.current = null;
+      isProgrammaticScroll.current = false;
+    }
+  }, []);
+
+  const animateToIndex = useCallback(
+    (index: number): Promise<void> => {
+      const el = scrollRef.current;
+      if (!el || data.length === 0) return Promise.resolve();
+
+      const targetTop = clampIndex(index, data.length) * itemHeight;
+      const startTop = el.scrollTop;
+      const distance = Math.abs(targetTop - startTop);
+
+      if (distance < 0.5) {
+        el.scrollTop = targetTop;
+        return Promise.resolve();
+      }
+
+      cancelSnapAnimation();
+      isProgrammaticScroll.current = true;
+
+      const duration = Math.min(
+        MAX_SNAP_MS,
+        Math.max(MIN_SNAP_MS, distance * 0.55),
+      );
+      const startTime = performance.now();
+
+      return new Promise((resolve) => {
+        const step = (now: number) => {
+          const elapsed = now - startTime;
+          const t = Math.min(1, elapsed / duration);
+          el.scrollTop = startTop + (targetTop - startTop) * easeOutCubic(t);
+
+          if (t < 1) {
+            snapAnimFrameRef.current = requestAnimationFrame(step);
+          } else {
+            el.scrollTop = targetTop;
+            snapAnimFrameRef.current = null;
+            isProgrammaticScroll.current = false;
+            resolve();
+          }
+        };
+
+        snapAnimFrameRef.current = requestAnimationFrame(step);
+      });
+    },
+    [cancelSnapAnimation, data.length, itemHeight],
+  );
+
+  const scrollToIndexInstant = useCallback(
+    (index: number) => {
       const el = scrollRef.current;
       if (!el || data.length === 0) return;
 
-      const clamped = clampIndex(index, data.length);
+      cancelSnapAnimation();
       isProgrammaticScroll.current = true;
-
-      el.scrollTo({
-        top: clamped * itemHeight,
-        behavior: animated ? "smooth" : "auto",
-      });
-
-      window.setTimeout(() => {
+      el.scrollTop = clampIndex(index, data.length) * itemHeight;
+      requestAnimationFrame(() => {
         isProgrammaticScroll.current = false;
-      }, animated ? PROGRAMMATIC_SCROLL_MS : 48);
+      });
     },
-    [data.length, itemHeight],
+    [cancelSnapAnimation, data.length, itemHeight],
   );
 
-  const commitIndex = useCallback(
-    (rawIndex: number, animated: boolean) => {
+  const commitSelection = useCallback(
+    async (rawIndex: number) => {
       const resolved = resolveIndex(rawIndex);
-      highlightIndexRef.current = resolved;
-      setHighlightIndex(resolved);
 
-      const targetTop = resolved * itemHeight;
-      const el = scrollRef.current;
-      const drift = el ? Math.abs(el.scrollTop - targetTop) : 0;
-
-      if (drift > 0.5) {
-        scrollToIndex(resolved, animated);
-      }
+      await animateToIndex(resolved);
 
       if (resolved !== selectedIndexRef.current) {
         selectedIndexRef.current = resolved;
@@ -132,63 +176,58 @@ export function WebWheelPicker<T>({
         }
       }
     },
-    [data, onChange, resolveIndex, scrollToIndex],
+    [animateToIndex, data, onChange, resolveIndex],
   );
 
-  const updateHighlightFromScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || isProgrammaticScroll.current) return;
-
-    const idx = getRealIndex(el.scrollTop);
-    setHighlightIndex((prev) => {
-      if (prev === idx) return prev;
-      highlightIndexRef.current = idx;
-      return idx;
-    });
-  }, [getRealIndex]);
-
-  const handleScroll = useCallback(() => {
-    if (isProgrammaticScroll.current) return;
-
-    if (rafRef.current !== null) return;
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      updateHighlightFromScroll();
-    });
-  }, [updateHighlightFromScroll]);
-
   const handleSettle = useCallback(() => {
-    if (isProgrammaticScroll.current) return;
+    if (isProgrammaticScroll.current || isSettling.current) return;
+
     const el = scrollRef.current;
     if (!el) return;
-    commitIndex(getRealIndex(el.scrollTop), true);
-  }, [commitIndex, getRealIndex]);
 
-  const scheduleSettle = useCallback(() => {
-    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
-    settleTimerRef.current = setTimeout(() => {
-      settleTimerRef.current = null;
+    const target = resolveIndex(getRealIndex(el.scrollTop));
+
+    isSettling.current = true;
+    void commitSelection(target).finally(() => {
+      isSettling.current = false;
+    });
+  }, [commitSelection, getRealIndex, resolveIndex]);
+
+  const scheduleSettleCheck = useCallback(() => {
+    if (isProgrammaticScroll.current) return;
+
+    if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+    scrollIdleTimerRef.current = setTimeout(() => {
+      scrollIdleTimerRef.current = null;
       handleSettle();
-    }, 80);
+    }, SCROLL_IDLE_MS);
   }, [handleSettle]);
+
+  const onUserScrollStart = useCallback(() => {
+    if (scrollIdleTimerRef.current) {
+      clearTimeout(scrollIdleTimerRef.current);
+      scrollIdleTimerRef.current = null;
+    }
+    isSettling.current = false;
+    cancelSnapAnimation();
+  }, [cancelSnapAnimation]);
 
   useEffect(() => {
     if (value === undefined) return;
     const index = indexFromValue(value);
     if (index !== selectedIndexRef.current) {
+      selectedIndexRef.current = index;
       setSelectedIndex(index);
-      setHighlightIndex(index);
-      highlightIndexRef.current = index;
-      scrollToIndex(index, false);
+      scrollToIndexInstant(index);
     }
-  }, [value, data, indexFromValue, scrollToIndex]);
+  }, [value, data, indexFromValue, scrollToIndexInstant]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
       const idx = indexFromValue(value);
-      scrollToIndex(idx, false);
-      setHighlightIndex(idx);
-      highlightIndexRef.current = idx;
+      selectedIndexRef.current = idx;
+      setSelectedIndex(idx);
+      scrollToIndexInstant(idx);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount
   }, []);
@@ -198,7 +237,7 @@ export function WebWheelPicker<T>({
     if (!el) return;
 
     const onScrollEnd = () => {
-      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
       handleSettle();
     };
 
@@ -208,10 +247,10 @@ export function WebWheelPicker<T>({
 
   useEffect(
     () => () => {
-      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+      cancelSnapAnimation();
     },
-    [],
+    [cancelSnapAnimation],
   );
 
   const containerStyle: CSSProperties = useMemo(
@@ -235,31 +274,30 @@ export function WebWheelPicker<T>({
         style={{
           paddingTop: verticalPadding,
           paddingBottom: verticalPadding,
-          scrollSnapType: "y proximity",
+          scrollSnapType: "none",
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
           touchAction: "pan-y",
         }}
+        onPointerDown={onUserScrollStart}
+        onTouchStart={onUserScrollStart}
+        onWheel={onUserScrollStart}
         onScroll={() => {
-          handleScroll();
-          scheduleSettle();
+          if (!isProgrammaticScroll.current) scheduleSettleCheck();
         }}
       >
         {data.map((item, index) => {
-          const selected = index === highlightIndex;
+          const selected = index === selectedIndex;
           const key = getItemKey ? getItemKey(item, index) : index;
 
           return (
             <div
               key={key}
               className="flex items-center justify-center"
-              style={{
-                height: itemHeight,
-                scrollSnapAlign: "center",
-              }}
+              style={{ height: itemHeight }}
             >
               {renderItem ? (
-                renderItem(item, selected, index, highlightIndex)
+                renderItem(item, selected, index, selectedIndex)
               ) : (
                 <span
                   style={{

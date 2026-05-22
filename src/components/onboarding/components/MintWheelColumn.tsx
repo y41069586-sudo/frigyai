@@ -118,8 +118,8 @@ export function MintWheelColumn({
         getItemKey={(item, index) =>
           circularActive ? `wheel-${index}-${item.value}` : item.value
         }
-        renderItem={(opt, selected, index, highlightIndex) => {
-          const distance = Math.abs(index - highlightIndex);
+        renderItem={(opt, selected, index, activeIndex) => {
+          const distance = Math.abs(index - activeIndex);
           const opacity =
             distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
           const scale = distance === 0 ? 1 : distance === 1 ? 0.98 : 0.9;

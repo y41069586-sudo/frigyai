@@ -26,6 +26,7 @@ import {
   OnboardingStep, UserData, defaultUserData, onboardingSteps,
   ONBOARDING_MINT_BODY_STEPS,
   ONBOARDING_MINT_PROGRESS_LINE_STEPS,
+  showsOnboardingTopProgress,
 } from "./onboarding/types";
 import { calculateMacros, calculateWeeksToGoal, saveOnboardingData, saveOnboardingAfterSignup } from "./onboarding/utils";
 import {
@@ -369,7 +370,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
-  const { user, signUp, signIn } = useAuth();
+  const { user, signUp, signIn, isPremium, checkSubscription } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -531,13 +532,26 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     onComplete();
   };
 
+  const canAccessDashboard = useCallback(async (): Promise<boolean> => {
+    if (consumeReferralSkipPaywall()) return true;
+    if (isPremium) return true;
+    const status = await checkSubscription();
+    return Boolean(status?.subscribed);
+  }, [isPremium, checkSubscription]);
+
   const goToPaywall = () => {
     if (onboardingSteps.includes("paywall")) {
       setCurrentStep("paywall");
-    } else {
-      finishOnboardingExit();
     }
   };
+
+  const tryFinishOnboardingWithAccess = useCallback(async () => {
+    if (await canAccessDashboard()) {
+      finishOnboardingExit();
+      return;
+    }
+    goToPaywall();
+  }, [canAccessDashboard]);
 
   const handlePaywallCheckout = async (plan: PaywallBillingPlan) => {
     lightTap();
@@ -554,17 +568,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     );
   };
 
-  const handlePaywallSkip = () => {
-    finishOnboardingExit();
-  };
-
   const goAfterSignup = () => {
     saveOnboardingAfterSignup(userData);
-    if (consumeReferralSkipPaywall()) {
-      finishOnboardingExit();
-    } else {
-      goToPaywall();
-    }
+    void tryFinishOnboardingWithAccess();
   };
 
   const goNext = () => {
@@ -645,7 +651,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     if (currentStep === "macro-preview") {
       setAuthMode("signup");
       if (user) {
-        finishOnboardingExit();
+        void tryFinishOnboardingWithAccess();
       } else {
         setCurrentStep("save-progress");
       }
@@ -3432,9 +3438,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 });
                 return;
               }
-              saveOnboardingData(userData, { markOnboardingComplete: true, writeInitialMealPlan: true });
-              localStorage.setItem(FIRST_WEEKLY_PLAN_DONE_KEY, "1");
-              onComplete();
+              saveOnboardingAfterSignup(userData);
+              void tryFinishOnboardingWithAccess();
             }
           } finally {
             setIsAuthLoading(false);
@@ -3586,7 +3591,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           <OnboardingPaywallStep
             language={language}
             onBack={goBack}
-            onSkip={handlePaywallSkip}
             onCheckout={handlePaywallCheckout}
           />
         );
@@ -3863,8 +3867,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           animate={{ opacity: 1 }}
           className="onboarding-flow-root fixed inset-0 z-[100] flex min-h-0 flex-col overflow-hidden bg-background safe-area-inset"
         >
-      {/* Global progress bar (not on mint body / splash / tutorial / analyzing) */}
-      {currentStep !== "analyzing" &&
+      {/* Legacy progress bar — hidden from macro-preview onward (mint line steps use thin bar) */}
+      {showsOnboardingTopProgress(currentStep) &&
+        currentStep !== "analyzing" &&
         currentStep !== "save-progress" &&
         currentStep !== "paywall" &&
         currentStep !== "tutorial" &&

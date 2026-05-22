@@ -68,9 +68,9 @@ export const WheelPicker = ({
         visibleItems={VISIBLE_ITEMS}
         getItemKey={(item) => item}
         selectionOverlay={null}
-        renderItem={(item, selected, _index, highlightIndex) => {
+        renderItem={(item, selected, _index, activeIndex) => {
           const itemIndex = data.indexOf(item);
-          const distance = Math.abs(itemIndex - highlightIndex);
+          const distance = Math.abs(itemIndex - activeIndex);
           const opacity = distance === 0 ? 1 : distance === 1 ? 0.5 : 0.25;
 
           return (

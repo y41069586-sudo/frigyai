@@ -41,7 +41,6 @@ const PremiumPricingPage = () => {
       <OnboardingPaywallStep
         language={language}
         onBack={() => navigate(-1)}
-        onSkip={() => navigate("/", { replace: true })}
         onCheckout={handleCheckout}
       />
     </motion.div>

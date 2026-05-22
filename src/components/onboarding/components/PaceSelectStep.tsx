@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
@@ -21,6 +21,14 @@ const PALETTE = {
 };
 
 const KG_PER_LB = 0.45359237;
+const MIN_PACE_KG = 0.1;
+const MAX_PACE_KG = 1.0;
+
+type PaceMarker = {
+  value: number;
+  barHeight: number;
+  label?: string;
+};
 
 const haptic = (ms = 8) => {
   try {
@@ -47,6 +55,7 @@ function MintSlider({
   onChange,
   ticks,
   formatTick,
+  paceMarkers,
   onActiveChange,
 }: {
   min: number;
@@ -56,6 +65,7 @@ function MintSlider({
   onChange: (v: number) => void;
   ticks: number[];
   formatTick: (v: number) => string;
+  paceMarkers?: PaceMarker[];
   onActiveChange?: (active: boolean) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -111,6 +121,46 @@ function MintSlider({
 
   return (
     <div className="select-none">
+      {paceMarkers && paceMarkers.length > 0 ? (
+        <div className="relative mb-3 h-10 px-0.5" aria-hidden>
+          {paceMarkers.map((marker) => {
+            const markerPct = ((marker.value - min) / (max - min)) * 100;
+            const isNear = Math.abs(value - marker.value) < step * 0.55;
+            return (
+              <div
+                key={`pace-${marker.value}`}
+                className="absolute bottom-0 flex flex-col items-center"
+                style={{
+                  left: `${markerPct}%`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                <div
+                  className="rounded-full"
+                  style={{
+                    width: 5,
+                    height: marker.barHeight,
+                    background: isNear ? PALETTE.primaryDark : "rgba(110, 240, 168, 0.5)",
+                    boxShadow: isNear ? "0 2px 6px rgba(74, 232, 150, 0.35)" : "none",
+                    transition: "height 160ms ease, background 160ms ease, box-shadow 160ms ease",
+                  }}
+                />
+                {marker.label ? (
+                  <span
+                    className="mt-1 text-[9px] font-semibold uppercase tracking-wide"
+                    style={{
+                      color: isNear ? PALETTE.primaryDeep : PALETTE.textSubtle,
+                      transition: "color 160ms ease",
+                    }}
+                  >
+                    {marker.label}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
       <div
         className="relative touch-none"
         style={{ height: 42 }}
@@ -204,28 +254,35 @@ export function PaceSelectStep({
   const isMetric = userData.weightUnit === "metric";
   const isGain = userData.goalMode === "gain";
 
-  // weeklyGoal is always stored in kg/week. Default 0.5 kg. Range 0.0–1.0 kg (0.5 = track center).
-  const kgPerWeek = Math.min(1, Math.max(0, userData.weeklyGoal ?? 0.5));
+  // weeklyGoal stored in kg/week — range 0.1–1.0 kg
+  const kgPerWeek = Math.min(MAX_PACE_KG, Math.max(MIN_PACE_KG, userData.weeklyGoal ?? 0.5));
   const lbsPerWeek = kgPerWeek / KG_PER_LB;
 
   const displayValue = isMetric
     ? Math.round(kgPerWeek * 10) / 10
     : Math.round(lbsPerWeek * 10) / 10;
 
-  const min = 0;
-  const max = isMetric ? 1.0 : Math.round((1.0 / KG_PER_LB) * 10) / 10;
+  const min = isMetric ? MIN_PACE_KG : Math.round((MIN_PACE_KG / KG_PER_LB) * 10) / 10;
+  const max = isMetric ? MAX_PACE_KG : Math.round((MAX_PACE_KG / KG_PER_LB) * 10) / 10;
   const step = 0.1;
   const ticks = isMetric
-    ? [0, 0.5, 1.0]
-    : [0, Math.round((0.5 / KG_PER_LB) * 10) / 10, max];
+    ? [MIN_PACE_KG, 0.5, MAX_PACE_KG]
+    : [min, Math.round((0.5 / KG_PER_LB) * 10) / 10, max];
 
   const clampedDisplay = Math.max(min, Math.min(max, displayValue));
+
+  useEffect(() => {
+    if ((userData.weeklyGoal ?? 0.5) < MIN_PACE_KG) {
+      setUserData((prev) => ({ ...prev, weeklyGoal: MIN_PACE_KG }));
+    }
+  }, [setUserData, userData.weeklyGoal]);
 
   const [sliderActive, setSliderActive] = useState(false);
 
   const commit = (next: number) => {
-    const kg = isMetric ? next : next * KG_PER_LB;
-    const rounded = Math.round(kg * 100) / 100;
+    const clamped = Math.max(min, Math.min(max, next));
+    const kg = isMetric ? clamped : clamped * KG_PER_LB;
+    const rounded = Math.round(Math.max(MIN_PACE_KG, Math.min(MAX_PACE_KG, kg)) * 100) / 100;
     setUserData((prev) => ({ ...prev, weeklyGoal: rounded }));
   };
 
@@ -282,6 +339,19 @@ export function PaceSelectStep({
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
     { id: "metric", label: t.metric },
     { id: "imperial", label: "Imperial" },
+  ];
+
+  const paceSpeedLabels = {
+    de: { slow: "langsam", medium: "mittel", fast: "schnell" },
+    en: { slow: "slow", medium: "medium", fast: "fast" },
+    fr: { slow: "lent", medium: "moyen", fast: "rapide" },
+  } as const;
+  const speedLabels = paceSpeedLabels[lng];
+
+  const paceMarkers: PaceMarker[] = [
+    { value: ticks[0], barHeight: 10, label: speedLabels.slow },
+    { value: ticks[1], barHeight: 18, label: speedLabels.medium },
+    { value: ticks[2], barHeight: 26, label: speedLabels.fast },
   ];
 
   return (
@@ -366,6 +436,7 @@ export function PaceSelectStep({
           value={clampedDisplay}
           onChange={commit}
           ticks={ticks}
+          paceMarkers={paceMarkers}
           formatTick={(v) => v.toFixed(1)}
           onActiveChange={setSliderActive}
         />

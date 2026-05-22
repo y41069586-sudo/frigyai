@@ -8,8 +8,12 @@ export function markReferralSkipPaywall(): void {
   localStorage.setItem(REFERRAL_SKIP_PAYWALL_KEY, "1");
 }
 
+export function hasReferralSkipPaywallPending(): boolean {
+  return localStorage.getItem(REFERRAL_SKIP_PAYWALL_KEY) === "1";
+}
+
 export function consumeReferralSkipPaywall(): boolean {
-  const skip = localStorage.getItem(REFERRAL_SKIP_PAYWALL_KEY) === "1";
+  const skip = hasReferralSkipPaywallPending();
   if (skip) localStorage.removeItem(REFERRAL_SKIP_PAYWALL_KEY);
   return skip;
 }

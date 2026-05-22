@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronLeft, X, Lock, Bell, Crown } from "lucide-react";
+import { Check, ChevronLeft, Lock, Bell, Crown } from "lucide-react";
 import { Language } from "@/contexts/LanguageContext";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
 
@@ -14,7 +14,6 @@ export const STRIPE_PAYMENT_LINKS: Record<PaywallBillingPlan, string> = {
 type OnboardingPaywallStepProps = {
   language: Language;
   onBack: () => void;
-  onSkip: () => void;
   onCheckout: (plan: PaywallBillingPlan) => void;
 };
 
@@ -137,7 +136,6 @@ function PlanRadio({ selected }: { selected: boolean }) {
 export function OnboardingPaywallStep({
   language,
   onBack,
-  onSkip,
   onCheckout,
 }: OnboardingPaywallStepProps) {
   const [plan, setPlan] = useState<PaywallBillingPlan>("monthly");
@@ -189,14 +187,7 @@ export function OnboardingPaywallStep({
         >
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />
         </button>
-        <button
-          type="button"
-          onClick={onSkip}
-          aria-label="Schließen"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-[#9CA3AF] transition-colors hover:bg-black/5"
-        >
-          <X className="h-4 w-4" strokeWidth={2} />
-        </button>
+        <div className="h-9 w-9 shrink-0" aria-hidden />
       </motion.div>
 
       <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">

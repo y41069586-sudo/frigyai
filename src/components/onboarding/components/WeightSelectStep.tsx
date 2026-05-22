@@ -4,11 +4,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
-import {
-  MintWheelColumn,
-  WHEEL_ITEM_HEIGHT,
-  type MintWheelOption,
-} from "./MintWheelColumn";
+import { MintWheelColumn, type MintWheelOption } from "./MintWheelColumn";
+import { MintWheelPickerSection } from "./MintWheelPickerSection";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
@@ -131,7 +128,7 @@ export function WeightSelectStep({
       </OnboardingMascotQuestion>
 
       {/* Unit toggle */}
-      <div className="mt-4 flex shrink-0 justify-center px-5 pb-2">
+      <div className="mt-4 flex shrink-0 justify-center px-5 pb-1">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}
@@ -140,63 +137,42 @@ export function WeightSelectStep({
         />
       </div>
 
-      {/* Wheel — direkt auf Mint-Hintergrund */}
-      <div className="mt-2 flex shrink-0 flex-col overflow-x-hidden px-4 pb-1">
-        <motion.div
-          key={unit}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-          className="relative mx-auto w-full max-w-[260px] shrink-0 py-0.5"
-        >
-          <div
-            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
-            style={{
-              top: `calc(50% - ${WHEEL_ITEM_HEIGHT / 2}px)`,
-              height: WHEEL_ITEM_HEIGHT,
-              backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(110, 240, 168,0.16)",
-            }}
+      <MintWheelPickerSection animationKey={unit} placement="lower">
+        <div className="flex items-stretch justify-center">
+          <MintWheelColumn
+            options={wholeOptions}
+            value={whole}
+            onChange={(v) => commitDisplay(v, decimal)}
+            align="right"
+            width={100}
+            ariaLabel={`Gewicht ganz (${unitLabel})`}
           />
-{/* Two wheels + separator + unit label */}
-          <div className="relative z-10 flex items-stretch justify-center">
-            <MintWheelColumn
-              options={wholeOptions}
-              value={whole}
-              onChange={(v) => commitDisplay(v, decimal)}
-              align="right"
-              width={100}
-              ariaLabel={`Gewicht ganz (${unitLabel})`}
-            />
-            <div className="relative shrink-0" style={{ width: 22 }}>
-              <span
-                className="absolute inset-0 flex items-center justify-center text-[19px] font-semibold"
-                style={{ color: PALETTE.text }}
-              >
-                {sepChar}
-              </span>
-            </div>
-            <MintWheelColumn
-              options={decimalOptions}
-              value={decimal}
-              onChange={(v) => commitDisplay(whole, v)}
-              align="left"
-              width={56}
-              ariaLabel="Dezimal"
-            />
-            <div className="relative shrink-0" style={{ width: 44 }}>
-              <span
-                className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
-                style={{ color: PALETTE.textMuted }}
-              >
-                {unitLabel}
-              </span>
-            </div>
+          <div className="relative shrink-0" style={{ width: 22 }}>
+            <span
+              className="absolute inset-0 flex items-center justify-center text-[19px] font-semibold"
+              style={{ color: PALETTE.text }}
+            >
+              {sepChar}
+            </span>
           </div>
-        </motion.div>
-      </div>
-
-      <div className="min-h-0 flex-1" aria-hidden />
+          <MintWheelColumn
+            options={decimalOptions}
+            value={decimal}
+            onChange={(v) => commitDisplay(whole, v)}
+            align="left"
+            width={56}
+            ariaLabel="Dezimal"
+          />
+          <div className="relative shrink-0" style={{ width: 44 }}>
+            <span
+              className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
+              style={{ color: PALETTE.textMuted }}
+            >
+              {unitLabel}
+            </span>
+          </div>
+        </div>
+      </MintWheelPickerSection>
 
       {/* Continue */}
       <div

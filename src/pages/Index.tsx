@@ -39,9 +39,10 @@ import {
   POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY,
 } from "@/lib/frigyStorageSync";
 import { STRIPE_CHECKOUT_PENDING_KEY } from "@/lib/stripePaymentLinks";
+import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
 
 const Index = () => {
-  const { user, session, subscriptionStatus, signOut, loading, checkSubscription } = useAuth();
+  const { user, session, subscriptionStatus, signOut, loading, checkSubscription, isPremium } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isActivatingPremium, setIsActivatingPremium] = useState(
     () => searchParams.get("subscription") === "success",
@@ -434,6 +435,13 @@ const Index = () => {
     if (ONBOARDING_TEST_MODE) {
       // Onboarding bleibt sichtbar, nur zurück zum Anfang
       window.location.reload();
+      return;
+    }
+
+    if (user && !isPremium && !hasReferralSkipPaywallPending()) {
+      setShowOnboarding(true);
+      setOnboardingComplete(false);
+      window.history.replaceState(window.history.state, "", "/?onboardingStep=paywall");
       return;
     }
 

@@ -183,13 +183,25 @@ export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(
   ),
 );
 
-/** Thin top progress line starts after the splash welcome screen. */
+/** No top progress bar from this step onward (macro plan / goal summary screen). */
+export const ONBOARDING_HIDE_TOP_PROGRESS_FROM: OnboardingStep = "macro-preview";
+
+const hideTopProgressFromIndex = onboardingSteps.indexOf(ONBOARDING_HIDE_TOP_PROGRESS_FROM);
+
+/** Thin mint progress line — after splash, until before macro-preview. */
 export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(
   onboardingSteps.slice(1).filter(
     (step) =>
+      onboardingSteps.indexOf(step) < hideTopProgressFromIndex &&
       step !== "analyzing" &&
       step !== "save-progress" &&
       step !== "paywall" &&
       step !== "macro-preview",
   ),
 );
+
+export function showsOnboardingTopProgress(step: OnboardingStep): boolean {
+  const idx = onboardingSteps.indexOf(step);
+  if (idx < 0 || hideTopProgressFromIndex < 0) return false;
+  return idx < hideTopProgressFromIndex;
+}

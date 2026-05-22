@@ -6,6 +6,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
 import { MintWheelColumn, type MintWheelOption } from "./MintWheelColumn";
+import { MintWheelPickerSection } from "./MintWheelPickerSection";
 
 const PALETTE = {
   primary: "#6EF0A8",
@@ -134,58 +135,40 @@ export function BirthdateSelectStep({
         </h1>
       </OnboardingMascotQuestion>
 
-      {/* Datumswheels — ohne weiße Kachel */}
-      <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-          className="relative mx-auto w-full max-w-[288px] shrink-0 py-0.5"
-        >
-          <div
-            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
-            style={{
-              top: `calc(50% - ${BIRTH_WHEEL_ROW / 2}px)`,
-              height: BIRTH_WHEEL_ROW,
-              backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(110, 240, 168,0.16)",
-            }}
+      <MintWheelPickerSection maxWidthClass="max-w-[288px]" rowHeight={BIRTH_WHEEL_ROW}>
+        <div className="flex items-stretch">
+          <MintWheelColumn
+            options={monthOptions}
+            value={birth.month}
+            onChange={(m) => updateBirth({ month: m })}
+            align="center"
+            width="33.3333%"
+            rowHeight={BIRTH_WHEEL_ROW}
+            compactLabels
+            ariaLabel="Monat"
           />
-{/* Three columns — equal width and centered for consistent spacing */}
-          <div className="relative z-10 flex items-stretch">
-            <MintWheelColumn
-              options={monthOptions}
-              value={birth.month}
-              onChange={(m) => updateBirth({ month: m })}
-              align="center"
-              width="33.3333%"
-              rowHeight={BIRTH_WHEEL_ROW}
-              compactLabels
-              ariaLabel="Monat"
-            />
-            <MintWheelColumn
-              options={dayOptions}
-              value={birth.day}
-              onChange={(d) => updateBirth({ day: d })}
-              align="center"
-              width="33.3333%"
-              rowHeight={BIRTH_WHEEL_ROW}
-              compactLabels
-              ariaLabel="Tag"
-            />
-            <MintWheelColumn
-              options={yearOptions}
-              value={birth.year}
-              onChange={(y) => updateBirth({ year: y })}
-              align="center"
-              width="33.3333%"
-              rowHeight={BIRTH_WHEEL_ROW}
-              compactLabels
-              ariaLabel="Jahr"
-            />
-          </div>
-        </motion.div>
-      </div>
+          <MintWheelColumn
+            options={dayOptions}
+            value={birth.day}
+            onChange={(d) => updateBirth({ day: d })}
+            align="center"
+            width="33.3333%"
+            rowHeight={BIRTH_WHEEL_ROW}
+            compactLabels
+            ariaLabel="Tag"
+          />
+          <MintWheelColumn
+            options={yearOptions}
+            value={birth.year}
+            onChange={(y) => updateBirth({ year: y })}
+            align="center"
+            width="33.3333%"
+            rowHeight={BIRTH_WHEEL_ROW}
+            compactLabels
+            ariaLabel="Jahr"
+          />
+        </div>
+      </MintWheelPickerSection>
 
       {/* Continue */}
       <div
