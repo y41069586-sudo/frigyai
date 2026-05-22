@@ -1,5 +1,5 @@
 /**
- * iOS-style wheel picker — smooth momentum scroll, 3D row effect, optional infinite loop.
+ * Ultra-smooth iOS-like wheel picker — soft magnetic snap, infinite loop, 3D depth.
  */
 import React, {
   useCallback,
@@ -11,7 +11,7 @@ import React, {
   type ReactNode,
 } from "react";
 
-export type IOSStyleWheelPickerProps<T> = {
+export type IOSUltraSmoothWheelPickerProps<T> = {
   data: T[];
   value?: T;
   onChange?: (item: T, index: number) => void;
@@ -21,21 +21,26 @@ export type IOSStyleWheelPickerProps<T> = {
   className?: string;
   style?: CSSProperties;
   selectionOverlay?: ReactNode | null;
-  /** Maps physical scroll index (e.g. middle copy in a duplicated list). */
   normalizeIndex?: (index: number) => number;
   getItemKey?: (item: T, index: number) => string | number;
-  momentum?: boolean;
   infinite?: boolean;
-  /** Default iOS selection lines + dark fades (off for onboarding mint UI). */
+  /** iOS selection band + fades (off for mint onboarding). */
   showDefaultChrome?: boolean;
+  /** Scroll settle delay before snap (ms). */
+  snapDelayMs?: number;
 };
+
+/** @deprecated Alias for WebWheelPicker compatibility */
+export type IOSStyleWheelPickerProps<T> = IOSUltraSmoothWheelPickerProps<T>;
 
 const DEFAULT_ITEM_HEIGHT = 44;
 const DEFAULT_VISIBLE_ITEMS = 5;
 const INFINITE_COPIES = 5;
 const MIDDLE_COPY_INDEX = 2;
-const SNAP_DEBOUNCE_MS = 80;
-const REPOSITION_MS = 150;
+const SNAP_DELAY_MS = 140;
+const REPOSITION_MS = 450;
+const SNAP_EASE = 0.115;
+const SNAP_STOP_PX = 0.25;
 
 function clampIndex(index: number, count: number): number {
   if (count <= 0) return 0;
@@ -47,7 +52,7 @@ function modIndex(index: number, count: number): number {
   return ((index % count) + count) % count;
 }
 
-export function IOSStyleWheelPicker<T>({
+export function IOSUltraSmoothWheelPicker<T>({
   data,
   value,
   onChange,
@@ -59,11 +64,16 @@ export function IOSStyleWheelPicker<T>({
   selectionOverlay = null,
   normalizeIndex,
   getItemKey,
-  momentum = true,
-  infinite = false,
+  infinite = true,
   showDefaultChrome = false,
-}: IOSStyleWheelPickerProps<T>) {
+  snapDelayMs = SNAP_DELAY_MS,
+}: IOSUltraSmoothWheelPickerProps<T>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const animationFrame = useRef<number | null>(null);
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSnapping = useRef(false);
+  const isUserInteractingRef = useRef(false);
+
   const segmentLen = data.length;
 
   const extendedItems = useMemo(() => {
@@ -86,163 +96,172 @@ export function IOSStyleWheelPicker<T>({
 
   const [selectedIndex, setSelectedIndex] = useState(() => indexFromValue(value));
 
-  const isProgrammaticScroll = useRef(false);
-  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isUserInteractingRef = useRef(false);
-  const selectedIndexRef = useRef(selectedIndex);
-  selectedIndexRef.current = selectedIndex;
-
   const resolveLogicalIndex = useCallback(
     (physicalIndex: number) => {
       if (segmentLen === 0) return 0;
+      const rounded = Math.round(physicalIndex);
       const normalized = normalizeIndex
-        ? normalizeIndex(physicalIndex)
+        ? normalizeIndex(rounded)
         : infinite
-          ? modIndex(physicalIndex, segmentLen)
-          : clampIndex(physicalIndex, segmentLen);
+          ? modIndex(rounded, segmentLen)
+          : clampIndex(rounded, segmentLen);
       return clampIndex(normalized, segmentLen);
     },
     [infinite, normalizeIndex, segmentLen],
   );
 
-  const scrollToPhysical = useCallback(
-    (physicalIndex: number, behavior: ScrollBehavior = "auto") => {
+  const cancelSnapAnimation = useCallback(() => {
+    if (animationFrame.current !== null) {
+      cancelAnimationFrame(animationFrame.current);
+      animationFrame.current = null;
+    }
+    isSnapping.current = false;
+  }, []);
+
+  const smoothSnapTo = useCallback(
+    (target: number, onDone?: () => void) => {
       const el = containerRef.current;
       if (!el) return;
-      const top = physicalIndex * itemHeight;
-      if (behavior === "auto") {
-        isProgrammaticScroll.current = true;
-        el.scrollTop = top;
-        requestAnimationFrame(() => {
-          isProgrammaticScroll.current = false;
-        });
-      } else {
-        isProgrammaticScroll.current = true;
-        el.scrollTo({ top, behavior });
-        setTimeout(() => {
-          isProgrammaticScroll.current = false;
-        }, REPOSITION_MS);
-      }
+
+      cancelSnapAnimation();
+      isSnapping.current = true;
+
+      let current = el.scrollTop;
+
+      const animate = () => {
+        const diff = target - current;
+        current += diff * SNAP_EASE;
+
+        if (Math.abs(diff) < SNAP_STOP_PX) {
+          el.scrollTop = target;
+          isSnapping.current = false;
+          animationFrame.current = null;
+          onDone?.();
+          return;
+        }
+
+        el.scrollTop = current;
+        animationFrame.current = requestAnimationFrame(animate);
+      };
+
+      animate();
     },
-    [itemHeight],
+    [cancelSnapAnimation],
   );
 
-  const repositionInfiniteIfNeeded = useCallback(
-    (physicalIndex: number) => {
-      if (!infinite || segmentLen === 0) return physicalIndex;
+  const repositionInfinite = useCallback(
+    (nearestIndex: number, realIndex: number) => {
+      const el = containerRef.current;
+      if (!el || !infinite || segmentLen === 0) return;
 
-      const logical = modIndex(physicalIndex, segmentLen);
-      const needsReposition =
-        physicalIndex < segmentLen || physicalIndex > segmentLen * (INFINITE_COPIES - 2);
-
-      if (!needsReposition) return physicalIndex;
-
-      const centered = logical + segmentLen * MIDDLE_COPY_INDEX;
-      scrollToPhysical(centered, "auto");
-      return centered;
-    },
-    [infinite, scrollToPhysical, segmentLen],
-  );
-
-  const emitChange = useCallback(
-    (physicalIndex: number) => {
-      if (segmentLen === 0) return;
-      const logical = resolveLogicalIndex(physicalIndex);
-      if (onChange && data[logical] !== undefined) {
-        onChange(data[logical], logical);
+      const total = segmentLen;
+      if (nearestIndex < total || nearestIndex > total * 4) {
+        const normalized = realIndex + total * MIDDLE_COPY_INDEX;
+        el.scrollTop = normalized * itemHeight;
+        setSelectedIndex(normalized);
       }
     },
-    [data, onChange, resolveLogicalIndex, segmentLen],
+    [infinite, itemHeight, segmentLen],
   );
 
   const snapToNearest = useCallback(() => {
     const el = containerRef.current;
     if (!el || segmentLen === 0) return;
 
-    const nearestIndex = Math.round(el.scrollTop / itemHeight);
-    const clampedPhysical = clampIndex(nearestIndex, extendedItems.length);
+    if (isSnapping.current) return;
 
-    isProgrammaticScroll.current = true;
-    el.scrollTo({
-      top: clampedPhysical * itemHeight,
-      behavior: "smooth",
-    });
+    const rawIndex = el.scrollTop / itemHeight;
+    const nearestIndex = Math.round(rawIndex);
+    const clampedPhysical = clampIndex(nearestIndex, extendedItems.length);
+    const target = clampedPhysical * itemHeight;
 
     setSelectedIndex(clampedPhysical);
 
-    const finalPhysical = repositionInfiniteIfNeeded(clampedPhysical);
-    setSelectedIndex(finalPhysical);
+    const realIndex = resolveLogicalIndex(clampedPhysical);
 
-    isUserInteractingRef.current = false;
-    emitChange(finalPhysical);
-
-    setTimeout(() => {
-      isProgrammaticScroll.current = false;
-    }, REPOSITION_MS);
-  }, [emitChange, extendedItems.length, itemHeight, repositionInfiniteIfNeeded, segmentLen]);
-
-  const updateHighlightFromScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el || isProgrammaticScroll.current) return;
-
-    const nearest = Math.round(el.scrollTop / itemHeight);
-    const clamped = clampIndex(nearest, extendedItems.length);
-    if (clamped !== selectedIndexRef.current) {
-      selectedIndexRef.current = clamped;
-      setSelectedIndex(clamped);
-    }
-  }, [extendedItems.length, itemHeight]);
+    smoothSnapTo(target, () => {
+      isUserInteractingRef.current = false;
+      if (onChange && data[realIndex] !== undefined) {
+        onChange(data[realIndex], realIndex);
+      }
+      if (infinite) {
+        setTimeout(() => {
+          repositionInfinite(clampedPhysical, realIndex);
+        }, REPOSITION_MS);
+      }
+    });
+  }, [
+    data,
+    extendedItems.length,
+    infinite,
+    itemHeight,
+    onChange,
+    repositionInfinite,
+    resolveLogicalIndex,
+    segmentLen,
+    smoothSnapTo,
+  ]);
 
   const handleScroll = useCallback(() => {
-    if (isProgrammaticScroll.current) return;
+    if (isSnapping.current) return;
 
     if (!isUserInteractingRef.current) {
       isUserInteractingRef.current = true;
     }
 
-    updateHighlightFromScroll();
-
     if (scrollTimeout.current) {
       clearTimeout(scrollTimeout.current);
     }
 
-    scrollTimeout.current = setTimeout(
-      () => {
-        scrollTimeout.current = null;
-        snapToNearest();
-      },
-      momentum ? SNAP_DEBOUNCE_MS : 0,
-    );
-  }, [momentum, snapToNearest, updateHighlightFromScroll]);
+    scrollTimeout.current = setTimeout(() => {
+      scrollTimeout.current = null;
+      snapToNearest();
+    }, snapDelayMs);
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    setSelectedIndex(el.scrollTop / itemHeight);
+  }, [snapDelayMs, snapToNearest]);
 
   const beginInteraction = useCallback(() => {
     isUserInteractingRef.current = true;
+    cancelSnapAnimation();
     if (scrollTimeout.current) {
       clearTimeout(scrollTimeout.current);
       scrollTimeout.current = null;
     }
-  }, []);
+  }, [cancelSnapAnimation]);
+
+  const scrollToPhysical = useCallback(
+    (physicalIndex: number) => {
+      const el = containerRef.current;
+      if (!el) return;
+      cancelSnapAnimation();
+      el.scrollTop = physicalIndex * itemHeight;
+      setSelectedIndex(physicalIndex);
+    },
+    [cancelSnapAnimation],
+  );
 
   useEffect(() => {
+    if (isUserInteractingRef.current) return;
     const idx = indexFromValue(value);
-    selectedIndexRef.current = idx;
     setSelectedIndex(idx);
-    requestAnimationFrame(() => scrollToPhysical(idx, "auto"));
+    requestAnimationFrame(() => scrollToPhysical(idx));
   }, [indexFromValue, scrollToPhysical, value]);
 
   useEffect(() => {
-    requestAnimationFrame(() => {
-      const idx = indexFromValue(value);
-      scrollToPhysical(idx, "auto");
-    });
+    requestAnimationFrame(() => scrollToPhysical(indexFromValue(value)));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount
   }, []);
 
   useEffect(
     () => () => {
+      cancelSnapAnimation();
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     },
-    [],
+    [cancelSnapAnimation],
   );
 
   const logicalActiveIndex = resolveLogicalIndex(selectedIndex);
@@ -254,7 +273,10 @@ export function IOSStyleWheelPicker<T>({
       overflow: "hidden",
       width: "100%",
       touchAction: "pan-y",
+      overscrollBehavior: "contain",
+      WebkitUserSelect: "none",
       userSelect: "none",
+      transform: "translateZ(0)",
       ...style,
     }),
     [pickerHeight, style],
@@ -273,10 +295,12 @@ export function IOSStyleWheelPicker<T>({
               left: 0,
               right: 0,
               height: itemHeight,
+              borderTop: "1px solid rgba(255,255,255,0.12)",
+              borderBottom: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.03)",
               pointerEvents: "none",
-              borderTop: "1px solid rgba(255,255,255,0.15)",
-              borderBottom: "1px solid rgba(255,255,255,0.15)",
-              zIndex: 10,
+              zIndex: 20,
+              backdropFilter: "blur(8px)",
             }}
           />
           <div
@@ -285,10 +309,11 @@ export function IOSStyleWheelPicker<T>({
               top: 0,
               left: 0,
               right: 0,
-              height: centerOffset,
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)",
+              height: centerOffset + 8,
+              background:
+                "linear-gradient(to bottom, rgba(0,0,0,0.78), rgba(0,0,0,0.45), transparent)",
               pointerEvents: "none",
-              zIndex: 10,
+              zIndex: 20,
             }}
           />
           <div
@@ -297,10 +322,11 @@ export function IOSStyleWheelPicker<T>({
               bottom: 0,
               left: 0,
               right: 0,
-              height: centerOffset,
-              background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+              height: centerOffset + 8,
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0.45), transparent)",
               pointerEvents: "none",
-              zIndex: 10,
+              zIndex: 20,
             }}
           />
         </>
@@ -312,47 +338,53 @@ export function IOSStyleWheelPicker<T>({
         onPointerDown={beginInteraction}
         onTouchStart={beginInteraction}
         onWheel={beginInteraction}
-        className="h-full overflow-y-scroll scrollbar-hide select-none"
+        className="h-full overflow-y-scroll scrollbar-hide"
         style={{
           overflowX: "hidden",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
           paddingTop: centerOffset,
           paddingBottom: centerOffset,
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
           WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          WebkitMaskImage: showDefaultChrome
-            ? "linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)"
-            : undefined,
-          transform: "translateZ(0)",
+          scrollSnapType: "y proximity",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)",
           willChange: "transform",
+          transform: "translate3d(0,0,0)",
+          contain: "layout paint style",
         }}
       >
         {extendedItems.map((item, index) => {
           const distance = Math.abs(index - selectedIndex);
-          const scale = Math.max(1 - distance * 0.08, 0.75);
-          const opacity = Math.max(1 - distance * 0.15, 0.2);
-          const rotate = Math.min(distance * 18, 75);
+          const scale = Math.max(1 - distance * 0.08, 0.72);
+          const opacity = Math.max(1 - distance * 0.16, 0.18);
+          const rotate = Math.min(distance * 18, 80);
+          const translateY = distance * 1.5;
           const isAbove = index < selectedIndex;
           const logicalIndex = infinite ? modIndex(index, segmentLen) : index;
           const selected = logicalIndex === logicalActiveIndex;
 
-          const rowStyle: CSSProperties = {
+          const itemStyle: CSSProperties = {
             height: itemHeight,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            scrollSnapAlign: "center",
             transform: `
               perspective(1000px)
               rotateX(${isAbove ? rotate : -rotate}deg)
               scale(${scale})
+              translateY(${isAbove ? translateY : -translateY}px)
             `,
             opacity: renderItem ? 1 : opacity,
-            transition: "transform 120ms linear, opacity 120ms linear",
+            transition:
+              "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)",
             backfaceVisibility: "hidden",
             transformStyle: "preserve-3d",
             WebkitFontSmoothing: "antialiased",
+            willChange: "transform",
             contain: "layout paint style",
+            pointerEvents: "none",
           };
 
           const key = getItemKey
@@ -362,7 +394,7 @@ export function IOSStyleWheelPicker<T>({
               : logicalIndex;
 
           return (
-            <div key={key} style={rowStyle}>
+            <div key={key} style={itemStyle}>
               {renderItem ? (
                 renderItem(item, selected, logicalIndex, logicalActiveIndex)
               ) : (
@@ -385,4 +417,4 @@ export function IOSStyleWheelPicker<T>({
   );
 }
 
-export default IOSStyleWheelPicker;
+export default IOSUltraSmoothWheelPicker;

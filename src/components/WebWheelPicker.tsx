@@ -1,9 +1,10 @@
 /**
- * Web wheel picker — iOS-style scroll/snap (see IOSStyleWheelPicker).
+ * Web wheel picker — ultra-smooth iOS physics (see IOSUltraSmoothWheelPicker).
  */
 export {
-  IOSStyleWheelPicker as WebWheelPicker,
-  type IOSStyleWheelPickerProps as WebWheelPickerProps,
-} from "@/components/IOSStyleWheelPicker";
+  IOSUltraSmoothWheelPicker as WebWheelPicker,
+  type IOSUltraSmoothWheelPickerProps as WebWheelPickerProps,
+  type IOSStyleWheelPickerProps,
+} from "@/components/IOSUltraSmoothWheelPicker";
 
-export { default } from "@/components/IOSStyleWheelPicker";
+export { default } from "@/components/IOSUltraSmoothWheelPicker";

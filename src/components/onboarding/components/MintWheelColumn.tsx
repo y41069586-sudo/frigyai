@@ -93,7 +93,6 @@ export function MintWheelColumn({
         itemHeight={rowHeight}
         visibleItems={WHEEL_VISIBLE_ITEMS}
         infinite={circularActive}
-        momentum
         selectionOverlay={null}
         getItemKey={(item, index) =>
           circularActive ? `wheel-${index}-${item.value}` : item.value
