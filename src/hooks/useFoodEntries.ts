@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 
 export interface FoodEntry {
   id: string;
@@ -131,7 +132,10 @@ export const useFoodEntries = () => {
   // Add new entry
   const addEntry = async (entry: Omit<FoodEntry, 'id' | 'user_id' | 'created_at' | 'date'>) => {
     if (!user) {
-      toast({ title: 'Bitte einloggen', variant: 'destructive' });
+      toast({
+        title: getTranslations(getStoredLanguage()).toastPleaseLogin,
+        variant: 'destructive',
+      });
       return null;
     }
 

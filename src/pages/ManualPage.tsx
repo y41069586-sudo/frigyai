@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import IngredientsList from "@/components/IngredientsList";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const ManualPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [newIngredient, setNewIngredient] = useState("");
 
@@ -25,7 +27,6 @@ const ManualPage = () => {
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -40,7 +41,8 @@ const ManualPage = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-3xl font-bold">
-            Zutaten <span className="text-neon">eingeben</span>
+            {t.manualIngredientsTitle}{" "}
+            <span className="text-neon">{t.manualIngredientsHighlight}</span>
           </h1>
         </motion.div>
 
@@ -50,15 +52,13 @@ const ManualPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="bg-card rounded-3xl p-8 shadow-xl border border-border/50 mb-6"
           >
-            <h2 className="text-xl font-semibold mb-4">
-              Was hast du zu Hause?
-            </h2>
+            <h2 className="text-xl font-semibold mb-4">{t.manualWhatAtHome}</h2>
             <div className="flex gap-3">
               <Input
                 value={newIngredient}
                 onChange={(e) => setNewIngredient(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleAddIngredient()}
-                placeholder="z.B. Tomaten, Hähnchen, Joghurt..."
+                placeholder={t.manualIngredientPlaceholder}
                 className="flex-1 rounded-xl"
               />
               <Button
@@ -70,12 +70,8 @@ const ManualPage = () => {
             </div>
           </motion.div>
 
-          {/* Ingredients List */}
           {ingredients.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <IngredientsList
                 ingredients={ingredients}
                 onIngredientsChange={setIngredients}
@@ -85,7 +81,7 @@ const ManualPage = () => {
                 onClick={handleGenerateRecipes}
                 className="w-full mt-6 gradient-neon text-black font-semibold text-lg py-6 rounded-2xl glow-button"
               >
-                Rezepte generieren
+                {t.generateRecipes}
               </Button>
             </motion.div>
           )}
@@ -96,9 +92,7 @@ const ManualPage = () => {
               animate={{ opacity: 1 }}
               className="text-center py-12 text-muted-foreground"
             >
-              <p className="text-lg">
-                Füge mindestens eine Zutat hinzu, um zu starten
-              </p>
+              <p className="text-lg">{t.manualAddOneIngredient}</p>
             </motion.div>
           )}
         </div>

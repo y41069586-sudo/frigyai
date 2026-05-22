@@ -1,8 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  extendedTranslations,
+  type ExtendedTranslations,
+  formatTranslation,
+} from "./translationsExtended";
 
 export type Language = "de" | "en" | "fr";
+export { formatTranslation };
 
-interface Translations {
+export interface Translations extends ExtendedTranslations {
   // Navigation & Common
   login: string;
   logout: string;
@@ -3409,8 +3415,10 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const t = { ...translations[language], ...extendedTranslations[language] };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t: translations[language] }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -3423,3 +3431,14 @@ export const useLanguage = () => {
   }
   return context;
 };
+
+/** For hooks/utilities outside React tree. */
+export function getTranslations(lang: Language): Translations {
+  return { ...translations[lang], ...extendedTranslations[lang] };
+}
+
+export function getStoredLanguage(): Language {
+  if (typeof window === "undefined") return "de";
+  const saved = localStorage.getItem("app-language");
+  return saved === "en" || saved === "fr" || saved === "de" ? saved : "de";
+}

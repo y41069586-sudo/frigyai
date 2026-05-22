@@ -342,12 +342,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
             <Sparkles className="h-4 w-4" />
           </div>
-          <span>Wochenplan neu generieren</span>
+          <span>{t.regenerateWeeklyPlan}</span>
         </div>
       ),
-      description: 'Deine Makroziele wurden angepasst. Damit dein Wochenplan wieder perfekt passt, solltest du ihn neu erstellen.',
+      description: t.macroGoalsChangedToast,
       action: (
-        <ToastAction altText="Wochenplan generieren" onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}>
+        <ToastAction altText={t.ariaGenerateWeeklyPlan} onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}>
           Wochenplan generieren
         </ToastAction>
       ),
@@ -637,7 +637,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       checkAndAwardBadge("meal_logged");
     } catch (error) {
       console.error("Error adding recipe:", error);
-      toast({ title: t.error, description: "Rezept konnte nicht hinzugefügt werden", variant: "destructive" });
+      toast({ title: t.error, description: t.toastRecipeAddFailed, variant: "destructive" });
     }
   };
 
@@ -1043,7 +1043,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     {
       icon: Sparkles,
       title: t.yourPersonalPlan,
-      subtitle: "Dein persönlicher Makro-Plan",
+      subtitle: t.trackerPersonalMacroPlan,
       content: (
         <div className="space-y-4 text-center w-full">
           <div className="p-6 bg-primary/10 rounded-2xl">
@@ -1104,7 +1104,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           </div>
 
           <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3">
-            <p>Du kannst dich später jederzeit noch umstellen.</p>
+            <p>{t.trackerSetupLaterHint}</p>
           </div>
         </div>
       ),
@@ -1289,7 +1289,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             <div className="relative h-full w-full overflow-hidden">
               <img
                 src={analyzingImage}
-                alt="Analyzing food"
+                alt={t.ariaAnalyzingFood}
                 className="h-full w-full object-contain"
               />
               {/* Dark Overlay */}

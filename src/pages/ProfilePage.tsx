@@ -248,7 +248,7 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          <SettingsGroup title="Abo">
+          <SettingsGroup title={t.settingsSubscriptionGroup}>
             <SettingsRow
               icon={Crown}
               label={t.premiumActive}
@@ -275,7 +275,7 @@ const ProfilePage = () => {
             <SettingsRow
               icon={CreditCard}
               label={t.manageSubscription}
-              description={portalLoading ? "Wird geöffnet…" : undefined}
+              description={portalLoading ? t.settingsOpeningPortal : undefined}
               onClick={() => void handleManageSubscription()}
             />
           </SettingsGroup>
@@ -308,11 +308,11 @@ const ProfilePage = () => {
             </div>
           </SettingsGroup>
 
-          <SettingsGroup title="Konto">
-            <SettingsRow icon={Users} label="Community" onClick={() => navigate("/community")} />
+          <SettingsGroup title={t.settingsAccountGroup}>
+            <SettingsRow icon={Users} label={t.settingsCommunity} onClick={() => navigate("/community")} />
             <SettingsRow
               icon={RotateCcw}
-              label="Onboarding erneut starten"
+              label={t.settingsRestartOnboarding}
               onClick={() => navigate("/?resetOnboarding=true")}
             />
             <SettingsRow icon={LogOut} label={t.logout} onClick={() => void handleSignOut()} />
@@ -322,10 +322,10 @@ const ProfilePage = () => {
               </DialogTrigger>
               <DialogContent className="max-w-sm rounded-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-destructive">Konto permanent löschen?</DialogTitle>
+                  <DialogTitle className="text-destructive">{t.deleteAccountConfirmTitle}</DialogTitle>
                 </DialogHeader>
                 <p className="text-sm text-muted-foreground">
-                  Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten werden gelöscht.
+                  {t.deleteAccountConfirmDesc}
                 </p>
                 <div className="flex gap-2 pt-2">
                   <Button
@@ -334,7 +334,7 @@ const ProfilePage = () => {
                     onClick={() => setDeleteDialogOpen(false)}
                     disabled={deleteLoading}
                   >
-                    Abbrechen
+                    {t.cancel}
                   </Button>
                   <Button
                     variant="destructive"

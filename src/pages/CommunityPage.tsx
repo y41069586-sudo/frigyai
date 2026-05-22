@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatTranslation, useLanguage } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,6 +57,7 @@ interface Post {
 export const CommunityPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<Post[]>([]);
   const [communityRecipes, setCommunityRecipes] = useState<CommunityRecipe[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
@@ -121,7 +123,7 @@ export const CommunityPage = () => {
   // Like/unlike a recipe
   const handleRecipeLike = async (recipeId: string) => {
     if (!user) {
-      toast({ title: 'Bitte einloggen', variant: 'destructive' });
+      toast({ title: t.toastPleaseLogin, variant: 'destructive' });
       return;
     }
 
@@ -210,13 +212,13 @@ export const CommunityPage = () => {
   const handleSharePost = (post: Post) => {
     if (navigator.share) {
       navigator.share({
-        title: 'Frigy Community',
+        title: t.frigyCommunityShareTitle,
         text: post.content,
         url: window.location.href
       });
     } else {
       navigator.clipboard.writeText(post.content);
-      toast({ title: 'In Zwischenablage kopiert!' });
+      toast({ title: t.toastCopiedToClipboard });
     }
   };
 
@@ -228,10 +230,10 @@ export const CommunityPage = () => {
   const formatTimeAgo = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
     const minutes = Math.floor((Date.now() - d.getTime()) / 1000 / 60);
-    if (minutes < 60) return `vor ${minutes} Min.`;
+    if (minutes < 60) return formatTranslation(t.timeAgoMinutes, { n: minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `vor ${hours} Std.`;
-    return `vor ${Math.floor(hours / 24)} Tagen`;
+    if (hours < 24) return formatTranslation(t.timeAgoHours, { n: hours });
+    return formatTranslation(t.timeAgoDays, { n: Math.floor(hours / 24) });
   };
 
   return (
@@ -244,14 +246,14 @@ export const CommunityPage = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-[24px] font-bold tracking-[-0.04em]">Community</h1>
-              <p className="text-xs font-medium text-muted-foreground">Rezepte, Ideen & Motivation</p>
+              <h1 className="text-[24px] font-bold tracking-[-0.04em]">{t.communityPageTitle}</h1>
+              <p className="text-xs font-medium text-muted-foreground">{t.communityPageSubtitle}</p>
             </div>
           </div>
           
           <Button size="sm" className="gap-2 rounded-full bg-primary text-primary-foreground shadow-[0_12px_28px_-18px_hsl(var(--primary))]" onClick={() => setUploadDialogOpen(true)}>
             <Plus className="h-4 w-4" />
-            Rezept teilen
+            {t.communityShareRecipe}
           </Button>
         </div>
       </div>
@@ -262,17 +264,17 @@ export const CommunityPage = () => {
           <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
             <Users className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-lg font-bold">1.2k</p>
-            <p className="text-xs text-muted-foreground">Mitglieder</p>
+            <p className="text-xs text-muted-foreground">{t.communityStatMembers}</p>
           </Card>
           <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
             <ChefHat className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-lg font-bold">{communityRecipes.length}</p>
-            <p className="text-xs text-muted-foreground">Rezepte</p>
+            <p className="text-xs text-muted-foreground">{t.communityStatRecipes}</p>
           </Card>
           <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
             <TrendingUp className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-lg font-bold">89%</p>
-            <p className="text-xs text-muted-foreground">Erfolgsrate</p>
+            <p className="text-xs text-muted-foreground">{t.communityStatSuccess}</p>
           </Card>
         </div>
       </div>
@@ -283,11 +285,11 @@ export const CommunityPage = () => {
           <TabsList className="grid w-full grid-cols-2 mb-4 rounded-full bg-white/80 p-1 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.28)]">
             <TabsTrigger value="recipes">
               <ChefHat className="h-4 w-4 mr-2" />
-              Rezepte
+              {t.communityTabRecipes}
             </TabsTrigger>
             <TabsTrigger value="posts">
               <MessageCircle className="h-4 w-4 mr-2" />
-              Beiträge
+              {t.communityTabPosts}
             </TabsTrigger>
           </TabsList>
 
@@ -296,16 +298,16 @@ export const CommunityPage = () => {
             {loadingRecipes ? (
               <div className="text-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                <p className="text-muted-foreground mt-2">Rezepte werden geladen...</p>
+                <p className="text-muted-foreground mt-2">{t.communityLoadingRecipes}</p>
               </div>
             ) : communityRecipes.length === 0 ? (
               <div className="text-center py-12">
                 <ChefHat className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold mb-2">Noch keine Rezepte</h3>
-                <p className="text-muted-foreground text-sm mb-4">Sei der Erste, der ein Rezept teilt!</p>
+                <h3 className="font-semibold mb-2">{t.communityEmptyRecipesTitle}</h3>
+                <p className="text-muted-foreground text-sm mb-4">{t.communityEmptyRecipesDesc}</p>
                 <Button onClick={() => setUploadDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Erstes Rezept teilen
+                  {t.communityFirstRecipeBtn}
                 </Button>
               </div>
             ) : (
@@ -329,7 +331,7 @@ export const CommunityPage = () => {
                           carbs: recipe.carbs || 0,
                           fat: recipe.fat || 0,
                           prepTime: recipe.prep_time || 15,
-                          difficulty: "Mittel",
+                          difficulty: t.difficultyMedium,
                           ingredients: recipe.ingredients,
                           instructions: recipe.instructions,
                         };
@@ -388,7 +390,7 @@ export const CommunityPage = () => {
                         ))}
                         {recipe.ingredients.length > 3 && (
                           <span className="text-xs text-muted-foreground px-2 py-1">
-                            +{recipe.ingredients.length - 3} mehr
+                            +{recipe.ingredients.length - 3} {t.communityMoreIngredients}
                           </span>
                         )}
                       </div>

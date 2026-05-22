@@ -652,27 +652,22 @@ const Index = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dein erster Wochenplan</DialogTitle>
+            <DialogTitle>{t.postPayCoachTitle}</DialogTitle>
             <DialogDescription className="text-left space-y-2">
               <span className="block">
-                Scanne deinen Kühlschrank – Frigy erkennt deine Zutaten und erstellt daraus einen{" "}
-                <strong className="text-foreground">7-Tage-Wochenplan</strong>.
+                {t.postPayCoachScanLine}{" "}
+                <strong className="text-foreground">{t.postPayCoachBody2}</strong>.
               </span>
-              <span className="block text-muted-foreground">
-                Die <strong className="text-foreground">Einkaufsliste</strong> entsteht automatisch aus dem Wochenplan als
-                Lücke: nur Zutaten, die dir noch fehlen.
-              </span>
-              <span className="block text-muted-foreground text-xs">
-                Frigy priorisiert deine vorhandenen Zutaten, ergänzt aber automatisch alles, was für deine Makroziele fehlt.
-              </span>
+              <span className="block text-muted-foreground">{t.postPayCoachShoppingLine}</span>
+              <span className="block text-muted-foreground text-xs">{t.postPayCoachBody3}</span>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={dismissPostPayCoach}>
-              Später
+              {t.laterBtn}
             </Button>
             <Button type="button" onClick={handlePostPayScan}>
-              Jetzt scannen
+              {t.scanNow}
             </Button>
           </DialogFooter>
         </DialogContent>

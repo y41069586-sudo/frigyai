@@ -12,8 +12,10 @@ import frigLogo from '@/assets/frigy-mascot.png';
 
 import { isPremiumGrantAdmin } from "@/lib/admin";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const AdminPage = () => {
+  const { t } = useLanguage();
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -37,11 +39,9 @@ const AdminPage = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-primary p-6">
         <Shield className="h-16 w-16 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Kein Zugriff</h1>
-        <p className="text-muted-foreground text-center mb-6">
-          Du hast keine Admin-Berechtigung.
-        </p>
-        <Button onClick={() => navigate('/')}>Zurück zur App</Button>
+        <h1 className="text-2xl font-bold mb-2">{t.adminNoAccessTitle}</h1>
+        <p className="text-muted-foreground text-center mb-6">{t.adminNoAccessDesc}</p>
+        <Button onClick={() => navigate('/')}>{t.adminBackToApp}</Button>
       </div>
     );
   }
@@ -72,9 +72,9 @@ const AdminPage = () => {
       }
 
       if (data?.success) {
-        toast({ 
-          title: "Premium gewährt! 🎉", 
-          description: data.message 
+        toast({
+          title: `${t.adminPremiumGranted} 🎉`,
+          description: data.message,
         });
         setLastGranted({
           email: data.user_email,
@@ -87,9 +87,9 @@ const AdminPage = () => {
       }
     } catch (error: unknown) {
       console.error("Error granting premium:", error);
-      const message = error instanceof Error ? error.message : "Konnte Premium nicht gewähren";
+      const message = error instanceof Error ? error.message : t.adminPremiumGrantFailed;
       toast({
-        title: "Fehler",
+        title: t.error,
         description: message,
         variant: "destructive",
       });
@@ -108,7 +108,7 @@ const AdminPage = () => {
           </Button>
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Admin Panel</h1>
+            <h1 className="text-2xl font-bold">{t.adminPanelTitle}</h1>
           </div>
         </div>
 
@@ -123,29 +123,27 @@ const AdminPage = () => {
               <Gift className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Premium verschenken</h2>
-              <p className="text-sm text-muted-foreground">
-                Gib Influencern kostenloses Premium
-              </p>
+              <h2 className="text-xl font-bold">{t.adminGrantPremiumTitle}</h2>
+              <p className="text-sm text-muted-foreground">{t.adminGrantPremiumDesc}</p>
             </div>
           </div>
 
           <form onSubmit={handleGrantPremium} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-Mail des Nutzers</Label>
+              <Label htmlFor="email">{t.adminUserEmailLabel}</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="influencer@example.com"
+                placeholder={t.adminEmailPlaceholder}
                 className="h-12"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="duration">Dauer (Tage)</Label>
+              <Label htmlFor="duration">{t.adminDurationLabel}</Label>
               <div className="flex gap-2">
                 {[30, 90, 180, 365].map((days) => (
                   <Button
@@ -156,20 +154,20 @@ const AdminPage = () => {
                     onClick={() => setDurationDays(days)}
                     className="flex-1"
                   >
-                    {days === 365 ? '1 Jahr' : `${days}d`}
+                    {days === 365 ? t.adminDurationOneYear : `${days}d`}
                   </Button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reason">Grund (optional)</Label>
+              <Label htmlFor="reason">{t.adminReasonLabel}</Label>
               <Input
                 id="reason"
                 type="text"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="z.B. Instagram Kooperation"
+                placeholder={t.adminReasonPlaceholder}
                 className="h-12"
               />
             </div>
@@ -182,12 +180,12 @@ const AdminPage = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Wird gewährt...
+                  {t.adminGranting}
                 </>
               ) : (
                 <>
                   <Crown className="h-5 w-5 mr-2" />
-                  Premium gewähren
+                  {t.adminGrantPremiumButton}
                 </>
               )}
             </Button>
