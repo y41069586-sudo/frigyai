@@ -67,20 +67,22 @@ export const WheelPicker = ({
         itemHeight={ITEM_HEIGHT}
         visibleItems={VISIBLE_ITEMS}
         getItemKey={(item) => item}
-        renderItem={(item, selected) => {
+        selectionOverlay={null}
+        renderItem={(item, selected, _index, highlightIndex) => {
           const itemIndex = data.indexOf(item);
-          const distance = Math.abs(itemIndex - data.indexOf(value));
+          const distance = Math.abs(itemIndex - highlightIndex);
           const opacity = distance === 0 ? 1 : distance === 1 ? 0.5 : 0.25;
 
           return (
             <div
-              className={`flex items-center justify-center select-none gap-1 transition-all duration-150 ${
+              className={`flex items-center justify-center select-none gap-1 ${
                 selected ? "text-primary font-bold" : "text-muted-foreground"
               }`}
               style={{
                 fontSize: selected ? "1.5rem" : "1rem",
                 opacity,
                 transform: selected ? "scale(1.05)" : "scale(0.9)",
+                transition: selected ? "none" : "opacity 0.12s ease-out, transform 0.12s ease-out",
               }}
             >
               <span>{item}</span>

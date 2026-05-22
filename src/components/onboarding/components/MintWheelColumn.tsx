@@ -114,12 +114,15 @@ export function MintWheelColumn({
         itemHeight={rowHeight}
         visibleItems={WHEEL_VISIBLE_ITEMS}
         normalizeIndex={normalizeIndex}
+        selectionOverlay={null}
         getItemKey={(item, index) =>
           circularActive ? `wheel-${index}-${item.value}` : item.value
         }
-        renderItem={(opt, selected) => {
-          const opacity = selected ? 1 : 0.52;
-          const scale = selected ? 1.12 : 0.9;
+        renderItem={(opt, selected, index, highlightIndex) => {
+          const distance = Math.abs(index - highlightIndex);
+          const opacity =
+            distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
+          const scale = distance === 0 ? 1 : distance === 1 ? 0.98 : 0.9;
 
           return (
             <div
@@ -128,11 +131,11 @@ export function MintWheelColumn({
                 fontSize: `${selected ? selectedFontPx : idleFontPx}px`,
                 fontWeight: selected ? 600 : 400,
                 lineHeight: 1,
-                color: selected ? "#1F2937" : "#4B5563",
+                color: selected ? "#1F2937" : "#9CA3AF",
                 opacity,
-                transform: `translateZ(0) scale(${selected ? 1 : scale})`,
+                transform: `translateZ(0) scale(${scale})`,
                 letterSpacing: "-0.01em",
-                transition: "transform 120ms ease-out, color 120ms, opacity 120ms",
+                transition: selected ? "none" : "opacity 0.12s ease-out",
                 WebkitTapHighlightColor: "transparent",
               }}
             >
