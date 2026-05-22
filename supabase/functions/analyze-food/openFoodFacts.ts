@@ -1,4 +1,4 @@
-/** Open Food Facts search + product mapping for analyze-food */
+/** Open Food Facts search + product mapping (bundled with analyze-food). */
 
 export type OffFoodResult = {
   name: string;
