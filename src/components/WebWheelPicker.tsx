@@ -1,10 +1,11 @@
 /**
- * Web wheel picker — ultra-smooth iOS physics (see IOSUltraSmoothWheelPicker).
+ * Web wheel picker — iOS-perfect physics (see IOSPerfectWheelPicker).
  */
 export {
-  IOSUltraSmoothWheelPicker as WebWheelPicker,
-  type IOSUltraSmoothWheelPickerProps as WebWheelPickerProps,
+  IOSPerfectWheelPicker as WebWheelPicker,
+  type IOSPerfectWheelPickerProps as WebWheelPickerProps,
+  type IOSUltraSmoothWheelPickerProps,
   type IOSStyleWheelPickerProps,
-} from "@/components/IOSUltraSmoothWheelPicker";
+} from "@/components/IOSPerfectWheelPicker";
 
-export { default } from "@/components/IOSUltraSmoothWheelPicker";
+export { default } from "@/components/IOSPerfectWheelPicker";

@@ -1,5 +1,5 @@
 /**
- * Ultra-smooth iOS-like wheel picker — soft magnetic snap, infinite loop, 3D depth.
+ * iOS-perfect wheel picker — momentum-friendly, soft magnetic lock, UIDatePicker feel.
  */
 import React, {
   useCallback,
@@ -11,7 +11,7 @@ import React, {
   type ReactNode,
 } from "react";
 
-export type IOSUltraSmoothWheelPickerProps<T> = {
+export type IOSPerfectWheelPickerProps<T> = {
   data: T[];
   value?: T;
   onChange?: (item: T, index: number) => void;
@@ -24,23 +24,21 @@ export type IOSUltraSmoothWheelPickerProps<T> = {
   normalizeIndex?: (index: number) => number;
   getItemKey?: (item: T, index: number) => string | number;
   infinite?: boolean;
-  /** iOS selection band + fades (off for mint onboarding). */
   showDefaultChrome?: boolean;
-  /** Scroll settle delay before snap (ms). */
-  snapDelayMs?: number;
 };
 
-/** @deprecated Alias for WebWheelPicker compatibility */
-export type IOSStyleWheelPickerProps<T> = IOSUltraSmoothWheelPickerProps<T>;
+export type IOSUltraSmoothWheelPickerProps<T> = IOSPerfectWheelPickerProps<T>;
+export type IOSStyleWheelPickerProps<T> = IOSPerfectWheelPickerProps<T>;
 
 const DEFAULT_ITEM_HEIGHT = 44;
 const DEFAULT_VISIBLE_ITEMS = 5;
 const INFINITE_COPIES = 5;
 const MIDDLE_COPY_INDEX = 2;
-const SNAP_DELAY_MS = 140;
-const REPOSITION_MS = 450;
-const SNAP_EASE = 0.115;
-const SNAP_STOP_PX = 0.25;
+const TOUCH_SETTLE_MS = 260;
+const DESKTOP_SETTLE_MS = 180;
+const REPOSITION_MS = 500;
+const SNAP_EASE = 0.095;
+const SNAP_STOP_PX = 0.15;
 
 function clampIndex(index: number, count: number): number {
   if (count <= 0) return 0;
@@ -52,7 +50,7 @@ function modIndex(index: number, count: number): number {
   return ((index % count) + count) % count;
 }
 
-export function IOSUltraSmoothWheelPicker<T>({
+export function IOSPerfectWheelPicker<T>({
   data,
   value,
   onChange,
@@ -66,12 +64,11 @@ export function IOSUltraSmoothWheelPicker<T>({
   getItemKey,
   infinite = true,
   showDefaultChrome = false,
-  snapDelayMs = SNAP_DELAY_MS,
-}: IOSUltraSmoothWheelPickerProps<T>) {
+}: IOSPerfectWheelPickerProps<T>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationFrame = useRef<number | null>(null);
-  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isSnapping = useRef(false);
+  const scrollEndTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDragging = useRef(false);
   const isUserInteractingRef = useRef(false);
 
   const segmentLen = data.length;
@@ -115,39 +112,32 @@ export function IOSUltraSmoothWheelPicker<T>({
       cancelAnimationFrame(animationFrame.current);
       animationFrame.current = null;
     }
-    isSnapping.current = false;
   }, []);
 
-  const smoothSnapTo = useCallback(
-    (target: number, onDone?: () => void) => {
-      const el = containerRef.current;
-      if (!el) return;
+  const smoothSnapTo = useCallback((target: number) => {
+    const el = containerRef.current;
+    if (!el) return;
 
-      cancelSnapAnimation();
-      isSnapping.current = true;
+    cancelSnapAnimation();
 
-      let current = el.scrollTop;
+    let current = el.scrollTop;
 
-      const animate = () => {
-        const diff = target - current;
-        current += diff * SNAP_EASE;
+    const animate = () => {
+      const diff = target - current;
+      current += diff * SNAP_EASE;
 
-        if (Math.abs(diff) < SNAP_STOP_PX) {
-          el.scrollTop = target;
-          isSnapping.current = false;
-          animationFrame.current = null;
-          onDone?.();
-          return;
-        }
+      if (Math.abs(diff) < SNAP_STOP_PX) {
+        el.scrollTop = target;
+        animationFrame.current = null;
+        return;
+      }
 
-        el.scrollTop = current;
-        animationFrame.current = requestAnimationFrame(animate);
-      };
+      el.scrollTop = current;
+      animationFrame.current = requestAnimationFrame(animate);
+    };
 
-      animate();
-    },
-    [cancelSnapAnimation],
-  );
+    animate();
+  }, [cancelSnapAnimation]);
 
   const repositionInfinite = useCallback(
     (nearestIndex: number, realIndex: number) => {
@@ -168,28 +158,26 @@ export function IOSUltraSmoothWheelPicker<T>({
     const el = containerRef.current;
     if (!el || segmentLen === 0) return;
 
-    if (isSnapping.current) return;
-
     const rawIndex = el.scrollTop / itemHeight;
     const nearestIndex = Math.round(rawIndex);
     const clampedPhysical = clampIndex(nearestIndex, extendedItems.length);
     const target = clampedPhysical * itemHeight;
 
+    smoothSnapTo(target);
     setSelectedIndex(clampedPhysical);
 
     const realIndex = resolveLogicalIndex(clampedPhysical);
+    isUserInteractingRef.current = false;
 
-    smoothSnapTo(target, () => {
-      isUserInteractingRef.current = false;
-      if (onChange && data[realIndex] !== undefined) {
-        onChange(data[realIndex], realIndex);
-      }
-      if (infinite) {
-        setTimeout(() => {
-          repositionInfinite(clampedPhysical, realIndex);
-        }, REPOSITION_MS);
-      }
-    });
+    if (onChange && data[realIndex] !== undefined) {
+      onChange(data[realIndex], realIndex);
+    }
+
+    if (infinite) {
+      setTimeout(() => {
+        repositionInfinite(clampedPhysical, realIndex);
+      }, REPOSITION_MS);
+    }
   }, [
     data,
     extendedItems.length,
@@ -202,36 +190,44 @@ export function IOSUltraSmoothWheelPicker<T>({
     smoothSnapTo,
   ]);
 
+  const scheduleSnapAfterSettle = useCallback(
+    (delayMs: number) => {
+      if (scrollEndTimeout.current) {
+        clearTimeout(scrollEndTimeout.current);
+      }
+      scrollEndTimeout.current = setTimeout(() => {
+        scrollEndTimeout.current = null;
+        snapToNearest();
+      }, delayMs);
+    },
+    [snapToNearest],
+  );
+
+  const handleInteractionStart = useCallback(() => {
+    isDragging.current = true;
+    isUserInteractingRef.current = true;
+    cancelSnapAnimation();
+    if (scrollEndTimeout.current) {
+      clearTimeout(scrollEndTimeout.current);
+      scrollEndTimeout.current = null;
+    }
+  }, [cancelSnapAnimation]);
+
+  const handleInteractionEnd = useCallback(() => {
+    isDragging.current = false;
+    scheduleSnapAfterSettle(TOUCH_SETTLE_MS);
+  }, [scheduleSnapAfterSettle]);
+
   const handleScroll = useCallback(() => {
-    if (isSnapping.current) return;
-
-    if (!isUserInteractingRef.current) {
-      isUserInteractingRef.current = true;
-    }
-
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-    }
-
-    scrollTimeout.current = setTimeout(() => {
-      scrollTimeout.current = null;
-      snapToNearest();
-    }, snapDelayMs);
-
     const el = containerRef.current;
     if (!el) return;
 
     setSelectedIndex(el.scrollTop / itemHeight);
-  }, [snapDelayMs, snapToNearest]);
 
-  const beginInteraction = useCallback(() => {
-    isUserInteractingRef.current = true;
-    cancelSnapAnimation();
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-      scrollTimeout.current = null;
+    if (!isDragging.current) {
+      scheduleSnapAfterSettle(DESKTOP_SETTLE_MS);
     }
-  }, [cancelSnapAnimation]);
+  }, [scheduleSnapAfterSettle]);
 
   const scrollToPhysical = useCallback(
     (physicalIndex: number) => {
@@ -241,7 +237,7 @@ export function IOSUltraSmoothWheelPicker<T>({
       el.scrollTop = physicalIndex * itemHeight;
       setSelectedIndex(physicalIndex);
     },
-    [cancelSnapAnimation],
+    [cancelSnapAnimation, itemHeight],
   );
 
   useEffect(() => {
@@ -259,7 +255,7 @@ export function IOSUltraSmoothWheelPicker<T>({
   useEffect(
     () => () => {
       cancelSnapAnimation();
-      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+      if (scrollEndTimeout.current) clearTimeout(scrollEndTimeout.current);
     },
     [cancelSnapAnimation],
   );
@@ -298,9 +294,9 @@ export function IOSUltraSmoothWheelPicker<T>({
               borderTop: "1px solid rgba(255,255,255,0.12)",
               borderBottom: "1px solid rgba(255,255,255,0.12)",
               background: "rgba(255,255,255,0.03)",
-              pointerEvents: "none",
+              backdropFilter: "blur(10px)",
               zIndex: 20,
-              backdropFilter: "blur(8px)",
+              pointerEvents: "none",
             }}
           />
           <div
@@ -309,11 +305,11 @@ export function IOSUltraSmoothWheelPicker<T>({
               top: 0,
               left: 0,
               right: 0,
-              height: centerOffset + 8,
+              height: centerOffset + 10,
               background:
-                "linear-gradient(to bottom, rgba(0,0,0,0.78), rgba(0,0,0,0.45), transparent)",
-              pointerEvents: "none",
+                "linear-gradient(to bottom, rgba(0,0,0,0.82), rgba(0,0,0,0.45), transparent)",
               zIndex: 20,
+              pointerEvents: "none",
             }}
           />
           <div
@@ -322,11 +318,11 @@ export function IOSUltraSmoothWheelPicker<T>({
               bottom: 0,
               left: 0,
               right: 0,
-              height: centerOffset + 8,
+              height: centerOffset + 10,
               background:
-                "linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0.45), transparent)",
-              pointerEvents: "none",
+                "linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.45), transparent)",
               zIndex: 20,
+              pointerEvents: "none",
             }}
           />
         </>
@@ -334,10 +330,13 @@ export function IOSUltraSmoothWheelPicker<T>({
 
       <div
         ref={containerRef}
+        onTouchStart={handleInteractionStart}
+        onTouchEnd={handleInteractionEnd}
+        onTouchCancel={handleInteractionEnd}
+        onPointerDown={handleInteractionStart}
+        onPointerUp={handleInteractionEnd}
+        onPointerCancel={handleInteractionEnd}
         onScroll={handleScroll}
-        onPointerDown={beginInteraction}
-        onTouchStart={beginInteraction}
-        onWheel={beginInteraction}
         className="h-full overflow-y-scroll scrollbar-hide"
         style={{
           overflowX: "hidden",
@@ -346,30 +345,28 @@ export function IOSUltraSmoothWheelPicker<T>({
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           WebkitOverflowScrolling: "touch",
-          scrollSnapType: "y proximity",
           WebkitMaskImage:
-            "linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)",
-          willChange: "transform",
+            "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)",
           transform: "translate3d(0,0,0)",
+          willChange: "transform",
           contain: "layout paint style",
         }}
       >
         {extendedItems.map((item, index) => {
           const distance = Math.abs(index - selectedIndex);
           const scale = Math.max(1 - distance * 0.08, 0.72);
-          const opacity = Math.max(1 - distance * 0.16, 0.18);
+          const opacity = Math.max(1 - distance * 0.16, 0.15);
           const rotate = Math.min(distance * 18, 80);
           const translateY = distance * 1.5;
           const isAbove = index < selectedIndex;
           const logicalIndex = infinite ? modIndex(index, segmentLen) : index;
           const selected = logicalIndex === logicalActiveIndex;
 
-          const itemStyle: CSSProperties = {
+          const rowStyle: CSSProperties = {
             height: itemHeight,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            scrollSnapAlign: "center",
             transform: `
               perspective(1000px)
               rotateX(${isAbove ? rotate : -rotate}deg)
@@ -394,7 +391,7 @@ export function IOSUltraSmoothWheelPicker<T>({
               : logicalIndex;
 
           return (
-            <div key={key} style={itemStyle}>
+            <div key={key} style={rowStyle}>
               {renderItem ? (
                 renderItem(item, selected, logicalIndex, logicalActiveIndex)
               ) : (
@@ -417,4 +414,4 @@ export function IOSUltraSmoothWheelPicker<T>({
   );
 }
 
-export default IOSUltraSmoothWheelPicker;
+export default IOSPerfectWheelPicker;

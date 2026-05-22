@@ -29,6 +29,9 @@ const GENDER_IMAGES = {
   female: "/gender-female.png",
 } as const;
 
+const SPRING = { type: "spring" as const, stiffness: 420, damping: 32, mass: 0.85 };
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 export function GenderSelectStep({
   userData,
   setUserData,
@@ -42,16 +45,8 @@ export function GenderSelectStep({
     image: string;
     label: string;
   }[] = [
-    {
-      id: "male",
-      image: GENDER_IMAGES.male,
-      label: language === "de" ? "Männlich" : language === "fr" ? "Homme" : "Male",
-    },
-    {
-      id: "female",
-      image: GENDER_IMAGES.female,
-      label: language === "de" ? "Weiblich" : language === "fr" ? "Femme" : "Female",
-    },
+    { id: "male", image: GENDER_IMAGES.male, label: t.onboardingMale },
+    { id: "female", image: GENDER_IMAGES.female, label: t.onboardingFemale },
   ];
 
   const nonBinaryLabel =
@@ -66,12 +61,22 @@ export function GenderSelectStep({
 
   const canProceed = userData.gender !== null;
 
+  const selectGender = (gender: "male" | "female") => {
+    setUserData((prev) => ({ ...prev, gender }));
+  };
+
+  const toggleNonBinary = () => {
+    setUserData((prev) => ({
+      ...prev,
+      gender: prev.gender === "non-binary" ? null : "non-binary",
+    }));
+  };
+
   return (
     <motion.div
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
-      {/* ── Top bar: back ── */}
       <div
         className="flex shrink-0 items-center px-5 pb-1"
         style={{ paddingTop: MINT_STEP_HEADER_PT }}
@@ -81,7 +86,7 @@ export function GenderSelectStep({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-neutral-500 transition-colors hover:bg-white"
             style={{ boxShadow: "0 1px 2px rgba(15,40,30,0.04)" }}
           >
@@ -101,94 +106,114 @@ export function GenderSelectStep({
         </h1>
       </OnboardingMascotQuestion>
 
-      {/* ── Männlich / Weiblich + Nicht-binär ── */}
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 pb-4 pt-6">
-        <div className="mx-auto grid w-full max-w-[300px] grid-cols-2 gap-4">
-          {binaryOptions.map((opt, i) => {
+        <motion.div
+          className="mx-auto grid w-full max-w-[300px] grid-cols-2 gap-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: EASE }}
+        >
+          {binaryOptions.map((opt) => {
             const selected = userData.gender === opt.id;
+
             return (
               <motion.button
                 key={opt.id}
                 type="button"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  opacity: { delay: 0.08 + i * 0.06, duration: 0.35 },
-                  y: { delay: 0.08 + i * 0.06, duration: 0.35 },
-                }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setUserData({ ...userData, gender: opt.id })}
+                layout
+                onClick={() => selectGender(opt.id)}
                 aria-pressed={selected}
-                className="flex flex-col items-center gap-2.5 border-0 bg-transparent p-0"
+                animate={{
+                  scale: selected ? 1.03 : 1,
+                  opacity: selected ? 1 : 0.9,
+                }}
+                transition={SPRING}
+                whileTap={{ scale: selected ? 1.02 : 0.97 }}
+                className="flex flex-col items-center gap-2.5 border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/50"
               >
-                <div className="relative w-full" style={{ aspectRatio: "1" }}>
+                <motion.div
+                  className="relative w-full rounded-2xl"
+                  style={{ aspectRatio: "1" }}
+                  animate={{
+                    boxShadow: selected
+                      ? `0 0 0 3px ${PALETTE.selectedBg}, 0 0 0 5px ${PALETTE.border}`
+                      : "0 0 0 3px transparent, 0 0 0 5px transparent",
+                  }}
+                  transition={{ duration: 0.32, ease: EASE }}
+                >
                   <img
                     src={opt.image}
                     alt=""
-                    className="h-full w-full object-contain transition-[box-shadow] duration-200"
-                    style={
-                      selected
-                        ? {
-                            boxShadow: `0 0 0 3px ${PALETTE.selectedBg}, 0 0 0 5px ${PALETTE.border}`,
-                          }
-                        : undefined
-                    }
+                    className="h-full w-full object-contain"
                     draggable={false}
                   />
-                </div>
-                <span
+                </motion.div>
+                <motion.span
                   className="text-[15px] font-medium tracking-tight"
                   style={{ color: PALETTE.text }}
+                  animate={{
+                    fontWeight: selected ? 600 : 500,
+                    opacity: selected ? 1 : 0.75,
+                  }}
+                  transition={{ duration: 0.28, ease: EASE }}
                 >
                   {opt.label}
-                </span>
+                </motion.span>
               </motion.button>
             );
           })}
-        </div>
+        </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ opacity: { delay: 0.22, duration: 0.35 }, y: { delay: 0.22, duration: 0.35 } }}
+          transition={{ duration: 0.4, delay: 0.12, ease: EASE }}
         >
           <motion.button
             type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={() =>
-              setUserData({
-                ...userData,
-                gender: userData.gender === "non-binary" ? null : "non-binary",
-              })
-            }
+            layout
+            onClick={toggleNonBinary}
             aria-pressed={userData.gender === "non-binary"}
-            className="flex items-center gap-3"
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-3 border-0 bg-transparent p-0 outline-none"
           >
-            <span
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors duration-200"
-              style={{
+            <motion.span
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border-2"
+              animate={{
                 borderColor:
                   userData.gender === "non-binary" ? PALETTE.border : PALETTE.cardBorderIdle,
                 backgroundColor:
                   userData.gender === "non-binary" ? PALETTE.primary : "#FFFFFF",
+                scale: userData.gender === "non-binary" ? 1.05 : 1,
               }}
+              transition={SPRING}
               aria-hidden
             >
-              {userData.gender === "non-binary" ? (
+              <motion.span
+                initial={false}
+                animate={{
+                  opacity: userData.gender === "non-binary" ? 1 : 0,
+                  scale: userData.gender === "non-binary" ? 1 : 0.6,
+                }}
+                transition={{ duration: 0.2, ease: EASE }}
+              >
                 <Check className="size-3.5 text-white" strokeWidth={3} />
-              ) : null}
-            </span>
-            <span
+              </motion.span>
+            </motion.span>
+            <motion.span
               className="text-[15px] font-medium tracking-tight"
               style={{ color: PALETTE.text }}
+              animate={{
+                opacity: userData.gender === "non-binary" ? 1 : 0.8,
+              }}
+              transition={{ duration: 0.25, ease: EASE }}
             >
               {nonBinaryLabel}
-            </span>
+            </motion.span>
           </motion.button>
         </motion.div>
       </div>
 
-      {/* Continue */}
       <div
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
@@ -218,5 +243,3 @@ export function GenderSelectStep({
     </motion.div>
   );
 }
-
-
