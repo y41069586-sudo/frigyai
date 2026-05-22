@@ -66,6 +66,7 @@ export const WheelPicker = ({
         onChange={(item) => onChange(item)}
         itemHeight={ITEM_HEIGHT}
         visibleItems={VISIBLE_ITEMS}
+        momentum
         getItemKey={(item) => item}
         selectionOverlay={null}
         renderItem={(item, selected, _index, activeIndex) => {

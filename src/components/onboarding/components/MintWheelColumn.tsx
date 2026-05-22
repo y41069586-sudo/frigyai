@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { WebWheelPicker } from "@/components/WebWheelPicker";
 
 export const WHEEL_VISIBLE_ITEMS = 5;
@@ -50,33 +50,12 @@ export function MintWheelColumn({
   circular = false,
   compactLabels = false,
 }: MintWheelColumnProps) {
-  const segmentLen = options.length;
-  const circularActive = Boolean(circular && segmentLen > 1);
+  const circularActive = Boolean(circular && options.length > 1);
 
-  const displayOptions = useMemo(() => {
-    if (circularActive) {
-      return [...options, ...options, ...options];
-    }
-    return options;
-  }, [options, circularActive]);
-
-  const selectedPhysical = useMemo(() => {
-    const idx = options.findIndex((o) => o.value === value);
-    const base = idx >= 0 ? idx : 0;
-    return circularActive ? segmentLen + base : base;
-  }, [circularActive, options, segmentLen, value]);
-
-  const selectedItem = displayOptions[selectedPhysical] ?? displayOptions[0];
-
-  const normalizeIndex = useCallback(
-    (physical: number) => {
-      if (!circularActive) return physical;
-      if (physical < segmentLen) return physical + segmentLen;
-      if (physical >= 2 * segmentLen) return physical - segmentLen;
-      return physical;
-    },
-    [circularActive, segmentLen],
-  );
+  const selectedItem = useMemo(() => {
+    const found = options.find((o) => o.value === value);
+    return found ?? options[0];
+  }, [options, value]);
 
   const textAlignClass =
     align === "left"
@@ -108,19 +87,20 @@ export function MintWheelColumn({
       aria-label={ariaLabel}
     >
       <WebWheelPicker
-        data={displayOptions}
+        data={options}
         value={selectedItem}
         onChange={(item) => onChange(item.value)}
         itemHeight={rowHeight}
         visibleItems={WHEEL_VISIBLE_ITEMS}
-        normalizeIndex={normalizeIndex}
+        infinite={circularActive}
+        momentum
         selectionOverlay={null}
         getItemKey={(item, index) =>
           circularActive ? `wheel-${index}-${item.value}` : item.value
         }
         renderItem={(opt, selected, index, activeIndex) => {
           const distance = Math.abs(index - activeIndex);
-          const opacity =
+          const labelOpacity =
             distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
           const scale = distance === 0 ? 1 : distance === 1 ? 0.98 : 0.9;
 
@@ -132,7 +112,7 @@ export function MintWheelColumn({
                 fontWeight: selected ? 600 : 400,
                 lineHeight: 1,
                 color: selected ? "#1F2937" : "#9CA3AF",
-                opacity,
+                opacity: labelOpacity,
                 transform: `translateZ(0) scale(${scale})`,
                 letterSpacing: "-0.01em",
                 transition: selected ? "none" : "opacity 0.12s ease-out",
