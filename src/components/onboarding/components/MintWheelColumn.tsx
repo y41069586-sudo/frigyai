@@ -97,31 +97,21 @@ export function MintWheelColumn({
         getItemKey={(item, index) =>
           circularActive ? `wheel-${index}-${item.value}` : item.value
         }
-        renderItem={(opt, selected, index, activeIndex) => {
-          const distance = Math.abs(index - activeIndex);
-          const labelOpacity =
-            distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
-          const scale = distance === 0 ? 1 : distance === 1 ? 0.98 : 0.9;
-
-          return (
-            <div
-              className={`flex items-center w-full ${textAlignClass}`}
-              style={{
-                fontSize: `${selected ? selectedFontPx : idleFontPx}px`,
-                fontWeight: selected ? 600 : 400,
-                lineHeight: 1,
-                color: selected ? "#1F2937" : "#9CA3AF",
-                opacity: labelOpacity,
-                transform: `translateZ(0) scale(${scale})`,
-                letterSpacing: "-0.01em",
-                transition: selected ? "none" : "opacity 0.12s ease-out",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {opt.label}
-            </div>
-          );
-        }}
+        renderItem={(opt, selected) => (
+          <div
+            className={`flex w-full items-center ${textAlignClass}`}
+            style={{
+              fontSize: `${selected ? selectedFontPx : idleFontPx}px`,
+              fontWeight: selected ? 600 : 400,
+              lineHeight: 1,
+              color: selected ? "#1F2937" : "#9CA3AF",
+              letterSpacing: "-0.01em",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            {opt.label}
+          </div>
+        )}
       />
     </div>
   );

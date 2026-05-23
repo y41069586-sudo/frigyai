@@ -78,28 +78,20 @@ export const WheelPicker = ({
         infinite={false}
         getItemKey={(item) => item.value}
         selectionOverlay={null}
-        renderItem={(opt, isSelected, _index, activeIndex) => {
-          const itemIndex = options.findIndex((o) => o.value === opt.value);
-          const distance = Math.abs(itemIndex - activeIndex);
-          const opacity = distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
-
-          return (
-            <div
-              className={`flex items-center justify-center select-none ${
-                isSelected ? "text-primary font-semibold" : "text-muted-foreground"
-              }`}
-              style={{
-                fontSize: isSelected ? 18 : 15,
-                fontWeight: isSelected ? 600 : 400,
-                opacity,
-                letterSpacing: "-0.01em",
-                transition: isSelected ? "none" : "opacity 0.12s ease-out",
-              }}
-            >
-              {opt.label}
-            </div>
-          );
-        }}
+        renderItem={(opt, isSelected) => (
+          <div
+            className={`flex select-none items-center justify-center ${
+              isSelected ? "font-semibold text-primary" : "text-muted-foreground"
+            }`}
+            style={{
+              fontSize: isSelected ? 18 : 15,
+              fontWeight: isSelected ? 600 : 400,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {opt.label}
+          </div>
+        )}
       />
     </div>
   );

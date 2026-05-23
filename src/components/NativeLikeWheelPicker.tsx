@@ -1,6 +1,8 @@
 /**
- * Native-like wheel picker — real momentum, soft magnetic settle, no aggressive snap.
+ * Smooth wheel picker — 140ms settle pause, browser smooth scroll snap,
+ * optional 3× infinite loop (demo-style), Framer Motion 3D rows.
  */
+import { motion } from "framer-motion";
 import React, {
   useCallback,
   useEffect,
@@ -32,14 +34,11 @@ export type IOSPerfectWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 export type IOSUltraSmoothWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 export type IOSStyleWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 
-const DEFAULT_ITEM_HEIGHT = 48;
+const DEFAULT_ITEM_HEIGHT = 50;
 const DEFAULT_VISIBLE_ITEMS = 5;
-const INFINITE_COPIES = 7;
-const MIDDLE_COPY_INDEX = 3;
-const SETTLE_DELAY_MS = 180;
-const VELOCITY_THRESHOLD = 0.02;
-const SETTLE_EASE = 0.065;
-const SETTLE_STOP_PX = 0.08;
+const INFINITE_COPIES = 3;
+const MIDDLE_COPY_INDEX = 1;
+const SETTLE_DELAY_MS = 140;
 
 function clampIndex(index: number, count: number): number {
   if (count <= 0) return 0;
@@ -49,6 +48,27 @@ function clampIndex(index: number, count: number): number {
 function modIndex(index: number, count: number): number {
   if (count <= 0) return 0;
   return ((index % count) + count) % count;
+}
+
+function indexOfValue<T>(data: T[], value: T | undefined): number {
+  if (value === undefined || data.length === 0) return 0;
+  let found = data.findIndex((x) => x === value);
+  if (
+    found < 0 &&
+    value !== null &&
+    typeof value === "object" &&
+    "value" in (value as object)
+  ) {
+    const needle = (value as { value: unknown }).value;
+    found = data.findIndex(
+      (x) =>
+        x !== null &&
+        typeof x === "object" &&
+        "value" in (x as object) &&
+        (x as { value: unknown }).value === needle,
+    );
+  }
+  return found >= 0 ? found : 0;
 }
 
 export function NativeLikeWheelPicker<T>({
@@ -66,203 +86,155 @@ export function NativeLikeWheelPicker<T>({
   infinite = false,
   showDefaultChrome = false,
 }: NativeLikeWheelPickerProps<T>) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const settleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastScrollTop = useRef(0);
-  const velocity = useRef(0);
-  const lastMoveTime = useRef(performance.now());
-  const isUserInteractingRef = useRef(false);
-
   const segmentLen = data.length;
+  const padItems = Math.floor(visibleItems / 2);
+  const containerHeight = itemHeight * visibleItems;
+  const verticalPad = padItems * itemHeight;
 
-  const infiniteItems = useMemo(() => {
-    if (!infinite || segmentLen === 0) return data;
+  const infiniteActive = Boolean(infinite && segmentLen > 1);
+
+  const wheelItems = useMemo(() => {
+    if (!infiniteActive || segmentLen === 0) return data;
     return Array.from({ length: INFINITE_COPIES }, () => data).flat();
-  }, [data, infinite, segmentLen]);
+  }, [data, infiniteActive, segmentLen]);
 
-  const pickerHeight = itemHeight * visibleItems;
-  const centerOffset = pickerHeight / 2 - itemHeight / 2;
+  const middleStart = infiniteActive ? segmentLen * MIDDLE_COPY_INDEX : 0;
 
-  const indexFromValue = useCallback(
-    (v: T | undefined) => {
-      if (v === undefined || segmentLen === 0) return 0;
-      const found = data.findIndex((x) => x === v);
-      const base = found >= 0 ? found : 0;
-      return infinite ? base + segmentLen * MIDDLE_COPY_INDEX : base;
-    },
-    [data, infinite, segmentLen],
-  );
-
-  const [activeIndex, setActiveIndex] = useState(() => indexFromValue(value));
-
-  const resolveLogicalIndex = useCallback(
+  const logicalIndexFromPhysical = useCallback(
     (physicalIndex: number) => {
-      if (segmentLen === 0) return 0;
       const rounded = Math.round(physicalIndex);
+      if (segmentLen === 0) return 0;
       const normalized = normalizeIndex
         ? normalizeIndex(rounded)
-        : infinite
+        : infiniteActive
           ? modIndex(rounded, segmentLen)
           : clampIndex(rounded, segmentLen);
       return clampIndex(normalized, segmentLen);
     },
-    [infinite, normalizeIndex, segmentLen],
+    [infiniteActive, normalizeIndex, segmentLen],
   );
 
-  const cancelAnimation = useCallback(() => {
-    if (animationRef.current !== null) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-  }, []);
+  const physicalIndexForValue = useCallback(
+    (v: T | undefined) => {
+      const logical = indexOfValue(data, v);
+      return infiniteActive ? logical + segmentLen * MIDDLE_COPY_INDEX : logical;
+    },
+    [data, infiniteActive, segmentLen],
+  );
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isUserInteractingRef = useRef(false);
+
+  const [scrollIndex, setScrollIndex] = useState(() => physicalIndexForValue(value));
+  const [selectedIndex, setSelectedIndex] = useState(() => physicalIndexForValue(value));
+
+  const logicalActiveIndex = logicalIndexFromPhysical(selectedIndex);
 
   const clearSettleTimer = useCallback(() => {
-    if (settleTimeout.current !== null) {
-      clearTimeout(settleTimeout.current);
-      settleTimeout.current = null;
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   }, []);
 
-  const scrollToPhysical = useCallback(
-    (physicalIndex: number) => {
-      const el = containerRef.current;
-      if (!el) return;
-      cancelAnimation();
-      el.scrollTop = physicalIndex * itemHeight;
-      setActiveIndex(physicalIndex);
-      lastScrollTop.current = el.scrollTop;
-    },
-    [cancelAnimation, itemHeight],
-  );
-
-  const settleToNearest = useCallback(() => {
-    const el = containerRef.current;
-    if (!el || segmentLen === 0) return;
-
-    const current = el.scrollTop / itemHeight;
-    const targetIndex = Math.round(current);
-    const clampedPhysical = clampIndex(targetIndex, infiniteItems.length);
-    const target = clampedPhysical * itemHeight;
-
-    let currentPos = el.scrollTop;
-    cancelAnimation();
-
-    const finish = (finalPhysical: number) => {
-      const realIndex = resolveLogicalIndex(finalPhysical);
-      isUserInteractingRef.current = false;
-
-      if (infinite && segmentLen > 0) {
-        const normalized = realIndex + segmentLen * MIDDLE_COPY_INDEX;
-        el.scrollTop = normalized * itemHeight;
-        setActiveIndex(normalized);
-        lastScrollTop.current = el.scrollTop;
-        if (onChange && data[realIndex] !== undefined) {
-          onChange(data[realIndex], realIndex);
-        }
-        return;
-      }
-
-      setActiveIndex(finalPhysical);
-      lastScrollTop.current = el.scrollTop;
-      if (onChange && data[realIndex] !== undefined) {
-        onChange(data[realIndex], realIndex);
-      }
-    };
-
-    const animate = () => {
-      const diff = target - currentPos;
-      currentPos += diff * SETTLE_EASE;
-
-      if (Math.abs(diff) < SETTLE_STOP_PX) {
-        el.scrollTop = target;
-        animationRef.current = null;
-        finish(clampedPhysical);
-        return;
-      }
-
-      el.scrollTop = currentPos;
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-  }, [
-    cancelAnimation,
-    data,
-    infinite,
-    infiniteItems.length,
-    itemHeight,
-    onChange,
-    resolveLogicalIndex,
-    segmentLen,
-  ]);
-
-  const scheduleSettle = useCallback(() => {
-    clearSettleTimer();
-
-    const trySettle = () => {
-      if (Math.abs(velocity.current) > VELOCITY_THRESHOLD) {
-        settleTimeout.current = setTimeout(trySettle, 60);
-        return;
-      }
-      settleToNearest();
-    };
-
-    settleTimeout.current = setTimeout(trySettle, SETTLE_DELAY_MS);
-  }, [clearSettleTimer, settleToNearest]);
-
-  const handleScroll = useCallback(() => {
-    const el = containerRef.current;
+  const normalizeScroll = useCallback(() => {
+    if (!infiniteActive || segmentLen === 0) return;
+    const el = scrollRef.current;
     if (!el) return;
 
-    const now = performance.now();
-    const delta = el.scrollTop - lastScrollTop.current;
-    const dt = now - lastMoveTime.current;
+    const totalHeight = segmentLen * itemHeight;
 
-    velocity.current = delta / (dt || 1);
-    lastScrollTop.current = el.scrollTop;
-    lastMoveTime.current = now;
+    if (el.scrollTop <= totalHeight * 0.5) {
+      el.scrollTop += totalHeight;
+    } else if (el.scrollTop >= totalHeight * 2.5) {
+      el.scrollTop -= totalHeight;
+    }
 
-    setActiveIndex(el.scrollTop / itemHeight);
-    scheduleSettle();
-  }, [itemHeight, scheduleSettle]);
+    const idx = el.scrollTop / itemHeight;
+    setScrollIndex(idx);
+  }, [infiniteActive, itemHeight, segmentLen]);
+
+  const scrollToIndex = useCallback(
+    (index: number, behavior: ScrollBehavior = "auto") => {
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollTo({ top: index * itemHeight, behavior });
+      setScrollIndex(index);
+      setSelectedIndex(index);
+    },
+    [itemHeight],
+  );
 
   const beginInteraction = useCallback(() => {
     isUserInteractingRef.current = true;
-    cancelAnimation();
     clearSettleTimer();
-    velocity.current = 0;
-    lastMoveTime.current = performance.now();
-    lastScrollTop.current = containerRef.current?.scrollTop ?? 0;
-  }, [cancelAnimation, clearSettleTimer]);
+  }, [clearSettleTimer]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    normalizeScroll();
+    setScrollIndex(el.scrollTop / itemHeight);
+
+    clearSettleTimer();
+
+    timeoutRef.current = setTimeout(() => {
+      if (!scrollRef.current) return;
+
+      const rawIndex = scrollRef.current.scrollTop / itemHeight;
+      let snappedIndex = Math.round(rawIndex);
+
+      if (!infiniteActive) {
+        snappedIndex = clampIndex(snappedIndex, wheelItems.length);
+      } else {
+        snappedIndex = clampIndex(snappedIndex, wheelItems.length);
+      }
+
+      const snappedPosition = snappedIndex * itemHeight;
+
+      scrollRef.current.scrollTo({
+        top: snappedPosition,
+        behavior: "smooth",
+      });
+
+      setSelectedIndex(snappedIndex);
+      setScrollIndex(snappedIndex);
+      isUserInteractingRef.current = false;
+
+      const logical = logicalIndexFromPhysical(snappedIndex);
+      const item = data[logical];
+      if (item !== undefined) {
+        onChange?.(item, logical);
+      }
+    }, SETTLE_DELAY_MS);
+  }, [
+    clearSettleTimer,
+    data,
+    infiniteActive,
+    itemHeight,
+    logicalIndexFromPhysical,
+    normalizeScroll,
+    onChange,
+    segmentLen,
+    wheelItems.length,
+  ]);
 
   useEffect(() => {
     if (isUserInteractingRef.current) return;
-    const idx = indexFromValue(value);
-    setActiveIndex(idx);
-    requestAnimationFrame(() => scrollToPhysical(idx));
-  }, [indexFromValue, scrollToPhysical, value]);
+    const idx = physicalIndexForValue(value);
+    setSelectedIndex(idx);
+    setScrollIndex(idx);
+    requestAnimationFrame(() => scrollToIndex(idx, "auto"));
+  }, [physicalIndexForValue, scrollToIndex, value]);
 
-  useEffect(() => {
-    requestAnimationFrame(() => scrollToPhysical(indexFromValue(value)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount
-  }, []);
-
-  useEffect(
-    () => () => {
-      cancelAnimation();
-      clearSettleTimer();
-    },
-    [cancelAnimation, clearSettleTimer],
-  );
-
-  const logicalActiveIndex = resolveLogicalIndex(activeIndex);
+  useEffect(() => () => clearSettleTimer(), [clearSettleTimer]);
 
   const containerStyle: CSSProperties = useMemo(
     () => ({
       position: "relative",
-      height: pickerHeight,
-      overflow: "hidden",
+      height: containerHeight,
       width: "100%",
       touchAction: "pan-y",
       overscrollBehavior: "contain",
@@ -270,130 +242,94 @@ export function NativeLikeWheelPicker<T>({
       userSelect: "none",
       ...style,
     }),
-    [pickerHeight, style],
+    [containerHeight, style],
   );
+
+  const currentScroll = scrollIndex;
 
   return (
     <div className={className} style={containerStyle}>
       {selectionOverlay}
 
       {showDefaultChrome && (
-        <>
-          <div
-            style={{
-              position: "absolute",
-              top: centerOffset,
-              left: 0,
-              right: 0,
-              height: itemHeight,
-              borderTop: "1px solid rgba(255,255,255,0.12)",
-              borderBottom: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.03)",
-              backdropFilter: "blur(8px)",
-              zIndex: 20,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: centerOffset + 20,
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.88), transparent)",
-              zIndex: 20,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: centerOffset + 20,
-              background: "linear-gradient(to top, rgba(0,0,0,0.88), transparent)",
-              zIndex: 20,
-              pointerEvents: "none",
-            }}
-          />
-        </>
+        <div
+          className="pointer-events-none absolute inset-x-0 z-20 rounded-xl border border-cyan-400/40 bg-cyan-400/10 backdrop-blur-sm"
+          style={{
+            top: containerHeight / 2 - itemHeight / 2,
+            height: itemHeight,
+          }}
+        />
       )}
 
       <div
-        ref={containerRef}
+        ref={scrollRef}
         onScroll={handleScroll}
         onPointerDown={beginInteraction}
         onTouchStart={beginInteraction}
-        onWheel={beginInteraction}
-        className="h-full overflow-y-scroll scrollbar-hide"
+        className="h-full w-full overflow-y-scroll overscroll-contain scrollbar-hide rounded-2xl"
         style={{
-          overflowX: "hidden",
-          paddingTop: centerOffset,
-          paddingBottom: centerOffset,
+          perspective: "1000px",
+          WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
-          WebkitOverflowScrolling: "touch",
-          transform: "translate3d(0,0,0)",
-          willChange: "scroll-position",
           WebkitMaskImage:
             "linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)",
         }}
       >
-        {infiniteItems.map((item, index) => {
-          const distance = Math.abs(index - activeIndex);
-          const scale = Math.max(1 - distance * 0.08, 0.74);
-          const opacity = Math.max(1 - distance * 0.16, 0.12);
-          const rotate = Math.min(distance * 16, 75);
-          const isAbove = index < activeIndex;
-          const logicalIndex = infinite ? modIndex(index, segmentLen) : index;
-          const selected = logicalIndex === logicalActiveIndex;
+        <div style={{ paddingTop: verticalPad, paddingBottom: verticalPad }}>
+          {wheelItems.map((item, index) => {
+            const distance = Math.abs(index - currentScroll);
+            const scale = Math.max(0.75, 1 - distance * 0.08);
+            const opacity = Math.max(0.2, 1 - distance * 0.18);
+            const rotateX = Math.min(distance * 12, 75);
+            const isAbove = index < currentScroll;
+            const logicalIndex = infiniteActive ? modIndex(index, segmentLen) : index;
+            const selected = logicalIndex === logicalActiveIndex;
+            const isCenterRow = Math.round(currentScroll) === index;
 
-          const key = getItemKey
-            ? getItemKey(item, index)
-            : infinite
-              ? `wheel-${index}-${logicalIndex}`
-              : logicalIndex;
+            const key = getItemKey
+              ? getItemKey(item, index)
+              : infiniteActive
+                ? `wheel-${index}-${logicalIndex}`
+                : logicalIndex;
 
-          return (
-            <div
-              key={key}
-              style={{
-                height: itemHeight,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transform: `
-                  perspective(1000px)
-                  rotateX(${isAbove ? rotate : -rotate}deg)
-                  scale(${scale})
-                `,
-                opacity: renderItem ? 1 : opacity,
-                transition: "transform 120ms linear, opacity 120ms linear",
-                backfaceVisibility: "hidden",
-                transformStyle: "preserve-3d",
-                WebkitFontSmoothing: "antialiased",
-                pointerEvents: "none",
-              }}
-            >
-              {renderItem ? (
-                renderItem(item, selected, logicalIndex, logicalActiveIndex)
-              ) : (
-                <span
-                  style={{
-                    fontSize: selected ? 20 : 17,
-                    fontWeight: selected ? 600 : 500,
-                    color: selected ? "#1F2937" : "#6B7280",
-                    opacity,
-                  }}
-                >
-                  {String(item)}
-                </span>
-              )}
-            </div>
-          );
-        })}
+            return (
+              <motion.div
+                key={key}
+                className="flex items-center justify-center font-medium"
+                animate={{
+                  scale,
+                  opacity: renderItem ? 1 : opacity,
+                  rotateX: isAbove ? rotateX : -rotateX,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 120,
+                  damping: 18,
+                }}
+                style={{
+                  height: itemHeight,
+                  transformStyle: "preserve-3d",
+                  pointerEvents: "none",
+                }}
+              >
+                {renderItem ? (
+                  renderItem(item, selected, logicalIndex, logicalActiveIndex)
+                ) : (
+                  <div
+                    className={`transition-all duration-200 ${
+                      isCenterRow
+                        ? "text-xl font-bold text-cyan-300"
+                        : "text-lg text-zinc-500"
+                    }`}
+                  >
+                    {String(item)}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
