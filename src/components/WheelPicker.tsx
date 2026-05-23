@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { WebWheelPicker } from "@/components/WebWheelPicker";
+import { NativeLikeWheelPicker } from "@/components/NativeLikeWheelPicker";
 
 interface WheelPickerProps {
   value: number;
@@ -10,16 +10,21 @@ interface WheelPickerProps {
   unit?: string;
 }
 
-const ITEM_HEIGHT = 48;
-const VISIBLE_ITEMS = 3;
+type WheelOption = { value: number; label: string };
 
-function buildItems(min: number, max: number, step: number): number[] {
-  if (step <= 0 || max < min) return [min];
-  const items: number[] = [];
-  for (let v = min; v <= max; v += step) {
-    items.push(v);
+const ITEM_HEIGHT = 48;
+const VISIBLE_ITEMS = 5;
+
+function buildOptions(min: number, max: number, step: number, unit: string): WheelOption[] {
+  if (step <= 0 || max < min) {
+    const label = unit ? `${min} ${unit}` : String(min);
+    return [{ value: min, label }];
   }
-  return items.length > 0 ? items : [min];
+  const items: WheelOption[] = [];
+  for (let v = min; v <= max; v += step) {
+    items.push({ value: v, label: unit ? `${v} ${unit}` : String(v) });
+  }
+  return items.length > 0 ? items : [{ value: min, label: String(min) }];
 }
 
 /** Numeric wheel — UI chrome + shared WebWheelPicker (RN FlatList port). */
@@ -31,7 +36,11 @@ export const WheelPicker = ({
   step = 1,
   unit = "",
 }: WheelPickerProps) => {
-  const data = useMemo(() => buildItems(min, max, step), [min, max, step]);
+  const options = useMemo(() => buildOptions(min, max, step, unit), [min, max, step, unit]);
+  const selected = useMemo(
+    () => options.find((o) => o.value === value) ?? options[0],
+    [options, value],
+  );
   const padHeight = Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT;
 
   return (
@@ -60,40 +69,34 @@ export const WheelPicker = ({
         }}
       />
 
-      <WebWheelPicker
-        data={data}
-        value={value}
-        onChange={(item) => onChange(item)}
+      <NativeLikeWheelPicker
+        data={options}
+        value={selected}
+        onChange={(item) => onChange(item.value)}
         itemHeight={ITEM_HEIGHT}
         visibleItems={VISIBLE_ITEMS}
         infinite={false}
-        getItemKey={(item) => item}
+        getItemKey={(item) => item.value}
         selectionOverlay={null}
-        renderItem={(item, selected, _index, activeIndex) => {
-          const itemIndex = data.indexOf(item);
+        renderItem={(opt, isSelected, _index, activeIndex) => {
+          const itemIndex = options.findIndex((o) => o.value === opt.value);
           const distance = Math.abs(itemIndex - activeIndex);
-          const opacity = distance === 0 ? 1 : distance === 1 ? 0.5 : 0.25;
+          const opacity = distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
 
           return (
             <div
-              className={`flex items-center justify-center select-none gap-1 ${
-                selected ? "text-primary font-bold" : "text-muted-foreground"
+              className={`flex items-center justify-center select-none ${
+                isSelected ? "text-primary font-semibold" : "text-muted-foreground"
               }`}
               style={{
-                fontSize: selected ? "1.5rem" : "1rem",
+                fontSize: isSelected ? 18 : 15,
+                fontWeight: isSelected ? 600 : 400,
                 opacity,
-                transform: selected ? "scale(1.05)" : "scale(0.9)",
-                transition: selected ? "none" : "opacity 0.12s ease-out, transform 0.12s ease-out",
+                letterSpacing: "-0.01em",
+                transition: isSelected ? "none" : "opacity 0.12s ease-out",
               }}
             >
-              <span>{item}</span>
-              <span
-                className={
-                  selected ? "text-sm text-primary/70" : "text-xs text-muted-foreground/60"
-                }
-              >
-                {unit}
-              </span>
+              {opt.label}
             </div>
           );
         }}

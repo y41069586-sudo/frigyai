@@ -64,7 +64,7 @@ import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePa
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
 import { supabase } from "@/integrations/supabase/client";
-import { MINT_STEP_HEADER_PT } from "./onboarding/layout";
+import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
@@ -3888,12 +3888,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           className="pointer-events-none fixed inset-x-0 top-0 z-[110] px-5 pt-[calc(env(safe-area-inset-top,0px)+6px)]"
           aria-hidden
         >
-          <div className="mx-auto h-[3px] max-w-md overflow-hidden rounded-full bg-black/10">
+          <div
+            className="mx-auto h-[3px] max-w-md overflow-hidden rounded-full"
+            style={{ backgroundColor: ONBOARDING_MINT_PALETTE.progressTrack }}
+          >
             <motion.div
               className="h-full w-full origin-left rounded-full"
-              style={{
-                background: "linear-gradient(90deg,#1ED78A,#18A872)",
-              }}
+              style={{ background: ONBOARDING_MINT_PALETTE.progressFill }}
               initial={false}
               animate={{
                 scaleX: Math.min(1, (currentIndex + 1) / Math.max(1, totalSteps)),

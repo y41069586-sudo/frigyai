@@ -63,7 +63,7 @@ export function NativeLikeWheelPicker<T>({
   selectionOverlay = null,
   normalizeIndex,
   getItemKey,
-  infinite = true,
+  infinite = false,
   showDefaultChrome = false,
 }: NativeLikeWheelPickerProps<T>) {
   const containerRef = useRef<HTMLDivElement | null>(null);

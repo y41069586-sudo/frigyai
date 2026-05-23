@@ -25,12 +25,15 @@ const PALETTE = {
 };
 
 const GENDER_IMAGES = {
-  male: { default: "/gender-male.png", selected: "/gender-male-selected.png" },
-  female: { default: "/gender-female.png", selected: "/gender-female-selected.png" },
+  male: "/gender-male.png",
+  female: "/gender-female.png",
 } as const;
 
 const SPRING = { type: "spring" as const, stiffness: 420, damping: 32, mass: 0.85 };
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+const SELECTED_RING =
+  "0 0 0 3px #E0FDEC, 0 0 0 5px #6EF0A8";
 
 export function GenderSelectStep({
   userData,
@@ -42,11 +45,11 @@ export function GenderSelectStep({
 
   const binaryOptions: {
     id: "male" | "female";
-    images: (typeof GENDER_IMAGES)["male"];
+    image: string;
     label: string;
   }[] = [
-    { id: "male", images: GENDER_IMAGES.male, label: t.onboardingMale },
-    { id: "female", images: GENDER_IMAGES.female, label: t.onboardingFemale },
+    { id: "male", image: GENDER_IMAGES.male, label: t.onboardingMale },
+    { id: "female", image: GENDER_IMAGES.female, label: t.onboardingFemale },
   ];
 
   const nonBinaryLabel =
@@ -125,24 +128,23 @@ export function GenderSelectStep({
                 aria-pressed={selected}
                 animate={{
                   scale: selected ? 1.03 : 1,
-                  opacity: selected ? 1 : 0.9,
+                  opacity: selected ? 1 : 0.88,
                 }}
                 transition={SPRING}
-                whileTap={{ scale: selected ? 1.02 : 0.97 }}
+                whileTap={{ scale: 0.97 }}
                 className="flex flex-col items-center gap-2.5 border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/50"
               >
                 <motion.div
                   className="relative w-full"
                   style={{ aspectRatio: "1" }}
-                  transition={{ duration: 0.28, ease: EASE }}
+                  animate={{
+                    boxShadow: selected ? SELECTED_RING : "0 0 0 3px transparent, 0 0 0 5px transparent",
+                  }}
+                  transition={{ duration: 0.32, ease: EASE }}
                 >
-                  <motion.img
-                    key={selected ? "selected" : "default"}
-                    src={selected ? opt.images.selected : opt.images.default}
+                  <img
+                    src={opt.image}
                     alt=""
-                    initial={{ opacity: 0.85 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.22, ease: EASE }}
                     className="h-full w-full object-contain"
                     draggable={false}
                   />
@@ -152,7 +154,7 @@ export function GenderSelectStep({
                   style={{ color: PALETTE.text }}
                   animate={{
                     fontWeight: selected ? 600 : 500,
-                    opacity: selected ? 1 : 0.75,
+                    opacity: selected ? 1 : 0.72,
                   }}
                   transition={{ duration: 0.28, ease: EASE }}
                 >

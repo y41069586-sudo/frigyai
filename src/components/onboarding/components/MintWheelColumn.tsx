@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { WebWheelPicker } from "@/components/WebWheelPicker";
+import { NativeLikeWheelPicker } from "@/components/NativeLikeWheelPicker";
 
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
@@ -86,7 +86,7 @@ export function MintWheelColumn({
       role="listbox"
       aria-label={ariaLabel}
     >
-      <WebWheelPicker
+      <NativeLikeWheelPicker
         data={options}
         value={selectedItem}
         onChange={(item) => onChange(item.value)}

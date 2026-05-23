@@ -1,3 +1,12 @@
+/** Mint onboarding palette (progress line, accents). */
+export const ONBOARDING_MINT_PALETTE = {
+  primary: "#6EF0A8",
+  primaryDark: "#4AE896",
+  selectedBg: "#E0FDEC",
+  progressTrack: "#E0FDEC",
+  progressFill: "linear-gradient(90deg, #C8F9DC 0%, #6EF0A8 55%, #4AE896 100%)",
+} as const;
+
 /** Clears the fixed mint progress line above step headers. */
 export const MINT_STEP_HEADER_PT =
   "calc(env(safe-area-inset-top, 0px) + 1.375rem)";
