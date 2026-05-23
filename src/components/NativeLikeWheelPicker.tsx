@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 
@@ -37,8 +38,10 @@ const DEFAULT_ITEM_HEIGHT = 50;
 const DEFAULT_VISIBLE_ITEMS = 5;
 const INFINITE_COPIES = 3;
 const MIDDLE_COPY_INDEX = 1;
-const SETTLE_DEBOUNCE_MS = 48;
-const SETTLE_MAX_WAIT_MS = 220;
+const SETTLE_DEBOUNCE_MS = 20;
+const SETTLE_MAX_WAIT_MS = 100;
+/** Snap right after finger lift (momentum uses short debounce above). */
+const RELEASE_SETTLE_MS = 12;
 /** Snap glide scales with how far we are from the row center (px). */
 const SNAP_MS_MIN = 150;
 const SNAP_MS_MAX = 300;
@@ -141,6 +144,7 @@ export function NativeLikeWheelPicker<T>({
   const settleGeneration = useRef(0);
   const isUserInteractingRef = useRef(false);
   const isSettlingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
 
   const [scrollIndex, setScrollIndex] = useState(() => physicalIndexForValue(value));
   const [selectedIndex, setSelectedIndex] = useState(() => physicalIndexForValue(value));
@@ -181,7 +185,9 @@ export function NativeLikeWheelPicker<T>({
       const el = scrollRef.current;
       if (!el) return;
       cancelSnapAnimation();
+      isProgrammaticScrollRef.current = true;
       el.scrollTop = index * itemHeight;
+      isProgrammaticScrollRef.current = false;
       setScrollIndex(index);
       setSelectedIndex(index);
     },
@@ -190,7 +196,6 @@ export function NativeLikeWheelPicker<T>({
 
   const commitSelection = useCallback(
     (snappedIndex: number) => {
-      isUserInteractingRef.current = false;
       isSettlingRef.current = false;
       setSelectedIndex(snappedIndex);
       setScrollIndex(snappedIndex);
@@ -228,7 +233,9 @@ export function NativeLikeWheelPicker<T>({
         const progress = Math.min(1, (now - startTime) / durationMs);
         const eased = easeOutQuint(progress);
 
+        isProgrammaticScrollRef.current = true;
         el.scrollTop = startTop + offsetPx * eased;
+        isProgrammaticScrollRef.current = false;
         setScrollIndex(el.scrollTop / itemHeight);
 
         if (progress < 1) {
@@ -236,7 +243,9 @@ export function NativeLikeWheelPicker<T>({
           return;
         }
 
+        isProgrammaticScrollRef.current = true;
         el.scrollTop = targetTop;
+        isProgrammaticScrollRef.current = false;
         animationRef.current = null;
         commitSelection(snappedIndex);
       };
@@ -267,11 +276,16 @@ export function NativeLikeWheelPicker<T>({
     const attempt = () => {
       if (generation !== settleGeneration.current) return;
 
+      if (isUserInteractingRef.current) {
+        settleTimeoutRef.current = setTimeout(attempt, 24);
+        return;
+      }
+
       const idleFor = performance.now() - lastScrollAt.current;
       const waitingFor = performance.now() - settleStartedAt.current;
 
       if (idleFor < SETTLE_DEBOUNCE_MS && waitingFor < SETTLE_MAX_WAIT_MS) {
-        const delay = Math.max(8, SETTLE_DEBOUNCE_MS - idleFor);
+        const delay = Math.max(4, SETTLE_DEBOUNCE_MS - idleFor);
         settleTimeoutRef.current = setTimeout(attempt, delay);
         return;
       }
@@ -282,29 +296,55 @@ export function NativeLikeWheelPicker<T>({
     settleTimeoutRef.current = setTimeout(attempt, SETTLE_DEBOUNCE_MS);
   }, [clearSettleTimer, runSettle]);
 
-  const beginInteraction = useCallback(() => {
-    isUserInteractingRef.current = true;
-    settleGeneration.current += 1;
-    clearSettleTimer();
-    cancelSnapAnimation();
-  }, [cancelSnapAnimation, clearSettleTimer]);
+  const beginInteraction = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      isUserInteractingRef.current = true;
+      settleGeneration.current += 1;
+      clearSettleTimer();
+      cancelSnapAnimation();
+      if (e.pointerType !== "mouse" && e.currentTarget.setPointerCapture) {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [cancelSnapAnimation, clearSettleTimer],
+  );
 
   const endInteraction = useCallback(() => {
+    if (!isUserInteractingRef.current) return;
     isUserInteractingRef.current = false;
-    scheduleSettle();
-  }, [scheduleSettle]);
+    settleGeneration.current += 1;
+    clearSettleTimer();
+    const generation = settleGeneration.current;
+    settleTimeoutRef.current = setTimeout(() => {
+      if (generation !== settleGeneration.current) return;
+      runSettle();
+    }, RELEASE_SETTLE_MS);
+  }, [clearSettleTimer, runSettle]);
 
   const handleScroll = useCallback(() => {
-    if (isSettlingRef.current) return;
-
     const el = scrollRef.current;
     if (!el) return;
 
+    if (isProgrammaticScrollRef.current) {
+      setScrollIndex(el.scrollTop / itemHeight);
+      return;
+    }
+
+    if (isSettlingRef.current) {
+      cancelSnapAnimation();
+    }
+
     lastScrollAt.current = performance.now();
-    normalizeScroll();
     setScrollIndex(el.scrollTop / itemHeight);
+
+    if (isUserInteractingRef.current) return;
+
     scheduleSettle();
-  }, [normalizeScroll, scheduleSettle]);
+  }, [cancelSnapAnimation, scheduleSettle]);
 
   useEffect(() => {
     if (isUserInteractingRef.current || isSettlingRef.current) return;
@@ -358,9 +398,11 @@ export function NativeLikeWheelPicker<T>({
         onPointerDown={beginInteraction}
         onPointerUp={endInteraction}
         onPointerCancel={endInteraction}
-        onTouchStart={beginInteraction}
-        onTouchEnd={endInteraction}
-        onTouchCancel={endInteraction}
+        onPointerLeave={(e) => {
+          if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+            endInteraction();
+          }
+        }}
         className="scrollbar-hide h-full w-full overflow-y-scroll overscroll-contain rounded-2xl"
         style={{
           perspective: "1000px",
