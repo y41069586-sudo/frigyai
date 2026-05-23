@@ -1,6 +1,5 @@
 /**
- * Smooth wheel picker — 140ms settle pause, browser smooth scroll snap,
- * optional 3× infinite loop (demo-style), Framer Motion 3D rows.
+ * Smooth wheel picker — quick velocity-based settle, gentle RAF snap (no browser smooth scroll).
  */
 import { motion } from "framer-motion";
 import React, {
@@ -38,7 +37,12 @@ const DEFAULT_ITEM_HEIGHT = 50;
 const DEFAULT_VISIBLE_ITEMS = 5;
 const INFINITE_COPIES = 3;
 const MIDDLE_COPY_INDEX = 1;
-const SETTLE_DELAY_MS = 140;
+/** Short debounce after last scroll tick — snap starts once velocity is near zero. */
+const SETTLE_DEBOUNCE_MS = 36;
+const VELOCITY_THRESHOLD = 0.018;
+const VELOCITY_POLL_MS = 28;
+const SETTLE_EASE = 0.11;
+const SETTLE_STOP_PX = 0.35;
 
 function clampIndex(index: number, count: number): number {
   if (count <= 0) return 0;
@@ -98,8 +102,6 @@ export function NativeLikeWheelPicker<T>({
     return Array.from({ length: INFINITE_COPIES }, () => data).flat();
   }, [data, infiniteActive, segmentLen]);
 
-  const middleStart = infiniteActive ? segmentLen * MIDDLE_COPY_INDEX : 0;
-
   const logicalIndexFromPhysical = useCallback(
     (physicalIndex: number) => {
       const rounded = Math.round(physicalIndex);
@@ -123,8 +125,13 @@ export function NativeLikeWheelPicker<T>({
   );
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const lastScrollTop = useRef(0);
+  const lastMoveTime = useRef(performance.now());
+  const velocity = useRef(0);
   const isUserInteractingRef = useRef(false);
+  const isSettlingRef = useRef(false);
 
   const [scrollIndex, setScrollIndex] = useState(() => physicalIndexForValue(value));
   const [selectedIndex, setSelectedIndex] = useState(() => physicalIndexForValue(value));
@@ -132,10 +139,18 @@ export function NativeLikeWheelPicker<T>({
   const logicalActiveIndex = logicalIndexFromPhysical(selectedIndex);
 
   const clearSettleTimer = useCallback(() => {
-    if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    if (settleTimeoutRef.current !== null) {
+      clearTimeout(settleTimeoutRef.current);
+      settleTimeoutRef.current = null;
     }
+  }, []);
+
+  const cancelSnapAnimation = useCallback(() => {
+    if (animationRef.current !== null) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    isSettlingRef.current = false;
   }, []);
 
   const normalizeScroll = useCallback(() => {
@@ -151,85 +166,142 @@ export function NativeLikeWheelPicker<T>({
       el.scrollTop -= totalHeight;
     }
 
-    const idx = el.scrollTop / itemHeight;
-    setScrollIndex(idx);
+    lastScrollTop.current = el.scrollTop;
   }, [infiniteActive, itemHeight, segmentLen]);
 
-  const scrollToIndex = useCallback(
-    (index: number, behavior: ScrollBehavior = "auto") => {
+  const scrollToIndexInstant = useCallback(
+    (index: number) => {
       const el = scrollRef.current;
       if (!el) return;
-      el.scrollTo({ top: index * itemHeight, behavior });
+      cancelSnapAnimation();
+      el.scrollTop = index * itemHeight;
+      lastScrollTop.current = el.scrollTop;
       setScrollIndex(index);
       setSelectedIndex(index);
     },
-    [itemHeight],
+    [cancelSnapAnimation, itemHeight],
   );
 
-  const beginInteraction = useCallback(() => {
-    isUserInteractingRef.current = true;
-    clearSettleTimer();
-  }, [clearSettleTimer]);
+  const easeSnapTo = useCallback(
+    (targetTop: number, snappedIndex: number) => {
+      const el = scrollRef.current;
+      if (!el) return;
 
-  const handleScroll = useCallback(() => {
+      cancelSnapAnimation();
+      isSettlingRef.current = true;
+
+      const finish = () => {
+        el.scrollTop = targetTop;
+        lastScrollTop.current = targetTop;
+        animationRef.current = null;
+        isSettlingRef.current = false;
+        isUserInteractingRef.current = false;
+
+        setSelectedIndex(snappedIndex);
+        setScrollIndex(snappedIndex);
+
+        const logical = logicalIndexFromPhysical(snappedIndex);
+        const item = data[logical];
+        if (item !== undefined) {
+          onChange?.(item, logical);
+        }
+      };
+
+      const animate = () => {
+        const diff = targetTop - el.scrollTop;
+        if (Math.abs(diff) < SETTLE_STOP_PX) {
+          finish();
+          return;
+        }
+        el.scrollTop += diff * SETTLE_EASE;
+        setScrollIndex(el.scrollTop / itemHeight);
+        animationRef.current = requestAnimationFrame(animate);
+      };
+
+      animate();
+    },
+    [cancelSnapAnimation, data, itemHeight, logicalIndexFromPhysical, onChange],
+  );
+
+  const runSettle = useCallback(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || segmentLen === 0) return;
 
-    normalizeScroll();
-    setScrollIndex(el.scrollTop / itemHeight);
+    const rawIndex = el.scrollTop / itemHeight;
+    const snappedIndex = clampIndex(Math.round(rawIndex), wheelItems.length);
+    const targetTop = snappedIndex * itemHeight;
 
-    clearSettleTimer();
-
-    timeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
-
-      const rawIndex = scrollRef.current.scrollTop / itemHeight;
-      let snappedIndex = Math.round(rawIndex);
-
-      if (!infiniteActive) {
-        snappedIndex = clampIndex(snappedIndex, wheelItems.length);
-      } else {
-        snappedIndex = clampIndex(snappedIndex, wheelItems.length);
-      }
-
-      const snappedPosition = snappedIndex * itemHeight;
-
-      scrollRef.current.scrollTo({
-        top: snappedPosition,
-        behavior: "smooth",
-      });
-
+    if (Math.abs(el.scrollTop - targetTop) < SETTLE_STOP_PX) {
+      isUserInteractingRef.current = false;
       setSelectedIndex(snappedIndex);
       setScrollIndex(snappedIndex);
-      isUserInteractingRef.current = false;
-
       const logical = logicalIndexFromPhysical(snappedIndex);
       const item = data[logical];
       if (item !== undefined) {
         onChange?.(item, logical);
       }
-    }, SETTLE_DELAY_MS);
-  }, [
-    clearSettleTimer,
-    data,
-    infiniteActive,
-    itemHeight,
-    logicalIndexFromPhysical,
-    normalizeScroll,
-    onChange,
-    segmentLen,
-    wheelItems.length,
-  ]);
+      return;
+    }
+
+    easeSnapTo(targetTop, snappedIndex);
+  }, [data, easeSnapTo, itemHeight, logicalIndexFromPhysical, onChange, segmentLen, wheelItems.length]);
+
+  const scheduleSettle = useCallback(() => {
+    clearSettleTimer();
+
+    const trySettle = () => {
+      if (Math.abs(velocity.current) > VELOCITY_THRESHOLD) {
+        settleTimeoutRef.current = setTimeout(trySettle, VELOCITY_POLL_MS);
+        return;
+      }
+      runSettle();
+    };
+
+    settleTimeoutRef.current = setTimeout(trySettle, SETTLE_DEBOUNCE_MS);
+  }, [clearSettleTimer, runSettle]);
+
+  const beginInteraction = useCallback(() => {
+    isUserInteractingRef.current = true;
+    clearSettleTimer();
+    cancelSnapAnimation();
+    velocity.current = 0;
+    lastMoveTime.current = performance.now();
+    lastScrollTop.current = scrollRef.current?.scrollTop ?? 0;
+  }, [cancelSnapAnimation, clearSettleTimer]);
+
+  const handleScroll = useCallback(() => {
+    if (isSettlingRef.current) return;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const now = performance.now();
+    const delta = el.scrollTop - lastScrollTop.current;
+    const dt = now - lastMoveTime.current;
+    velocity.current = delta / (dt || 1);
+    lastScrollTop.current = el.scrollTop;
+    lastMoveTime.current = now;
+
+    normalizeScroll();
+    setScrollIndex(el.scrollTop / itemHeight);
+    scheduleSettle();
+  }, [normalizeScroll, scheduleSettle]);
 
   useEffect(() => {
-    if (isUserInteractingRef.current) return;
+    if (isUserInteractingRef.current || isSettlingRef.current) return;
     const idx = physicalIndexForValue(value);
     setSelectedIndex(idx);
     setScrollIndex(idx);
-    requestAnimationFrame(() => scrollToIndex(idx, "auto"));
-  }, [physicalIndexForValue, scrollToIndex, value]);
+    requestAnimationFrame(() => scrollToIndexInstant(idx));
+  }, [physicalIndexForValue, scrollToIndexInstant, value]);
 
-  useEffect(() => () => clearSettleTimer(), [clearSettleTimer]);
+  useEffect(
+    () => () => {
+      clearSettleTimer();
+      cancelSnapAnimation();
+    },
+    [cancelSnapAnimation, clearSettleTimer],
+  );
 
   const containerStyle: CSSProperties = useMemo(
     () => ({
@@ -266,7 +338,7 @@ export function NativeLikeWheelPicker<T>({
         onScroll={handleScroll}
         onPointerDown={beginInteraction}
         onTouchStart={beginInteraction}
-        className="h-full w-full overflow-y-scroll overscroll-contain scrollbar-hide rounded-2xl"
+        className="scrollbar-hide h-full w-full overflow-y-scroll overscroll-contain rounded-2xl"
         style={{
           perspective: "1000px",
           WebkitOverflowScrolling: "touch",
@@ -304,8 +376,9 @@ export function NativeLikeWheelPicker<T>({
                 }}
                 transition={{
                   type: "spring",
-                  stiffness: 120,
-                  damping: 18,
+                  stiffness: 100,
+                  damping: 22,
+                  mass: 0.85,
                 }}
                 style={{
                   height: itemHeight,
