@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar, Camera, Refrigerator } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
@@ -506,7 +506,7 @@ const MealPlansPage = () => {
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <ExportMealPlan mealPlan={mealPlan} pdfOnly />
-                    <div className="ml-auto grid min-w-0 shrink grid-cols-2 gap-1.5 min-[390px]:gap-2">
+                    <div className="ml-auto grid min-w-0 shrink grid-cols-[minmax(0,1fr)_auto_auto] gap-1.5 min-[390px]:gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -514,9 +514,18 @@ const MealPlansPage = () => {
                         className="h-9 min-w-0 rounded-2xl border-primary/30 px-2 text-[10px] min-[360px]:h-10 min-[390px]:px-2.5 min-[390px]:text-xs sm:h-9 sm:text-sm"
                         onClick={() => navigate("/scan")}
                       >
-                        <span className="truncate">
-                          Zutaten erkennen
-                        </span>
+                        <Camera className="mr-1.5 hidden h-3.5 w-3.5 min-[390px]:inline" />
+                        <span className="truncate">Zutaten erkennen</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-9 shrink-0 rounded-2xl border-primary/30 px-0 sm:h-9"
+                        onClick={() => navigate("/scan")}
+                        aria-label="Kühlschrank scannen"
+                      >
+                        <Refrigerator className="h-4 w-4" />
                       </Button>
                       <Button
                         type="button"

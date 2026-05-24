@@ -71,7 +71,7 @@ export type IOSPerfectWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 export type IOSUltraSmoothWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 export type IOSStyleWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 
-const DEFAULT_ITEM_HEIGHT = 50;
+const DEFAULT_ITEM_HEIGHT = 56;
 const DEFAULT_VISIBLE_ITEMS = 5;
 const DEFAULT_VIRTUALIZE_THRESHOLD = 48;
 
@@ -492,8 +492,8 @@ export function NativeLikeWheelPicker<T>({
 
   const renderRow = (item: T, index: number) => {
     const distance = Math.abs(index - currentScroll);
-    const scale = reducedMotion ? 1 : Math.max(0.75, 1 - distance * 0.08);
-    const opacity = reducedMotion ? 1 : Math.max(0.2, 1 - distance * 0.18);
+    const scale = reducedMotion ? 1 : Math.max(0.8, 1.15 - distance * 0.075);
+    const opacity = reducedMotion ? 1 : Math.max(0.3, 1 - distance * 0.175);
     const rotateX = reducedMotion ? 0 : Math.min(distance * 12, 75);
     const isAbove = index < currentScroll;
     const logicalIndex = infiniteActive ? modIndex(index, segmentLen) : index;
@@ -578,8 +578,8 @@ export function NativeLikeWheelPicker<T>({
       {selectionOverlay}
 
       {showDefaultChrome && (
-        <div
-          className="pointer-events-none absolute inset-x-0 z-20 rounded-xl border border-cyan-400/40 bg-cyan-400/10 backdrop-blur-sm"
+        <motion.div
+          className="pointer-events-none absolute inset-x-5 z-20 rounded-[14px] border-2 border-white/20 bg-white/[0.07]"
           style={{
             top: containerHeight / 2 - itemHeight / 2,
             height: itemHeight,

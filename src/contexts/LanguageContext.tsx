@@ -3400,7 +3400,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem("app-language");
-    return (saved as Language) || "de";
+    return (saved as Language) || "en";
   });
 
   const setLanguage = (lang: Language) => {
@@ -3438,7 +3438,7 @@ export function getTranslations(lang: Language): Translations {
 }
 
 export function getStoredLanguage(): Language {
-  if (typeof window === "undefined") return "de";
+  if (typeof window === "undefined") return "en";
   const saved = localStorage.getItem("app-language");
-  return saved === "en" || saved === "fr" || saved === "de" ? saved : "de";
+  return saved === "en" || saved === "fr" || saved === "de" ? saved : "en";
 }

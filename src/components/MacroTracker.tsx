@@ -19,6 +19,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
+import { FrigyFoodScanFlow } from '@/components/scan/FrigyFoodScanFlow';
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -33,6 +34,7 @@ import {
   type TrackerRecipeExample,
 } from '@/components/tracker/TrackerAddMealPanel';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { notifyOverlayOpen } from '@/lib/overlayEvents';
 import { getMinCaloriesForAge } from '@/components/onboarding/utils';
 import { getLocalDateString } from '@/lib/localDate';
 
@@ -138,6 +140,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showFoodCamera, setShowFoodCamera] = useState(false);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
   const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
@@ -565,7 +568,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     } finally {
       setIsAnalyzing(false);
       setAnalyzingImage(null);
+      setShowFoodCamera(false);
+      notifyOverlayOpen(false);
     }
+  };
+
+  const openFoodCamera = () => {
+    setShowFoodCamera(true);
+    notifyOverlayOpen(true);
+  };
+
+  const closeFoodCamera = () => {
+    if (isAnalyzing) return;
+    setShowFoodCamera(false);
+    notifyOverlayOpen(false);
   };
 
   const removeEntry = async (id: string) => {
@@ -601,6 +617,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const handleBarcodeClick = () => {
     setLogMealPanelOpen(false);
     setShowBarcodeScanner(true);
+    notifyOverlayOpen(true);
   };
 
   const addRecipeToTracker = async (recipe: TrackerRecipeExample) => {
@@ -1263,6 +1280,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             mealFocus={mealPromptKey}
             onClose={closeLogMealPanel}
             onSearchSubmit={(text) => analyzeFood(text, undefined, mealPromptKey)}
+            onOpenLiveCamera={openFoodCamera}
             onCameraFile={processCameraFile}
             onBarcode={handleBarcodeClick}
             onAddRecipe={addRecipeToTracker}
@@ -1279,58 +1297,33 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         )}
       </AnimatePresence>
 
-      {/* Analyzing State with Image Preview */}
+      {/* Analyzing State — text search only (camera uses FrigyFoodScanFlow) */}
       <AnimatePresence>
-        {isAnalyzing && analyzingImage && (
+        {isAnalyzing && !showFoodCamera && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
           >
-            <div className="relative h-full w-full overflow-hidden">
-              <img
-                src={analyzingImage}
-                alt={t.ariaAnalyzingFood}
-                className="h-full w-full object-contain"
-              />
-              {/* Dark Overlay */}
-              <div className="absolute inset-0 bg-black/45" />
-              
-              {/* Neon Glow Border */}
-              <div 
-                className="absolute inset-3 rounded-3xl"
-                style={{
-                  boxShadow: 'inset 0 0 30px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.3)',
-                  border: '2px solid rgba(34, 197, 94, 0.5)'
-                }}
-              />
-              
-              {/* Scanning Line Animation */}
-              <motion.div
-                className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
-                initial={{ top: '8%' }}
-                animate={{ top: '92%' }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              />
-              
-              {/* Content Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                {/* Pulsing Icon */}
+            <motion.div
+              className="relative flex h-[min(72vw,280px)] w-[min(72vw,280px)] items-center justify-center rounded-full border-[3px] border-[#6EF0A8]"
+              animate={{
+                boxShadow: [
+                  "0 0 0 0 rgba(110,240,168,0.35)",
+                  "0 0 48px 12px rgba(110,240,168,0.55)",
+                  "0 0 0 0 rgba(110,240,168,0.35)",
+                ],
+              }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="flex flex-col items-center gap-4 px-6 text-center">
                 <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
+                  animate={{ scale: [1, 1.08, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
-                  className="mb-4"
                 >
-                  <div 
-                    className="p-4 rounded-full bg-primary/20 backdrop-blur-sm"
-                    style={{ boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)' }}
-                  >
-                    <Sparkles className="h-8 w-8 text-primary" />
-                  </div>
+                  <Sparkles className="h-8 w-8 text-[#6EF0A8]" />
                 </motion.div>
-                
-                {/* Animated Messages */}
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={currentMessageIndex}
@@ -1338,28 +1331,32 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.5 }}
-                    className="text-lg font-medium text-white text-center"
-                    style={{ textShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
+                    className="text-base font-semibold text-[#6EF0A8]"
                   >
                     {analyzingMessages[currentMessageIndex]}
                   </motion.p>
                 </AnimatePresence>
-                
-                {/* Loading Dots */}
-                <div className="flex gap-2 mt-4">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-primary"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                      style={{ boxShadow: '0 0 10px rgba(34, 197, 94, 0.8)' }}
-                    />
-                  ))}
-                </div>
+                <motion.div
+                  className="h-[3px] w-32 rounded-full bg-[#6EF0A8]/80"
+                  style={{ boxShadow: "0 0 16px 4px rgba(110,240,168,0.6)" }}
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                />
               </div>
-            </div>
-          </motion.div>
+            </motion.div>          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showFoodCamera && (
+          <FrigyFoodScanFlow
+            key="food-scan-flow"
+            open={showFoodCamera}
+            analyzing={isAnalyzing}
+            analyzingLabel={analyzingMessages[currentMessageIndex]}
+            onClose={closeFoodCamera}
+            onCapture={processCameraFile}
+          />
         )}
       </AnimatePresence>
 
@@ -1377,7 +1374,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       {/* Barcode Scanner */}
       <BarcodeScanner
         isOpen={showBarcodeScanner}
-        onClose={() => setShowBarcodeScanner(false)}
+        onClose={() => {
+          setShowBarcodeScanner(false);
+          notifyOverlayOpen(false);
+        }}
         onFoodScanned={handleBarcodeScanned}
       />
 

@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
 import { FRIGY_STORAGE_UPDATED, WEEKLY_PLAN_AI_GENERATED_KEY, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { harmonizeDailyTargets, syncMealPlanToTargets } from '@/lib/mealPlanMacros';
 import { isSubscriptionActive } from '@/lib/subscription';
 import {
   buildGermanConstraintPrompt,
@@ -297,6 +298,28 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return false;
     }
 
+    let hasPremium = isPremium;
+    if (!hasPremium) {
+      const status = await checkSubscription();
+      hasPremium = isSubscriptionActive(status);
+    }
+    if (!hasPremium) {
+      toast({
+        title: 'Premium erforderlich',
+        description: 'Wochenpläne sind nur mit Premium verfügbar.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    const macroTargets = harmonizeDailyTargets({
+      dailyCalories: settings.dailyCalories,
+      dailyProtein: settings.dailyProtein,
+      dailyCarbs: settings.dailyCarbs,
+      dailyFat: settings.dailyFat,
+    });
+    const isRegeneration = Boolean(localStorage.getItem(WEEKLY_PLAN_AI_GENERATED_KEY));
+
     setIsGenerating(true);
     setIsMinimized(false);
 
@@ -335,10 +358,10 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             : undefined,
           body: {
             preferences: '',
-            dailyCalories: settings.dailyCalories,
-            dailyProtein: settings.dailyProtein,
-            dailyCarbs: settings.dailyCarbs,
-            dailyFat: settings.dailyFat,
+            dailyCalories: macroTargets.dailyCalories,
+            dailyProtein: macroTargets.dailyProtein,
+            dailyCarbs: macroTargets.dailyCarbs,
+            dailyFat: macroTargets.dailyFat,
             mealsPerDay: settings.mealsPerDay || 5,
             allergies: diet.allergies,
             allergiesOther: diet.allergiesOther,
@@ -346,6 +369,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             healthGoals: diet.healthGoals,
             constraintPrompt,
             fridgeIngredients: options?.fridgeIngredients ?? [],
+            isRegeneration,
+            varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           },
         });
 
@@ -389,7 +414,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.log('[MEAL-PLAN-CLIENT] Successfully received data:', data ? 'yes' : 'no');
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
-          const newPlan = (data as any).mealPlan;
+          const rawPlan = (data as any).mealPlan;
+          const newPlan = syncMealPlanToTargets(rawPlan, macroTargets);
           const newShoppingList = (data as any).shoppingList || [];
           const unsafeMeals = findUnsafeMeals(newPlan, diet);
 
@@ -414,13 +440,13 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // Verify calories per day
           const dailyCalorieAnalysis = newPlan.map((day: any) => {
             const totalCals = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
-            return { day: day.day, calories: totalCals, meets_target: totalCals >= settings.dailyCalories * 0.85 };
+            return { day: day.day, calories: totalCals, meets_target: totalCals === macroTargets.dailyCalories };
           });
           const avgCalories = dailyCalorieAnalysis.reduce((sum: number, d: any) => sum + d.calories, 0) / dailyCalorieAnalysis.length;
           console.log('[MEAL-PLAN] Daily calorie analysis:', {
             analysis: dailyCalorieAnalysis,
             avgCalories: Math.round(avgCalories),
-            avgPercentage: Math.round((avgCalories / settings.dailyCalories) * 100)
+            avgPercentage: Math.round((avgCalories / macroTargets.dailyCalories) * 100)
           });
 
           setMealPlan(newPlan);

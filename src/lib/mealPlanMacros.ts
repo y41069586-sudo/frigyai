@@ -38,25 +38,75 @@ export function sumMealMacros(meals: MacroMeal[]) {
   );
 }
 
-/** Normalize one meal: macros are source of truth; kcal must match within tolerance. */
+/** Align calorie goal with macro grams so all four targets can be hit exactly. */
+export function harmonizeDailyTargets(targets: DailyMacroTargets): DailyMacroTargets {
+  const implied = macroCaloriesFromGrams(
+    targets.dailyProtein,
+    targets.dailyCarbs,
+    targets.dailyFat,
+  );
+  const diff = targets.dailyCalories - implied;
+  if (Math.abs(diff) <= 2) {
+    return { ...targets, dailyCalories: implied };
+  }
+  const carbAdj = Math.round(diff / 4);
+  const dailyCarbs = Math.max(0, targets.dailyCarbs + carbAdj);
+  const dailyCalories = macroCaloriesFromGrams(
+    targets.dailyProtein,
+    dailyCarbs,
+    targets.dailyFat,
+  );
+  return { ...targets, dailyCarbs, dailyCalories };
+}
+
+function recalcMealCalories<T extends MacroMeal>(meal: T): T {
+  const protein = Math.max(0, Math.round(Number(meal.protein) || 0));
+  const carbs = Math.max(0, Math.round(Number(meal.carbs) || 0));
+  const fat = Math.max(0, Math.round(Number(meal.fat) || 0));
+  const calories = Math.max(50, Math.round(macroCaloriesFromGrams(protein, carbs, fat)));
+  return { ...meal, protein, carbs, fat, calories };
+}
+
+/** Normalize one meal: macros are source of truth; kcal always derived. */
 export function normalizeMealMacros<T extends MacroMeal>(meal: T): T {
   const protein = Math.max(0, Math.round(Number(meal.protein) || 0));
   const carbs = Math.max(0, Math.round(Number(meal.carbs) || 0));
   const fat = Math.max(0, Math.round(Number(meal.fat) || 0));
   const fromMacros = macroCaloriesFromGrams(protein, carbs, fat);
   const stated = Number(meal.calories) || 0;
-  const calories =
-    stated > 0 && Math.abs(stated - fromMacros) <= MACRO_KCAL_TOLERANCE
-      ? Math.round(stated)
-      : Math.max(50, Math.round(fromMacros));
-  return { ...meal, protein, carbs, fat, calories };
+  if (stated > 0 && Math.abs(stated - fromMacros) > MACRO_KCAL_TOLERANCE) {
+    return recalcMealCalories({ ...meal, protein, carbs, fat });
+  }
+  return recalcMealCalories({ ...meal, protein, carbs, fat });
+}
+
+/** Distribute calorie gap across meals via smallest macro steps (4 or 9 kcal). */
+function balanceDayCalories(meals: MacroMeal[], targetCalories: number) {
+  for (let pass = 0; pass < 400; pass++) {
+    const total = sumMealMacros(meals).calories;
+    const diff = targetCalories - total;
+    if (diff === 0) break;
+
+    const idx = pass % meals.length;
+    const m = meals[idx];
+    if (diff > 0) {
+      if (Math.abs(diff) >= 9) m.fat = (Number(m.fat) || 0) + 1;
+      else m.carbs = (Number(m.carbs) || 0) + 1;
+    } else {
+      if (Math.abs(diff) >= 9 && (Number(m.fat) || 0) > 0) m.fat = (Number(m.fat) || 0) - 1;
+      else if ((Number(m.carbs) || 0) > 0) m.carbs = (Number(m.carbs) || 0) - 1;
+      else if ((Number(m.protein) || 0) > 0) m.protein = (Number(m.protein) || 0) - 1;
+    }
+    meals[idx] = recalcMealCalories(m);
+  }
 }
 
 /**
- * Scale day macros to hit targets exactly. Last meal absorbs rounding;
- * calories always derived from macros so day totals stay consistent.
+ * Scale day macros to hit P/C/F/F-kcal targets exactly.
+ * Calories per meal always = 4P+4C+9F (real values).
  */
-export function syncDayToTargets<T extends MacroDay>(day: T, targets: DailyMacroTargets): T {
+export function syncDayToTargets<T extends MacroDay>(day: T, rawTargets: DailyMacroTargets): T {
+  const targets = harmonizeDailyTargets(rawTargets);
   let meals = (day.meals || []).map((m) => normalizeMealMacros(m));
   if (meals.length === 0) return day;
 
@@ -65,52 +115,25 @@ export function syncDayToTargets<T extends MacroDay>(day: T, targets: DailyMacro
   const fcb = targets.dailyCarbs / (initial.carbs || 1);
   const ff = targets.dailyFat / (initial.fat || 1);
 
-  const scaleMeal = (m: MacroMeal) => {
-    const protein = Math.max(0, Math.round((Number(m.protein) || 0) * fp));
-    const carbs = Math.max(0, Math.round((Number(m.carbs) || 0) * fcb));
-    const fat = Math.max(0, Math.round((Number(m.fat) || 0) * ff));
-    const calories = Math.max(50, Math.round(macroCaloriesFromGrams(protein, carbs, fat)));
-    return { ...m, protein, carbs, fat, calories };
-  };
-
-  meals = meals.map(scaleMeal);
+  meals = meals.map((m) =>
+    recalcMealCalories({
+      ...m,
+      protein: Math.max(0, Math.round((Number(m.protein) || 0) * fp)),
+      carbs: Math.max(0, Math.round((Number(m.carbs) || 0) * fcb)),
+      fat: Math.max(0, Math.round((Number(m.fat) || 0) * ff)),
+    }),
+  );
 
   const lastIdx = meals.length - 1;
   const beforeLast = sumMealMacros(meals.slice(0, lastIdx));
-  const last = meals[lastIdx];
-  meals[lastIdx] = {
-    ...last,
+  meals[lastIdx] = recalcMealCalories({
+    ...meals[lastIdx],
     protein: Math.max(0, targets.dailyProtein - beforeLast.protein),
     carbs: Math.max(0, targets.dailyCarbs - beforeLast.carbs),
     fat: Math.max(0, targets.dailyFat - beforeLast.fat),
-  };
-  meals[lastIdx].calories = Math.max(
-    50,
-    Math.round(
-      macroCaloriesFromGrams(
-        meals[lastIdx].protein as number,
-        meals[lastIdx].carbs as number,
-        meals[lastIdx].fat as number,
-      ),
-    ),
-  );
+  });
 
-  const total = sumMealMacros(meals);
-  const calDiff = targets.dailyCalories - total.calories;
-  if (calDiff !== 0) {
-    const fatAdj = Math.round(calDiff / 9);
-    meals[lastIdx].fat = Math.max(0, (meals[lastIdx].fat as number) + fatAdj);
-    meals[lastIdx].calories = Math.max(
-      50,
-      Math.round(
-        macroCaloriesFromGrams(
-          meals[lastIdx].protein as number,
-          meals[lastIdx].carbs as number,
-          meals[lastIdx].fat as number,
-        ),
-      ),
-    );
-  }
+  balanceDayCalories(meals, targets.dailyCalories);
 
   return { ...day, meals } as T;
 }
@@ -122,7 +145,6 @@ export function syncMealPlanToTargets<T extends MacroDay>(
   return mealPlan.map((day) => syncDayToTargets(day, targets));
 }
 
-/** @deprecated Use syncMealPlanToTargets — kept for existing imports. */
 export function reconcileMealPlanMacros<T extends MacroDay>(
   mealPlan: T[],
   targets: DailyMacroTargets,

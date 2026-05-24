@@ -154,8 +154,10 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
     setErrorMessage(null);
     stopStream();
 
+    let timedOut = false;
     const startTimeout = window.setTimeout(() => {
       if (generation !== generationRef.current) return;
+      timedOut = true;
       const video = videoElRef.current;
       if (!video || video.videoWidth < 1) {
         setStatus("fallback");

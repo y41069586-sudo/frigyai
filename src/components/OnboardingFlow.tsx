@@ -203,11 +203,11 @@ const SplashLanguageSwitcher = () => {
   const current = APP_LANGUAGES.find((lang) => lang.code === language) ?? APP_LANGUAGES[1];
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white/95 px-3 py-1.5 text-[13px] font-bold tracking-wide text-neutral-900 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8] focus-visible:ring-offset-2"
+          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white/95 px-3 py-1.5 text-[13px] font-bold tracking-wide text-neutral-900 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8] focus-visible:ring-offset-2"
           aria-label={t.changeLanguage}
         >
           <span className="text-base leading-none" aria-hidden>
@@ -216,10 +216,14 @@ const SplashLanguageSwitcher = () => {
           <span>{current.code.toUpperCase()}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[168px] rounded-2xl p-1.5">
+      <DropdownMenuContent align="end" className="z-[500] min-w-[168px] rounded-2xl p-1.5">
         {APP_LANGUAGES.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
+            onSelect={(e) => {
+              e.preventDefault();
+              setLanguage(lang.code);
+            }}
             onClick={() => setLanguage(lang.code)}
             className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
               language === lang.code ? "bg-[#6EF0A8]/15 text-neutral-900" : ""
@@ -244,7 +248,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="absolute right-6 top-[calc(env(safe-area-inset-top,0px)+1.25rem)] z-20"
+        className="absolute right-6 top-[calc(env(safe-area-inset-top,0px)+1.25rem)] z-[60] pointer-events-auto"
       >
         <SplashLanguageSwitcher />
       </motion.div>
@@ -3972,7 +3976,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           
           {/* Progress bar only - no dots */}
 
-          <div className="h-12 w-12" aria-hidden />
+          <div className="flex h-12 w-12 items-center justify-end">
+            <SplashLanguageSwitcher />
+          </div>
         </div>
       )}
 
@@ -3997,6 +4003,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
         // These steps render fullscreen with their own layout
         <motion.div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+          {ONBOARDING_MINT_BODY_STEPS.has(currentStep) && (
+            <div className="pointer-events-auto absolute right-6 top-[calc(env(safe-area-inset-top,0px)+1.25rem)] z-[120]">
+              <SplashLanguageSwitcher />
+            </div>
+          )}
           <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={currentStep}

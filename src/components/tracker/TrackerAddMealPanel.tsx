@@ -50,6 +50,8 @@ type Props = {
   onClose: () => void;
   onSearchSubmit: (text: string) => void;
   /** Datei direkt aus dem Panel — zuverlässiger Kamera-Trigger auf Mobile */
+  /** Live-Kamera statt Datei-Picker (Essen scannen) */
+  onOpenLiveCamera?: () => void;
   onCameraFile: (file: File) => void;
   onBarcode: () => void;
   onAddRecipe: (recipe: TrackerRecipeExample) => void;
@@ -328,6 +330,7 @@ export function TrackerAddMealPanel({
   mealFocus,
   onClose,
   onSearchSubmit,
+  onOpenLiveCamera,
   onCameraFile,
   onBarcode,
   onAddRecipe,
@@ -417,7 +420,11 @@ export function TrackerAddMealPanel({
   const handleModeSelect = (next: InputMode) => {
     setMode(next);
     if (next === "camera") {
-      cameraInputRef.current?.click();
+      if (onOpenLiveCamera) {
+        onOpenLiveCamera();
+      } else {
+        cameraInputRef.current?.click();
+      }
       return;
     }
     if (next === "barcode") {

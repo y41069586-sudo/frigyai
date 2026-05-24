@@ -212,13 +212,57 @@ function normalizeMeal(m: any) {
   return { ...m, protein, carbs, fat, calories };
 }
 
-function syncDayToTargets(day: any, targets: {
+function harmonizeDailyTargets(targets: {
   dailyCalories: number;
   dailyProtein: number;
   dailyCarbs: number;
   dailyFat: number;
 }) {
-  let meals = (day.meals || []).map(normalizeMeal);
+  const implied = macroKcal(targets.dailyProtein, targets.dailyCarbs, targets.dailyFat);
+  const diff = targets.dailyCalories - implied;
+  if (Math.abs(diff) <= 2) return { ...targets, dailyCalories: implied };
+  const dailyCarbs = Math.max(0, targets.dailyCarbs + Math.round(diff / 4));
+  return {
+    ...targets,
+    dailyCarbs,
+    dailyCalories: macroKcal(targets.dailyProtein, dailyCarbs, targets.dailyFat),
+  };
+}
+
+function recalcMeal(m: any) {
+  const protein = Math.max(0, Math.round(Number(m.protein) || 0));
+  const carbs = Math.max(0, Math.round(Number(m.carbs) || 0));
+  const fat = Math.max(0, Math.round(Number(m.fat) || 0));
+  return { ...m, protein, carbs, fat, calories: Math.max(50, Math.round(macroKcal(protein, carbs, fat))) };
+}
+
+function balanceDayCalories(meals: any[], targetCalories: number) {
+  for (let pass = 0; pass < 400; pass++) {
+    const total = sumMeals(meals).calories;
+    const diff = targetCalories - total;
+    if (diff === 0) break;
+    const idx = pass % meals.length;
+    const m = meals[idx];
+    if (diff > 0) {
+      if (Math.abs(diff) >= 9) m.fat = (Number(m.fat) || 0) + 1;
+      else m.carbs = (Number(m.carbs) || 0) + 1;
+    } else {
+      if (Math.abs(diff) >= 9 && (Number(m.fat) || 0) > 0) m.fat = (Number(m.fat) || 0) - 1;
+      else if ((Number(m.carbs) || 0) > 0) m.carbs = (Number(m.carbs) || 0) - 1;
+      else if ((Number(m.protein) || 0) > 0) m.protein = (Number(m.protein) || 0) - 1;
+    }
+    meals[idx] = recalcMeal(m);
+  }
+}
+
+function syncDayToTargets(day: any, rawTargets: {
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}) {
+  const targets = harmonizeDailyTargets(rawTargets);
+  let meals = (day.meals || []).map((m: any) => recalcMeal(normalizeMeal(m)));
   if (!meals.length) return day;
 
   const initial = sumMeals(meals);
@@ -226,36 +270,25 @@ function syncDayToTargets(day: any, targets: {
   const fcb = targets.dailyCarbs / (initial.carbs || 1);
   const ff = targets.dailyFat / (initial.fat || 1);
 
-  meals = meals.map((m: any) => {
-    const protein = Math.max(0, Math.round((m.protein || 0) * fp));
-    const carbs = Math.max(0, Math.round((m.carbs || 0) * fcb));
-    const fat = Math.max(0, Math.round((m.fat || 0) * ff));
-    return { ...m, protein, carbs, fat, calories: Math.max(50, Math.round(macroKcal(protein, carbs, fat))) };
-  });
+  meals = meals.map((m: any) =>
+    recalcMeal({
+      ...m,
+      protein: Math.max(0, Math.round((m.protein || 0) * fp)),
+      carbs: Math.max(0, Math.round((m.carbs || 0) * fcb)),
+      fat: Math.max(0, Math.round((m.fat || 0) * ff)),
+    }),
+  );
 
   const lastIdx = meals.length - 1;
   const beforeLast = sumMeals(meals.slice(0, lastIdx));
-  meals[lastIdx] = {
+  meals[lastIdx] = recalcMeal({
     ...meals[lastIdx],
     protein: Math.max(0, targets.dailyProtein - beforeLast.protein),
     carbs: Math.max(0, targets.dailyCarbs - beforeLast.carbs),
     fat: Math.max(0, targets.dailyFat - beforeLast.fat),
-  };
-  meals[lastIdx].calories = Math.max(
-    50,
-    Math.round(macroKcal(meals[lastIdx].protein, meals[lastIdx].carbs, meals[lastIdx].fat)),
-  );
+  });
 
-  const total = sumMeals(meals);
-  const calDiff = targets.dailyCalories - total.calories;
-  if (calDiff !== 0) {
-    meals[lastIdx].fat = Math.max(0, meals[lastIdx].fat + Math.round(calDiff / 9));
-    meals[lastIdx].calories = Math.max(
-      50,
-      Math.round(macroKcal(meals[lastIdx].protein, meals[lastIdx].carbs, meals[lastIdx].fat)),
-    );
-  }
-
+  balanceDayCalories(meals, targets.dailyCalories);
   return { ...day, meals };
 }
 
@@ -348,6 +381,15 @@ Deno.serve(async (req) => {
       ? body.dietaryPreferences.map((s: unknown) => String(s).trim()).filter(Boolean)
       : [];
     const allergiesOther = typeof body.allergiesOther === "string" ? body.allergiesOther.trim() : "";
+    const isRegeneration = body.isRegeneration === true;
+    const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed : String(Date.now());
+
+    const macroTargets = harmonizeDailyTargets({
+      dailyCalories,
+      dailyProtein,
+      dailyCarbs,
+      dailyFat,
+    });
 
     const fridgeHint =
       fridgeIngredients.length > 0
@@ -373,11 +415,12 @@ ${
         : ""
     }
 
-PRO TAG müssen die Summen ALLER Mahlzeiten diesen Zielen entsprechen (Toleranz ±8% vor Nachbearbeitung):
-- Kalorien: ca. ${dailyCalories} kcal
-- Protein: ca. ${dailyProtein} g
-- Kohlenhydrate: ca. ${dailyCarbs} g
-- Fett: ca. ${dailyFat} g
+PRO TAG müssen die Summen ALLER Mahlzeiten EXAKT diesen Zielen entsprechen:
+- Kalorien: ${macroTargets.dailyCalories} kcal (Summe = 4×Protein + 4×KH + 9×Fett)
+- Protein: ${macroTargets.dailyProtein} g
+- Kohlenhydrate: ${macroTargets.dailyCarbs} g
+- Fett: ${macroTargets.dailyFat} g
+${isRegeneration ? `\nNEUGENERIERUNG (${varietySeed}): JEDES einzelne Gericht muss komplett anders sein als in typischen Standardplänen. Keine Wiederholung von Gerichten innerhalb der Woche. Variiere Küche, Zutaten und Zubereitung maximal.` : ""}
 
 Jede Mahlzeit MUSS enthalten:
 type, name, calories, protein, carbs, fat, prepTime, ingredients, instructions
@@ -417,7 +460,7 @@ Antwort NUR als JSON:
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          temperature: 0.35,
+          temperature: isRegeneration ? 0.62 : 0.42,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: systemPrompt },
@@ -425,7 +468,10 @@ Antwort NUR als JSON:
               role: "user",
               content: [
                 `Erstelle einen vollständigen 7-Tage-Plan mit ${mealsPerDay} Mahlzeiten pro Tag.`,
-                `Tagesziele: ${dailyCalories} kcal, Protein ${dailyProtein}g, Kohlenhydrate ${dailyCarbs}g, Fett ${dailyFat}g.`,
+                `Tagesziele: ${macroTargets.dailyCalories} kcal, Protein ${macroTargets.dailyProtein}g, Kohlenhydrate ${macroTargets.dailyCarbs}g, Fett ${macroTargets.dailyFat}g.`,
+                isRegeneration
+                  ? `Plan-ID ${varietySeed}: Erstelle einen komplett neuen Wochenplan — alle 35 Mahlzeiten mit anderen Gerichten als üblich.`
+                  : "",
                 fridgeHint,
                 constraintPrompt
                   ? `\n\n--- Nutzer-Vorgaben (verbindlich) ---\n${constraintPrompt}`
@@ -461,12 +507,7 @@ Antwort NUR als JSON:
       throw new Error("Empty meal plan");
     }
 
-    mealPlan = syncMealPlanToTargets(mealPlan, {
-      dailyCalories,
-      dailyProtein,
-      dailyCarbs,
-      dailyFat,
-    });
+    mealPlan = syncMealPlanToTargets(mealPlan, macroTargets);
     const unsafeMeals = findSafetyViolations(mealPlan, allergies, dietaryPreferences, allergiesOther);
     if (unsafeMeals.length > 0) {
       throw new Error(`Allergy safety validation failed: ${unsafeMeals.slice(0, 5).join("; ")}`);

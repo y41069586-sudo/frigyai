@@ -6,6 +6,8 @@ import { mealPlansUrlForToday } from "@/lib/food-ai/weeklyPlanWidgetData";
 import { WidgetContainer } from "./WidgetContainer";
 import { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 import { TrackerWidget } from "./TrackerWidget";
+import { TrackerWidgetCarousel } from "./TrackerWidgetCarousel";
+import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
 import { WaterWidget } from "./WaterWidget";
 import { StepsWidget } from "./StepsWidget";
 import { AiChatPromptWidget } from "./AiChatPromptWidget";
@@ -96,23 +98,28 @@ export function HealthDashboard({
   return (
     <div className="space-y-8">
       <WidgetContainer>
-        <TrackerWidget
-          delay={0.02}
-          caloriesEaten={caloriesEaten}
-          targetCalories={targetCalories}
-          proteinEaten={proteinEaten}
-          targetProtein={targetProtein}
-          carbsEaten={carbsEaten}
-          targetCarbs={targetCarbs}
-          fatEaten={fatEaten}
-          targetFat={targetFat}
-          waterMl={currentWaterMl}
-          waterGoalMl={waterGoalMl}
-          steps={stepsDemo}
-          loggedMealTypes={loggedMealTypes}
-          onAddMeal={(slot) => navigate(`/?logMeal=1&mealFocus=${slot}`)}
-          onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
-          onOpenTracker={() => navigate("/?editMacros=1")}
+        <TrackerWidgetCarousel
+          tracker={
+            <TrackerWidget
+              delay={0.02}
+              caloriesEaten={caloriesEaten}
+              targetCalories={targetCalories}
+              proteinEaten={proteinEaten}
+              targetProtein={targetProtein}
+              carbsEaten={carbsEaten}
+              targetCarbs={targetCarbs}
+              fatEaten={fatEaten}
+              targetFat={targetFat}
+              waterMl={currentWaterMl}
+              waterGoalMl={waterGoalMl}
+              steps={stepsDemo}
+              loggedMealTypes={loggedMealTypes}
+              onAddMeal={(slot) => navigate(`/?logMeal=1&mealFocus=${slot}`)}
+              onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
+              onOpenTracker={() => navigate("/?editMacros=1")}
+            />
+          }
+          weight={<DashboardWeightWidget embedded targetWeight={undefined} />}
         />
 
         <WeeklyPlanWidget

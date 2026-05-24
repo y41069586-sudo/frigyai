@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { notifyOverlayOpen } from '@/lib/overlayEvents';
 
 type QuaggaApi = typeof import('@ericblade/quagga2').default;
 
@@ -34,7 +35,6 @@ async function waitForReader(el: HTMLDivElement | null, maxMs = 2500): Promise<H
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [productData, setProductData] = useState<NutritionInfo | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
@@ -47,6 +47,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   useEffect(() => {
     isOpenRef.current = isOpen;
+    notifyOverlayOpen(isOpen);
   }, [isOpen]);
 
   const prepareMobileVideo = useCallback(() => {
@@ -60,6 +61,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     video.muted = true;
     video.autoplay = true;
     video.playsInline = true;
+    video.controls = false;
+    video.removeAttribute('controls');
     void video.play().catch((err) => {
       console.warn('[BarcodeScanner] Mobile video autoplay failed:', err);
     });
@@ -81,12 +84,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         quaggaRef.current = null;
       }
       setIsScannerActive(false);
-      setIsStarting(false);
       setIsLoading(false);
     } catch (err) {
       console.error('[BarcodeScanner] Unexpected error in stopScanner:', err);
       setIsScannerActive(false);
-      setIsStarting(false);
       setIsLoading(false);
     }
   }, []);
@@ -200,25 +201,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setError(null);
       setIsScannerActive(false);
       setIsLoading(false);
-      setIsStarting(true);
       detectionLockRef.current = false;
 
       if (!navigator.mediaDevices?.getUserMedia) {
         setError('❌ Dein Browser unterstützt keinen Kamera-Zugriff');
-        setIsStarting(false);
         return;
       }
 
       if (!window.isSecureContext) {
         setError('❌ Kamera braucht HTTPS. Öffne die App über localhost, HTTPS oder als installierte App.');
-        setIsStarting(false);
         return;
       }
 
       const reader = await waitForReader(readerRef.current);
       if (!reader || generation !== startGenerationRef.current || !isOpenRef.current) {
         if (isOpenRef.current) setError('❌ Scanner konnte nicht geöffnet werden');
-        setIsStarting(false);
         return;
       }
 
@@ -227,7 +224,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       const Quagga = (await import('@ericblade/quagga2')).default;
       if (!Quagga || generation !== startGenerationRef.current || !isOpenRef.current) {
         setError('❌ Barcode-Scanner konnte nicht geladen werden');
-        setIsStarting(false);
         return;
       }
 
@@ -249,7 +245,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 width: { min: 480, ideal: 1280, max: 1920 },
                 height: { min: 360, ideal: 720, max: 1080 },
               },
-              area: { top: '12%', right: '8%', bottom: '12%', left: '8%' },
+              area: { top: '38%', right: '6%', bottom: '38%', left: '6%' },
             },
             locator: { patchSize: 'medium', halfSample: true },
             locate: true,
@@ -287,7 +283,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       Quagga.onDetected(detectionHandler);
 
       setIsScannerActive(true);
-      setIsStarting(false);
     } catch (err: unknown) {
       if (generation !== startGenerationRef.current) return;
 
@@ -309,7 +304,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
       setError(errorMsg);
       setIsScannerActive(false);
-      setIsStarting(false);
     }
   }, [handleBarcodeDetected, prepareMobileVideo]);
 
@@ -323,15 +317,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     setProductData(null);
     setIsLoading(false);
     setIsScannerActive(false);
-    setIsStarting(true);
     detectionLockRef.current = false;
 
-    const startTimer = window.setTimeout(() => {
-      void startScanner();
-    }, 180);
+    void startScanner();
 
     return () => {
-      window.clearTimeout(startTimer);
       void stopScanner();
     };
   }, [isOpen, startScanner, stopScanner]);
@@ -368,7 +358,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex flex-col bg-black"
+        className="fixed inset-0 z-[130] flex flex-col bg-black"
       >
         <div className="absolute right-3 top-3 z-30 flex justify-end pt-[env(safe-area-inset-top,0px)]">
           <Button
@@ -487,73 +477,85 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           <div id="barcode-reader" ref={readerRef} className="absolute inset-0 h-full w-full overflow-hidden" />
 
           {showScanner && (
-            <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
-              {/* Dimmed overlay with cutout feel */}
-              <motion.div
-                className="absolute inset-0 bg-black/35"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              />
-
-              <div className="relative h-[38vh] w-[min(88vw,360px)]">
-                {/* Pulsing frame */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl border-2 border-lime-400/90"
-                  animate={{
-                    boxShadow: [
-                      '0 0 0 0 rgba(74, 222, 128, 0.35)',
-                      '0 0 28px 4px rgba(74, 222, 128, 0.55)',
-                      '0 0 0 0 rgba(74, 222, 128, 0.35)',
-                    ],
-                  }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            <motion.div
+              className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div
+                className="relative rounded-2xl"
+                style={{
+                  width: "min(88vw, 340px)",
+                  height: "min(22vw, 108px)",
+                }}
+              >
+                <div
+                  className="absolute inset-0 rounded-2xl"
+                  style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.52)" }}
                 />
 
-                {/* Corner brackets */}
-                {[
-                  'top-0 left-0 border-l-[3px] border-t-[3px] rounded-tl-xl',
-                  'top-0 right-0 border-r-[3px] border-t-[3px] rounded-tr-xl',
-                  'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-xl',
-                  'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-xl',
-                ].map((cls) => (
-                  <motion.div
-                    key={cls}
-                    className={`absolute h-8 w-8 border-lime-300 ${cls}`}
-                    animate={{ opacity: [0.55, 1, 0.55] }}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                <motion.div
+                  className="absolute inset-0 rounded-2xl border border-[#6EF0A8]/40"
+                  animate={{
+                    boxShadow: [
+                      "0 0 12px 0 rgba(110,240,168,0.25)",
+                      "0 0 28px 4px rgba(110,240,168,0.45)",
+                      "0 0 12px 0 rgba(110,240,168,0.25)",
+                    ],
+                  }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                {(
+                  [
+                    "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-xl",
+                    "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-xl",
+                    "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-xl",
+                    "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-xl",
+                  ] as const
+                ).map((cornerClass) => (
+                  <div
+                    key={cornerClass}
+                    className={`absolute h-7 w-7 border-[#6EF0A8] ${cornerClass}`}
                   />
                 ))}
 
-                {/* Scan line — smooth continuous sweep */}
-                    <motion.div
-                  className="absolute left-3 right-3 h-[3px] rounded-full"
-                      style={{
-                    background:
-                      'linear-gradient(90deg, transparent 0%, rgba(134,239,172,0.2) 15%, rgba(190,242,100,1) 50%, rgba(134,239,172,0.2) 85%, transparent 100%)',
-                    boxShadow: '0 0 16px 3px rgba(74, 222, 128, 0.85), 0 0 4px 1px rgba(255,255,255,0.5)',
+                <motion.div
+                  className="absolute left-3 right-3 h-[2px] rounded-full bg-[#6EF0A8]"
+                  style={{
+                    boxShadow:
+                      "0 0 8px 2px rgba(110,240,168,0.9), 0 0 20px 4px rgba(110,240,168,0.35)",
                   }}
-                  animate={{ top: ['8%', '92%'] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
+                  initial={{ top: "12%" }}
+                  animate={{ top: ["12%", "88%", "12%"] }}
+                  transition={{
+                    duration: 2.8,
+                    repeat: Infinity,
+                    ease: [0.45, 0, 0.55, 1],
+                  }}
                 />
 
-                {/* Soft trail behind scan line */}
                 <motion.div
-                  className="absolute left-4 right-4 h-10 rounded-full bg-lime-400/10 blur-md"
-                  animate={{ top: ['6%', '90%'] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
-                    />
-                  </div>
+                  className="absolute left-3 right-3 h-8 rounded-full bg-gradient-to-b from-[#6EF0A8]/25 to-transparent blur-[2px]"
+                  initial={{ top: "10%" }}
+                  animate={{ top: ["10%", "86%", "10%"] }}
+                  transition={{
+                    duration: 2.8,
+                    repeat: Infinity,
+                    ease: [0.45, 0, 0.55, 1],
+                  }}
+                />
+              </div>
 
               <motion.p
-                className="mt-8 px-6 text-center text-sm font-medium text-white/90"
+                className="absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] px-6 text-center text-sm font-medium text-white/90"
                 animate={{ opacity: [0.65, 1, 0.65] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
               >
-                {isStarting && !isScannerActive
-                  ? 'Kamera wird gestartet…'
-                  : 'Barcode in den Rahmen halten'}
+                Barcode in den Rahmen halten
               </motion.p>
-            </div>
+            </motion.div>
           )}
 
               {isLoading && (
