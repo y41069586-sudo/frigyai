@@ -1,5 +1,5 @@
 /**
- * Web wheel picker — native-like momentum scroll (see NativeLikeWheelPicker).
+ * Re-exports NativeLikeWheelPicker (smooth snap, a11y, virtualization).
  */
 export {
   NativeLikeWheelPicker as WebWheelPicker,

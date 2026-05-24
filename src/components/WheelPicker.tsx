@@ -15,19 +15,18 @@ type WheelOption = { value: number; label: string };
 const ITEM_HEIGHT = 48;
 const VISIBLE_ITEMS = 5;
 
-function buildOptions(min: number, max: number, step: number, unit: string): WheelOption[] {
+function buildOptions(min: number, max: number, step: number): WheelOption[] {
   if (step <= 0 || max < min) {
-    const label = unit ? `${min} ${unit}` : String(min);
-    return [{ value: min, label }];
+    return [{ value: min, label: String(min) }];
   }
   const items: WheelOption[] = [];
   for (let v = min; v <= max; v += step) {
-    items.push({ value: v, label: unit ? `${v} ${unit}` : String(v) });
+    items.push({ value: v, label: String(v) });
   }
   return items.length > 0 ? items : [{ value: min, label: String(min) }];
 }
 
-/** Numeric wheel — UI chrome + shared WebWheelPicker (RN FlatList port). */
+/** Numeric wheel with card chrome — numbers in wheel, unit for a11y / live region. */
 export const WheelPicker = ({
   value,
   onChange,
@@ -36,12 +35,13 @@ export const WheelPicker = ({
   step = 1,
   unit = "",
 }: WheelPickerProps) => {
-  const options = useMemo(() => buildOptions(min, max, step, unit), [min, max, step, unit]);
+  const options = useMemo(() => buildOptions(min, max, step), [min, max, step]);
   const selected = useMemo(
     () => options.find((o) => o.value === value) ?? options[0],
     [options, value],
   );
   const padHeight = Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT;
+  const unitTrimmed = unit.trim();
 
   return (
     <div className="relative mx-auto w-full">
@@ -76,22 +76,30 @@ export const WheelPicker = ({
         itemHeight={ITEM_HEIGHT}
         visibleItems={VISIBLE_ITEMS}
         infinite={false}
+        virtualizeThreshold={40}
         getItemKey={(item) => item.value}
         selectionOverlay={null}
-        renderItem={(opt, isSelected) => (
-          <div
-            className={`flex select-none items-center justify-center ${
-              isSelected ? "font-semibold text-primary" : "text-muted-foreground"
-            }`}
-            style={{
-              fontSize: isSelected ? 18 : 15,
-              fontWeight: isSelected ? 600 : 400,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {opt.label}
-          </div>
-        )}
+        formatLiveLabel={(opt) => (unitTrimmed ? `${opt.label} ${unitTrimmed}` : opt.label)}
+        renderItem={(opt, selected, _i, _a, isCenter) => {
+          const highlighted = selected || isCenter;
+          return (
+            <div
+              className={`flex select-none items-center justify-center ${
+                highlighted ? "font-semibold text-primary" : "text-muted-foreground"
+              }`}
+              style={{
+                fontSize: highlighted ? 18 : 15,
+                fontWeight: highlighted ? 600 : 400,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {opt.label}
+              {highlighted && unitTrimmed ? (
+                <span className="ml-1 text-sm font-medium text-primary/70">{unitTrimmed}</span>
+              ) : null}
+            </div>
+          );
+        }}
       />
     </div>
   );

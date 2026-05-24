@@ -160,6 +160,7 @@ export function HeightSelectStep({
               onChange={handleCmChange}
               align="center"
               width={120}
+              unitSuffix="cm"
               ariaLabel="cm"
             />
             <div className="relative flex w-11 shrink-0 items-center justify-center pl-0.5">
@@ -176,6 +177,7 @@ export function HeightSelectStep({
               onChange={handleFeetChange}
               align="right"
               width={62}
+              unitSuffix="ft"
               ariaLabel="Fuß"
             />
             <div className="relative shrink-0" style={{ width: 36 }}>
@@ -192,6 +194,7 @@ export function HeightSelectStep({
               onChange={handleInchesChange}
               align="right"
               width={52}
+              unitSuffix="in"
               ariaLabel="Zoll"
             />
             <div className="relative shrink-0" style={{ width: 36 }}>

@@ -145,6 +145,7 @@ export function WeightSelectStep({
             onChange={(v) => commitDisplay(v, decimal)}
             align="right"
             width={100}
+            unitSuffix={unitLabel}
             ariaLabel={`Gewicht ganz (${unitLabel})`}
           />
           <div className="relative shrink-0" style={{ width: 22 }}>

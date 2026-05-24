@@ -199,6 +199,7 @@ export function TargetWeightSelectStep({
             onChange={(v) => commitDisplay(v, decimal)}
             align="right"
             width={100}
+            unitSuffix={unitLabel}
             ariaLabel={`Zielgewicht ganz (${unitLabel})`}
           />
           <div className="relative shrink-0" style={{ width: 22 }}>

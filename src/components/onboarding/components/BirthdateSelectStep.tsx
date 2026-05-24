@@ -145,16 +145,20 @@ export function BirthdateSelectStep({
             width="33.3333%"
             rowHeight={BIRTH_WHEEL_ROW}
             compactLabels
+            circular
             ariaLabel="Monat"
           />
           <MintWheelColumn
+            key={`birth-day-${maxDay}`}
+            wheelKey={`birth-day-${maxDay}`}
             options={dayOptions}
-            value={birth.day}
+            value={Math.min(birth.day, maxDay)}
             onChange={(d) => updateBirth({ day: d })}
             align="center"
             width="33.3333%"
             rowHeight={BIRTH_WHEEL_ROW}
             compactLabels
+            circular
             ariaLabel="Tag"
           />
           <MintWheelColumn

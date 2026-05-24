@@ -1,5 +1,5 @@
 /**
- * Smooth wheel picker — magnetic glide to the nearest row (motion matters, not delay).
+ * Smooth wheel picker — snap glide, a11y, virtualization, haptics.
  */
 import { motion } from "framer-motion";
 import React, {
@@ -11,13 +11,40 @@ import React, {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type WheelEvent as ReactWheelEvent,
 } from "react";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import {
+  clampIndex,
+  easeOutQuint,
+  getVirtualWindow,
+  indexOfValue,
+  logicalIndexFromPhysical,
+  mergeWheelPickerTuning,
+  modIndex,
+  normalizeInfiniteScrollTop,
+  physicalIndexForValue,
+  snapDurationForOffset,
+  triggerWheelHaptic,
+  WHEEL_INFINITE_COPIES,
+  type WheelPickerSnapPreset,
+  type WheelPickerTuning,
+} from "@/lib/wheelPickerUtils";
+
+export type { WheelPickerSnapPreset, WheelPickerTuning } from "@/lib/wheelPickerUtils";
 
 export type NativeLikeWheelPickerProps<T> = {
   data: T[];
   value?: T;
   onChange?: (item: T, index: number) => void;
-  renderItem?: (item: T, selected: boolean, index: number, activeIndex: number) => ReactNode;
+  /** Committed selection vs center row while scrolling. */
+  renderItem?: (
+    item: T,
+    selected: boolean,
+    index: number,
+    activeIndex: number,
+    isCenter: boolean,
+  ) => ReactNode;
   itemHeight?: number;
   visibleItems?: number;
   className?: string;
@@ -27,8 +54,18 @@ export type NativeLikeWheelPickerProps<T> = {
   getItemKey?: (item: T, index: number) => string | number;
   infinite?: boolean;
   showDefaultChrome?: boolean;
+  snapPreset?: WheelPickerSnapPreset;
+  tuning?: Partial<WheelPickerTuning>;
+  enableHaptics?: boolean;
+  tapToSelect?: boolean;
+  virtualizeThreshold?: number;
+  ariaLabel?: string;
+  /** Screen reader announcement on settle (e.g. "72 Kilogramm"). */
+  formatLiveLabel?: (item: T) => string;
+  onSettleStart?: () => void;
 };
 
+/** @deprecated Use NativeLikeWheelPickerProps */
 export type WebWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 export type IOSPerfectWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 export type IOSUltraSmoothWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
@@ -36,56 +73,7 @@ export type IOSStyleWheelPickerProps<T> = NativeLikeWheelPickerProps<T>;
 
 const DEFAULT_ITEM_HEIGHT = 50;
 const DEFAULT_VISIBLE_ITEMS = 5;
-const INFINITE_COPIES = 3;
-const MIDDLE_COPY_INDEX = 1;
-const SETTLE_DEBOUNCE_MS = 20;
-const SETTLE_MAX_WAIT_MS = 100;
-/** Snap right after finger lift (momentum uses short debounce above). */
-const RELEASE_SETTLE_MS = 12;
-/** Snap glide scales with how far we are from the row center (px). */
-const SNAP_MS_MIN = 150;
-const SNAP_MS_MAX = 300;
-
-function clampIndex(index: number, count: number): number {
-  if (count <= 0) return 0;
-  return Math.max(0, Math.min(index, count - 1));
-}
-
-function modIndex(index: number, count: number): number {
-  if (count <= 0) return 0;
-  return ((index % count) + count) % count;
-}
-
-/** Soft landing on the target row — feels like iOS wheel settle. */
-function easeOutQuint(t: number): number {
-  return 1 - Math.pow(1 - t, 5);
-}
-
-function snapDurationForOffset(offsetPx: number, rowHeight: number): number {
-  const fraction = Math.min(1, Math.abs(offsetPx) / (rowHeight * 0.55));
-  return SNAP_MS_MIN + (SNAP_MS_MAX - SNAP_MS_MIN) * fraction;
-}
-
-function indexOfValue<T>(data: T[], value: T | undefined): number {
-  if (value === undefined || data.length === 0) return 0;
-  let found = data.findIndex((x) => x === value);
-  if (
-    found < 0 &&
-    value !== null &&
-    typeof value === "object" &&
-    "value" in (value as object)
-  ) {
-    const needle = (value as { value: unknown }).value;
-    found = data.findIndex(
-      (x) =>
-        x !== null &&
-        typeof x === "object" &&
-        "value" in (x as object) &&
-        (x as { value: unknown }).value === needle,
-    );
-  }
-  return found >= 0 ? found : 0;
-}
+const DEFAULT_VIRTUALIZE_THRESHOLD = 48;
 
 export function NativeLikeWheelPicker<T>({
   data,
@@ -101,7 +89,21 @@ export function NativeLikeWheelPicker<T>({
   getItemKey,
   infinite = false,
   showDefaultChrome = false,
+  snapPreset = "default",
+  tuning: tuningOverrides,
+  enableHaptics = true,
+  tapToSelect = true,
+  virtualizeThreshold = DEFAULT_VIRTUALIZE_THRESHOLD,
+  ariaLabel,
+  formatLiveLabel,
+  onSettleStart,
 }: NativeLikeWheelPickerProps<T>) {
+  const reducedMotion = usePrefersReducedMotion();
+  const tuning = useMemo(
+    () => mergeWheelPickerTuning(snapPreset, tuningOverrides),
+    [snapPreset, tuningOverrides],
+  );
+
   const segmentLen = data.length;
   const padItems = Math.floor(visibleItems / 2);
   const containerHeight = itemHeight * visibleItems;
@@ -111,45 +113,51 @@ export function NativeLikeWheelPicker<T>({
 
   const wheelItems = useMemo(() => {
     if (!infiniteActive || segmentLen === 0) return data;
-    return Array.from({ length: INFINITE_COPIES }, () => data).flat();
+    return Array.from({ length: WHEEL_INFINITE_COPIES }, () => data).flat();
   }, [data, infiniteActive, segmentLen]);
 
-  const logicalIndexFromPhysical = useCallback(
-    (physicalIndex: number) => {
-      const rounded = Math.round(physicalIndex);
-      if (segmentLen === 0) return 0;
-      const normalized = normalizeIndex
-        ? normalizeIndex(rounded)
-        : infiniteActive
-          ? modIndex(rounded, segmentLen)
-          : clampIndex(rounded, segmentLen);
-      return clampIndex(normalized, segmentLen);
-    },
-    [infiniteActive, normalizeIndex, segmentLen],
-  );
-
-  const physicalIndexForValue = useCallback(
-    (v: T | undefined) => {
-      const logical = indexOfValue(data, v);
-      return infiniteActive ? logical + segmentLen * MIDDLE_COPY_INDEX : logical;
-    },
-    [data, infiniteActive, segmentLen],
-  );
+  const useVirtual = wheelItems.length > virtualizeThreshold;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationRef = useRef<number | null>(null);
+  const scrollIndexRafRef = useRef<number | null>(null);
+  const pendingScrollIndexRef = useRef(0);
   const lastScrollAt = useRef(performance.now());
   const settleStartedAt = useRef(0);
   const settleGeneration = useRef(0);
   const isUserInteractingRef = useRef(false);
   const isSettlingRef = useRef(false);
   const isProgrammaticScrollRef = useRef(false);
+  const lastHapticLogicalRef = useRef(-1);
 
-  const [scrollIndex, setScrollIndex] = useState(() => physicalIndexForValue(value));
-  const [selectedIndex, setSelectedIndex] = useState(() => physicalIndexForValue(value));
+  const initialPhysical = physicalIndexForValue(indexOfValue(data, value), segmentLen, infiniteActive);
 
-  const logicalActiveIndex = logicalIndexFromPhysical(selectedIndex);
+  const [scrollIndex, setScrollIndex] = useState(initialPhysical);
+  const [selectedIndex, setSelectedIndex] = useState(initialPhysical);
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+
+  const logicalActiveIndex = logicalIndexFromPhysical(
+    selectedIndex,
+    segmentLen,
+    infiniteActive,
+    normalizeIndex,
+  );
+  const centerLogicalIndex = logicalIndexFromPhysical(
+    scrollIndex,
+    segmentLen,
+    infiniteActive,
+    normalizeIndex,
+  );
+
+  const queueScrollIndex = useCallback((index: number) => {
+    pendingScrollIndexRef.current = index;
+    if (scrollIndexRafRef.current !== null) return;
+    scrollIndexRafRef.current = requestAnimationFrame(() => {
+      setScrollIndex(pendingScrollIndexRef.current);
+      scrollIndexRafRef.current = null;
+    });
+  }, []);
 
   const clearSettleTimer = useCallback(() => {
     if (settleTimeoutRef.current !== null) {
@@ -166,21 +174,51 @@ export function NativeLikeWheelPicker<T>({
     isSettlingRef.current = false;
   }, []);
 
-  const normalizeScroll = useCallback(() => {
-    if (!infiniteActive || segmentLen === 0) return;
+  const applyNormalizeInfinite = useCallback(() => {
     const el = scrollRef.current;
-    if (!el) return;
-
-    const totalHeight = segmentLen * itemHeight;
-
-    if (el.scrollTop <= totalHeight * 0.5) {
-      el.scrollTop += totalHeight;
-    } else if (el.scrollTop >= totalHeight * 2.5) {
-      el.scrollTop -= totalHeight;
+    if (!el || !infiniteActive || segmentLen === 0) return;
+    const next = normalizeInfiniteScrollTop(el.scrollTop, segmentLen, itemHeight);
+    if (next !== el.scrollTop) {
+      isProgrammaticScrollRef.current = true;
+      el.scrollTop = next;
+      isProgrammaticScrollRef.current = false;
     }
   }, [infiniteActive, itemHeight, segmentLen]);
 
-  const scrollToIndexInstant = useCallback(
+  const announce = useCallback(
+    (item: T, logical: number) => {
+      const text = formatLiveLabel ? formatLiveLabel(item) : String(item);
+      setLiveAnnouncement(text);
+      if (enableHaptics && logical !== lastHapticLogicalRef.current) {
+        triggerWheelHaptic();
+        lastHapticLogicalRef.current = logical;
+      }
+    },
+    [enableHaptics, formatLiveLabel],
+  );
+
+  const commitSelection = useCallback(
+    (snappedIndex: number) => {
+      isSettlingRef.current = false;
+      setSelectedIndex(snappedIndex);
+      queueScrollIndex(snappedIndex);
+
+      const logical = logicalIndexFromPhysical(
+        snappedIndex,
+        segmentLen,
+        infiniteActive,
+        normalizeIndex,
+      );
+      const item = data[logical];
+      if (item !== undefined) {
+        announce(item, logical);
+        onChange?.(item, logical);
+      }
+    },
+    [announce, data, infiniteActive, normalizeIndex, onChange, queueScrollIndex, segmentLen],
+  );
+
+  const scrollToPhysicalInstant = useCallback(
     (index: number) => {
       const el = scrollRef.current;
       if (!el) return;
@@ -188,25 +226,10 @@ export function NativeLikeWheelPicker<T>({
       isProgrammaticScrollRef.current = true;
       el.scrollTop = index * itemHeight;
       isProgrammaticScrollRef.current = false;
-      setScrollIndex(index);
+      queueScrollIndex(index);
       setSelectedIndex(index);
     },
-    [cancelSnapAnimation, itemHeight],
-  );
-
-  const commitSelection = useCallback(
-    (snappedIndex: number) => {
-      isSettlingRef.current = false;
-      setSelectedIndex(snappedIndex);
-      setScrollIndex(snappedIndex);
-
-      const logical = logicalIndexFromPhysical(snappedIndex);
-      const item = data[logical];
-      if (item !== undefined) {
-        onChange?.(item, logical);
-      }
-    },
-    [data, logicalIndexFromPhysical, onChange],
+    [cancelSnapAnimation, itemHeight, queueScrollIndex],
   );
 
   const smoothSnapTo = useCallback(
@@ -216,17 +239,20 @@ export function NativeLikeWheelPicker<T>({
 
       const offsetPx = targetTop - el.scrollTop;
 
-      if (Math.abs(offsetPx) < 0.5) {
+      if (Math.abs(offsetPx) < 0.5 || reducedMotion) {
+        isProgrammaticScrollRef.current = true;
         el.scrollTop = targetTop;
+        isProgrammaticScrollRef.current = false;
         commitSelection(snappedIndex);
         return;
       }
 
+      onSettleStart?.();
       cancelSnapAnimation();
       isSettlingRef.current = true;
 
       const startTop = el.scrollTop;
-      const durationMs = snapDurationForOffset(offsetPx, itemHeight);
+      const durationMs = snapDurationForOffset(offsetPx, itemHeight, tuning);
       const startTime = performance.now();
 
       const animate = (now: number) => {
@@ -236,7 +262,7 @@ export function NativeLikeWheelPicker<T>({
         isProgrammaticScrollRef.current = true;
         el.scrollTop = startTop + offsetPx * eased;
         isProgrammaticScrollRef.current = false;
-        setScrollIndex(el.scrollTop / itemHeight);
+        queueScrollIndex(el.scrollTop / itemHeight);
 
         if (progress < 1) {
           animationRef.current = requestAnimationFrame(animate);
@@ -252,21 +278,21 @@ export function NativeLikeWheelPicker<T>({
 
       animationRef.current = requestAnimationFrame(animate);
     },
-    [cancelSnapAnimation, commitSelection, itemHeight],
+    [cancelSnapAnimation, commitSelection, itemHeight, onSettleStart, queueScrollIndex, reducedMotion, tuning],
   );
 
   const runSettle = useCallback(() => {
     const el = scrollRef.current;
     if (!el || segmentLen === 0) return;
 
-    normalizeScroll();
+    applyNormalizeInfinite();
 
     const rawIndex = el.scrollTop / itemHeight;
     const snappedIndex = clampIndex(Math.round(rawIndex), wheelItems.length);
     const targetTop = snappedIndex * itemHeight;
 
     smoothSnapTo(targetTop, snappedIndex);
-  }, [normalizeScroll, itemHeight, segmentLen, smoothSnapTo, wheelItems.length]);
+  }, [applyNormalizeInfinite, itemHeight, segmentLen, smoothSnapTo, wheelItems.length]);
 
   const scheduleSettle = useCallback(() => {
     clearSettleTimer();
@@ -284,8 +310,8 @@ export function NativeLikeWheelPicker<T>({
       const idleFor = performance.now() - lastScrollAt.current;
       const waitingFor = performance.now() - settleStartedAt.current;
 
-      if (idleFor < SETTLE_DEBOUNCE_MS && waitingFor < SETTLE_MAX_WAIT_MS) {
-        const delay = Math.max(4, SETTLE_DEBOUNCE_MS - idleFor);
+      if (idleFor < tuning.settleDebounceMs && waitingFor < tuning.settleMaxWaitMs) {
+        const delay = Math.max(4, tuning.settleDebounceMs - idleFor);
         settleTimeoutRef.current = setTimeout(attempt, delay);
         return;
       }
@@ -293,11 +319,24 @@ export function NativeLikeWheelPicker<T>({
       runSettle();
     };
 
-    settleTimeoutRef.current = setTimeout(attempt, SETTLE_DEBOUNCE_MS);
-  }, [clearSettleTimer, runSettle]);
+    settleTimeoutRef.current = setTimeout(attempt, tuning.settleDebounceMs);
+  }, [clearSettleTimer, runSettle, tuning.settleDebounceMs, tuning.settleMaxWaitMs]);
+
+  const snapToPhysicalIndex = useCallback(
+    (physicalIndex: number) => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const clamped = clampIndex(physicalIndex, wheelItems.length);
+      isUserInteractingRef.current = false;
+      settleGeneration.current += 1;
+      clearSettleTimer();
+      smoothSnapTo(clamped * itemHeight, clamped);
+    },
+    [clearSettleTimer, itemHeight, smoothSnapTo, wheelItems.length],
+  );
 
   const beginInteraction = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
+    (e: ReactPointerEvent<HTMLDivElement>) => {
       isUserInteractingRef.current = true;
       settleGeneration.current += 1;
       clearSettleTimer();
@@ -322,15 +361,15 @@ export function NativeLikeWheelPicker<T>({
     settleTimeoutRef.current = setTimeout(() => {
       if (generation !== settleGeneration.current) return;
       runSettle();
-    }, RELEASE_SETTLE_MS);
-  }, [clearSettleTimer, runSettle]);
+    }, tuning.releaseSettleMs);
+  }, [clearSettleTimer, runSettle, tuning.releaseSettleMs]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
 
     if (isProgrammaticScrollRef.current) {
-      setScrollIndex(el.scrollTop / itemHeight);
+      queueScrollIndex(el.scrollTop / itemHeight);
       return;
     }
 
@@ -339,28 +378,103 @@ export function NativeLikeWheelPicker<T>({
     }
 
     lastScrollAt.current = performance.now();
-    setScrollIndex(el.scrollTop / itemHeight);
+    queueScrollIndex(el.scrollTop / itemHeight);
 
     if (isUserInteractingRef.current) return;
 
     scheduleSettle();
-  }, [cancelSnapAnimation, scheduleSettle]);
+  }, [cancelSnapAnimation, queueScrollIndex, scheduleSettle]);
+
+  const handleWheel = useCallback(
+    (e: ReactWheelEvent<HTMLDivElement>) => {
+      const el = scrollRef.current;
+      if (!el) return;
+      e.preventDefault();
+      settleGeneration.current += 1;
+      clearSettleTimer();
+      cancelSnapAnimation();
+      isProgrammaticScrollRef.current = true;
+      el.scrollTop += e.deltaY;
+      isProgrammaticScrollRef.current = false;
+      lastScrollAt.current = performance.now();
+      queueScrollIndex(el.scrollTop / itemHeight);
+      scheduleSettle();
+    },
+    [cancelSnapAnimation, clearSettleTimer, queueScrollIndex, scheduleSettle],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const step = e.key === "PageUp" || e.key === "PageDown" ? 3 : 1;
+      let next = selectedIndex;
+
+      if (e.key === "ArrowUp" || e.key === "PageUp") {
+        e.preventDefault();
+        next = selectedIndex - step;
+      } else if (e.key === "ArrowDown" || e.key === "PageDown") {
+        e.preventDefault();
+        next = selectedIndex + step;
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        next = infiniteActive ? segmentLen * 2 : 0;
+      } else if (e.key === "End") {
+        e.preventDefault();
+        next = infiniteActive ? segmentLen * 2 + segmentLen - 1 : wheelItems.length - 1;
+      } else {
+        return;
+      }
+
+      snapToPhysicalIndex(next);
+    },
+    [infiniteActive, segmentLen, selectedIndex, snapToPhysicalIndex, wheelItems.length],
+  );
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !("onscrollend" in el)) return;
+    const onScrollEnd = () => {
+      if (!isUserInteractingRef.current && !isSettlingRef.current) {
+        runSettle();
+      }
+    };
+    el.addEventListener("scrollend", onScrollEnd as EventListener);
+    return () => el.removeEventListener("scrollend", onScrollEnd as EventListener);
+  }, [runSettle]);
 
   useEffect(() => {
     if (isUserInteractingRef.current || isSettlingRef.current) return;
-    const idx = physicalIndexForValue(value);
+    const logical = indexOfValue(data, value);
+    const idx = physicalIndexForValue(logical, segmentLen, infiniteActive);
     setSelectedIndex(idx);
-    setScrollIndex(idx);
-    requestAnimationFrame(() => scrollToIndexInstant(idx));
-  }, [physicalIndexForValue, scrollToIndexInstant, value]);
+    queueScrollIndex(idx);
+    requestAnimationFrame(() => scrollToPhysicalInstant(idx));
+  }, [data, infiniteActive, queueScrollIndex, scrollToPhysicalInstant, segmentLen, value]);
 
   useEffect(
     () => () => {
       clearSettleTimer();
       cancelSnapAnimation();
+      if (scrollIndexRafRef.current !== null) {
+        cancelAnimationFrame(scrollIndexRafRef.current);
+      }
     },
     [cancelSnapAnimation, clearSettleTimer],
   );
+
+  const virtualWindow = useMemo(
+    () =>
+      useVirtual
+        ? getVirtualWindow(scrollIndex, wheelItems.length, itemHeight, padItems)
+        : { start: 0, end: wheelItems.length, topSpacer: 0, bottomSpacer: 0 },
+    [itemHeight, padItems, scrollIndex, useVirtual, wheelItems.length],
+  );
+
+  const rowsToRender = useMemo(
+    () => wheelItems.slice(virtualWindow.start, virtualWindow.end),
+    [virtualWindow.end, virtualWindow.start, wheelItems],
+  );
+
+  const currentScroll = scrollIndex;
 
   const containerStyle: CSSProperties = useMemo(
     () => ({
@@ -376,10 +490,91 @@ export function NativeLikeWheelPicker<T>({
     [containerHeight, style],
   );
 
-  const currentScroll = scrollIndex;
+  const renderRow = (item: T, index: number) => {
+    const distance = Math.abs(index - currentScroll);
+    const scale = reducedMotion ? 1 : Math.max(0.75, 1 - distance * 0.08);
+    const opacity = reducedMotion ? 1 : Math.max(0.2, 1 - distance * 0.18);
+    const rotateX = reducedMotion ? 0 : Math.min(distance * 12, 75);
+    const isAbove = index < currentScroll;
+    const logicalIndex = infiniteActive ? modIndex(index, segmentLen) : index;
+    const selected = logicalIndex === logicalActiveIndex;
+    const isCenter = logicalIndex === centerLogicalIndex;
+
+    const key = getItemKey
+      ? getItemKey(item, index)
+      : infiniteActive
+        ? `wheel-${index}-${logicalIndex}`
+        : logicalIndex;
+
+    const rowBody = renderItem ? (
+      renderItem(item, selected, logicalIndex, logicalActiveIndex, isCenter)
+    ) : (
+      <div
+        className={`transition-all duration-200 ${
+          isCenter ? "text-xl font-bold text-cyan-300" : "text-lg text-zinc-500"
+        }`}
+      >
+        {String(item)}
+      </div>
+    );
+
+    const rowStyle: CSSProperties = {
+      height: itemHeight,
+      transformStyle: reducedMotion ? undefined : "preserve-3d",
+    };
+
+    if (tapToSelect) {
+      return (
+        <button
+          key={key}
+          type="button"
+          className="flex w-full items-center justify-center border-0 bg-transparent p-0 font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/60"
+          style={rowStyle}
+          onClick={() => snapToPhysicalIndex(index)}
+          tabIndex={-1}
+        >
+          {reducedMotion ? (
+            rowBody
+          ) : (
+            <motion.div
+              animate={{
+                scale,
+                opacity: renderItem ? 1 : opacity,
+                rotateX: isAbove ? rotateX : -rotateX,
+              }}
+              transition={{ type: "spring", stiffness: 100, damping: 22, mass: 0.85 }}
+              style={{ transformStyle: "preserve-3d", width: "100%" }}
+            >
+              {rowBody}
+            </motion.div>
+          )}
+        </button>
+      );
+    }
+
+    return (
+      <motion.div
+        key={key}
+        className="flex items-center justify-center font-medium"
+        animate={{
+          scale,
+          opacity: renderItem ? 1 : opacity,
+          rotateX: isAbove ? rotateX : -rotateX,
+        }}
+        transition={{ type: "spring", stiffness: 100, damping: 22, mass: 0.85 }}
+        style={{ ...rowStyle, pointerEvents: "none" }}
+      >
+        {rowBody}
+      </motion.div>
+    );
+  };
 
   return (
     <div className={className} style={containerStyle}>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {liveAnnouncement}
+      </div>
+
       {selectionOverlay}
 
       {showDefaultChrome && (
@@ -394,7 +589,12 @@ export function NativeLikeWheelPicker<T>({
 
       <div
         ref={scrollRef}
+        role="listbox"
+        aria-label={ariaLabel}
+        tabIndex={0}
         onScroll={handleScroll}
+        onWheel={handleWheel}
+        onKeyDown={handleKeyDown}
         onPointerDown={beginInteraction}
         onPointerUp={endInteraction}
         onPointerCancel={endInteraction}
@@ -403,9 +603,9 @@ export function NativeLikeWheelPicker<T>({
             endInteraction();
           }
         }}
-        className="scrollbar-hide h-full w-full overflow-y-scroll overscroll-contain rounded-2xl"
+        className="scrollbar-hide h-full w-full overflow-y-scroll overscroll-contain rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/50"
         style={{
-          perspective: "1000px",
+          perspective: reducedMotion ? undefined : "1000px",
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -414,59 +614,13 @@ export function NativeLikeWheelPicker<T>({
         }}
       >
         <div style={{ paddingTop: verticalPad, paddingBottom: verticalPad }}>
-          {wheelItems.map((item, index) => {
-            const distance = Math.abs(index - currentScroll);
-            const scale = Math.max(0.75, 1 - distance * 0.08);
-            const opacity = Math.max(0.2, 1 - distance * 0.18);
-            const rotateX = Math.min(distance * 12, 75);
-            const isAbove = index < currentScroll;
-            const logicalIndex = infiniteActive ? modIndex(index, segmentLen) : index;
-            const selected = logicalIndex === logicalActiveIndex;
-            const isCenterRow = Math.round(currentScroll) === index;
-
-            const key = getItemKey
-              ? getItemKey(item, index)
-              : infiniteActive
-                ? `wheel-${index}-${logicalIndex}`
-                : logicalIndex;
-
-            return (
-              <motion.div
-                key={key}
-                className="flex items-center justify-center font-medium"
-                animate={{
-                  scale,
-                  opacity: renderItem ? 1 : opacity,
-                  rotateX: isAbove ? rotateX : -rotateX,
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 22,
-                  mass: 0.85,
-                }}
-                style={{
-                  height: itemHeight,
-                  transformStyle: "preserve-3d",
-                  pointerEvents: "none",
-                }}
-              >
-                {renderItem ? (
-                  renderItem(item, selected, logicalIndex, logicalActiveIndex)
-                ) : (
-                  <div
-                    className={`transition-all duration-200 ${
-                      isCenterRow
-                        ? "text-xl font-bold text-cyan-300"
-                        : "text-lg text-zinc-500"
-                    }`}
-                  >
-                    {String(item)}
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
+          {useVirtual && virtualWindow.topSpacer > 0 && (
+            <div aria-hidden style={{ height: virtualWindow.topSpacer }} />
+          )}
+          {rowsToRender.map((item, i) => renderRow(item, virtualWindow.start + i))}
+          {useVirtual && virtualWindow.bottomSpacer > 0 && (
+            <div aria-hidden style={{ height: virtualWindow.bottomSpacer }} />
+          )}
         </div>
       </div>
     </div>

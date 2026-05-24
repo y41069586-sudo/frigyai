@@ -1,5 +1,9 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { NativeLikeWheelPicker } from "@/components/NativeLikeWheelPicker";
+import {
+  NativeLikeWheelPicker,
+  type WheelPickerSnapPreset,
+  type WheelPickerTuning,
+} from "@/components/NativeLikeWheelPicker";
 
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
@@ -37,6 +41,11 @@ type MintWheelColumnProps = {
   rowHeight?: number;
   circular?: boolean;
   compactLabels?: boolean;
+  /** Numbers only in the wheel; unit shown for screen readers / optional suffix. */
+  unitSuffix?: string;
+  snapPreset?: WheelPickerSnapPreset;
+  tuning?: Partial<WheelPickerTuning>;
+  wheelKey?: string | number;
 };
 
 export function MintWheelColumn({
@@ -49,6 +58,10 @@ export function MintWheelColumn({
   rowHeight = WHEEL_ROW_COMFORT,
   circular = false,
   compactLabels = false,
+  unitSuffix,
+  snapPreset = "default",
+  tuning,
+  wheelKey,
 }: MintWheelColumnProps) {
   const circularActive = Boolean(circular && options.length > 1);
 
@@ -71,7 +84,7 @@ export function MintWheelColumn({
     : rowHeight <= WHEEL_ROW_COMPACT
       ? 14
       : 17;
-  const selectedFontPx = compactLabels
+  const activeFontPx = compactLabels
     ? rowHeight <= WHEEL_ROW_COMPACT
       ? 17
       : 18
@@ -79,39 +92,46 @@ export function MintWheelColumn({
       ? 18
       : 22;
 
+  const formatLiveLabel = (opt: MintWheelOption) =>
+    unitSuffix ? `${opt.label} ${unitSuffix}` : opt.label;
+
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width }}
-      role="listbox"
-      aria-label={ariaLabel}
-    >
+    <div className="relative shrink-0" style={{ width }}>
       <NativeLikeWheelPicker
+        key={wheelKey}
         data={options}
         value={selectedItem}
         onChange={(item) => onChange(item.value)}
         itemHeight={rowHeight}
         visibleItems={WHEEL_VISIBLE_ITEMS}
         infinite={circularActive}
-        selectionOverlay={null}
+        snapPreset={snapPreset}
+        tuning={tuning}
+        enableHaptics
+        tapToSelect
+        ariaLabel={ariaLabel}
+        formatLiveLabel={formatLiveLabel}
         getItemKey={(item, index) =>
           circularActive ? `wheel-${index}-${item.value}` : item.value
         }
-        renderItem={(opt, selected) => (
-          <div
-            className={`flex w-full items-center ${textAlignClass}`}
-            style={{
-              fontSize: `${selected ? selectedFontPx : idleFontPx}px`,
-              fontWeight: selected ? 600 : 400,
-              lineHeight: 1,
-              color: selected ? "#1F2937" : "#9CA3AF",
-              letterSpacing: "-0.01em",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            {opt.label}
-          </div>
-        )}
+        renderItem={(opt, selected, _logical, _active, isCenter) => {
+          const highlighted = isCenter || selected;
+          return (
+            <div
+              className={`flex w-full items-center ${textAlignClass}`}
+              style={{
+                fontSize: `${highlighted ? activeFontPx : idleFontPx}px`,
+                fontWeight: highlighted ? 600 : 400,
+                lineHeight: 1,
+                color: highlighted ? "#1F2937" : "#9CA3AF",
+                letterSpacing: "-0.01em",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              {opt.label}
+            </div>
+          );
+        }}
       />
     </div>
   );
