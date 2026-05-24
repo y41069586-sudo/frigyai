@@ -100,47 +100,7 @@ export function buildGapShoppingList(
   }));
 }
 
-/** Skaliert jeden Tag so, dass Summen Kalorien & Makros exakt den Zielen entsprechen */
-export function reconcileMealPlanMacros<
-  T extends { meals?: Array<{ calories?: number; protein?: number; carbs?: number; fat?: number }> },
->(
-  mealPlan: T[],
-  targets: {
-    dailyCalories: number;
-    dailyProtein: number;
-    dailyCarbs: number;
-    dailyFat: number;
-  },
-): T[] {
-  return mealPlan.map((day) => {
-    const meals = day.meals || [];
-    let sumC = 0;
-    let sumP = 0;
-    let sumCb = 0;
-    let sumF = 0;
-    for (const m of meals) {
-      sumC += m.calories || 0;
-      sumP += m.protein || 0;
-      sumCb += m.carbs || 0;
-      sumF += m.fat || 0;
-    }
-    if (meals.length === 0) return day;
-    const fc = targets.dailyCalories / (sumC || 1);
-    const fp = targets.dailyProtein / (sumP || 1);
-    const fcb = targets.dailyCarbs / (sumCb || 1);
-    const ff = targets.dailyFat / (sumF || 1);
-    return {
-      ...day,
-      meals: meals.map((m) => ({
-        ...m,
-        calories: Math.round((m.calories || 0) * fc),
-        protein: Math.round((m.protein || 0) * fp),
-        carbs: Math.round((m.carbs || 0) * fcb),
-        fat: Math.round((m.fat || 0) * ff),
-      })),
-    } as T;
-  });
-}
+export { reconcileMealPlanMacros, syncMealPlanToTargets } from "@/lib/mealPlanMacros";
 
 export function computeFridgeScanStats(
   mealPlan: DayPlanLike[],

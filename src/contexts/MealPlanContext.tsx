@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
-import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { FRIGY_STORAGE_UPDATED, WEEKLY_PLAN_AI_GENERATED_KEY, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { isSubscriptionActive } from '@/lib/subscription';
 import {
   buildGermanConstraintPrompt,
   findMealSafetyViolations,
@@ -92,7 +93,7 @@ export const useMealPlanGeneration = () => {
 };
 
 export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session } = useAuth();
+  const { session, isPremium, checkSubscription } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -426,6 +427,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setShoppingList(newShoppingList);
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
           localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
+          localStorage.setItem(WEEKLY_PLAN_AI_GENERATED_KEY, '1');
           setMealPlanShoppingSource('frigy');
 
           const sm = (data as any)?.scanMeta;
@@ -535,7 +537,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount]);
+  }, [session, refreshGenerationCount, isPremium, checkSubscription]);
 
   const setMinimized = useCallback((minimized: boolean) => {
     setIsMinimized(minimized);

@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+
 declare const Deno: {
   env: {
     get(key: string): string | undefined;
@@ -179,69 +181,114 @@ function computeScanMeta(mealPlan: any[], fridgeIngredients: string[], gapList: 
   return { percentIngredientsFromFridge: percentHave, estimatedEurosSaved: eurosSaved };
 }
 
-function reconcileDayMacros(day: any, targets: {
-  dailyCalories: number;
-  dailyProtein: number;
-  dailyCarbs: number;
-  dailyFat: number;
-}) {
-  const meals = day.meals || [];
-  let sumC = 0;
-  let sumP = 0;
-  let sumCb = 0;
-  let sumF = 0;
-  for (const m of meals) {
-    sumC += m.calories || 0;
-    sumP += m.protein || 0;
-    sumCb += m.carbs || 0;
-    sumF += m.fat || 0;
-  }
-  if (meals.length === 0) return day;
-  const fc = targets.dailyCalories / (sumC || 1);
-  const fp = targets.dailyProtein / (sumP || 1);
-  const fcb = targets.dailyCarbs / (sumCb || 1);
-  const ff = targets.dailyFat / (sumF || 1);
+const MACRO_KCAL_TOLERANCE = 50;
 
-  return {
-    ...day,
-    meals: meals.map((m: any) => ({
-      ...m,
-      calories: Math.round((m.calories || 0) * fc),
-      protein: Math.round((m.protein || 0) * fp),
-      carbs: Math.round((m.carbs || 0) * fcb),
-      fat: Math.round((m.fat || 0) * ff),
-    })),
-  };
+function macroKcal(p: number, c: number, f: number) {
+  return p * 4 + c * 4 + f * 9;
 }
 
-function reconcileMealPlanMacros(mealPlan: any[], targets: {
-  dailyCalories: number;
-  dailyProtein: number;
-  dailyCarbs: number;
-  dailyFat: number;
-}) {
-  return mealPlan.map((day) => reconcileDayMacros(day, targets));
-}
-
-function enforceMacroEnergyConsistency(mealPlan: any[]) {
-  return mealPlan.map((day: any) => ({
-    ...day,
-    meals: (day.meals || []).map((m: any) => {
-      const protein = Math.max(0, Number(m.protein) || 0);
-      const carbs = Math.max(0, Number(m.carbs) || 0);
-      const fat = Math.max(0, Number(m.fat) || 0);
-      const kcalFromMacros = protein * 4 + carbs * 4 + fat * 9;
-      // Keep calories honest: derive from macros to avoid impossible combinations.
-      const calories = Math.max(50, Math.round(kcalFromMacros));
-      return {
-        ...m,
-        protein: Math.round(protein),
-        carbs: Math.round(carbs),
-        fat: Math.round(fat),
-        calories,
-      };
+function sumMeals(meals: any[]) {
+  return meals.reduce(
+    (a: any, m: any) => ({
+      calories: a.calories + (Number(m.calories) || 0),
+      protein: a.protein + (Number(m.protein) || 0),
+      carbs: a.carbs + (Number(m.carbs) || 0),
+      fat: a.fat + (Number(m.fat) || 0),
     }),
-  }));
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+}
+
+function normalizeMeal(m: any) {
+  const protein = Math.max(0, Math.round(Number(m.protein) || 0));
+  const carbs = Math.max(0, Math.round(Number(m.carbs) || 0));
+  const fat = Math.max(0, Math.round(Number(m.fat) || 0));
+  const fromMacros = macroKcal(protein, carbs, fat);
+  const stated = Number(m.calories) || 0;
+  const calories =
+    stated > 0 && Math.abs(stated - fromMacros) <= MACRO_KCAL_TOLERANCE
+      ? Math.round(stated)
+      : Math.max(50, Math.round(fromMacros));
+  return { ...m, protein, carbs, fat, calories };
+}
+
+function syncDayToTargets(day: any, targets: {
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}) {
+  let meals = (day.meals || []).map(normalizeMeal);
+  if (!meals.length) return day;
+
+  const initial = sumMeals(meals);
+  const fp = targets.dailyProtein / (initial.protein || 1);
+  const fcb = targets.dailyCarbs / (initial.carbs || 1);
+  const ff = targets.dailyFat / (initial.fat || 1);
+
+  meals = meals.map((m: any) => {
+    const protein = Math.max(0, Math.round((m.protein || 0) * fp));
+    const carbs = Math.max(0, Math.round((m.carbs || 0) * fcb));
+    const fat = Math.max(0, Math.round((m.fat || 0) * ff));
+    return { ...m, protein, carbs, fat, calories: Math.max(50, Math.round(macroKcal(protein, carbs, fat))) };
+  });
+
+  const lastIdx = meals.length - 1;
+  const beforeLast = sumMeals(meals.slice(0, lastIdx));
+  meals[lastIdx] = {
+    ...meals[lastIdx],
+    protein: Math.max(0, targets.dailyProtein - beforeLast.protein),
+    carbs: Math.max(0, targets.dailyCarbs - beforeLast.carbs),
+    fat: Math.max(0, targets.dailyFat - beforeLast.fat),
+  };
+  meals[lastIdx].calories = Math.max(
+    50,
+    Math.round(macroKcal(meals[lastIdx].protein, meals[lastIdx].carbs, meals[lastIdx].fat)),
+  );
+
+  const total = sumMeals(meals);
+  const calDiff = targets.dailyCalories - total.calories;
+  if (calDiff !== 0) {
+    meals[lastIdx].fat = Math.max(0, meals[lastIdx].fat + Math.round(calDiff / 9));
+    meals[lastIdx].calories = Math.max(
+      50,
+      Math.round(macroKcal(meals[lastIdx].protein, meals[lastIdx].carbs, meals[lastIdx].fat)),
+    );
+  }
+
+  return { ...day, meals };
+}
+
+function syncMealPlanToTargets(mealPlan: any[], targets: {
+  dailyCalories: number;
+  dailyProtein: number;
+  dailyCarbs: number;
+  dailyFat: number;
+}) {
+  return mealPlan.map((day) => syncDayToTargets(day, targets));
+}
+
+const getWeekStart = (): string => {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(now.setDate(diff)).toISOString().split("T")[0];
+};
+
+async function resolvePremium(supabase: any, userId: string, email?: string | null): Promise<boolean> {
+  const { data: cacheData } = await supabase
+    .from("subscription_cache")
+    .select("subscribed, subscription_end")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (cacheData?.subscribed) {
+    const active = !cacheData.subscription_end || new Date(cacheData.subscription_end) > new Date();
+    if (active) return true;
+  }
+
+  if (email?.toLowerCase() === "yousef0089mohamed@gmail.com") return true;
+  return false;
 }
 
 Deno.serve(async (req) => {
@@ -250,6 +297,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || authHeader === "Bearer null" || authHeader === "Bearer undefined") {
+      return new Response(JSON.stringify({ error: "premium_required", message: "Anmeldung erforderlich." }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: userData, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (authError || !userData.user) {
+      return new Response(JSON.stringify({ error: "premium_required", message: "Ungültige Sitzung." }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = userData.user.id;
+    const isPremium = await resolvePremium(supabase, userId, userData.user.email);
+    if (!isPremium) {
+      return new Response(JSON.stringify({ error: "premium_required", message: "Premium erforderlich." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
     const constraintPrompt =
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "";
@@ -285,7 +365,8 @@ REGELN:
 - Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
 - Nutze Kühlschrankzutaten nur wenn vorhanden und sinnvoll; ergänze fehlende Zutaten frei für Makroziele und Abwechslung
 - Nährwerte müssen realistisch sein (keine Fantasiewerte)
-- Kalorien jeder Mahlzeit müssen zu den Makros passen: kcal ≈ 4*Protein + 4*Kohlenhydrate + 9*Fett (max. ±10% Abweichung)
+- Kalorien jeder Mahlzeit MÜSSEN exakt zu den Makros passen: kcal = 4*Protein + 4*Kohlenhydrate + 9*Fett (max. ±50 kcal Abweichung — sonst ungültig)
+- Gib realistische, messbare Makrowerte an — keine Schätzungen oder Fantasiewerte
 ${
       constraintPrompt
         ? "- Allergien, Ernährungsziele (z. B. Keto, Vegan, Low-Carb) und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend. Wenn z. B. Eier verboten sind, darf kein Ei, Rührei, Omelett, Mayonnaise oder eihaltiges Gericht vorkommen."
@@ -356,6 +437,11 @@ Antwort NUR als JSON:
       },
     );
 
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenAI error ${response.status}: ${errText.slice(0, 300)}`);
+    }
+
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
@@ -363,20 +449,24 @@ Antwort NUR als JSON:
       throw new Error("No response from OpenAI");
     }
 
-    let parsed = JSON.parse(content);
+    let parsed: { mealPlan?: unknown };
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error("Invalid JSON from OpenAI");
+    }
     let mealPlan = parsed.mealPlan;
 
     if (!Array.isArray(mealPlan) || mealPlan.length === 0) {
       throw new Error("Empty meal plan");
     }
 
-    mealPlan = reconcileMealPlanMacros(mealPlan, {
+    mealPlan = syncMealPlanToTargets(mealPlan, {
       dailyCalories,
       dailyProtein,
       dailyCarbs,
       dailyFat,
     });
-    mealPlan = enforceMacroEnergyConsistency(mealPlan);
     const unsafeMeals = findSafetyViolations(mealPlan, allergies, dietaryPreferences, allergiesOther);
     if (unsafeMeals.length > 0) {
       throw new Error(`Allergy safety validation failed: ${unsafeMeals.slice(0, 5).join("; ")}`);
@@ -384,6 +474,29 @@ Antwort NUR als JSON:
 
     const shoppingList = generateGapShoppingList(mealPlan, fridgeIngredients);
     const scanMeta = computeScanMeta(mealPlan, fridgeIngredients, shoppingList);
+
+    const weekStart = getWeekStart();
+    const { data: usageRow } = await supabase
+      .from("meal_plan_usage")
+      .select("generation_count")
+      .eq("user_id", userId)
+      .eq("week_start", weekStart)
+      .maybeSingle();
+
+    const nextCount = (usageRow?.generation_count || 0) + 1;
+    if (usageRow) {
+      await supabase
+        .from("meal_plan_usage")
+        .update({ generation_count: nextCount, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("week_start", weekStart);
+    } else {
+      await supabase.from("meal_plan_usage").insert({
+        user_id: userId,
+        week_start: weekStart,
+        generation_count: 1,
+      });
+    }
 
     return new Response(
       JSON.stringify({

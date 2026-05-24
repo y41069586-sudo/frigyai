@@ -201,10 +201,10 @@ const ScanPage = () => {
 
           if (error) throw error;
 
-          if (data?.error === "scan_limit_exceeded") {
+          if (data?.error === "scan_limit_exceeded" || data?.error === "premium_required") {
             toast({
               title: t.error,
-              description: t.couldNotAnalyze,
+              description: data?.message || t.premiumRequired || t.couldNotAnalyze,
               variant: "destructive",
             });
             break;

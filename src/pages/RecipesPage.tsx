@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import MealReplacementDialog from "@/components/MealReplacementDialog";
 import MealPlanSuccessOverlay from "@/components/MealPlanSuccessOverlay";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
+import { useFoodEntries } from "@/hooks/useFoodEntries";
+import { getLocalDateString } from "@/lib/localDate";
 
 interface Recipe {
   id: string;
@@ -57,6 +59,7 @@ const RecipesPage = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { addEntry } = useFoodEntries();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recommendedReason, setRecommendedReason] = useState<string>("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -192,58 +195,61 @@ const RecipesPage = () => {
 
   const [showAddToMealPlanOption, setShowAddToMealPlanOption] = useState(false);
 
-  const handleAddToTracker = () => {
+  const handleAddToTracker = async () => {
     if (!selectedRecipe) return;
-    
-    // Get current date
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Create food entry from recipe
-    const foodEntry = {
-      id: crypto.randomUUID(),
+
+    const mealType =
+      mealToReplace?.type ||
+      (new Date().getHours() < 11
+        ? "breakfast"
+        : new Date().getHours() < 15
+          ? "lunch"
+          : new Date().getHours() < 18
+            ? "snack"
+            : "dinner");
+
+    const result = await addEntry({
       name: selectedRecipe.title,
-      calories: selectedRecipe.calories,
-      protein: selectedRecipe.protein,
-      carbs: selectedRecipe.carbs,
-      fat: selectedRecipe.fat,
-      portion: '1 Portion',
-      meal_type: 'lunch',
-      date: today,
-    };
-    
-    // Save to localStorage food entries
-    try {
-      const stored = localStorage.getItem('foodEntries');
-      const entries = stored ? JSON.parse(stored) : [];
-      entries.push(foodEntry);
-      localStorage.setItem('foodEntries', JSON.stringify(entries));
-      
-      // Also update today's macros
-      const storedMacros = localStorage.getItem('todayMacros');
-      const todayMacros = storedMacros ? JSON.parse(storedMacros) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      
-      const updatedMacros = {
-        calories: todayMacros.calories + selectedRecipe.calories,
-        protein: todayMacros.protein + selectedRecipe.protein,
-        carbs: todayMacros.carbs + selectedRecipe.carbs,
-        fat: todayMacros.fat + selectedRecipe.fat,
-      };
-      localStorage.setItem('todayMacros', JSON.stringify(updatedMacros));
-      
+      calories: Number(selectedRecipe.calories) || 0,
+      protein: Number(selectedRecipe.protein) || 0,
+      carbs: Number(selectedRecipe.carbs) || 0,
+      fat: Number(selectedRecipe.fat) || 0,
+      portion: "1 Portion",
+      meal_type: mealType,
+    });
+
+    if (result) {
+      try {
+        const saved = localStorage.getItem("todayFood");
+        const data = saved
+          ? JSON.parse(saved)
+          : { date: getLocalDateString(), entries: [] };
+        if (data.date !== getLocalDateString()) {
+          data.date = getLocalDateString();
+          data.entries = [];
+        }
+        data.entries.push({
+          id: result.id,
+          name: selectedRecipe.title,
+          calories: result.calories,
+          protein: result.protein,
+          carbs: result.carbs,
+          fat: result.fat,
+          portion: "1 Portion",
+          meal_type: mealType,
+          time: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        });
+        localStorage.setItem("todayFood", JSON.stringify(data));
+        notifyFrigyStorageUpdated();
+      } catch (e) {
+        console.warn("[RecipesPage] todayFood cache update failed:", e);
+      }
+
       toast({
-        title: "Zum Tracker hinzugefügt! ✅",
+        title: t.addedToTracker || "Zum Tracker hinzugefügt! ✅",
         description: `${selectedRecipe.title} - ${selectedRecipe.calories} kcal`,
       });
-      
-      // Show option to add to meal plan
       setShowAddToMealPlanOption(true);
-    } catch (e) {
-      console.error('Error adding to tracker:', e);
-      toast({
-        title: "Fehler",
-        description: "Konnte nicht zum Tracker hinzufügen",
-        variant: "destructive",
-      });
     }
   };
 

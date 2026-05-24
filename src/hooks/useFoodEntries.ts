@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
+import { getLocalDateISO } from '@/lib/localDate';
 
 export interface FoodEntry {
   id: string;
@@ -29,10 +30,53 @@ export const useFoodEntries = () => {
     carbs: 0,
     fat: 0
   });
+  const [today, setToday] = useState(() => getLocalDateISO());
 
-  const today = new Date().toISOString().split('T')[0];
+  useEffect(() => {
+    const refreshToday = () => {
+      const next = getLocalDateISO();
+      setToday((prev) => (prev === next ? prev : next));
+    };
+    refreshToday();
+    const interval = setInterval(refreshToday, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshToday();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
-  // Load entries from database
+  const updateDailyMacros = useCallback(async (totals: typeof todayTotals, date = today) => {
+    if (!user) return;
+
+    try {
+      const macroData = {
+        user_id: user.id,
+        date,
+        calories: Math.max(0, Math.round(totals.calories)),
+        protein: Math.max(0, Math.round(totals.protein)),
+        carbs: Math.max(0, Math.round(totals.carbs)),
+        fat: Math.max(0, Math.round(totals.fat)),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('daily_macros')
+        .upsert([macroData], {
+          onConflict: 'user_id,date'
+        });
+
+      if (error) {
+        console.warn('[DAILY-MACROS] Error updating:', error?.message || error);
+      }
+    } catch (error: unknown) {
+      console.warn('[DAILY-MACROS] Unexpected error:', error);
+    }
+  }, [user, today]);
+
   const loadEntries = useCallback(async (date?: string) => {
     if (!user) {
       setLoading(false);
@@ -59,7 +103,6 @@ export const useFoodEntries = () => {
 
       setEntries(typedData);
 
-      // Calculate totals
       const totals = typedData.reduce((acc, entry) => ({
         calories: acc.calories + entry.calories,
         protein: acc.protein + entry.protein,
@@ -69,67 +112,25 @@ export const useFoodEntries = () => {
 
       setTodayTotals(totals);
 
-      // Also update daily_macros table for dashboard sync
       try {
-        await updateDailyMacros(totals);
+        await updateDailyMacros(totals, targetDate);
       } catch (macroError) {
         console.warn('[FOOD-ENTRIES] Failed to sync daily macros during load:', macroError);
       }
     } catch (error) {
       console.error('Error loading food entries:', error);
+      const lang = getStoredLanguage();
+      const tr = getTranslations(lang);
       toast({
-        title: 'Fehler beim Laden',
-        description: 'Deine Mahlzeitseinträge konnten nicht geladen werden',
+        title: tr.error || 'Fehler',
+        description: tr.toastFoodLoadFailed || 'Deine Mahlzeitseinträge konnten nicht geladen werden',
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
-  }, [user, today]);
+  }, [user, today, updateDailyMacros]);
 
-  // Update daily_macros table
-  const updateDailyMacros = async (totals: typeof todayTotals) => {
-    if (!user) return;
-
-    try {
-      const macroData = {
-        user_id: user.id,
-        date: today,
-        calories: Math.max(0, Math.round(totals.calories)),
-        protein: Math.max(0, Math.round(totals.protein)),
-        carbs: Math.max(0, Math.round(totals.carbs)),
-        fat: Math.max(0, Math.round(totals.fat)),
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('[DAILY-MACROS] Updating with data:', macroData);
-
-      const { error } = await supabase
-        .from('daily_macros')
-        .upsert([macroData], {
-          onConflict: 'user_id,date'
-        });
-
-      if (error) {
-        const errorMsg = error?.message || error?.details || JSON.stringify(error);
-        console.error('[DAILY-MACROS] Error updating:', errorMsg, { code: error?.code, status: error?.status });
-
-        // Check if it's a table/schema issue
-        if (errorMsg.includes('relation') || errorMsg.includes('does not exist') || error?.code === 'PGRST116') {
-          console.warn('[DAILY-MACROS] Table may not exist or is not accessible - this is optional data');
-        }
-        // Silently fail for background updates - daily_macros is optional for core functionality
-      } else {
-        console.log('[DAILY-MACROS] Successfully updated');
-      }
-    } catch (error: any) {
-      const errorMsg = error?.message || JSON.stringify(error);
-      console.error('[DAILY-MACROS] Unexpected error:', errorMsg);
-      // Don't show toast for background updates - this is auxiliary functionality
-    }
-  };
-
-  // Add new entry
   const addEntry = async (entry: Omit<FoodEntry, 'id' | 'user_id' | 'created_at' | 'date'>) => {
     if (!user) {
       toast({
@@ -139,14 +140,13 @@ export const useFoodEntries = () => {
       return null;
     }
 
+    const entryDate = getLocalDateISO();
+
     try {
-      // Ensure all numeric values are properly converted
       const caloriesValue = Number(entry.calories) || 0;
       const proteinValue = Number(entry.protein) || 0;
       const carbsValue = Number(entry.carbs) || 0;
       const fatValue = Number(entry.fat) || 0;
-
-      console.log('[FOOD-ENTRIES] Adding entry with values:', { calories: caloriesValue, protein: proteinValue, carbs: carbsValue, fat: fatValue });
 
       const { data, error } = await supabase
         .from('food_entries')
@@ -160,7 +160,7 @@ export const useFoodEntries = () => {
           portion: entry.portion,
           meal_type: entry.meal_type,
           image_url: entry.image_url,
-          date: today
+          date: entryDate
         })
         .select()
         .single();
@@ -174,35 +174,30 @@ export const useFoodEntries = () => {
         fat: Number(data.fat)
       };
 
-      // Update local state
-      setEntries(prev => [typedEntry, ...prev]);
-
-      // Update totals
-      const newTotals = {
-        calories: todayTotals.calories + typedEntry.calories,
-        protein: todayTotals.protein + typedEntry.protein,
-        carbs: todayTotals.carbs + typedEntry.carbs,
-        fat: todayTotals.fat + typedEntry.fat
-      };
-      setTodayTotals(newTotals);
-
-      // Try to update daily macros, but don't block on failure
-      try {
-        await updateDailyMacros(newTotals);
-      } catch (macroError) {
-        console.warn('[FOOD-ENTRIES] Failed to sync daily macros, but entry was added successfully:', macroError);
+      if (entryDate === today) {
+        setEntries(prev => [typedEntry, ...prev]);
+        setTodayTotals(prev => {
+          const newTotals = {
+            calories: prev.calories + typedEntry.calories,
+            protein: prev.protein + typedEntry.protein,
+            carbs: prev.carbs + typedEntry.carbs,
+            fat: prev.fat + typedEntry.fat
+          };
+          void updateDailyMacros(newTotals, entryDate);
+          return newTotals;
+        });
+      } else {
+        await loadEntries(entryDate);
       }
 
-      // Signal to other instances of this hook to refresh
-      const event = new CustomEvent('foodEntryAdded', {
+      window.dispatchEvent(new CustomEvent('foodEntryAdded', {
         detail: { timestamp: Date.now(), userId: user.id }
-      });
-      window.dispatchEvent(event);
+      }));
 
       return typedEntry;
-    } catch (error: any) {
-      const errorMessage = error?.message || error?.details || JSON.stringify(error) || 'Unbekannter Fehler';
-      console.error('Error adding food entry:', errorMessage, error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
+      console.error('Error adding food entry:', errorMessage);
       toast({
         title: 'Fehler beim Speichern',
         description: errorMessage,
@@ -212,7 +207,6 @@ export const useFoodEntries = () => {
     }
   };
 
-  // Update entry
   const updateEntry = async (id: string, updates: Partial<Omit<FoodEntry, 'id' | 'user_id' | 'created_at'>>) => {
     if (!user) return false;
 
@@ -225,28 +219,25 @@ export const useFoodEntries = () => {
 
       if (error) throw error;
 
-      // Reload entries to get updated totals
       await loadEntries();
       return true;
-    } catch (error: any) {
-      console.error('Error updating food entry:', error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Update fehlgeschlagen';
       toast({
         title: 'Fehler beim Aktualisieren',
-        description: error.message || 'Das Mahlzeitsjournal konnte nicht aktualisiert werden',
+        description: msg,
         variant: 'destructive'
       });
       return false;
     }
   };
 
-  // Delete entry
   const deleteEntry = async (id: string) => {
     if (!user) return false;
 
     try {
-      // Find entry to subtract from totals
       const entry = entries.find(e => e.id === id);
-      
+
       const { error } = await supabase
         .from('food_entries')
         .delete()
@@ -255,38 +246,33 @@ export const useFoodEntries = () => {
 
       if (error) throw error;
 
-      // Update local state
       setEntries(prev => prev.filter(e => e.id !== id));
 
-      // Update totals
       if (entry) {
-        const newTotals = {
-          calories: Math.max(0, todayTotals.calories - entry.calories),
-          protein: Math.max(0, todayTotals.protein - entry.protein),
-          carbs: Math.max(0, todayTotals.carbs - entry.carbs),
-          fat: Math.max(0, todayTotals.fat - entry.fat)
-        };
-        setTodayTotals(newTotals);
-        try {
-          await updateDailyMacros(newTotals);
-        } catch (macroError) {
-          console.warn('[FOOD-ENTRIES] Failed to sync daily macros after delete:', macroError);
-        }
+        setTodayTotals(prev => {
+          const newTotals = {
+            calories: Math.max(0, prev.calories - entry.calories),
+            protein: Math.max(0, prev.protein - entry.protein),
+            carbs: Math.max(0, prev.carbs - entry.carbs),
+            fat: Math.max(0, prev.fat - entry.fat)
+          };
+          void updateDailyMacros(newTotals);
+          return newTotals;
+        });
       }
 
       return true;
-    } catch (error: any) {
-      console.error('Error deleting food entry:', error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
       toast({
         title: 'Fehler beim Löschen',
-        description: error.message || 'Das Mahlzeitsjournal konnte nicht gelöscht werden',
+        description: msg,
         variant: 'destructive'
       });
       return false;
     }
   };
 
-  // Clear all entries for today
   const clearToday = async () => {
     if (!user) return false;
 
@@ -302,34 +288,27 @@ export const useFoodEntries = () => {
       setEntries([]);
       const emptyTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
       setTodayTotals(emptyTotals);
-      try {
-        await updateDailyMacros(emptyTotals);
-      } catch (macroError) {
-        console.warn('[FOOD-ENTRIES] Failed to sync daily macros after clear:', macroError);
-      }
+      await updateDailyMacros(emptyTotals);
 
       return true;
-    } catch (error: any) {
-      console.error('Error clearing food entries:', error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
       toast({
         title: 'Fehler beim Löschen',
-        description: error.message || 'Die Mahlzeitseinträge konnten nicht gelöscht werden',
+        description: msg,
         variant: 'destructive'
       });
       return false;
     }
   };
 
-  // Load on mount and when user changes
   useEffect(() => {
     loadEntries();
   }, [loadEntries]);
 
-  // Periodic refresh instead of real-time subscription (more stable)
   useEffect(() => {
     if (!user) return;
 
-    // Refresh every 30 seconds to catch updates from other devices
     const intervalId = setInterval(() => {
       loadEntries();
     }, 30000);
@@ -337,11 +316,8 @@ export const useFoodEntries = () => {
     return () => clearInterval(intervalId);
   }, [user, loadEntries]);
 
-  // Listen for food entry changes from other components
   useEffect(() => {
-    const handleFoodEntryAdded = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      console.log('[FOOD-ENTRIES] Detected food entry from another component, refreshing...', customEvent.detail);
+    const handleFoodEntryAdded = () => {
       loadEntries();
     };
 
@@ -353,6 +329,7 @@ export const useFoodEntries = () => {
     entries,
     loading,
     todayTotals,
+    today,
     addEntry,
     updateEntry,
     deleteEntry,

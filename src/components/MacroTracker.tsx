@@ -33,6 +33,8 @@ import {
   type TrackerRecipeExample,
 } from '@/components/tracker/TrackerAddMealPanel';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { getMinCaloriesForAge } from '@/components/onboarding/utils';
+import { getLocalDateString } from '@/lib/localDate';
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedCheetah } from './AnimatedAnimals';
@@ -121,7 +123,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     const saved = localStorage.getItem('todayFood');
     if (saved) {
       const data = JSON.parse(saved);
-      if (data.date === new Date().toDateString()) {
+      if (data.date === getLocalDateString()) {
         return data.entries;
       }
     }
@@ -263,7 +265,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setFoodEntries(freshEntries);
 
     localStorage.setItem('todayFood', JSON.stringify({
-      date: new Date().toDateString(),
+      date: getLocalDateString(),
       entries: freshEntries,
     }));
     notifyFrigyStorageUpdated();
@@ -307,7 +309,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const calculatedCalories = goalMode === 'lose' 
     ? Math.round(tdee - dailyAdjustment)
     : Math.round(tdee + dailyAdjustment);
-  const minCalories = age < 25 ? 1200 : age < 40 ? 1100 : 1000;
+  const minCalories = getMinCaloriesForAge(age);
   const maxCalories = tdee + 1500; // Max surplus for gaining
   const targetCalories = goalMode === 'lose' 
     ? Math.max(minCalories, calculatedCalories)
@@ -442,7 +444,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const saveFoodEntries = useCallback((entries: FoodEntry[]) => {
     localStorage.setItem('todayFood', JSON.stringify({
-      date: new Date().toDateString(),
+      date: getLocalDateString(),
       entries,
     }));
     notifyFrigyStorageUpdated();

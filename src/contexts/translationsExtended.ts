@@ -176,6 +176,8 @@ export interface ExtendedTranslations {
   onboardingWelcomeHeadline2: string;
   onboardingWelcomeSubline: string;
   onboardingGetStarted: string;
+  onboardingFirstWeeklyPlanTitle: string;
+  onboardingFirstWeeklyPlanDesc: string;
   onboardingCommunityStepTitle: string;
   onboardingCommunityStepDesc: string;
   ariaBack: string;
@@ -376,7 +378,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
 
     onboardingWelcomeHeadline1: "Iss smarter.",
     onboardingWelcomeHeadline2: "Leb leichter.",
-    onboardingWelcomeSubline: "Generiere Wochenpläne aus dem, was du hast.",
+    onboardingWelcomeSubline: "Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.",
     onboardingGetStarted: "Loslegen",
     onboardingCommunityStepTitle: "Gemeinsam kochen",
     onboardingCommunityStepDesc: "Entdecke Rezepte aus der Community",
@@ -575,8 +577,10 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
 
     onboardingWelcomeHeadline1: "Eat smarter.",
     onboardingWelcomeHeadline2: "Live lighter.",
-    onboardingWelcomeSubline: "Generate weekly plans from what you have.",
+    onboardingWelcomeSubline: "Generate weekly plans, scan your fridge and automatically get your shopping list.",
     onboardingGetStarted: "Get started",
+    onboardingFirstWeeklyPlanTitle: "Create your first Frigy weekly plan!",
+    onboardingFirstWeeklyPlanDesc: "Frigy plans your week to match your macro goals — including a shopping list.",
     onboardingCommunityStepTitle: "Cook with others",
     onboardingCommunityStepDesc: "Discover recipes from the community",
     ariaBack: "Back",
@@ -777,8 +781,10 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
 
     onboardingWelcomeHeadline1: "Mange plus malin.",
     onboardingWelcomeHeadline2: "Vis plus léger.",
-    onboardingWelcomeSubline: "Génère des plans hebdo avec ce que tu as.",
+    onboardingWelcomeSubline: "Génère des plans hebdo, scanne ton frigo et obtiens automatiquement ta liste de courses.",
     onboardingGetStarted: "Commencer",
+    onboardingFirstWeeklyPlanTitle: "Crée ton premier plan hebdo Frigy !",
+    onboardingFirstWeeklyPlanDesc: "Frigy planifie ta semaine selon tes macros — avec liste de courses.",
     onboardingCommunityStepTitle: "Cuisiner ensemble",
     onboardingCommunityStepDesc: "Découvre des recettes de la communauté",
     ariaBack: "Retour",

@@ -8,15 +8,6 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
-const FREE_SCAN_LIMIT = 0;
-
-const getWeekStart = (): string => {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(now.setDate(diff)).toISOString().split('T')[0];
-};
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -78,44 +69,14 @@ serve(async (req) => {
 
         console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
 
-        // Limit check for logged-in free users (not during onboarding)
         if (!isPremium && !isOnboarding) {
-          const weekStart = getWeekStart();
-          const { data: usageData } = await supabase
-            .from('scan_usage')
-            .select('scan_count')
-            .eq('user_id', userId)
-            .eq('week_start', weekStart)
-            .maybeSingle();
-          
-          const currentCount = usageData?.scan_count || 0;
-
-          if (currentCount >= FREE_SCAN_LIMIT) {
-            return new Response(JSON.stringify({ 
-              error: "scan_limit_exceeded", 
-              message: "Wöchentlicher Scan erreicht. Premium für unbegrenzte Scans!",
-              scansUsed: currentCount,
-              scansLimit: FREE_SCAN_LIMIT 
-            }), { 
-              status: 429, 
-              headers: { ...corsHeaders, "Content-Type": "application/json" } 
-            });
-          }
-
-          // Increment usage
-          if (usageData) {
-            await supabase.from('scan_usage')
-              .update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() })
-              .eq('user_id', userId)
-              .eq('week_start', weekStart);
-          } else {
-            await supabase.from('scan_usage').insert({ 
-              user_id: userId, 
-              scan_date: new Date().toISOString().split('T')[0], 
-              week_start: weekStart, 
-              scan_count: 1 
-            });
-          }
+          return new Response(JSON.stringify({
+            error: "premium_required",
+            message: "Premium erforderlich für Kühlschrank-Scans.",
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
       }
     }
@@ -128,7 +89,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[SCAN] Mode: ${isOnboarding ? 'ONBOARDING (FREE)' : userId ? 'USER' : 'GUEST'}`);
+    console.log(`[SCAN] Mode: ${isOnboarding ? 'ONBOARDING' : userId ? 'USER' : 'GUEST'}`);
 
 
     // OpenAI Vision - OPTIMIZED
@@ -238,22 +199,8 @@ Regeln:
 
     console.log(`[SCAN] Found ${ingredients.length} ingredients | Total: ${Date.now() - startTotal}ms`);
 
-    // Get remaining scans for free users (only if logged in)
-    let scansRemaining = null;
-    if (!isPremium && userId) {
-      const weekStart = getWeekStart();
-      const { data: usageData } = await supabase
-        .from('scan_usage')
-        .select('scan_count')
-        .eq('user_id', userId)
-        .eq('week_start', weekStart)
-        .maybeSingle();
-      scansRemaining = FREE_SCAN_LIMIT - (usageData?.scan_count || 0);
-    }
-
     return new Response(JSON.stringify({ 
       ingredients,
-      scansRemaining,
       isPremium,
       responseTime: Date.now() - startTotal
     }), { 

@@ -56,10 +56,6 @@ const AuthPage = () => {
     if (!user || loading) return;
 
     if (isFromOnboarding || isFromPremiumPricing) {
-      if (localStorage.getItem('frigy_first_weekly_plan_done') === '1') {
-        navigate('/', { replace: true });
-        return;
-      }
       navigate('/?onboardingStep=paywall', { replace: true });
       return;
     }

@@ -193,22 +193,32 @@ const Index = () => {
     let frameId: number | null = null;
 
     const loadTodayMeals = () => {
+      const todayKey = new Date().toDateString();
       const saved = localStorage.getItem('todayFood');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          if (data.date === new Date().toDateString() && data.entries) {
-            const meals = data.entries.map((entry: any) => ({
-              name: entry.name || 'Mahlzeit',
-              time: entry.time || new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-              calories: entry.calories || 0,
-              mealType: entry.meal_type,
-            }));
-            setTodayMeals(meals);
-          }
-        } catch (e) {
-          console.error('Failed to parse todayFood');
+      if (!saved) {
+        setTodayMeals([]);
+        return;
+      }
+      try {
+        const data = JSON.parse(saved);
+        if (data.date !== todayKey) {
+          setTodayMeals([]);
+          return;
         }
+        if (data.entries) {
+          const meals = data.entries.map((entry: { name?: string; time?: string; calories?: number; meal_type?: MealFocusKey }) => ({
+            name: entry.name || 'Mahlzeit',
+            time: entry.time || new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+            calories: entry.calories || 0,
+            mealType: entry.meal_type,
+          }));
+          setTodayMeals(meals);
+        } else {
+          setTodayMeals([]);
+        }
+      } catch (e) {
+        console.error('Failed to parse todayFood');
+        setTodayMeals([]);
       }
     };
 

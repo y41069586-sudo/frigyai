@@ -11,6 +11,7 @@ import {
   isUserAlreadyRegistered,
 } from '@/lib/authErrors';
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
+import { isSubscriptionActive } from '@/lib/subscription';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -90,12 +91,16 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
     }
 
     if (data) {
-      return {
+      const status: SubscriptionStatus = {
         subscribed: data.subscribed,
         product_id: data.product_id,
         subscription_end: data.subscription_end,
-        is_trial: data.is_trial || false
+        is_trial: data.is_trial || false,
       };
+      if (!isSubscriptionActive(status)) {
+        return { ...status, subscribed: false };
+      }
+      return status;
     }
   } catch (e) {
     console.warn('[Auth] Failed to load subscription from DB cache:', e);
@@ -434,7 +439,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const isPremium = Boolean(subscriptionStatus?.subscribed);
+  const isPremium = isSubscriptionActive(subscriptionStatus);
 
   return (
     <AuthContext.Provider

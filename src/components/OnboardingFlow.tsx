@@ -3,6 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   ChevronRight, ChevronLeft, Camera, Scale, Target, Dumbbell, Leaf, Check, X,
   Apple, Smartphone, ShoppingCart, Heart, Users, Sparkles, Star, Globe,
@@ -21,6 +27,7 @@ import { confettiBurst } from "@/lib/mobileEffects";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { isSubscriptionActive } from "@/lib/subscription";
 
 import { 
   OnboardingStep, UserData, defaultUserData, onboardingSteps,
@@ -52,7 +59,6 @@ import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { HealthConnectStep } from "./onboarding/components/HealthConnectStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
-import { FIRST_WEEKLY_PLAN_DONE_KEY } from "@/lib/frigyStorageSync";
 import {
   isEmailRateLimited,
   isUserAlreadyRegistered,
@@ -186,9 +192,62 @@ const NotebookOnboardingChrome = ({
   );
 };
 
+const APP_LANGUAGES: { code: Language; label: string; flag: string }[] = [
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+];
+
+const SplashLanguageSwitcher = () => {
+  const { language, setLanguage, t } = useLanguage();
+  const current = APP_LANGUAGES.find((lang) => lang.code === language) ?? APP_LANGUAGES[1];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white/95 px-3 py-1.5 text-[13px] font-bold tracking-wide text-neutral-900 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8] focus-visible:ring-offset-2"
+          aria-label={t.changeLanguage}
+        >
+          <span className="text-base leading-none" aria-hidden>
+            {current.flag}
+          </span>
+          <span>{current.code.toUpperCase()}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[168px] rounded-2xl p-1.5">
+        {APP_LANGUAGES.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onClick={() => setLanguage(lang.code)}
+            className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
+              language === lang.code ? "bg-[#6EF0A8]/15 text-neutral-900" : ""
+            }`}
+          >
+            <span className="text-lg leading-none">{lang.flag}</span>
+            <span className="flex-1">{lang.label}</span>
+            {language === lang.code && <Check className="h-4 w-4 text-[#2E7D32]" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
+  const { t } = useLanguage();
+
   return (
     <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FEFFFC] text-neutral-950">
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute right-6 top-[calc(env(safe-area-inset-top,0px)+1.25rem)] z-20"
+      >
+        <SplashLanguageSwitcher />
+      </motion.div>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(110, 240, 168,0.26),transparent_30%),radial-gradient(circle_at_86%_64%,rgba(110, 240, 168,0.15),transparent_24%),linear-gradient(180deg,#ffffff_0%,#fbfff5_48%,#ffffff_100%)]" />
       <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#6EF0A8]/18 blur-[76px]" />
       <div className="pointer-events-none absolute -left-24 bottom-24 h-60 w-60 rounded-full bg-neutral-100/70 blur-3xl" />
@@ -236,16 +295,16 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           className="flex min-h-0 flex-1 flex-col items-center text-center"
         >
           <h1 className="max-w-[345px] text-[43px] font-extrabold leading-[0.92] tracking-[-0.08em] text-black max-[380px]:text-[38px]">
-            Iss smarter.
+            {t.onboardingWelcomeHeadline1}
             <br />
             <span className="relative inline-block">
               <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#6EF0A8]/70 blur-[2px]" />
-              <span className="relative">Leb leichter.</span>
+              <span className="relative">{t.onboardingWelcomeHeadline2}</span>
             </span>
           </h1>
 
           <p className="mt-5 max-w-[318px] text-[15px] font-semibold leading-relaxed tracking-[-0.03em] text-neutral-500 max-[380px]:mt-4 max-[380px]:text-[14px]">
-            Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.
+            {t.onboardingWelcomeSubline}
           </p>
 
           <div className="mt-auto w-full pb-[max(1.15rem,env(safe-area-inset-bottom,0px)+0.85rem)] pt-6">
@@ -257,7 +316,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#6EF0A8] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(74, 232, 150,0.88),0_0_42px_rgba(110, 240, 168,0.38)]"
             >
               <span className="absolute inset-x-8 top-1 h-5 rounded-full bg-white/55 blur-md" />
-              <span className="relative">Loslegen</span>
+              <span className="relative">{t.onboardingGetStarted}</span>
               <ArrowRight className="relative h-5 w-5 stroke-[2.6]" />
             </motion.button>
           </div>
@@ -521,8 +580,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, [currentStep]);
 
   const finishOnboardingExit = () => {
-    saveOnboardingData(userData, { markOnboardingComplete: true, writeInitialMealPlan: true });
-    localStorage.setItem(FIRST_WEEKLY_PLAN_DONE_KEY, "1");
+    saveOnboardingData(userData, { markOnboardingComplete: true });
     onComplete();
   };
 
@@ -530,7 +588,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     if (consumeReferralSkipPaywall()) return true;
     if (isPremium) return true;
     const status = await checkSubscription();
-    return Boolean(status?.subscribed);
+    return isSubscriptionActive(status);
   }, [isPremium, checkSubscription]);
 
   const goToPaywall = () => {
@@ -672,11 +730,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     onComplete();
   };
 
-  const handleSkip = () => {
-    localStorage.setItem('onboardingComplete', 'true');
-    onComplete();
-  };
-
   const handleSelection = (callback: () => void) => {
     selectionTap(); // Haptic feedback on selection
     callback();
@@ -692,11 +745,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   };
 
-  const languages: { code: Language; label: string; flag: string }[] = [
-    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  ];
+  const languages = APP_LANGUAGES;
 
   const renderStepContent = () => {
     const stepProps = { userData, setUserData, goNext, goBack };
@@ -3923,16 +3972,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           
           {/* Progress bar only - no dots */}
 
-          {currentStep === "macro-preview" ? (
-            <div className="h-12 w-12" aria-hidden />
-          ) : (
-            <button
-              onClick={handleSkip}
-              className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1"
-            >
-              {t.skip || "Überspringen"}
-            </button>
-          )}
+          <div className="h-12 w-12" aria-hidden />
         </div>
       )}
 

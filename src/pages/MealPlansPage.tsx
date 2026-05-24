@@ -114,7 +114,7 @@ const readJsonArray = (key: string): unknown[] => {
 
 const MealPlansPage = () => {
   const isMobile = useIsMobile();
-  const { user, session, subscriptionStatus, loading, checkSubscription } = useAuth();
+  const { user, session, loading, checkSubscription } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -179,15 +179,13 @@ const MealPlansPage = () => {
 
       const pollSubscription = setInterval(async () => {
         attempts++;
-        await checkSubscription();
+        const status = await checkSubscription();
 
-        if (subscriptionStatus?.subscribed || attempts >= maxAttempts) {
+        if (status?.subscribed || attempts >= maxAttempts) {
           clearInterval(pollSubscription);
           setIsActivatingSubscription(false);
           setShowSuccessDialog(true);
 
-
-          // Clean up URL
           searchParams.delete('subscription');
           setSearchParams(searchParams, { replace: true });
         }
@@ -195,7 +193,7 @@ const MealPlansPage = () => {
 
       return () => clearInterval(pollSubscription);
     }
-  }, [searchParams, setSearchParams, checkSubscription, subscriptionStatus]);
+  }, [searchParams, setSearchParams, checkSubscription]);
 
   const pendingMealPlanRefreshRef = useRef(false);
   const scrolledToDayRef = useRef<string | null>(null);
@@ -384,9 +382,6 @@ const MealPlansPage = () => {
     }
   };
 
-  // Check if user has generated their own plan (not demo)
-  const hasGeneratedPlan = localStorage.getItem('weeklyMealPlan') !== null;
-
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth', { replace: true });
@@ -548,10 +543,13 @@ const MealPlansPage = () => {
                 <div className="space-y-3 sm:space-y-4">
                   {mealPlan.length === 0 && !isGenerating && (
                     <Card className="p-6 sm:p-8 bg-card/90 border-primary/20 text-center">
-                      <Calendar className="h-10 w-10 mx-auto mb-3 text-primary" />
-                      <h3 className="text-lg font-bold mb-2">{t.weeklyPlan || 'Wochenplan'}</h3>
+                      <Calendar className="h-12 w-12 mx-auto mb-4 text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.35)]" />
+                      <h3 className="text-lg font-bold mb-2">
+                        {t.onboardingFirstWeeklyPlanTitle || 'Erstell deinen ersten Frigy Wochenplan!'}
+                      </h3>
                       <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
-                        {t.noMealPlanYet || 'Noch kein Wochenplan vorhanden. Erstelle jetzt deinen persönlichen Plan.'}
+                        {t.onboardingFirstWeeklyPlanDesc ||
+                          'Frigy plant deine Woche passend zu deinen Makrozielen — inklusive Einkaufsliste.'}
                       </p>
                       <Button
                         type="button"
