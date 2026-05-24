@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { useMintWheelRowHeight, WHEEL_ITEM_HEIGHT } from "./MintWheelColumn";
 
@@ -33,11 +32,8 @@ export function MintWheelPickerSection({
     <div
       className={`flex min-h-0 flex-1 flex-col items-center overflow-x-hidden px-4 ${placementClass}`}
     >
-      <motion.div
+      <div
         key={animationKey}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
         className={`relative mx-auto w-full shrink-0 py-0.5 ${maxWidthClass}`}
       >
         <div
@@ -50,7 +46,7 @@ export function MintWheelPickerSection({
           }}
         />
         <div className="relative z-10">{children}</div>
-      </motion.div>
+      </div>
     </div>
   );
 }

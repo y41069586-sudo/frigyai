@@ -376,20 +376,14 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const mintStepEase = [0.22, 1, 0.36, 1] as const;
   const mintStepTransition = {
-    duration: isMobile ? 0.16 : 0.22,
+    duration: isMobile ? 0.14 : 0.18,
     ease: mintStepEase,
   };
-  const mintStepVariants = isMobile
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-      }
-    : {
-        initial: { opacity: 0, x: 16 },
-        animate: { opacity: 1, x: 0 },
-        exit: { opacity: 0, x: -12 },
-      };
+  const mintStepVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
   const legacyStepTransition = {
     duration: isMobile ? 0.2 : 0.32,
     ease: [0.4, 0, 0.2, 1] as const,

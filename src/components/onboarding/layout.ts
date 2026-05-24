@@ -19,9 +19,8 @@ export const ONBOARDING_QUESTION_CLASS =
 export const ONBOARDING_QUESTION_UPPER_CLASS =
   "text-[17px] font-bold uppercase leading-snug tracking-wide";
 
-/** Skip staggered child entrance on mobile to avoid double-animation jank with step transitions. */
-export const shouldSkipMintStepEntrance = () =>
-  typeof window !== "undefined" && window.innerWidth < 768;
+/** Child steps skip their own entrance — parent AnimatePresence handles step transitions. */
+export const shouldSkipMintStepEntrance = () => true;
 
 export const mintStepChildInitial = (offsetY = 10) =>
   shouldSkipMintStepEntrance() ? false : ({ opacity: 0, y: offsetY } as const);

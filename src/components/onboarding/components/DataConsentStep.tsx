@@ -79,9 +79,7 @@ export function DataConsentStep({ onBack, onNext }: DataConsentStepProps) {
 
       <div className="min-h-0 flex-1 overflow-hidden px-7 pb-2 pt-2">
         <motion.h1
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          initial={false}
           className="max-w-full text-[26px] font-black uppercase leading-[1.12] tracking-[-0.035em] min-[360px]:text-[30px] min-[390px]:text-[34px]"
           style={{ color: PALETTE.text, WebkitTextSizeAdjust: "100%" }}
         >

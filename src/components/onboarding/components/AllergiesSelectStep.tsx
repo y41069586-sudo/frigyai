@@ -178,15 +178,11 @@ export function AllergiesSelectStep({
             <div key={opt.id} className="flex flex-col gap-2">
               <motion.button
                 type="button"
-                initial={{ opacity: 0, y: 12 }}
+                initial={false}
                 animate={{
-                  opacity: 1,
-                  y: 0,
                   scale: isSelected ? 1.02 : 1,
                 }}
                 transition={{
-                  opacity: { delay: 0.03 + i * 0.04, duration: 0.3 },
-                  y: { delay: 0.03 + i * 0.04, duration: 0.3 },
                   scale: { duration: 0.18, ease: [0.4, 0, 0.2, 1] },
                 }}
                 whileTap={{ scale: isSelected ? 1.0 : 0.985 }}

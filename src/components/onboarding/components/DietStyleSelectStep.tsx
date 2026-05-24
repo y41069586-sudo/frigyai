@@ -135,15 +135,11 @@ export function DietStyleSelectStep({
             <motion.button
               key={opt.id}
               type="button"
-              initial={{ opacity: 0, y: 14 }}
+              initial={false}
               animate={{
-                opacity: 1,
-                y: 0,
                 scale: isSelected ? 1.02 : 1,
               }}
               transition={{
-                opacity: { delay: 0.05 + i * 0.05, duration: 0.32 },
-                y: { delay: 0.05 + i * 0.05, duration: 0.32 },
                 scale: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
               }}
               whileTap={{ scale: isSelected ? 1.0 : 0.985 }}

@@ -118,15 +118,11 @@ export function ActivitySelectStep({
             <motion.button
               key={opt.id}
               type="button"
-              initial={{ opacity: 0, y: 14 }}
+              initial={false}
               animate={{
-                opacity: 1,
-                y: 0,
                 scale: isSelected ? 1.02 : 1,
               }}
               transition={{
-                opacity: { delay: 0.08 + i * 0.06, duration: 0.35 },
-                y: { delay: 0.08 + i * 0.06, duration: 0.35 },
                 scale: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
               }}
               whileTap={{ scale: isSelected ? 1.0 : 0.985 }}
