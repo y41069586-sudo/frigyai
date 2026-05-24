@@ -109,11 +109,33 @@ const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | nul
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Check if supabase is initialized before any hooks or logic
   if (!supabase) {
-    throw new Error('Supabase client is not initialized. Bitte stelle sicher, dass VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in den "Environment Variables" (NICHT Secrets) in den Project Settings eingetragen sind.');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-2xl border border-destructive/20 bg-card p-6 shadow-lg">
+          <h2 className="text-xl font-bold mb-2">Supabase fehlt</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Lege eine <code className="text-xs">.env</code> im Projektroot an (siehe{" "}
+            <code className="text-xs">.env.example</code>) mit{" "}
+            <code className="text-xs">VITE_SUPABASE_URL</code> und{" "}
+            <code className="text-xs">VITE_SUPABASE_PUBLISHABLE_KEY</code>, dann Dev-Server neu starten.
+          </p>
+          <button
+            type="button"
+            className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            onClick={() => window.location.reload()}
+          >
+            Neu laden
+          </button>
+        </div>
+      </div>
+    );
   }
 
+  return <AuthProviderInner>{children}</AuthProviderInner>;
+};
+
+const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   // Load cached subscription immediately for instant UI

@@ -35,7 +35,6 @@ export function lazyWithReload<T extends { default: ComponentType<unknown> }>(
         sessionStorage.setItem(RELOAD_KEY, "true");
         await clearRuntimeCaches();
         window.location.reload();
-        return new Promise<T>(() => undefined);
       }
 
       throw error;

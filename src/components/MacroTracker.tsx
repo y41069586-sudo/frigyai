@@ -34,7 +34,7 @@ import {
   type TrackerRecipeExample,
 } from '@/components/tracker/TrackerAddMealPanel';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
-import { notifyOverlayOpen } from '@/lib/overlayEvents';
+import { FRIGY_OPEN_LOG_MEAL, notifyOverlayOpen } from '@/lib/overlayEvents';
 import { getMinCaloriesForAge } from '@/components/onboarding/utils';
 import { getLocalDateString } from '@/lib/localDate';
 
@@ -151,7 +151,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     fat: number;
   } | null>(null);
   const [scannedProductData, setScannedProductData] = useState<any>(null);
-  const logMealDeepLinkHandled = useRef(false);
 
   const openLogMealPanel = useCallback((focus: MealFocusKey | null = null) => {
     setMealPromptKey(focus);
@@ -161,7 +160,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const closeLogMealPanel = useCallback(() => {
     setLogMealPanelOpen(false);
     setMealPromptKey(null);
-  }, []);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("logMeal");
+        p.delete("mealFocus");
+        return p;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   const logMealParam = searchParams.get("logMeal");
   const mealFocusParam = searchParams.get("mealFocus");
@@ -206,12 +214,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
 
     if (!logMeal && !rawFocus) {
-      logMealDeepLinkHandled.current = false;
       return;
     }
-
-    if (logMealDeepLinkHandled.current) return;
-    logMealDeepLinkHandled.current = true;
 
     const focus = rawFocus ? parseMealFocus(rawFocus) : null;
     openLogMealPanel(focus);
@@ -224,7 +228,18 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       },
       { replace: true },
     );
-  }, [step, searchParams, setSearchParams, openLogMealPanel]);
+  }, [step, logMealParam, mealFocusParam, editMacrosParam, setupTrackerParam, setSearchParams, openLogMealPanel]);
+
+  useEffect(() => {
+    const onOpenLogMeal = (event: Event) => {
+      if (step !== "tracker") return;
+      const focus =
+        (event as CustomEvent<{ focus?: MealFocusKey | null }>).detail?.focus ?? null;
+      openLogMealPanel(focus);
+    };
+    window.addEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
+    return () => window.removeEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
+  }, [step, openLogMealPanel]);
 
   // Animated analyzing messages - use translations
   const analyzingMessages = [
@@ -1130,7 +1145,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
   ];
 
-  if (settingsLoading && !logMealPanelOpen && !profile) {
+  if (settingsLoading && !logMealPanelOpen && !profile && logMealParam !== "1") {
     return null;
   }
 

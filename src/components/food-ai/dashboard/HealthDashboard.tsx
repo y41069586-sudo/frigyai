@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useFrigyStorageSnapshot } from "@/hooks/useFrigyStorageSnapshot";
 import { getWeekPlanPreviewFromStorage } from "@/lib/food-ai/dashboardMock";
 import { mealPlansUrlForToday } from "@/lib/food-ai/weeklyPlanWidgetData";
+import { notifyOpenLogMeal } from "@/lib/overlayEvents";
 import { WidgetContainer } from "./WidgetContainer";
 import { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 import { TrackerWidget } from "./TrackerWidget";
@@ -114,7 +115,7 @@ export function HealthDashboard({
               waterGoalMl={waterGoalMl}
               steps={stepsDemo}
               loggedMealTypes={loggedMealTypes}
-              onAddMeal={(slot) => navigate(`/?logMeal=1&mealFocus=${slot}`)}
+              onAddMeal={(slot) => notifyOpenLogMeal(slot)}
               onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
               onOpenTracker={() => navigate("/?editMacros=1")}
             />

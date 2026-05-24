@@ -40,8 +40,16 @@
 
     <script>
       (function () {
-        // Dev (Vite): kein SW-Recovery — verhindert schwarzen/leeren Preview bei localhost
-        if (/localhost|127\.0\.0\.1/.test(location.hostname) && !/^\?.*pwa=/i.test(location.search)) {
+        // Dev / LAN preview: kein SW-Recovery (sonst Reload-Schleife auf Handy)
+        function isDevPreviewHost() {
+          var h = location.hostname;
+          var p = location.port;
+          if (/localhost|127\.0\.0\.1/.test(h)) return true;
+          if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+          if (/^(5173|5199|4173|3000|8080|8081|8082)$/.test(p)) return true;
+          return false;
+        }
+        if (isDevPreviewHost() && !/^\?.*pwa=/i.test(location.search)) {
           return;
         }
 

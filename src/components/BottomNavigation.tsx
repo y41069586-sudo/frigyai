@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
-import { FRIGY_OVERLAY_OPEN } from "@/lib/overlayEvents";
+import { FRIGY_OVERLAY_OPEN, notifyOpenLogMeal } from "@/lib/overlayEvents";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
@@ -75,7 +75,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   };
 
   const openTracker = () => {
-    navigate("/?logMeal=1", { replace: isHome });
+    if (isHome) {
+      notifyOpenLogMeal(null);
+      return;
+    }
+    navigate("/?logMeal=1");
   };
 
   const bar = (

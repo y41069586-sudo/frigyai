@@ -56,14 +56,20 @@ export function FrigyFoodScanFlow({
         playsInline
       />
 
-      {flash && <motion.div className="absolute inset-0 z-10 bg-white/70" initial={{ opacity: 1 }} animate={{ opacity: 0 }} />}
+      {flash && (
+        <motion.div
+          className="absolute inset-0 z-10 bg-white/70"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+        />
+      )}
 
       <motion.div
         className="absolute inset-0 bg-black/25"
         animate={analyzing ? { opacity: 0.55 } : { opacity: 0.35 }}
       />
 
-      <div className="relative z-20 flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <motion.div className="relative z-20 flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           type="button"
           onClick={onClose}
@@ -111,7 +117,7 @@ export function FrigyFoodScanFlow({
               <p className="px-6 text-center text-base font-semibold text-[#6EF0A8] drop-shadow-[0_0_18px_rgba(110,240,168,0.8)]">
                 {analyzingLabel}
               </p>
-            </motion.div>
+            </div>
           )}
         </motion.div>
       </motion.div>

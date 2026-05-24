@@ -14,8 +14,8 @@ export function TrackerWidgetCarousel({ tracker, weight, className }: TrackerWid
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
     const dx = info.offset.x;
-  if (dx < -48 && page === 0) setPage(1);
-  else if (dx > 48 && page === 1) setPage(0);
+    if (dx < -48 && page === 0) setPage(1);
+    else if (dx > 48 && page === 1) setPage(0);
   };
 
   return (
@@ -38,7 +38,7 @@ export function TrackerWidgetCarousel({ tracker, weight, className }: TrackerWid
         <motion.div className="w-full shrink-0">{weight}</motion.div>
       </motion.div>
 
-      <div className="mt-3 flex justify-center gap-1.5">
+      <motion.div className="mt-3 flex justify-center gap-1.5">
         {[0, 1].map((i) => (
           <button
             key={i}
