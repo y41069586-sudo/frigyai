@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
-import { getLocalDateISO } from '@/lib/localDate';
+import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
+import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 
 export interface FoodEntry {
   id: string;
@@ -31,6 +32,39 @@ export const useFoodEntries = () => {
     fat: 0
   });
   const [today, setToday] = useState(() => getLocalDateISO());
+
+  const notifyFoodEntriesChanged = useCallback(() => {
+    if (typeof window === 'undefined' || !user) return;
+    window.dispatchEvent(new CustomEvent('foodEntryAdded', {
+      detail: { timestamp: Date.now(), userId: user.id }
+    }));
+  }, [user]);
+
+  const syncTodayFoodCache = useCallback((nextEntries: FoodEntry[], date: string) => {
+    if (typeof window === 'undefined') return;
+    if (date !== getLocalDateISO()) return;
+
+    localStorage.setItem('todayFood', JSON.stringify({
+      date: getLocalDateString(),
+      entries: nextEntries.map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        calories: Number(entry.calories) || 0,
+        protein: Number(entry.protein) || 0,
+        carbs: Number(entry.carbs) || 0,
+        fat: Number(entry.fat) || 0,
+        portion: entry.portion,
+        meal_type: entry.meal_type,
+        image_url: entry.image_url,
+        created_at: entry.created_at,
+        time: new Date(entry.created_at).toLocaleTimeString('de-DE', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      })),
+    }));
+    notifyFrigyStorageUpdated();
+  }, []);
 
   useEffect(() => {
     const refreshToday = () => {
@@ -111,6 +145,7 @@ export const useFoodEntries = () => {
       }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
       setTodayTotals(totals);
+      syncTodayFoodCache(typedData, targetDate);
 
       try {
         await updateDailyMacros(totals, targetDate);
@@ -129,7 +164,7 @@ export const useFoodEntries = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, today, updateDailyMacros]);
+  }, [user, today, updateDailyMacros, syncTodayFoodCache]);
 
   const addEntry = async (entry: Omit<FoodEntry, 'id' | 'user_id' | 'created_at' | 'date'>) => {
     if (!user) {
@@ -175,7 +210,12 @@ export const useFoodEntries = () => {
       };
 
       if (entryDate === today) {
-        setEntries(prev => [typedEntry, ...prev]);
+        let nextEntries: FoodEntry[] = [];
+        setEntries(prev => {
+          nextEntries = [typedEntry, ...prev];
+          return nextEntries;
+        });
+        syncTodayFoodCache(nextEntries, entryDate);
         setTodayTotals(prev => {
           const newTotals = {
             calories: prev.calories + typedEntry.calories,
@@ -190,9 +230,7 @@ export const useFoodEntries = () => {
         await loadEntries(entryDate);
       }
 
-      window.dispatchEvent(new CustomEvent('foodEntryAdded', {
-        detail: { timestamp: Date.now(), userId: user.id }
-      }));
+      notifyFoodEntriesChanged();
 
       return typedEntry;
     } catch (error: unknown) {
@@ -220,6 +258,7 @@ export const useFoodEntries = () => {
       if (error) throw error;
 
       await loadEntries();
+      notifyFoodEntriesChanged();
       return true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Update fehlgeschlagen';
@@ -246,7 +285,12 @@ export const useFoodEntries = () => {
 
       if (error) throw error;
 
-      setEntries(prev => prev.filter(e => e.id !== id));
+      let nextEntries: FoodEntry[] = [];
+      setEntries(prev => {
+        nextEntries = prev.filter(e => e.id !== id);
+        return nextEntries;
+      });
+      syncTodayFoodCache(nextEntries, today);
 
       if (entry) {
         setTodayTotals(prev => {
@@ -261,6 +305,7 @@ export const useFoodEntries = () => {
         });
       }
 
+      notifyFoodEntriesChanged();
       return true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
@@ -288,8 +333,10 @@ export const useFoodEntries = () => {
       setEntries([]);
       const emptyTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
       setTodayTotals(emptyTotals);
+      syncTodayFoodCache([], today);
       await updateDailyMacros(emptyTotals);
 
+      notifyFoodEntriesChanged();
       return true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';

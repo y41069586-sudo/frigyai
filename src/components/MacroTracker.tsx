@@ -80,7 +80,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
   const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
   
-  const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
+  const [step, setStep] = useState<'onboarding' | 'tracker'>('tracker');
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [age, setAge] = useState(25);
   const [weight, setWeight] = useState(80);
@@ -115,8 +115,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setWeeklyLossRate(trackerSettings.weeklyGoal);
         setMealsPerDay(trackerSettings.mealsPerDay);
       } else {
-        setStep('onboarding');
         setProfile(null);
+        setStep('tracker');
       }
     }
   }, [trackerSettings, isConfigured, settingsLoading]);
@@ -138,6 +138,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const addFoodSectionRef = useRef<HTMLDivElement>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
+  const [foodScanError, setFoodScanError] = useState<string | null>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showFoodCamera, setShowFoodCamera] = useState(false);
@@ -174,28 +175,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const logMealParam = searchParams.get("logMeal");
   const mealFocusParam = searchParams.get("mealFocus");
   const editMacrosParam = searchParams.get("editMacros");
-  const setupTrackerParam = searchParams.get("setupTracker");
-
-  // Deep link: ?logMeal=1, ?mealFocus=…, ?editMacros=1, ?setupTracker=1
+  // Deep link: ?logMeal=1, ?mealFocus=…, ?editMacros=1
   useEffect(() => {
     const logMeal = logMealParam === "1";
     const rawFocus = mealFocusParam;
     const editMacros = editMacrosParam === "1";
-    const setupTracker = setupTrackerParam === "1";
-
-    if (setupTracker && step === "tracker") {
-      setStep("onboarding");
-      setOnboardingStep(0);
-      setSearchParams(
-        (prev) => {
-          const p = new URLSearchParams(prev);
-          p.delete("setupTracker");
-          return p;
-        },
-        { replace: true },
-      );
-      return;
-    }
 
     if (step !== "tracker") return;
 
@@ -228,7 +212,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       },
       { replace: true },
     );
-  }, [step, logMealParam, mealFocusParam, editMacrosParam, setupTrackerParam, setSearchParams, openLogMealPanel]);
+  }, [step, logMealParam, mealFocusParam, editMacrosParam, setSearchParams, openLogMealPanel]);
 
   useEffect(() => {
     const onOpenLogMeal = (event: Event) => {
@@ -296,8 +280,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     notifyFrigyStorageUpdated();
     setProfile(null);
     setFoodEntries([]);
-    setStep('onboarding');
-    setOnboardingStep(0);
+    setLogMealPanelOpen(false);
     onResetTracker?.();
   };
 
@@ -474,10 +457,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const analyzeFood = async (food: string, imageBase64?: string, mealType: MealFocusKey | null = mealPromptKey) => {
     setIsAnalyzing(true);
+    setFoodScanError(null);
     if (imageBase64) {
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
       playScanStart();
     }
+    let keepCameraOpenOnError = false;
     try {
       const body: { food?: string; imageBase64?: string } = {};
       if (food && food.trim()) body.food = food.trim();
@@ -575,26 +560,43 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     } catch (error: any) {
       const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood || 'Analyse fehlgeschlagen';
       console.error('Error analyzing food:', errorMsg, error);
-      toast({
-        title: t.error,
-        description: errorMsg,
-        variant: 'destructive'
-      });
+      if (imageBase64) {
+        keepCameraOpenOnError = true;
+        setFoodScanError(
+          language === "de"
+            ? "Hmm, ich glaube nicht, dass das Essen ist. Versuchen wir es mal mit etwas Essbarem, okay?"
+            : language === "fr"
+              ? "Hmm, je ne pense pas que ce soit de la nourriture. On essaie avec quelque chose de comestible, d'accord ?"
+              : "Hmm, I do not think that is food. Let's try again with something edible, okay?",
+        );
+      } else {
+        toast({
+          title: t.error,
+          description: errorMsg,
+          variant: 'destructive'
+        });
+      }
     } finally {
       setIsAnalyzing(false);
-      setAnalyzingImage(null);
-      setShowFoodCamera(false);
-      notifyOverlayOpen(false);
+      if (!keepCameraOpenOnError) {
+        setAnalyzingImage(null);
+        setShowFoodCamera(false);
+        notifyOverlayOpen(false);
+      }
     }
   };
 
   const openFoodCamera = () => {
+    setFoodScanError(null);
+    setAnalyzingImage(null);
     setShowFoodCamera(true);
     notifyOverlayOpen(true);
   };
 
   const closeFoodCamera = () => {
     if (isAnalyzing) return;
+    setFoodScanError(null);
+    setAnalyzingImage(null);
     setShowFoodCamera(false);
     notifyOverlayOpen(false);
   };
@@ -1369,8 +1371,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             open={showFoodCamera}
             analyzing={isAnalyzing}
             analyzingLabel={analyzingMessages[currentMessageIndex]}
+            previewImage={analyzingImage}
+            analysisErrorMessage={foodScanError}
             onClose={closeFoodCamera}
             onCapture={processCameraFile}
+            onRetryAfterError={() => {
+              setFoodScanError(null);
+              setAnalyzingImage(null);
+            }}
           />
         )}
       </AnimatePresence>

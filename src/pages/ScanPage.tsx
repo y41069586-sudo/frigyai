@@ -35,6 +35,7 @@ const ScanPage = () => {
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [missingIngredients, setMissingIngredients] = useState<ScanShoppingItem[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisErrorMessage, setAnalysisErrorMessage] = useState<string | null>(null);
   const [captureMode, setCaptureMode] = useState(true);
   const [scanProgress, setScanProgress] = useState(0);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
@@ -166,6 +167,7 @@ const ScanPage = () => {
     if (files.length === 0) return;
 
     const replaceResults = captureMode && ingredients.length === 0;
+    setAnalysisErrorMessage(null);
     setCaptureMode(false);
     setAnalyzing(true);
     setScanProgress(8);
@@ -246,12 +248,13 @@ const ScanPage = () => {
             : `${files.length} Foto${files.length > 1 ? "s" : ""} analysiert.`,
         });
       } else {
-        setCaptureMode(true);
-        toast({
-          title: t.error,
-          description: t.couldNotAnalyze,
-          variant: "destructive",
-        });
+        setAnalysisErrorMessage(
+          language === "de"
+            ? "Hmm, ich konnte keine Zutaten erkennen. Versuchen wir es nochmal mit einem klareren Foto, okay?"
+            : language === "fr"
+              ? "Hmm, je n'ai pas reussi a reconnaitre les ingredients. On reessaie avec une photo plus nette ?"
+              : "Hmm, I could not recognize any ingredients. Let's try again with a clearer photo, okay?",
+        );
       }
     } finally {
       clearInterval(progressInterval);
@@ -315,6 +318,7 @@ const ScanPage = () => {
         ingredients={ingredients}
         missingIngredients={missingIngredients}
         analyzing={analyzing}
+        analysisErrorMessage={analysisErrorMessage}
         scanProgress={scanProgress}
         captureMode={captureMode}
         onAddPhotos={handleAddPhotos}
@@ -322,11 +326,21 @@ const ScanPage = () => {
           photoQueueRef.current = files;
         }}
         onConfirmAnalyze={() => void handleConfirmAnalyze()}
-        onClose={() => navigate("/")}
+        onClose={() => {
+          setAnalysisErrorMessage(null);
+          navigate("/");
+        }}
         onCreateShoppingList={finishScanResult}
-        onAddMorePhotos={() => setCaptureMode(true)}
+        onAddMorePhotos={() => {
+          setAnalysisErrorMessage(null);
+          setCaptureMode(true);
+        }}
+        onRetryAfterError={() => {
+          setAnalysisErrorMessage(null);
+          setCaptureMode(true);
+        }}
         labels={{
-          analyzingTitle: t.analyzingFridge ?? "Zutaten werden analysiert",
+          analyzingTitle: language === "de" ? "Zutaten werden gescannt." : language === "fr" ? "Les ingredients sont scannes." : "Ingredients are being scanned.",
           analyzingSubtitle: t.aiAnalyzingIngredients ?? "Frigy erkennt deine Vorräte…",
           present: "Vorhanden",
           missing: "Fehlend",
@@ -334,6 +348,8 @@ const ScanPage = () => {
           addPhoto: "Foto hinzufügen",
           finishScan: "Fertig – analysieren",
           tapShutter: "Frigy-Kamera: unten aufnehmen, rechts Galerie",
+          errorTitle: "Frigy sagt",
+          errorAction: language === "de" ? "Zutaten nochmal scannen" : language === "fr" ? "Scanner encore" : "Scan again",
         }}
       />
 

@@ -252,16 +252,14 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
       >
         <SplashLanguageSwitcher />
       </motion.div>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(110, 240, 168,0.26),transparent_30%),radial-gradient(circle_at_86%_64%,rgba(110, 240, 168,0.15),transparent_24%),linear-gradient(180deg,#ffffff_0%,#fbfff5_48%,#ffffff_100%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#75FBB2]/18 blur-[76px]" />
-      <div className="pointer-events-none absolute -left-24 bottom-24 h-60 w-60 rounded-full bg-neutral-100/70 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#ffffff_0%,#f7fff9_100%)]" />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
         <motion.p
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#75FBB2] drop-shadow-[0_0_18px_rgba(117, 251, 178,0.56)]"
+          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#39D47F]"
         >
           Frigy
         </motion.p>
@@ -272,12 +270,6 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
           className="relative mx-auto flex h-[35svh] min-h-[230px] w-full max-w-[370px] shrink-0 items-center justify-center max-[380px]:min-h-[210px]"
         >
-          <motion.div
-            aria-hidden
-            className="absolute h-[220px] w-[220px] rounded-full bg-[#75FBB2]/18 blur-3xl"
-            animate={{ scale: [1, 1.08, 1], opacity: [0.55, 0.85, 0.55] }}
-            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-          />
           <motion.div
             className="relative flex h-[196px] w-[196px] items-center justify-center"
             animate={{ y: [0, -8, 0] }}
@@ -302,7 +294,6 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
             {t.onboardingWelcomeHeadline1}
             <br />
             <span className="relative inline-block">
-              <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#75FBB2]/70 blur-[2px]" />
               <span className="relative">{t.onboardingWelcomeHeadline2}</span>
             </span>
           </h1>
@@ -317,9 +308,8 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.965 }}
               onClick={onNext}
-              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#75FBB2] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(57, 212, 127,0.88),0_0_42px_rgba(117, 251, 178,0.38)]"
+              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#75FBB2] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_10px_24px_-18px_rgba(57,212,127,0.38)]"
             >
-              <span className="absolute inset-x-8 top-1 h-5 rounded-full bg-white/55 blur-md" />
               <span className="relative">{t.onboardingGetStarted}</span>
               <ArrowRight className="relative h-5 w-5 stroke-[2.6]" />
             </motion.button>
@@ -491,6 +481,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   // Scan feedback state (moved to top level to avoid hooks in switch)
   const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
   const [selectedFeedbackReason, setSelectedFeedbackReason] = useState<string | null>(null);
+  const [macroPreviewCtaVisible, setMacroPreviewCtaVisible] = useState(false);
 
   const [macroEditOpen, setMacroEditOpen] = useState(false);
   const [macroEditFocus, setMacroEditFocus] = useState<FocusMacro>(null);
@@ -531,6 +522,25 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     window.scrollTo({ top: 0, behavior: 'auto' });
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
+  }, [currentStep]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || currentStep !== "macro-preview") {
+      setMacroPreviewCtaVisible(false);
+      return;
+    }
+
+    const updateVisibility = () => {
+      setMacroPreviewCtaVisible(container.scrollTop > 56);
+    };
+
+    updateVisibility();
+    container.addEventListener("scroll", updateVisibility, { passive: true });
+
+    return () => {
+      container.removeEventListener("scroll", updateVisibility);
+    };
   }, [currentStep]);
 
   // Step-specific effects - with proper cleanup to avoid setState on unmounted component
@@ -4060,7 +4070,30 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               {renderStepContent()}
             </motion.div>
           </AnimatePresence>
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs"].includes(currentStep) && (
+          {currentStep === "macro-preview" && (
+            <motion.div
+              className="sticky bottom-0 z-20 w-full max-w-md shrink-0 px-4 pb-6 pt-4"
+              initial={false}
+              animate={{
+                opacity: macroPreviewCtaVisible ? 1 : 0,
+                y: macroPreviewCtaVisible ? 0 : 18,
+              }}
+              transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
+              style={{ pointerEvents: macroPreviewCtaVisible ? "auto" : "none" }}
+            >
+              <div className="rounded-[28px] bg-[linear-gradient(180deg,rgba(242,255,248,0),#F2FFF8_24%,#F2FFF8_100%)] px-1 pt-6">
+                <Button
+                  onClick={goNext}
+                  disabled={!canProceed()}
+                  className={`h-12 w-full rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
+                >
+                  {t.perfectBtn}
+                  <ChevronRight className="w-5 h-5 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

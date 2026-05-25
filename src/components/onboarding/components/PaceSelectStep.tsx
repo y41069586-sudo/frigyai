@@ -23,6 +23,7 @@ const PALETTE = {
 const KG_PER_LB = 0.45359237;
 const MIN_PACE_KG = 0.1;
 const MAX_PACE_KG = 1.0;
+const CENTER_PACE_KG = 0.5;
 
 const haptic = (ms = 8) => {
   try {
@@ -50,6 +51,7 @@ function MintSlider({
   ticks,
   formatTick,
   onActiveChange,
+  centerValue,
 }: {
   min: number;
   max: number;
@@ -59,12 +61,47 @@ function MintSlider({
   ticks: number[];
   formatTick: (v: number) => string;
   onActiveChange?: (active: boolean) => void;
+  centerValue?: number;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const lastMarkerRef = useRef<number | null>(null);
 
-  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  const valueToRatio = useCallback(
+    (nextValue: number) => {
+      const clampedValue = Math.max(min, Math.min(max, nextValue));
+
+      if (!centerValue || centerValue <= min || centerValue >= max) {
+        return (clampedValue - min) / (max - min);
+      }
+
+      if (clampedValue <= centerValue) {
+        return ((clampedValue - min) / (centerValue - min)) * 0.5;
+      }
+
+      return 0.5 + ((clampedValue - centerValue) / (max - centerValue)) * 0.5;
+    },
+    [centerValue, max, min],
+  );
+
+  const ratioToValue = useCallback(
+    (ratio: number) => {
+      const clampedRatio = Math.max(0, Math.min(1, ratio));
+
+      if (!centerValue || centerValue <= min || centerValue >= max) {
+        return min + clampedRatio * (max - min);
+      }
+
+      if (clampedRatio <= 0.5) {
+        return min + (clampedRatio / 0.5) * (centerValue - min);
+      }
+
+      return centerValue + ((clampedRatio - 0.5) / 0.5) * (max - centerValue);
+    },
+    [centerValue, max, min],
+  );
+
+  const pct = Math.max(0, Math.min(100, valueToRatio(value) * 100));
 
   const updateFromClientX = useCallback(
     (clientX: number) => {
@@ -73,7 +110,7 @@ function MintSlider({
       const rect = el.getBoundingClientRect();
       const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
       const ratio = rect.width > 0 ? x / rect.width : 0;
-      const raw = min + ratio * (max - min);
+      const raw = ratioToValue(ratio);
       const snapped = Math.round(raw / step) * step;
       const clamped = Math.max(min, Math.min(max, parseFloat(snapped.toFixed(2))));
       onChange(clamped);
@@ -83,7 +120,7 @@ function MintSlider({
         haptic(8);
       }
     },
-    [min, max, step, onChange],
+    [max, min, onChange, ratioToValue, step],
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -172,7 +209,7 @@ function MintSlider({
       {/* Tick labels — positions match slider scale so 0.5 sits at 50% */}
       <div className="relative mt-0.5 h-4">
         {ticks.map((t) => {
-          const tp = ((t - min) / (max - min)) * 100;
+          const tp = valueToRatio(t) * 100;
           const isActive = Math.abs(t - value) < step * 0.55;
           return (
             <div
@@ -377,6 +414,7 @@ export function PaceSelectStep({
           ticks={ticks}
           formatTick={(v) => v.toFixed(1)}
           onActiveChange={setSliderActive}
+          centerValue={isMetric ? CENTER_PACE_KG : Math.round((CENTER_PACE_KG / KG_PER_LB) * 10) / 10}
         />
 
         {/* Unit toggle */}

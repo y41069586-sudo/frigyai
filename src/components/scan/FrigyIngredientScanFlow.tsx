@@ -1,10 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ImagePlus, Check, Sparkles, Camera, RefreshCw } from "lucide-react";
+import { X, ImagePlus, Check, Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useIngredientCamera } from "@/hooks/useIngredientCamera";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
 
 export type PendingPhoto = {
   id: string;
@@ -12,12 +14,13 @@ export type PendingPhoto = {
   previewUrl: string;
 };
 
-type Phase = "capture" | "analyzing" | "results";
+type Phase = "capture" | "analyzing" | "results" | "error";
 
 type FrigyIngredientScanFlowProps = {
   ingredients: string[];
   missingIngredients: { name: string; amount: string }[];
   analyzing: boolean;
+  analysisErrorMessage?: string | null;
   scanProgress: number;
   captureMode: boolean;
   onAddPhotos: (files: File[]) => void;
@@ -26,6 +29,7 @@ type FrigyIngredientScanFlowProps = {
   onClose: () => void;
   onCreateShoppingList: () => void;
   onAddMorePhotos: () => void;
+  onRetryAfterError?: () => void;
   labels?: {
     analyzingTitle?: string;
     analyzingSubtitle?: string;
@@ -35,6 +39,8 @@ type FrigyIngredientScanFlowProps = {
     addPhoto?: string;
     finishScan?: string;
     tapShutter?: string;
+    errorTitle?: string;
+    errorAction?: string;
   };
 };
 
@@ -42,6 +48,7 @@ export function FrigyIngredientScanFlow({
   ingredients,
   missingIngredients,
   analyzing,
+  analysisErrorMessage,
   scanProgress,
   captureMode,
   onAddPhotos,
@@ -50,15 +57,19 @@ export function FrigyIngredientScanFlow({
   onClose,
   onCreateShoppingList,
   onAddMorePhotos,
+  onRetryAfterError,
   labels = {},
 }: FrigyIngredientScanFlowProps) {
+  const { language } = useLanguage();
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
-  const [captureFlash, setCaptureFlash] = useState(false);
+  const [analysisPreviewUrl, setAnalysisPreviewUrl] = useState<string | null>(null);
 
   const hasResults = ingredients.length > 0 || missingIngredients.length > 0;
-  const phase: Phase = analyzing
-    ? "analyzing"
+  const phase: Phase = analysisErrorMessage
+    ? "error"
+    : analyzing
+      ? "analyzing"
     : captureMode || !hasResults
       ? "capture"
       : "results";
@@ -86,7 +97,31 @@ export function FrigyIngredientScanFlow({
     addPhoto: labels.addPhoto ?? "Foto hinzufügen",
     finishScan: labels.finishScan ?? "Fertig",
     tapShutter: labels.tapShutter ?? "Foto aufnehmen oder Galerie",
+    errorTitle: labels.errorTitle ?? "Frigy sagt",
+    errorAction:
+      labels.errorAction ??
+      (language === "de" ? "Nochmal versuchen" : language === "fr" ? "Reessayer" : "Try again"),
   };
+
+  useEffect(() => {
+    return () => {
+      if (analysisPreviewUrl && analysisPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(analysisPreviewUrl);
+      }
+    };
+  }, [analysisPreviewUrl]);
+
+  useEffect(() => {
+    if (analyzing) return;
+    if (phase === "capture") return;
+    if (pendingPhotos.length === 0) return;
+
+    setPendingPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      return [];
+    });
+    syncQueue([]);
+  }, [analyzing, pendingPhotos.length, phase]);
 
   const syncQueue = (photos: PendingPhoto[]) => {
     onQueueChange?.(photos.map((p) => p.file));
@@ -135,8 +170,6 @@ export function FrigyIngredientScanFlow({
     if (isLive) {
       const file = await capturePhoto();
       if (file) {
-        setCaptureFlash(true);
-        window.setTimeout(() => setCaptureFlash(false), 180);
         addFiles([file]);
         return;
       }
@@ -149,49 +182,36 @@ export function FrigyIngredientScanFlow({
       void handleShutterPress();
       return;
     }
+    setAnalysisPreviewUrl(pendingPhotos[pendingPhotos.length - 1]?.previewUrl ?? null);
     onConfirmAnalyze();
-    clearPendingPhotos();
   };
 
   if (phase === "analyzing") {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0f0d] px-6 safe-area-inset">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex max-w-sm flex-col items-center gap-8 text-center"
-        >
-          <div className="relative">
-            <motion.div
-              className="absolute inset-0 rounded-full bg-[#75FBB2]/25 blur-2xl"
-              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 2.2, repeat: Infinity }}
-            />
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-[#75FBB2]/40 bg-[#75FBB2]/15"
-            >
-              <Sparkles className="h-10 w-10 text-[#75FBB2]" />
-            </motion.div>
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-white">{L.analyzingTitle}</h2>
-            <p className="mt-2 text-sm text-white/55">{L.analyzingSubtitle}</p>
-          </div>
-          <div className="w-full max-w-xs">
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#75FBB2] to-[#39D47F]"
-                initial={{ width: "0%" }}
-                animate={{ width: `${Math.min(scanProgress, 100)}%` }}
-                transition={{ duration: 0.25 }}
-              />
-            </div>
-            <p className="mt-2 text-xs font-medium text-white/70">{Math.round(Math.min(scanProgress, 100))}%</p>
-          </div>
-        </motion.div>
-      </div>
+      <FrigyScanAnalyzingStage
+        previewUrl={analysisPreviewUrl}
+        title={L.analyzingTitle}
+        subtitle={language === "de" ? "KI-gestützt ✨" : language === "fr" ? "Propulsé par l'IA ✨" : "AI-powered ✨"}
+        message={L.analyzingSubtitle}
+        progress={scanProgress}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (phase === "error" && analysisErrorMessage) {
+    return (
+      <FrigyScanFailureStage
+        title={L.errorTitle}
+        message={analysisErrorMessage}
+        actionLabel={L.errorAction}
+        onAction={() => {
+          setAnalysisPreviewUrl(null);
+          clearPendingPhotos();
+          onRetryAfterError?.();
+        }}
+        onClose={onClose}
+      />
     );
   }
 
@@ -318,16 +338,6 @@ export function FrigyIngredientScanFlow({
         }}
       />
       <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
-
-      <AnimatePresence>
-        {captureFlash && (
-          <motion.div
-            initial={{ opacity: 0.9 }}
-            animate={{ opacity: 0 }}
-            className="absolute inset-0 z-[3] bg-white"
-          />
-        )}
-      </AnimatePresence>
 
       <header className="relative z-10 flex shrink-0 items-center px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button

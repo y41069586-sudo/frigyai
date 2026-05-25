@@ -1,11 +1,10 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import type { UserData } from "../types";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
-import { MintWheelColumn, type MintWheelOption } from "./MintWheelColumn";
-import { MintWheelPickerSection } from "./MintWheelPickerSection";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
@@ -21,6 +20,34 @@ const PALETTE = {
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+const sanitizeMetricHeightInput = (raw: string) => raw.replace(/\D/g, "").slice(0, 3);
+
+const formatImperialHeight = (feet: number, inches: number) => `${feet}'${inches}`;
+
+const parseImperialHeight = (value: string) => {
+  const parts = value.match(/\d+/g);
+  if (!parts || parts.length < 2) {
+    return null;
+  }
+
+  const feet = Number(parts[0]);
+  const inches = Number(parts[1]);
+
+  if (!Number.isFinite(feet) || !Number.isFinite(inches)) {
+    return null;
+  }
+
+  if (feet < 3 || feet > 8 || inches < 0 || inches > 11) {
+    return null;
+  }
+
+  const cm = Math.round((feet * INCHES_PER_FOOT + inches) * CM_PER_INCH);
+  return { feet, inches, cm };
+};
+
 type Props = {
   userData: UserData;
   setUserData: Dispatch<SetStateAction<UserData>>;
@@ -35,24 +62,12 @@ export function HeightSelectStep({
   onNext,
 }: Props) {
   const { language, t } = useLanguage();
+  const [heightInput, setHeightInput] = useState("");
 
   const unit = userData.heightUnit;
   const isMetric = unit === "metric";
 
   const heightCm = userData.height;
-
-  const cmOptions: MintWheelOption[] = Array.from({ length: 250 - 100 + 1 }, (_, i) => ({
-    value: 100 + i,
-    label: String(100 + i),
-  }));
-  const feetOptions: MintWheelOption[] = Array.from({ length: 8 - 3 + 1 }, (_, i) => ({
-    value: 3 + i,
-    label: String(3 + i),
-  }));
-  const inchOptions: MintWheelOption[] = Array.from({ length: 12 }, (_, i) => ({
-    value: i,
-    label: String(i),
-  }));
 
   const totalInches = heightCm / CM_PER_INCH;
   const feetFromCm = Math.max(3, Math.min(8, Math.floor(totalInches / INCHES_PER_FOOT)));
@@ -62,28 +77,20 @@ export function HeightSelectStep({
   );
 
   const handleCmChange = (cm: number) => {
-    setUserData({ ...userData, height: cm });
-  };
-
-  const handleFeetChange = (feet: number) => {
-    const cm = Math.round(feet * INCHES_PER_FOOT * CM_PER_INCH + inchesFromCm * CM_PER_INCH);
+    const roundedTotalInches = Math.round(cm / CM_PER_INCH);
+    const derivedFeet = clamp(Math.floor(roundedTotalInches / INCHES_PER_FOOT), 3, 8);
+    const derivedInches = clamp(roundedTotalInches - derivedFeet * INCHES_PER_FOOT, 0, 11);
     setUserData({
       ...userData,
       height: cm,
-      heightFeet: feet,
-      heightInches: inchesFromCm,
+      heightFeet: derivedFeet,
+      heightInches: derivedInches,
     });
   };
 
-  const handleInchesChange = (inches: number) => {
-    const cm = Math.round(feetFromCm * INCHES_PER_FOOT * CM_PER_INCH + inches * CM_PER_INCH);
-    setUserData({
-      ...userData,
-      height: cm,
-      heightFeet: feetFromCm,
-      heightInches: inches,
-    });
-  };
+  useEffect(() => {
+    setHeightInput(isMetric ? String(heightCm) : formatImperialHeight(feetFromCm, inchesFromCm));
+  }, [feetFromCm, heightCm, inchesFromCm, isMetric, userData.height]);
 
   const handleUnitChange = (nextUnit: "metric" | "imperial") => {
     if (nextUnit === unit) return;
@@ -104,6 +111,65 @@ export function HeightSelectStep({
     },
     { id: "imperial", label: "Imperial" },
   ];
+
+  const parsedMetricHeight =
+    isMetric && heightInput.length > 0 ? Number(heightInput) : null;
+  const parsedImperialHeight = !isMetric ? parseImperialHeight(heightInput) : null;
+  const canProceed = isMetric
+    ? parsedMetricHeight !== null && Number.isFinite(parsedMetricHeight) && parsedMetricHeight >= 100 && parsedMetricHeight <= 250
+    : parsedImperialHeight !== null;
+
+  const helperText =
+    language === "de"
+      ? isMetric
+        ? "Zum Beispiel 170"
+        : "Zum Beispiel 5'7"
+      : language === "fr"
+        ? isMetric
+          ? "Par exemple 170"
+          : "Par exemple 5'7"
+        : isMetric
+          ? "For example 170"
+          : "For example 5'7";
+  const errorText =
+    language === "de"
+      ? isMetric
+        ? "Bitte gib eine Groesse zwischen 100 und 250 cm ein."
+        : "Bitte gib eine Groesse wie 5'7 ein."
+      : language === "fr"
+        ? isMetric
+          ? "Entre une taille entre 100 et 250 cm."
+          : "Entre une taille comme 5'7."
+        : isMetric
+          ? "Enter a height between 100 and 250 cm."
+          : "Enter a height like 5'7.";
+
+  const handleHeightChange = (raw: string) => {
+    const nextValue = isMetric ? sanitizeMetricHeightInput(raw) : raw.replace(/[^\d' ftin]/gi, "");
+    setHeightInput(nextValue);
+
+    if (isMetric) {
+      const parsed = Number(nextValue);
+      if (!Number.isFinite(parsed) || parsed < 100 || parsed > 250) {
+        return;
+      }
+
+      handleCmChange(parsed);
+      return;
+    }
+
+    const parsed = parseImperialHeight(nextValue);
+    if (!parsed) {
+      return;
+    }
+
+    setUserData({
+      ...userData,
+      height: parsed.cm,
+      heightFeet: parsed.feet,
+      heightInches: parsed.inches,
+    });
+  };
 
   return (
     <div
@@ -151,63 +217,35 @@ export function HeightSelectStep({
         />
       </div>
 
-      <MintWheelPickerSection animationKey={unit} maxWidthClass="max-w-[320px]" placement="lower">
-        {isMetric ? (
-          <div className="flex items-stretch justify-center">
-            <MintWheelColumn
-              options={cmOptions}
-              value={heightCm}
-              onChange={handleCmChange}
-              align="center"
-              width={120}
-              unitSuffix="cm"
-              ariaLabel="cm"
+      <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
+        <div className="mx-auto w-full max-w-[320px]">
+          <div
+            className="flex items-center gap-3 rounded-[24px] border px-5 py-4 shadow-[0_18px_45px_-28px_rgba(57,212,127,0.45)]"
+            style={{ backgroundColor: "#FFFFFF", borderColor: "#6EECC0" }}
+          >
+            <input
+              type="text"
+              inputMode={isMetric ? "numeric" : "text"}
+              value={heightInput}
+              onChange={(event) => handleHeightChange(event.target.value)}
+              placeholder={isMetric ? "170" : "5'7"}
+              aria-label={title}
+              className="min-w-0 flex-1 bg-transparent text-center text-[28px] font-semibold tracking-[-0.04em] outline-none placeholder:text-[#9AB5A7]"
+              style={{ color: PALETTE.text }}
             />
-            <div className="relative flex w-11 shrink-0 items-center justify-center pl-0.5">
-              <span className="text-[16px] font-medium" style={{ color: PALETTE.textMuted }}>
-                cm
-              </span>
-            </div>
+            <span className="shrink-0 text-[18px] font-semibold" style={{ color: PALETTE.textMuted }}>
+              {isMetric ? "cm" : "ft/in"}
+            </span>
           </div>
-        ) : (
-          <div className="flex items-stretch justify-center">
-            <MintWheelColumn
-              options={feetOptions}
-              value={feetFromCm}
-              onChange={handleFeetChange}
-              align="right"
-              width={62}
-              unitSuffix="ft"
-              ariaLabel="Fuß"
-            />
-            <div className="relative shrink-0" style={{ width: 36 }}>
-              <span
-                className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
-                style={{ color: PALETTE.textMuted }}
-              >
-                ft
-              </span>
-            </div>
-            <MintWheelColumn
-              options={inchOptions}
-              value={inchesFromCm}
-              onChange={handleInchesChange}
-              align="right"
-              width={52}
-              unitSuffix="in"
-              ariaLabel="Zoll"
-            />
-            <div className="relative shrink-0" style={{ width: 36 }}>
-              <span
-                className="absolute inset-0 flex items-center pl-1.5 text-[16px] font-medium"
-                style={{ color: PALETTE.textMuted }}
-              >
-                in
-              </span>
-            </div>
-          </div>
-        )}
-      </MintWheelPickerSection>
+
+          <p
+            className="mt-3 text-center text-[12px] font-medium"
+            style={{ color: heightInput.length > 0 && !canProceed ? "#DC2626" : PALETTE.textMuted }}
+          >
+            {heightInput.length > 0 && !canProceed ? errorText : helperText}
+          </p>
+        </div>
+      </div>
 
       {/* Continue */}
       <div
@@ -217,13 +255,19 @@ export function HeightSelectStep({
         <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={onNext}
+          whileTap={{ scale: canProceed ? 0.98 : 1 }}
+          onClick={canProceed ? onNext : undefined}
+          disabled={!canProceed}
           className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
           style={{
-            background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
-            boxShadow:
-              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
+            background: canProceed
+              ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
+              : "linear-gradient(135deg, #DFF9EA 0%, #C8F4DD 100%)",
+            boxShadow: canProceed
+              ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
+              : "0 1px 2px rgba(15,40,30,0.04)",
+            cursor: canProceed ? "pointer" : "not-allowed",
+            opacity: canProceed ? 1 : 0.85,
           }}
         >
           {t.next}

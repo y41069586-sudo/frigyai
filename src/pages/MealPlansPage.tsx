@@ -230,7 +230,6 @@ const MealPlansPage = () => {
   // Handle tracker reset from chatbot
   const handleResetTracker = () => {
     reloadSettings();
-    navigate('/?setupTracker=1', { replace: true });
   };
 
   const generateMealPlan = useCallback(async () => {

@@ -12,6 +12,17 @@ import {
   type HealthSyncData,
 } from '@/lib/healthSyncService';
 
+function getStoredHealthSyncPreference(): string | null {
+  try {
+    const raw = localStorage.getItem('onboardingUserData') || localStorage.getItem('userProfile');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { healthSync?: string | null };
+    return parsed.healthSync || null;
+  } catch {
+    return null;
+  }
+}
+
 interface HealthPermissions {
   weight: boolean;
   steps: boolean;
@@ -53,11 +64,23 @@ export function useHealthConnect(): UseHealthConnectReturn {
         const state = JSON.parse(savedState);
         setIsConnected(state.isConnected);
         setPermissions(state.permissions);
+        return;
       } catch {
         /* ignore */
       }
     }
-  }, []);
+
+    const configuredProvider = getStoredHealthSyncPreference();
+    if (!isNativeApp || !configuredProvider) return;
+
+    setIsConnected(true);
+    setPermissions({
+      weight: true,
+      steps: true,
+      calories: true,
+      heartRate: platform === 'ios',
+    });
+  }, [isNativeApp, platform]);
 
   useEffect(() => {
     localStorage.setItem('healthConnectState', JSON.stringify({

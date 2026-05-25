@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { memo, useMemo } from "react";
-import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 
 type StepsWidgetProps = {
@@ -18,7 +17,7 @@ export const StepsWidget = memo(function StepsWidget({
   delay = 0,
   onToggleExpand,
 }: StepsWidgetProps) {
-  const { isNativeApp, isConnected, isLoading, requestPermissions, syncHealthData } = useHealthConnect();
+  const { isNativeApp, platform, isConnected, isLoading, requestPermissions, syncHealthData } = useHealthConnect();
   const healthSyncProvider = useMemo(() => {
     try {
       const raw = localStorage.getItem("onboardingUserData") || localStorage.getItem("userProfile");
@@ -29,6 +28,15 @@ export const StepsWidget = memo(function StepsWidget({
       return null;
     }
   }, []);
+  const providerName = useMemo(() => {
+    if (platform === "ios") return "Apple Health";
+    if (platform === "android") return "Google Fit / Health Connect";
+    if (healthSyncProvider === "apple" || healthSyncProvider === "apple-health") return "Apple Health";
+    if (healthSyncProvider === "google") return "Google Fit";
+    if (healthSyncProvider === "health-connect") return "Health Connect";
+    return "Health Sync";
+  }, [healthSyncProvider, platform]);
+
   const addSteps = async () => {
     if (isLoading) return;
 
@@ -40,16 +48,11 @@ export const StepsWidget = memo(function StepsWidget({
       return;
     }
 
-    const key = `frigy_steps_${new Date().toISOString().split("T")[0]}`;
-    const current = parseInt(localStorage.getItem(key) || String(steps || 0), 10) || 0;
-    const next = current + 500;
-    localStorage.setItem(key, String(next));
-    notifyFrigyStorageUpdated();
     toast({
-      title: "Schritte hinzugefügt",
+      title: healthSyncProvider ? `${providerName} in der App oeffnen` : "Health Sync nur auf dem Handy",
       description: healthSyncProvider
-        ? "Im Browser wurden 500 Schritte testweise ergänzt. In der App werden Health-Daten synchronisiert."
-        : "Im Browser wurden 500 Schritte ergänzt. Health Sync funktioniert in der installierten App.",
+        ? `Wenn du ${providerName} im Onboarding schon erlaubt hast, funktioniert die Schritte-Synchronisierung direkt in der installierten App. In der Browser-Vorschau koennen keine echten Schritte gelesen werden.`
+        : `Tippe auf dem Handy, um ${providerName} zu verbinden und die Schritte zu synchronisieren. In der Browser-Vorschau gibt es dafuer keine Systemfreigabe.`,
     });
   };
 
@@ -82,7 +85,7 @@ export const StepsWidget = memo(function StepsWidget({
           onClick={(e) => { e.stopPropagation(); void addSteps(); }}
           className="flex h-9 w-full min-w-0 items-center justify-center rounded-2xl border-2 border-emerald-200 bg-white/45 px-1 text-[9px] font-medium leading-none whitespace-nowrap text-foreground transition-colors active:bg-emerald-50"
         >
-          <span className="whitespace-nowrap">{isLoading ? "Synchronisiere..." : "Schritte\u00a0hinzufügen"}</span>
+          <span className="whitespace-nowrap">{isLoading ? "Synchronisiere..." : "Schritte\u00a0syncen"}</span>
         </motion.button>
       </div>
     </motion.div>

@@ -1,12 +1,11 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import type { UserData } from "../types";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
-import { MintWheelColumn, type MintWheelOption } from "./MintWheelColumn";
-import { MintWheelPickerSection } from "./MintWheelPickerSection";
 
 const PALETTE = {
   primary: "#75FBB2",
@@ -18,24 +17,78 @@ const PALETTE = {
   textMuted: "#6B7280",
 };
 
-const BIRTH_WHEEL_ROW = 44;
-
-
-const MONTHS_DE = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
-];
-const MONTHS_EN = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-const MONTHS_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
-];
-
 const daysInMonth = (month: number, year: number) =>
   new Date(year, month, 0).getDate();
+
+const MIN_AGE = 13;
+const MAX_AGE = 100;
+
+const formatBirthdateValue = (birthdate: { day: number; month: number; year: number }) =>
+  `${String(birthdate.day).padStart(2, "0")}.${String(birthdate.month).padStart(2, "0")}.${birthdate.year}`;
+
+const sanitizeBirthdateInput = (raw: string) => {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  const parts: string[] = [];
+
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 8));
+
+  return parts.join(".");
+};
+
+const calculateAgeFromBirthdate = (day: number, month: number, year: number) => {
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const hasHadBirthdayThisYear =
+    today.getMonth() + 1 > month ||
+    (today.getMonth() + 1 === month && today.getDate() >= day);
+
+  if (!hasHadBirthdayThisYear) {
+    age -= 1;
+  }
+
+  return age;
+};
+
+const parseBirthdateInput = (value: string) => {
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
+    return null;
+  }
+
+  const [dayString, monthString, yearString] = value.split(".");
+  const day = Number(dayString);
+  const month = Number(monthString);
+  const year = Number(yearString);
+
+  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) {
+    return null;
+  }
+
+  const today = new Date();
+  const maxYear = today.getFullYear() - MIN_AGE;
+  const minYear = today.getFullYear() - MAX_AGE;
+
+  if (year < minYear || year > maxYear) {
+    return null;
+  }
+
+  if (month < 1 || month > 12) {
+    return null;
+  }
+
+  const maxDay = daysInMonth(month, year);
+  if (day < 1 || day > maxDay) {
+    return null;
+  }
+
+  const age = calculateAgeFromBirthdate(day, month, year);
+  if (age < MIN_AGE || age > MAX_AGE) {
+    return null;
+  }
+
+  return { day, month, year, age };
+};
 
 type Props = {
   userData: UserData;
@@ -51,44 +104,16 @@ export function BirthdateSelectStep({
   onNext,
 }: Props) {
   const { language, t } = useLanguage();
+  const [birthdateInput, setBirthdateInput] = useState("");
 
-  const monthNames = language === "fr" ? MONTHS_FR : language === "en" ? MONTHS_EN : MONTHS_DE;
+  useEffect(() => {
+    if (!userData.birthdate) {
+      setBirthdateInput("");
+      return;
+    }
 
-  const today = new Date();
-  const maxYear = today.getFullYear() - 13;
-  const minYear = today.getFullYear() - 100;
-
-  const birth = userData.birthdate ?? {
-    day: 15,
-    month: 6,
-    year: maxYear - 12,
-  };
-
-  const monthOptions: MintWheelOption[] = monthNames.map((label, i) => ({
-    value: i + 1,
-    label,
-  }));
-
-  const maxDay = daysInMonth(birth.month, birth.year);
-  const dayOptions: MintWheelOption[] = Array.from({ length: maxDay }, (_, i) => ({
-    value: i + 1,
-    label: String(i + 1).padStart(2, "0"),
-  }));
-
-  const yearOptions: MintWheelOption[] = Array.from(
-    { length: maxYear - minYear + 1 },
-    (_, i) => {
-      const v = maxYear - i;
-      return { value: v, label: String(v) };
-    },
-  );
-
-  const updateBirth = (patch: Partial<typeof birth>) => {
-    const next = { ...birth, ...patch };
-    const cap = daysInMonth(next.month, next.year);
-    if (next.day > cap) next.day = cap;
-    setUserData({ ...userData, birthdate: next });
-  };
+    setBirthdateInput(formatBirthdateValue(userData.birthdate));
+  }, [userData.birthdate]);
 
   const title =
     language === "de"
@@ -97,7 +122,40 @@ export function BirthdateSelectStep({
         ? "Quand es-tu né(e) ?"
         : "When were you born?";
 
-  const canProceed = true;
+  const placeholder = "16.05.2002";
+  const helperText =
+    language === "de"
+      ? "Format: TT.MM.JJJJ"
+      : language === "fr"
+        ? "Format : JJ.MM.AAAA"
+        : "Format: DD.MM.YYYY";
+  const errorText =
+    language === "de"
+      ? "Bitte gib ein gueltiges Geburtsdatum ein."
+      : language === "fr"
+        ? "Entre une date de naissance valide."
+        : "Enter a valid birth date.";
+
+  const parsedBirthdate = parseBirthdateInput(birthdateInput);
+  const canProceed = Boolean(parsedBirthdate);
+
+  const handleBirthdateChange = (raw: string) => {
+    const nextValue = sanitizeBirthdateInput(raw);
+    setBirthdateInput(nextValue);
+
+    const parsed = parseBirthdateInput(nextValue);
+    if (!parsed) return;
+
+    setUserData({
+      ...userData,
+      birthdate: {
+        day: parsed.day,
+        month: parsed.month,
+        year: parsed.year,
+      },
+      age: parsed.age,
+    });
+  };
 
   return (
     <div
@@ -135,44 +193,33 @@ export function BirthdateSelectStep({
         </h1>
       </OnboardingMascotQuestion>
 
-      <MintWheelPickerSection maxWidthClass="max-w-[288px]" rowHeight={BIRTH_WHEEL_ROW}>
-        <div className="flex items-stretch">
-          <MintWheelColumn
-            options={monthOptions}
-            value={birth.month}
-            onChange={(m) => updateBirth({ month: m })}
-            align="center"
-            width="33.3333%"
-            rowHeight={BIRTH_WHEEL_ROW}
-            compactLabels
-            circular
-            ariaLabel="Monat"
-          />
-          <MintWheelColumn
-            key={`birth-day-${maxDay}`}
-            wheelKey={`birth-day-${maxDay}`}
-            options={dayOptions}
-            value={Math.min(birth.day, maxDay)}
-            onChange={(d) => updateBirth({ day: d })}
-            align="center"
-            width="33.3333%"
-            rowHeight={BIRTH_WHEEL_ROW}
-            compactLabels
-            circular
-            ariaLabel="Tag"
-          />
-          <MintWheelColumn
-            options={yearOptions}
-            value={birth.year}
-            onChange={(y) => updateBirth({ year: y })}
-            align="center"
-            width="33.3333%"
-            rowHeight={BIRTH_WHEEL_ROW}
-            compactLabels
-            ariaLabel="Jahr"
-          />
+      <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
+        <div className="mx-auto w-full max-w-[320px]">
+          <div
+            className="rounded-[24px] border px-5 py-4 shadow-[0_18px_45px_-28px_rgba(57,212,127,0.45)]"
+            style={{ backgroundColor: "#FFFFFF", borderColor: PALETTE.border }}
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="bday"
+              value={birthdateInput}
+              onChange={(event) => handleBirthdateChange(event.target.value)}
+              placeholder={placeholder}
+              aria-label={title}
+              className="w-full bg-transparent text-center text-[28px] font-semibold tracking-[-0.04em] outline-none placeholder:text-[#9AB5A7]"
+              style={{ color: PALETTE.text }}
+            />
+          </div>
+
+          <p
+            className="mt-3 text-center text-[12px] font-medium"
+            style={{ color: birthdateInput.length > 0 && !canProceed ? "#DC2626" : PALETTE.textMuted }}
+          >
+            {birthdateInput.length > 0 && !canProceed ? errorText : helperText}
+          </p>
         </div>
-      </MintWheelPickerSection>
+      </div>
 
       {/* Continue */}
       <div
@@ -183,7 +230,7 @@ export function BirthdateSelectStep({
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
-          onClick={onNext}
+          onClick={canProceed ? onNext : undefined}
           disabled={!canProceed}
           className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
           style={{

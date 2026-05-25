@@ -40,6 +40,66 @@ import {
 } from "@/lib/frigyStorageSync";
 import { STRIPE_CHECKOUT_PENDING_KEY } from "@/lib/stripePaymentLinks";
 import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
+import { getLocalDateString } from "@/lib/localDate";
+
+type CachedTodayFoodEntry = {
+  name?: string;
+  time?: string;
+  created_at?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  meal_type?: MealFocusKey;
+  mealType?: MealFocusKey;
+};
+
+function readTodayFoodSnapshot() {
+  const saved = localStorage.getItem("todayFood");
+  if (!saved) return null;
+
+  try {
+    const data = JSON.parse(saved);
+    if (data.date !== getLocalDateString() || !Array.isArray(data.entries)) {
+      return null;
+    }
+
+    const meals = data.entries.map((entry: CachedTodayFoodEntry) => ({
+      name: entry.name || "Mahlzeit",
+      time:
+        entry.time ||
+        (entry.created_at
+          ? new Date(entry.created_at).toLocaleTimeString("de-DE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : new Date().toLocaleTimeString("de-DE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })),
+      calories: Number(entry.calories) || 0,
+      mealType: entry.meal_type ?? entry.mealType,
+    }));
+
+    const totals = data.entries.reduce(
+      (
+        acc: { calories: number; protein: number; carbs: number; fat: number },
+        entry: CachedTodayFoodEntry,
+      ) => ({
+        calories: acc.calories + (Number(entry.calories) || 0),
+        protein: acc.protein + (Number(entry.protein) || 0),
+        carbs: acc.carbs + (Number(entry.carbs) || 0),
+        fat: acc.fat + (Number(entry.fat) || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 },
+    );
+
+    return { meals, totals };
+  } catch (error) {
+    console.error("Failed to parse todayFood", error);
+    return null;
+  }
+}
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription, isPremium } = useAuth();
@@ -193,33 +253,22 @@ const Index = () => {
     let frameId: number | null = null;
 
     const loadTodayMeals = () => {
-      const todayKey = new Date().toDateString();
-      const saved = localStorage.getItem('todayFood');
-      if (!saved) {
+      const snapshot = readTodayFoodSnapshot();
+      if (!snapshot) {
         setTodayMeals([]);
-        return;
+        setCaloriesEaten(0);
+        setProteinEaten(0);
+        setCarbsEaten(0);
+        setFatEaten(0);
+        return false;
       }
-      try {
-        const data = JSON.parse(saved);
-        if (data.date !== todayKey) {
-          setTodayMeals([]);
-          return;
-        }
-        if (data.entries) {
-          const meals = data.entries.map((entry: { name?: string; time?: string; calories?: number; meal_type?: MealFocusKey }) => ({
-            name: entry.name || 'Mahlzeit',
-            time: entry.time || new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-            calories: entry.calories || 0,
-            mealType: entry.meal_type,
-          }));
-          setTodayMeals(meals);
-        } else {
-          setTodayMeals([]);
-        }
-      } catch (e) {
-        console.error('Failed to parse todayFood');
-        setTodayMeals([]);
-      }
+
+      setTodayMeals(snapshot.meals);
+      setCaloriesEaten(snapshot.totals.calories);
+      setProteinEaten(snapshot.totals.protein);
+      setCarbsEaten(snapshot.totals.carbs);
+      setFatEaten(snapshot.totals.fat);
+      return true;
     };
 
     const scheduleLoadTodayMeals = () => {
@@ -249,10 +298,11 @@ const Index = () => {
     };
   }, []);
   
-  // Fetch today's macros from daily_macros table with realtime subscription
+  // Fallback: if local today cache is missing, hydrate macros from DB.
   useEffect(() => {
     const fetchDailyMacros = async () => {
       if (!user) return;
+      if (readTodayFoodSnapshot()) return;
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase
         .from('daily_macros')
@@ -270,16 +320,17 @@ const Index = () => {
 
     fetchDailyMacros();
 
-    // Listen for food entry changes - update immediately when meal is added from meal plan
-    const handleFoodEntryAdded = () => {
-      fetchDailyMacros();
+    const handleFoodEntryChanged = () => {
+      if (!readTodayFoodSnapshot()) {
+        void fetchDailyMacros();
+      }
     };
 
-    window.addEventListener('foodEntryAdded', handleFoodEntryAdded, { passive: true });
+    window.addEventListener('foodEntryAdded', handleFoodEntryChanged, { passive: true });
 
-    // Also periodic refresh as fallback; keep it sparse to avoid interrupting scroll.
     if (user) {
       const intervalId = setInterval(async () => {
+        if (readTodayFoodSnapshot()) return;
         const today = new Date().toISOString().split('T')[0];
         const { data } = await supabase
           .from('daily_macros')
@@ -298,12 +349,12 @@ const Index = () => {
 
       return () => {
         clearInterval(intervalId);
-        window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+        window.removeEventListener('foodEntryAdded', handleFoodEntryChanged);
       };
     }
 
     return () => {
-      window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+      window.removeEventListener('foodEntryAdded', handleFoodEntryChanged);
     };
   }, [user]);
   
@@ -565,13 +616,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7FAF7] flex flex-col">
-      {/* Subtle background */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.12),transparent_34%),linear-gradient(to_bottom,#F7FAF7,white)] pointer-events-none" />
+    <div className="min-h-screen bg-[#F2FFF8] flex flex-col overflow-x-hidden">
+      {/* Subtle background without white edge fade */}
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(to_bottom,#F2FFF8,#F2FFF8)] pointer-events-none" />
 
       {/* Main Content */}
-      <main className="relative flex-1 flex flex-col px-6 pb-bottom-nav pt-9 sm:pt-11 safe-top">
-        <div className="flex-1 flex flex-col max-w-sm sm:max-w-md lg:max-w-2xl mx-auto w-full space-y-8">
+      <main className="relative flex-1 flex flex-col px-4 pb-bottom-nav pt-9 sm:px-6 sm:pt-11 safe-top">
+        <div className="flex-1 flex flex-col w-full max-w-full sm:max-w-md lg:max-w-2xl mx-auto space-y-8">
           
           {/* Header - Clean & Modern */}
           <motion.header
