@@ -9,9 +9,9 @@ type DataConsentStepProps = {
 };
 
 const PALETTE = {
-  primary: "#6EF0A8",
-  primaryDark: "#4AE896",
-  bg: "#FFFFFF",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#F2FFF8",
   text: "#050505",
   muted: "#3F3F46",
 };
@@ -68,7 +68,7 @@ export function DataConsentStep({ onBack, onNext }: DataConsentStepProps) {
             onClick={onBack}
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
-            style={{ backgroundColor: "#F7FAF6", color: PALETTE.text }}
+            style={{ backgroundColor: "#DCFEEF", color: PALETTE.text }}
           >
             <ChevronLeft className="size-5" strokeWidth={2.6} />
           </motion.button>

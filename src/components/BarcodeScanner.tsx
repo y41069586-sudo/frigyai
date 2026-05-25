@@ -496,7 +496,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 />
 
                 <motion.div
-                  className="absolute inset-0 rounded-2xl border border-[#6EF0A8]/40"
+                  className="absolute inset-0 rounded-2xl border border-[#75FBB2]/40"
                   animate={{
                     boxShadow: [
                       "0 0 12px 0 rgba(110,240,168,0.25)",
@@ -517,12 +517,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 ).map((cornerClass) => (
                   <div
                     key={cornerClass}
-                    className={`absolute h-7 w-7 border-[#6EF0A8] ${cornerClass}`}
+                    className={`absolute h-7 w-7 border-[#75FBB2] ${cornerClass}`}
                   />
                 ))}
 
                 <motion.div
-                  className="absolute left-3 right-3 h-[2px] rounded-full bg-[#6EF0A8]"
+                  className="absolute left-3 right-3 h-[2px] rounded-full bg-[#75FBB2]"
                   style={{
                     boxShadow:
                       "0 0 8px 2px rgba(110,240,168,0.9), 0 0 20px 4px rgba(110,240,168,0.35)",
@@ -537,7 +537,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 />
 
                 <motion.div
-                  className="absolute left-3 right-3 h-8 rounded-full bg-gradient-to-b from-[#6EF0A8]/25 to-transparent blur-[2px]"
+                  className="absolute left-3 right-3 h-8 rounded-full bg-gradient-to-b from-[#75FBB2]/25 to-transparent blur-[2px]"
                   initial={{ top: "10%" }}
                   animate={{ top: ["10%", "86%", "10%"] }}
                   transition={{

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useMintWheelRowHeight, WHEEL_ITEM_HEIGHT } from "./MintWheelColumn";
 
-const SELECTED_BG = "#E0FDEC";
+const SELECTED_BG = "#DCFEEF";
 
 type MintWheelPickerSectionProps = {
   children: ReactNode;

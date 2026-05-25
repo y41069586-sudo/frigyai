@@ -130,10 +130,25 @@ const ScanPage = () => {
     notifyFrigyStorageUpdated();
   };
 
-  const mergeRecognizedIngredients = (recognized: string[], replace: boolean) => {
+  const filterToWeeklyPlanRelevantIngredients = (recognized: string[]) => {
     const cleaned = recognized.map((item) => item.trim()).filter(Boolean);
+    const source = readShoppingSource();
+    if (source.length === 0) {
+      return Array.from(new Set(cleaned));
+    }
+
+    const relevant = source
+      .filter((item) => cleaned.some((ingredient) => ingredientMatches(item.name, ingredient)))
+      .map((item) => item.name.trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(relevant));
+  };
+
+  const mergeRecognizedIngredients = (recognized: string[], replace: boolean) => {
+    const relevantRecognized = filterToWeeklyPlanRelevantIngredients(recognized);
     const base = replace ? [] : ingredients;
-    const merged = Array.from(new Set([...base, ...cleaned]));
+    const merged = Array.from(new Set([...base, ...relevantRecognized]));
     setIngredients(merged);
     applyScannedIngredientsToShoppingList(merged);
     return merged;

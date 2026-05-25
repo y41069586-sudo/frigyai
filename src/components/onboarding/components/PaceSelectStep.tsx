@@ -9,12 +9,12 @@ import type { UserData } from "../types";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#6EF0A8",
-  primaryDark: "#4AE896",
-  primaryDeep: "#32D082",
-  bg: "#FEFFFE",
-  trackActive: "#6EF0A8",
-  trackInactive: "#E0FDEC",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  primaryDeep: "#2EB56D",
+  bg: "#F2FFF8",
+  trackActive: "#75FBB2",
+  trackInactive: "#DCFEEF",
   text: "#1F2937",
   textMuted: "#6B7280",
   textSubtle: "#9CA3AF",
@@ -23,11 +23,6 @@ const PALETTE = {
 const KG_PER_LB = 0.45359237;
 const MIN_PACE_KG = 0.1;
 const MAX_PACE_KG = 1.0;
-
-type PaceMarker = {
-  value: number;
-  barHeight: number;
-};
 
 const haptic = (ms = 8) => {
   try {
@@ -54,7 +49,6 @@ function MintSlider({
   onChange,
   ticks,
   formatTick,
-  paceMarkers,
   onActiveChange,
 }: {
   min: number;
@@ -64,7 +58,6 @@ function MintSlider({
   onChange: (v: number) => void;
   ticks: number[];
   formatTick: (v: number) => string;
-  paceMarkers?: PaceMarker[];
   onActiveChange?: (active: boolean) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -120,35 +113,6 @@ function MintSlider({
 
   return (
     <div className="select-none">
-      {paceMarkers && paceMarkers.length > 0 ? (
-        <div className="relative mb-3 h-7 px-0.5" aria-hidden>
-          {paceMarkers.map((marker) => {
-            const markerPct = ((marker.value - min) / (max - min)) * 100;
-            const isNear = Math.abs(value - marker.value) < step * 0.55;
-            return (
-              <div
-                key={`pace-${marker.value}`}
-                className="absolute bottom-0 flex items-end justify-center"
-                style={{
-                  left: `${markerPct}%`,
-                  transform: "translateX(-50%)",
-                }}
-              >
-                <div
-                  className="rounded-full"
-                  style={{
-                    width: 5,
-                    height: marker.barHeight,
-                    background: isNear ? PALETTE.primaryDark : "rgba(110, 240, 168, 0.5)",
-                    boxShadow: isNear ? "0 2px 6px rgba(74, 232, 150, 0.35)" : "none",
-                    transition: "height 160ms ease, background 160ms ease, box-shadow 160ms ease",
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
       <div
         className="relative touch-none"
         style={{ height: 42 }}
@@ -329,12 +293,6 @@ export function PaceSelectStep({
     { id: "imperial", label: "Imperial" },
   ];
 
-  const paceMarkers: PaceMarker[] = [
-    { value: ticks[0], barHeight: 10 },
-    { value: ticks[1], barHeight: 18 },
-    { value: ticks[2], barHeight: 26 },
-  ];
-
   return (
     <div
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
@@ -350,7 +308,7 @@ export function PaceSelectStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F5FFF9",
+              backgroundColor: "#F2FFF8",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -417,7 +375,6 @@ export function PaceSelectStep({
           value={clampedDisplay}
           onChange={commit}
           ticks={ticks}
-          paceMarkers={paceMarkers}
           formatTick={(v) => v.toFixed(1)}
           onActiveChange={setSliderActive}
         />

@@ -15,11 +15,11 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#6EF0A8",
-  primaryDark: "#4AE896",
-  primaryDeep: "#32D082",
-  bg: "#FEFFFE",
-  accent: "#E0FDEC",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  primaryDeep: "#2EB56D",
+  bg: "#F2FFF8",
+  accent: "#DCFEEF",
   border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
@@ -153,7 +153,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
             style={{
               width: 22,
               background:
-                "linear-gradient(180deg, #F0FFF6 0%, #6EF0A8 100%)",
+                "linear-gradient(180deg, #F2FFF8 0%, #75FBB2 100%)",
             }}
           />
           {/* Spiral rings */}
@@ -167,7 +167,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
                 width: 10,
                 height: 10,
                 background: "#FFFFFF",
-                border: "2px solid #4AE896",
+                border: "2px solid #39D47F",
                 boxShadow: "inset 0 1px 1px rgba(15,40,30,0.1)",
               }}
             />
@@ -299,7 +299,7 @@ export function WeeklyPlanPreviewStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F5FFF9",
+              backgroundColor: "#F2FFF8",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

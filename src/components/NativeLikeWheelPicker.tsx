@@ -528,7 +528,7 @@ export function NativeLikeWheelPicker<T>({
         <button
           key={key}
           type="button"
-          className="flex w-full items-center justify-center border-0 bg-transparent p-0 font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/60"
+          className="flex w-full items-center justify-center border-0 bg-transparent p-0 font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#75FBB2]/60"
           style={rowStyle}
           onClick={() => snapToPhysicalIndex(index)}
           tabIndex={-1}
@@ -603,7 +603,7 @@ export function NativeLikeWheelPicker<T>({
             endInteraction();
           }
         }}
-        className="scrollbar-hide h-full w-full overflow-y-scroll overscroll-contain rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/50"
+        className="scrollbar-hide h-full w-full overflow-y-scroll overscroll-contain rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#75FBB2]/50"
         style={{
           perspective: reducedMotion ? undefined : "1000px",
           WebkitOverflowScrolling: "touch",

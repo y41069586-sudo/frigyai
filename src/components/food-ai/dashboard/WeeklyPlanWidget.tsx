@@ -149,7 +149,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
               </p>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 {nextMeal?.timeLabel && (
-                  <span className="text-[16px] font-semibold tabular-nums tracking-tight text-[#32D082]">
+                  <span className="text-[16px] font-semibold tabular-nums tracking-tight text-[#39D47F]">
                     {nextMeal.timeLabel}
                   </span>
                 )}

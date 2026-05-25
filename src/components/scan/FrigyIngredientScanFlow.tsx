@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ImagePlus, Check, Sparkles, Loader2, Camera, RefreshCw } from "lucide-react";
+import { X, ImagePlus, Check, Sparkles, Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,6 @@ export function FrigyIngredientScanFlow({
   onAddMorePhotos,
   labels = {},
 }: FrigyIngredientScanFlowProps) {
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [captureFlash, setCaptureFlash] = useState(false);
@@ -74,7 +73,9 @@ export function FrigyIngredientScanFlow({
     isLive,
   } = useIngredientCamera({ active: phase === "capture" });
 
-  const showCameraHint = !previewReady && cameraStatus !== "starting";
+  const showCameraHint =
+    !previewReady &&
+    (cameraStatus === "error" || cameraStatus === "denied" || cameraStatus === "fallback");
 
   const L = {
     analyzingTitle: labels.analyzingTitle ?? "Zutaten werden analysiert",
@@ -104,12 +105,6 @@ export function FrigyIngredientScanFlow({
       return merged;
     });
     onAddPhotos(files);
-  };
-
-  const handleShutter = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) addFiles([file]);
   };
 
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +141,7 @@ export function FrigyIngredientScanFlow({
         return;
       }
     }
-    cameraInputRef.current?.click();
+    await retryCamera();
   };
 
   const handleConfirm = () => {
@@ -168,16 +163,16 @@ export function FrigyIngredientScanFlow({
         >
           <div className="relative">
             <motion.div
-              className="absolute inset-0 rounded-full bg-[#6EF0A8]/25 blur-2xl"
+              className="absolute inset-0 rounded-full bg-[#75FBB2]/25 blur-2xl"
               animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
               transition={{ duration: 2.2, repeat: Infinity }}
             />
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-[#6EF0A8]/40 bg-[#6EF0A8]/15"
+              className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-[#75FBB2]/40 bg-[#75FBB2]/15"
             >
-              <Sparkles className="h-10 w-10 text-[#6EF0A8]" />
+              <Sparkles className="h-10 w-10 text-[#75FBB2]" />
             </motion.div>
           </div>
           <div>
@@ -187,7 +182,7 @@ export function FrigyIngredientScanFlow({
           <div className="w-full max-w-xs">
             <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#6EF0A8] to-[#4AE896]"
+                className="h-full rounded-full bg-gradient-to-r from-[#75FBB2] to-[#39D47F]"
                 initial={{ width: "0%" }}
                 animate={{ width: `${Math.min(scanProgress, 100)}%` }}
                 transition={{ duration: 0.25 }}
@@ -215,10 +210,10 @@ export function FrigyIngredientScanFlow({
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 pb-32 space-y-4">
-          <Card className="p-4 border-[#6EF0A8]/25 bg-[#6EF0A8]/5">
+          <Card className="p-4 border-[#75FBB2]/25 bg-[#75FBB2]/5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold">{L.present}</h2>
-              <span className="rounded-full bg-[#6EF0A8]/20 px-2.5 py-0.5 text-xs font-semibold text-[#2d8a5c]">
+              <span className="rounded-full bg-[#75FBB2]/20 px-2.5 py-0.5 text-xs font-semibold text-[#2d8a5c]">
                 {ingredients.length}
               </span>
             </div>
@@ -226,7 +221,7 @@ export function FrigyIngredientScanFlow({
               {ingredients.map((item) => (
                 <span
                   key={item}
-                  className="inline-flex items-center gap-1 rounded-full bg-[#6EF0A8]/15 px-3 py-1.5 text-sm font-medium text-[#1a5c3a]"
+                  className="inline-flex items-center gap-1 rounded-full bg-[#75FBB2]/15 px-3 py-1.5 text-sm font-medium text-[#1a5c3a]"
                 >
                   <Check className="h-3.5 w-3.5" />
                   {item}
@@ -267,7 +262,7 @@ export function FrigyIngredientScanFlow({
               {L.addPhoto}
             </Button>
             <Button
-              className="h-12 flex-1 rounded-2xl bg-gradient-to-r from-[#6EF0A8] to-[#4AE896] text-[#0a1f14] font-semibold"
+              className="h-12 flex-1 rounded-2xl bg-gradient-to-r from-[#75FBB2] to-[#39D47F] text-[#0a1f14] font-semibold"
               onClick={onCreateShoppingList}
             >
               {L.createList}
@@ -288,21 +283,14 @@ export function FrigyIngredientScanFlow({
         playsInline
       />
 
-      {cameraStatus === "starting" && !previewReady && (
-        <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center bg-black/40 px-6 text-center">
-          <Loader2 className="mb-4 h-10 w-10 animate-spin text-[#6EF0A8]" />
-          <p className="text-sm font-medium">Kamera wird gestartet…</p>
-        </div>
-      )}
-
       {showCameraHint && (
         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center pointer-events-none">
           <div className="max-w-sm rounded-2xl bg-black/55 px-5 py-4 backdrop-blur-md border border-white/10 pointer-events-auto">
-            <Camera className="mx-auto mb-3 h-8 w-8 text-[#6EF0A8]" />
+            <Camera className="mx-auto mb-3 h-8 w-8 text-[#75FBB2]" />
             <p className="text-sm font-medium text-white/90">{cameraError}</p>
             <p className="mt-2 text-xs text-white/55">
-              Öffne die App mit <span className="text-[#6EF0A8]">npm run dev</span> unter{" "}
-              <span className="text-[#6EF0A8]">http://localhost:5173</span> — oder Galerie unten.
+              Öffne die App mit <span className="text-[#75FBB2]">npm run dev</span> unter{" "}
+              <span className="text-[#75FBB2]">http://localhost:5173</span> — oder Galerie unten.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => void retryCamera()}>
@@ -312,7 +300,7 @@ export function FrigyIngredientScanFlow({
               <Button
                 type="button"
                 size="sm"
-                className="rounded-full bg-[#6EF0A8] text-[#0a1f14]"
+                className="rounded-full bg-[#75FBB2] text-[#0a1f14]"
                 onClick={() => galleryInputRef.current?.click()}
               >
                 Galerie
@@ -354,7 +342,7 @@ export function FrigyIngredientScanFlow({
 
       <div className="relative z-10 mx-4 flex flex-1 min-h-0 items-center justify-center pointer-events-none">
         <div
-          className="rounded-full border-[3px] border-[#6EF0A8] bg-transparent"
+          className="rounded-full border-[3px] border-[#75FBB2] bg-transparent"
           style={{ width: "min(72vw, 280px)", height: "min(72vw, 280px)" }}
         />
       </div>
@@ -371,7 +359,7 @@ export function FrigyIngredientScanFlow({
                 <img
                   src={photo.previewUrl}
                   alt=""
-                  className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#6EF0A8]/50"
+                  className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
                 />
                 <button
                   type="button"
@@ -393,7 +381,7 @@ export function FrigyIngredientScanFlow({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={handleConfirm}
-            className="mb-4 w-full rounded-2xl bg-[#6EF0A8]/20 py-3 text-center text-sm font-semibold text-[#6EF0A8] ring-1 ring-[#6EF0A8]/40"
+            className="mb-4 w-full rounded-2xl bg-[#75FBB2]/20 py-3 text-center text-sm font-semibold text-[#75FBB2] ring-1 ring-[#75FBB2]/40"
           >
             {L.finishScan} ({pendingPhotos.length})
           </motion.button>
@@ -406,7 +394,7 @@ export function FrigyIngredientScanFlow({
             onClick={() => void handleShutterPress()}
             className={cn(
               "relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white shadow-[0_8px_32px_rgba(110,240,168,0.45)]",
-              "ring-[3px] ring-[#6EF0A8] ring-offset-4 ring-offset-black/80",
+              "ring-[3px] ring-[#75FBB2] ring-offset-4 ring-offset-black/80",
             )}
             aria-label="Foto aufnehmen"
           >
@@ -420,19 +408,11 @@ export function FrigyIngredientScanFlow({
             className="absolute right-0 bottom-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 backdrop-blur-md ring-1 ring-white/20"
             aria-label="Galerie"
           >
-            <ImagePlus className="h-6 w-6 text-[#6EF0A8]" />
+            <ImagePlus className="h-6 w-6 text-[#75FBB2]" />
           </motion.button>
         </div>
       </div>
 
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleShutter}
-      />
       <input
         ref={galleryInputRef}
         type="file"

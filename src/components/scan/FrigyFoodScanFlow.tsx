@@ -104,7 +104,7 @@ export function FrigyFoodScanFlow({
             width: "min(72vw, 280px)",
             height: "min(72vw, 280px)",
             borderRadius: "9999px",
-            border: "3px solid #6EF0A8",
+            border: "3px solid #75FBB2",
           }}
         >
           {!analyzing && !previewReady && (
@@ -114,7 +114,7 @@ export function FrigyFoodScanFlow({
           )}
           {analyzing && (
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
-              <p className="px-6 text-center text-base font-semibold text-[#6EF0A8] drop-shadow-[0_0_18px_rgba(110,240,168,0.8)]">
+              <p className="px-6 text-center text-base font-semibold text-[#75FBB2] drop-shadow-[0_0_18px_rgba(117,251,178,0.8)]">
                 {analyzingLabel}
               </p>
             </div>
@@ -135,10 +135,10 @@ export function FrigyFoodScanFlow({
           <button
             type="button"
             onClick={() => void handleShutter()}
-            className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[4px] border-[#6EF0A8] bg-white/10 shadow-[0_0_28px_rgba(110,240,168,0.45)]"
+            className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[4px] border-[#75FBB2] bg-white/10 shadow-[0_0_28px_rgba(117,251,178,0.45)]"
             aria-label="Foto aufnehmen"
           >
-            <Camera className="h-8 w-8 text-[#6EF0A8]" />
+            <Camera className="h-8 w-8 text-[#75FBB2]" />
           </button>
           <button
             type="button"

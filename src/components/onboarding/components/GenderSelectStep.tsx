@@ -15,13 +15,13 @@ type GenderSelectStepProps = {
 };
 
 const PALETTE = {
-  primary: "#6EF0A8",
-  primaryDark: "#4AE896",
-  bg: "#FEFFFE",
-  selectedBg: "#E0FDEC",
-  border: "#6EF0A8",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#F2FFF8",
+  selectedBg: "#DCFEEF",
+  border: "#75FBB2",
   text: "#1F2937",
-  cardBorderIdle: "#DDEECD",
+  cardBorderIdle: "#BCFDDC",
 };
 
 const GENDER_IMAGES = {
@@ -30,7 +30,7 @@ const GENDER_IMAGES = {
 } as const;
 
 const SELECTED_RING =
-  "0 0 0 3px #E0FDEC, 0 0 0 5px #6EF0A8";
+  "0 0 0 3px #DCFEEF, 0 0 0 5px #75FBB2";
 
 export function GenderSelectStep({
   userData,
@@ -121,21 +121,22 @@ export function GenderSelectStep({
                 className={cn(
                   "flex flex-col items-center gap-2.5 border-0 bg-transparent p-0 outline-none",
                   "transition-[transform,opacity] duration-200 ease-out active:scale-[0.97]",
-                  "focus-visible:ring-2 focus-visible:ring-[#6EF0A8]/50",
+                  "focus-visible:ring-2 focus-visible:ring-[#75FBB2]/50",
                   selected ? "scale-[1.03] opacity-100" : "scale-100 opacity-[0.88]",
                 )}
               >
                 <div
-                  className="relative w-full transition-[box-shadow] duration-300 ease-out"
+                  className="relative w-full overflow-hidden border transition-[box-shadow] duration-300 ease-out"
                   style={{
                     aspectRatio: "1",
+                    borderColor: selected ? PALETTE.border : PALETTE.cardBorderIdle,
                     boxShadow: selected ? SELECTED_RING : "0 0 0 3px transparent, 0 0 0 5px transparent",
                   }}
                 >
                   <img
                     src={opt.image}
                     alt=""
-                    className="h-full w-full object-contain"
+                    className="h-full w-full scale-[1.028] object-cover"
                     draggable={false}
                   />
                 </div>
@@ -163,7 +164,7 @@ export function GenderSelectStep({
             <span
               className={cn(
                 "flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200",
-                nonBinarySelected ? "scale-105 border-[#6EF0A8] bg-[#6EF0A8]" : "scale-100 bg-white",
+                nonBinarySelected ? "scale-105 border-[#75FBB2] bg-[#75FBB2]" : "scale-100 bg-white",
               )}
               style={{ borderColor: nonBinarySelected ? PALETTE.border : PALETTE.cardBorderIdle }}
               aria-hidden
@@ -205,7 +206,7 @@ export function GenderSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #F5FFF9 0%, #E0FDEC 100%)",
+              : "linear-gradient(135deg, #F2FFF8 0%, #DCFEEF 100%)",
             boxShadow: canProceed
               ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",

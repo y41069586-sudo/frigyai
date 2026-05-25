@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,6 +40,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
+  const lastToggleAtRef = useRef<Record<string, number>>({});
 
   // Offline-Status überwachen
   useEffect(() => {
@@ -203,9 +204,20 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     }
   }, [items, saveToCache]);
 
-  const setPurchased = (id: string, purchased: boolean) => {
+  const updatePurchasedState = useCallback((id: string, purchased: boolean | ((current: boolean) => boolean)) => {
+    const now = Date.now();
+    const lastToggleAt = lastToggleAtRef.current[id] ?? 0;
+    if (now - lastToggleAt < 160) {
+      return;
+    }
+    lastToggleAtRef.current[id] = now;
+
     setItems((prev) => {
-      const next = prev.map((item) => (item.id === id ? { ...item, purchased } : item));
+      const next = prev.map((item) => {
+        if (item.id !== id) return item;
+        const nextPurchased = typeof purchased === 'function' ? purchased(item.purchased) : purchased;
+        return { ...item, purchased: nextPurchased };
+      });
       const nextCheckedNames = new Set(
         next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
       );
@@ -213,18 +225,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       notifyFrigyStorageUpdated();
       return next;
     });
+  }, []);
+
+  const setPurchased = (id: string, purchased: boolean) => {
+    updatePurchasedState(id, purchased);
   };
 
   const toggleItem = (id: string) => {
-    setItems((prev) => {
-      const next = prev.map((item) => (item.id === id ? { ...item, purchased: !item.purchased } : item));
-      const nextCheckedNames = new Set(
-        next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
-      );
-      writeCheckedShoppingNames(nextCheckedNames);
-      notifyFrigyStorageUpdated();
-      return next;
-    });
+    updatePurchasedState(id, (current) => !current);
   };
 
   const toggleCategory = (category: IngredientCategory) => {
@@ -465,13 +473,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                           ? 'bg-primary/10 border-primary/30'
                           : 'bg-card/60 border-primary/10 hover:border-primary/30'
                       }`}
-                      onPointerUp={() => toggleItem(item.id)}
+                      onClick={() => toggleItem(item.id)}
                     >
                       <div className="flex items-center gap-3">
                         <Checkbox
                           checked={item.purchased}
                           onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
                           onPointerDown={(e) => e.stopPropagation()}
+                          onPointerUp={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                           className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         />

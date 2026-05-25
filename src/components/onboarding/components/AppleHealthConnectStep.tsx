@@ -5,17 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import frigyMascot from "@/assets/frigy-mascot.png";
-
-const PALETTE = {
-  primary: "#7BE0B8",
-  primaryDark: "#5BCB9F",
-  bg: "#F7FFFB",
-  secondary: "#E8FFF4",
-  border: "#B7F0D7",
-  text: "#1F2937",
-  textMuted: "#6B7280",
-  syncIcon: "#9CA3AF",
-};
+import { ONBOARDING_PALETTE as PALETTE } from "../palette";
 
 type Props = {
   userData: UserData;
@@ -109,7 +99,7 @@ export function AppleHealthConnectStep({
               key={i}
               className="h-[4px] flex-1 rounded-full transition-colors"
               style={{
-                backgroundColor: i <= currentIndex ? PALETTE.primary : "#E5F4EC",
+                backgroundColor: i <= currentIndex ? PALETTE.primary : PALETTE.border,
               }}
             />
           ))}
@@ -121,7 +111,7 @@ export function AppleHealthConnectStep({
       <div
         className="relative mx-5 mt-2 shrink-0 overflow-hidden rounded-[28px] px-6 py-10"
         style={{
-          background: "linear-gradient(165deg, #E8FFF4 0%, #F0FFF8 42%, #F7FFFB 100%)",
+          background: "linear-gradient(165deg, #DCFEEF 0%, #F2FFF8 42%, #FFFFFF 100%)",
           boxShadow: "0 20px 48px -28px rgba(60,120,90,0.22), 0 2px 8px -4px rgba(60,120,90,0.06)",
         }}
       >
@@ -147,7 +137,7 @@ export function AppleHealthConnectStep({
                   className="flex h-12 w-12 items-center justify-center rounded-full"
                   style={{
                     background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
-                    boxShadow: "0 8px 20px -6px rgba(91,203,159,0.55)",
+                    boxShadow: "0 8px 20px -6px rgba(57,212,127,0.55)",
                   }}
                 >
                   <Check className="size-6 text-white" strokeWidth={2.8} />
@@ -169,7 +159,7 @@ export function AppleHealthConnectStep({
                 >
                   <RefreshCw
                     className="size-9"
-                    style={{ color: PALETTE.syncIcon }}
+                    style={{ color: PALETTE.textMuted }}
                     strokeWidth={2.2}
                   />
                 </motion.div>
@@ -218,7 +208,7 @@ export function AppleHealthConnectStep({
             disabled={phase !== "idle"}
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-opacity disabled:opacity-40"
             style={{
-              backgroundColor: "#EAF8F1",
+              backgroundColor: PALETTE.selectedBg,
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 3px rgba(15,40,30,0.06)",
             }}
@@ -243,7 +233,7 @@ export function AppleHealthConnectStep({
             disabled={phase !== "idle"}
             className="flex flex-1 items-center justify-center px-2 text-[14px] font-semibold transition-opacity sm:text-[15px] disabled:opacity-45"
             style={{
-              backgroundColor: PALETTE.secondary,
+              backgroundColor: PALETTE.selectedBg,
               color: PALETTE.text,
             }}
           >

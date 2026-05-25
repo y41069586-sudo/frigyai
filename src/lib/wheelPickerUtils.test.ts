@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   clampIndex,
+  getWheelPhysicalIndex,
+  getWheelSnapTarget,
   getVirtualWindow,
+  indexOfValue,
   logicalIndexFromPhysical,
   modIndex,
   normalizeInfiniteScrollTop,
@@ -43,6 +46,34 @@ describe("wheelPickerUtils", () => {
     const near = snapDurationForOffset(2, 46, t);
     const far = snapDurationForOffset(20, 46, t);
     expect(far).toBeGreaterThan(near);
+  });
+
+  it("indexOfValue matches option objects by value field", () => {
+    const options = [
+      { value: 10, label: "10" },
+      { value: 20, label: "20" },
+    ];
+    expect(indexOfValue(options, { value: 20, label: "other label" })).toBe(1);
+  });
+
+  it("getWheelPhysicalIndex rounds to the nearest row", () => {
+    expect(getWheelPhysicalIndex(0, 46)).toBe(0);
+    expect(getWheelPhysicalIndex(22, 46)).toBe(0);
+    expect(getWheelPhysicalIndex(24, 46)).toBe(1);
+  });
+
+  it("getWheelSnapTarget centers infinite wheels back to middle copy", () => {
+    const snap = getWheelSnapTarget(14 * 46, 46, 12, true);
+    expect(snap.logicalIndex).toBe(2);
+    expect(snap.physicalIndex).toBe(2 + 12 * WHEEL_MIDDLE_COPY_INDEX);
+    expect(snap.top).toBe(snap.physicalIndex * 46);
+  });
+
+  it("getWheelSnapTarget clamps non-infinite wheels", () => {
+    const snap = getWheelSnapTarget(9999, 46, 5, false);
+    expect(snap.logicalIndex).toBe(4);
+    expect(snap.physicalIndex).toBe(4);
+    expect(snap.top).toBe(4 * 46);
   });
 
   it("getVirtualWindow spacers", () => {

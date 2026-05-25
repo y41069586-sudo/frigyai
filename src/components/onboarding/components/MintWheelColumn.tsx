@@ -1,9 +1,9 @@
 import { useMemo, useSyncExternalStore } from "react";
 import {
-  NativeLikeWheelPicker,
   type WheelPickerSnapPreset,
   type WheelPickerTuning,
-} from "@/components/NativeLikeWheelPicker";
+} from "@/lib/wheelPickerUtils";
+import { StableWheelPicker } from "@/components/StableWheelPicker";
 
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
@@ -97,7 +97,7 @@ export function MintWheelColumn({
 
   return (
     <div className="relative shrink-0" style={{ width }}>
-      <NativeLikeWheelPicker
+      <StableWheelPicker
         key={wheelKey}
         data={options}
         value={selectedItem}

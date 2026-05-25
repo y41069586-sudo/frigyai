@@ -207,7 +207,7 @@ const SplashLanguageSwitcher = () => {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white/95 px-3 py-1.5 text-[13px] font-bold tracking-wide text-neutral-900 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EF0A8] focus-visible:ring-offset-2"
+          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white/95 px-3 py-1.5 text-[13px] font-bold tracking-wide text-neutral-900 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#75FBB2] focus-visible:ring-offset-2"
           aria-label={t.changeLanguage}
         >
           <span className="text-base leading-none" aria-hidden>
@@ -226,7 +226,7 @@ const SplashLanguageSwitcher = () => {
             }}
             onClick={() => setLanguage(lang.code)}
             className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
-              language === lang.code ? "bg-[#6EF0A8]/15 text-neutral-900" : ""
+              language === lang.code ? "bg-[#75FBB2]/15 text-neutral-900" : ""
             }`}
           >
             <span className="text-lg leading-none">{lang.flag}</span>
@@ -253,7 +253,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         <SplashLanguageSwitcher />
       </motion.div>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(110, 240, 168,0.26),transparent_30%),radial-gradient(circle_at_86%_64%,rgba(110, 240, 168,0.15),transparent_24%),linear-gradient(180deg,#ffffff_0%,#fbfff5_48%,#ffffff_100%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#6EF0A8]/18 blur-[76px]" />
+      <div className="pointer-events-none absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-[#75FBB2]/18 blur-[76px]" />
       <div className="pointer-events-none absolute -left-24 bottom-24 h-60 w-60 rounded-full bg-neutral-100/70 blur-3xl" />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
@@ -261,7 +261,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#6EF0A8] drop-shadow-[0_0_18px_rgba(110, 240, 168,0.56)]"
+          className="text-center text-[28px] font-black leading-none tracking-[-0.06em] text-[#75FBB2] drop-shadow-[0_0_18px_rgba(117, 251, 178,0.56)]"
         >
           Frigy
         </motion.p>
@@ -274,7 +274,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         >
           <motion.div
             aria-hidden
-            className="absolute h-[220px] w-[220px] rounded-full bg-[#6EF0A8]/18 blur-3xl"
+            className="absolute h-[220px] w-[220px] rounded-full bg-[#75FBB2]/18 blur-3xl"
             animate={{ scale: [1, 1.08, 1], opacity: [0.55, 0.85, 0.55] }}
             transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -302,7 +302,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
             {t.onboardingWelcomeHeadline1}
             <br />
             <span className="relative inline-block">
-              <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#6EF0A8]/70 blur-[2px]" />
+              <span className="absolute inset-x-[-0.08em] bottom-1 h-[0.42em] rounded-full bg-[#75FBB2]/70 blur-[2px]" />
               <span className="relative">{t.onboardingWelcomeHeadline2}</span>
             </span>
           </h1>
@@ -317,7 +317,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.965 }}
               onClick={onNext}
-              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#6EF0A8] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(74, 232, 150,0.88),0_0_42px_rgba(110, 240, 168,0.38)]"
+              className="relative flex h-[64px] w-full items-center justify-center gap-2 overflow-hidden rounded-[28px] bg-[#75FBB2] text-[17px] font-black tracking-[-0.035em] text-black shadow-[0_0_0_1px_rgba(255,255,255,0.75)_inset,0_22px_54px_-24px_rgba(57, 212, 127,0.88),0_0_42px_rgba(117, 251, 178,0.38)]"
             >
               <span className="absolute inset-x-8 top-1 h-5 rounded-full bg-white/55 blur-md" />
               <span className="relative">{t.onboardingGetStarted}</span>
@@ -1752,7 +1752,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         
         return (
           <StepCard step="analyzing">
-            <div className="flex flex-col items-center text-center px-6 w-full">
+            <div className="flex w-full flex-col items-center px-6 pt-6 text-center sm:pt-2">
               <motion.div
                 className="relative w-28 h-28 mb-8"
                 initial={{ scale: 0 }}
@@ -3912,7 +3912,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         <motion.div
           initial={false}
           animate={{ opacity: 1 }}
-          className="onboarding-flow-root fixed inset-0 z-[100] flex min-h-0 flex-col overflow-hidden bg-background safe-area-inset"
+          className="onboarding-flow-root fixed inset-0 z-[100] flex min-h-0 flex-col overflow-hidden safe-area-inset"
+          style={{ backgroundColor: "#F2FFF8" }}
         >
       {/* Legacy progress bar — hidden from macro-preview onward (mint line steps use thin bar) */}
       {showsOnboardingTopProgress(currentStep) &&
@@ -3966,7 +3967,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               onClick={goBack}
               whileTap={{ scale: 0.95 }}
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors"
-              style={{ backgroundColor: "#F4F7EF", color: "#050505" }}
+              style={{ backgroundColor: "#F2FFF8", color: "#050505", boxShadow: "0 1px 2px rgba(15,40,30,0.04)" }}
             >
               <ChevronRight className="w-6 h-6 rotate-180" strokeWidth={2.8} />
             </motion.button>
@@ -3976,9 +3977,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           
           {/* Progress bar only - no dots */}
 
-          <div className="flex h-12 w-12 items-center justify-end">
-            <SplashLanguageSwitcher />
-          </div>
+          <div className="h-12 w-12" />
         </div>
       )}
 
@@ -4003,11 +4002,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
         // These steps render fullscreen with their own layout
         <motion.div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-          {ONBOARDING_MINT_BODY_STEPS.has(currentStep) && (
-            <div className="pointer-events-auto absolute right-6 top-[calc(env(safe-area-inset-top,0px)+1.25rem)] z-[120]">
-              <SplashLanguageSwitcher />
-            </div>
-          )}
           <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={currentStep}

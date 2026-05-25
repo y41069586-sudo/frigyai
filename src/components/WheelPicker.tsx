@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { NativeLikeWheelPicker } from "@/components/NativeLikeWheelPicker";
+import { StableWheelPicker } from "@/components/StableWheelPicker";
 
 interface WheelPickerProps {
   value: number;
@@ -69,16 +69,16 @@ export const WheelPicker = ({
         }}
       />
 
-      <NativeLikeWheelPicker
+      <StableWheelPicker
         data={options}
         value={selected}
         onChange={(item) => onChange(item.value)}
         itemHeight={ITEM_HEIGHT}
         visibleItems={VISIBLE_ITEMS}
         infinite={false}
-        virtualizeThreshold={40}
         getItemKey={(item) => item.value}
         selectionOverlay={null}
+        ariaLabel={unitTrimmed ? `Wert in ${unitTrimmed}` : "Wert auswählen"}
         formatLiveLabel={(opt) => (unitTrimmed ? `${opt.label} ${unitTrimmed}` : opt.label)}
         renderItem={(opt, selected, _i, _a, isCenter) => {
           const highlighted = selected || isCenter;

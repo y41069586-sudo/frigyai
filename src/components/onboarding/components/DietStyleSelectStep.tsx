@@ -14,10 +14,10 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#6EF0A8",
-  primaryDark: "#4AE896",
-  bg: "#FEFFFE",
-  selectedBg: "#E0FDEC",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#F2FFF8",
+  selectedBg: "#DCFEEF",
   border: "#6EECC0",
   text: "#1F2937",
   cardBorderIdle: "#D1D5DB",
@@ -106,7 +106,7 @@ export function DietStyleSelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F5FFF9",
+              backgroundColor: "#F2FFF8",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

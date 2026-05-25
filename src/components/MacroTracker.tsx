@@ -1322,12 +1322,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
           >
             <motion.div
-              className="relative flex h-[min(72vw,280px)] w-[min(72vw,280px)] items-center justify-center rounded-full border-[3px] border-[#6EF0A8]"
+            className="relative flex h-[min(72vw,280px)] w-[min(72vw,280px)] items-center justify-center rounded-full border-[3px] border-[#75FBB2]"
               animate={{
                 boxShadow: [
-                  "0 0 0 0 rgba(110,240,168,0.35)",
-                  "0 0 48px 12px rgba(110,240,168,0.55)",
-                  "0 0 0 0 rgba(110,240,168,0.35)",
+                  "0 0 0 0 rgba(117,251,178,0.35)",
+                  "0 0 48px 12px rgba(117,251,178,0.55)",
+                  "0 0 0 0 rgba(117,251,178,0.35)",
                 ],
               }}
               transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
@@ -1337,7 +1337,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                   animate={{ scale: [1, 1.08, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <Sparkles className="h-8 w-8 text-[#6EF0A8]" />
+                  <Sparkles className="h-8 w-8 text-[#75FBB2]" />
                 </motion.div>
                 <AnimatePresence mode="wait">
                   <motion.p
@@ -1346,14 +1346,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.5 }}
-                    className="text-base font-semibold text-[#6EF0A8]"
+                    className="text-base font-semibold text-[#75FBB2]"
                   >
                     {analyzingMessages[currentMessageIndex]}
                   </motion.p>
                 </AnimatePresence>
                 <motion.div
-                  className="h-[3px] w-32 rounded-full bg-[#6EF0A8]/80"
-                  style={{ boxShadow: "0 0 16px 4px rgba(110,240,168,0.6)" }}
+                  className="h-[3px] w-32 rounded-full bg-[#75FBB2]/80"
+                  style={{ boxShadow: "0 0 16px 4px rgba(117,251,178,0.6)" }}
                   animate={{ opacity: [0.4, 1, 0.4] }}
                   transition={{ duration: 1.2, repeat: Infinity }}
                 />

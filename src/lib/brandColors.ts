@@ -1,31 +1,31 @@
-/** Frigy brand — helles Mint-Grün app-weit (Onboarding, Tracker, UI) */
+/** Frigy brand — neue globale Mint-Palette app-weit (Onboarding, Tracker, UI) */
 export const BRAND = {
-  primary: "#6EF0A8",
-  primaryDark: "#4AE896",
-  primaryDeep: "#32D082",
-  primaryLight: "#F0FFF6",
-  mintBg: "#FEFFFE",
-  selectedBg: "#E0FDEC",
-  chipBg: "#F5FFF9",
-  accent: "#E0FDEC",
-  trackActive: "#6EF0A8",
-  trackInactive: "#E0FDEC",
-  border: "#B8EFD0",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  primaryDeep: "#2EB56D",
+  primaryLight: "#F2FFF8",
+  mintBg: "#FFFFFF",
+  selectedBg: "#DCFEEF",
+  chipBg: "#F2FFF8",
+  accent: "#DCFEEF",
+  trackActive: "#75FBB2",
+  trackInactive: "#DCFEEF",
+  border: "#BCFDDC",
   text: "#1F2937",
   textMuted: "#6B7280",
 } as const;
 
 /** RGB triplets for rgba() in shadows / overlays */
 export const BRAND_RGB = {
-  primary: "110, 240, 168",
-  primaryDark: "74, 232, 150",
+  primary: "117, 251, 178",
+  primaryDark: "57, 212, 127",
 } as const;
 
-/** HSL for CSS variables (primary #6EF0A8) */
+/** HSL for CSS variables (primary #75FBB2) */
 export const BRAND_HSL = {
-  primary: "144 78% 68%",
-  primaryDark: "146 72% 58%",
-  primaryLight: "142 100% 96%",
+  primary: "147 94% 72%",
+  primaryDark: "147 64% 53%",
+  primaryLight: "148 100% 97%",
 } as const;
 
 export const BRAND_SHADOW = {

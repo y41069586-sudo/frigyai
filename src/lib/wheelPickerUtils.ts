@@ -88,6 +88,11 @@ export function indexOfValue<T>(data: T[], value: T | undefined): number {
   return found >= 0 ? found : 0;
 }
 
+export function getWheelPhysicalIndex(scrollTop: number, itemHeight: number): number {
+  const safeHeight = itemHeight > 0 ? itemHeight : 1;
+  return Math.max(0, Math.round(scrollTop / safeHeight));
+}
+
 export function logicalIndexFromPhysical(
   physicalIndex: number,
   segmentLen: number,
@@ -110,6 +115,33 @@ export function physicalIndexForValue(
   infiniteActive: boolean,
 ): number {
   return infiniteActive ? logicalIndex + segmentLen * WHEEL_MIDDLE_COPY_INDEX : logicalIndex;
+}
+
+export function getWheelSnapTarget(
+  scrollTop: number,
+  itemHeight: number,
+  segmentLen: number,
+  infiniteActive: boolean,
+  normalizeIndex?: (index: number) => number,
+): { logicalIndex: number; physicalIndex: number; top: number } {
+  if (segmentLen <= 0) {
+    return { logicalIndex: 0, physicalIndex: 0, top: 0 };
+  }
+
+  const rawPhysical = getWheelPhysicalIndex(scrollTop, itemHeight);
+  const logicalIndex = logicalIndexFromPhysical(
+    rawPhysical,
+    segmentLen,
+    infiniteActive,
+    normalizeIndex,
+  );
+  const physicalIndex = physicalIndexForValue(logicalIndex, segmentLen, infiniteActive);
+
+  return {
+    logicalIndex,
+    physicalIndex,
+    top: physicalIndex * itemHeight,
+  };
 }
 
 /** Keep infinite scroll in the middle copy band. */
