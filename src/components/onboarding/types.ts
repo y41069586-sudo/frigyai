@@ -96,6 +96,10 @@ export interface UserData {
   dailyProtein: number;
   dailyCarbs: number;
   dailyFat: number;
+  birthdateConfirmed: boolean;
+  weightConfirmed: boolean;
+  heightConfirmed: boolean;
+  targetWeightConfirmed: boolean;
 }
 
 export interface StepProps {
@@ -142,6 +146,10 @@ export const defaultUserData: UserData = {
   dailyProtein: 0,
   dailyCarbs: 0,
   dailyFat: 0,
+  birthdateConfirmed: false,
+  weightConfirmed: false,
+  heightConfirmed: false,
+  targetWeightConfirmed: false,
 };
 
 // Steps array for navigation - logically structured flow

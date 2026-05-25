@@ -85,12 +85,18 @@ export function HeightSelectStep({
       height: cm,
       heightFeet: derivedFeet,
       heightInches: derivedInches,
+      heightConfirmed: true,
     });
   };
 
   useEffect(() => {
+    if (!userData.heightConfirmed) {
+      setHeightInput("");
+      return;
+    }
+
     setHeightInput(isMetric ? String(heightCm) : formatImperialHeight(feetFromCm, inchesFromCm));
-  }, [feetFromCm, heightCm, inchesFromCm, isMetric, userData.height]);
+  }, [feetFromCm, heightCm, inchesFromCm, isMetric, userData.height, userData.heightConfirmed]);
 
   const handleUnitChange = (nextUnit: "metric" | "imperial") => {
     if (nextUnit === unit) return;
@@ -168,6 +174,7 @@ export function HeightSelectStep({
       height: parsed.cm,
       heightFeet: parsed.feet,
       heightInches: parsed.inches,
+      heightConfirmed: true,
     });
   };
 
@@ -208,7 +215,7 @@ export function HeightSelectStep({
       </OnboardingMascotQuestion>
 
       {/* Unit toggle */}
-      <div className="mt-4 flex shrink-0 justify-center px-5 pb-1">
+      <div className="mt-7 flex shrink-0 justify-center px-5 pb-1 sm:mt-4">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}

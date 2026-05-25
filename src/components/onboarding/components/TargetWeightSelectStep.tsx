@@ -112,6 +112,7 @@ export function TargetWeightSelectStep({
       ...userData,
       targetWeight: kgWhole,
       targetWeightDecimal: kgDecimal,
+      targetWeightConfirmed: true,
     });
   };
 
@@ -168,6 +169,11 @@ export function TargetWeightSelectStep({
   ];
 
   useEffect(() => {
+    if (!userData.targetWeightConfirmed) {
+      setTargetWeightInput("");
+      return;
+    }
+
     const nextDisplay = isMetric ? totalKg : totalLbs;
     setTargetWeightInput(formatDecimalInput(nextDisplay, separator));
   }, [
@@ -177,6 +183,7 @@ export function TargetWeightSelectStep({
     totalLbs,
     userData.targetWeight,
     userData.targetWeightDecimal,
+    userData.targetWeightConfirmed,
   ]);
 
   const parsedTargetWeight = parseDecimalInput(targetWeightInput);
@@ -259,7 +266,7 @@ export function TargetWeightSelectStep({
       </OnboardingMascotQuestion>
 
       {/* Unit toggle */}
-      <div className="mt-4 flex shrink-0 justify-center px-5 pb-1">
+      <div className="mt-7 flex shrink-0 justify-center px-5 pb-1 sm:mt-4">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}

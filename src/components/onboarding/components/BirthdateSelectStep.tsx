@@ -107,13 +107,13 @@ export function BirthdateSelectStep({
   const [birthdateInput, setBirthdateInput] = useState("");
 
   useEffect(() => {
-    if (!userData.birthdate) {
+    if (!userData.birthdate || !userData.birthdateConfirmed) {
       setBirthdateInput("");
       return;
     }
 
     setBirthdateInput(formatBirthdateValue(userData.birthdate));
-  }, [userData.birthdate]);
+  }, [userData.birthdate, userData.birthdateConfirmed]);
 
   const title =
     language === "de"
@@ -154,6 +154,7 @@ export function BirthdateSelectStep({
         year: parsed.year,
       },
       age: parsed.age,
+      birthdateConfirmed: true,
     });
   };
 
