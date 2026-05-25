@@ -126,17 +126,16 @@ export function GenderSelectStep({
                 )}
               >
                 <div
-                  className="relative w-full overflow-hidden border transition-[box-shadow] duration-300 ease-out"
+                  className="relative w-full transition-[box-shadow] duration-300 ease-out"
                   style={{
                     aspectRatio: "1",
-                    borderColor: selected ? PALETTE.border : PALETTE.cardBorderIdle,
                     boxShadow: selected ? SELECTED_RING : "0 0 0 3px transparent, 0 0 0 5px transparent",
                   }}
                 >
                   <img
                     src={opt.image}
                     alt=""
-                    className="h-full w-full scale-[1.028] object-cover"
+                    className="h-full w-full object-contain"
                     draggable={false}
                   />
                 </div>
