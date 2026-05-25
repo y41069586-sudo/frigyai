@@ -6,6 +6,7 @@ import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/m
 import { FRIGY_STORAGE_UPDATED, WEEKLY_PLAN_AI_GENERATED_KEY, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { harmonizeDailyTargets, syncMealPlanToTargets } from '@/lib/mealPlanMacros';
 import { isSubscriptionActive } from '@/lib/subscription';
+import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import {
   buildGermanConstraintPrompt,
   findMealSafetyViolations,
@@ -13,6 +14,7 @@ import {
   type UserMealPlanProfile,
 } from '@/lib/mealAllergySafety';
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
+import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 
 function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   const unsafe: string[] = [];
@@ -322,6 +324,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setIsGenerating(true);
     setIsMinimized(false);
+    setMealPlan(null);
+    setShoppingList(null);
 
     console.log('[MEAL-PLAN-CLIENT] Clearing old meal plan before generation...');
 
@@ -376,38 +380,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         if (error) {
           console.error('[MEAL-PLAN-CLIENT] Edge Function error:', error);
-
-          let errorMessage = 'Wochenplan konnte nicht generiert werden.';
-
-          // Better extraction for Supabase FunctionsHttpError
-          if (error instanceof Error) {
-            errorMessage = error.message;
-          }
-
-          const context = (error as any).context;
-          if (context) {
-            try {
-              // Try to get structured error from response body
-              const clonedResponse = context.clone();
-              const responseText = await clonedResponse.text();
-              console.log('[MEAL-PLAN-CLIENT] Response body:', responseText);
-
-              if (responseText) {
-                try {
-                  const parsed = JSON.parse(responseText);
-                  errorMessage = parsed.error || parsed.message || errorMessage;
-                } catch (jsonErr) {
-                  // Not JSON, just use text
-                  if (responseText.length < 200) errorMessage = responseText;
-                }
-              }
-            } catch (contextErr) {
-              console.error('[MEAL-PLAN-CLIENT] Error reading context:', contextErr);
-            }
-          } else if ((error as any).message) {
-            errorMessage = (error as any).message;
-          }
-
+          const errorMessage = await getEdgeFunctionErrorMessage(error, data as { error?: string; message?: string } | null);
           throw new Error(errorMessage);
         }
 
@@ -603,6 +576,12 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       clearMealPlan,
     }}>
       {children}
+      <MealPlanGeneratingOverlay
+        isGenerating={isGenerating}
+        elapsedSeconds={elapsedSeconds}
+        isMinimized={isMinimized}
+        onMinimize={() => setIsMinimized(true)}
+      />
     </MealPlanContext.Provider>
   );
 };

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar, Camera, Refrigerator } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar, Camera } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
@@ -390,7 +390,7 @@ const MealPlansPage = () => {
   // Show loading screen while activating subscription
   if (isActivatingSubscription) {
     return (
-      <div className="min-h-screen bg-gradient-primary flex items-center justify-center">
+      <div className="min-h-screen bg-[#F2FFF8] flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -415,7 +415,7 @@ const MealPlansPage = () => {
   if (loading) {
     return (
       <>
-        <div className="min-h-screen bg-gradient-primary safe-area-inset flex flex-col">
+        <div className="min-h-screen bg-[#F2FFF8] safe-area-inset flex flex-col">
           <nav className="sticky top-0 z-40 bg-background/95 border-b border-primary/20 safe-top">
             <motion.div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3">
               <motion.div className="h-9 w-24 rounded-lg bg-muted/60 animate-pulse" />
@@ -434,7 +434,7 @@ const MealPlansPage = () => {
 
   if (!user) {
     return (
-      <motion.div className="min-h-screen bg-gradient-primary flex flex-col">
+      <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
         <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </motion.div>
@@ -445,8 +445,8 @@ const MealPlansPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-primary safe-area-inset">
-      <nav className="sticky top-0 z-40 bg-background/95 border-b border-primary/20 safe-top sm:bg-background/80 sm:backdrop-blur-lg">
+      <div className="min-h-screen bg-[#F2FFF8] safe-area-inset">
+      <nav className="sticky top-0 z-40 bg-[#F2FFF8]/95 border-b border-primary/15 safe-top sm:bg-[#F2FFF8]/90 sm:backdrop-blur-lg">
         <div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center">
             <Button
@@ -459,10 +459,10 @@ const MealPlansPage = () => {
             </Button>
             <NavLink to="/">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="rounded-xl bg-primary/10 p-0.5 shadow-[0_10px_28px_-14px_hsl(var(--primary)/0.45)]">
+                <span className="rounded-xl bg-primary/10 p-0.5">
                   <img src={frigyMascot} alt="Frigy" className="h-6 w-6 rounded-lg sm:h-7 sm:w-7" />
                 </span>
-                <h1 className="bg-gradient-to-r from-primary via-emerald-400 to-primary/60 bg-clip-text text-[18px] font-black tracking-[-0.04em] text-transparent drop-shadow-[0_8px_18px_hsl(var(--primary)/0.2)] sm:text-xl">
+                <h1 className="text-[18px] font-black tracking-[-0.04em] text-foreground sm:text-xl">
                   Frigy
                 </h1>
               </div>
@@ -486,7 +486,7 @@ const MealPlansPage = () => {
               transition={tabPanelTransition(isMobile)}
             >
               <div className="mb-6">
-                <h2 className="text-2xl font-bold neon-text mb-1">{t.reminderSettings}</h2>
+                <h2 className="mb-1 text-2xl font-bold text-foreground">{t.reminderSettings}</h2>
                 <p className="text-sm text-muted-foreground">{t.reminderSettings}</p>
               </div>
               <ReminderSettings />
@@ -505,31 +505,22 @@ const MealPlansPage = () => {
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <ExportMealPlan mealPlan={mealPlan} pdfOnly />
-                    <div className="ml-auto grid min-w-0 shrink grid-cols-[minmax(0,1fr)_auto_auto] gap-1.5 min-[390px]:gap-2">
+                    <div className="ml-auto grid min-w-0 shrink grid-cols-2 gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-9 min-w-0 rounded-2xl border-primary/30 px-2 text-[10px] min-[360px]:h-10 min-[390px]:px-2.5 min-[390px]:text-xs sm:h-9 sm:text-sm"
+                        className="h-11 min-w-0 rounded-2xl border-primary/25 bg-white px-3 text-[11px] font-semibold min-[390px]:text-xs sm:h-10 sm:text-sm"
                         onClick={() => navigate("/scan")}
                       >
-                        <Camera className="mr-1.5 hidden h-3.5 w-3.5 min-[390px]:inline" />
+                        <Camera className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="shrink-0 text-base leading-none" aria-hidden>🧊</span>
                         <span className="truncate">Zutaten erkennen</span>
                       </Button>
                       <Button
                         type="button"
-                        variant="outline"
                         size="sm"
-                        className="h-9 w-9 shrink-0 rounded-2xl border-primary/30 px-0 sm:h-9"
-                        onClick={() => navigate("/scan")}
-                        aria-label="Kühlschrank scannen"
-                      >
-                        <Refrigerator className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-9 min-w-0 rounded-2xl bg-primary px-2 text-[10px] text-primary-foreground min-[360px]:h-10 min-[390px]:px-2.5 min-[390px]:text-xs sm:h-9 sm:text-sm"
+                        className="h-11 min-w-0 rounded-2xl bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] px-3 text-[11px] font-semibold text-[#082013] min-[390px]:text-xs sm:h-10 sm:text-sm"
                         onClick={generateMealPlan}
                         disabled={isGenerating}
                       >
@@ -550,8 +541,8 @@ const MealPlansPage = () => {
 
                 <div className="space-y-3 sm:space-y-4">
                   {mealPlan.length === 0 && !isGenerating && (
-                    <Card className="p-6 sm:p-8 bg-card/90 border-primary/20 text-center">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.35)]" />
+                    <Card className="border-primary/20 bg-card/90 p-6 text-center sm:p-8">
+                      <Calendar className="mx-auto mb-4 h-12 w-12 text-primary" />
                       <h3 className="text-lg font-bold mb-2">
                         {t.onboardingFirstWeeklyPlanTitle || 'Erstell deinen ersten Frigy Wochenplan!'}
                       </h3>

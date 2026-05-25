@@ -93,6 +93,7 @@ export const MealPlanGeneratingOverlay = ({
 }: MealPlanGeneratingOverlayProps) => {
   const { t } = useLanguage();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const progressPercent = Math.max(8, Math.min(96, 12 + elapsedSeconds * 4));
 
   const motivationalTexts = [
     t.mealPlanGenerating1,
@@ -215,11 +216,8 @@ export const MealPlanGeneratingOverlay = ({
           style={{ pointerEvents: showOverlay ? "auto" : "none" }}
           onPointerDown={handleBackgroundPointerDown}
         >
-          {/* Blurred background - shows content behind with blur effect */}
-          <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
-          
-          {/* Very light gradient overlay for modern feel */}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 via-white/20 to-teal-50/40 dark:from-emerald-900/20 dark:via-transparent dark:to-teal-900/20" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#F7FFFB_58%,#F1FBF5_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(117,251,178,0.16),transparent_28%)]" />
 
           {!locked && (onBack || onMinimize) && (
             <motion.button
@@ -241,7 +239,7 @@ export const MealPlanGeneratingOverlay = ({
             </motion.button>
           )}
 
-          <div data-mealplan-overlay-card="true" className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10">
+          <div data-mealplan-overlay-card="true" className="relative flex w-full max-w-md flex-col items-center gap-5 px-6 py-8 text-center z-10">
 
             {/* Floating ingredients - smaller and more subtle */}
             <div className="absolute inset-x-0 top-0 h-40 pointer-events-none">
@@ -300,7 +298,6 @@ export const MealPlanGeneratingOverlay = ({
               />
             </motion.div>
 
-            {/* Motivational text - cleaner typography */}
             <div className="h-12 flex items-center justify-center mt-4">
               <AnimatePresence mode="wait">
                 <motion.p
@@ -309,7 +306,7 @@ export const MealPlanGeneratingOverlay = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="text-lg font-medium text-slate-700 dark:text-slate-200 tracking-tight"
+                  className="text-lg font-medium tracking-tight text-slate-700"
                 >
                   {motivationalTexts[currentTextIndex]}
                 </motion.p>
@@ -321,7 +318,7 @@ export const MealPlanGeneratingOverlay = ({
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  className="w-2 h-2 rounded-full bg-emerald-400 dark:bg-emerald-500"
+                  className="h-2 w-2 rounded-full bg-emerald-400"
                   animate={{ 
                     scale: [1, 1.4, 1],
                     opacity: [0.5, 1, 0.5]
@@ -336,14 +333,30 @@ export const MealPlanGeneratingOverlay = ({
               ))}
             </div>
 
+            <div className="mt-2 w-full max-w-xs rounded-[28px] border border-[#D8FCE8] bg-white/92 px-4 py-4 shadow-[0_20px_48px_-30px_rgba(34,197,94,0.24)]">
+              <div className="mb-2 flex items-center justify-between text-[12px] font-semibold tracking-[0.01em] text-slate-600">
+                <span>Wochenplan wird erstellt</span>
+                <span>{progressPercent}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[#E8F7EE]">
+                <motion.div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#75FBB2_0%,#39D47F_100%)]"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500">Du kannst die App weiter benutzen. Frigy arbeitet im Hintergrund weiter.</p>
+            </div>
+
             {locked && stayOnTabMessage && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="mt-2 max-w-xs rounded-2xl border border-amber-300/60 bg-amber-50/90 px-4 py-3 dark:border-amber-600/40 dark:bg-amber-950/50"
+                className="mt-2 max-w-xs rounded-2xl border border-amber-300/60 bg-amber-50/90 px-4 py-3"
               >
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                <p className="text-sm font-medium text-amber-900">
                   {stayOnTabMessage}
                 </p>
               </motion.div>
@@ -351,7 +364,7 @@ export const MealPlanGeneratingOverlay = ({
 
             {!locked && onMinimize && (
               <motion.p 
-                className="text-xs text-slate-400 dark:text-slate-500 mt-4 font-normal"
+                className="mt-4 text-xs font-normal text-slate-400"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5 }}

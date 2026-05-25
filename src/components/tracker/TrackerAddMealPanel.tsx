@@ -126,12 +126,11 @@ function DetailMacro({
 }
 
 const INPUT_MODES: {
-  id: InputMode;
+  id: Exclude<InputMode, "search">;
   label: string;
   icon: typeof Search;
   tint: string;
 }[] = [
-  { id: "search", label: "Suche", icon: Search, tint: PALETTE.primary },
   { id: "camera", label: "Kamera", icon: Camera, tint: "#EC4899" },
   { id: "barcode", label: "Barcode", icon: Barcode, tint: "#EF4444" },
 ];
@@ -497,7 +496,6 @@ export function TrackerAddMealPanel({
             backgroundColor: "#FFFFFF",
             borderColor: PALETTE.border,
             color: PALETTE.primaryDark,
-            boxShadow: GREEN_SHADOW,
           }}
           aria-label={`${mealCount} Mahlzeiten heute. Liste anzeigen.`}
         >
@@ -507,7 +505,10 @@ export function TrackerAddMealPanel({
 
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="shrink-0 px-3 pt-1">
-          <div className="grid grid-cols-3 gap-2">
+          <div
+            className="grid gap-2"
+            style={{ gridTemplateColumns: `repeat(${INPUT_MODES.length}, minmax(0, 1fr))` }}
+          >
             {INPUT_MODES.map((item) => {
               const Icon = item.icon;
               const active = mode === item.id;
@@ -572,7 +573,6 @@ export function TrackerAddMealPanel({
           className="mt-3 min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-1 safe-bottom"
           style={{
             backgroundColor: PALETTE.bg,
-            boxShadow: GREEN_SHADOW_TOP,
           }}
         >
           {loadingRecipes ? (

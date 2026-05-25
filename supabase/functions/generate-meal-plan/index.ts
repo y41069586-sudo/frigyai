@@ -7,7 +7,7 @@ declare const Deno: {
   serve(handler: (req: Request) => Response | Promise<Response>): unknown;
 };
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -391,6 +391,19 @@ Deno.serve(async (req) => {
       dailyFat,
     });
 
+    if (!OPENAI_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          error: "OPENAI_API_KEY fehlt auf der Edge Function.",
+          message: "Die KI-Wochenplanfunktion ist aktuell nicht konfiguriert.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     const fridgeHint =
       fridgeIngredients.length > 0
         ? `\n\nKühlschrank (bereits vorhanden – priorisiere diese Zutaten, darfst aber beliebig weitere ergänzen):\n${fridgeIngredients.join(", ")}`
@@ -553,9 +566,10 @@ Antwort NUR als JSON:
       },
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: message,
       }),
       {
         status: 500,

@@ -179,14 +179,14 @@ export const EditMacroGoalsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] max-h-[88svh] overflow-y-auto rounded-[24px] p-4 sm:max-w-md sm:rounded-lg sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-center">
             {t.changeGoal}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-3 py-2 sm:space-y-4 sm:py-4">
           {macros.map((macro, index) => {
             const Icon = macro.icon;
             const isHighlighted = focusMacro === macro.key;
@@ -200,7 +200,7 @@ export const EditMacroGoalsDialog = ({
                   scale: isHighlighted ? 1.02 : 1,
                 }}
                 transition={{ delay: index * 0.05 }}
-                className={`flex items-center gap-3 p-2 rounded-xl transition-all ${
+                className={`flex items-center gap-3 rounded-xl p-2 transition-all sm:p-3 ${
                   isHighlighted ? `${macro.highlightBorder} bg-muted/50` : ''
                 }`}
               >
@@ -227,7 +227,7 @@ export const EditMacroGoalsDialog = ({
           })}
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
           <Button
             variant="outline"
             className="flex-1"

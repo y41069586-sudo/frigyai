@@ -49,9 +49,18 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
 
     video.setAttribute("playsinline", "true");
     video.setAttribute("webkit-playsinline", "true");
+    video.setAttribute("muted", "true");
+    video.setAttribute("autoplay", "true");
+    video.setAttribute("disablePictureInPicture", "true");
+    video.setAttribute("disableRemotePlayback", "true");
+    video.setAttribute("controlsList", "nodownload nofullscreen noplaybackrate");
+    video.controls = false;
+    video.removeAttribute("controls");
     video.muted = true;
     video.autoplay = true;
     video.playsInline = true;
+    video.disablePictureInPicture = true;
+    video.disableRemotePlayback = true;
     video.srcObject = stream;
 
     try {

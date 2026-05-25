@@ -562,6 +562,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       console.error('Error analyzing food:', errorMsg, error);
       if (imageBase64) {
         keepCameraOpenOnError = true;
+        setShowFoodCamera(true);
+        notifyOverlayOpen(true);
         setFoodScanError(
           language === "de"
             ? "Hmm, ich glaube nicht, dass das Essen ist. Versuchen wir es mal mit etwas Essbarem, okay?"

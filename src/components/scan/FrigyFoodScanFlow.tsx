@@ -92,12 +92,32 @@ export function FrigyFoodScanFlow({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[130] flex flex-col bg-black text-white safe-area-inset"
     >
+      <style>{`
+        .frigy-scan-video::-webkit-media-controls,
+        .frigy-scan-video::-webkit-media-controls-panel,
+        .frigy-scan-video::-webkit-media-controls-play-button,
+        .frigy-scan-video::-webkit-media-controls-start-playback-button,
+        .frigy-scan-video::-webkit-media-controls-overlay-play-button,
+        .frigy-scan-video::-webkit-media-controls-overlay-enclosure,
+        .frigy-scan-video::-internal-media-controls-overlay-cast-button {
+          display: none !important;
+          opacity: 0 !important;
+          -webkit-appearance: none !important;
+        }
+      `}</style>
       <video
         ref={setVideoRef}
-        className="absolute inset-0 h-full w-full object-cover"
+        className={cn(
+          "frigy-scan-video pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-150",
+          previewReady ? "opacity-100" : "opacity-0",
+        )}
         autoPlay
         muted
         playsInline
+        controls={false}
+        disablePictureInPicture
+        disableRemotePlayback
+        controlsList="nodownload nofullscreen noplaybackrate"
       />
 
       <motion.div className="absolute inset-0 bg-black/25" animate={{ opacity: 0.35 }} />
@@ -128,11 +148,11 @@ export function FrigyFoodScanFlow({
             border: "3px solid #75FBB2",
           }}
         >
-          {!analyzing && !previewReady && (
+          {!analyzing && !previewReady && errorMessage ? (
             <p className="absolute -bottom-14 left-1/2 w-[min(90vw,320px)] -translate-x-1/2 text-center text-sm text-white/80">
-              {errorMessage || (isLive ? "Kamera bereit" : "Kamera wird geladen…")}
+              {errorMessage}
             </p>
-          )}
+          ) : null}
         </motion.div>
       </motion.div>
 
@@ -148,7 +168,7 @@ export function FrigyFoodScanFlow({
         <button
           type="button"
           onClick={() => void handleShutter()}
-          className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[4px] border-[#75FBB2] bg-white/10 shadow-[0_0_28px_rgba(117,251,178,0.45)]"
+          className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[4px] border-[#75FBB2] bg-white/10 shadow-[0_14px_36px_-18px_rgba(57,212,127,0.42)]"
           aria-label="Foto aufnehmen"
         >
           <Camera className="h-8 w-8 text-[#75FBB2]" />

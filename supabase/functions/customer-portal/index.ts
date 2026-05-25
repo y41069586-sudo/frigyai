@@ -14,6 +14,34 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
 };
 
+async function hasManageableSubscription(stripe: Stripe, customerId: string): Promise<boolean> {
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 10,
+  });
+
+  return subscriptions.data.some((subscription) =>
+    ["active", "trialing", "past_due", "unpaid", "paused"].includes(subscription.status),
+  );
+}
+
+async function findCustomerWithSubscription(
+  stripe: Stripe,
+  email: string,
+): Promise<string | null> {
+  const customers = await stripe.customers.list({ email, limit: 10 });
+  const sortedCustomers = [...customers.data].sort((a, b) => b.created - a.created);
+
+  for (const customer of sortedCustomers) {
+    if (await hasManageableSubscription(stripe, customer.id)) {
+      return customer.id;
+    }
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -44,11 +72,19 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+    const customerId = await findCustomerWithSubscription(stripe, user.email);
+    if (!customerId) {
+      return new Response(
+        JSON.stringify({
+          error: "no_manageable_subscription",
+          message: "Kein verwaltbares Stripe-Abo gefunden.",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 409,
+        },
+      );
     }
-    const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
     const origin = req.headers.get("origin") || "http://localhost:8080";

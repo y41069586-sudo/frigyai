@@ -20,19 +20,21 @@ export function TrackerWidgetCarousel({ tracker, weight, className }: TrackerWid
 
   return (
     <motion.div
-      className={cn("relative touch-pan-y", className)}
+      className={cn("relative overflow-hidden touch-pan-y", className)}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.12}
+      dragElastic={0.08}
+      dragMomentum={false}
+      dragDirectionLock
       onDragStart={() => {
         dragStart.current = page;
       }}
       onDragEnd={onDragEnd}
     >
       <motion.div
-        className="flex"
+        className="flex will-change-transform"
         animate={{ x: page === 0 ? "0%" : "-100%" }}
-        transition={{ type: "spring", stiffness: 320, damping: 32 }}
+        transition={{ type: "spring", stiffness: 220, damping: 30, mass: 0.9 }}
       >
         <motion.div className="w-full shrink-0">{tracker}</motion.div>
         <motion.div className="w-full shrink-0">{weight}</motion.div>

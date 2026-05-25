@@ -12,6 +12,8 @@ import { WaterTracker } from '@/components/WaterTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import frigLogo from '@/assets/frigy-mascot.png';
+import { canManageStripeSubscription } from '@/lib/subscription';
+import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -24,6 +26,7 @@ const PremiumPage = () => {
   const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
+  const canManageSubscription = canManageStripeSubscription(subscriptionStatus);
   
   // Check if we're returning from Stripe payment
   const isReturningFromStripe = searchParams.get('subscription') === 'success';
@@ -208,7 +211,9 @@ const PremiumPage = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(await getEdgeFunctionErrorMessage(error, data));
+      }
 
       if (data?.url) {
         const newWindow = window.open(data.url, '_blank');
@@ -300,28 +305,30 @@ const PremiumPage = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleManageSubscription}
-                      disabled={loading}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-9 text-xs"
-                    >
-                      <Settings className="mr-1.5 h-3.5 w-3.5" />
-                      {t.manage}
-                    </Button>
-                    <Button
-                      onClick={handleManageSubscription}
-                      disabled={loading}
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 text-xs"
-                    >
-                      <XCircle className="mr-1.5 h-3.5 w-3.5" />
-                      Kündigen
-                    </Button>
-                  </div>
+                  {canManageSubscription && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleManageSubscription}
+                        disabled={loading}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 text-xs"
+                      >
+                        <Settings className="mr-1.5 h-3.5 w-3.5" />
+                        {t.manage}
+                      </Button>
+                      <Button
+                        onClick={handleManageSubscription}
+                        disabled={loading}
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 text-xs"
+                      >
+                        <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                        Kündigen
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 

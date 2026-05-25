@@ -46,7 +46,12 @@ export function TrackerWidget({
   onOpenTracker,
   loggedMealTypes = [],
 }: TrackerWidgetProps) {
-  const caloriesRemaining = Math.max(0, Math.round(targetCalories - caloriesEaten));
+  const roundedTargetCalories = Math.round(targetCalories);
+  const roundedCaloriesEaten = Math.round(caloriesEaten);
+  const rawCalorieDelta = roundedTargetCalories - roundedCaloriesEaten;
+  const caloriesOver = rawCalorieDelta < -1 ? Math.abs(rawCalorieDelta) : 0;
+  const caloriesRemaining = rawCalorieDelta > 1 ? rawCalorieDelta : 0;
+  const isOverGoal = caloriesOver > 0;
   const calPct = targetCalories > 0 ? Math.min(100, (caloriesEaten / targetCalories) * 100) : 0;
   const proteinText = `${Math.round(proteinEaten)} / ${Math.round(targetProtein)}g`;
   const carbsText = `${Math.round(carbsEaten)} / ${Math.round(targetCarbs)}g`;
@@ -69,25 +74,32 @@ export function TrackerWidget({
             <button
               type="button"
               onClick={onOpenTracker}
-              className="block text-left text-[34px] font-black leading-none tracking-[-0.04em] tabular-nums text-foreground active:scale-[0.99] sm:text-[38px]"
+              className={cn(
+                "block text-left text-[34px] font-black leading-none tracking-[-0.04em] tabular-nums active:scale-[0.99] sm:text-[38px]",
+                isOverGoal ? "text-rose-600" : "text-foreground",
+              )}
             >
-              {caloriesRemaining.toLocaleString("de-DE")} kcal
+              {(isOverGoal ? caloriesOver : caloriesRemaining).toLocaleString("de-DE")} kcal
             </button>
-            <p className="text-[13px] font-medium text-muted-foreground">übrig von {targetCalories.toLocaleString("de-DE")} kcal</p>
+            <p className={cn("text-[13px] font-medium", isOverGoal ? "text-rose-500" : "text-muted-foreground")}>
+              {isOverGoal ? "über dem Ziel" : "übrig"} von {roundedTargetCalories.toLocaleString("de-DE")} kcal
+            </p>
           </div>
 
           <div className="space-y-3">
             <div className="h-3 overflow-hidden rounded-full bg-primary/10">
               <motion.div
-                className="h-full origin-left rounded-full bg-primary"
+                className={cn("h-full origin-left rounded-full", isOverGoal ? "bg-rose-500" : "bg-primary")}
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: calPct / 100 }}
                 transition={{ duration: 0.85, delay: delay + 0.05, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
             <div className="flex items-center justify-between text-[12px] font-medium text-muted-foreground">
-              <span>{Math.round(caloriesEaten).toLocaleString("de-DE")} gegessen</span>
-              <span>{Math.round(calPct)}%</span>
+              <span className={cn(isOverGoal && "text-rose-500")}>
+                {roundedCaloriesEaten.toLocaleString("de-DE")} gegessen
+              </span>
+              <span className={cn(isOverGoal && "text-rose-500")}>{Math.round(calPct)}%</span>
             </div>
           </div>
 
@@ -107,6 +119,7 @@ export function TrackerWidget({
         <div className="grid grid-cols-4 gap-2.5">
           {MEAL_SLOTS.map((slot, index) => {
             const logged = loggedMealTypes.includes(slot.key);
+            const emphasizePrimaryMeals = slot.key === "lunch" || slot.key === "dinner";
             return (
               <motion.button
                 key={slot.key}
@@ -117,16 +130,25 @@ export function TrackerWidget({
                 whileTap={{ scale: 0.92, y: 2 }}
                 onClick={() => onAddMeal?.(slot.key)}
                 className={cn(
-                  "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/82 px-1.5 text-center shadow-[0_8px_20px_-18px_rgba(15,23,42,0.2)] transition-colors sm:bg-white/72 sm:backdrop-blur-xl sm:shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)]",
+                  "flex flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/82 px-1.5 text-center shadow-[0_8px_20px_-18px_rgba(15,23,42,0.2)] transition-colors sm:bg-white/72 sm:backdrop-blur-xl sm:shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)]",
+                  emphasizePrimaryMeals ? "min-h-[94px]" : "min-h-[82px]",
                   logged
                     ? "border border-primary/30 bg-primary/12 text-primary"
                     : "border border-neutral-200/90 text-foreground hover:bg-primary/8 dark:border-white/10",
                 )}
                 aria-label={`${slot.label} hinzufügen`}
               >
-                <span className="text-[24px]" aria-hidden>{slot.icon}</span>
-                <span className="text-[11px] font-bold leading-tight">{slot.label}</span>
-                <span className={cn("flex h-5 w-5 items-center justify-center rounded-full", logged ? "bg-primary" : "bg-primary/12")}>
+                <span className={cn(emphasizePrimaryMeals ? "text-[26px]" : "text-[24px]")} aria-hidden>{slot.icon}</span>
+                <span className={cn("font-bold leading-tight", emphasizePrimaryMeals ? "text-[12px]" : "text-[11px]")}>
+                  {slot.label}
+                </span>
+                <span
+                  className={cn(
+                    "flex items-center justify-center rounded-full",
+                    emphasizePrimaryMeals ? "h-6 w-6" : "h-5 w-5",
+                    logged ? "bg-primary" : "bg-primary/12",
+                  )}
+                >
                   {logged ? (
                     <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                   ) : (

@@ -34,6 +34,8 @@ import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
+import { canManageStripeSubscription } from "@/lib/subscription";
+import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 
 function SettingsGroup({
   title,
@@ -119,6 +121,7 @@ const ProfilePage = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const canManageSubscription = canManageStripeSubscription(subscriptionStatus);
 
   const handleSignOut = async () => {
     try {
@@ -148,7 +151,9 @@ const ProfilePage = () => {
       const { data, error } = await supabase.functions.invoke("customer-portal", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+      if (error) {
+        throw new Error(await getEdgeFunctionErrorMessage(error, data));
+      }
       if (data?.url) {
         window.location.href = data.url;
       }
@@ -272,12 +277,14 @@ const ProfilePage = () => {
                 </Button>
               }
             />
-            <SettingsRow
-              icon={CreditCard}
-              label={t.manageSubscription}
-              description={portalLoading ? t.settingsOpeningPortal : undefined}
-              onClick={() => void handleManageSubscription()}
-            />
+            {canManageSubscription && (
+              <SettingsRow
+                icon={CreditCard}
+                label={t.manageSubscription}
+                description={portalLoading ? t.settingsOpeningPortal : undefined}
+                onClick={() => void handleManageSubscription()}
+              />
+            )}
           </SettingsGroup>
 
           <SettingsGroup title={t.settingsLabel}>

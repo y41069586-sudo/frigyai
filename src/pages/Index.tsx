@@ -617,8 +617,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[#F2FFF8] flex flex-col overflow-x-hidden">
-      {/* Subtle background without white edge fade */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(to_bottom,#F2FFF8,#F2FFF8)] pointer-events-none" />
+      <div className="fixed inset-0 bg-[#F2FFF8] pointer-events-none" />
 
       {/* Main Content */}
       <main className="relative flex-1 flex flex-col px-4 pb-bottom-nav pt-9 sm:px-6 sm:pt-11 safe-top">
@@ -631,7 +630,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex-1 min-w-0">
-              <h1 className="bg-gradient-to-r from-primary via-emerald-400 to-primary/60 bg-clip-text text-[26px] font-black leading-tight tracking-[-0.05em] text-transparent drop-shadow-[0_10px_22px_hsl(var(--primary)/0.24)]">
+              <h1 className="text-[26px] font-black leading-tight tracking-[-0.05em] text-foreground">
                 Frigy
               </h1>
             </div>

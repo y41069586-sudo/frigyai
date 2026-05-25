@@ -1826,15 +1826,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
         return (
           <StepCard step="macro-preview">
-            <div className="flex flex-col items-center text-center px-4 w-full">
+            <div className="flex w-full flex-col items-center px-4 pb-28 text-center sm:pb-10">
               {/* Hero Goal Prediction Banner - TOP */}
               <motion.div 
-                className="w-full max-w-sm mb-6"
+                className="mb-5 w-full max-w-sm sm:mb-6"
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.5, type: "spring" }}
               >
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-5 shadow-lg">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-4 shadow-lg sm:p-5">
                   {/* Decorative elements */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
@@ -1855,12 +1855,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3, duration: 0.4 }}
                     >
-                      <p className="text-primary-foreground text-lg font-bold mb-1">
-                        {t.youWillReach} <span className="text-2xl">{userData.targetWeight}kg</span> {language === 'de' ? 'erreichen' : ''}
+                      <p className="mb-1 text-base font-bold text-primary-foreground sm:text-lg">
+                        {t.youWillReach} <span className="text-[1.55rem] sm:text-2xl">{userData.targetWeight}kg</span> {language === 'de' ? 'erreichen' : ''}
                       </p>
                       <div className="flex items-center justify-center gap-2">
                         <Calendar className="w-4 h-4 text-primary-foreground/70" />
-                        <p className="text-primary-foreground/90 font-semibold text-xl">
+                        <p className="text-lg font-semibold text-primary-foreground/90 sm:text-xl">
                           {t.onDate} {goalDateFormatted}
                         </p>
                       </div>
@@ -1895,7 +1895,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               
               {/* Calorie Ring - Modern Card Style */}
               <motion.div
-                className="mb-5 relative"
+                className="relative mb-4 w-full max-w-[18.5rem] sm:mb-5"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5, duration: 0.4 }}
@@ -1924,7 +1924,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               
               {/* Macro Rings - Modern Grid */}
               <motion.div 
-                className="grid grid-cols-3 gap-3 w-full max-w-xs"
+                className="grid w-full max-w-[18.5rem] grid-cols-3 gap-2 sm:max-w-xs sm:gap-3"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.3 }}
@@ -1995,7 +1995,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               
               {/* Scientific Sources Card - ehrliche Quellen die tatsächlich verwendet werden */}
               <motion.div
-                className="w-full max-w-sm mt-6 p-4 rounded-2xl bg-card border border-border/50"
+                className="mt-5 w-full max-w-sm rounded-2xl border border-border/50 bg-card p-4 sm:mt-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.3 }}
@@ -4085,7 +4085,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 <Button
                   onClick={goNext}
                   disabled={!canProceed()}
-                  className={`h-12 w-full rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
+                  className={`h-12 w-full rounded-xl border border-[#57EE9A]/30 bg-[linear-gradient(135deg,#75FBB2_0%,#57EE9A_52%,#39D47F_100%)] text-[#082013] shadow-[0_18px_42px_-20px_rgba(57,212,127,0.52)] transition-all ${!canProceed() ? "opacity-50" : "hover:brightness-[1.02]"}`}
                 >
                   {t.perfectBtn}
                   <ChevronRight className="w-5 h-5 ml-1" />
@@ -4103,7 +4103,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               <Button
                 onClick={goNext}
                 disabled={!canProceed()}
-                className={`w-full h-12 rounded-xl transition-all ${!canProceed() ? "opacity-50" : ""}`}
+                className={`h-12 w-full rounded-xl border border-[#57EE9A]/30 bg-[linear-gradient(135deg,#75FBB2_0%,#57EE9A_52%,#39D47F_100%)] text-[#082013] shadow-[0_18px_42px_-20px_rgba(57,212,127,0.52)] transition-all ${!canProceed() ? "opacity-50" : "hover:brightness-[1.02]"}`}
               >
                 {currentStep === "welcome" ? t.start : 
                  currentStep === "tracker-intro" ? t.letsGo : 

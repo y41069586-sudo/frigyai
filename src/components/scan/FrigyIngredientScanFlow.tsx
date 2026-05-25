@@ -276,13 +276,17 @@ export function FrigyIngredientScanFlow({
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 border-t border-border/60 bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-          <div className="mx-auto flex max-w-lg gap-3">
-            <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={onAddMorePhotos}>
-              <ImagePlus className="mr-2 h-4 w-4" />
+          <div className="mx-auto grid max-w-lg grid-cols-2 gap-2.5">
+            <Button
+              variant="outline"
+              className="h-12 min-w-0 rounded-2xl border-primary/20 bg-white px-2 text-[12px] font-semibold leading-tight sm:px-4 sm:text-sm"
+              onClick={onAddMorePhotos}
+            >
+              <ImagePlus className="mr-1.5 h-4 w-4 shrink-0 sm:mr-2" />
               {L.addPhoto}
             </Button>
             <Button
-              className="h-12 flex-1 rounded-2xl bg-gradient-to-r from-[#75FBB2] to-[#39D47F] text-[#0a1f14] font-semibold"
+              className="h-12 min-w-0 rounded-2xl bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] px-2 text-[12px] font-semibold leading-tight text-[#0a1f14] sm:px-4 sm:text-sm"
               onClick={onCreateShoppingList}
             >
               {L.createList}
@@ -295,12 +299,32 @@ export function FrigyIngredientScanFlow({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black text-white safe-area-inset overflow-hidden">
+      <style>{`
+        .frigy-scan-video::-webkit-media-controls,
+        .frigy-scan-video::-webkit-media-controls-panel,
+        .frigy-scan-video::-webkit-media-controls-play-button,
+        .frigy-scan-video::-webkit-media-controls-start-playback-button,
+        .frigy-scan-video::-webkit-media-controls-overlay-play-button,
+        .frigy-scan-video::-webkit-media-controls-overlay-enclosure,
+        .frigy-scan-video::-internal-media-controls-overlay-cast-button {
+          display: none !important;
+          opacity: 0 !important;
+          -webkit-appearance: none !important;
+        }
+      `}</style>
       <video
         ref={setVideoRef}
-        className="absolute inset-0 h-full w-full object-cover z-0"
+        className={cn(
+          "frigy-scan-video pointer-events-none absolute inset-0 z-0 h-full w-full object-cover transition-opacity duration-150",
+          previewReady ? "opacity-100" : "opacity-0",
+        )}
         autoPlay
         muted
         playsInline
+        controls={false}
+        disablePictureInPicture
+        disableRemotePlayback
+        controlsList="nodownload nofullscreen noplaybackrate"
       />
 
       {showCameraHint && (
@@ -391,7 +415,7 @@ export function FrigyIngredientScanFlow({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={handleConfirm}
-            className="mb-4 w-full rounded-2xl bg-[#75FBB2]/20 py-3 text-center text-sm font-semibold text-[#75FBB2] ring-1 ring-[#75FBB2]/40"
+            className="mb-4 w-full rounded-2xl bg-white/16 py-3.5 text-center text-sm font-semibold text-[#75FBB2] ring-1 ring-[#75FBB2]/40"
           >
             {L.finishScan} ({pendingPhotos.length})
           </motion.button>

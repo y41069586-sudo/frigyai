@@ -62,6 +62,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     video.autoplay = true;
     video.playsInline = true;
     video.controls = false;
+    video.disablePictureInPicture = true;
+    video.disableRemotePlayback = true;
+    video.setAttribute('disablePictureInPicture', 'true');
+    video.setAttribute('controlsList', 'nodownload nofullscreen noplaybackrate');
     video.removeAttribute('controls');
     void video.play().catch((err) => {
       console.warn('[BarcodeScanner] Mobile video autoplay failed:', err);
@@ -236,7 +240,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
         Quagga.init(
           {
-            frequency: 8,
+            frequency: 18,
             inputStream: {
               type: 'LiveStream',
               target: reader,
@@ -388,7 +392,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 <p className="mb-2 text-base font-semibold text-white">Fehler</p>
                 <p className="text-sm text-white/70">{error}</p>
               </div>
-              <Button onClick={handleClose} className="bg-lime-500 font-bold text-black hover:bg-lime-600">
+              <Button onClick={handleClose} className="bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]">
                 Schließen
               </Button>
             </motion.div>
@@ -434,7 +438,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               </div>
               <Button
                 onClick={handleScanAnother}
-                className="w-full bg-lime-500 font-bold text-black hover:bg-lime-600"
+                className="w-full bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]"
               >
                 🔄 Neues Produkt scannen
               </Button>
@@ -449,7 +453,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   width: 100% !important;
                   height: 100% !important;
                   overflow: hidden !important;
-              opacity: ${showScanner ? 1 : 0};
+              opacity: ${showScanner && isScannerActive ? 1 : 0};
               pointer-events: ${showScanner ? 'auto' : 'none'};
                 }
                 #barcode-reader video {
@@ -462,7 +466,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 }
             #barcode-reader video::-webkit-media-controls,
             #barcode-reader video::-webkit-media-controls-panel,
-            #barcode-reader video::-webkit-media-controls-play-button {
+            #barcode-reader video::-webkit-media-controls-play-button,
+            #barcode-reader video::-webkit-media-controls-start-playback-button,
+            #barcode-reader video::-webkit-media-controls-overlay-play-button,
+            #barcode-reader video::-webkit-media-controls-overlay-enclosure {
               display: none !important;
               -webkit-appearance: none !important;
             }
@@ -499,12 +506,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   className="absolute inset-0 rounded-2xl border border-[#75FBB2]/40"
                   animate={{
                     boxShadow: [
-                      "0 0 12px 0 rgba(110,240,168,0.25)",
-                      "0 0 28px 4px rgba(110,240,168,0.45)",
-                      "0 0 12px 0 rgba(110,240,168,0.25)",
+                      "0 0 10px 0 rgba(117,251,178,0.22)",
+                      "0 0 22px 3px rgba(117,251,178,0.38)",
+                      "0 0 10px 0 rgba(117,251,178,0.22)",
                     ],
                   }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
                 />
 
                 {(
@@ -525,14 +532,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   className="absolute left-3 right-3 h-[2px] rounded-full bg-[#75FBB2]"
                   style={{
                     boxShadow:
-                      "0 0 8px 2px rgba(110,240,168,0.9), 0 0 20px 4px rgba(110,240,168,0.35)",
+                      "0 0 8px 2px rgba(117,251,178,0.85), 0 0 18px 3px rgba(117,251,178,0.28)",
                   }}
                   initial={{ top: "12%" }}
                   animate={{ top: ["12%", "88%", "12%"] }}
                   transition={{
-                    duration: 2.8,
+                    duration: 1.2,
                     repeat: Infinity,
-                    ease: [0.45, 0, 0.55, 1],
+                    ease: "linear",
                   }}
                 />
 
@@ -541,9 +548,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   initial={{ top: "10%" }}
                   animate={{ top: ["10%", "86%", "10%"] }}
                   transition={{
-                    duration: 2.8,
+                    duration: 1.2,
                     repeat: Infinity,
-                    ease: [0.45, 0, 0.55, 1],
+                    ease: "linear",
                   }}
                 />
               </div>
@@ -564,7 +571,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   animate={{ opacity: 1 }}
               className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75"
                 >
-              <Loader2 className="mb-4 h-16 w-16 animate-spin text-lime-400" />
+              <Loader2 className="mb-4 h-16 w-16 animate-spin text-[#75FBB2]" />
               <p className="font-semibold text-white">Produkt wird geladen…</p>
                 </motion.div>
           )}
