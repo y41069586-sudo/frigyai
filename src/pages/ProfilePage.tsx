@@ -36,6 +36,7 @@ import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
 import { canManageStripeSubscription } from "@/lib/subscription";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 
 function SettingsGroup({
   title,
@@ -158,8 +159,11 @@ const ProfilePage = () => {
         window.location.href = data.url;
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Unbekannter Fehler";
-      toast({ title: t.error, description: message, variant: "destructive" });
+      toast({
+        title: t.error,
+        description: getPublicErrorMessage(error, "Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut."),
+        variant: "destructive",
+      });
     } finally {
       setPortalLoading(false);
     }
@@ -191,8 +195,11 @@ const ProfilePage = () => {
       await signOut();
       navigate("/auth");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Fehler beim Löschen des Kontos";
-      toast({ title: t.error, description: message, variant: "destructive" });
+      toast({
+        title: t.error,
+        description: getPublicErrorMessage(error, "Dein Konto konnte gerade nicht gelöscht werden. Bitte versuche es erneut."),
+        variant: "destructive",
+      });
     } finally {
       setDeleteLoading(false);
       setDeleteDialogOpen(false);

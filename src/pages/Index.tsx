@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { AIChatbot } from "@/components/AIChatbot";
 import type { MealFocusKey } from "@/lib/mealFocus";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
 import {
   WATER_GLASSES_CHANGED,
@@ -534,7 +535,11 @@ const Index = () => {
         }
       }
     } catch (error: any) {
-      toast({ title: t.error, description: error.message, variant: 'destructive' });
+      toast({
+        title: t.error,
+        description: getPublicErrorMessage(error, 'Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
+        variant: 'destructive',
+      });
     } finally {
       setPortalLoading(false);
     }

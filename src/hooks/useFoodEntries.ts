@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
 export interface FoodEntry {
   id: string;
@@ -238,7 +239,7 @@ export const useFoodEntries = () => {
       console.error('Error adding food entry:', errorMessage);
       toast({
         title: 'Fehler beim Speichern',
-        description: errorMessage,
+        description: getPublicErrorMessage(errorMessage, 'Das Essen konnte gerade nicht gespeichert werden. Bitte versuche es erneut.'),
         variant: 'destructive'
       });
       return null;
@@ -264,7 +265,7 @@ export const useFoodEntries = () => {
       const msg = error instanceof Error ? error.message : 'Update fehlgeschlagen';
       toast({
         title: 'Fehler beim Aktualisieren',
-        description: msg,
+        description: getPublicErrorMessage(msg, 'Der Eintrag konnte gerade nicht aktualisiert werden. Bitte versuche es erneut.'),
         variant: 'destructive'
       });
       return false;
@@ -311,7 +312,7 @@ export const useFoodEntries = () => {
       const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
       toast({
         title: 'Fehler beim Löschen',
-        description: msg,
+        description: getPublicErrorMessage(msg, 'Der Eintrag konnte gerade nicht gelöscht werden. Bitte versuche es erneut.'),
         variant: 'destructive'
       });
       return false;
@@ -342,7 +343,7 @@ export const useFoodEntries = () => {
       const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
       toast({
         title: 'Fehler beim Löschen',
-        description: msg,
+        description: getPublicErrorMessage(msg, 'Die Einträge konnten gerade nicht gelöscht werden. Bitte versuche es erneut.'),
         variant: 'destructive'
       });
       return false;

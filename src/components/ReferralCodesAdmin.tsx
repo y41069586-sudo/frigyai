@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { isReferralAdmin } from "@/lib/admin";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 import { buildSignupDeepLink, buildSignupWebUrl } from "@/lib/chottuLinkConfig";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 
 const LIFETIME_DAYS = 0;
 
@@ -94,15 +95,16 @@ export function ReferralCodesAdmin() {
         const message = e instanceof Error ? e.message : "Laden fehlgeschlagen";
         toast({
           title: "Umsatzdaten nicht verfügbar",
-          description:
-            message +
-            " — Partnerliste geladen. Migration/Deploy prüfen (affiliate-admin, 20260521140000_affiliate_tracking).",
+          description: getPublicErrorMessage(message, "Die Umsatzzahlen konnten gerade nicht geladen werden. Die Partnerliste ist aber verfügbar."),
           variant: "destructive",
         });
       } catch (fallbackErr: unknown) {
-        const message =
-          fallbackErr instanceof Error ? fallbackErr.message : e instanceof Error ? e.message : "Laden fehlgeschlagen";
-        toast({ title: "Fehler", description: message, variant: "destructive" });
+        const message = fallbackErr instanceof Error ? fallbackErr.message : e instanceof Error ? e.message : "Laden fehlgeschlagen";
+        toast({
+          title: "Fehler",
+          description: getPublicErrorMessage(message, "Die Partnerdaten konnten gerade nicht geladen werden. Bitte versuche es erneut."),
+          variant: "destructive",
+        });
       }
     } finally {
       setLoading(false);
@@ -144,8 +146,11 @@ export function ReferralCodesAdmin() {
       setMaxRedemptions("");
       await loadCodes();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erstellen fehlgeschlagen";
-      toast({ title: "Fehler", description: message, variant: "destructive" });
+      toast({
+        title: "Fehler",
+        description: getPublicErrorMessage(e, "Der Partner konnte gerade nicht erstellt werden. Bitte versuche es erneut."),
+        variant: "destructive",
+      });
     } finally {
       setCreating(false);
     }
@@ -156,8 +161,11 @@ export function ReferralCodesAdmin() {
       await invoke({ action: "toggle", id, active: !active });
       await loadCodes();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Aktualisieren fehlgeschlagen";
-      toast({ title: "Fehler", description: message, variant: "destructive" });
+      toast({
+        title: "Fehler",
+        description: getPublicErrorMessage(e, "Die Änderung konnte gerade nicht gespeichert werden. Bitte versuche es erneut."),
+        variant: "destructive",
+      });
     }
   };
 

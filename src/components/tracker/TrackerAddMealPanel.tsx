@@ -557,14 +557,6 @@ export function TrackerAddMealPanel({
                 className="min-w-0 flex-1 bg-transparent py-3 text-[15px] outline-none placeholder:text-[#9CA3AF]"
                 style={{ color: PALETTE.text }}
               />
-              {query.trim() ? (
-                <RoundPlusButton
-                  onClick={submitSearch}
-                  disabled={isAnalyzing}
-                  label="Suche absenden"
-                  size="sm"
-                />
-              ) : null}
             </div>
           </div>
         </div>

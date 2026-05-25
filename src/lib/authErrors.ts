@@ -11,7 +11,7 @@ const MESSAGES: Record<
   }
 > = {
   de: {
-    alreadyRegistered: "Diese E-Mail ist bereits registriert. Bitte melde dich an.",
+    alreadyRegistered: "You already registered with your email",
     emailNotConfirmed:
       "Du musst deine E-Mail nicht bestätigen. Melde dich einfach mit E-Mail und Passwort an.",
     invalidCredentials: "E-Mail oder Passwort ist falsch.",
@@ -19,7 +19,7 @@ const MESSAGES: Record<
       "Zu viele Versuche in kurzer Zeit. Warte ein paar Minuten oder melde dich an, falls du schon ein Konto hast.",
   },
   en: {
-    alreadyRegistered: "This email is already registered. Please sign in.",
+    alreadyRegistered: "You already registered with your email",
     emailNotConfirmed:
       "You don't need to confirm your email. Just sign in with your email and password.",
     invalidCredentials: "Incorrect email or password.",
@@ -27,7 +27,7 @@ const MESSAGES: Record<
       "Too many attempts in a short time. Wait a few minutes or sign in if you already have an account.",
   },
   fr: {
-    alreadyRegistered: "Cet e-mail est déjà inscrit. Connecte-toi.",
+    alreadyRegistered: "You already registered with your email",
     emailNotConfirmed:
       "Tu n'as pas besoin de confirmer ton e-mail. Connecte-toi avec ton e-mail et ton mot de passe.",
     invalidCredentials: "E-mail ou mot de passe incorrect.",

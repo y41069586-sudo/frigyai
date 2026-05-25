@@ -14,6 +14,7 @@ import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import frigLogo from '@/assets/frigy-mascot.png';
 import { canManageStripeSubscription } from '@/lib/subscription';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
+import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -97,7 +98,7 @@ const PremiumPage = () => {
       console.error('Checkout error:', errorMessage);
       toast({
         title: t.error,
-        description: errorMessage,
+        description: getPublicErrorMessage(errorMessage, 'Premium konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
         variant: 'destructive',
       });
       setIsAutoCheckout(false);
@@ -226,7 +227,7 @@ const PremiumPage = () => {
     } catch (error: any) {
       toast({
         title: t.error,
-        description: error.message || t.toastError,
+        description: getPublicErrorMessage(error, 'Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
         variant: 'destructive',
       });
     } finally {

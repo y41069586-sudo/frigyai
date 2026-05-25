@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { toast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
 interface DashboardWeightWidgetProps {
   onWeightUpdate?: (weight: number) => void;
@@ -130,7 +131,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
     } catch (error: any) {
       toast({
         title: 'Fehler',
-        description: error.message || 'Gewicht konnte nicht gespeichert werden',
+        description: getPublicErrorMessage(error, 'Gewicht konnte nicht gespeichert werden. Bitte versuche es erneut.'),
         variant: 'destructive',
       });
     } finally {

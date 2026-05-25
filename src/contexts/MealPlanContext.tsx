@@ -15,6 +15,7 @@ import {
 } from '@/lib/mealAllergySafety';
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
+import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
 function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   const unsafe: string[] = [];
@@ -509,7 +510,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else if (message.includes('Load failed') || message.includes('Failed to fetch')) {
         toast({
           title: 'Verbindungsfehler',
-          description: 'Die Verbindung zur Edge Function konnte nicht hergestellt werden. Bitte prüfe die SUPABASE_URL in den Einstellungen.',
+          description: 'Die Wochenplan-Erstellung ist gerade nicht erreichbar. Bitte versuche es gleich erneut.',
           variant: 'destructive',
         });
       } else if (message.includes('zu lange')) {
@@ -527,7 +528,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else {
         toast({
           title: 'Fehler',
-          description: message || 'Wochenplan konnte nicht generiert werden.',
+          description: getPublicErrorMessage(message, 'Wochenplan konnte nicht generiert werden. Bitte versuche es erneut.'),
           variant: 'destructive',
         });
       }

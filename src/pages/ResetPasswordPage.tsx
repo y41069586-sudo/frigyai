@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import frigLogo from "@/assets/frigy-mascot.png";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const ResetPasswordPage = () => {
     } catch (error: any) {
       toast({
         title: t.error,
-        description: error.message,
+        description: getPublicErrorMessage(error, "Die Reset-E-Mail konnte gerade nicht gesendet werden. Bitte versuche es erneut."),
         variant: "destructive",
       });
     } finally {

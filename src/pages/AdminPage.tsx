@@ -13,6 +13,7 @@ import frigLogo from '@/assets/frigy-mascot.png';
 import { isPremiumGrantAdmin } from "@/lib/admin";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 
 const AdminPage = () => {
   const { t } = useLanguage();
@@ -87,10 +88,9 @@ const AdminPage = () => {
       }
     } catch (error: unknown) {
       console.error("Error granting premium:", error);
-      const message = error instanceof Error ? error.message : t.adminPremiumGrantFailed;
       toast({
         title: t.error,
-        description: message,
+        description: getPublicErrorMessage(error, t.adminPremiumGrantFailed),
         variant: "destructive",
       });
     } finally {

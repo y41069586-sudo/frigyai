@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import frigyLogoSrc from "@/assets/frigy-onboarding-logo-transparent.png";
 import frigyPeekSrc from "@/assets/frigy-peek.png";
 import { confettiBurst } from "@/lib/mobileEffects";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
@@ -3462,7 +3463,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 const resolved = resolveAuthErrorMessage(error, language, "signup");
                 toast({
                   title: t.onboardingRegistrationFailed,
-                  description: resolved?.message ?? error.message,
+                  description:
+                    resolved?.message ??
+                    getPublicErrorMessage(error, "Deine Registrierung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
                   variant: resolved?.variant === "info" ? "default" : "destructive",
                 });
                 if (
@@ -3490,7 +3493,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 const resolved = resolveAuthErrorMessage(error, language, "login");
                 toast({
                   title: t.onboardingLoginFailed,
-                  description: resolved?.message ?? error.message,
+                  description:
+                    resolved?.message ??
+                    getPublicErrorMessage(error, "Dein Login konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
                   variant: resolved?.variant === "info" ? "default" : "destructive",
                 });
                 return;

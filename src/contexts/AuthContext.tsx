@@ -12,6 +12,7 @@ import {
 } from '@/lib/authErrors';
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
 import { isSubscriptionActive } from '@/lib/subscription';
+import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -358,7 +359,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       const result = await finishWithSession();
       if (!result.error) return result;
       return {
-        error: { message: "User already registered" },
+        error: { message: "You already registered with your email" },
       };
     }
 
@@ -378,7 +379,10 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       if (!silent && !isUserAlreadyRegistered(error)) {
         toast({
           title: "Registrierung fehlgeschlagen",
-          description: registered.error || error.message,
+          description: getPublicErrorMessage(
+            registered.error || error.message,
+            "Deine Registrierung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
+          ),
           variant: "destructive",
         });
       }
@@ -412,7 +416,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     if (error && !silent && !isEmailNotConfirmed(error)) {
       toast({
         title: "Login fehlgeschlagen",
-        description: error.message,
+        description: getPublicErrorMessage(error, "Dein Login konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
         variant: "destructive",
       });
     }
@@ -432,7 +436,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     if (error) {
       toast({
         title: "Google-Anmeldung fehlgeschlagen",
-        description: error.message,
+        description: getPublicErrorMessage(error, "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
         variant: "destructive",
       });
     }
