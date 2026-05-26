@@ -3934,7 +3934,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           initial={false}
           animate={{ opacity: 1 }}
           className="onboarding-flow-root fixed inset-0 z-[100] flex min-h-0 flex-col overflow-hidden safe-area-inset"
-          style={{ backgroundColor: "#F2FFF8" }}
+          style={{ backgroundColor: "#FFFFFF" }}
         >
       {/* Legacy progress bar — hidden from macro-preview onward (mint line steps use thin bar) */}
       {showsOnboardingTopProgress(currentStep) &&
@@ -3988,7 +3988,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               onClick={goBack}
               whileTap={{ scale: 0.95 }}
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors"
-              style={{ backgroundColor: "#F2FFF8", color: "#050505", boxShadow: "0 1px 2px rgba(15,40,30,0.04)" }}
+              style={{ backgroundColor: "#FFFFFF", color: "#050505", boxShadow: "0 1px 2px rgba(15,40,30,0.04)" }}
             >
               <ChevronRight className="w-6 h-6 rotate-180" strokeWidth={2.8} />
             </motion.button>
@@ -4092,7 +4092,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
               style={{ pointerEvents: macroPreviewCtaVisible && !macroEditOpen ? "auto" : "none" }}
             >
-              <div className="rounded-[28px] bg-[linear-gradient(180deg,rgba(242,255,248,0),#F2FFF8_24%,#F2FFF8_100%)] px-1 pt-6">
+              <div className="rounded-[28px] bg-[linear-gradient(180deg,rgba(255,255,255,0),#FFFFFF_24%,#FFFFFF_100%)] px-1 pt-6">
                 <Button
                   onClick={goNext}
                   disabled={!canProceed()}

@@ -18,6 +18,14 @@ import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
+type GenerationStage =
+  | 'preparing'
+  | 'requesting'
+  | 'waiting_ai'
+  | 'processing'
+  | 'saving'
+  | 'finalizing';
+
 function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   const unsafe: string[] = [];
   for (const day of plan || []) {
@@ -36,14 +44,26 @@ function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   return unsafe;
 }
 
-function getPassiveGenerationProgress(elapsedSeconds: number): number {
-  if (elapsedSeconds <= 0) return 1;
-  if (elapsedSeconds <= 3) return 1 + elapsedSeconds * 4;
-  if (elapsedSeconds <= 8) return 13 + (elapsedSeconds - 3) * 2;
-  if (elapsedSeconds <= 20) return 23 + Math.round((elapsedSeconds - 8) * 1.5);
-  if (elapsedSeconds <= 40) return 41 + (elapsedSeconds - 20);
-  if (elapsedSeconds <= 70) return 61 + Math.round((elapsedSeconds - 40) * 0.6);
-  return Math.min(88, 79 + Math.round((elapsedSeconds - 70) * 0.18));
+function getPassiveGenerationProgress(elapsedSeconds: number, stage: GenerationStage): number {
+  switch (stage) {
+    case 'preparing':
+      return Math.min(7, elapsedSeconds * 2);
+    case 'requesting':
+      return Math.min(16, 8 + elapsedSeconds);
+    case 'waiting_ai':
+      if (elapsedSeconds <= 10) return 18 + elapsedSeconds * 2;
+      if (elapsedSeconds <= 25) return 38 + Math.round((elapsedSeconds - 10) * 1.2);
+      if (elapsedSeconds <= 50) return 56 + Math.round((elapsedSeconds - 25) * 0.4);
+      return Math.min(68, 66 + Math.round((elapsedSeconds - 50) * 0.05));
+    case 'processing':
+      return Math.min(82, 72 + elapsedSeconds);
+    case 'saving':
+      return Math.min(92, 84 + elapsedSeconds);
+    case 'finalizing':
+      return Math.min(98, 94 + elapsedSeconds);
+    default:
+      return 0;
+  }
 }
 
 interface Ingredient {
@@ -116,6 +136,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationProgressTarget, setGenerationProgressTarget] = useState(0);
+  const [generationStage, setGenerationStage] = useState<GenerationStage>('preparing');
   const [mealPlan, setMealPlan] = useState<DayPlan[] | null>(() => {
     // Initialize from localStorage immediately to prevent flash of empty state
     const saved = localStorage.getItem('weeklyMealPlan');
@@ -146,6 +167,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTargetRef = useRef(0);
   const leftMealPlansWhileGeneratingRef = useRef(false);
+  const stageElapsedSecondsRef = useRef(0);
 
   // Helper to get start of current week (Monday) in YYYY-MM-DD
   const getWeekStart = (): string => {
@@ -193,6 +215,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setElapsedSeconds(0);
       timerRef.current = setInterval(() => {
         setElapsedSeconds(prev => prev + 1);
+        stageElapsedSecondsRef.current += 1;
       }, 1000);
     } else {
       if (timerRef.current) {
@@ -208,22 +231,32 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [isGenerating]);
 
   const updateGenerationProgressTarget = useCallback((next: number) => {
-    const clamped = Math.max(1, Math.min(100, Math.round(next)));
+    const clamped = Math.max(0, Math.min(100, Math.round(next)));
     progressTargetRef.current = Math.max(progressTargetRef.current, clamped);
     setGenerationProgressTarget(progressTargetRef.current);
   }, []);
 
+  const setGenerationStageWithFloor = useCallback((stage: GenerationStage, floor?: number) => {
+    setGenerationStage(stage);
+    stageElapsedSecondsRef.current = 0;
+    if (typeof floor === 'number') {
+      updateGenerationProgressTarget(floor);
+    }
+  }, [updateGenerationProgressTarget]);
+
   useEffect(() => {
     if (!isGenerating) {
       progressTargetRef.current = 0;
+      stageElapsedSecondsRef.current = 0;
       setGenerationProgressTarget(0);
       setGenerationProgress(0);
+      setGenerationStage('preparing');
       return;
     }
 
-    const passiveTarget = getPassiveGenerationProgress(elapsedSeconds);
+    const passiveTarget = getPassiveGenerationProgress(stageElapsedSecondsRef.current, generationStage);
     updateGenerationProgressTarget(passiveTarget);
-  }, [elapsedSeconds, isGenerating, updateGenerationProgressTarget]);
+  }, [elapsedSeconds, generationStage, isGenerating, updateGenerationProgressTarget]);
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -398,9 +431,11 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setIsGenerating(true);
     setIsMinimized(false);
-    setGenerationProgress(1);
-    progressTargetRef.current = 1;
-    setGenerationProgressTarget(1);
+    setGenerationProgress(0);
+    progressTargetRef.current = 0;
+    stageElapsedSecondsRef.current = 0;
+    setGenerationProgressTarget(0);
+    setGenerationStage('preparing');
     setMealPlan(null);
     setShoppingList(null);
 
@@ -412,7 +447,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
     removeMealPlanShoppingSource();
     notifyFrigyStorageUpdated();
-    updateGenerationProgressTarget(10);
+    setGenerationStageWithFloor('preparing', 6);
 
     console.log('[MEAL-PLAN-CLIENT] Invoking generate-meal-plan function...');
 
@@ -426,8 +461,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           diet.healthGoals,
         );
 
-        updateGenerationProgressTarget(22);
-        const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
+        setGenerationStageWithFloor('requesting', 14);
+        const invokePromise = supabase.functions.invoke('generate-meal-plan', {
           headers: session?.access_token
             ? { Authorization: `Bearer ${session.access_token}` }
             : undefined,
@@ -448,6 +483,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           },
         });
+        setGenerationStageWithFloor('waiting_ai', 18);
+        const { data, error } = await invokePromise;
 
         if (error) {
           console.error('[MEAL-PLAN-CLIENT] Edge Function error:', error);
@@ -456,14 +493,14 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
 
         console.log('[MEAL-PLAN-CLIENT] Successfully received data:', data ? 'yes' : 'no');
-        updateGenerationProgressTarget(74);
+        setGenerationStageWithFloor('processing', 72);
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const rawPlan = (data as any).mealPlan;
           const newPlan = syncMealPlanToTargets(rawPlan, macroTargets);
           const newShoppingList = (data as any).shoppingList || [];
           const unsafeMeals = findUnsafeMeals(newPlan, diet);
-          updateGenerationProgressTarget(84);
+          updateGenerationProgressTarget(80);
 
           if (unsafeMeals.length > 0) {
             console.error('[MEAL-PLAN-SAFETY] Unsafe meals returned:', unsafeMeals);
@@ -501,7 +538,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
           localStorage.setItem(WEEKLY_PLAN_AI_GENERATED_KEY, '1');
           setMealPlanShoppingSource('frigy');
-          updateGenerationProgressTarget(92);
+          setGenerationStageWithFloor('saving', 86);
 
           const sm = (data as any)?.scanMeta;
           if (sm) {
@@ -539,7 +576,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               console.error('Failed to persist meal plan:', dbErrorMsg);
             }
           }
-          updateGenerationProgressTarget(97);
+          setGenerationStageWithFloor('finalizing', 94);
 
           // Refresh generation count from server after successful generation
           setGenerationCount((prev) => prev + 1);
@@ -560,11 +597,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           throw new Error('Leerer Wochenplan erhalten');
         }
       } catch (innerError) {
-        // Better error handling for network issues
-        if (innerError instanceof Error && innerError.message.includes('AbortError')) {
-          throw new Error('Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.');
-        }
-
         if (innerError instanceof TypeError && innerError.message.includes('Failed to fetch')) {
           throw new Error('Netzwerkverbindung fehlgeschlagen. Bitte überprüfen Sie Ihre Verbindung.');
         }
@@ -588,12 +620,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast({
           title: 'Verbindungsfehler',
           description: 'Die Wochenplan-Erstellung ist gerade nicht erreichbar. Bitte versuche es gleich erneut.',
-          variant: 'destructive',
-        });
-      } else if (message.includes('zu lange')) {
-        toast({
-          title: 'Zeitüberschreitung',
-          description: 'Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es später erneut.',
           variant: 'destructive',
         });
       } else if (message.includes('calorie') || message.includes('Kalorie')) {
@@ -659,6 +685,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isGenerating={isGenerating}
         elapsedSeconds={elapsedSeconds}
         progressPercent={generationProgress}
+        stageKey={generationStage}
         isMinimized={isMinimized}
         onMinimize={() => setIsMinimized(true)}
       />

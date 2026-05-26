@@ -80,24 +80,53 @@ export function normalizeMealMacros<T extends MacroMeal>(meal: T): T {
   return recalcMealCalories({ ...meal, protein, carbs, fat });
 }
 
-/** Distribute calorie gap across meals via smallest macro steps (4 or 9 kcal). */
-function balanceDayCalories(meals: MacroMeal[], targetCalories: number) {
-  for (let pass = 0; pass < 400; pass++) {
-    const total = sumMealMacros(meals).calories;
-    const diff = targetCalories - total;
+function balanceDayMacro(meals: MacroMeal[], macro: "protein" | "carbs" | "fat", target: number) {
+  for (let pass = 0; pass < 1200; pass++) {
+    const totals = sumMealMacros(meals);
+    const current = Number(totals[macro]) || 0;
+    const diff = target - current;
     if (diff === 0) break;
 
     const idx = pass % meals.length;
-    const m = meals[idx];
+    const meal = meals[idx];
+    const currentValue = Number(meal[macro]) || 0;
     if (diff > 0) {
-      if (Math.abs(diff) >= 9) m.fat = (Number(m.fat) || 0) + 1;
-      else m.carbs = (Number(m.carbs) || 0) + 1;
+      meal[macro] = currentValue + 1;
+    } else if (currentValue > 0) {
+      meal[macro] = currentValue - 1;
     } else {
-      if (Math.abs(diff) >= 9 && (Number(m.fat) || 0) > 0) m.fat = (Number(m.fat) || 0) - 1;
-      else if ((Number(m.carbs) || 0) > 0) m.carbs = (Number(m.carbs) || 0) - 1;
-      else if ((Number(m.protein) || 0) > 0) m.protein = (Number(m.protein) || 0) - 1;
+      continue;
     }
-    meals[idx] = recalcMealCalories(m);
+    meals[idx] = recalcMealCalories(meal);
+  }
+}
+
+function validateSyncedDay(meals: MacroMeal[], targets: DailyMacroTargets) {
+  const totals = sumMealMacros(meals);
+  const expectedCalories = macroCaloriesFromGrams(
+    targets.dailyProtein,
+    targets.dailyCarbs,
+    targets.dailyFat,
+  );
+
+  if (
+    totals.protein !== targets.dailyProtein ||
+    totals.carbs !== targets.dailyCarbs ||
+    totals.fat !== targets.dailyFat ||
+    totals.calories !== expectedCalories
+  ) {
+    throw new Error("Meal plan macros out of sync");
+  }
+
+  for (const meal of meals) {
+    const expectedMealCalories = macroCaloriesFromGrams(
+      Number(meal.protein) || 0,
+      Number(meal.carbs) || 0,
+      Number(meal.fat) || 0,
+    );
+    if ((Number(meal.calories) || 0) !== expectedMealCalories) {
+      throw new Error("Meal calories do not match macros");
+    }
   }
 }
 
@@ -133,7 +162,10 @@ export function syncDayToTargets<T extends MacroDay>(day: T, rawTargets: DailyMa
     fat: Math.max(0, targets.dailyFat - beforeLast.fat),
   });
 
-  balanceDayCalories(meals, targets.dailyCalories);
+  balanceDayMacro(meals, "protein", targets.dailyProtein);
+  balanceDayMacro(meals, "carbs", targets.dailyCarbs);
+  balanceDayMacro(meals, "fat", targets.dailyFat);
+  validateSyncedDay(meals, targets);
 
   return { ...day, meals } as T;
 }

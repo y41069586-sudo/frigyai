@@ -14,6 +14,11 @@ const corsHeaders = {
 
 const MAX_BASE64_SIZE = 6_700_000;
 const FOOD_NOT_FOUND = "Essen nicht gefunden";
+const AI_MACRO_KCAL_TOLERANCE = 35;
+const MAX_AI_CALORIES = 1600;
+const MAX_AI_PROTEIN = 120;
+const MAX_AI_CARBS = 220;
+const MAX_AI_FAT = 120;
 
 const requestSchema = z
   .object({
@@ -217,6 +222,54 @@ function successResponse(payload: Record<string, unknown>) {
   });
 }
 
+function macroCalories(protein: number, carbs: number, fat: number) {
+  return protein * 4 + carbs * 4 + fat * 9;
+}
+
+function normalizeAiFoodEstimate(parsed: Record<string, unknown>) {
+  const name = String(parsed.name || "").trim();
+  if (!name) return null;
+
+  const protein = Math.max(0, Math.round(Number(parsed.protein) || 0));
+  const carbs = Math.max(0, Math.round(Number(parsed.carbs) || 0));
+  const fat = Math.max(0, Math.round(Number(parsed.fat) || 0));
+  const statedCalories = Math.max(0, Math.round(Number(parsed.calories) || 0));
+  const derivedCalories = Math.max(0, Math.round(macroCalories(protein, carbs, fat)));
+
+  if (protein + carbs + fat <= 0) {
+    return null;
+  }
+
+  if (
+    protein > MAX_AI_PROTEIN ||
+    carbs > MAX_AI_CARBS ||
+    fat > MAX_AI_FAT ||
+    derivedCalories > MAX_AI_CALORIES
+  ) {
+    return null;
+  }
+
+  if (
+    statedCalories > 0 &&
+    Math.abs(statedCalories - derivedCalories) > AI_MACRO_KCAL_TOLERANCE
+  ) {
+    console.warn(
+      `[ANALYZE-FOOD] Replacing inconsistent AI calories for "${name}": stated=${statedCalories}, derived=${derivedCalories}`,
+    );
+  }
+
+  return {
+    found: true,
+    name,
+    calories: derivedCalories,
+    protein,
+    carbs,
+    fat,
+    portion: parsed.portion ? String(parsed.portion).trim() : undefined,
+    source: "ai",
+  };
+}
+
 async function analyzeWithOpenAI(
   apiKey: string,
   food: string | undefined,
@@ -230,7 +283,13 @@ Wenn du das Essen als echtes Lebensmittel mit verlässlichen Nährwerten kennst:
 Wenn unbekannt, erfunden, keine Speise, nur Zutaten ohne Gericht, oder unsicher:
 {"found":false}
 
-Kalorien als ganze Zahl. Deutsche Namen.`;
+REGELN:
+- Schätze nur die SICHTBARE einzelne Portion auf dem Bild, nicht eine ganze Packung oder mehrere Portionen
+- Sei konservativ; wenn Portion oder Gericht unsicher ist, antworte mit {"found":false}
+- Keine Fantasiewerte
+- Kalorien müssen exakt zu den Makros passen: kcal = 4*protein + 4*carbs + 9*fat
+- Kalorien und Makros als ganze Zahlen
+- Deutsche Namen.`;
 
   const messages: { role: string; content: unknown }[] = [
     { role: "system", content: systemPrompt },
@@ -243,7 +302,7 @@ Kalorien als ganze Zahl. Deutsche Namen.`;
         { type: "text", text: food?.trim() ? `Analysiere: ${food.trim()}` : "Analysiere:" },
         {
           type: "image_url",
-          image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "low" },
+          image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" },
         },
       ],
     });
@@ -296,20 +355,7 @@ Kalorien als ganze Zahl. Deutsche Namen.`;
 
     if (parsed.found === false) return null;
 
-    const calories = Math.round(Number(parsed.calories) || 0);
-    const name = String(parsed.name || "").trim();
-    if (!name || calories <= 0) return null;
-
-    return {
-      found: true,
-      name,
-      calories,
-      protein: Math.round(Number(parsed.protein) || 0),
-      carbs: Math.round(Number(parsed.carbs) || 0),
-      fat: Math.round(Number(parsed.fat) || 0),
-      portion: parsed.portion ? String(parsed.portion) : undefined,
-      source: "ai",
-    };
+    return normalizeAiFoodEstimate(parsed);
   } catch (fetchError) {
     clearTimeout(timeoutId);
     if (fetchError instanceof Error && fetchError.name === "AbortError") {

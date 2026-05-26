@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+type GenerationStage = "preparing" | "requesting" | "waiting_ai" | "processing" | "saving" | "finalizing";
+
 interface MealPlanGeneratingOverlayProps {
   isGenerating: boolean;
   elapsedSeconds: number;
@@ -10,6 +12,7 @@ interface MealPlanGeneratingOverlayProps {
   onBack?: () => void;
   isMinimized?: boolean;
   progressPercent?: number;
+  stageKey?: GenerationStage;
   /** Full-screen lock: no back/minimize, show stay-on-tab warning */
   locked?: boolean;
   stayOnTabMessage?: string;
@@ -22,6 +25,7 @@ export const MealPlanGeneratingOverlay = ({
   onBack,
   isMinimized = false,
   progressPercent,
+  stageKey = "preparing",
   locked = false,
   stayOnTabMessage,
 }: MealPlanGeneratingOverlayProps) => {
@@ -29,22 +33,46 @@ export const MealPlanGeneratingOverlay = ({
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const copy = {
     de: {
-      title: "Wochenplan wird erstellt",
-      background: "Du kannst die App weiter benutzen. Frigy arbeitet im Hintergrund weiter.",
+      title: "Dein Wochenplan entsteht",
+      elapsed: "Laufzeit",
+      stageTitles: {
+        preparing: "Deine Ziele werden vorbereitet",
+        requesting: "Die Anfrage wird gesendet",
+        waiting_ai: "Rezepte und Struktur werden geplant",
+        processing: "Makros und Tage werden abgestimmt",
+        saving: "Einkaufsliste und Plan werden gespeichert",
+        finalizing: "Fast fertig",
+      },
     },
     en: {
-      title: "Weekly plan is being created",
-      background: "You can keep using the app. Frigy continues in the background.",
+      title: "Your weekly plan is coming together",
+      elapsed: "Elapsed",
+      stageTitles: {
+        preparing: "Preparing your targets",
+        requesting: "Sending the request",
+        waiting_ai: "Planning recipes and structure",
+        processing: "Aligning macros and days",
+        saving: "Saving plan and shopping list",
+        finalizing: "Almost done",
+      },
     },
     fr: {
-      title: "Le plan hebdomadaire est en cours de creation",
-      background: "Tu peux continuer a utiliser l app. Frigy continue en arriere-plan.",
+      title: "Ton plan hebdomadaire prend forme",
+      elapsed: "Duree",
+      stageTitles: {
+        preparing: "Preparation de tes objectifs",
+        requesting: "Envoi de la demande",
+        waiting_ai: "Planification des recettes",
+        processing: "Ajustement des macros et des jours",
+        saving: "Enregistrement du plan et de la liste",
+        finalizing: "Presque termine",
+      },
     },
   } as const;
   const currentCopy = copy[(language as "de" | "en" | "fr") ?? "de"] ?? copy.de;
-  const effectiveProgress = progressPercent && progressPercent > 0
-    ? progressPercent
-    : Math.max(8, Math.min(96, 12 + elapsedSeconds * 4));
+  const effectiveProgress = typeof progressPercent === "number"
+    ? Math.max(0, Math.min(100, Math.round(progressPercent)))
+    : Math.max(0, Math.min(96, 8 + elapsedSeconds * 4));
 
   const motivationalTexts = [
     t.mealPlanGenerating1,
@@ -55,6 +83,10 @@ export const MealPlanGeneratingOverlay = ({
     t.mealPlanGenerating6,
     t.mealPlanGenerating7,
   ];
+
+  const formattedElapsed = `${Math.floor(elapsedSeconds / 60)
+    .toString()
+    .padStart(2, "0")}:${(elapsedSeconds % 60).toString().padStart(2, "0")}`;
 
   const showOverlay = isGenerating && (!isMinimized || locked);
 
@@ -139,7 +171,7 @@ export const MealPlanGeneratingOverlay = ({
               ]
             }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-14 h-14 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-emerald-200 dark:border-emerald-800 shadow-lg flex items-center justify-center overflow-hidden"
+            className="flex min-w-[4.25rem] items-center justify-center rounded-[999px] border border-emerald-200 bg-white/92 px-3 py-3 shadow-lg backdrop-blur-md dark:border-emerald-800 dark:bg-slate-800/90"
           >
             <span className="text-[11px] font-bold text-emerald-600">{effectiveProgress}%</span>
           </motion.div>
@@ -167,8 +199,8 @@ export const MealPlanGeneratingOverlay = ({
           style={{ pointerEvents: showOverlay ? "auto" : "none" }}
           onPointerDown={handleBackgroundPointerDown}
         >
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#F7FFFB_58%,#F1FBF5_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(117,251,178,0.16),transparent_28%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,#FCFFFD_0%,#F4FFF9_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(117,251,178,0.16),transparent_24%)]" />
 
           {!locked && (onBack || onMinimize) && (
             <motion.button
@@ -182,7 +214,7 @@ export const MealPlanGeneratingOverlay = ({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
               aria-label={t.back}
-              className="absolute top-4 left-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
+              className="absolute top-4 left-4 p-2 rounded-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
                          hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
             >
@@ -190,62 +222,64 @@ export const MealPlanGeneratingOverlay = ({
             </motion.button>
           )}
 
-          <div data-mealplan-overlay-card="true" className="relative z-10 flex w-full max-w-md flex-col items-center gap-5 px-6 py-8 text-center">
-            <div className="relative mt-6 flex h-28 w-28 items-center justify-center rounded-full border border-[#D8FCE8] bg-white shadow-[0_18px_48px_-28px_rgba(34,197,94,0.28)]">
-              <div className="absolute inset-[10px] rounded-full border-[3px] border-[#75FBB2]/20 border-t-[#39D47F] animate-spin" />
-              <Loader2 className="h-7 w-7 text-[#39D47F]" />
-            </div>
+          <div data-mealplan-overlay-card="true" className="relative z-10 flex w-full max-w-sm flex-col items-center px-5 py-8 text-center sm:px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full overflow-hidden rounded-[28px] border border-white/80 bg-white/88 px-5 py-6 shadow-[0_18px_54px_-30px_rgba(34,197,94,0.20)] backdrop-blur-xl"
+            >
+              <div className="flex flex-col items-center">
+                <div className="relative flex h-24 w-24 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border border-emerald-100 bg-emerald-50/60" />
+                  <div className="absolute inset-[9px] rounded-full border-[3px] border-emerald-100 border-t-[#39D47F] animate-spin" />
+                  <div className="relative text-center">
+                    <div className="text-[28px] font-black leading-none tracking-[-0.06em] text-slate-950">
+                      {effectiveProgress}
+                    </div>
+                    <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                      %
+                    </div>
+                  </div>
+                </div>
 
-            <div className="h-12 flex items-center justify-center mt-4">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={currentTextIndex}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="text-lg font-medium tracking-tight text-slate-700"
-                >
-                  {motivationalTexts[currentTextIndex]}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-
-            {/* Modern breathing dots - smaller */}
-            <div className="flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="h-2 w-2 rounded-full bg-emerald-400"
-                  animate={{ 
-                    scale: [1, 1.4, 1],
-                    opacity: [0.5, 1, 0.5]
-                  }}
-                  transition={{ 
-                    duration: 1.2, 
-                    repeat: Infinity, 
-                    delay: i * 0.15,
-                    ease: "easeInOut"
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-2 w-full max-w-xs rounded-[28px] border border-[#D8FCE8] bg-white/92 px-4 py-4 shadow-[0_20px_48px_-30px_rgba(34,197,94,0.24)]">
-              <div className="mb-2 flex items-center justify-between text-[12px] font-semibold tracking-[0.01em] text-slate-600">
-                <span>{currentCopy.title}</span>
-                <span>{effectiveProgress}%</span>
+                <h2 className="mt-6 text-[26px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950">
+                  {currentCopy.title}
+                </h2>
+                <p className="mt-2 text-sm font-medium text-slate-500">
+                  {currentCopy.stageTitles[stageKey]}
+                </p>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-[#E8F7EE]">
+
+              <div className="mt-6 overflow-hidden rounded-full bg-slate-100/90">
                 <motion.div
-                  className="h-full rounded-full bg-[linear-gradient(90deg,#75FBB2_0%,#39D47F_100%)]"
+                  className="relative h-2.5 rounded-full bg-[linear-gradient(90deg,#75FBB2_0%,#4BE08E_55%,#39D47F_100%)]"
                   initial={{ width: "0%" }}
                   animate={{ width: `${effectiveProgress}%` }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                />
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="absolute inset-y-0 right-0 w-12 bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.6),rgba(255,255,255,0))]" />
+                </motion.div>
               </div>
-              <p className="mt-2 text-[11px] text-slate-500">{currentCopy.background}</p>
-            </div>
+
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentTextIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="min-h-[2.5rem] flex-1 text-left text-sm font-medium text-slate-600"
+                  >
+                    {motivationalTexts[currentTextIndex]}
+                  </motion.p>
+                </AnimatePresence>
+                <div className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                  {currentCopy.elapsed} {formattedElapsed}
+                </div>
+              </div>
+            </motion.div>
 
             {locked && stayOnTabMessage && (
               <motion.div
@@ -258,17 +292,6 @@ export const MealPlanGeneratingOverlay = ({
                   {stayOnTabMessage}
                 </p>
               </motion.div>
-            )}
-
-            {!locked && onMinimize && (
-              <motion.p 
-                className="mt-4 text-xs font-normal text-slate-400"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.5 }}
-              >
-                {t.mealPlanBackgroundHint}
-              </motion.p>
             )}
           </div>
         </motion.div>

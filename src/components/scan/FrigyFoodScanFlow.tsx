@@ -1,10 +1,12 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X, ImagePlus, Camera } from "lucide-react";
 import { useIngredientCamera } from "@/hooks/useIngredientCamera";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
+
+type Phase = "capture" | "analyzing" | "error";
 
 type FrigyFoodScanFlowProps = {
   open: boolean;
@@ -29,21 +31,61 @@ export function FrigyFoodScanFlow({
 }: FrigyFoodScanFlowProps) {
   const { language } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
+  const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
+  const [pendingAnalysis, setPendingAnalysis] = useState(false);
+
+  const phase: Phase = analysisErrorMessage
+    ? "error"
+    : analyzing || pendingAnalysis
+      ? "analyzing"
+      : "capture";
 
   const { setVideoRef, previewReady, capturePhoto, retry, isLive, errorMessage } =
-    useIngredientCamera({ active: open && !analyzing && !analysisErrorMessage });
+    useIngredientCamera({ active: open && phase === "capture" });
 
   if (!open) return null;
+
+  useEffect(() => {
+    if (!open) {
+      setPendingAnalysis(false);
+      if (capturedPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(capturedPreviewUrl);
+      }
+      setCapturedPreviewUrl(null);
+    }
+  }, [capturedPreviewUrl, open]);
+
+  useEffect(() => {
+    if (analyzing) return;
+    if (analysisErrorMessage) return;
+    if (!pendingAnalysis) return;
+    setPendingAnalysis(false);
+  }, [analysisErrorMessage, analyzing, pendingAnalysis]);
+
+  const resetCapturedPreview = () => {
+    if (capturedPreviewUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(capturedPreviewUrl);
+    }
+    setCapturedPreviewUrl(null);
+    setPendingAnalysis(false);
+  };
+
+  const beginAnalysis = (file: File) => {
+    resetCapturedPreview();
+    setCapturedPreviewUrl(URL.createObjectURL(file));
+    setPendingAnalysis(true);
+    onCapture(file);
+  };
 
   const handleShutter = async () => {
     const file = await capturePhoto();
     if (!file) return;
-    onCapture(file);
+    beginAnalysis(file);
   };
 
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) onCapture(file);
+    if (file) beginAnalysis(file);
     e.target.value = "";
   };
 
@@ -62,21 +104,26 @@ export function FrigyFoodScanFlow({
         ? "Essayer un autre plat"
         : "Try another dish";
 
-  if (analysisErrorMessage) {
+  const activePreviewImage = previewImage ?? capturedPreviewUrl;
+
+  if (phase === "error" && analysisErrorMessage) {
     return (
       <FrigyScanFailureStage
         message={analysisErrorMessage}
         actionLabel={retryLabel}
-        onAction={() => onRetryAfterError?.()}
+        onAction={() => {
+          resetCapturedPreview();
+          onRetryAfterError?.();
+        }}
         onClose={onClose}
       />
     );
   }
 
-  if (analyzing) {
+  if (phase === "analyzing") {
     return (
       <FrigyScanAnalyzingStage
-        previewUrl={previewImage}
+        previewUrl={activePreviewImage}
         title={analyzingTitle}
         subtitle={analyzingSubtitle}
         message={analyzingLabel}
