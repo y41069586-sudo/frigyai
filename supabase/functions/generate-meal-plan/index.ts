@@ -9,12 +9,49 @@ declare const Deno: {
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
-const DAY_NAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 const OPENAI_ATTEMPTS = [
   { name: "primary", maxTokens: 9000, maxIngredients: 5 },
   { name: "fallback", maxTokens: 7600, maxIngredients: 4 },
   { name: "compact", maxTokens: 6200, maxIngredients: 3 },
 ] as const;
+type SupportedLanguage = "de" | "en" | "fr";
+
+const LANGUAGE_CONFIG: Record<
+  SupportedLanguage,
+  {
+    outputLabel: string;
+    expertLabel: string;
+    dayNames: string[];
+    dayFallback: string;
+    mealFallback: string;
+  }
+> = {
+  de: {
+    outputLabel: "Deutsch",
+    expertLabel: "deutscher",
+    dayNames: ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
+    dayFallback: "Tag",
+    mealFallback: "Mahlzeit",
+  },
+  en: {
+    outputLabel: "English",
+    expertLabel: "English-speaking",
+    dayNames: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    dayFallback: "Day",
+    mealFallback: "Meal",
+  },
+  fr: {
+    outputLabel: "francais",
+    expertLabel: "francophone",
+    dayNames: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+    dayFallback: "Jour",
+    mealFallback: "Repas",
+  },
+};
+
+function resolveSupportedLanguage(raw: unknown): SupportedLanguage {
+  return raw === "en" || raw === "fr" ? raw : "de";
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,19 +70,19 @@ function normalizeIngredientKey(name: string): string {
 }
 
 const ALLERGY_PATTERNS: Record<string, RegExp> = {
-  gluten: /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel)/i,
-  wheat: /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel)/i,
-  lactose: /(milch|käse|joghurt|quark|sahne|butter|mozzarella|parmesan|frischkäse|griechisch|emmental|cheddar|ricotta|schmand|crème|crème fraîche)/i,
-  milk: /(milch|käse|joghurt|quark|sahne|butter|mozzarella|parmesan|frischkäse|griechisch|emmental|cheddar|ricotta|schmand|crème|crème fraîche)/i,
-  nuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|müsli|musliriegel)/i,
-  peanuts: /(erdnuss|erdnüsse|peanut|peanuts|erdnussbutter|erdnussmus)/i,
-  treeNuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
-  "tree-nuts": /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
-  soy: /(soja|soy|tofu|tempeh|edamame|sojasauce)/i,
-  eggs: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
-  egg: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
-  fish: /(fisch|lachs|thunfisch|forelle|seelachs|kabeljau|sardine|makrele)/i,
-  shellfish: /(garnele|garnelen|shrimp|krabbe|krebs|hummer|muschel|auster|scampi)/i,
+  gluten: /(brot|brötchen|bread|pain|nudel|pasta|spaghetti|paniermehl|breadcrumbs|couscous|bulgur|lasagne|pizza|gnocchi|weizen|wheat|farine|dinkel|rogge|rye|gerste|barley|wrap|mehl|flour|baguette|toast|pizzateig|panko|semmel)/i,
+  wheat: /(brot|brötchen|bread|pain|nudel|pasta|spaghetti|paniermehl|breadcrumbs|couscous|bulgur|lasagne|pizza|gnocchi|weizen|wheat|farine|dinkel|rogge|rye|gerste|barley|wrap|mehl|flour|baguette|toast|pizzateig|panko|semmel)/i,
+  lactose: /(milch|milk|lait|käse|cheese|fromage|joghurt|yogurt|yaourt|quark|sahne|cream|creme|crème|butter|beurre|mozzarella|parmesan|frischkäse|cream cheese|griechisch|greek|emmental|cheddar|ricotta|schmand|crème fraîche)/i,
+  milk: /(milch|milk|lait|käse|cheese|fromage|joghurt|yogurt|yaourt|quark|sahne|cream|creme|crème|butter|beurre|mozzarella|parmesan|frischkäse|cream cheese|griechisch|greek|emmental|cheddar|ricotta|schmand|crème fraîche)/i,
+  nuts: /(nuss|nüsse|nuts|noix|mandel|almond|amande|haselnuss|hazelnut|walnuss|walnut|cashew|pistaz|pistach|paranuss|brazil nut|macadam|pekannuss|pecan|müsli|musliriegel)/i,
+  peanuts: /(erdnuss|erdnüsse|peanut|peanuts|cacahuete|cacahuète|erdnussbutter|erdnussmus)/i,
+  treeNuts: /(nuss|nüsse|nuts|noix|mandel|almond|amande|haselnuss|hazelnut|walnuss|walnut|cashew|pistaz|pistach|paranuss|brazil nut|macadam|pekannuss|pecan|nussmus|mandelmilch|almond milk|lait d amande|lait d'amande)/i,
+  "tree-nuts": /(nuss|nüsse|nuts|noix|mandel|almond|amande|haselnuss|hazelnut|walnuss|walnut|cashew|pistaz|pistach|paranuss|brazil nut|macadam|pekannuss|pecan|nussmus|mandelmilch|almond milk|lait d amande|lait d'amande)/i,
+  soy: /(soja|soy|soja sauce|tofu|tempeh|edamame|sojasauce|sauce soja)/i,
+  eggs: /(ei\b|eier|egg|eggs|oeuf|oeufs|omelett|omelette|rührei|scrambled egg|mayonnaise|mayo\b)/i,
+  egg: /(ei\b|eier|egg|eggs|oeuf|oeufs|omelett|omelette|rührei|scrambled egg|mayonnaise|mayo\b)/i,
+  fish: /(fisch|fish|poisson|lachs|salmon|saumon|thunfisch|tuna|thon|forelle|trout|truite|seelachs|kabeljau|cod|cabillaud|sardine|makrele|mackerel|maquereau)/i,
+  shellfish: /(garnele|garnelen|shrimp|crevette|krabbe|crab|crabe|krebs|lobster|hummer|homard|muschel|mussel|moule|auster|oyster|huître|scampi)/i,
 };
 
 function mealTextBlob(meal: any): string {
@@ -69,13 +106,13 @@ function findSafetyViolations(mealPlan: any[], allergies: string[], dietaryPrefe
         if (ALLERGY_PATTERNS[allergy]?.test(blob)) violations.push(allergy);
       }
       if (customTerms.some((term) => blob.includes(term))) violations.push("other");
-      if (dietaryPreferences?.includes("vegan") && /(milch|käse|ei|eier|joghurt|quark|butter|sahne|honig|fleisch|hähnchen|lachs|fisch|thunfisch|wurst|hack|speck|schinken|schnitzel|schwein|pute)/i.test(blob)) violations.push("vegan");
-      if (dietaryPreferences?.includes("vegetarian") && /(hackfleisch|hähnchen|pute|schwein|fleisch|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell|lachs|thunfisch|fisch)/i.test(blob)) violations.push("vegetarian");
-      const highCarb = /(nudel|pasta|spaghetti|brot|brötchen|reis|hafer|müsli|kartoffel|pommes|paniermehl|honig|baguette|lasagne)/i;
+      if (dietaryPreferences?.includes("vegan") && /(milch|milk|lait|käse|cheese|fromage|ei\b|eier|egg|eggs|oeuf|oeufs|joghurt|yogurt|yaourt|quark|butter|beurre|sahne|cream|crème|honig|honey|miel|fleisch|meat|viande|hähnchen|chicken|poulet|lachs|salmon|saumon|fisch|fish|poisson|thunfisch|tuna|thon|wurst|sausage|hack|speck|bacon|schinken|ham|jambon|schnitzel|schwein|pork|porc|pute|turkey|dinde)/i.test(blob)) violations.push("vegan");
+      if (dietaryPreferences?.includes("vegetarian") && /(hackfleisch|ground beef|boeuf hache|bœuf haché|hähnchen|chicken|poulet|pute|turkey|dinde|schwein|pork|porc|fleisch|meat|viande|wurst|sausage|saucisse|schnitzel|schinken|ham|jambon|steak|speck|bacon|salami|currywurst|bratwurst|frikadell|lachs|salmon|saumon|thunfisch|tuna|thon|fisch|fish|poisson)/i.test(blob)) violations.push("vegetarian");
+      const highCarb = /(nudel|pasta|spaghetti|brot|brötchen|bread|pain|reis|rice|riz|hafer|oats|avoine|müsli|muesli|kartoffel|potato|pomme de terre|pommes|fries|frites|paniermehl|breadcrumbs|honig|honey|miel|baguette|lasagne|couscous|bulgur|gnocchi)/i;
       if ((dietaryPreferences?.includes("keto") || dietaryPreferences?.includes("low-carb")) && highCarb.test(blob)) {
         violations.push("low-carb");
       }
-      if (dietaryPreferences?.includes("paleo") && /(nudel|pasta|brot|reis|hafer|müsli|bohnen|linsen|milch|käse|joghurt|quark|sahne|paniermehl)/i.test(blob)) {
+      if (dietaryPreferences?.includes("paleo") && /(nudel|pasta|spaghetti|brot|bread|pain|reis|rice|riz|hafer|oats|avoine|müsli|muesli|bohnen|beans|haricots|linsen|lentils|lentilles|milch|milk|lait|käse|cheese|fromage|joghurt|yogurt|yaourt|quark|sahne|cream|crème|paniermehl|breadcrumbs)/i.test(blob)) {
         violations.push("paleo");
       }
       if (violations.length) unsafe.push(`${day.day}: ${meal.name} (${[...new Set(violations)].join(", ")})`);
@@ -432,19 +469,21 @@ function buildMealPlanPrompts(params: {
   isRegeneration: boolean;
   varietySeed: string;
   maxIngredients: number;
+  language: SupportedLanguage;
 }) {
+  const config = LANGUAGE_CONFIG[params.language];
   const totalMeals = 7 * params.mealsPerDay;
   const compactRule = `Halte die Antwort kompakt:
 - Pro Mahlzeit maximal ${params.maxIngredients} Zutaten
 - Kurze, klare Rezeptnamen
 - instructions darf leer sein ([]) oder maximal 1 kurzer Satz sein; die App ergänzt Kochschritte automatisch.`;
 
-  const systemPrompt = `Du bist ein deutscher Ernährungsexperte und planst realistische Mahlzeiten.
+  const systemPrompt = `Du bist ein ${config.expertLabel} Ernährungsexperte und planst realistische Mahlzeiten.
 
 Erstelle einen VOLLSTÄNDIGEN Wochenplan - niemals leere Tage oder unvollständige Pläne.
 
 REGELN:
-- Genau 7 Tage (Montag-Sonntag)
+- Genau 7 Tage (${config.dayNames.join("-")})
 - Pro Tag genau ${params.mealsPerDay} Mahlzeiten
 - Einfache Hausmannskost, keine exotischen Zutaten
 - Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
@@ -453,6 +492,7 @@ REGELN:
 - Kalorien jeder Mahlzeit MÜSSEN exakt zu den Makros passen: kcal = 4*Protein + 4*Kohlenhydrate + 9*Fett (max. +/-50 kcal Abweichung)
 - Makros jeder Mahlzeit müssen zum Gericht passen; keine unrealistischen Protein-/Carb-/Fett-Werte für den Namen der Mahlzeit
 - Gib realistische, messbare Makrowerte an
+- Antworte bei ALLEN sichtbaren Textfeldern (day, type, name, ingredients.amount, ingredients.name, instructions) konsequent auf ${config.outputLabel}
 ${params.constraintPrompt ? "- Allergien, Ernährungsziele und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend." : ""}
 ${compactRule}
 
@@ -475,7 +515,7 @@ Antwort NUR als JSON:
 {
  "mealPlan":[
   {
-   "day":"Montag",
+   "day":"${config.dayNames[0]}",
    "meals":[]
   }
  ]
@@ -485,6 +525,7 @@ Antwort NUR als JSON:
     `Erstelle einen vollständigen 7-Tage-Plan mit ${params.mealsPerDay} Mahlzeiten pro Tag.`,
     `Insgesamt also genau ${totalMeals} Mahlzeiten.`,
     `Tagesziele: ${params.macroTargets.dailyCalories} kcal, Protein ${params.macroTargets.dailyProtein}g, Kohlenhydrate ${params.macroTargets.dailyCarbs}g, Fett ${params.macroTargets.dailyFat}g.`,
+    `Die Ausgabe-Sprache muss ${config.outputLabel} sein.`,
     params.isRegeneration
       ? `Plan-ID ${params.varietySeed}: Erstelle einen komplett neuen Wochenplan.`
       : "",
@@ -531,8 +572,10 @@ async function requestMealPlanFromOpenAI(params: {
   fridgeHint: string;
   isRegeneration: boolean;
   varietySeed: string;
+  language: SupportedLanguage;
 }) {
   let lastError: Error | null = null;
+  const config = LANGUAGE_CONFIG[params.language];
 
   for (const attempt of OPENAI_ATTEMPTS) {
     try {
@@ -596,7 +639,7 @@ async function requestMealPlanFromOpenAI(params: {
         day:
           typeof (day as any)?.day === "string" && (day as any).day.trim()
             ? (day as any).day.trim()
-            : DAY_NAMES[index] || `Tag ${index + 1}`,
+            : config.dayNames[index] || `${config.dayFallback} ${index + 1}`,
         meals: Array.isArray((day as any)?.meals)
           ? (day as any).meals.map((meal: any) => normalizeMeal(meal))
           : [],
@@ -687,6 +730,7 @@ Deno.serve(async (req) => {
       ? body.dietaryPreferences.map((s: unknown) => String(s).trim()).filter(Boolean)
       : [];
     const allergiesOther = typeof body.allergiesOther === "string" ? body.allergiesOther.trim() : "";
+    const language = resolveSupportedLanguage(body.language);
     const isRegeneration = body.isRegeneration === true;
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed : String(Date.now());
 
@@ -712,8 +756,16 @@ Deno.serve(async (req) => {
 
     const fridgeHint =
       fridgeIngredients.length > 0
-        ? `\n\nKühlschrank (bereits vorhanden – priorisiere diese Zutaten, darfst aber beliebig weitere ergänzen):\n${fridgeIngredients.join(", ")}`
-        : "\n\nKein Kühlschrankscan vorhanden: Erstelle trotzdem einen vollständigen Wochenplan frei aus passenden Zutaten. Die Einkaufsliste enthält danach alle benötigten Zutaten, bis ein Kühlschrankscan vorhandene Zutaten abzieht.";
+        ? language === "fr"
+          ? `\n\nFrigo (deja disponible - priorise ces ingredients, mais tu peux en ajouter librement si necessaire) :\n${fridgeIngredients.join(", ")}`
+          : language === "en"
+            ? `\n\nFridge (already available - prioritize these ingredients, but you may freely add more if needed):\n${fridgeIngredients.join(", ")}`
+            : `\n\nKühlschrank (bereits vorhanden – priorisiere diese Zutaten, darfst aber beliebig weitere ergänzen):\n${fridgeIngredients.join(", ")}`
+        : language === "fr"
+          ? "\n\nAucun scan du frigo disponible : cree quand meme un plan hebdomadaire complet avec des ingredients adaptes. La liste de courses contiendra ensuite tout ce qu il faut jusqu a ce qu un scan retire ce qui est deja present."
+          : language === "en"
+            ? "\n\nNo fridge scan available: still create a complete weekly plan with suitable ingredients. The shopping list should then contain everything needed until a fridge scan subtracts what is already available."
+            : "\n\nKein Kühlschrankscan vorhanden: Erstelle trotzdem einen vollständigen Wochenplan frei aus passenden Zutaten. Die Einkaufsliste enthält danach alle benötigten Zutaten, bis ein Kühlschrankscan vorhandene Zutaten abzieht.";
 
     const aiMealPlan = await requestMealPlanFromOpenAI({
       mealsPerDay,
@@ -722,6 +774,7 @@ Deno.serve(async (req) => {
       fridgeHint,
       isRegeneration,
       varietySeed,
+      language,
     });
 
     const normalizedMealPlan = syncMealPlanToTargets(aiMealPlan, macroTargets);

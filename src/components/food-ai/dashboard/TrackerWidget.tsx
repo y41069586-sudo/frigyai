@@ -22,6 +22,7 @@ type TrackerWidgetProps = {
   onOpenTracker?: () => void;
   onOpenMealPlanner?: () => void;
   loggedMealTypes?: MealFocusKey[];
+  showQuickLog?: boolean;
   expanded?: boolean;
   onToggleExpand?: () => void;
 };
@@ -39,6 +40,7 @@ export function TrackerWidget({
   onAddMeal,
   onOpenTracker,
   loggedMealTypes = [],
+  showQuickLog = true,
 }: TrackerWidgetProps) {
   const { language } = useLanguage();
   const locale = language === "fr" ? "fr-FR" : language === "en" ? "en-US" : "de-DE";
@@ -160,15 +162,15 @@ export function TrackerWidget({
         </div>
       </WidgetCard>
 
+      {showQuickLog && (
       <section className="space-y-3">
         <div className="flex items-end justify-between">
           <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">{copy.today}</h2>
           <span className="text-[12px] font-medium text-muted-foreground">{copy.quickLog}</span>
         </div>
-        <div className="grid grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-4 gap-2">
           {mealSlots.map((slot, index) => {
             const logged = loggedMealTypes.includes(slot.key);
-            const emphasizePrimaryMeals = slot.key === "lunch" || slot.key === "dinner";
             return (
               <motion.button
                 key={slot.key}
@@ -179,22 +181,20 @@ export function TrackerWidget({
                 whileTap={{ scale: 0.92, y: 2 }}
                 onClick={() => onAddMeal?.(slot.key)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1.5 rounded-[1.35rem] border bg-white/82 px-1.5 text-center shadow-[0_8px_20px_-18px_rgba(15,23,42,0.2)] transition-colors sm:bg-white/72 sm:backdrop-blur-xl sm:shadow-[0_10px_28px_-22px_rgba(15,23,42,0.24)]",
-                  emphasizePrimaryMeals ? "min-h-[94px]" : "min-h-[82px]",
+                  "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border bg-white/84 px-1.5 py-2 text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.18)] transition-colors sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
                   logged
                     ? "border border-primary/30 bg-primary/12 text-primary"
                     : "border border-neutral-200/90 text-foreground hover:bg-primary/8 dark:border-white/10",
                 )}
                 aria-label={`${copy.addMeal} ${slot.label}`}
               >
-                <span className={cn(emphasizePrimaryMeals ? "text-[26px]" : "text-[24px]")} aria-hidden>{slot.icon}</span>
-                <span className={cn("font-bold leading-tight", emphasizePrimaryMeals ? "text-[12px]" : "text-[11px]")}>
+                <span className="text-[23px] sm:text-[24px]" aria-hidden>{slot.icon}</span>
+                <span className="text-[10px] font-bold leading-tight sm:text-[11px]">
                   {slot.label}
                 </span>
                 <span
                   className={cn(
-                    "flex items-center justify-center rounded-full",
-                    emphasizePrimaryMeals ? "h-6 w-6" : "h-5 w-5",
+                    "flex h-5 w-5 items-center justify-center rounded-full sm:h-5.5 sm:w-5.5",
                     logged ? "bg-primary" : "bg-primary/12",
                   )}
                 >
@@ -209,6 +209,7 @@ export function TrackerWidget({
           })}
         </div>
       </section>
+      )}
     </div>
   );
 }

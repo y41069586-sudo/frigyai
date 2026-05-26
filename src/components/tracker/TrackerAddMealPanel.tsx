@@ -4,13 +4,17 @@ import { Barcode, Camera, ChevronLeft, Plus, Search, Trash2, X } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brandColors";
 import {
-  MEAL_FOCUS_SEARCH_PLACEHOLDER_DE,
-  MEAL_FOCUS_TITLES_DE,
   MEAL_LOG_GENERIC_PLACEHOLDER_DE,
   type MealFocusKey,
 } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  getLocalizedGenericMealPrompt,
+  getLocalizedMealFocusPrompt,
+  getLocalizedMealFocusTitle,
+} from "@/lib/mealI18n";
 import {
   bottomSheetExit,
   bottomSheetFrom,
@@ -124,16 +128,6 @@ function DetailMacro({
     </div>
   );
 }
-
-const INPUT_MODES: {
-  id: Exclude<InputMode, "search">;
-  label: string;
-  icon: typeof Search;
-  tint: string;
-}[] = [
-  { id: "camera", label: "Kamera", icon: Camera, tint: "#EC4899" },
-  { id: "barcode", label: "Barcode", icon: Barcode, tint: "#EF4444" },
-];
 
 let cachedExampleRecipes: TrackerRecipeExample[] | null = null;
 
@@ -338,6 +332,7 @@ export function TrackerAddMealPanel({
   isAnalyzing = false,
 }: Props) {
   const isMobile = useIsMobile();
+  const { t, language } = useLanguage();
   const [mode, setMode] = useState<InputMode>("search");
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState<TrackerRecipeExample[]>([]);
@@ -349,11 +344,105 @@ export function TrackerAddMealPanel({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const recipesFetchStarted = useRef(false);
 
+  const copy = language === "fr"
+    ? {
+        back: "Retour",
+        camera: "Camera",
+        barcode: "Code-barres",
+        noRecipes: "Aucune recette en base pour le moment. Decris ton repas ci-dessus ou scanne-le.",
+        detailsAria: (title: string) => `Afficher les details de ${title}`,
+        detailsClose: "Fermer les details",
+        mealLabel: "Repas",
+        ingredients: "Ingredients",
+        preparation: "Preparation",
+        preparationFallback: [
+          "Prepare les ingredients et les portions.",
+          "Cuisine le tout frais et assaisonne selon ton gout.",
+          "Sers directement et ajuste si besoin dans le tracker.",
+        ],
+        backButton: "Retour",
+        add: "Ajouter",
+        todayMeals: "Repas d aujourd hui",
+        todayMealsAria: (count: number) => `${count} repas aujourd hui. Afficher la liste.`,
+        noLoggedMeals: "Aucun repas enregistre pour aujourd hui",
+        close: "Fermer",
+        deleteMeal: (name: string) => `Supprimer ${name}`,
+        kcal: "kcal",
+        protein: "Proteines",
+        carbs: "Glucides",
+        fat: "Lipides",
+      }
+    : language === "en"
+      ? {
+          back: "Back",
+          camera: "Camera",
+          barcode: "Barcode",
+          noRecipes: "No recipes in the database yet. Describe your meal above or scan it.",
+          detailsAria: (title: string) => `Show details for ${title}`,
+          detailsClose: "Close details",
+          mealLabel: "Meal",
+          ingredients: "Ingredients",
+          preparation: "Preparation",
+          preparationFallback: [
+            "Prepare the ingredients and portion sizes.",
+            "Cook everything fresh and season to taste.",
+            "Serve right away and adjust it in the tracker if needed.",
+          ],
+          backButton: "Back",
+          add: "Add",
+          todayMeals: "Today's meals",
+          todayMealsAria: (count: number) => `${count} meals today. Show list.`,
+          noLoggedMeals: "No meals logged today",
+          close: "Close",
+          deleteMeal: (name: string) => `Delete ${name}`,
+          kcal: "kcal",
+          protein: "Protein",
+          carbs: "Carbs",
+          fat: "Fat",
+        }
+      : {
+          back: "Zurück",
+          camera: "Kamera",
+          barcode: "Barcode",
+          noRecipes: "Noch keine Rezepte in der Datenbank. Beschreibe dein Essen oben oder scanne es.",
+          detailsAria: (title: string) => `${title} Details anzeigen`,
+          detailsClose: "Details schließen",
+          mealLabel: "Mahlzeit",
+          ingredients: "Zutaten",
+          preparation: "Zubereitung",
+          preparationFallback: [
+            "Zutaten vorbereiten und passend portionieren.",
+            "Alles frisch zubereiten und nach Geschmack würzen.",
+            "Direkt servieren und bei Bedarf im Tracker anpassen.",
+          ],
+          backButton: "Zurück",
+          add: "Hinzufügen",
+          todayMeals: "Heutige Mahlzeiten",
+          todayMealsAria: (count: number) => `${count} Mahlzeiten heute. Liste anzeigen.`,
+          noLoggedMeals: "Noch keine Mahlzeiten geloggt",
+          close: "Schließen",
+          deleteMeal: (name: string) => `${name} löschen`,
+          kcal: "kcal",
+          protein: "Protein",
+          carbs: "Carbs",
+          fat: "Fett",
+        };
+
+  const inputModes: {
+    id: Exclude<InputMode, "search">;
+    label: string;
+    icon: typeof Search;
+    tint: string;
+  }[] = [
+    { id: "camera", label: copy.camera, icon: Camera, tint: "#EC4899" },
+    { id: "barcode", label: copy.barcode, icon: Barcode, tint: "#EF4444" },
+  ];
+
   const showMealTitle = mealFocus != null;
-  const title = mealFocus ? MEAL_FOCUS_TITLES_DE[mealFocus] : "";
+  const title = mealFocus ? getLocalizedMealFocusTitle(mealFocus, t) : "";
   const placeholder = mealFocus
-    ? MEAL_FOCUS_SEARCH_PLACEHOLDER_DE[mealFocus]
-    : MEAL_LOG_GENERIC_PLACEHOLDER_DE;
+    ? getLocalizedMealFocusPrompt(mealFocus, language)
+    : getLocalizedGenericMealPrompt(language) || MEAL_LOG_GENERIC_PLACEHOLDER_DE;
 
   useEffect(() => {
     if (cachedExampleRecipes) {
@@ -473,7 +562,7 @@ export function TrackerAddMealPanel({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Zurück"
+          aria-label={copy.back}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors"
           style={{
             backgroundColor: PALETTE.chip,
@@ -497,7 +586,7 @@ export function TrackerAddMealPanel({
             borderColor: PALETTE.border,
             color: PALETTE.primaryDark,
           }}
-          aria-label={`${mealCount} Mahlzeiten heute. Liste anzeigen.`}
+          aria-label={copy.todayMealsAria(mealCount)}
         >
           {mealCount}
         </button>
@@ -507,9 +596,9 @@ export function TrackerAddMealPanel({
         <div className="shrink-0 px-3 pt-1">
           <div
             className="grid gap-2"
-            style={{ gridTemplateColumns: `repeat(${INPUT_MODES.length}, minmax(0, 1fr))` }}
+            style={{ gridTemplateColumns: `repeat(${inputModes.length}, minmax(0, 1fr))` }}
           >
-            {INPUT_MODES.map((item) => {
+            {inputModes.map((item) => {
               const Icon = item.icon;
               const active = mode === item.id;
               return (
@@ -582,7 +671,7 @@ export function TrackerAddMealPanel({
             </div>
           ) : recipes.length === 0 ? (
             <p className="px-2 py-8 text-center text-sm" style={{ color: PALETTE.textMuted }}>
-              Noch keine Rezepte in der Datenbank. Beschreibe dein Essen oben oder scanne es.
+              {copy.noRecipes}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -606,7 +695,7 @@ export function TrackerAddMealPanel({
                     <RoundPlusButton
                       onClick={() => setSelectedRecipe(recipe)}
                       disabled={isAnalyzing}
-                      label={`${recipe.title} Details anzeigen`}
+                      label={copy.detailsAria(recipe.title)}
                     />
                   </button>
                 </li>
@@ -624,7 +713,7 @@ export function TrackerAddMealPanel({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 z-20 bg-black/25"
-                aria-label="Details schließen"
+                aria-label={copy.detailsClose}
                 onClick={() => setSelectedRecipe(null)}
               />
               <motion.div
@@ -641,22 +730,22 @@ export function TrackerAddMealPanel({
                 <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-zinc-300" />
                 <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: PALETTE.textMuted }}>
-                    Mahlzeit
+                    {copy.mealLabel}
                   </p>
                   <h2 className="mt-1 text-[24px] font-black leading-tight tracking-[-0.04em]">
                     {selectedRecipe.title}
                   </h2>
 
                   <div className="mt-4 grid grid-cols-4 gap-2">
-                    <DetailMacro label="kcal" value={selectedRecipe.calories} tint="#F97316" />
-                    <DetailMacro label="Protein" value={selectedRecipe.protein} unit="g" tint="#E11D48" />
-                    <DetailMacro label="Carbs" value={selectedRecipe.carbs} unit="g" tint="#D97706" />
-                    <DetailMacro label="Fett" value={selectedRecipe.fat} unit="g" tint="#0284C7" />
+                    <DetailMacro label={copy.kcal} value={selectedRecipe.calories} tint="#F97316" />
+                    <DetailMacro label={copy.protein} value={selectedRecipe.protein} unit="g" tint="#E11D48" />
+                    <DetailMacro label={copy.carbs} value={selectedRecipe.carbs} unit="g" tint="#D97706" />
+                    <DetailMacro label={copy.fat} value={selectedRecipe.fat} unit="g" tint="#0284C7" />
                   </div>
 
                   {selectedRecipe.ingredients?.length ? (
                     <section className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3">
-                      <h3 className="mb-2 text-[16px] font-bold">Zutaten</h3>
+                      <h3 className="mb-2 text-[16px] font-bold">{copy.ingredients}</h3>
                       <ul className="space-y-1.5">
                         {selectedRecipe.ingredients.map((ingredient, idx) => (
                           <li key={`${ingredient}-${idx}`} className="rounded-xl bg-white px-3 py-2 text-sm font-medium">
@@ -668,15 +757,11 @@ export function TrackerAddMealPanel({
                   ) : null}
 
                   <section className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3">
-                    <h3 className="mb-2 text-[16px] font-bold">Zubereitung</h3>
+                    <h3 className="mb-2 text-[16px] font-bold">{copy.preparation}</h3>
                     <ol className="space-y-2">
                       {(selectedRecipe.instructions?.length
                         ? selectedRecipe.instructions
-                        : [
-                            "Zutaten vorbereiten und passend portionieren.",
-                            "Alles frisch zubereiten und nach Geschmack würzen.",
-                            "Direkt servieren und bei Bedarf im Tracker anpassen.",
-                          ]
+                        : copy.preparationFallback
                       ).map((step, idx) => (
                         <li key={`${step}-${idx}`} className="flex gap-2 rounded-xl bg-white px-3 py-2 text-sm">
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#DCF5EA] text-xs font-bold" style={{ color: PALETTE.primaryDark }}>
@@ -695,7 +780,7 @@ export function TrackerAddMealPanel({
                     onClick={() => setSelectedRecipe(null)}
                     className="flex h-12 items-center justify-center rounded-2xl border border-zinc-200 text-sm font-bold"
                   >
-                    Zurück
+                    {copy.backButton}
                   </button>
                   <button
                     type="button"
@@ -707,7 +792,7 @@ export function TrackerAddMealPanel({
                     className="flex h-12 items-center justify-center rounded-2xl text-sm font-bold text-white disabled:opacity-50"
                     style={{ backgroundColor: PALETTE.primary }}
                   >
-                    Hinzufügen
+                    {copy.add}
                   </button>
                 </div>
               </motion.div>
@@ -721,7 +806,7 @@ export function TrackerAddMealPanel({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 z-20 bg-black/25"
-                aria-label="Liste schließen"
+                aria-label={copy.close}
                 onClick={() => setLoggedListOpen(false)}
               />
               <motion.div
@@ -738,13 +823,13 @@ export function TrackerAddMealPanel({
                   className="flex items-center justify-between border-b px-4 py-3"
                   style={{ borderColor: PALETTE.border }}
                 >
-                  <h2 className="text-[17px] font-semibold">Heutige Mahlzeiten</h2>
+                  <h2 className="text-[17px] font-semibold">{copy.todayMeals}</h2>
                   <button
                     type="button"
                     onClick={() => setLoggedListOpen(false)}
                     className="flex h-8 w-8 items-center justify-center rounded-full"
                     style={{ backgroundColor: PALETTE.chip, color: PALETTE.primaryDark }}
-                    aria-label="Schließen"
+                    aria-label={copy.close}
                   >
                     <X className="size-4" />
                   </button>
@@ -752,7 +837,7 @@ export function TrackerAddMealPanel({
                 <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2">
                   {mealCount === 0 ? (
                     <li className="py-10 text-center text-sm" style={{ color: PALETTE.textMuted }}>
-                      Noch keine Mahlzeiten geloggt
+                      {copy.noLoggedMeals}
                     </li>
                   ) : (
                     loggedMeals.map((meal) => (
@@ -765,7 +850,7 @@ export function TrackerAddMealPanel({
                           <p className="truncate text-[15px] font-semibold">{meal.name}</p>
                           {meal.time || meal.mealType ? (
                             <p className="text-xs" style={{ color: PALETTE.textMuted }}>
-                              {meal.mealType ? `${MEAL_FOCUS_TITLES_DE[meal.mealType]} · ` : ""}
+                              {meal.mealType ? `${getLocalizedMealFocusTitle(meal.mealType, t)} · ` : ""}
                               {meal.time}
                             </p>
                           ) : null}
@@ -782,7 +867,7 @@ export function TrackerAddMealPanel({
                             onClick={() => onDeleteMeal(meal.id)}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95"
                             style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
-                            aria-label={`${meal.name} löschen`}
+                            aria-label={copy.deleteMeal(meal.name)}
                           >
                             <Trash2 className="size-4" />
                           </button>

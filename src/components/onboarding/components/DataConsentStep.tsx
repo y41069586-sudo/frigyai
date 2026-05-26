@@ -11,7 +11,7 @@ type DataConsentStepProps = {
 const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   text: "#050505",
   muted: "#3F3F46",
 };

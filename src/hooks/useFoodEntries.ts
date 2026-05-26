@@ -7,6 +7,41 @@ import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
+function getFoodEntryErrorCopy() {
+  const lang = getStoredLanguage();
+  if (lang === 'fr') {
+    return {
+      saveTitle: 'Erreur lors de l enregistrement',
+      saveFallback: 'Le repas n a pas pu etre enregistre pour le moment. Reessaie.',
+      updateTitle: 'Erreur lors de la mise a jour',
+      updateFallback: 'L entree n a pas pu etre mise a jour pour le moment. Reessaie.',
+      deleteTitle: 'Erreur lors de la suppression',
+      deleteFallback: 'L entree n a pas pu etre supprimee pour le moment. Reessaie.',
+      clearFallback: 'Les entrees n ont pas pu etre supprimees pour le moment. Reessaie.',
+    };
+  }
+  if (lang === 'en') {
+    return {
+      saveTitle: 'Error while saving',
+      saveFallback: 'The meal could not be saved right now. Please try again.',
+      updateTitle: 'Error while updating',
+      updateFallback: 'The entry could not be updated right now. Please try again.',
+      deleteTitle: 'Error while deleting',
+      deleteFallback: 'The entry could not be deleted right now. Please try again.',
+      clearFallback: 'The entries could not be deleted right now. Please try again.',
+    };
+  }
+  return {
+    saveTitle: 'Fehler beim Speichern',
+    saveFallback: 'Das Essen konnte gerade nicht gespeichert werden. Bitte versuche es erneut.',
+    updateTitle: 'Fehler beim Aktualisieren',
+    updateFallback: 'Der Eintrag konnte gerade nicht aktualisiert werden. Bitte versuche es erneut.',
+    deleteTitle: 'Fehler beim Löschen',
+    deleteFallback: 'Der Eintrag konnte gerade nicht gelöscht werden. Bitte versuche es erneut.',
+    clearFallback: 'Die Einträge konnten gerade nicht gelöscht werden. Bitte versuche es erneut.',
+  };
+}
+
 export interface FoodEntry {
   id: string;
   user_id: string;
@@ -236,10 +271,11 @@ export const useFoodEntries = () => {
       return typedEntry;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
+      const copy = getFoodEntryErrorCopy();
       console.error('Error adding food entry:', errorMessage);
       toast({
-        title: 'Fehler beim Speichern',
-        description: getPublicErrorMessage(errorMessage, 'Das Essen konnte gerade nicht gespeichert werden. Bitte versuche es erneut.'),
+        title: copy.saveTitle,
+        description: getPublicErrorMessage(errorMessage, copy.saveFallback),
         variant: 'destructive'
       });
       return null;
@@ -263,9 +299,10 @@ export const useFoodEntries = () => {
       return true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Update fehlgeschlagen';
+      const copy = getFoodEntryErrorCopy();
       toast({
-        title: 'Fehler beim Aktualisieren',
-        description: getPublicErrorMessage(msg, 'Der Eintrag konnte gerade nicht aktualisiert werden. Bitte versuche es erneut.'),
+        title: copy.updateTitle,
+        description: getPublicErrorMessage(msg, copy.updateFallback),
         variant: 'destructive'
       });
       return false;
@@ -310,9 +347,10 @@ export const useFoodEntries = () => {
       return true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
+      const copy = getFoodEntryErrorCopy();
       toast({
-        title: 'Fehler beim Löschen',
-        description: getPublicErrorMessage(msg, 'Der Eintrag konnte gerade nicht gelöscht werden. Bitte versuche es erneut.'),
+        title: copy.deleteTitle,
+        description: getPublicErrorMessage(msg, copy.deleteFallback),
         variant: 'destructive'
       });
       return false;
@@ -341,9 +379,10 @@ export const useFoodEntries = () => {
       return true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Löschen fehlgeschlagen';
+      const copy = getFoodEntryErrorCopy();
       toast({
-        title: 'Fehler beim Löschen',
-        description: getPublicErrorMessage(msg, 'Die Einträge konnten gerade nicht gelöscht werden. Bitte versuche es erneut.'),
+        title: copy.deleteTitle,
+        description: getPublicErrorMessage(msg, copy.clearFallback),
         variant: 'destructive'
       });
       return false;

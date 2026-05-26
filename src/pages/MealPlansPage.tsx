@@ -23,6 +23,7 @@ import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
 import { resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { localizeMealTypeLabel, localizeWeekdayLabel } from '@/lib/mealI18n';
 import {
   tabPanelExit,
   tabPanelFrom,
@@ -148,6 +149,12 @@ const MealPlansPage = () => {
         creating: 'Creation...',
         createShort: 'Creer',
         createMealPlan: 'Creer le plan',
+        createPlanFirst: 'Cree ton premier plan Frigy !',
+        createPlanDesc: 'Frigy organise ta semaine selon tes macros, avec la liste de courses incluse.',
+        shoppingHint: 'Cree un plan Frigy ou scanne ton frigo : la liste de courses affichera alors seulement ce qu il manque.',
+        mealAddedTitle: `${t.eaten}! ✓`,
+        mealAddedDesc: 'Repas ajoute a ton suivi',
+        notGenerated: 'Pas encore genere',
       }
     : language === 'en'
       ? {
@@ -157,6 +164,12 @@ const MealPlansPage = () => {
           creating: 'Creating...',
           createShort: 'Create',
           createMealPlan: 'Create meal plan',
+          createPlanFirst: 'Create your first Frigy meal plan!',
+          createPlanDesc: 'Frigy plans your week around your macro goals, including the shopping list.',
+          shoppingHint: 'Create a Frigy plan or scan your fridge: the shopping list will then show only missing ingredients.',
+          mealAddedTitle: `${t.eaten}! ✓`,
+          mealAddedDesc: 'Meal added to your tracker',
+          notGenerated: 'Not generated yet',
         }
       : {
           premiumActivatingTitle: 'Premium wird aktiviert...',
@@ -165,6 +178,12 @@ const MealPlansPage = () => {
           creating: 'Erstellt...',
           createShort: 'Erstellen',
           createMealPlan: 'Wochenplan erstellen',
+          createPlanFirst: 'Erstell deinen ersten Frigy Wochenplan!',
+          createPlanDesc: 'Frigy plant deine Woche passend zu deinen Makrozielen — inklusive Einkaufsliste.',
+          shoppingHint: 'Erstelle einen Frigy Plan oder scanne den Kühlschrank: Die Einkaufsliste zeigt dann nur Zutaten, die noch fehlen.',
+          mealAddedTitle: `${t.eaten}! ✓`,
+          mealAddedDesc: 'Mahlzeit zu deinem Tracker hinzugefügt',
+          notGenerated: 'Nicht generiert',
         };
 
   // Sync activeTab with URL params
@@ -386,22 +405,22 @@ const MealPlansPage = () => {
 
       if (result) {
         toast({
-          title: `${t.eaten}! ✓`,
+          title: pageCopy.mealAddedTitle,
           description: `${meal.name} - ${calories} kcal ${t.toastProductAdded}`
         });
       } else {
         console.error('[ADD-MEAL-TO-TRACKER] Failed to add meal - result is null');
         toast({
-          title: 'Fehler',
-          description: 'Mahlzeit konnte nicht hinzugefügt werden',
+          title: t.error,
+          description: t.toastMealAddFailed,
           variant: 'destructive'
         });
       }
     } catch (error) {
       console.error('[ADD-MEAL-TO-TRACKER] Error:', error);
       toast({
-        title: 'Fehler',
-        description: 'Konnte Mahlzeit nicht speichern',
+        title: t.error,
+        description: t.toastMealSaveFailed,
         variant: 'destructive'
       });
     }
@@ -569,11 +588,11 @@ const MealPlansPage = () => {
                     <Card className="border-primary/20 bg-card/90 p-6 text-center sm:p-8">
                       <Calendar className="mx-auto mb-4 h-12 w-12 text-primary" />
                       <h3 className="text-lg font-bold mb-2">
-                        {t.onboardingFirstWeeklyPlanTitle || 'Erstell deinen ersten Frigy Wochenplan!'}
+                        {t.onboardingFirstWeeklyPlanTitle || pageCopy.createPlanFirst}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
                         {t.onboardingFirstWeeklyPlanDesc ||
-                          'Frigy plant deine Woche passend zu deinen Makrozielen — inklusive Einkaufsliste.'}
+                          pageCopy.createPlanDesc}
                       </p>
                       <Button
                         type="button"
@@ -603,7 +622,9 @@ const MealPlansPage = () => {
                           isFocusedDay && 'ring-2 ring-primary/25 border-primary/35',
                         )}
                       >
-                        <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">{day.day}</h3>
+                        <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-primary">
+                          {localizeWeekdayLabel(day.day, t, language, dayIndex)}
+                        </h3>
                         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                           {day.meals.map((meal, mealIndex) => (
                             <div
@@ -612,7 +633,9 @@ const MealPlansPage = () => {
                               className="min-w-0 p-2 sm:p-3 bg-background/50 rounded-xl cursor-pointer hover:bg-primary/10 transition-all duration-200 active:scale-[0.98] touch-manipulation"
                             >
                               <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{meal.type}</p>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                                  {localizeMealTypeLabel(meal.type, t)}
+                                </p>
                                 <span className="text-[10px] sm:text-xs text-primary font-medium">{meal.calories}</span>
                               </div>
                               <p className="font-medium text-xs sm:text-sm line-clamp-2">{meal.name}</p>
@@ -652,7 +675,7 @@ const MealPlansPage = () => {
                 {mealPlan.length === 0 && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
                     <p className="text-sm text-amber-700">
-                      💡 Erstelle einen <strong>Frigy Plan</strong> oder scanne den Kühlschrank: Die Einkaufsliste zeigt dann nur Zutaten, die noch fehlen.
+                      💡 {pageCopy.shoppingHint}
                     </p>
                   </Card>
                 )}
@@ -670,8 +693,8 @@ const MealPlansPage = () => {
         onMealLogged={() => {
           // Refresh food entries when meal is logged from dialog
           toast({
-            title: `${t.eaten}! ✓`,
-            description: `Mahlzeit zu deinem Tracker hinzugefügt`
+            title: pageCopy.mealAddedTitle,
+            description: pageCopy.mealAddedDesc
           });
         }}
       />

@@ -37,6 +37,7 @@ https://DEIN-PROJEKT.chottu.link/xxxx
 
 ```env
 VITE_CHOTTULINK_HOST=dein-projekt.chottu.link
+VITE_CHOTTULINK_API_KEY=dein-mobile-sdk-api-key
 VITE_APP_WEB_HOST=app.frigy.app
 VITE_IOS_TEAM_ID=ABCDE12345
 ```
@@ -97,6 +98,15 @@ Empfehlung: Influencer-Codes in der Admin-Oberfläche als **6 Zeichen** anlegen 
 
 Beim **ersten nativen App-Start** wird `frigy_deferred_ref` automatisch übernommen.
 
+### Nativer SDK-Init
+
+Für echten `Link -> Store -> Install -> erster App-Start`-Flow nutzt Frigy jetzt zusätzlich das native ChottuLink-SDK:
+
+- **Android**: `com.chottulink:android-sdk`
+- **iOS**: `ChottuLinkSDK` via Swift Package Manager
+
+Der Init läuft aus der App über `VITE_CHOTTULINK_API_KEY`. Ohne diesen Key bleiben normale Deep Links/App Links aktiv, aber echtes Deferred-Install-Tracking ist deaktiviert.
+
 ## React Native / Flutter (Referenz)
 
 Frigy nutzt **Capacitor**. Entsprechung:
@@ -140,6 +150,7 @@ frigy://callback?subscription=success
 ## Code-Übersicht
 
 - `src/lib/chottuLinkConfig.ts` — Domains, Destination-URL-Vorlagen
+- `src/lib/chottuLinkNative.ts` — Capacitor-Bridge zum nativen ChottuLink-SDK
 - `src/lib/appDeepLink.ts` — URL → Route
 - `src/lib/referralAttribution.ts` — Ref speichern / deferred
 - `src/components/AppDeepLinkListener.tsx` — Native

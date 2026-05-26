@@ -17,6 +17,7 @@ import {
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
+import { getStoredLanguage, getTranslations } from './LanguageContext';
 
 type GenerationStage =
   | 'preparing'
@@ -25,6 +26,62 @@ type GenerationStage =
   | 'processing'
   | 'saving'
   | 'finalizing';
+
+function getMealPlanUiCopy() {
+  const lang = getStoredLanguage();
+  if (lang === 'fr') {
+    return {
+      premiumRequired: 'Premium requis',
+      premiumRequiredDesc: 'Les plans hebdomadaires sont disponibles uniquement avec Premium.',
+      generatedTitle: '✅ Plan hebdomadaire cree !',
+      generatedDescWithFridge: (calories: number) => `Plan avec ${calories} kcal par jour`,
+      generatedDescWithoutFridge:
+        'Scanne maintenant ton frigo pour que Frigy verifie ce que tu as deja et ce qui doit aller sur la liste de courses.',
+      connectionErrorTitle: 'Erreur de connexion',
+      connectionErrorDesc:
+        'La creation du plan hebdomadaire est momentanement indisponible. Reessaie dans un instant.',
+      caloriesErrorTitle: 'Objectif calorique non atteint',
+      caloriesErrorDesc:
+        'Le plan genere ne respecte pas ton objectif calorique. Reessaie ou verifie tes reglages.',
+      genericErrorTitle: 'Erreur',
+      genericErrorDesc: 'Le plan hebdomadaire n a pas pu etre genere. Reessaie.',
+    };
+  }
+  if (lang === 'en') {
+    return {
+      premiumRequired: 'Premium required',
+      premiumRequiredDesc: 'Weekly meal plans are only available with Premium.',
+      generatedTitle: '✅ Meal plan generated!',
+      generatedDescWithFridge: (calories: number) => `Plan with ${calories} kcal per day`,
+      generatedDescWithoutFridge:
+        'Now scan your fridge so Frigy can check what you already have and what should go on the shopping list.',
+      connectionErrorTitle: 'Connection error',
+      connectionErrorDesc:
+        'Meal plan generation is currently unavailable. Please try again shortly.',
+      caloriesErrorTitle: 'Calorie target not reached',
+      caloriesErrorDesc:
+        'The generated plan does not meet your calorie target. Please try again or review your settings.',
+      genericErrorTitle: 'Error',
+      genericErrorDesc: 'The meal plan could not be generated. Please try again.',
+    };
+  }
+  return {
+    premiumRequired: 'Premium erforderlich',
+    premiumRequiredDesc: 'Wochenpläne sind nur mit Premium verfügbar.',
+    generatedTitle: '✅ Wochenplan generiert!',
+    generatedDescWithFridge: (calories: number) => `Plan mit ${calories} kcal pro Tag`,
+    generatedDescWithoutFridge:
+      'Scanne jetzt deinen Kühlschrank, damit Frigy prüft, was du hast und was auf die Einkaufsliste muss.',
+    connectionErrorTitle: 'Verbindungsfehler',
+    connectionErrorDesc:
+      'Die Wochenplan-Erstellung ist gerade nicht erreichbar. Bitte versuche es gleich erneut.',
+    caloriesErrorTitle: 'Kalorienziel nicht erreicht',
+    caloriesErrorDesc:
+      'Der generierte Plan erfüllt Ihr Kalorienziel nicht. Bitte versuchen Sie es erneut oder überprüfen Sie Ihre Einstellungen.',
+    genericErrorTitle: 'Fehler',
+    genericErrorDesc: 'Wochenplan konnte nicht generiert werden. Bitte versuche es erneut.',
+  };
+}
 
 function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   const unsafe: string[] = [];
@@ -402,8 +459,10 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dailyFat: number;
     mealsPerDay?: number;
   }, options?: { fridgeIngredients?: string[] }): Promise<boolean> => {
+    const tr = getTranslations(getStoredLanguage());
+    const ui = getMealPlanUiCopy();
     if (!session) {
-      toast({ title: 'Nicht eingeloggt', variant: 'destructive' });
+      toast({ title: tr.notLoggedIn, variant: 'destructive' });
       return false;
     }
 
@@ -414,8 +473,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     if (!hasPremium) {
       toast({
-        title: 'Premium erforderlich',
-        description: 'Wochenpläne sind nur mit Premium verfügbar.',
+        title: ui.premiumRequired,
+        description: ui.premiumRequiredDesc,
         variant: 'destructive',
       });
       return false;
@@ -479,6 +538,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             healthGoals: diet.healthGoals,
             constraintPrompt,
             fridgeIngredients: options?.fridgeIngredients ?? [],
+            language: getStoredLanguage(),
             isRegeneration,
             varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           },
@@ -587,10 +647,10 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           await new Promise((resolve) => setTimeout(resolve, 240));
 
           toast({
-            title: '✅ Wochenplan generiert!',
+            title: ui.generatedTitle,
             description: options?.fridgeIngredients?.length
-              ? `Plan mit ${settings.dailyCalories} kcal pro Tag`
-              : 'Scanne jetzt deinen Kühlschrank, damit Frigy prüft, was du hast und was auf die Einkaufsliste muss.'
+              ? ui.generatedDescWithFridge(settings.dailyCalories)
+              : ui.generatedDescWithoutFridge
           });
           return true;
         } else {
@@ -612,26 +672,26 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await refreshGenerationCount();
 
         toast({
-          title: "Wochenplan konnte nicht generiert werden",
-          description: "Bitte versuche es gleich erneut.",
+          title: ui.genericErrorTitle,
+          description: ui.genericErrorDesc,
           variant: 'destructive',
         });
       } else if (message.includes('Load failed') || message.includes('Failed to fetch')) {
         toast({
-          title: 'Verbindungsfehler',
-          description: 'Die Wochenplan-Erstellung ist gerade nicht erreichbar. Bitte versuche es gleich erneut.',
+          title: ui.connectionErrorTitle,
+          description: ui.connectionErrorDesc,
           variant: 'destructive',
         });
       } else if (message.includes('calorie') || message.includes('Kalorie')) {
         toast({
-          title: 'Kalorienziel nicht erreicht',
-          description: 'Der generierte Plan erfüllt Ihr Kalorienziel nicht. Bitte versuchen Sie es erneut oder überprüfen Sie Ihre Einstellungen.',
+          title: ui.caloriesErrorTitle,
+          description: ui.caloriesErrorDesc,
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Fehler',
-          description: getPublicErrorMessage(message, 'Wochenplan konnte nicht generiert werden. Bitte versuche es erneut.'),
+          title: ui.genericErrorTitle,
+          description: getPublicErrorMessage(message, ui.genericErrorDesc),
           variant: 'destructive',
         });
       }

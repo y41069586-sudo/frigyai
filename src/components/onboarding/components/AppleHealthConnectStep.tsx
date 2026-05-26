@@ -111,7 +111,7 @@ export function AppleHealthConnectStep({
       <div
         className="relative mx-5 mt-2 shrink-0 overflow-hidden rounded-[28px] px-6 py-10"
         style={{
-          background: "linear-gradient(165deg, #DCFEEF 0%, #F2FFF8 42%, #FFFFFF 100%)",
+          background: "linear-gradient(165deg, #DCFEEF 0%, #FBFFFD 42%, #FFFFFF 100%)",
           boxShadow: "0 20px 48px -28px rgba(60,120,90,0.22), 0 2px 8px -4px rgba(60,120,90,0.06)",
         }}
       >

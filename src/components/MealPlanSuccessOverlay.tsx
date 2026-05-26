@@ -3,6 +3,7 @@ import { Check, Calendar, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { confettiBurst } from "@/lib/mobileEffects";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MealPlanSuccessOverlayProps {
   isVisible: boolean;
@@ -20,6 +21,24 @@ const MealPlanSuccessOverlay = ({
   onComplete,
 }: MealPlanSuccessOverlayProps) => {
   const { playGoalReached } = useSoundEffects();
+  const { language } = useLanguage();
+  const copy = language === "fr"
+    ? {
+        perfect: "Parfait !",
+        replaced: "Plat remplace",
+        updated: "Ton plan hebdomadaire a ete mis a jour",
+      }
+    : language === "en"
+      ? {
+          perfect: "Perfect!",
+          replaced: "Meal replaced",
+          updated: "Your weekly plan has been updated",
+        }
+      : {
+          perfect: "Perfekt!",
+          replaced: "Gericht ersetzt",
+          updated: "Dein Wochenplan wurde aktualisiert",
+        };
 
   useEffect(() => {
     if (isVisible) {
@@ -101,11 +120,11 @@ const MealPlanSuccessOverlay = ({
               >
                 <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5 text-primary" />
-                  Perfekt!
+                  {copy.perfect}
                   <Sparkles className="h-5 w-5 text-primary" />
                 </h2>
                 <p className="text-lg text-foreground font-medium">
-                  Gericht ersetzt
+                  {copy.replaced}
                 </p>
               </motion.div>
 
@@ -134,7 +153,7 @@ const MealPlanSuccessOverlay = ({
                 transition={{ delay: 0.5 }}
                 className="text-center text-sm text-muted-foreground"
               >
-                Dein Wochenplan wurde aktualisiert
+                {copy.updated}
               </motion.p>
             </div>
           </motion.div>

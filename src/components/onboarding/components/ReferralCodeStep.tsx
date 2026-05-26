@@ -20,7 +20,7 @@ type ReferralCodeStepProps = {
 const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   chip: "#F4F7EF",
   text: "#050505",
   muted: "#3F3F46",
@@ -242,7 +242,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 16 }}
                 className="flex h-[88px] w-[88px] items-center justify-center rounded-full border-[4px]"
-                style={{ borderColor: PALETTE.primary, backgroundColor: "#F2FFF8" }}
+                style={{ borderColor: PALETTE.primary, backgroundColor: "#FBFFFD" }}
               >
                 <Check className="h-11 w-11" strokeWidth={3} style={{ color: PALETTE.primary }} />
               </motion.div>

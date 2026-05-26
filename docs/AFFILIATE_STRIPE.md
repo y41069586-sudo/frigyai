@@ -69,6 +69,7 @@ npx supabase functions deploy manage-referral-codes
 - Web-Klick vor Install: `frigy_deferred_ref` in localStorage
 - Erster nativer Start: `applyDeferredReferralOnFirstOpen()` → Ref übernehmen
 - Nach Registrierung: `sync-affiliate-attribution`
+- Für echten Store-Install-Flow initialisiert die App zusätzlich das native ChottuLink-SDK über `VITE_CHOTTULINK_API_KEY`
 
 Für Store-Install ohne Web-Session: ChottuLink Deferred SDK (optional) laut [ChottuLink Docs](https://docs.chottulink.com).
 

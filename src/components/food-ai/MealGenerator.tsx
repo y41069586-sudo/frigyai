@@ -1,15 +1,24 @@
 import { motion } from "framer-motion";
 import { Clock, Flame } from "lucide-react";
 import type { MockMeal } from "@/lib/food-ai/types";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeMealTypeLabel } from "@/lib/mealI18n";
 
 type MealGeneratorProps = {
   meals: MockMeal[];
 };
 
 export function MealGenerator({ meals }: MealGeneratorProps) {
+  const { t, language } = useLanguage();
+  const copy = language === "fr"
+    ? { title: "Tes 3 repas", minutes: "min" }
+    : language === "en"
+      ? { title: "Your 3 meals", minutes: "min" }
+      : { title: "Deine 3 Mahlzeiten", minutes: "Min" };
+
   return (
     <div className="space-y-4 w-full">
-      <h3 className="text-lg font-bold text-center sm:text-left">Deine 3 Mahlzeiten</h3>
+      <h3 className="text-lg font-bold text-center sm:text-left">{copy.title}</h3>
       <div className="space-y-3">
         {meals.map((meal, i) => (
           <motion.div
@@ -21,10 +30,10 @@ export function MealGenerator({ meals }: MealGeneratorProps) {
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="flex items-start justify-between gap-3 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-primary">{meal.type}</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-primary">{localizeMealTypeLabel(meal.type, t)}</span>
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
-                {meal.prepTime} Min
+                {meal.prepTime} {copy.minutes}
               </span>
             </div>
             <h4 className="font-bold text-base text-foreground mb-3">{meal.name}</h4>

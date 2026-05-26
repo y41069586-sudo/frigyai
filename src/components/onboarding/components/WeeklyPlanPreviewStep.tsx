@@ -18,7 +18,7 @@ const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
   primaryDeep: "#2EB56D",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   accent: "#DCFEEF",
   border: "#6EECC0",
   text: "#1F2937",
@@ -153,7 +153,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
             style={{
               width: 22,
               background:
-                "linear-gradient(180deg, #F2FFF8 0%, #75FBB2 100%)",
+                "linear-gradient(180deg, #FBFFFD 0%, #75FBB2 100%)",
             }}
           />
           {/* Spiral rings */}
@@ -299,7 +299,7 @@ export function WeeklyPlanPreviewStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F2FFF8",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

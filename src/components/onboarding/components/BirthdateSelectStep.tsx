@@ -10,7 +10,7 @@ import { OnboardingDataNotice } from "./OnboardingDataNotice";
 const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   selectedBg: "#DCFEEF",
   border: "#6EECC0",
   text: "#1F2937",
@@ -173,7 +173,7 @@ export function BirthdateSelectStep({
             aria-label="ZurÃ¼ck"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F2FFF8",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

@@ -22,6 +22,7 @@ import {
   viewportPanelTransition,
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
+import { localizeMealTypeLabel } from "@/lib/mealI18n";
 
 interface Ingredient {
   name: string;
@@ -232,7 +233,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                     className="mb-2 w-fit rounded-full border-primary/20 bg-primary/10 text-primary"
                     variant="secondary"
                   >
-                    {activeMeal.type}
+                    {localizeMealTypeLabel(activeMeal.type, t)}
                   </Badge>
                   <h2
                     id="meal-detail-title"

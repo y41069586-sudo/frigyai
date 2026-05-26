@@ -22,17 +22,46 @@ type FrigyFoodScanFlowProps = {
 export function FrigyFoodScanFlow({
   open,
   analyzing,
-  analyzingLabel = "Essen wird analysiert…",
+  analyzingLabel,
   previewImage,
   analysisErrorMessage,
   onClose,
   onCapture,
   onRetryAfterError,
 }: FrigyFoodScanFlowProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
+  const copy = language === "fr"
+    ? {
+        analyzingLabel: "Analyse de votre nourriture...",
+        analyzingTitle: "L'assiette est scannée.",
+        analyzingSubtitle: "Propulsé par l'IA ✨",
+        retryLabel: "Essayer un autre plat",
+        gallery: "Galerie",
+        capture: "Prendre une photo",
+        retryCamera: "Relancer la caméra",
+      }
+    : language === "en"
+      ? {
+          analyzingLabel: "Analyzing your food...",
+          analyzingTitle: "Plate is being scanned.",
+          analyzingSubtitle: "AI-powered ✨",
+          retryLabel: "Try another dish",
+          gallery: "Gallery",
+          capture: "Take photo",
+          retryCamera: "Restart camera",
+        }
+      : {
+          analyzingLabel: "Essen wird analysiert…",
+          analyzingTitle: "Teller wird gescannt.",
+          analyzingSubtitle: "KI-gestützt ✨",
+          retryLabel: "Anderes Gericht versuchen",
+          gallery: "Galerie",
+          capture: "Foto aufnehmen",
+          retryCamera: "Kamera erneut",
+        };
 
   const phase: Phase = analysisErrorMessage
     ? "error"
@@ -89,28 +118,13 @@ export function FrigyFoodScanFlow({
     e.target.value = "";
   };
 
-  const analyzingTitle =
-    language === "de"
-      ? "Teller wird gescannt."
-      : language === "fr"
-        ? "L'assiette est scannée."
-        : "Plate is being scanned.";
-  const analyzingSubtitle =
-    language === "de" ? "KI-gestützt ✨" : language === "fr" ? "Propulsé par l'IA ✨" : "AI-powered ✨";
-  const retryLabel =
-    language === "de"
-      ? "Anderes Gericht versuchen"
-      : language === "fr"
-        ? "Essayer un autre plat"
-        : "Try another dish";
-
   const activePreviewImage = previewImage ?? capturedPreviewUrl;
 
   if (phase === "error" && analysisErrorMessage) {
     return (
       <FrigyScanFailureStage
         message={analysisErrorMessage}
-        actionLabel={retryLabel}
+        actionLabel={copy.retryLabel}
         onAction={() => {
           resetCapturedPreview();
           onRetryAfterError?.();
@@ -124,9 +138,9 @@ export function FrigyFoodScanFlow({
     return (
       <FrigyScanAnalyzingStage
         previewUrl={activePreviewImage}
-        title={analyzingTitle}
-        subtitle={analyzingSubtitle}
-        message={analyzingLabel}
+        title={copy.analyzingTitle}
+        subtitle={copy.analyzingSubtitle}
+        message={analyzingLabel ?? copy.analyzingLabel}
         onClose={onClose}
       />
     );
@@ -174,7 +188,7 @@ export function FrigyFoodScanFlow({
           type="button"
           onClick={onClose}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 backdrop-blur-md"
-          aria-label="Schließen"
+          aria-label={t.close}
         >
           <X className="h-6 w-6" />
         </button>
@@ -208,7 +222,7 @@ export function FrigyFoodScanFlow({
           type="button"
           onClick={() => galleryRef.current?.click()}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-md"
-          aria-label="Galerie"
+          aria-label={copy.gallery}
         >
           <ImagePlus className="h-6 w-6" />
         </button>
@@ -216,7 +230,7 @@ export function FrigyFoodScanFlow({
           type="button"
           onClick={() => void handleShutter()}
           className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[4px] border-[#75FBB2] bg-white/10 shadow-[0_14px_36px_-18px_rgba(57,212,127,0.42)]"
-          aria-label="Foto aufnehmen"
+          aria-label={copy.capture}
         >
           <Camera className="h-8 w-8 text-[#75FBB2]" />
         </button>
@@ -227,7 +241,7 @@ export function FrigyFoodScanFlow({
             "flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-md",
             !errorMessage && "opacity-0 pointer-events-none",
           )}
-          aria-label="Kamera erneut"
+          aria-label={copy.retryCamera}
         >
           <Camera className="h-6 w-6" />
         </button>

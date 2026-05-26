@@ -17,7 +17,7 @@ type GenderSelectStepProps = {
 const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   selectedBg: "#DCFEEF",
   border: "#75FBB2",
   text: "#1F2937",
@@ -205,7 +205,7 @@ export function GenderSelectStep({
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #F2FFF8 0%, #DCFEEF 100%)",
+              : "linear-gradient(135deg, #FBFFFD 0%, #DCFEEF 100%)",
             boxShadow: canProceed
               ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",

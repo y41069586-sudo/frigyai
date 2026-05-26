@@ -18,7 +18,7 @@ const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
   primaryDeep: "#2EB56D",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   accent: "#DCFEEF",
   border: "#BCFDDC",
   text: "#1F2937",
@@ -85,7 +85,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
             height: 14,
             borderRadius: "8px 8px 5px 5px",
             background:
-              "linear-gradient(180deg, #F2FFF8 0%, #75FBB2 42%, #39D47F 100%)",
+              "linear-gradient(180deg, #FBFFFD 0%, #75FBB2 42%, #39D47F 100%)",
             boxShadow:
               "0 5px 14px -3px rgba(24,104,72,0.45), inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -3px 5px rgba(10,90,55,0.28)",
           }}
@@ -140,7 +140,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
               className="flex h-3 w-3 shrink-0 items-center justify-center rounded-[4px]"
               style={{
                 background:
-                  "linear-gradient(135deg, #F2FFF8 0%, #75FBB2 100%)",
+                  "linear-gradient(135deg, #FBFFFD 0%, #75FBB2 100%)",
                 color: "#fff",
                 boxShadow:
                   "0 1px 4px -2px rgba(74, 232, 150,0.4), inset 0 1px 0 rgba(255,255,255,0.45)",
@@ -280,7 +280,7 @@ export function ShoppingListStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F2FFF8",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}

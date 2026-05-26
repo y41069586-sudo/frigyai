@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type FrigyScanAnalyzingStageProps = {
   previewUrl?: string | null;
@@ -18,6 +19,7 @@ export function FrigyScanAnalyzingStage({
   progress,
   onClose,
 }: FrigyScanAnalyzingStageProps) {
+  const { t } = useLanguage();
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -31,7 +33,7 @@ export function FrigyScanAnalyzingStage({
           type="button"
           onClick={onClose}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-black/5 transition-colors hover:bg-black/10"
-          aria-label="Schließen"
+          aria-label={t.close}
         >
           <X className="h-6 w-6 text-neutral-900" />
         </button>
@@ -118,8 +120,10 @@ export function FrigyScanFailureStage({
   actionLabel,
   onAction,
   onClose,
-  title = "Frigy sagt",
+  title,
 }: FrigyScanFailureStageProps) {
+  const { t, language } = useLanguage();
+  const resolvedTitle = title ?? (language === "fr" ? "Frigy dit" : language === "en" ? "Frigy says" : "Frigy sagt");
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -133,7 +137,7 @@ export function FrigyScanFailureStage({
           type="button"
           onClick={onClose}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-black/5 transition-colors hover:bg-black/10"
-          aria-label="Schließen"
+          aria-label={t.close}
         >
           <X className="h-6 w-6 text-neutral-900" />
         </button>
@@ -147,7 +151,7 @@ export function FrigyScanFailureStage({
           className="mx-auto flex w-full max-w-[360px] flex-1 flex-col justify-center"
         >
           <div className="mb-6 h-20 w-20 rounded-full bg-[radial-gradient(circle,rgba(117,251,178,0.45)_0%,rgba(117,251,178,0.16)_45%,rgba(117,251,178,0)_74%)]" />
-          <p className="text-[14px] font-semibold tracking-[-0.02em] text-[#4A7C63]">{title}</p>
+          <p className="text-[14px] font-semibold tracking-[-0.02em] text-[#4A7C63]">{resolvedTitle}</p>
           <h2 className="mt-3 text-[22px] font-black leading-[1.04] tracking-[-0.055em] text-neutral-950 min-[390px]:text-[24px]">
             {message}
           </h2>

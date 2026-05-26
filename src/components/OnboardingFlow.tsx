@@ -244,7 +244,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   const { t } = useLanguage();
 
   return (
-    <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FEFFFC] text-neutral-950">
+    <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FFFFFF] text-neutral-950">
       <motion.div
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -253,7 +253,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
       >
         <SplashLanguageSwitcher />
       </motion.div>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#ffffff_0%,#f7fff9_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#ffffff_0%,#fbfffd_100%)]" />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
         <motion.p

@@ -60,7 +60,7 @@ export function FrigyIngredientScanFlow({
   onRetryAfterError,
   labels = {},
 }: FrigyIngredientScanFlowProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [analysisPreviewUrl, setAnalysisPreviewUrl] = useState<string | null>(null);
@@ -102,6 +102,41 @@ export function FrigyIngredientScanFlow({
       labels.errorAction ??
       (language === "de" ? "Nochmal versuchen" : language === "fr" ? "Reessayer" : "Try again"),
   };
+  const ui = language === "fr"
+    ? {
+        close: t.close,
+        allPresent: "Tout est disponible - rien ne manque.",
+        openDevApp: "Ouvre l'app avec ",
+        localhostJoin: " sur ",
+        orGallery: " - ou utilise la galerie en bas.",
+        retry: "Reessayer",
+        gallery: "Galerie",
+        capture: "Prendre une photo",
+        captureSr: "Capture",
+      }
+    : language === "en"
+      ? {
+          close: t.close,
+          allPresent: "Everything is available - nothing is missing.",
+          openDevApp: "Open the app with ",
+          localhostJoin: " at ",
+          orGallery: " - or use the gallery below.",
+          retry: "Retry",
+          gallery: "Gallery",
+          capture: "Take photo",
+          captureSr: "Capture",
+        }
+      : {
+          close: t.close,
+          allPresent: "Alles vorhanden – nichts fehlt.",
+          openDevApp: "Öffne die App mit ",
+          localhostJoin: " unter ",
+          orGallery: " — oder Galerie unten.",
+          retry: "Erneut",
+          gallery: "Galerie",
+          capture: "Foto aufnehmen",
+          captureSr: "Aufnahme",
+        };
 
   useEffect(() => {
     return () => {
@@ -223,7 +258,7 @@ export function FrigyIngredientScanFlow({
             type="button"
             onClick={onClose}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/80"
-            aria-label="Schließen"
+            aria-label={ui.close}
           >
             <X className="h-5 w-5" />
           </button>
@@ -270,7 +305,7 @@ export function FrigyIngredientScanFlow({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Alles vorhanden – nichts fehlt.</p>
+              <p className="text-sm text-muted-foreground">{ui.allPresent}</p>
             )}
           </Card>
         </div>
@@ -333,13 +368,13 @@ export function FrigyIngredientScanFlow({
             <Camera className="mx-auto mb-3 h-8 w-8 text-[#75FBB2]" />
             <p className="text-sm font-medium text-white/90">{cameraError}</p>
             <p className="mt-2 text-xs text-white/55">
-              Öffne die App mit <span className="text-[#75FBB2]">npm run dev</span> unter{" "}
-              <span className="text-[#75FBB2]">http://localhost:5173</span> — oder Galerie unten.
+              {ui.openDevApp}<span className="text-[#75FBB2]">npm run dev</span>{ui.localhostJoin}
+              <span className="text-[#75FBB2]">http://localhost:5173</span>{ui.orGallery}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => void retryCamera()}>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Erneut
+                {ui.retry}
               </Button>
               <Button
                 type="button"
@@ -347,7 +382,7 @@ export function FrigyIngredientScanFlow({
                 className="rounded-full bg-[#75FBB2] text-[#0a1f14]"
                 onClick={() => galleryInputRef.current?.click()}
               >
-                Galerie
+                {ui.gallery}
               </Button>
             </div>
           </div>
@@ -368,7 +403,7 @@ export function FrigyIngredientScanFlow({
           type="button"
           onClick={onClose}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm"
-          aria-label="Schließen"
+          aria-label={ui.close}
         >
           <X className="h-5 w-5" />
         </button>
@@ -430,9 +465,9 @@ export function FrigyIngredientScanFlow({
               "relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white shadow-[0_8px_32px_rgba(110,240,168,0.45)]",
               "ring-[3px] ring-[#75FBB2] ring-offset-4 ring-offset-black/80",
             )}
-            aria-label="Foto aufnehmen"
+            aria-label={ui.capture}
           >
-            <span className="sr-only">Aufnahme</span>
+            <span className="sr-only">{ui.captureSr}</span>
           </motion.button>
 
           <motion.button
@@ -440,7 +475,7 @@ export function FrigyIngredientScanFlow({
             whileTap={{ scale: 0.95 }}
             onClick={() => galleryInputRef.current?.click()}
             className="absolute right-0 bottom-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 backdrop-blur-md ring-1 ring-white/20"
-            aria-label="Galerie"
+            aria-label={ui.gallery}
           >
             <ImagePlus className="h-6 w-6 text-[#75FBB2]" />
           </motion.button>

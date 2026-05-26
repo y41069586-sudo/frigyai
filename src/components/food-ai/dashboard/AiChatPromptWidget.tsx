@@ -4,8 +4,7 @@ import { Bot, Send } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-const PLACEHOLDER = "Wie decke ich meine Proteine? …";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type AiChatPromptWidgetProps = {
   delay?: number;
@@ -14,7 +13,31 @@ type AiChatPromptWidgetProps = {
 };
 
 export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidgetProps) {
+  const { language } = useLanguage();
   const [value, setValue] = useState("");
+  const copy = language === "fr"
+    ? {
+        label: "Conseiller IA",
+        title: "Poser une question",
+        placeholder: "Comment couvrir mes proteines ? ...",
+        inputAria: "Question pour l'IA",
+        submitAria: "Envoyer et ouvrir le chat",
+      }
+    : language === "en"
+      ? {
+          label: "AI advisor",
+          title: "Ask a question",
+          placeholder: "How do I hit my protein target? ...",
+          inputAria: "Question for AI",
+          submitAria: "Send and open chat",
+        }
+      : {
+          label: "KI-Berater",
+          title: "Frage stellen",
+          placeholder: "Wie decke ich meine Proteine? ...",
+          inputAria: "Frage an die KI",
+          submitAria: "Senden und Chat öffnen",
+        };
 
   const submit = () => {
     const t = value.trim();
@@ -31,8 +54,8 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
 
   return (
     <WidgetCard delay={delay} variant="glass" interactive={false} className="w-full rounded-[1.75rem] border border-slate-200/85 bg-white/72 p-5">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">KI-Berater</p>
-      <h3 className="mt-1 text-[19px] font-bold tracking-[-0.02em]">Frage stellen</h3>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{copy.label}</p>
+      <h3 className="mt-1 text-[19px] font-bold tracking-[-0.02em]">{copy.title}</h3>
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -53,14 +76,14 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={PLACEHOLDER}
+          placeholder={copy.placeholder}
           enterKeyHint="send"
           className={cn(
             "min-w-0 flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/70",
             "outline-none focus:outline-none",
           )}
           autoComplete="off"
-          aria-label="Frage an die KI"
+          aria-label={copy.inputAria}
         />
         <Button
           type="button"
@@ -69,7 +92,7 @@ export function AiChatPromptWidget({ delay = 0.06, onSubmit }: AiChatPromptWidge
           className="h-9 w-9 shrink-0 touch-manipulation rounded-full"
           onClick={submit}
           disabled={!value.trim()}
-          aria-label="Senden und Chat öffnen"
+          aria-label={copy.submitAria}
         >
           <Send className="h-4 w-4" />
         </Button>

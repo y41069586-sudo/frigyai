@@ -9,6 +9,7 @@ import {
   writeCheckedShoppingNames,
 } from "@/lib/shoppingSync";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type ShoppingListWidgetProps = {
   items: ShoppingPreviewItem[];
@@ -25,8 +26,38 @@ export function ShoppingListWidget({
   onToggleExpand,
   onOpenList,
 }: ShoppingListWidgetProps) {
+  const { language } = useLanguage();
   const top6 = useMemo(() => items.slice(0, 4), [items]);
   const [checkedNames, setCheckedNames] = useState<Set<string>>(readCheckedShoppingNames);
+  const copy = language === "fr"
+    ? {
+        label: "Liste",
+        empty: "Vide",
+        allThere: "Tout est la",
+        openCount: (count: number) => `${count} ouverts`,
+        open: "Ouvrir",
+        noIngredients: "Aucun ingredient pour le moment",
+        hint: "Coche les ingredients ici. Plus dans l'onglet Courses.",
+      }
+    : language === "en"
+      ? {
+          label: "List",
+          empty: "Empty",
+          allThere: "All set",
+          openCount: (count: number) => `${count} open`,
+          open: "Open",
+          noIngredients: "No ingredients yet",
+          hint: "Check ingredients off here. More in the shopping tab.",
+        }
+      : {
+          label: "Liste",
+          empty: "Leer",
+          allThere: "Alles da",
+          openCount: (count: number) => `${count} offen`,
+          open: "Öffnen",
+          noIngredients: "Noch keine Zutaten",
+          hint: "Tippe Zutaten ab. Mehr im Tab Einkauf.",
+        };
 
   useEffect(() => {
     const valid = new Set(items.map((i) => normalizeShoppingName(i.name)));
@@ -85,13 +116,13 @@ export function ShoppingListWidget({
             <ShoppingBag className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Liste</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{copy.label}</p>
             <h3 className="truncate text-[15px] font-bold tracking-tight">
               {top6.length === 0
-                ? "Leer"
+                ? copy.empty
                 : allDone
-                  ? "Alles da"
-                  : `${openCount} offen`}
+                  ? copy.allThere
+                  : copy.openCount(openCount)}
             </h3>
           </div>
         </div>
@@ -103,7 +134,7 @@ export function ShoppingListWidget({
           }}
           className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-secondary px-3 text-[11px] font-bold text-secondary-foreground active:scale-95"
         >
-          Öffnen
+          {copy.open}
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -111,7 +142,7 @@ export function ShoppingListWidget({
       <div className="mt-3 space-y-1.5">
         {top6.length === 0 && (
           <p className="rounded-2xl border border-dashed border-border/50 bg-background/45 px-3 py-4 text-center text-xs font-medium text-muted-foreground">
-            Noch keine Zutaten
+            {copy.noIngredients}
           </p>
         )}
         {top6.length > 0 && (
@@ -159,7 +190,7 @@ export function ShoppingListWidget({
 
       {expanded && (
         <p className="mt-3 text-xs text-muted-foreground">
-          Tippe Zutaten ab. Mehr im Tab Einkauf.
+          {copy.hint}
         </p>
       )}
     </WidgetCard>

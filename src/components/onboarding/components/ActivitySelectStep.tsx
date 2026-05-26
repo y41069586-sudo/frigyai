@@ -19,7 +19,7 @@ const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
   primaryDeep: "#2EB56D",
-  bg: "#F2FFF8",
+  bg: "#FBFFFD",
   selectedBg: "#DCFEEF",
   iconBgIdle: "#EAFFF5",
   iconBgSelected: "#C0FFD9",
@@ -88,7 +88,7 @@ export function ActivitySelectStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#F2FFF8",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
