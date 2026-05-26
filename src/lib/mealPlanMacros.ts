@@ -45,18 +45,7 @@ export function harmonizeDailyTargets(targets: DailyMacroTargets): DailyMacroTar
     targets.dailyCarbs,
     targets.dailyFat,
   );
-  const diff = targets.dailyCalories - implied;
-  if (Math.abs(diff) <= 2) {
-    return { ...targets, dailyCalories: implied };
-  }
-  const carbAdj = Math.round(diff / 4);
-  const dailyCarbs = Math.max(0, targets.dailyCarbs + carbAdj);
-  const dailyCalories = macroCaloriesFromGrams(
-    targets.dailyProtein,
-    dailyCarbs,
-    targets.dailyFat,
-  );
-  return { ...targets, dailyCarbs, dailyCalories };
+  return { ...targets, dailyCalories: implied };
 }
 
 function recalcMealCalories<T extends MacroMeal>(meal: T): T {

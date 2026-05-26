@@ -251,14 +251,9 @@ function harmonizeDailyTargets(targets: {
   dailyCarbs: number;
   dailyFat: number;
 }) {
-  const implied = macroKcal(targets.dailyProtein, targets.dailyCarbs, targets.dailyFat);
-  const diff = targets.dailyCalories - implied;
-  if (Math.abs(diff) <= 2) return { ...targets, dailyCalories: implied };
-  const dailyCarbs = Math.max(0, targets.dailyCarbs + Math.round(diff / 4));
   return {
     ...targets,
-    dailyCarbs,
-    dailyCalories: macroKcal(targets.dailyProtein, dailyCarbs, targets.dailyFat),
+    dailyCalories: macroKcal(targets.dailyProtein, targets.dailyCarbs, targets.dailyFat),
   };
 }
 
