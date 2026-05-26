@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { memo, useMemo } from "react";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type StepsWidgetProps = {
   steps: number;
@@ -17,6 +18,7 @@ export const StepsWidget = memo(function StepsWidget({
   delay = 0,
   onToggleExpand,
 }: StepsWidgetProps) {
+  const { language } = useLanguage();
   const { isNativeApp, platform, isLoading, requestPermissions, syncHealthData } = useHealthConnect();
   const healthSyncProvider = useMemo(() => {
     try {
@@ -36,6 +38,32 @@ export const StepsWidget = memo(function StepsWidget({
     if (healthSyncProvider === "health-connect") return "Health Connect";
     return "Health Sync";
   }, [healthSyncProvider, platform]);
+  const copy = language === "fr"
+    ? {
+        title: "Pas",
+        hint: "Et si tu faisais\nune petite\nmarche ?",
+        syncing: "Synchronisation...",
+        sync: "Synchroniser les pas",
+        mobileOnly: "Health Sync seulement sur mobile",
+        openInApp: "Ouvrir dans l app",
+      }
+    : language === "en"
+      ? {
+          title: "Steps",
+          hint: "How about\na short\nwalk?",
+          syncing: "Syncing...",
+          sync: "Sync steps",
+          mobileOnly: "Health Sync only on mobile",
+          openInApp: "Open in app",
+        }
+      : {
+          title: "Schritte",
+          hint: "Wie waer's mit\neinem kurzen\nSpaziergang?",
+          syncing: "Synchronisiere...",
+          sync: "Schritte syncen",
+          mobileOnly: "Health Sync nur auf dem Handy",
+          openInApp: "In App oeffnen",
+        };
 
   const addSteps = async () => {
     if (isLoading) return;
@@ -49,7 +77,7 @@ export const StepsWidget = memo(function StepsWidget({
     }
 
     toast({
-      title: healthSyncProvider ? `${providerName} in der App oeffnen` : "Health Sync nur auf dem Handy",
+      title: healthSyncProvider ? `${providerName} ${copy.openInApp}` : copy.mobileOnly,
       description: healthSyncProvider
         ? `Wenn du ${providerName} im Onboarding schon erlaubt hast, funktioniert die Schritte-Synchronisierung direkt in der installierten App. In der Browser-Vorschau koennen keine echten Schritte gelesen werden.`
         : `Tippe auf dem Handy, um ${providerName} zu verbinden und die Schritte zu synchronisieren. In der Browser-Vorschau gibt es dafuer keine Systemfreigabe.`,
@@ -67,12 +95,17 @@ export const StepsWidget = memo(function StepsWidget({
       <div className="relative z-[10] grid min-h-[185px] grid-rows-[auto_1fr_auto] justify-items-center p-4">
         <div className="justify-self-start flex items-center gap-1.5">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[15px] leading-none">👟</span>
-          <h3 className="min-w-0 text-[14px] font-semibold tracking-[-0.03em] text-foreground">Schritte</h3>
+          <h3 className="min-w-0 text-[14px] font-semibold tracking-[-0.03em] text-foreground">{copy.title}</h3>
         </div>
 
         <div className="flex items-center justify-center px-1 py-1 text-center">
           <p className="text-[12px] font-semibold leading-snug tracking-[-0.02em] text-foreground">
-            Wie wär’s mit<br />einem kurzen<br />Spaziergang?
+            {copy.hint.split("\n").map((line, index) => (
+              <span key={index}>
+                {index > 0 && <br />}
+                {line}
+              </span>
+            ))}
           </p>
         </div>
 
@@ -83,7 +116,7 @@ export const StepsWidget = memo(function StepsWidget({
           onClick={(e) => { e.stopPropagation(); void addSteps(); }}
           className="flex h-10 w-full min-w-0 items-center justify-center rounded-2xl border border-[#BDFDDD] bg-white px-2 text-[10px] font-semibold leading-none whitespace-nowrap text-foreground transition-colors active:bg-emerald-50"
         >
-          <span className="whitespace-nowrap">{isLoading ? "Synchronisiere..." : "Schritte\u00a0syncen"}</span>
+          <span className="whitespace-nowrap">{isLoading ? copy.syncing : copy.sync}</span>
         </motion.button>
       </div>
     </motion.div>

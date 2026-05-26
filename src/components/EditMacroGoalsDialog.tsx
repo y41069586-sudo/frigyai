@@ -90,27 +90,29 @@ export const EditMacroGoalsDialog = ({
       return;
     }
 
-    // Validate that macros sum to approximately the calorie target
-    const macroCalories = (protein * 4) + (carbs * 4) + (fat * 9);
-    const caloriesDifference = Math.abs(calories - macroCalories);
+    const proteinCalories = protein * 4;
+    const fatCalories = fat * 9;
+    const remainingForCarbs = calories - proteinCalories - fatCalories;
 
-    if (caloriesDifference > 50) {
+    if (remainingForCarbs < 0) {
       toast({
         title: language === 'de' ? 'Warnung' : language === 'fr' ? 'Avertissement' : 'Warning',
         description: language === 'de'
-          ? `Die Makronährstoffe ergeben ${macroCalories} kcal, aber dein Ziel ist ${calories} kcal. Bitte passe die Werte an.`
+          ? 'Protein und Fett sind zusammen zu hoch für dein Kalorienziel. Bitte senke einen der Werte oder erhöhe die Kalorien.'
           : language === 'fr'
-          ? `Les macronutriments totalisent ${macroCalories} kcal, mais votre objectif est ${calories} kcal.`
-          : `Macros total ${macroCalories} kcal but your goal is ${calories} kcal.`,
+          ? 'Les protéines et les lipides sont trop élevés pour cet objectif calorique.'
+          : 'Protein and fat are too high for this calorie target.',
         variant: 'destructive',
       });
       return;
     }
 
+    const adjustedCarbs = Math.max(0, Math.round(remainingForCarbs / 4));
+
     onSave({
       dailyCalories: Math.round(calories),
       dailyProtein: Math.round(protein),
-      dailyCarbs: Math.round(carbs),
+      dailyCarbs: adjustedCarbs,
       dailyFat: Math.round(fat),
     });
 

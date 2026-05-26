@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar, Camera } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar, Refrigerator } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
@@ -115,7 +115,7 @@ const readJsonArray = (key: string): unknown[] => {
 const MealPlansPage = () => {
   const isMobile = useIsMobile();
   const { user, session, loading, checkSubscription } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { addEntry } = useFoodEntries();
@@ -140,6 +140,32 @@ const MealPlansPage = () => {
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const pageCopy = language === 'fr'
+    ? {
+        premiumActivatingTitle: 'Premium s active...',
+        premiumActivatingDesc: 'Patiente un instant pendant que nous configurons ton abonnement.',
+        detectIngredients: 'Reconnaitre les ingredients',
+        creating: 'Creation...',
+        createShort: 'Creer',
+        createMealPlan: 'Creer le plan',
+      }
+    : language === 'en'
+      ? {
+          premiumActivatingTitle: 'Premium is being activated...',
+          premiumActivatingDesc: 'Please wait a moment while we set up your subscription.',
+          detectIngredients: 'Detect ingredients',
+          creating: 'Creating...',
+          createShort: 'Create',
+          createMealPlan: 'Create meal plan',
+        }
+      : {
+          premiumActivatingTitle: 'Premium wird aktiviert...',
+          premiumActivatingDesc: 'Bitte warte einen Moment, während wir dein Abo einrichten.',
+          detectIngredients: 'Zutaten erkennen',
+          creating: 'Erstellt...',
+          createShort: 'Erstellen',
+          createMealPlan: 'Wochenplan erstellen',
+        };
 
   // Sync activeTab with URL params
   const rawTab = searchParams.get('tab') || 'meals';
@@ -402,9 +428,9 @@ const MealPlansPage = () => {
             <Sparkles className="absolute inset-0 m-auto h-8 w-8 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold mb-2">Premium wird aktiviert...</h2>
+            <h2 className="text-xl font-bold mb-2">{pageCopy.premiumActivatingTitle}</h2>
             <p className="text-muted-foreground text-sm">
-              Bitte warte einen Moment, während wir dein Abo einrichten.
+              {pageCopy.premiumActivatingDesc}
             </p>
           </div>
         </motion.div>
@@ -416,7 +442,7 @@ const MealPlansPage = () => {
     return (
       <>
         <div className="min-h-screen bg-[#F2FFF8] safe-area-inset flex flex-col">
-          <nav className="sticky top-0 z-40 bg-background/95 border-b border-primary/20 safe-top">
+          <nav className="sticky top-0 z-[60] bg-background/95 border-b border-primary/20 safe-top">
             <motion.div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3">
               <motion.div className="h-9 w-24 rounded-lg bg-muted/60 animate-pulse" />
               <motion.div className="h-9 w-16 rounded-full bg-muted/60 animate-pulse" />
@@ -446,7 +472,7 @@ const MealPlansPage = () => {
   return (
     <>
       <div className="min-h-screen bg-[#F2FFF8] safe-area-inset">
-      <nav className="sticky top-0 z-40 bg-[#F2FFF8]/95 border-b border-primary/15 safe-top sm:bg-[#F2FFF8]/90 sm:backdrop-blur-lg">
+      <nav className="sticky top-0 z-[60] bg-[#F2FFF8]/95 border-b border-primary/15 safe-top sm:bg-[#F2FFF8]/90 sm:backdrop-blur-lg">
         <div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center">
             <Button
@@ -504,8 +530,8 @@ const MealPlansPage = () => {
             >
                 <div className="mb-4 sm:mb-6">
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
-                    <ExportMealPlan mealPlan={mealPlan} pdfOnly />
-                    <div className="ml-auto grid min-w-0 shrink grid-cols-2 gap-2">
+                    <div className="grid w-full min-w-0 grid-cols-[minmax(72px,auto)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                      <ExportMealPlan mealPlan={mealPlan} pdfOnly />
                       <Button
                         type="button"
                         variant="outline"
@@ -513,9 +539,8 @@ const MealPlansPage = () => {
                         className="h-11 min-w-0 rounded-2xl border-primary/25 bg-white px-3 text-[11px] font-semibold min-[390px]:text-xs sm:h-10 sm:text-sm"
                         onClick={() => navigate("/scan")}
                       >
-                        <Camera className="mr-2 h-4 w-4 shrink-0" />
-                        <span className="shrink-0 text-base leading-none" aria-hidden>🧊</span>
-                        <span className="truncate">Zutaten erkennen</span>
+                        <Refrigerator className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">{pageCopy.detectIngredients}</span>
                       </Button>
                       <Button
                         type="button"
@@ -526,11 +551,11 @@ const MealPlansPage = () => {
                       >
                         <span className="truncate">
                           {isGenerating ? (
-                            "Erstellt..."
+                            pageCopy.creating
                           ) : (
                             <>
-                              <span className="min-[390px]:hidden">Erstellen</span>
-                              <span className="hidden min-[390px]:inline">Wochenplan erstellen</span>
+                              <span className="min-[390px]:hidden">{pageCopy.createShort}</span>
+                              <span className="hidden min-[390px]:inline">{pageCopy.createMealPlan}</span>
                             </>
                           )}
                         </span>

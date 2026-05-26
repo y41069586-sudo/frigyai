@@ -39,7 +39,6 @@ const EmailConfirmationPage = lazyWithReload(() => import("./pages/EmailConfirma
 const PlanSelectionPage = lazyWithReload(() => import("./pages/PlanSelectionPage"));
 const PremiumPricingPage = lazyWithReload(() => import("./pages/PremiumPricingPage"));
 const LandingPage = lazyWithReload(() => import("./pages/LandingPage"));
-const CommunityPage = lazyWithReload(() => import("./pages/CommunityPage"));
 const AdminPage = lazyWithReload(() => import("./pages/AdminPage"));
 const LegalPage = lazyWithReload(() => import("./pages/LegalPage"));
 const FoodEntryDetailPage = lazyWithReload(() => import("./pages/FoodEntryDetailPage"));
@@ -87,7 +86,6 @@ const AppContent = () => {
                 <Route path="/landing" element={<LandingPage />} />
                 <Route path="/signup" element={<SignupDeepLinkPage />} />
                 <Route path="/invite" element={<SignupDeepLinkPage />} />
-                <Route path="/community" element={<CommunityPage />} />
                 <Route path="/scan" element={<ScanPage />} />
                 <Route path="/manual" element={<ManualPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />

@@ -78,6 +78,63 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     ? (language as "de" | "en" | "fr")
     : "de";
   const btn = LOG_BTN_COPY[lng];
+  const copy = {
+    de: {
+      loggedTitle: "✅ Gegessen geloggt",
+      loggedDesc: "zu deinem Tracker hinzugefuegt",
+      errorTitle: "Fehler",
+      errorDesc: "Konnte Mahlzeit nicht speichern",
+      kcal: "kcal",
+      protein: "Protein",
+      carbs: "Carbs",
+      fat: "Fett",
+      totalTime: "ca.",
+      totalDuration: "Min Gesamtzeit",
+      timedSteps: "Min in den Schritten",
+      ingredients: "Zutaten",
+      total: "Gesamt",
+      cookingHint: "Schritt fuer Schritt nachkochen - Zeit, Phase und genaue Handgriffe in jedem Schritt.",
+      instructions: "Zubereitung",
+      steps: "Schritte",
+    },
+    en: {
+      loggedTitle: "✅ Meal logged",
+      loggedDesc: "added to your tracker",
+      errorTitle: "Error",
+      errorDesc: "Could not save meal",
+      kcal: "kcal",
+      protein: "Protein",
+      carbs: "Carbs",
+      fat: "Fat",
+      totalTime: "approx.",
+      totalDuration: "min total time",
+      timedSteps: "min in steps",
+      ingredients: "Ingredients",
+      total: "Total",
+      cookingHint: "Cook it step by step - each step includes time, phase, and exact actions.",
+      instructions: "Preparation",
+      steps: "steps",
+    },
+    fr: {
+      loggedTitle: "✅ Repas enregistre",
+      loggedDesc: "ajoute a ton suivi",
+      errorTitle: "Erreur",
+      errorDesc: "Impossible d enregistrer le repas",
+      kcal: "kcal",
+      protein: "Proteines",
+      carbs: "Glucides",
+      fat: "Lipides",
+      totalTime: "env.",
+      totalDuration: "min au total",
+      timedSteps: "min dans les etapes",
+      ingredients: "Ingredients",
+      total: "Total",
+      cookingHint: "Cuisine pas a pas - temps, phase et gestes precis dans chaque etape.",
+      instructions: "Preparation",
+      steps: "etapes",
+    },
+  } as const;
+  const ui = copy[lng];
   const { addEntry } = useFoodEntries();
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -111,8 +168,8 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
       if (result) {
         setIsLogged(true);
         toast({
-          title: "✅ Gegessen geloggt",
-          description: `${activeMeal.name} zu deinem Tracker hinzugefügt`,
+          title: ui.loggedTitle,
+          description: `${activeMeal.name} ${ui.loggedDesc}`,
         });
         onMealLogged?.();
         setTimeout(() => {
@@ -123,8 +180,8 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     } catch (error) {
       console.error("[MealDetailDialog] Error logging meal:", error);
       toast({
-        title: "Fehler",
-        description: "Konnte Mahlzeit nicht speichern",
+        title: ui.errorTitle,
+        description: ui.errorDesc,
         variant: "destructive",
       });
     } finally {
@@ -143,7 +200,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         <>
           <motion.button
             type="button"
-            aria-label="Schließen"
+            aria-label={btn.close}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -190,7 +247,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                   size="icon"
                   onClick={() => onOpenChange(false)}
                   className="h-9 w-9 shrink-0 rounded-full"
-                  aria-label="Schließen"
+                  aria-label={btn.close}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -203,22 +260,22 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-28 pt-1 sm:px-6 sm:pb-24"
             >
               <div className="my-3 grid grid-cols-4 gap-2">
-                <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(activeMeal.calories)} label="kcal" />
-                <MacroCard icon={Beef} iconClass="text-rose-500 bg-rose-50" value={Math.round(activeMeal.protein)} label="Protein" unit="g" />
-                <MacroCard icon={Wheat} iconClass="text-amber-500 bg-amber-50" value={Math.round(activeMeal.carbs)} label="Carbs" unit="g" />
-                <MacroCard icon={Droplets} iconClass="text-sky-500 bg-sky-50" value={Math.round(activeMeal.fat)} label="Fett" unit="g" />
+                <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(activeMeal.calories)} label={ui.kcal} />
+                <MacroCard icon={Beef} iconClass="text-rose-500 bg-rose-50" value={Math.round(activeMeal.protein)} label={ui.protein} unit="g" />
+                <MacroCard icon={Wheat} iconClass="text-amber-500 bg-amber-50" value={Math.round(activeMeal.carbs)} label={ui.carbs} unit="g" />
+                <MacroCard icon={Droplets} iconClass="text-sky-500 bg-sky-50" value={Math.round(activeMeal.fat)} label={ui.fat} unit="g" />
               </div>
 
               <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2.5 text-sm">
                 <Clock className="h-4 w-4 shrink-0 text-primary" />
-                <span className="font-medium text-foreground">ca. {activeMeal.prepTime} Min Gesamtzeit</span>
+                <span className="font-medium text-foreground">{ui.totalTime} {activeMeal.prepTime} {ui.totalDuration}</span>
                 {timedMinutes > 0 && (
-                  <span className="text-xs text-muted-foreground">· {timedMinutes} Min in den Schritten</span>
+                  <span className="text-xs text-muted-foreground">· {timedMinutes} {ui.timedSteps}</span>
                 )}
               </div>
 
               <section className="mb-5 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
-                <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">Zutaten</h4>
+                <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">{ui.ingredients}</h4>
                 <ul className="space-y-2">
                   {activeMeal.ingredients.map((ing, idx) => (
                     <li key={idx} className="flex items-center justify-between gap-3 rounded-2xl bg-muted/35 px-3 py-2.5">
@@ -232,7 +289,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                   ))}
                 </ul>
                 <div className="mt-3 flex justify-between border-t border-slate-200/80 pt-3 text-sm font-semibold">
-                  <span>Gesamt</span>
+                  <span>{ui.total}</span>
                   <span className="text-primary">
                     €{activeMeal.ingredients.reduce((sum, ing) => sum + (Number(ing.price) || 0), 0).toFixed(2)}
                   </span>
@@ -243,11 +300,11 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                 <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2.5">
                   <ChefHat className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    Schritt für Schritt nachkochen – Zeit, Phase und genaue Handgriffe in jedem Schritt.
+                    {ui.cookingHint}
                   </p>
                 </div>
                 <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">
-                  Zubereitung ({parsedSteps.length} Schritte)
+                  {ui.instructions} ({parsedSteps.length} {ui.steps})
                 </h4>
                 <div className="space-y-5">
                   {phaseGroups.map(({ phase, steps }) => (
@@ -267,7 +324,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                               {step.minutes != null && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-foreground ring-1 ring-slate-200/80">
                                   <Clock className="h-3 w-3 text-primary" />
-                                  {step.minutes} Min
+                                  {step.minutes} min
                                 </span>
                               )}
                             </div>

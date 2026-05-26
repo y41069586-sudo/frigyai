@@ -37,10 +37,90 @@ interface WeeklySummaryProps {
 
 export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const { settings } = useTrackerSettings();
   const [stats, setStats] = useState<WeeklyStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const copy = language === 'fr'
+    ? {
+        noData: 'Aucune donnee',
+        stable: 'Stable',
+        weeklySummary: 'Resume hebdomadaire',
+        weightTrend: 'Tendance du poids',
+        averagePerDay: 'Moyenne / jour',
+        goal: 'Objectif',
+        protein: 'Proteines',
+        carbs: 'Glucides',
+        fat: 'Lipides',
+        glassesPerDay: 'verres/jour',
+        streakDays: 'jours de serie',
+        tips: 'Conseils pour toi',
+        understood: 'Compris',
+        logMeals: 'Enregistre regulierement tes repas pour de meilleurs apercus !',
+        underGoal: '🍽️ Tu es sous ton objectif - veille a avoir assez de nutriments !',
+        overGoal: '🎯 Tu es au-dessus de ton objectif calorique - essaie des portions plus controlees.',
+        goodCalories: '✅ Ton apport calorique est dans une bonne zone !',
+        moreWater: '💧 Bois plus d eau ! Objectif : au moins 8 verres par jour.',
+        greatWater: '💧 Super hydratation ! Continue comme ca.',
+        progress: '📉 Tu progresses ! Continue.',
+        gain: '📈 Bonne prise ! Tu es sur la bonne voie.',
+        wowStreak: '🔥 Wow, {days} jours de serie ! Tu es inarretable !',
+        keepStreak: '🔥 {days} jours de serie - continue comme ca !',
+        buildStreak: '💪 Enregistre chaque jour pour construire ta serie !',
+      }
+    : language === 'en'
+      ? {
+          noData: 'No data',
+          stable: 'Stable',
+          weeklySummary: 'Weekly summary',
+          weightTrend: 'Weight trend',
+          averagePerDay: 'Average / day',
+          goal: 'Goal',
+          protein: 'Protein',
+          carbs: 'Carbs',
+          fat: 'Fat',
+          glassesPerDay: 'glasses/day',
+          streakDays: 'streak days',
+          tips: 'Tips for you',
+          understood: 'Got it',
+          logMeals: 'Log your meals regularly for better insights!',
+          underGoal: '🍽️ You are under your goal - make sure you get enough nutrients!',
+          overGoal: '🎯 You are above your calorie goal - try more controlled portions.',
+          goodCalories: '✅ Your calorie intake is in a good range!',
+          moreWater: '💧 Drink more water! Goal: at least 8 glasses per day.',
+          greatWater: '💧 Great water intake! Keep it up.',
+          progress: '📉 You are making progress! Keep going.',
+          gain: '📈 Good gain! You are on the right track.',
+          wowStreak: '🔥 Wow, {days} day streak! You are unstoppable!',
+          keepStreak: '🔥 {days} day streak - keep it up!',
+          buildStreak: '💪 Log daily to build your streak!',
+        }
+      : {
+          noData: 'Keine Daten',
+          stable: 'Stabil',
+          weeklySummary: 'Wochenuebersicht',
+          weightTrend: 'Gewichtstrend',
+          averagePerDay: 'Durchschnitt / Tag',
+          goal: 'Ziel',
+          protein: 'Protein',
+          carbs: 'Carbs',
+          fat: 'Fett',
+          glassesPerDay: 'Glaeser/Tag',
+          streakDays: 'Tage Streak',
+          tips: 'Tipps fuer dich',
+          understood: 'Verstanden',
+          logMeals: 'Logge regelmaessig deine Mahlzeiten fuer bessere Einblicke!',
+          underGoal: '🍽️ Du isst unter deinem Ziel - achte auf ausreichende Naehrstoffe!',
+          overGoal: '🎯 Du liegst ueber deinem Kalorienziel - versuche portionskontrollierter zu essen.',
+          goodCalories: '✅ Deine Kalorienaufnahme ist im guten Bereich!',
+          moreWater: '💧 Trinke mehr Wasser! Ziel: mindestens 8 Glaeser pro Tag.',
+          greatWater: '💧 Super Wasseraufnahme! Weiter so.',
+          progress: '📉 Du machst Fortschritte! Bleib dran.',
+          gain: '📈 Guter Aufbau! Du bist auf dem richtigen Weg.',
+          wowStreak: '🔥 Wow, {days} Tage Streak! Du bist unaufhaltbar!',
+          keepStreak: '🔥 {days} Tage Streak - weiter so!',
+          buildStreak: '💪 Logge taeglich um deinen Streak aufzubauen!',
+        };
 
   useEffect(() => {
     if (open && user) {
@@ -156,17 +236,17 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
   };
 
   const getWeightTrend = () => {
-    if (!stats?.weightChange) return { icon: Minus, color: 'text-muted-foreground', text: 'Keine Daten' };
+    if (!stats?.weightChange) return { icon: Minus, color: 'text-muted-foreground', text: copy.noData };
     if (stats.weightChange < -0.1) return { icon: TrendingDown, color: 'text-green-400', text: `${stats.weightChange.toFixed(1)} kg` };
     if (stats.weightChange > 0.1) return { icon: TrendingUp, color: 'text-red-400', text: `+${stats.weightChange.toFixed(1)} kg` };
-    return { icon: Minus, color: 'text-amber-400', text: 'Stabil' };
+    return { icon: Minus, color: 'text-amber-400', text: copy.stable };
   };
 
   const getPersonalizedTips = (): string[] => {
     const tips: string[] = [];
     
     if (!stats || !settings) {
-      tips.push('Logge regelmäßig deine Mahlzeiten für bessere Einblicke!');
+      tips.push(copy.logMeals);
       return tips;
     }
 
@@ -174,37 +254,37 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
     if (stats.avgCalories > 0 && settings.dailyCalories > 0) {
       const caloriePercentage = (stats.avgCalories / settings.dailyCalories) * 100;
       if (caloriePercentage < 80) {
-        tips.push('🍽️ Du isst unter deinem Ziel - achte auf ausreichende Nährstoffe!');
+        tips.push(copy.underGoal);
       } else if (caloriePercentage > 110) {
-        tips.push('🎯 Du liegst über deinem Kalorienziel - versuche portionskontrollierter zu essen.');
+        tips.push(copy.overGoal);
       } else {
-        tips.push('✅ Deine Kalorienaufnahme ist im guten Bereich!');
+        tips.push(copy.goodCalories);
       }
     }
 
     // Water tips
     if (stats.waterAvg < 6) {
-      tips.push('💧 Trinke mehr Wasser! Ziel: mindestens 8 Gläser pro Tag.');
+      tips.push(copy.moreWater);
     } else if (stats.waterAvg >= 8) {
-      tips.push('💧 Super Wasseraufnahme! Weiter so.');
+      tips.push(copy.greatWater);
     }
 
     // Weight trend tips
     if (stats.weightChange !== null) {
       if (settings.goalMode === 'lose' && stats.weightChange < 0) {
-        tips.push('📉 Du machst Fortschritte! Bleib dran.');
+        tips.push(copy.progress);
       } else if (settings.goalMode === 'gain' && stats.weightChange > 0) {
-        tips.push('📈 Guter Aufbau! Du bist auf dem richtigen Weg.');
+        tips.push(copy.gain);
       }
     }
 
     // Streak tips
     if (stats.streakDays >= 7) {
-      tips.push(`🔥 Wow, ${stats.streakDays} Tage Streak! Du bist unaufhaltbar!`);
+      tips.push(copy.wowStreak.replace('{days}', String(stats.streakDays)));
     } else if (stats.streakDays >= 3) {
-      tips.push(`🔥 ${stats.streakDays} Tage Streak - weiter so!`);
+      tips.push(copy.keepStreak.replace('{days}', String(stats.streakDays)));
     } else {
-      tips.push('💪 Logge täglich um deinen Streak aufzubauen!');
+      tips.push(copy.buildStreak);
     }
 
     return tips;
@@ -220,7 +300,7 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Wochenübersicht
+            {copy.weeklySummary}
           </DialogTitle>
         </DialogHeader>
 
@@ -242,7 +322,7 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
                     <Scale className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Gewichtstrend</p>
+                    <p className="text-sm text-muted-foreground">{copy.weightTrend}</p>
                     <p className={`text-lg font-bold ${trend.color}`}>{trend.text}</p>
                   </div>
                 </div>
@@ -259,7 +339,7 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
             <Card className="p-4 bg-card/50">
               <div className="flex items-center gap-2 mb-3">
                 <Flame className="h-5 w-5 text-orange-400" />
-                <span className="font-medium">Durchschnitt / Tag</span>
+                <span className="font-medium">{copy.averagePerDay}</span>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
@@ -268,21 +348,21 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
                   <p className="text-xs text-muted-foreground">kcal</p>
                   {settings?.dailyCalories && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Ziel: {settings.dailyCalories}
+                      {copy.goal}: {settings.dailyCalories}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-red-400">Protein</span>
+                    <span className="text-red-400">{copy.protein}</span>
                     <span>{stats.avgProtein}g</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-amber-400">Carbs</span>
+                    <span className="text-amber-400">{copy.carbs}</span>
                     <span>{stats.avgCarbs}g</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-blue-400">Fett</span>
+                    <span className="text-blue-400">{copy.fat}</span>
                     <span>{stats.avgFat}g</span>
                   </div>
                 </div>
@@ -294,12 +374,12 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
               <Card className="p-4 bg-card/50 text-center">
                 <Droplets className="h-6 w-6 text-cyan-400 mx-auto mb-2" />
                 <p className="text-2xl font-bold">{stats.waterAvg}</p>
-                <p className="text-xs text-muted-foreground">Gläser/Tag ⌀</p>
+                <p className="text-xs text-muted-foreground">{copy.glassesPerDay} ⌀</p>
               </Card>
               <Card className="p-4 bg-card/50 text-center">
                 <Flame className="h-6 w-6 text-orange-400 mx-auto mb-2" />
                 <p className="text-2xl font-bold">{stats.streakDays}</p>
-                <p className="text-xs text-muted-foreground">Tage Streak</p>
+                <p className="text-xs text-muted-foreground">{copy.streakDays}</p>
               </Card>
             </div>
 
@@ -307,7 +387,7 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
             <Card className="p-4 bg-primary/10 border-primary/30">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <span className="font-medium">Tipps für dich</span>
+                <span className="font-medium">{copy.tips}</span>
               </div>
               <div className="space-y-2">
                 {tips.map((tip, idx) => (
@@ -317,12 +397,12 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
             </Card>
 
             <Button onClick={onClose} className="w-full">
-              Verstanden <ChevronRight className="h-4 w-4 ml-1" />
+              {copy.understood} <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </motion.div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            Keine Daten verfügbar
+            {copy.noData}
           </div>
         )}
       </DialogContent>

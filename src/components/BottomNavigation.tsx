@@ -85,11 +85,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const bar = (
     <nav
       aria-label="Hauptnavigation"
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex justify-center px-5 safe-bottom"
+      className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
     >
       <div
         className={cn(
-          "pointer-events-auto flex w-full max-w-sm items-center gap-1 overflow-visible rounded-full border border-white/70 bg-white/95 px-2 py-1.5 pr-1",
+          "pointer-events-auto flex w-full max-w-sm items-end gap-1 overflow-visible rounded-full border border-white/70 bg-white/95 px-2 py-1 pr-1",
           "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-background/92 sm:dark:bg-background/80",
         )}
       >
@@ -102,7 +102,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               key={item.id}
               type="button"
               onClick={() => go(item.id)}
-              className="relative flex min-h-[46px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-full px-0.5 py-1 transition-transform active:scale-[0.96]"
+              className="relative flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-full px-0.5 py-1 transition-transform active:scale-[0.96]"
             >
               {active && (
                 <motion.div
@@ -138,14 +138,14 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           onClick={openTracker}
           whileTap={{ scale: 0.94 }}
           className={cn(
-            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
+            "relative -mt-4 ml-1 flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
             trackerActive
               ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"
               : "bg-primary",
           )}
           aria-label={t.navTracker}
         >
-          <Plus className="h-8 w-8 stroke-[3]" />
+          <Plus className="h-7 w-7 stroke-[3]" />
         </motion.button>
       </div>
     </nav>

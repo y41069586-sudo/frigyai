@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage, type Language } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 import { confettiBurst } from '@/lib/mobileEffects';
 
@@ -31,23 +32,63 @@ export interface Streak {
   last_activity_date: string | null;
 }
 
-export const BADGE_DEFINITIONS = [
-  { type: 'streak_3', name: '3 Tage Streak', icon: '🔥', description: '3 Tage in Folge aktiv', requirement: 3 },
-  { type: 'streak_7', name: '7 Tage Streak', icon: '⚡', description: 'Eine Woche durchgehalten!', requirement: 7 },
-  { type: 'streak_14', name: '14 Tage Streak', icon: '💪', description: 'Zwei Wochen stark!', requirement: 14 },
-  { type: 'streak_30', name: '30 Tage Streak', icon: '🏆', description: 'Ein ganzer Monat!', requirement: 30 },
-  { type: 'water_goal', name: 'Wasserziel erreicht', icon: '💧', description: 'Tägliches Wasserziel geschafft', requirement: 1 },
-  { type: 'water_week', name: 'Hydrations-Held', icon: '🌊', description: '7 Tage Wasserziel erreicht', requirement: 7 },
-  { type: 'first_scan', name: 'Erster Scan', icon: '📸', description: 'Erstes Essen gescannt', requirement: 1 },
-  { type: 'meal_logged', name: 'Mahlzeit geloggt', icon: '🍽️', description: 'Erste Mahlzeit getrackt', requirement: 1 },
-  { type: 'weight_tracked', name: 'Gewicht getrackt', icon: '⚖️', description: 'Erstes Gewicht eingetragen', requirement: 1 },
-];
+export interface BadgeDefinition {
+  type: string;
+  name: string;
+  icon: string;
+  description: string;
+  requirement: number;
+}
+
+export function getBadgeDefinitions(language: Language): BadgeDefinition[] {
+  switch (language) {
+    case 'en':
+      return [
+        { type: 'streak_3', name: '3-Day Streak', icon: '🔥', description: 'Active for 3 days in a row', requirement: 3 },
+        { type: 'streak_7', name: '7-Day Streak', icon: '⚡', description: 'You made it through a whole week!', requirement: 7 },
+        { type: 'streak_14', name: '14-Day Streak', icon: '💪', description: 'Two strong weeks!', requirement: 14 },
+        { type: 'streak_30', name: '30-Day Streak', icon: '🏆', description: 'A full month!', requirement: 30 },
+        { type: 'water_goal', name: 'Water Goal Reached', icon: '💧', description: 'Hit your daily water goal', requirement: 1 },
+        { type: 'water_week', name: 'Hydration Hero', icon: '🌊', description: 'Reached your water goal for 7 days', requirement: 7 },
+        { type: 'first_scan', name: 'First Scan', icon: '📸', description: 'Scanned your first meal', requirement: 1 },
+        { type: 'meal_logged', name: 'Meal Logged', icon: '🍽️', description: 'Tracked your first meal', requirement: 1 },
+        { type: 'weight_tracked', name: 'Weight Tracked', icon: '⚖️', description: 'Logged your first weight entry', requirement: 1 },
+      ];
+    case 'fr':
+      return [
+        { type: 'streak_3', name: 'Serie de 3 jours', icon: '🔥', description: 'Actif 3 jours de suite', requirement: 3 },
+        { type: 'streak_7', name: 'Serie de 7 jours', icon: '⚡', description: 'Une semaine complete tenue !', requirement: 7 },
+        { type: 'streak_14', name: 'Serie de 14 jours', icon: '💪', description: 'Deux semaines en force !', requirement: 14 },
+        { type: 'streak_30', name: 'Serie de 30 jours', icon: '🏆', description: 'Un mois entier !', requirement: 30 },
+        { type: 'water_goal', name: 'Objectif eau atteint', icon: '💧', description: 'Objectif quotidien d eau atteint', requirement: 1 },
+        { type: 'water_week', name: 'Hero de l hydratation', icon: '🌊', description: 'Objectif eau atteint 7 jours', requirement: 7 },
+        { type: 'first_scan', name: 'Premier scan', icon: '📸', description: 'Premier repas scanne', requirement: 1 },
+        { type: 'meal_logged', name: 'Repas enregistre', icon: '🍽️', description: 'Premier repas suivi', requirement: 1 },
+        { type: 'weight_tracked', name: 'Poids enregistre', icon: '⚖️', description: 'Premier poids ajoute', requirement: 1 },
+      ];
+    case 'de':
+    default:
+      return [
+        { type: 'streak_3', name: '3 Tage Streak', icon: '🔥', description: '3 Tage in Folge aktiv', requirement: 3 },
+        { type: 'streak_7', name: '7 Tage Streak', icon: '⚡', description: 'Eine Woche durchgehalten!', requirement: 7 },
+        { type: 'streak_14', name: '14 Tage Streak', icon: '💪', description: 'Zwei Wochen stark!', requirement: 14 },
+        { type: 'streak_30', name: '30 Tage Streak', icon: '🏆', description: 'Ein ganzer Monat!', requirement: 30 },
+        { type: 'water_goal', name: 'Wasserziel erreicht', icon: '💧', description: 'Tagliches Wasserziel geschafft', requirement: 1 },
+        { type: 'water_week', name: 'Hydrations-Held', icon: '🌊', description: '7 Tage Wasserziel erreicht', requirement: 7 },
+        { type: 'first_scan', name: 'Erster Scan', icon: '📸', description: 'Erstes Essen gescannt', requirement: 1 },
+        { type: 'meal_logged', name: 'Mahlzeit geloggt', icon: '🍽️', description: 'Erste Mahlzeit getrackt', requirement: 1 },
+        { type: 'weight_tracked', name: 'Gewicht getrackt', icon: '⚖️', description: 'Erstes Gewicht eingetragen', requirement: 1 },
+      ];
+  }
+}
 
 export const useGamification = () => {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [streak, setStreak] = useState<Streak>({ current_streak: 0, longest_streak: 0, last_activity_date: null });
   const [badges, setBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
+  const badgeDefinitions = useMemo(() => getBadgeDefinitions(language), [language]);
 
   useEffect(() => {
     if (user) {
@@ -171,7 +212,7 @@ export const useGamification = () => {
   };
 
   const checkStreakBadges = async (currentStreak: number) => {
-    const streakBadges = BADGE_DEFINITIONS.filter(b => b.type.startsWith('streak_'));
+      const streakBadges = badgeDefinitions.filter(b => b.type.startsWith('streak_'));
     
     for (const badge of streakBadges) {
       if (currentStreak >= badge.requirement && !badges.find(b => b.badge_type === badge.type)) {
@@ -204,7 +245,7 @@ export const useGamification = () => {
         throw error;
       }
 
-      const badgeDef = BADGE_DEFINITIONS.find(b => b.type === badgeType);
+      const badgeDef = badgeDefinitions.find(b => b.type === badgeType);
       if (data) {
         setBadges((prev) =>
           prev.some((badge) => badge.badge_type === badgeType) ? prev : [...prev, data],
@@ -215,7 +256,11 @@ export const useGamification = () => {
       triggerConfetti();
       
       toast({
-        title: `${badgeDef?.icon} Neues Badge freigeschaltet!`,
+        title: language === 'de'
+          ? `${badgeDef?.icon} Neues Badge freigeschaltet!`
+          : language === 'fr'
+            ? `${badgeDef?.icon} Nouveau badge debloque !`
+            : `${badgeDef?.icon} New badge unlocked!`,
         description: badgeName,
       });
 
@@ -229,7 +274,7 @@ export const useGamification = () => {
   const checkAndAwardBadge = async (badgeType: string) => {
     if (!user || badges.find(b => b.badge_type === badgeType)) return;
 
-    const badgeDef = BADGE_DEFINITIONS.find(b => b.type === badgeType);
+    const badgeDef = badgeDefinitions.find(b => b.type === badgeType);
     if (badgeDef) {
       await awardBadge(badgeType, badgeDef.name);
     }
@@ -238,6 +283,7 @@ export const useGamification = () => {
   return {
     streak,
     badges,
+    badgeDefinitions,
     loading,
     recordActivity,
     awardBadge,

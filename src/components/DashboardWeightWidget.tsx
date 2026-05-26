@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Scale, ArrowUp, Plus, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { toast } from '@/hooks/use-toast';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -26,6 +27,7 @@ interface WeightEntry {
 
 export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded = false }: DashboardWeightWidgetProps) => {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const { settings } = useTrackerSettings();
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
@@ -35,6 +37,72 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [initialWeight, setInitialWeight] = useState<number | null>(null);
   const [weightHistory, setWeightHistory] = useState<number[]>([]);
+  const locale = language === 'fr' ? 'fr-FR' : language === 'en' ? 'en-US' : 'de-DE';
+  const copy = language === 'fr'
+    ? {
+        error: 'Erreur',
+        enterWeight: 'Entre ton poids',
+        invalidWeight: 'Poids invalide',
+        invalidWeightDesc: 'Le poids doit etre entre 20 kg et 500 kg',
+        savedTitle: '✅ Poids enregistre !',
+        savedDesc: 'enregistre avec succes',
+        saveError: 'Le poids n a pas pu etre enregistre. Reessaie.',
+        title: 'Evolution du poids',
+        editCurrent: 'Modifier le poids actuel',
+        current: 'Actuel',
+        goal: 'Objectif',
+        noWeight: 'Aucun poids enregistre pour le moment',
+        history: 'Historique',
+        goalProgress: 'Progression vers l objectif',
+        remaining: 'restants',
+        placeholder: 'ex. 75.5',
+        save: 'Enregistrer',
+        cancel: 'Annuler',
+        addWeight: 'Ajouter le poids',
+      }
+    : language === 'en'
+      ? {
+          error: 'Error',
+          enterWeight: 'Please enter your weight',
+          invalidWeight: 'Invalid weight',
+          invalidWeightDesc: 'Weight must be between 20 kg and 500 kg',
+          savedTitle: '✅ Weight saved!',
+          savedDesc: 'saved successfully',
+          saveError: 'Weight could not be saved. Please try again.',
+          title: 'Weight progress',
+          editCurrent: 'Edit current weight',
+          current: 'Current',
+          goal: 'Goal',
+          noWeight: 'No weight logged yet',
+          history: 'History',
+          goalProgress: 'Progress to goal',
+          remaining: 'remaining',
+          placeholder: 'e.g. 75.5',
+          save: 'Save',
+          cancel: 'Cancel',
+          addWeight: 'Add weight',
+        }
+      : {
+          error: 'Fehler',
+          enterWeight: 'Bitte gib dein Gewicht ein',
+          invalidWeight: 'Ungueltiges Gewicht',
+          invalidWeightDesc: 'Gewicht muss zwischen 20 kg und 500 kg liegen',
+          savedTitle: '✅ Gewicht eingetragen!',
+          savedDesc: 'erfolgreich gespeichert',
+          saveError: 'Gewicht konnte nicht gespeichert werden. Bitte versuche es erneut.',
+          title: 'Gewichtsverlauf',
+          editCurrent: 'Aktuelles Gewicht bearbeiten',
+          current: 'Aktuell',
+          goal: 'Ziel',
+          noWeight: 'Noch kein Gewicht eingetragen',
+          history: 'Verlauf',
+          goalProgress: 'Fortschritt zum Ziel',
+          remaining: 'verbleibend',
+          placeholder: 'z.B. 75.5',
+          save: 'Speichern',
+          cancel: 'Abbrechen',
+          addWeight: 'Gewicht hinzufuegen',
+        };
 
   const goal = targetWeight || settings?.targetWeight || 70;
 
@@ -86,8 +154,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
   const handleAddWeight = async () => {
     if (!inputWeight || !user) {
       toast({
-        title: 'Fehler',
-        description: 'Bitte gib dein Gewicht ein',
+        title: copy.error,
+        description: copy.enterWeight,
         variant: 'destructive',
       });
       return;
@@ -96,8 +164,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
     const weight = parseFloat(inputWeight);
     if (isNaN(weight) || weight < 20 || weight > 500) {
       toast({
-        title: 'Ungültiges Gewicht',
-        description: 'Gewicht muss zwischen 20kg und 500kg liegen',
+        title: copy.invalidWeight,
+        description: copy.invalidWeightDesc,
         variant: 'destructive',
       });
       return;
@@ -125,13 +193,13 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       onWeightUpdate?.(weight);
 
       toast({
-        title: '✅ Gewicht eingetragen!',
-        description: `${weight}kg erfolgreich gespeichert`,
+        title: copy.savedTitle,
+        description: `${weight}kg ${copy.savedDesc}`,
       });
     } catch (error: any) {
       toast({
-        title: 'Fehler',
-        description: getPublicErrorMessage(error, 'Gewicht konnte nicht gespeichert werden. Bitte versuche es erneut.'),
+        title: copy.error,
+        description: getPublicErrorMessage(error, copy.saveError),
         variant: 'destructive',
       });
     } finally {
@@ -151,11 +219,11 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         d.setDate(d.getDate() - (arr.length - 1 - index));
 
         return {
-          date: d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+          date: d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' }),
           weight,
         };
       }),
-    [weightHistory],
+    [locale, weightHistory],
   );
 
   const handleCardClick = () => {
@@ -182,14 +250,14 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
             <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
               <Scale className="h-4 w-4 text-emerald-500" />
             </div>
-            <h3 className="font-semibold text-xs">Gewichtsverlauf</h3>
+            <h3 className="font-semibold text-xs">{copy.title}</h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={openWeightEditor}
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-primary"
-              aria-label="Aktuelles Gewicht bearbeiten"
+              aria-label={copy.editCurrent}
             >
               <Pencil className="h-4 w-4" />
             </button>
@@ -202,17 +270,17 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
           {currentWeight !== null ? (
             <div className="flex gap-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Aktuell</p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.current}</p>
                 <p className="text-3xl font-bold text-emerald-600">{currentWeight}<span className="text-sm">kg</span></p>
               </div>
               <div className="border-l border-emerald-300/50" />
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Ziel</p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.goal}</p>
                 <p className="text-2xl font-bold text-muted-foreground">{goal}<span className="text-xs">kg</span></p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Noch kein Gewicht eingetragen</p>
+            <p className="text-sm text-muted-foreground">{copy.noWeight}</p>
           )}
 
           {/* Right: Change Indicator with Animation */}
@@ -232,7 +300,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {lastUpdated ? new Date(lastUpdated).toLocaleDateString('de-DE') : ''}
+                {lastUpdated ? new Date(lastUpdated).toLocaleDateString(locale) : ''}
               </p>
             </motion.div>
           )}
@@ -241,7 +309,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         {/* Mini Weight Chart with Fade Out */}
         {weightHistory.length > 1 && (
           <div className="mb-4 relative">
-            <p className="text-xs text-muted-foreground mb-2">Verlauf</p>
+            <p className="text-xs text-muted-foreground mb-2">{copy.history}</p>
             <div className="h-20 relative overflow-hidden rounded-lg">
               {/* Fade out overlay on both sides */}
               <div className="absolute inset-0 bg-gradient-to-r from-card via-transparent to-card pointer-events-none z-10" />
@@ -289,9 +357,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         {currentWeight !== null && (
           <div className="mb-4">
             <div className="flex justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Fortschritt zum Ziel</span>
+              <span className="text-xs text-muted-foreground">{copy.goalProgress}</span>
               <span className="text-xs font-semibold text-emerald-600">
-                {Math.abs(goal - currentWeight).toFixed(1)}kg verbleibend
+                {Math.abs(goal - currentWeight).toFixed(1)}kg {copy.remaining}
               </span>
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
@@ -316,7 +384,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
           >
             <Input
               type="number"
-              placeholder="z.B. 75.5"
+              placeholder={copy.placeholder}
               value={inputWeight}
               onChange={(e) => setInputWeight(e.target.value)}
               step={0.1}
@@ -335,7 +403,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
                 className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 text-white"
                 size="sm"
               >
-                Speichern
+                {copy.save}
               </Button>
               <Button
                 onClick={(e) => {
@@ -347,7 +415,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
                 size="sm"
                 className="flex-1"
               >
-                Abbrechen
+                {copy.cancel}
               </Button>
             </div>
           </motion.div>
@@ -361,7 +429,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
             size="sm"
           >
             <Plus className="h-4 w-4" />
-            Gewicht hinzufügen
+            {copy.addWeight}
           </Button>
         )}
       </Card>

@@ -5,14 +5,16 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import {
   DEFAULT_MEAL_TIMES,
   getNotificationPermission,
+  isNativeApp,
   normalizeReminderConfig,
-  requestNotificationPermission,
+  requestNotificationPermissionState,
   syncRemindersFromConfig,
   type ReminderConfig,
 } from '@/lib/notifications';
@@ -38,9 +40,89 @@ interface ReminderSettingsProps {
 }
 
 export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => {
+  const { language } = useLanguage();
   const { toast } = useToast();
   const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('prompt');
   const [config, setConfig] = useState<ReminderConfig>(loadReminderConfig);
+  const [permissionBusy, setPermissionBusy] = useState(false);
+
+  const copy = language === 'fr'
+    ? {
+        enabledTitle: 'Notifications activees ✓',
+        enabledDesc: 'Les rappels sont maintenant actifs et seront programmes tout de suite.',
+        deniedTitle: 'Autorisation refusee',
+        deniedDesc: isNativeApp()
+          ? 'Frigy a d abord essaye d ouvrir la demande iPhone/Android. Si tu l as deja refusee, active-la dans les reglages de l appareil.'
+          : 'Autorise les notifications dans ton navigateur pour activer les rappels.',
+        promptTitle: 'Autorisation necessaire',
+        promptDesc: 'Accepte la demande systeme pour activer directement les rappels.',
+        unsupportedTitle: 'Notifications non disponibles',
+        unsupportedDesc: 'Cet appareil ne prend pas en charge les notifications ici.',
+        bannerTitle: 'Notifications desactivees',
+        bannerDesc: 'Appuie sur Activer et Frigy demandera directement l autorisation iPhone/Android.',
+        bannerButton: 'Activer',
+        waterLabel: 'Rappel d eau',
+        waterDesc: 'Rappel regulier pour boire',
+        mealsLabel: 'Rappel repas',
+        mealsDesc: '2 fois par jour, bien espace',
+        weightLabel: 'Rappel de poids',
+        weightDesc: 'Se peser chaque matin',
+        every: 'Toutes les',
+        hours2: '2 h',
+        hours3: '3 h',
+        hours4: '4 h',
+      }
+    : language === 'en'
+      ? {
+          enabledTitle: 'Notifications enabled ✓',
+          enabledDesc: 'Reminders are now active and will be scheduled right away.',
+          deniedTitle: 'Permission denied',
+          deniedDesc: isNativeApp()
+            ? 'Frigy first tried to open the iPhone/Android permission prompt. If you already denied it, enable it in your device settings.'
+            : 'Allow notifications in your browser to enable reminders.',
+          promptTitle: 'Permission needed',
+          promptDesc: 'Accept the system prompt to enable reminders directly.',
+          unsupportedTitle: 'Notifications unavailable',
+          unsupportedDesc: 'Notifications are not available on this device here.',
+          bannerTitle: 'Notifications disabled',
+          bannerDesc: 'Tap Enable and Frigy will request iPhone/Android permission directly.',
+          bannerButton: 'Enable',
+          waterLabel: 'Water reminder',
+          waterDesc: 'Regular reminders to drink',
+          mealsLabel: 'Meal reminder',
+          mealsDesc: '2 times daily, spaced out',
+          weightLabel: 'Weigh-in reminder',
+          weightDesc: 'Weigh yourself every morning',
+          every: 'Every',
+          hours2: '2 hrs',
+          hours3: '3 hrs',
+          hours4: '4 hrs',
+        }
+      : {
+          enabledTitle: 'Benachrichtigungen aktiviert ✓',
+          enabledDesc: 'Die Erinnerungen sind jetzt aktiv und werden sofort eingerichtet.',
+          deniedTitle: 'Berechtigung abgelehnt',
+          deniedDesc: isNativeApp()
+            ? 'Frigy hat zuerst die iPhone-/Android-Abfrage geöffnet. Wenn du sie schon abgelehnt hast, aktiviere Benachrichtigungen in den Geräteeinstellungen.'
+            : 'Erlaube Benachrichtigungen im Browser, um Erinnerungen zu aktivieren.',
+          promptTitle: 'Berechtigung nötig',
+          promptDesc: 'Bestätige die Systemabfrage, damit die Erinnerungen direkt aktiviert werden.',
+          unsupportedTitle: 'Benachrichtigungen nicht verfügbar',
+          unsupportedDesc: 'Auf diesem Gerät sind Benachrichtigungen hier nicht verfügbar.',
+          bannerTitle: 'Benachrichtigungen deaktiviert',
+          bannerDesc: 'Tippe auf Aktivieren und Frigy fragt direkt die iPhone-/Android-Berechtigung an.',
+          bannerButton: 'Aktivieren',
+          waterLabel: 'Wasser-Erinnerung',
+          waterDesc: 'Regelmäßig ans Trinken erinnern',
+          mealsLabel: 'Mahlzeiten-Erinnerung',
+          mealsDesc: '2× täglich, großer Abstand',
+          weightLabel: 'Wiege-Erinnerung',
+          weightDesc: 'Täglich morgens wiegen',
+          every: 'Alle',
+          hours2: '2 Std',
+          hours3: '3 Std',
+          hours4: '4 Std',
+        };
 
   useEffect(() => {
     void getNotificationPermission().then(setPermission);
@@ -52,30 +134,53 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     void syncRemindersFromConfig(config);
   }, [config]);
 
-  const requestPermission = async () => {
-    const granted = await requestNotificationPermission();
-    const next = await getNotificationPermission();
-    setPermission(next);
+  const requestPermission = async (enableAll = false): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> => {
+    setPermissionBusy(true);
+    try {
+      const next = await requestNotificationPermissionState({ localOnly: true, sendTest: false });
+      setPermission(next);
 
-    if (granted) {
-      toast({
-        title: 'Benachrichtigungen aktiviert ✓',
-        description: 'Erinnerungen kommen verteilt über den Tag (2× Mahlzeit).',
-      });
-    } else {
-      toast({
-        title: 'Berechtigung abgelehnt',
-        description: 'Aktiviere Benachrichtigungen in den Einstellungen deines Geräts.',
-        variant: 'destructive',
-      });
+      if (next === 'granted') {
+        if (enableAll) {
+          setConfig(prev => ({
+            water: { ...prev.water, enabled: true },
+            meals: { ...prev.meals, enabled: true },
+            weight: { ...prev.weight, enabled: true },
+          }));
+        }
+        toast({
+          title: copy.enabledTitle,
+          description: copy.enabledDesc,
+        });
+      } else if (next === 'denied') {
+        toast({
+          title: copy.deniedTitle,
+          description: copy.deniedDesc,
+          variant: 'destructive',
+        });
+      } else if (next === 'prompt') {
+        toast({
+          title: copy.promptTitle,
+          description: copy.promptDesc,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: copy.unsupportedTitle,
+          description: copy.unsupportedDesc,
+          variant: 'destructive',
+        });
+      }
+
+      return next;
+    } finally {
+      setPermissionBusy(false);
     }
   };
 
   const ensurePermission = async (): Promise<boolean> => {
     if (permission === 'granted') return true;
-    await requestPermission();
-    const next = await getNotificationPermission();
-    setPermission(next);
+    const next = await requestPermission(false);
     return next === 'granted';
   };
 
@@ -129,19 +234,20 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
             <div className="flex min-w-0 items-start gap-3">
               <BellOff className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">Benachrichtigungen deaktiviert</p>
+                <p className="text-sm font-medium">{copy.bannerTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  Tippe auf Aktivieren – dein Handy fragt dann nach der Berechtigung.
+                  {copy.bannerDesc}
                 </p>
               </div>
             </div>
             <Button
               size="sm"
-              onClick={requestPermission}
+              onClick={() => void requestPermission(true)}
+              disabled={permissionBusy}
               className="w-full shrink-0 bg-primary hover:bg-primary/90 min-[380px]:w-auto"
             >
               <Bell className="h-4 w-4 mr-1" />
-              Aktivieren
+              {copy.bannerButton}
             </Button>
           </div>
         </Card>
@@ -153,23 +259,23 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
             <Droplets className="h-5 w-5 text-blue-400" />
           </div>
           <div className="flex-1">
-            <Label className="text-sm font-medium">Wasser-Erinnerung</Label>
-            <p className="text-xs text-muted-foreground">Regelmäßig ans Trinken erinnern</p>
+            <Label className="text-sm font-medium">{copy.waterLabel}</Label>
+            <p className="text-xs text-muted-foreground">{copy.waterDesc}</p>
           </div>
-          <Switch checked={config.water.enabled} onCheckedChange={updateWaterReminder} />
+          <Switch checked={config.water.enabled} onCheckedChange={updateWaterReminder} disabled={permissionBusy} />
         </div>
         {config.water.enabled && (
           <div className="flex items-center gap-2 ml-11">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Alle</span>
+            <span className="text-xs text-muted-foreground">{copy.every}</span>
             <Select value={config.water.interval.toString()} onValueChange={updateWaterInterval}>
               <SelectTrigger className="w-20 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2">2 Std</SelectItem>
-                <SelectItem value="3">3 Std</SelectItem>
-                <SelectItem value="4">4 Std</SelectItem>
+                <SelectItem value="2">{copy.hours2}</SelectItem>
+                <SelectItem value="3">{copy.hours3}</SelectItem>
+                <SelectItem value="4">{copy.hours4}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -182,10 +288,10 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
             <Utensils className="h-5 w-5 text-green-400" />
           </div>
           <div className="flex-1">
-            <Label className="text-sm font-medium">Mahlzeiten-Erinnerung</Label>
-            <p className="text-xs text-muted-foreground">2× täglich, großer Abstand</p>
+            <Label className="text-sm font-medium">{copy.mealsLabel}</Label>
+            <p className="text-xs text-muted-foreground">{copy.mealsDesc}</p>
           </div>
-          <Switch checked={config.meals.enabled} onCheckedChange={updateMealsReminder} />
+          <Switch checked={config.meals.enabled} onCheckedChange={updateMealsReminder} disabled={permissionBusy} />
         </div>
         {config.meals.enabled && (
           <div className="flex items-center gap-2 ml-11 flex-wrap">
@@ -205,10 +311,10 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
             <Scale className="h-5 w-5 text-purple-400" />
           </div>
           <div className="flex-1">
-            <Label className="text-sm font-medium">Wiege-Erinnerung</Label>
-            <p className="text-xs text-muted-foreground">Täglich morgens wiegen</p>
+            <Label className="text-sm font-medium">{copy.weightLabel}</Label>
+            <p className="text-xs text-muted-foreground">{copy.weightDesc}</p>
           </div>
-          <Switch checked={config.weight.enabled} onCheckedChange={updateWeightReminder} />
+          <Switch checked={config.weight.enabled} onCheckedChange={updateWeightReminder} disabled={permissionBusy} />
         </div>
         {config.weight.enabled && (
           <div className="flex items-center gap-2 ml-11">

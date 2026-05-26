@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MealPlanGeneratingOverlayProps {
@@ -10,77 +9,11 @@ interface MealPlanGeneratingOverlayProps {
   onMinimize?: () => void;
   onBack?: () => void;
   isMinimized?: boolean;
+  progressPercent?: number;
   /** Full-screen lock: no back/minimize, show stay-on-tab warning */
   locked?: boolean;
   stayOnTabMessage?: string;
 }
-
-// Floating ingredient component
-const FloatingIngredient = ({ 
-  emoji, 
-  delay, 
-  x, 
-  duration 
-}: { 
-  emoji: string; 
-  delay: number; 
-  x: number; 
-  duration: number;
-}) => (
-  <motion.div
-    className="absolute text-xl pointer-events-none"
-    style={{ left: `${x}%` }}
-    initial={{ opacity: 0, y: 40, scale: 0.5 }}
-    animate={{ 
-      opacity: [0, 0.8, 0.8, 0],
-      y: [40, 0, -30, -60],
-      scale: [0.5, 1, 1, 0.7],
-      rotate: [-10, 8, -8, 10]
-    }}
-    transition={{ 
-      duration: duration,
-      delay: delay,
-      repeat: Infinity,
-      repeatDelay: 2,
-      ease: "easeOut"
-    }}
-  >
-    {emoji}
-  </motion.div>
-);
-
-// Mini mascot for minimized state
-const MiniFrigyMascot = () => (
-  <motion.svg
-    width={40}
-    height={48}
-    viewBox="0 0 200 240"
-    animate={{ rotate: [-5, 5, -5] }}
-    transition={{ duration: 1, repeat: Infinity }}
-  >
-    <defs>
-      <linearGradient id="miniFridgeBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#86efac" />
-        <stop offset="50%" stopColor="#6ee7b7" />
-        <stop offset="100%" stopColor="#4ade80" />
-      </linearGradient>
-      <linearGradient id="miniFreezerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#f0fdf4" />
-        <stop offset="100%" stopColor="#dcfce7" />
-      </linearGradient>
-    </defs>
-    <rect x="40" y="25" width="120" height="200" rx="12" fill="url(#miniFridgeBodyGrad)" />
-    <rect x="50" y="35" width="100" height="75" rx="8" fill="url(#miniFreezerGrad)" />
-    <rect x="50" y="120" width="100" height="95" rx="8" fill="url(#miniFreezerGrad)" />
-    <ellipse cx="80" cy="65" rx="8" ry="9" fill="#1f2937" />
-    <ellipse cx="83" cy="62" rx="3" ry="3" fill="white" />
-    <ellipse cx="120" cy="65" rx="8" ry="9" fill="#1f2937" />
-    <ellipse cx="123" cy="62" rx="3" ry="3" fill="white" />
-    <path d="M75 85 Q100 105 125 85" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" fill="none" />
-    <ellipse cx="65" cy="78" rx="10" ry="6" fill="#fca5a5" opacity="0.5" />
-    <ellipse cx="135" cy="78" rx="10" ry="6" fill="#fca5a5" opacity="0.5" />
-  </motion.svg>
-);
 
 export const MealPlanGeneratingOverlay = ({ 
   isGenerating, 
@@ -88,12 +21,30 @@ export const MealPlanGeneratingOverlay = ({
   onMinimize,
   onBack,
   isMinimized = false,
+  progressPercent,
   locked = false,
   stayOnTabMessage,
 }: MealPlanGeneratingOverlayProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
-  const progressPercent = Math.max(8, Math.min(96, 12 + elapsedSeconds * 4));
+  const copy = {
+    de: {
+      title: "Wochenplan wird erstellt",
+      background: "Du kannst die App weiter benutzen. Frigy arbeitet im Hintergrund weiter.",
+    },
+    en: {
+      title: "Weekly plan is being created",
+      background: "You can keep using the app. Frigy continues in the background.",
+    },
+    fr: {
+      title: "Le plan hebdomadaire est en cours de creation",
+      background: "Tu peux continuer a utiliser l app. Frigy continue en arriere-plan.",
+    },
+  } as const;
+  const currentCopy = copy[(language as "de" | "en" | "fr") ?? "de"] ?? copy.de;
+  const effectiveProgress = progressPercent && progressPercent > 0
+    ? progressPercent
+    : Math.max(8, Math.min(96, 12 + elapsedSeconds * 4));
 
   const motivationalTexts = [
     t.mealPlanGenerating1,
@@ -190,7 +141,7 @@ export const MealPlanGeneratingOverlay = ({
             transition={{ duration: 1.5, repeat: Infinity }}
             className="w-14 h-14 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-emerald-200 dark:border-emerald-800 shadow-lg flex items-center justify-center overflow-hidden"
           >
-            <MiniFrigyMascot />
+            <span className="text-[11px] font-bold text-emerald-600">{effectiveProgress}%</span>
           </motion.div>
           <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm">
             <motion.div
@@ -239,64 +190,11 @@ export const MealPlanGeneratingOverlay = ({
             </motion.button>
           )}
 
-          <div data-mealplan-overlay-card="true" className="relative flex w-full max-w-md flex-col items-center gap-5 px-6 py-8 text-center z-10">
-
-            {/* Floating ingredients - smaller and more subtle */}
-            <div className="absolute inset-x-0 top-0 h-40 pointer-events-none">
-              <FloatingIngredient emoji="🥕" delay={0} x={15} duration={3} />
-              <FloatingIngredient emoji="🥦" delay={0.6} x={80} duration={3.2} />
-              <FloatingIngredient emoji="🍳" delay={1.2} x={25} duration={2.8} />
-              <FloatingIngredient emoji="🥗" delay={0.3} x={70} duration={3.1} />
-              <FloatingIngredient emoji="🍎" delay={0.9} x={50} duration={3} />
+          <div data-mealplan-overlay-card="true" className="relative z-10 flex w-full max-w-md flex-col items-center gap-5 px-6 py-8 text-center">
+            <div className="relative mt-6 flex h-28 w-28 items-center justify-center rounded-full border border-[#D8FCE8] bg-white shadow-[0_18px_48px_-28px_rgba(34,197,94,0.28)]">
+              <div className="absolute inset-[10px] rounded-full border-[3px] border-[#75FBB2]/20 border-t-[#39D47F] animate-spin" />
+              <Loader2 className="h-7 w-7 text-[#39D47F]" />
             </div>
-
-            {/* Main Frigy mascot - SMALLER SIZE */}
-            <motion.div
-              className="relative mt-8"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
-              {/* Soft glow behind mascot */}
-              <motion.div 
-                className="absolute inset-0 -m-8 bg-emerald-300/20 dark:bg-emerald-400/10 rounded-full blur-3xl"
-                animate={{ 
-                  scale: [1, 1.08, 1],
-                  opacity: [0.5, 0.7, 0.5]
-                }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              />
-              
-              {/* Mascot with gentle bounce */}
-              <motion.div
-                animate={{ 
-                  y: [0, -8, 0],
-                }}
-                transition={{ 
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="relative z-10"
-              >
-                {/* Smaller mascot size: 120 instead of 200 */}
-                <AnimatedFrigyMascot size={120} animate={false} />
-              </motion.div>
-              
-              {/* Landing shadow - more subtle */}
-              <motion.div
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-3 bg-slate-900/8 dark:bg-white/5 rounded-full blur-sm"
-                animate={{
-                  scaleX: [1, 1.15, 1],
-                  opacity: [0.4, 0.6, 0.4]
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            </motion.div>
 
             <div className="h-12 flex items-center justify-center mt-4">
               <AnimatePresence mode="wait">
@@ -335,18 +233,18 @@ export const MealPlanGeneratingOverlay = ({
 
             <div className="mt-2 w-full max-w-xs rounded-[28px] border border-[#D8FCE8] bg-white/92 px-4 py-4 shadow-[0_20px_48px_-30px_rgba(34,197,94,0.24)]">
               <div className="mb-2 flex items-center justify-between text-[12px] font-semibold tracking-[0.01em] text-slate-600">
-                <span>Wochenplan wird erstellt</span>
-                <span>{progressPercent}%</span>
+                <span>{currentCopy.title}</span>
+                <span>{effectiveProgress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[#E8F7EE]">
                 <motion.div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#75FBB2_0%,#39D47F_100%)]"
                   initial={{ width: "0%" }}
-                  animate={{ width: `${progressPercent}%` }}
+                  animate={{ width: `${effectiveProgress}%` }}
                   transition={{ duration: 0.35, ease: "easeOut" }}
                 />
               </div>
-              <p className="mt-2 text-[11px] text-slate-500">Du kannst die App weiter benutzen. Frigy arbeitet im Hintergrund weiter.</p>
+              <p className="mt-2 text-[11px] text-slate-500">{currentCopy.background}</p>
             </div>
 
             {locked && stayOnTabMessage && (

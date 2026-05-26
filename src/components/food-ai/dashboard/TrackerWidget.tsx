@@ -3,6 +3,7 @@ import { Beef, Check, Droplet, Plus, Wheat } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type TrackerWidgetProps = {
   delay?: number;
@@ -25,13 +26,6 @@ type TrackerWidgetProps = {
   onToggleExpand?: () => void;
 };
 
-const MEAL_SLOTS: { key: MealFocusKey; label: string; icon: string }[] = [
-  { key: "breakfast", label: "Frühstück", icon: "🍳" },
-  { key: "lunch", label: "Mittag", icon: "🥗" },
-  { key: "dinner", label: "Abend", icon: "🍝" },
-  { key: "snack", label: "Snack", icon: "🍎" },
-];
-
 export function TrackerWidget({
   delay = 0,
   caloriesEaten,
@@ -46,6 +40,61 @@ export function TrackerWidget({
   onOpenTracker,
   loggedMealTypes = [],
 }: TrackerWidgetProps) {
+  const { language } = useLanguage();
+  const locale = language === "fr" ? "fr-FR" : language === "en" ? "en-US" : "de-DE";
+  const copy = language === "fr"
+    ? {
+        today: "Aujourd hui",
+        overGoal: "au-dessus de l objectif",
+        remaining: "restants",
+        eaten: "manges",
+        protein: "Proteines",
+        carbs: "Glucides",
+        fat: "Lipides",
+        quickLog: "Ajout rapide",
+        breakfast: "Petit dej",
+        lunch: "Midi",
+        dinner: "Soir",
+        snack: "Snack",
+        addMeal: "Ajouter",
+      }
+    : language === "en"
+      ? {
+          today: "Today",
+          overGoal: "over goal",
+          remaining: "left",
+          eaten: "eaten",
+          protein: "Protein",
+          carbs: "Carbs",
+          fat: "Fat",
+          quickLog: "Quick add",
+          breakfast: "Breakfast",
+          lunch: "Lunch",
+          dinner: "Dinner",
+          snack: "Snack",
+          addMeal: "Add",
+        }
+      : {
+          today: "Heute",
+          overGoal: "ueber dem Ziel",
+          remaining: "uebrig",
+          eaten: "gegessen",
+          protein: "Protein",
+          carbs: "Carbs",
+          fat: "Fett",
+          quickLog: "Schnell eintragen",
+          breakfast: "Fruehstueck",
+          lunch: "Mittag",
+          dinner: "Abend",
+          snack: "Snack",
+          addMeal: "Hinzufuegen",
+        };
+  const mealSlots: { key: MealFocusKey; label: string; icon: string }[] = [
+    { key: "breakfast", label: copy.breakfast, icon: "🍳" },
+    { key: "lunch", label: copy.lunch, icon: "🥗" },
+    { key: "dinner", label: copy.dinner, icon: "🍝" },
+    { key: "snack", label: copy.snack, icon: "🍎" },
+  ];
   const roundedTargetCalories = Math.round(targetCalories);
   const roundedCaloriesEaten = Math.round(caloriesEaten);
   const rawCalorieDelta = roundedTargetCalories - roundedCaloriesEaten;
@@ -70,7 +119,7 @@ export function TrackerWidget({
       >
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary/75">Heute</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary/75">{copy.today}</p>
             <button
               type="button"
               onClick={onOpenTracker}
@@ -79,10 +128,10 @@ export function TrackerWidget({
                 isOverGoal ? "text-rose-600" : "text-foreground",
               )}
             >
-              {(isOverGoal ? caloriesOver : caloriesRemaining).toLocaleString("de-DE")} kcal
+              {(isOverGoal ? caloriesOver : caloriesRemaining).toLocaleString(locale)} kcal
             </button>
             <p className={cn("text-[13px] font-medium", isOverGoal ? "text-rose-500" : "text-muted-foreground")}>
-              {isOverGoal ? "über dem Ziel" : "übrig"} von {roundedTargetCalories.toLocaleString("de-DE")} kcal
+              {isOverGoal ? copy.overGoal : copy.remaining} von {roundedTargetCalories.toLocaleString(locale)} kcal
             </p>
           </div>
 
@@ -97,27 +146,27 @@ export function TrackerWidget({
             </div>
             <div className="flex items-center justify-between text-[12px] font-medium text-muted-foreground">
               <span className={cn(isOverGoal && "text-rose-500")}>
-                {roundedCaloriesEaten.toLocaleString("de-DE")} gegessen
+                {roundedCaloriesEaten.toLocaleString(locale)} {copy.eaten}
               </span>
               <span className={cn(isOverGoal && "text-rose-500")}>{Math.round(calPct)}%</span>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <InlineStat icon={Beef} colorClass="text-rose-500 bg-rose-50" ringColor="#fb7185" label="Protein" value={proteinText} progress={proteinPct} />
-            <InlineStat icon={Wheat} colorClass="text-amber-500 bg-amber-50" ringColor="#fbbf24" label="Carbs" value={carbsText} progress={carbsPct} />
-            <InlineStat icon={Droplet} colorClass="text-sky-500 bg-sky-50" ringColor="#38bdf8" label="Fett" value={fatText} progress={fatPct} />
+            <InlineStat icon={Beef} colorClass="text-rose-500 bg-rose-50" ringColor="#fb7185" label={copy.protein} value={proteinText} progress={proteinPct} />
+            <InlineStat icon={Wheat} colorClass="text-amber-500 bg-amber-50" ringColor="#fbbf24" label={copy.carbs} value={carbsText} progress={carbsPct} />
+            <InlineStat icon={Droplet} colorClass="text-sky-500 bg-sky-50" ringColor="#38bdf8" label={copy.fat} value={fatText} progress={fatPct} />
           </div>
         </div>
       </WidgetCard>
 
       <section className="space-y-3">
         <div className="flex items-end justify-between">
-          <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">Heute</h2>
-          <span className="text-[12px] font-medium text-muted-foreground">Schnell eintragen</span>
+          <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">{copy.today}</h2>
+          <span className="text-[12px] font-medium text-muted-foreground">{copy.quickLog}</span>
         </div>
         <div className="grid grid-cols-4 gap-2.5">
-          {MEAL_SLOTS.map((slot, index) => {
+          {mealSlots.map((slot, index) => {
             const logged = loggedMealTypes.includes(slot.key);
             const emphasizePrimaryMeals = slot.key === "lunch" || slot.key === "dinner";
             return (
@@ -136,7 +185,7 @@ export function TrackerWidget({
                     ? "border border-primary/30 bg-primary/12 text-primary"
                     : "border border-neutral-200/90 text-foreground hover:bg-primary/8 dark:border-white/10",
                 )}
-                aria-label={`${slot.label} hinzufügen`}
+                aria-label={`${copy.addMeal} ${slot.label}`}
               >
                 <span className={cn(emphasizePrimaryMeals ? "text-[26px]" : "text-[24px]")} aria-hidden>{slot.icon}</span>
                 <span className={cn("font-bold leading-tight", emphasizePrimaryMeals ? "text-[12px]" : "text-[11px]")}>

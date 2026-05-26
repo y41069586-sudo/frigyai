@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -35,6 +36,16 @@ function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   return unsafe;
 }
 
+function getPassiveGenerationProgress(elapsedSeconds: number): number {
+  if (elapsedSeconds <= 0) return 1;
+  if (elapsedSeconds <= 3) return 1 + elapsedSeconds * 4;
+  if (elapsedSeconds <= 8) return 13 + (elapsedSeconds - 3) * 2;
+  if (elapsedSeconds <= 20) return 23 + Math.round((elapsedSeconds - 8) * 1.5);
+  if (elapsedSeconds <= 40) return 41 + (elapsedSeconds - 20);
+  if (elapsedSeconds <= 70) return 61 + Math.round((elapsedSeconds - 40) * 0.6);
+  return Math.min(88, 79 + Math.round((elapsedSeconds - 70) * 0.18));
+}
+
 interface Ingredient {
   name: string;
   amount: string;
@@ -68,6 +79,7 @@ interface MealPlanContextType {
   isGenerating: boolean;
   isMinimized: boolean;
   elapsedSeconds: number;
+  generationProgress: number;
   mealPlan: DayPlan[] | null;
   shoppingList: ShoppingListItem[] | null;
   generationCount: number;
@@ -97,10 +109,13 @@ export const useMealPlanGeneration = () => {
 };
 
 export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
   const { session, isPremium, checkSubscription } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationProgressTarget, setGenerationProgressTarget] = useState(0);
   const [mealPlan, setMealPlan] = useState<DayPlan[] | null>(() => {
     // Initialize from localStorage immediately to prevent flash of empty state
     const saved = localStorage.getItem('weeklyMealPlan');
@@ -129,6 +144,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
   const [generationCount, setGenerationCount] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressTargetRef = useRef(0);
+  const leftMealPlansWhileGeneratingRef = useRef(false);
 
   // Helper to get start of current week (Monday) in YYYY-MM-DD
   const getWeekStart = (): string => {
@@ -189,6 +206,62 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
   }, [isGenerating]);
+
+  const updateGenerationProgressTarget = useCallback((next: number) => {
+    const clamped = Math.max(1, Math.min(100, Math.round(next)));
+    progressTargetRef.current = Math.max(progressTargetRef.current, clamped);
+    setGenerationProgressTarget(progressTargetRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      progressTargetRef.current = 0;
+      setGenerationProgressTarget(0);
+      setGenerationProgress(0);
+      return;
+    }
+
+    const passiveTarget = getPassiveGenerationProgress(elapsedSeconds);
+    updateGenerationProgressTarget(passiveTarget);
+  }, [elapsedSeconds, isGenerating, updateGenerationProgressTarget]);
+
+  useEffect(() => {
+    if (!isGenerating) return;
+    if (generationProgress >= generationProgressTarget) return;
+
+    const interval = setInterval(() => {
+      setGenerationProgress((prev) => {
+        if (prev >= progressTargetRef.current) return prev;
+        const delta = progressTargetRef.current - prev;
+        const step = delta >= 16 ? 3 : delta >= 8 ? 2 : 1;
+        return Math.min(progressTargetRef.current, prev + step);
+      });
+    }, 120);
+
+    return () => clearInterval(interval);
+  }, [generationProgress, generationProgressTarget, isGenerating]);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      leftMealPlansWhileGeneratingRef.current = false;
+      return;
+    }
+
+    const searchParams = new URLSearchParams(location.search);
+    const activeMealPlanTab = searchParams.get('tab') || 'meals';
+    const isMealPlanMainView = location.pathname === '/meal-plans' && activeMealPlanTab === 'meals';
+
+    if (!isMealPlanMainView) {
+      leftMealPlansWhileGeneratingRef.current = true;
+      setIsMinimized(true);
+      return;
+    }
+
+    if (leftMealPlansWhileGeneratingRef.current) {
+      setIsMinimized(false);
+      leftMealPlansWhileGeneratingRef.current = false;
+    }
+  }, [isGenerating, location.pathname, location.search]);
 
   // Load persisted meal plan from backend on login (and migrate any existing local plan)
   useEffect(() => {
@@ -325,6 +398,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setIsGenerating(true);
     setIsMinimized(false);
+    setGenerationProgress(1);
+    progressTargetRef.current = 1;
+    setGenerationProgressTarget(1);
     setMealPlan(null);
     setShoppingList(null);
 
@@ -336,14 +412,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
     removeMealPlanShoppingSource();
     notifyFrigyStorageUpdated();
-    if (session?.user?.id) {
-      try {
-        await supabase.from('weekly_meal_plans').delete().eq('user_id', session.user.id);
-        console.log('[MEAL-PLAN-CLIENT] Cleared old plan from Supabase');
-      } catch (error) {
-        console.warn('[MEAL-PLAN-CLIENT] Warning: Could not clear old plan:', error);
-      }
-    }
+    updateGenerationProgressTarget(10);
 
     console.log('[MEAL-PLAN-CLIENT] Invoking generate-meal-plan function...');
 
@@ -357,6 +426,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           diet.healthGoals,
         );
 
+        updateGenerationProgressTarget(22);
         const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
           headers: session?.access_token
             ? { Authorization: `Bearer ${session.access_token}` }
@@ -386,12 +456,14 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
 
         console.log('[MEAL-PLAN-CLIENT] Successfully received data:', data ? 'yes' : 'no');
+        updateGenerationProgressTarget(74);
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const rawPlan = (data as any).mealPlan;
           const newPlan = syncMealPlanToTargets(rawPlan, macroTargets);
           const newShoppingList = (data as any).shoppingList || [];
           const unsafeMeals = findUnsafeMeals(newPlan, diet);
+          updateGenerationProgressTarget(84);
 
           if (unsafeMeals.length > 0) {
             console.error('[MEAL-PLAN-SAFETY] Unsafe meals returned:', unsafeMeals);
@@ -429,6 +501,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
           localStorage.setItem(WEEKLY_PLAN_AI_GENERATED_KEY, '1');
           setMealPlanShoppingSource('frigy');
+          updateGenerationProgressTarget(92);
 
           const sm = (data as any)?.scanMeta;
           if (sm) {
@@ -466,11 +539,15 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               console.error('Failed to persist meal plan:', dbErrorMsg);
             }
           }
+          updateGenerationProgressTarget(97);
 
           // Refresh generation count from server after successful generation
-          await refreshGenerationCount();
+          setGenerationCount((prev) => prev + 1);
+          void refreshGenerationCount();
 
           notifyFrigyStorageUpdated();
+          updateGenerationProgressTarget(100);
+          await new Promise((resolve) => setTimeout(resolve, 240));
 
           toast({
             title: '✅ Wochenplan generiert!',
@@ -537,7 +614,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount, isPremium, checkSubscription]);
+  }, [session, refreshGenerationCount, isPremium, checkSubscription, updateGenerationProgressTarget]);
 
   const setMinimized = useCallback((minimized: boolean) => {
     setIsMinimized(minimized);
@@ -568,6 +645,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isGenerating,
       isMinimized,
       elapsedSeconds,
+      generationProgress,
       mealPlan,
       shoppingList,
       generationCount,
@@ -580,6 +658,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       <MealPlanGeneratingOverlay
         isGenerating={isGenerating}
         elapsedSeconds={elapsedSeconds}
+        progressPercent={generationProgress}
         isMinimized={isMinimized}
         onMinimize={() => setIsMinimized(true)}
       />

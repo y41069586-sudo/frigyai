@@ -6,7 +6,6 @@ import {
   LogOut,
   RefreshCw,
   Trash2,
-  Users,
   RotateCcw,
   Globe,
   ChevronRight,
@@ -323,7 +322,6 @@ const ProfilePage = () => {
           </SettingsGroup>
 
           <SettingsGroup title={t.settingsAccountGroup}>
-            <SettingsRow icon={Users} label={t.settingsCommunity} onClick={() => navigate("/community")} />
             <SettingsRow
               icon={RotateCcw}
               label={t.settingsRestartOnboarding}

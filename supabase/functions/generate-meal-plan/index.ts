@@ -8,6 +8,12 @@ declare const Deno: {
 };
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
+const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+const DAY_NAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+const OPENAI_ATTEMPTS = [
+  { name: "primary", timeoutMs: 18000, maxTokens: 5200, maxIngredients: 5 },
+  { name: "fallback", timeoutMs: 14000, maxTokens: 4200, maxIngredients: 4 },
+] as const;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -209,7 +215,33 @@ function normalizeMeal(m: any) {
     stated > 0 && Math.abs(stated - fromMacros) <= MACRO_KCAL_TOLERANCE
       ? Math.round(stated)
       : Math.max(50, Math.round(fromMacros));
-  return { ...m, protein, carbs, fat, calories };
+
+  const ingredients = Array.isArray(m?.ingredients)
+    ? m.ingredients
+        .filter((ing: any) => ing && typeof ing === "object" && ing.name)
+        .map((ing: any) => ({
+          name: String(ing.name).trim(),
+          amount: String(ing.amount || "1 Portion").trim(),
+          price: Math.max(0, Math.round((Number(ing.price) || 0) * 100) / 100),
+        }))
+    : [];
+
+  const instructions = Array.isArray(m?.instructions)
+    ? m.instructions.map((step: any) => String(step).trim()).filter(Boolean).slice(0, 6)
+    : [];
+
+  return {
+    ...m,
+    type: String(m?.type || "Mahlzeit").trim(),
+    name: String(m?.name || "Gericht").trim(),
+    prepTime: Math.max(5, Math.round(Number(m?.prepTime) || 20)),
+    ingredients,
+    instructions,
+    protein,
+    carbs,
+    fat,
+    calories,
+  };
 }
 
 function harmonizeDailyTargets(targets: {
@@ -307,6 +339,182 @@ const getWeekStart = (): string => {
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(now.setDate(diff)).toISOString().split("T")[0];
 };
+
+function validateMealPlanShape(mealPlan: any[], mealsPerDay: number) {
+  if (!Array.isArray(mealPlan) || mealPlan.length !== 7) {
+    throw new Error("Incomplete meal plan");
+  }
+
+  for (const [index, day] of mealPlan.entries()) {
+    if (!Array.isArray(day?.meals) || day.meals.length !== mealsPerDay) {
+      throw new Error(`Incomplete day ${index + 1}`);
+    }
+  }
+}
+
+function buildMealPlanPrompts(params: {
+  mealsPerDay: number;
+  macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
+  constraintPrompt: string;
+  fridgeHint: string;
+  isRegeneration: boolean;
+  varietySeed: string;
+  maxIngredients: number;
+}) {
+  const totalMeals = 7 * params.mealsPerDay;
+  const compactRule = `Halte die Antwort kompakt:
+- Pro Mahlzeit maximal ${params.maxIngredients} Zutaten
+- Kurze, klare Rezeptnamen
+- instructions darf leer sein ([]) oder maximal 1 kurzer Satz sein; die App ergänzt Kochschritte automatisch.`;
+
+  const systemPrompt = `Du bist ein deutscher Ernährungsexperte und planst realistische Mahlzeiten.
+
+Erstelle einen VOLLSTÄNDIGEN Wochenplan - niemals leere Tage oder unvollständige Pläne.
+
+REGELN:
+- Genau 7 Tage (Montag-Sonntag)
+- Pro Tag genau ${params.mealsPerDay} Mahlzeiten
+- Einfache Hausmannskost, keine exotischen Zutaten
+- Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
+- Nutze Kühlschrankzutaten nur wenn vorhanden und sinnvoll; ergänze fehlende Zutaten frei für Makroziele und Abwechslung
+- Nährwerte müssen realistisch sein (keine Fantasiewerte)
+- Kalorien jeder Mahlzeit MÜSSEN exakt zu den Makros passen: kcal = 4*Protein + 4*Kohlenhydrate + 9*Fett (max. +/-50 kcal Abweichung)
+- Gib realistische, messbare Makrowerte an
+${params.constraintPrompt ? "- Allergien, Ernährungsziele und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend." : ""}
+${compactRule}
+
+PRO TAG müssen die Summen ALLER Mahlzeiten EXAKT diesen Zielen entsprechen:
+- Kalorien: ${params.macroTargets.dailyCalories} kcal
+- Protein: ${params.macroTargets.dailyProtein} g
+- Kohlenhydrate: ${params.macroTargets.dailyCarbs} g
+- Fett: ${params.macroTargets.dailyFat} g
+${params.isRegeneration ? `- NEUGENERIERUNG (${params.varietySeed}): Alle ${totalMeals} Mahlzeiten sollen anders sein als in Standardplänen.` : ""}
+
+Jede Mahlzeit MUSS enthalten:
+type, name, calories, protein, carbs, fat, prepTime, ingredients
+
+ingredients MUSS pro Zutat enthalten:
+name, amount (mit Einheit), price (geschaetzter Preis in EUR)
+
+instructions ist OPTIONAL und darf leer sein.
+
+Antwort NUR als JSON:
+{
+ "mealPlan":[
+  {
+   "day":"Montag",
+   "meals":[]
+  }
+ ]
+}`;
+
+  const userPrompt = [
+    `Erstelle einen vollständigen 7-Tage-Plan mit ${params.mealsPerDay} Mahlzeiten pro Tag.`,
+    `Insgesamt also genau ${totalMeals} Mahlzeiten.`,
+    `Tagesziele: ${params.macroTargets.dailyCalories} kcal, Protein ${params.macroTargets.dailyProtein}g, Kohlenhydrate ${params.macroTargets.dailyCarbs}g, Fett ${params.macroTargets.dailyFat}g.`,
+    params.isRegeneration
+      ? `Plan-ID ${params.varietySeed}: Erstelle einen komplett neuen Wochenplan.`
+      : "",
+    params.fridgeHint,
+    params.constraintPrompt
+      ? `\n\n--- Nutzer-Vorgaben (verbindlich) ---\n${params.constraintPrompt}`
+      : "",
+  ].join("\n");
+
+  return { systemPrompt, userPrompt };
+}
+
+async function requestMealPlanFromOpenAI(params: {
+  mealsPerDay: number;
+  macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
+  constraintPrompt: string;
+  fridgeHint: string;
+  isRegeneration: boolean;
+  varietySeed: string;
+}) {
+  let lastError: Error | null = null;
+
+  for (const attempt of OPENAI_ATTEMPTS) {
+    try {
+      const { systemPrompt, userPrompt } = buildMealPlanPrompts({
+        ...params,
+        maxIngredients: attempt.maxIngredients,
+      });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), attempt.timeoutMs);
+
+      try {
+        const response = await fetch(OPENAI_ENDPOINT, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            temperature: params.isRegeneration ? 0.55 : 0.32,
+            max_tokens: attempt.maxTokens,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`OpenAI error ${response.status}: ${errText.slice(0, 300)}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) {
+          throw new Error("No response from OpenAI");
+        }
+
+        let parsed: { mealPlan?: unknown };
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          throw new Error("Invalid JSON from OpenAI");
+        }
+
+        const rawMealPlan = parsed.mealPlan;
+        if (!Array.isArray(rawMealPlan) || rawMealPlan.length === 0) {
+          throw new Error("Empty meal plan");
+        }
+
+        const normalizedMealPlan = rawMealPlan.map((day, index) => ({
+          day:
+            typeof (day as any)?.day === "string" && (day as any).day.trim()
+              ? (day as any).day.trim()
+              : DAY_NAMES[index] || `Tag ${index + 1}`,
+          meals: Array.isArray((day as any)?.meals)
+            ? (day as any).meals.map((meal: any) => normalizeMeal(meal))
+            : [],
+        }));
+
+        validateMealPlanShape(normalizedMealPlan, params.mealsPerDay);
+        return normalizedMealPlan;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const timeoutMessage =
+        error instanceof Error && error.name === "AbortError"
+          ? "OpenAI request timeout"
+          : message;
+      lastError = new Error(timeoutMessage);
+      console.warn(`[MEAL-PLAN-EDGE] ${attempt.name} attempt failed: ${timeoutMessage}`);
+    }
+  }
+
+  throw lastError ?? new Error("Meal plan generation failed");
+}
 
 async function resolvePremium(supabase: any, userId: string, email?: string | null): Promise<boolean> {
   const { data: cacheData } = await supabase
@@ -409,125 +617,23 @@ Deno.serve(async (req) => {
         ? `\n\nKühlschrank (bereits vorhanden – priorisiere diese Zutaten, darfst aber beliebig weitere ergänzen):\n${fridgeIngredients.join(", ")}`
         : "\n\nKein Kühlschrankscan vorhanden: Erstelle trotzdem einen vollständigen Wochenplan frei aus passenden Zutaten. Die Einkaufsliste enthält danach alle benötigten Zutaten, bis ein Kühlschrankscan vorhandene Zutaten abzieht.";
 
-    const systemPrompt = `Du bist ein deutscher Ernährungsexperte und planst realistische Mahlzeiten.
+    const aiMealPlan = await requestMealPlanFromOpenAI({
+      mealsPerDay,
+      macroTargets,
+      constraintPrompt,
+      fridgeHint,
+      isRegeneration,
+      varietySeed,
+    });
 
-Erstelle einen VOLLSTÄNDIGEN Wochenplan – niemals leere Tage oder unvollständige Pläne.
-
-REGELN:
-- Genau 7 Tage (Montag–Sonntag)
-- Pro Tag genau ${mealsPerDay} Mahlzeiten
-- Einfache Hausmannskost, keine exotischen Zutaten
-- Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
-- Nutze Kühlschrankzutaten nur wenn vorhanden und sinnvoll; ergänze fehlende Zutaten frei für Makroziele und Abwechslung
-- Nährwerte müssen realistisch sein (keine Fantasiewerte)
-- Kalorien jeder Mahlzeit MÜSSEN exakt zu den Makros passen: kcal = 4*Protein + 4*Kohlenhydrate + 9*Fett (max. ±50 kcal Abweichung — sonst ungültig)
-- Gib realistische, messbare Makrowerte an — keine Schätzungen oder Fantasiewerte
-${
-      constraintPrompt
-        ? "- Allergien, Ernährungsziele (z. B. Keto, Vegan, Low-Carb) und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend. Wenn z. B. Eier verboten sind, darf kein Ei, Rührei, Omelett, Mayonnaise oder eihaltiges Gericht vorkommen."
-        : ""
-    }
-
-PRO TAG müssen die Summen ALLER Mahlzeiten EXAKT diesen Zielen entsprechen:
-- Kalorien: ${macroTargets.dailyCalories} kcal (Summe = 4×Protein + 4×KH + 9×Fett)
-- Protein: ${macroTargets.dailyProtein} g
-- Kohlenhydrate: ${macroTargets.dailyCarbs} g
-- Fett: ${macroTargets.dailyFat} g
-${isRegeneration ? `\nNEUGENERIERUNG (${varietySeed}): JEDES einzelne Gericht muss komplett anders sein als in typischen Standardplänen. Keine Wiederholung von Gerichten innerhalb der Woche. Variiere Küche, Zutaten und Zubereitung maximal.` : ""}
-
-Jede Mahlzeit MUSS enthalten:
-type, name, calories, protein, carbs, fat, prepTime, ingredients, instructions
-
-ingredients MUSS pro Zutat enthalten:
-name, amount (mit Einheit), price (geschätzter Preis in EUR für diese Menge)
-
-instructions: Array mit GENAU 10–14 Strings – Kochanleitung für absolute Anfänger, die jeder Schritt für Schritt nachkochen kann.
-PFLICHT-Format JEDES Elements: "[X Min | Phase] Ausführliche Handlung."
-- Phase nur: Vorbereitung | Kochen | Garen | Pause | Anrichten
-- X = geschätzte aktive Zeit für diesen Schritt (Minuten als Zahl)
-- Beschreibe konkret: welches Gerät (Topf/Pfanne/Ofen), Hitze (z. B. mittlere Stufe, 180 °C), Mengen, wann rühren/wenden, wie Garzustand erkennen (Farbe, Konsistenz, Kerntemperatur)
-- Parallelarbeit erwähnen (z. B. während Nudeln kochen Soße vorbereiten)
-- Optional am Ende eines Schritts: "Tipp: …" für typische Fehler
-- Summe der Minuten in [] soll ungefähr prepTime entsprechen (±3 Min)
-- Erster Schritt: Arbeitsplatz vorbereiten; letzter Schritt: Anrichten und Servieren mit Portionierung
-- Keine Ein-Wort-Schritte, keine vagen Formulierungen wie "nach Belieben garen"
-
-Antwort NUR als JSON:
-
-{
- "mealPlan":[
-  {
-   "day":"Montag",
-   "meals":[]
-  }
- ]
-}`;
-
-    const response = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: isRegeneration ? 0.62 : 0.42,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: [
-                `Erstelle einen vollständigen 7-Tage-Plan mit ${mealsPerDay} Mahlzeiten pro Tag.`,
-                `Tagesziele: ${macroTargets.dailyCalories} kcal, Protein ${macroTargets.dailyProtein}g, Kohlenhydrate ${macroTargets.dailyCarbs}g, Fett ${macroTargets.dailyFat}g.`,
-                isRegeneration
-                  ? `Plan-ID ${varietySeed}: Erstelle einen komplett neuen Wochenplan — alle 35 Mahlzeiten mit anderen Gerichten als üblich.`
-                  : "",
-                fridgeHint,
-                constraintPrompt
-                  ? `\n\n--- Nutzer-Vorgaben (verbindlich) ---\n${constraintPrompt}`
-                  : "",
-              ].join("\n"),
-            },
-          ],
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenAI error ${response.status}: ${errText.slice(0, 300)}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No response from OpenAI");
-    }
-
-    let parsed: { mealPlan?: unknown };
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      throw new Error("Invalid JSON from OpenAI");
-    }
-    let mealPlan = parsed.mealPlan;
-
-    if (!Array.isArray(mealPlan) || mealPlan.length === 0) {
-      throw new Error("Empty meal plan");
-    }
-
-    mealPlan = syncMealPlanToTargets(mealPlan, macroTargets);
-    const unsafeMeals = findSafetyViolations(mealPlan, allergies, dietaryPreferences, allergiesOther);
+    const normalizedMealPlan = syncMealPlanToTargets(aiMealPlan, macroTargets);
+    const unsafeMeals = findSafetyViolations(normalizedMealPlan, allergies, dietaryPreferences, allergiesOther);
     if (unsafeMeals.length > 0) {
       throw new Error(`Allergy safety validation failed: ${unsafeMeals.slice(0, 5).join("; ")}`);
     }
 
-    const shoppingList = generateGapShoppingList(mealPlan, fridgeIngredients);
-    const scanMeta = computeScanMeta(mealPlan, fridgeIngredients, shoppingList);
+    const shoppingList = generateGapShoppingList(normalizedMealPlan, fridgeIngredients);
+    const scanMeta = computeScanMeta(normalizedMealPlan, fridgeIngredients, shoppingList);
 
     const weekStart = getWeekStart();
     const { data: usageRow } = await supabase
@@ -554,7 +660,7 @@ Antwort NUR als JSON:
 
     return new Response(
       JSON.stringify({
-        mealPlan,
+        mealPlan: normalizedMealPlan,
         shoppingList,
         scanMeta,
       }),
@@ -566,13 +672,21 @@ Antwort NUR als JSON:
       },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    const message =
+      rawMessage.includes("OpenAI request timeout") ||
+      rawMessage.includes("Incomplete meal plan") ||
+      rawMessage.includes("Invalid JSON from OpenAI") ||
+      rawMessage.includes("No response from OpenAI") ||
+      rawMessage.includes("Empty meal plan")
+        ? "Die Wochenplan-KI hat nicht schnell genug einen vollständigen Plan geliefert."
+        : rawMessage;
     return new Response(
       JSON.stringify({
         error: message,
       }),
       {
-        status: 500,
+        status: rawMessage.includes("OpenAI request timeout") ? 504 : 500,
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",

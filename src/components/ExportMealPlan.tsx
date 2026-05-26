@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Calendar } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 
 interface Ingredient {
@@ -32,14 +33,71 @@ interface ExportMealPlanProps {
 }
 
 export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProps) => {
+  const { language } = useLanguage();
+  const hasMealPlan = mealPlan.length > 0;
+  const copy = language === 'fr'
+    ? {
+        popupBlocked: 'Popup bloque',
+        popupBlockedDesc: 'Autorise les popups pour exporter.',
+        pdfExport: 'Export PDF',
+        printOpened: 'La fenetre d impression a ete ouverte',
+        exported: 'Exporte !',
+        textSaved: 'Plan hebdomadaire enregistre en texte',
+        calendarExport: 'Export calendrier',
+        calendarHint: 'Ouvre le fichier .ics dans ton calendrier',
+        printTitle: 'Plan hebdomadaire - Frigy',
+        heading: 'Plan hebdomadaire',
+        ingredients: 'Ingredients',
+        printPdf: 'Imprimer en PDF',
+        text: 'Texte',
+        calendar: 'Calendrier',
+        weekPlanFile: 'plan-hebdomadaire',
+      }
+    : language === 'en'
+      ? {
+          popupBlocked: 'Popup blocked',
+          popupBlockedDesc: 'Please allow popups for export.',
+          pdfExport: 'PDF export',
+          printOpened: 'Print dialog opened',
+          exported: 'Exported!',
+          textSaved: 'Weekly plan saved as text',
+          calendarExport: 'Calendar export',
+          calendarHint: 'Open the .ics file in your calendar app',
+          printTitle: 'Weekly Plan - Frigy',
+          heading: 'Weekly Plan',
+          ingredients: 'Ingredients',
+          printPdf: 'Print as PDF',
+          text: 'Text',
+          calendar: 'Calendar',
+          weekPlanFile: 'weekly-plan',
+        }
+      : {
+          popupBlocked: 'Popup blockiert',
+          popupBlockedDesc: 'Bitte erlaube Popups fuer den Export',
+          pdfExport: 'PDF Export',
+          printOpened: 'Druckdialog geoeffnet',
+          exported: 'Exportiert!',
+          textSaved: 'Wochenplan als Text gespeichert',
+          calendarExport: 'Kalender Export',
+          calendarHint: 'Oeffne die .ics Datei mit deinem Kalender',
+          printTitle: 'Wochenplan - Frigy',
+          heading: 'Wochenplan',
+          ingredients: 'Zutaten',
+          printPdf: 'Als PDF drucken',
+          text: 'Text',
+          calendar: 'Kalender',
+          weekPlanFile: 'wochenplan',
+        };
+
   const exportToPDF = () => {
+    if (!hasMealPlan) return;
     // Create printable HTML
     const content = generatePrintContent();
     
     // Open new window for printing
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      toast({ title: 'Popup blockiert', description: 'Bitte erlaube Popups für den Export', variant: 'destructive' });
+      toast({ title: copy.popupBlocked, description: copy.popupBlockedDesc, variant: 'destructive' });
       return;
     }
 
@@ -52,11 +110,11 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
       printWindow.print();
     }, 500);
     
-    toast({ title: 'PDF Export', description: 'Druckdialog geöffnet' });
+    toast({ title: copy.pdfExport, description: copy.printOpened });
   };
 
   const exportToText = () => {
-    let text = '🥗 WOCHENPLAN\n';
+    let text = `🥗 ${copy.heading.toUpperCase()}\n`;
     text += '═'.repeat(40) + '\n\n';
 
     mealPlan.forEach(day => {
@@ -67,7 +125,7 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
         text += `\n${meal.type}: ${meal.name}\n`;
         text += `  ⚡ ${meal.calories} kcal | 🥩 ${meal.protein}g P | 🍞 ${meal.carbs}g K | 🥑 ${meal.fat}g F\n`;
         text += `  ⏱️ ${meal.prepTime} Min\n`;
-        text += `  Zutaten: ${meal.ingredients.map(i => `${i.name} (${i.amount})`).join(', ')}\n`;
+        text += `  ${copy.ingredients}: ${meal.ingredients.map(i => `${i.name} (${i.amount})`).join(', ')}\n`;
       });
       
       text += '\n';
@@ -78,11 +136,11 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `wochenplan-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `${copy.weekPlanFile}-${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     
-    toast({ title: 'Exportiert!', description: 'Wochenplan als Text gespeichert' });
+    toast({ title: copy.exported, description: copy.textSaved });
   };
 
   const addToCalendar = () => {
@@ -135,7 +193,7 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
     a.click();
     URL.revokeObjectURL(url);
     
-    toast({ title: 'Kalender Export', description: 'Öffne die .ics Datei mit deinem Kalender' });
+    toast({ title: copy.calendarExport, description: copy.calendarHint });
   };
 
   const generatePrintContent = () => {
@@ -144,7 +202,7 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Wochenplan - Healthy3</title>
+  <title>${copy.printTitle}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333; }
@@ -163,7 +221,7 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
   </style>
 </head>
 <body>
-  <h1>🥗 Wochenplan</h1>
+  <h1>🥗 ${copy.heading}</h1>
   ${mealPlan.map(day => `
     <div class="day">
       <div class="day-title">${day.day}</div>
@@ -183,8 +241,6 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
 </html>`;
   };
 
-  if (mealPlan.length === 0) return null;
-
   if (pdfOnly) {
     return (
       <Button
@@ -192,14 +248,17 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
         variant="outline"
         size="sm"
         onClick={exportToPDF}
-        className="hover:border-primary h-9 shrink-0 gap-1.5 px-2.5 sm:px-3"
-        title="Als PDF drucken"
+        disabled={!hasMealPlan}
+        className="hover:border-primary h-11 shrink-0 gap-1.5 rounded-2xl border-primary/25 bg-white px-3 sm:h-10"
+        title={copy.printPdf}
       >
         <FileText className="h-4 w-4 shrink-0" />
         <span className="text-xs font-medium">PDF</span>
       </Button>
     );
   }
+
+  if (!hasMealPlan) return null;
 
   return (
     <div className="flex gap-1.5 sm:gap-2">
@@ -209,11 +268,11 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
       </Button>
       <Button variant="outline" size="sm" onClick={exportToText} className="hover:border-primary px-2 sm:px-3">
         <Download className="h-4 w-4" />
-        <span className="hidden sm:inline ml-1">Text</span>
+        <span className="hidden sm:inline ml-1">{copy.text}</span>
       </Button>
       <Button variant="outline" size="sm" onClick={addToCalendar} className="hover:border-primary px-2 sm:px-3">
         <Calendar className="h-4 w-4" />
-        <span className="hidden sm:inline ml-1">Kalender</span>
+        <span className="hidden sm:inline ml-1">{copy.calendar}</span>
       </Button>
     </div>
   );

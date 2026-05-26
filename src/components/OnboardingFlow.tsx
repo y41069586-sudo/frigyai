@@ -527,7 +527,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || currentStep !== "macro-preview") {
+    if (!container || currentStep !== "macro-preview" || macroEditOpen) {
       setMacroPreviewCtaVisible(false);
       return;
     }
@@ -542,7 +542,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     return () => {
       container.removeEventListener("scroll", updateVisibility);
     };
-  }, [currentStep]);
+  }, [currentStep, macroEditOpen]);
+
+  useEffect(() => {
+    if (currentStep !== "macro-preview") return;
+    if (userData.dailyCalories !== 0) return;
+    const calculated = calculateMacros(userData);
+    setUserData((prev) => {
+      if (prev.dailyCalories !== 0) return prev;
+      return { ...prev, ...calculated };
+    });
+  }, [currentStep, userData, setUserData]);
 
   // Step-specific effects - with proper cleanup to avoid setState on unmounted component
   useEffect(() => {
@@ -1821,10 +1831,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         goalDate.setDate(goalDate.getDate() + (weeksToGoal * 7));
         const goalDateFormatted = goalDate.toLocaleDateString(language === 'de' ? 'de-DE' : language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long' });
         
-        if (userData.dailyCalories !== calculatedMacros.dailyCalories && userData.dailyCalories === 0) {
-          setTimeout(() => setUserData(prev => ({ ...prev, ...calculatedMacros })), 0);
-        }
-
         return (
           <StepCard step="macro-preview">
             <div className="flex w-full flex-col items-center px-4 pb-28 text-center sm:pb-10">
@@ -4080,11 +4086,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               className="sticky bottom-0 z-20 w-full max-w-md shrink-0 px-4 pb-6 pt-4"
               initial={false}
               animate={{
-                opacity: macroPreviewCtaVisible ? 1 : 0,
-                y: macroPreviewCtaVisible ? 0 : 18,
+                opacity: macroPreviewCtaVisible && !macroEditOpen ? 1 : 0,
+                y: macroPreviewCtaVisible && !macroEditOpen ? 0 : 18,
               }}
               transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
-              style={{ pointerEvents: macroPreviewCtaVisible ? "auto" : "none" }}
+              style={{ pointerEvents: macroPreviewCtaVisible && !macroEditOpen ? "auto" : "none" }}
             >
               <div className="rounded-[28px] bg-[linear-gradient(180deg,rgba(242,255,248,0),#F2FFF8_24%,#F2FFF8_100%)] px-1 pt-6">
                 <Button

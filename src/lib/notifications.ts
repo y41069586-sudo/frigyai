@@ -114,17 +114,23 @@ async function ensureAndroidReminderChannel(
 export async function requestNotificationPermission(
   options: NotificationPermissionOptions = {},
 ): Promise<boolean> {
+  return (await requestNotificationPermissionState(options)) === "granted";
+}
+
+export async function requestNotificationPermissionState(
+  options: NotificationPermissionOptions = {},
+): Promise<NotificationPermissionState> {
   if (isNativeApp()) {
     try {
       const { LocalNotifications } = await import("@capacitor/local-notifications");
 
-      let localGranted = (await LocalNotifications.checkPermissions()).display === "granted";
-      if (!localGranted) {
+      let localPermission = (await LocalNotifications.checkPermissions()).display;
+      if (localPermission !== "granted") {
         const localResult = await LocalNotifications.requestPermissions();
-        localGranted = localResult.display === "granted";
+        localPermission = localResult.display;
       }
 
-      if (localGranted) {
+      if (localPermission === "granted") {
         await ensureAndroidReminderChannel(LocalNotifications);
         if (!options.localOnly) {
           try {
@@ -150,26 +156,30 @@ export async function requestNotificationPermission(
           console.warn("[notifications] Reminder sync skipped:", error);
         }
       }
-      return localGranted;
+      if (localPermission === "granted") return "granted";
+      if (localPermission === "denied") return "denied";
+      return "prompt";
     } catch (error) {
       console.error("[notifications] Native permission request failed:", error);
-      return false;
+      return "unsupported";
     }
   }
 
-  if (!("Notification" in window)) return false;
+  if (!("Notification" in window)) return "unsupported";
   if (Notification.permission === "granted") {
     await registerWebServiceWorker();
-    return true;
+    return "granted";
   }
-  if (Notification.permission === "denied") return false;
+  if (Notification.permission === "denied") return "denied";
 
   const result = await Notification.requestPermission();
   const granted = result === "granted";
   if (granted) {
     await registerWebServiceWorker();
   }
-  return granted;
+  if (result === "granted") return "granted";
+  if (result === "denied") return "denied";
+  return "prompt";
 }
 
 function parseTime(timeStr: string): { hour: number; minute: number } {
