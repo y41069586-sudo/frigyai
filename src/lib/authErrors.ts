@@ -11,7 +11,7 @@ const MESSAGES: Record<
   }
 > = {
   de: {
-    alreadyRegistered: "You already registered with your email",
+    alreadyRegistered: "Mit dieser E-Mail bist du schon registriert. Bitte melde dich an.",
     emailNotConfirmed:
       "Du musst deine E-Mail nicht bestätigen. Melde dich einfach mit E-Mail und Passwort an.",
     invalidCredentials: "E-Mail oder Passwort ist falsch.",
@@ -19,7 +19,7 @@ const MESSAGES: Record<
       "Zu viele Versuche in kurzer Zeit. Warte ein paar Minuten oder melde dich an, falls du schon ein Konto hast.",
   },
   en: {
-    alreadyRegistered: "You already registered with your email",
+    alreadyRegistered: "You already registered with this email. Please sign in.",
     emailNotConfirmed:
       "You don't need to confirm your email. Just sign in with your email and password.",
     invalidCredentials: "Incorrect email or password.",
@@ -27,7 +27,7 @@ const MESSAGES: Record<
       "Too many attempts in a short time. Wait a few minutes or sign in if you already have an account.",
   },
   fr: {
-    alreadyRegistered: "You already registered with your email",
+    alreadyRegistered: "Tu es déjà inscrit avec cet e-mail. Connecte-toi.",
     emailNotConfirmed:
       "Tu n'as pas besoin de confirmer ton e-mail. Connecte-toi avec ton e-mail et ton mot de passe.",
     invalidCredentials: "E-mail ou mot de passe incorrect.",
@@ -51,8 +51,15 @@ export function isUserAlreadyRegistered(error: { message?: string } | null | und
   return (
     msg.includes("already registered") ||
     msg.includes("user already registered") ||
-    msg.includes("already been registered")
+    msg.includes("already been registered") ||
+    msg.includes("schon registriert") ||
+    msg.includes("déjà inscrit")
   );
+}
+
+/** Supabase returns a user with empty identities when the email already exists. */
+export function isSignupExistingUserNoIdentities(user: { identities?: unknown[] } | null | undefined): boolean {
+  return Boolean(user && Array.isArray(user.identities) && user.identities.length === 0);
 }
 
 export function isEmailRateLimited(error: { message?: string; code?: string } | null | undefined): boolean {

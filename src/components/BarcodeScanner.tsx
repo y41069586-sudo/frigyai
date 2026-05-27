@@ -509,17 +509,39 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           <div id="barcode-reader" ref={readerRef} className="absolute inset-0 h-full w-full overflow-hidden" />
 
           {showScanner && (
-            <motion.div
-              className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
+              <style>{`
+                @keyframes barcode-scan-line {
+                  0% { top: 10%; opacity: 0.6; }
+                  50% { top: 86%; opacity: 1; }
+                  100% { top: 10%; opacity: 0.6; }
+                }
+                @keyframes barcode-scan-glow {
+                  0% { top: 8%; opacity: 0.25; }
+                  50% { top: 84%; opacity: 0.5; }
+                  100% { top: 8%; opacity: 0.25; }
+                }
+                @keyframes barcode-frame-pulse {
+                  0%, 100% { box-shadow: 0 0 10px 0 rgba(117,251,178,0.22); }
+                  50% { box-shadow: 0 0 22px 3px rgba(117,251,178,0.38); }
+                }
+                .barcode-scan-line {
+                  animation: barcode-scan-line 2s ease-in-out infinite;
+                  will-change: top, opacity;
+                }
+                .barcode-scan-glow {
+                  animation: barcode-scan-glow 2s ease-in-out infinite;
+                  will-change: top, opacity;
+                }
+                .barcode-frame-pulse {
+                  animation: barcode-frame-pulse 1.8s ease-in-out infinite;
+                }
+              `}</style>
               <div
                 className="relative rounded-2xl"
                 style={{
-                  width: "min(92vw, 372px)",
-                  height: "min(30vw, 144px)",
+                  width: "min(94vw, 400px)",
+                  height: "min(44vw, 196px)",
                 }}
               >
                 <div
@@ -527,17 +549,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.52)" }}
                 />
 
-                <motion.div
-                  className="absolute inset-0 rounded-2xl border border-[#75FBB2]/40"
-                  animate={{
-                    boxShadow: [
-                      "0 0 10px 0 rgba(117,251,178,0.22)",
-                      "0 0 22px 3px rgba(117,251,178,0.38)",
-                      "0 0 10px 0 rgba(117,251,178,0.22)",
-                    ],
-                  }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                />
+                <div className="absolute inset-0 rounded-2xl border border-[#75FBB2]/40 barcode-frame-pulse" />
 
                 {(
                   [
@@ -549,45 +561,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 ).map((cornerClass) => (
                   <div
                     key={cornerClass}
-                    className={`absolute h-7 w-7 border-[#75FBB2] ${cornerClass}`}
+                    className={`absolute h-8 w-8 border-[#75FBB2] ${cornerClass}`}
                   />
                 ))}
 
-                <motion.div
-                  className="absolute left-3 right-3 h-[2px] rounded-full bg-[#75FBB2]"
+                <div
+                  className="barcode-scan-line absolute left-3 right-3 h-[2px] rounded-full bg-[#75FBB2]"
                   style={{
                     boxShadow:
                       "0 0 8px 2px rgba(117,251,178,0.85), 0 0 18px 3px rgba(117,251,178,0.28)",
                   }}
-                  initial={{ top: "12%" }}
-                  animate={{ top: ["12%", "88%", "12%"] }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
                 />
 
-                <motion.div
-                  className="absolute left-3 right-3 h-8 rounded-full bg-gradient-to-b from-[#75FBB2]/25 to-transparent blur-[2px]"
-                  initial={{ top: "10%" }}
-                  animate={{ top: ["10%", "86%", "10%"] }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                />
+                <div className="barcode-scan-glow absolute left-3 right-3 h-10 rounded-full bg-gradient-to-b from-[#75FBB2]/25 to-transparent blur-[2px]" />
               </div>
 
-              <motion.p
-                className="absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] px-6 text-center text-sm font-medium text-white/90"
-                animate={{ opacity: [0.65, 1, 0.65] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              >
+              <p className="absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] px-6 text-center text-sm font-medium text-white/90">
                 Barcode in den Rahmen halten
-              </motion.p>
-            </motion.div>
+              </p>
+            </div>
           )}
 
               {isLoading && (

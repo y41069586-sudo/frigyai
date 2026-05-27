@@ -21,6 +21,7 @@ import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
 import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBootstrap";
+import { BadgeUnlockCelebration } from "@/components/BadgeUnlockCelebration";
 import MealPlansPage from "./pages/MealPlansPage";
 // Lazy load all pages for better performance
 const Index = lazyWithReload(() => import("./pages/Index"));
@@ -77,7 +78,7 @@ const AppContent = () => {
             animate={pageTransition.animate}
             exit={pageTransition.exit}
             transition={pageTransition.transition}
-            className="min-h-screen"
+            className="min-h-screen bg-background"
           >
             <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
@@ -130,6 +131,7 @@ const App = () => {
                     <AppDeepLinkListener />
                     <ReferralAttributionBootstrap />
                     <NotificationBootstrap />
+                    <BadgeUnlockCelebration />
                     <AppContent />
                   </MealPlanProvider>
                 </AuthProvider>

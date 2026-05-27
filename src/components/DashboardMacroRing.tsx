@@ -3,6 +3,7 @@ import { Flame, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { getLocalDateISO } from "@/lib/localDate";
 
 interface DashboardMacroRingProps {
   caloriesEaten: number;
@@ -95,7 +96,7 @@ export const DashboardMacroRing = ({
       for (let i = -2; i <= 2; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateISO(date);
         const dayOfWeek = date.getDay();
         
         days.push({

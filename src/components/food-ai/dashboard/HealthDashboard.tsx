@@ -14,6 +14,7 @@ import { StepsWidget } from "./StepsWidget";
 import { AiChatPromptWidget } from "./AiChatPromptWidget";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { confettiBurst } from "@/lib/mobileEffects";
+import { getLocalDateISO } from "@/lib/localDate";
 
 const ML_PER_GLASS = 250;
 const WATER_CONFETTI_GOAL_ML = 2000;
@@ -62,12 +63,10 @@ export function HealthDashboard({
 
   const stepsDemo = useMemo(() => {
     if (stepsProp != null) return stepsProp;
-    const key = `frigy_steps_${new Date().toISOString().split("T")[0]}`;
+    const key = `frigy_steps_${getLocalDateISO()}`;
     const raw = localStorage.getItem(key);
-    if (raw) return parseInt(raw, 10) || 6420;
-    const seed = 5200 + Math.floor(Math.random() * 3800);
-    localStorage.setItem(key, String(seed));
-    return seed;
+    if (raw != null) return parseInt(raw, 10) || 0;
+    return 0;
   }, [stepsProp, storageVersion]);
 
   const weekPreview = useMemo(() => getWeekPlanPreviewFromStorage(), [storageVersion]);

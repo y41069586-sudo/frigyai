@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     host: true,
-    port: 5173,
+    port: 8080,
     strictPort: false,
     open: false,
     // Prevent browser / proxy from caching HTML & hashed chunks during dev — avoids

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOfflineMode } from "./useOfflineMode";
 import { toast } from "@/hooks/use-toast";
+import { getLocalDateISO } from "@/lib/localDate";
 
 export const useDataSync = () => {
   const { user, session } = useAuth();
@@ -74,7 +75,7 @@ export const useDataSync = () => {
 
   // Add water entry with offline support
   const addWaterEntry = useCallback(async (glasses: number) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateISO();
     const localWater = JSON.parse(localStorage.getItem("waterIntake") || "{}");
     localWater[today] = glasses;
     localStorage.setItem("waterIntake", JSON.stringify(localWater));

@@ -181,29 +181,29 @@ const ScanPage = () => {
     let usedMock = false;
 
     try {
-      for (const file of files) {
-        const fileSizeValidation = validateImageFileSize(file.size);
-        if (!fileSizeValidation.valid) {
-          toast({
-            title: "Datei zu groß",
-            description: fileSizeValidation.error || VALIDATION_RULES.IMAGE_FILE_SIZE.message,
-            variant: "destructive",
-          });
+    for (const file of files) {
+    const fileSizeValidation = validateImageFileSize(file.size);
+    if (!fileSizeValidation.valid) {
+      toast({
+        title: "Datei zu groß",
+        description: fileSizeValidation.error || VALIDATION_RULES.IMAGE_FILE_SIZE.message,
+        variant: "destructive",
+      });
           continue;
         }
 
         const base64 = await fileToBase64(file);
-        const qualityCheck = await checkImageQuality(base64);
-        if (!qualityCheck.isGoodQuality) {
-          toast({
-            title: qualityCheck.message,
-            description: qualityCheck.suggestion,
-            variant: "destructive",
-          });
+    const qualityCheck = await checkImageQuality(base64);
+    if (!qualityCheck.isGoodQuality) {
+      toast({
+        title: qualityCheck.message,
+        description: qualityCheck.suggestion,
+        variant: "destructive",
+      });
           continue;
-        }
+    }
 
-        const cachedResult = getCached(base64);
+    const cachedResult = getCached(base64);
         if (cachedResult?.ingredients) {
           batchIngredients.push(...cachedResult.ingredients);
           processed += 1;
@@ -219,15 +219,15 @@ const ScanPage = () => {
           if (error) throw error;
 
           if (data?.error === "scan_limit_exceeded" || data?.error === "premium_required") {
-            toast({
-              title: t.error,
+        toast({
+          title: t.error,
               description: data?.message || t.premiumRequired || t.couldNotAnalyze,
-              variant: "destructive",
-            });
+          variant: "destructive",
+        });
             break;
-          }
+      }
 
-          setCached(base64, data);
+      setCached(base64, data);
           batchIngredients.push(...(data.ingredients || []));
         } catch {
           const mockIngs = await analyzeImageMock(file);
@@ -381,7 +381,7 @@ const ScanPage = () => {
               variant="outline"
               className="flex-1"
               onClick={() => {
-                setShowPermissionRequest(false);
+              setShowPermissionRequest(false);
                 pendingPermissionAction.current = null;
               }}
             >

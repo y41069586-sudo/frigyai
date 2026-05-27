@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { getLocalDateISO } from "@/lib/localDate";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, TrendingDown, Minus, Flame, Target, Calendar } from "lucide-react";
 
@@ -63,7 +64,7 @@ export const WeekProgressWidget = ({ targetCalories }: WeekProgressWidgetProps) 
       for (let i = 0; i < 7; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + mondayOffset + i);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateISO(date);
         const dayOfWeek = date.getDay();
         
         // Find meal plan for this day

@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 import { confettiBurst } from '@/lib/mobileEffects';
+import { notifyBadgeUnlocked } from '@/lib/badgeEvents';
+import { getLocalDateISO, getLocalYesterdayISO } from '@/lib/localDate';
 
 // Confetti function for badge celebrations
 const triggerConfetti = async () => {
@@ -139,7 +141,7 @@ export const useGamification = () => {
   const recordActivity = async () => {
     if (!user) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     
     try {
       const { data: existingStreak, error: fetchError } = await supabase
@@ -161,9 +163,7 @@ export const useGamification = () => {
           return;
         }
 
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const yesterdayStr = getLocalYesterdayISO();
 
         if (lastDate === yesterdayStr) {
           // Consecutive day
@@ -250,6 +250,13 @@ export const useGamification = () => {
         setBadges((prev) =>
           prev.some((badge) => badge.badge_type === badgeType) ? prev : [...prev, data],
         );
+      }
+      if (badgeDef) {
+        notifyBadgeUnlocked({
+          badgeType,
+          badgeName,
+          badgeIcon: badgeDef.icon,
+        });
       }
       
       // Trigger confetti animation

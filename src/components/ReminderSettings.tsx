@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import {
   DEFAULT_MEAL_TIMES,
   getNotificationPermission,
@@ -18,6 +17,7 @@ import {
   syncRemindersFromConfig,
   type ReminderConfig,
 } from '@/lib/notifications';
+import { formatReminderTime, WEIGHT_REMINDER_TIMES } from '@/lib/reminderTimeFormat';
 
 const DEFAULT_CONFIG: ReminderConfig = {
   water: { enabled: false, interval: 3 },
@@ -49,7 +49,11 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
   const copy = language === 'fr'
     ? {
         enabledTitle: 'Notifications activees ✓',
-        enabledDesc: 'Les rappels sont maintenant actifs et seront programmes tout de suite.',
+          enabledDesc: isNativeApp()
+            ? 'Les rappels sont maintenant actifs et seront programmes tout de suite.'
+            : 'Rappels actifs dans le navigateur tant que l app est ouverte. Pour des notifications fiables, utilise l app installee.',
+          webOnlyNote:
+            'Dans le navigateur, les rappels fonctionnent seulement tant que Frigy est ouverte. Pour des notifications systeme fiables, installe l app sur iPhone ou Android.',
         deniedTitle: 'Autorisation refusee',
         deniedDesc: isNativeApp()
           ? 'Frigy a d abord essaye d ouvrir la demande iPhone/Android. Si tu l as deja refusee, active-la dans les reglages de l appareil.'
@@ -75,7 +79,11 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     : language === 'en'
       ? {
           enabledTitle: 'Notifications enabled ✓',
-          enabledDesc: 'Reminders are now active and will be scheduled right away.',
+          enabledDesc: isNativeApp()
+            ? 'Reminders are now active and will be scheduled right away.'
+            : 'Reminders work in the browser while Frigy stays open. Install the app for reliable system notifications.',
+          webOnlyNote:
+            'In the browser, reminders only work while Frigy is open. Install the app on iPhone or Android for reliable push notifications.',
           deniedTitle: 'Permission denied',
           deniedDesc: isNativeApp()
             ? 'Frigy first tried to open the iPhone/Android permission prompt. If you already denied it, enable it in your device settings.'
@@ -130,7 +138,6 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
 
   useEffect(() => {
     localStorage.setItem('reminderConfig', JSON.stringify(config));
-    notifyFrigyStorageUpdated();
     void syncRemindersFromConfig(config);
   }, [config]);
 
@@ -226,8 +233,18 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     ? "rounded-xl border border-slate-100 bg-slate-50/50 p-3"
     : "p-4 bg-background/50 border-border/50";
 
+  const webOnly = !isNativeApp();
+
   return (
     <div className={compact ? "space-y-2.5" : "space-y-4"}>
+      {webOnly && (
+        <Card className={compact ? "p-3 border-sky-500/25 bg-sky-500/8 shadow-none" : "p-4 border-sky-500/30 bg-sky-500/10"}>
+          <p className="text-sm font-medium text-sky-900 dark:text-sky-100">
+            {language === "fr" ? "Rappels dans le navigateur" : language === "en" ? "Browser reminders" : "Browser-Erinnerungen"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{copy.webOnlyNote}</p>
+        </Card>
+      )}
       {permission !== 'granted' && (
         <Card className={compact ? "p-3 border-amber-500/25 bg-amber-500/8 shadow-none" : "p-4 border-amber-500/30 bg-amber-500/10"}>
           <div className="flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center">
@@ -298,7 +315,7 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
             <Clock className="h-4 w-4 text-muted-foreground" />
             {normalizeReminderConfig(config).meals.times.map((time) => (
               <span key={time} className="text-xs px-2 py-1 rounded bg-muted">
-                {time}
+                {formatReminderTime(time, language)}
               </span>
             ))}
           </div>
@@ -320,14 +337,17 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
           <div className="flex items-center gap-2 ml-11">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <Select value={config.weight.time} onValueChange={updateWeightTime}>
-              <SelectTrigger className="w-24 h-8 text-xs">
-                <SelectValue />
+              <SelectTrigger className="w-[7.25rem] h-8 text-xs">
+                <SelectValue>
+                  {formatReminderTime(config.weight.time, language)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="06:00">06:00</SelectItem>
-                <SelectItem value="07:00">07:00</SelectItem>
-                <SelectItem value="08:00">08:00</SelectItem>
-                <SelectItem value="09:00">09:00</SelectItem>
+                {WEIGHT_REMINDER_TIMES.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {formatReminderTime(time, language)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

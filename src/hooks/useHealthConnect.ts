@@ -198,7 +198,21 @@ export function useHealthConnect(): UseHealthConnectReturn {
       setHealthData(data);
       localStorage.setItem('healthSyncLastSync', new Date().toISOString());
 
-      toast({ title: 'Daten synchronisiert! ✅' });
+      const syncedParts: string[] = [];
+      if (data.steps != null) {
+        syncedParts.push(`${Math.round(data.steps).toLocaleString('de-DE')} Schritte`);
+      }
+      if (data.weight != null) {
+        syncedParts.push(`${data.weight.toFixed(1)} kg`);
+      }
+      if (data.caloriesBurned != null) {
+        syncedParts.push(`${Math.round(data.caloriesBurned)} kcal verbrannt`);
+      }
+
+      toast({
+        title: 'Daten synchronisiert! ✅',
+        description: syncedParts.length > 0 ? syncedParts.join(' · ') : undefined,
+      });
     } catch (error) {
       console.error('Health sync error:', error);
       toast({

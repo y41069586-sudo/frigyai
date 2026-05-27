@@ -72,8 +72,6 @@ export function FrigyFoodScanFlow({
   const { setVideoRef, previewReady, capturePhoto, retry, isLive, errorMessage } =
     useIngredientCamera({ active: open && phase === "capture" });
 
-  if (!open) return null;
-
   useEffect(() => {
     if (!open) {
       setPendingAnalysis(false);
@@ -84,12 +82,7 @@ export function FrigyFoodScanFlow({
     }
   }, [capturedPreviewUrl, open]);
 
-  useEffect(() => {
-    if (analyzing) return;
-    if (analysisErrorMessage) return;
-    if (!pendingAnalysis) return;
-    setPendingAnalysis(false);
-  }, [analysisErrorMessage, analyzing, pendingAnalysis]);
+  if (!open) return null;
 
   const resetCapturedPreview = () => {
     if (capturedPreviewUrl?.startsWith("blob:")) {

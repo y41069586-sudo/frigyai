@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AIChatbot } from "@/components/AIChatbot";
+import { PageLoader } from "@/components/PageLoader";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
@@ -41,7 +42,8 @@ import {
 } from "@/lib/frigyStorageSync";
 import { STRIPE_CHECKOUT_PENDING_KEY } from "@/lib/stripePaymentLinks";
 import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
-import { getLocalDateString } from "@/lib/localDate";
+import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
+import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 
 type CachedTodayFoodEntry = {
   name?: string;
@@ -187,7 +189,7 @@ const Index = () => {
   useEffect(() => {
     const fetchWater = async () => {
       if (!user) return;
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateISO();
       const { data } = await supabase
         .from('water_intake')
         .select('glasses')
@@ -233,11 +235,16 @@ const Index = () => {
     const nextMl = newGlasses * 250;
     setWaterGlasses(newGlasses);
     dispatchWaterGlassesChanged(newGlasses);
-    if (previousMl < 2000 && nextMl >= 2000) {
+    const goalMl = waterGoalMl > 0 ? waterGoalMl : goalCupsToMl(readWaterGoalCupsFromStorage());
+    if (previousMl < goalMl && nextMl >= goalMl) {
       void recordActivity();
-      void checkAndAwardBadge('water_goal');
+      void checkAndAwardBadge("water_goal");
+      const streakDays = recordWaterGoalDayMet();
+      if (streakDays >= 7) {
+        void checkAndAwardBadge("water_week");
+      }
     }
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateISO();
     try {
       const { error } = await supabase.from("water_intake").upsert(
         { user_id: user.id, date: today, glasses: newGlasses },
@@ -304,7 +311,7 @@ const Index = () => {
     const fetchDailyMacros = async () => {
       if (!user) return;
       if (readTodayFoodSnapshot()) return;
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateISO();
       const { data } = await supabase
         .from('daily_macros')
         .select('calories, protein, carbs, fat')
@@ -332,7 +339,7 @@ const Index = () => {
     if (user) {
       const intervalId = setInterval(async () => {
         if (readTodayFoodSnapshot()) return;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateISO();
         const { data } = await supabase
           .from('daily_macros')
           .select('*')
@@ -459,19 +466,16 @@ const Index = () => {
 
       if (!cancelled) {
         setIsActivatingPremium(false);
-        setShowPremiumSuccess(true);
-        setShowOnboarding(false);
-        setOnboardingComplete(true);
-        localStorage.setItem("onboardingComplete", "true");
         const next = new URLSearchParams(searchParams);
         next.delete("subscription");
         setSearchParams(next, { replace: true });
         toast({
-          title: language === "de" ? "Zahlung erhalten" : "Payment received",
+          title: language === "de" ? "Premium noch nicht aktiv" : "Premium not active yet",
           description:
             language === "de"
-              ? "Premium wird gleich aktiv. Falls nicht, App neu öffnen oder kurz warten."
-              : "Premium will activate shortly. Reopen the app if needed.",
+              ? "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen."
+              : "Payment received, but Premium is not active yet. Reopen the app or try again in a few minutes.",
+          variant: "destructive",
         });
       }
     };
@@ -575,7 +579,7 @@ const Index = () => {
   
   // Wait for auth before showing anything
   if (loading) {
-    return null;
+    return <PageLoader />;
   }
 
   if (isActivatingPremium) {
@@ -615,9 +619,9 @@ const Index = () => {
     return <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />;
   }
 
-  // If not logged in and onboarding is done, redirect to auth without showing an intermediate screen.
+  // Not logged in: show loader until onboarding opens or redirect to /auth completes.
   if (!user) {
-    return null;
+    return <PageLoader />;
   }
 
   return (

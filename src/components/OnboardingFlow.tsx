@@ -3459,10 +3459,19 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               };
 
               if (error) {
-                if (
-                  (isUserAlreadyRegistered(error) || isEmailRateLimited(error)) &&
-                  (await ensureSessionAfterSignup())
-                ) {
+                if (isUserAlreadyRegistered(error)) {
+                  const resolved = resolveAuthErrorMessage(error, language, "signup");
+                  toast({
+                    title: t.onboardingRegistrationFailed,
+                    description:
+                      resolved?.message ?? t.onboardingEmailAlreadyRegistered,
+                    variant: "destructive",
+                  });
+                  setAuthMode("login");
+                  return;
+                }
+
+                if (isEmailRateLimited(error) && (await ensureSessionAfterSignup())) {
                   goAfterSignup();
                   return;
                 }

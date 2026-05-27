@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getStoredLanguage } from '@/contexts/LanguageContext';
 import { FRIGY_STORAGE_UPDATED } from '@/lib/frigyStorageSync';
 import { isNativeApp } from '@/lib/notifications';
 
@@ -53,8 +54,7 @@ export const useReminders = () => {
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const today = now.toDateString();
-
-      console.log('Checking reminders at:', currentTime);
+      const copy = webReminderCopy();
 
       // Check meal reminders
       if (config.meals.enabled) {
@@ -63,11 +63,7 @@ export const useReminders = () => {
           if (currentTime === time && lastMealReminderRef.current !== reminderKey) {
             lastMealReminderRef.current = reminderKey;
             const mealName = getNextMealName(now.getHours());
-            console.log('Sending meal reminder:', mealName);
-            sendNotification(
-              `🍽️ ${mealName} Zeit!`,
-              'Vergiss nicht, deine Mahlzeit zu loggen.'
-            );
+            sendNotification(copy.mealTitle(mealName), copy.mealBody);
           }
         });
       }
@@ -77,11 +73,7 @@ export const useReminders = () => {
         const reminderKey = `${today}-weight`;
         if (currentTime === config.weight.time && lastWeightReminderRef.current !== reminderKey) {
           lastWeightReminderRef.current = reminderKey;
-          console.log('Sending weight reminder');
-          sendNotification(
-            '⚖️ Zeit zum Wiegen!',
-            'Dokumentiere deinen Fortschritt.'
-          );
+          sendNotification(copy.weightTitle, copy.weightBody);
         }
       }
     };
@@ -101,15 +93,11 @@ export const useReminders = () => {
       }
 
       if (config.water.enabled) {
-        const intervalMs = config.water.interval * 60 * 60 * 1000; // Convert hours to ms
-        console.log('Starting water reminder every', config.water.interval, 'hours');
-        
+        const intervalMs = config.water.interval * 60 * 60 * 1000;
+        const copy = webReminderCopy();
+
         waterIntervalRef.current = window.setInterval(() => {
-          console.log('Sending water reminder');
-          sendNotification(
-            '💧 Wasser trinken!',
-            'Zeit für ein Glas Wasser.'
-          );
+          sendNotification(copy.waterTitle, copy.waterBody);
         }, intervalMs);
       }
     };

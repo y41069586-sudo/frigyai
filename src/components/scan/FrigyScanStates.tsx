@@ -27,6 +27,26 @@ export function FrigyScanAnalyzingStage({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[140] flex flex-col overflow-hidden bg-[#F6FFFA] text-neutral-950 safe-area-inset"
     >
+      <style>{`
+        @keyframes frigy-scan-line-move {
+          0% { top: 12%; opacity: 0.55; }
+          50% { top: 82%; opacity: 1; }
+          100% { top: 12%; opacity: 0.55; }
+        }
+        @keyframes frigy-scan-sweep-move {
+          0% { top: -30%; opacity: 0.2; }
+          50% { top: 70%; opacity: 0.45; }
+          100% { top: -30%; opacity: 0.2; }
+        }
+        .frigy-scan-line {
+          animation: frigy-scan-line-move 2.2s ease-in-out infinite;
+          will-change: top, opacity;
+        }
+        .frigy-scan-sweep {
+          animation: frigy-scan-sweep-move 2.4s ease-in-out infinite;
+          will-change: top, opacity;
+        }
+      `}</style>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(117,251,178,0.18),transparent_28%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_45%,#EEF9F2_100%)]" />
       <div className="flex shrink-0 items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
@@ -60,17 +80,8 @@ export function FrigyScanAnalyzingStage({
 
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.42),transparent_38%)]" />
 
-            <motion.div
-              className="pointer-events-none absolute inset-x-[7%] h-[18%] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.55),rgba(255,255,255,0))] blur-sm"
-              animate={{ y: ["-120%", "560%"] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            />
-
-            <motion.div
-              className="pointer-events-none absolute left-[9%] right-[9%] h-[3px] rounded-full bg-[linear-gradient(90deg,rgba(117,251,178,0),rgba(117,251,178,1),rgba(117,251,178,0))] shadow-[0_0_20px_rgba(117,251,178,0.9)]"
-              animate={{ y: ["-135px", "135px"] }}
-              transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }}
-            />
+            <div className="pointer-events-none absolute inset-x-[7%] h-[18%] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.55),rgba(255,255,255,0))] blur-sm frigy-scan-sweep" />
+            <div className="pointer-events-none absolute left-[9%] right-[9%] h-[3px] rounded-full bg-[linear-gradient(90deg,rgba(117,251,178,0),rgba(117,251,178,1),rgba(117,251,178,0))] shadow-[0_0_20px_rgba(117,251,178,0.9)] frigy-scan-line" />
           </div>
 
           <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/90" />

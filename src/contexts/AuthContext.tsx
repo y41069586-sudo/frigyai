@@ -8,11 +8,14 @@ import { applyDeferredReferralOnFirstOpen } from '@/lib/referralAttribution';
 import {
   isEmailNotConfirmed,
   isEmailRateLimited,
+  isSignupExistingUserNoIdentities,
   isUserAlreadyRegistered,
+  resolveAuthErrorMessage,
 } from '@/lib/authErrors';
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
 import { isSubscriptionActive } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
+import { getStoredLanguage } from '@/contexts/LanguageContext';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -350,17 +353,24 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       return { error: signInError };
     };
 
+    const alreadyRegisteredError = () => {
+      const lang = getStoredLanguage();
+      return {
+        error: {
+          message:
+            resolveAuthErrorMessage({ message: "already registered" }, lang, "signup")
+              ?.message ?? "You already registered with this email. Please sign in.",
+        },
+      };
+    };
+
     const registered = await registerUserWithoutEmailConfirm(normalizedEmail, password);
-    if (registered.ok) {
-      return finishWithSession();
+    if (registered.alreadyRegistered || (registered.ok && registered.existing)) {
+      return alreadyRegisteredError();
     }
 
-    if (registered.alreadyRegistered) {
-      const result = await finishWithSession();
-      if (!result.error) return result;
-      return {
-        error: { message: "You already registered with your email" },
-      };
+    if (registered.ok) {
+      return finishWithSession();
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -369,11 +379,14 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     });
 
     if (error) {
-      const shouldTrySignIn =
-        isUserAlreadyRegistered(error) || isEmailRateLimited(error);
+      if (isUserAlreadyRegistered(error)) {
+        return alreadyRegisteredError();
+      }
 
-      if (shouldTrySignIn) {
-        return finishWithSession();
+      if (isEmailRateLimited(error)) {
+        const rateResult = await finishWithSession();
+        if (!rateResult.error) return rateResult;
+        return { error: rateResult.error };
       }
 
       if (!silent && !isUserAlreadyRegistered(error)) {
@@ -387,6 +400,10 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
         });
       }
       return { error: { message: registered.error || error.message } };
+    }
+
+    if (isSignupExistingUserNoIdentities(data.user)) {
+      return alreadyRegisteredError();
     }
 
     if (data.session) {

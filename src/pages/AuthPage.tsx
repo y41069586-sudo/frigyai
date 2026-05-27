@@ -104,7 +104,10 @@ const AuthPage = () => {
           const resolved = resolveAuthErrorMessage(error, language, 'signup');
           if (resolved) {
             setError(resolved.message);
-            if (resolved.switchToLogin) setIsLogin(true);
+            if (resolved.switchToLogin) {
+              setIsLogin(true);
+              return;
+            }
           } else if (error.message?.includes('Password should be at least')) {
             setError('Passwort muss mindestens 6 Zeichen lang sein');
           } else if (error.message?.includes('Invalid email')) {

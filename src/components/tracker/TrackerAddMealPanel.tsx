@@ -371,6 +371,7 @@ export function TrackerAddMealPanel({
         protein: "Proteines",
         carbs: "Glucides",
         fat: "Lipides",
+        addSearch: "Ajouter le repas",
       }
     : language === "en"
       ? {
@@ -399,6 +400,7 @@ export function TrackerAddMealPanel({
           protein: "Protein",
           carbs: "Carbs",
           fat: "Fat",
+          addSearch: "Add meal",
         }
       : {
           back: "Zurück",
@@ -426,6 +428,7 @@ export function TrackerAddMealPanel({
           protein: "Protein",
           carbs: "Carbs",
           fat: "Fett",
+          addSearch: "Essen hinzufügen",
         };
 
   const inputModes: {
@@ -645,6 +648,12 @@ export function TrackerAddMealPanel({
                 disabled={isAnalyzing}
                 className="min-w-0 flex-1 bg-transparent py-3 text-[15px] outline-none placeholder:text-[#9CA3AF]"
                 style={{ color: PALETTE.text }}
+              />
+              <RoundPlusButton
+                onClick={submitSearch}
+                disabled={isAnalyzing || !query.trim()}
+                label={copy.addSearch ?? "Essen hinzufügen"}
+                size="sm"
               />
             </div>
           </div>

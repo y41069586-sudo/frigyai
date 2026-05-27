@@ -14,3 +14,9 @@ export function getLocalDateString(date = new Date()): string {
 export function isSameLocalCalendarDay(a: Date, b: Date): boolean {
   return getLocalDateISO(a) === getLocalDateISO(b);
 }
+
+export function getLocalYesterdayISO(date = new Date()): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() - 1);
+  return getLocalDateISO(d);
+}

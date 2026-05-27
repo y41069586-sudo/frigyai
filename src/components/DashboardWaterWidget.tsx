@@ -4,6 +4,7 @@ import { Minus, Plus, Check, Droplets } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { getLocalDateISO } from "@/lib/localDate";
 
 interface DashboardWaterWidgetProps {
   waterGlasses: number;
@@ -43,7 +44,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
     }
     
     // Background save
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     try {
       const { data: existing } = await supabase
         .from('water_intake')

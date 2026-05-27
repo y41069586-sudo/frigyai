@@ -186,12 +186,12 @@ export function BadgeOverview() {
                         animate={{ opacity: 1, x: 0 }}
                         className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${
                           isEarned
-                            ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30'
+                            ? 'bg-gradient-to-r from-emerald-100/80 to-lime-100/60 border-emerald-300/70'
                             : 'bg-card/30 border-border/20'
                         }`}
                       >
                         <div className={`text-xl w-8 h-8 flex items-center justify-center rounded-lg ${
-                          isEarned ? 'bg-yellow-500/20' : 'bg-muted/30'
+                          isEarned ? 'bg-emerald-200/70' : 'bg-muted/30'
                         }`}>
                           {isEarned ? badgeDef.icon : <Lock className="h-4 w-4 text-muted-foreground" />}
                         </div>

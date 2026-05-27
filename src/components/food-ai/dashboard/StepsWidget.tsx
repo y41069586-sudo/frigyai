@@ -46,6 +46,8 @@ export const StepsWidget = memo(function StepsWidget({
         sync: "Synchroniser les pas",
         mobileOnly: "Health Sync seulement sur mobile",
         openInApp: "Ouvrir dans l app",
+        goal: "Objectif",
+        today: "Aujourd'hui",
       }
     : language === "en"
       ? {
@@ -55,6 +57,8 @@ export const StepsWidget = memo(function StepsWidget({
           sync: "Sync steps",
           mobileOnly: "Health Sync only on mobile",
           openInApp: "Open in app",
+          goal: "Goal",
+          today: "Today",
         }
       : {
           title: "Schritte",
@@ -63,7 +67,12 @@ export const StepsWidget = memo(function StepsWidget({
           sync: "Schritte syncen",
           mobileOnly: "Health Sync nur auf dem Handy",
           openInApp: "In App oeffnen",
+          goal: "Ziel",
+          today: "Heute",
         };
+
+  const hasSteps = steps > 0;
+  const progressPct = Math.min(100, Math.round((steps / goal) * 100));
 
   const addSteps = async () => {
     if (isLoading) return;
@@ -98,15 +107,35 @@ export const StepsWidget = memo(function StepsWidget({
           <h3 className="min-w-0 text-[14px] font-semibold tracking-[-0.03em] text-foreground">{copy.title}</h3>
         </div>
 
-        <div className="flex items-center justify-center px-1 py-1 text-center">
-          <p className="text-[12px] font-semibold leading-snug tracking-[-0.02em] text-foreground">
-            {copy.hint.split("\n").map((line, index) => (
-              <span key={index}>
-                {index > 0 && <br />}
-                {line}
-              </span>
-            ))}
-          </p>
+        <div className="flex w-full flex-col items-center justify-center gap-2 px-1 py-1 text-center">
+          {hasSteps ? (
+            <>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {copy.today}
+              </p>
+              <p className="text-[32px] font-bold tabular-nums leading-none tracking-tight text-foreground">
+                {steps.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}
+              </p>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                {copy.goal}: {goal.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}
+              </p>
+              <div className="h-1.5 w-full max-w-[150px] overflow-hidden rounded-full bg-primary/15">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-[12px] font-semibold leading-snug tracking-[-0.02em] text-foreground">
+              {copy.hint.split("\n").map((line, index) => (
+                <span key={index}>
+                  {index > 0 && <br />}
+                  {line}
+                </span>
+              ))}
+            </p>
+          )}
         </div>
 
         <motion.button

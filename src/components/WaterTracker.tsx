@@ -17,6 +17,8 @@ import {
   dispatchWaterGlassesChanged,
   dispatchWaterGoalCupsChanged,
 } from '@/lib/waterSync';
+import { getLocalDateISO } from '@/lib/localDate';
+import { recordWaterGoalDayMet } from '@/lib/waterGoalStreak';
 
 const ML_PER_CUP = 200;
 
@@ -74,7 +76,7 @@ export const WaterTracker = () => {
   const loadTodayIntake = async () => {
     if (!user) return;
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     
     const { data, error } = await supabase
       .from('water_intake')
@@ -92,7 +94,7 @@ export const WaterTracker = () => {
     if (!user) return;
     
     const newCups = Math.max(0, Math.min(20, cups + change));
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     const prevCups = cups;
 
     setCups(newCups);
@@ -123,7 +125,11 @@ export const WaterTracker = () => {
       if (newCups >= dailyGoal && cups < dailyGoal) {
         playGoalReached();
         toast({ title: `🎉 ${t.dailyGoalReached}`, description: t.wellDone });
-        checkAndAwardBadge('water_goal');
+        void checkAndAwardBadge('water_goal');
+        const streakDays = recordWaterGoalDayMet();
+        if (streakDays >= 7) {
+          void checkAndAwardBadge('water_week');
+        }
       }
     }
   };

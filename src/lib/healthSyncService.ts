@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { getLocalDateISO } from "@/lib/localDate";
 
 export type HealthSyncData = {
   weight?: number;
@@ -179,6 +180,6 @@ export async function syncNativeHealthData(): Promise<HealthSyncData | null> {
 
 /** Schritte für das Dashboard (HealthDashboard liest `frigy_steps_YYYY-MM-DD`). */
 export function persistSyncedSteps(steps: number): void {
-  const key = `frigy_steps_${new Date().toISOString().split("T")[0]}`;
+  const key = `frigy_steps_${getLocalDateISO()}`;
   localStorage.setItem(key, String(steps));
 }

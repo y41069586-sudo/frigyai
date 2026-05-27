@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { getStoredLanguage, type Language } from "@/contexts/LanguageContext";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 
 export type NotificationPermissionState = "granted" | "denied" | "prompt" | "unsupported";
@@ -196,10 +197,47 @@ function nextDailyOccurrence(hour: number, minute: number): Date {
   return at;
 }
 
-function mealLabel(hour: number): string {
-  if (hour < 11) return "Frühstück";
-  if (hour < 16) return "Mittagessen";
-  return "Abendessen";
+function reminderNotificationCopy(language: Language) {
+  if (language === "en") {
+    return {
+      waterTitle: "💧 Time to drink water!",
+      waterBody: "Stay hydrated – have a glass of water!",
+      mealBody: "Don't forget to log your meal.",
+      weightTitle: "⚖️ Time to weigh in!",
+      weightBody: "Track your progress.",
+      mealName: (hour: number) => {
+        if (hour < 11) return "Breakfast";
+        if (hour < 16) return "Lunch";
+        return "Dinner";
+      },
+    };
+  }
+  if (language === "fr") {
+    return {
+      waterTitle: "💧 C'est l'heure de boire !",
+      waterBody: "Reste hydraté – bois un verre d'eau !",
+      mealBody: "N'oublie pas d'enregistrer ton repas.",
+      weightTitle: "⚖️ C'est l'heure de te peser !",
+      weightBody: "Suis ta progression.",
+      mealName: (hour: number) => {
+        if (hour < 11) return "Petit-déjeuner";
+        if (hour < 16) return "Déjeuner";
+        return "Dîner";
+      },
+    };
+  }
+  return {
+    waterTitle: "💧 Zeit für Wasser!",
+    waterBody: "Bleib hydriert – trink ein Glas Wasser!",
+    mealBody: "Vergiss nicht, deine Mahlzeit zu loggen.",
+    weightTitle: "⚖️ Zeit zum Wiegen!",
+    weightBody: "Dokumentiere deinen Fortschritt.",
+    mealName: (hour: number) => {
+      if (hour < 11) return "Frühstück";
+      if (hour < 16) return "Mittagessen";
+      return "Abendessen";
+    },
+  };
 }
 
 function buildWaterSchedule(intervalHours: number): { hour: number; minute: number }[] {
@@ -238,9 +276,12 @@ async function cancelAllFrigyNotifications(
 }
 
 export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
+  const normalized = normalizeReminderConfig(config);
+  notifyFrigyStorageUpdated();
+
   if (!isNativeApp()) return;
 
-  const normalized = normalizeReminderConfig(config);
+  const copy = reminderNotificationCopy(getStoredLanguage());
   const { LocalNotifications } = await import("@capacitor/local-notifications");
   const perm = await LocalNotifications.checkPermissions();
   if (perm.display !== "granted") return;
@@ -259,8 +300,8 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
       scheduledTimes.push(at);
       notifications.push({
         id: WATER_ID_BASE + idx,
-        title: "💧 Zeit für Wasser!",
-        body: "Bleib hydriert – trink ein Glas Wasser!",
+        title: copy.waterTitle,
+        body: copy.waterBody,
         schedule: { at, repeats: true, every: "day" },
         sound: "default",
         channelId: "frigy_reminders",
@@ -276,8 +317,8 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
       scheduledTimes.push(at);
       notifications.push({
         id: MEALS_ID_BASE + idx,
-        title: `🍽️ ${mealLabel(hour)} Zeit!`,
-        body: "Vergiss nicht, deine Mahlzeit zu loggen.",
+        title: `🍽️ ${copy.mealName(hour)}!`,
+        body: copy.mealBody,
         schedule: { at, repeats: true, every: "day" },
         sound: "default",
         channelId: "frigy_reminders",
@@ -291,8 +332,8 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
     if (!isTooCloseToExisting(at, scheduledTimes)) {
       notifications.push({
         id: WEIGHT_ID,
-        title: "⚖️ Zeit zum Wiegen!",
-        body: "Dokumentiere deinen Fortschritt.",
+        title: copy.weightTitle,
+        body: copy.weightBody,
         schedule: { at, repeats: true, every: "day" },
         sound: "default",
         channelId: "frigy_reminders",

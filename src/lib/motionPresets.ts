@@ -88,16 +88,17 @@ export function tabPanelTransition(isMobile: boolean): Transition {
 export function getPageTransition(isMobile: boolean, mainNav: boolean) {
   if (mainNav) {
     return {
-      initial: { opacity: isMobile ? 1 : 0.96 },
+      initial: { opacity: 1 },
       animate: { opacity: 1 },
-      exit: { opacity: isMobile ? 1 : 0.96 },
+      exit: { opacity: 1 },
       transition: { duration: isMobile ? 0.12 : 0.2, ease: MOTION_EASE },
     };
   }
+  // Never start routes at opacity 0 — on some mobile browsers the fade-in never runs (blank white screen).
   return {
-    initial: isMobile ? { opacity: 0 } : { opacity: 0, y: 12 },
+    initial: { opacity: 1, y: isMobile ? 0 : 8 },
     animate: { opacity: 1, y: 0 },
-    exit: isMobile ? { opacity: 0 } : { opacity: 0, y: -8 },
-    transition: { duration: isMobile ? 0.16 : 0.24, ease: MOTION_EASE },
+    exit: { opacity: 1, y: isMobile ? 0 : -6 },
+    transition: { duration: isMobile ? 0.14 : 0.22, ease: MOTION_EASE },
   };
 }

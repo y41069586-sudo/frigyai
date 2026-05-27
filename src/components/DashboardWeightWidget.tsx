@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Scale, ArrowUp, Plus, Pencil } from 'lucide-react';
+import { Scale, ArrowUp, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -48,7 +48,6 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         savedDesc: 'enregistre avec succes',
         saveError: 'Le poids n a pas pu etre enregistre. Reessaie.',
         title: 'Evolution du poids',
-        editCurrent: 'Modifier le poids actuel',
         current: 'Actuel',
         goal: 'Objectif',
         noWeight: 'Aucun poids enregistre pour le moment',
@@ -70,7 +69,6 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
           savedDesc: 'saved successfully',
           saveError: 'Weight could not be saved. Please try again.',
           title: 'Weight progress',
-          editCurrent: 'Edit current weight',
           current: 'Current',
           goal: 'Goal',
           noWeight: 'No weight logged yet',
@@ -91,7 +89,6 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
           savedDesc: 'erfolgreich gespeichert',
           saveError: 'Gewicht konnte nicht gespeichert werden. Bitte versuche es erneut.',
           title: 'Gewichtsverlauf',
-          editCurrent: 'Aktuelles Gewicht bearbeiten',
           current: 'Aktuell',
           goal: 'Ziel',
           noWeight: 'Noch kein Gewicht eingetragen',
@@ -233,35 +230,17 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
     }
   };
 
-  const openWeightEditor = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setInputWeight(currentWeight != null ? String(currentWeight) : '');
-    setIsAdding(true);
-  };
-
   const root = (
     <div
       onClick={embedded ? undefined : handleCardClick}
       className={`relative ${embedded ? '' : 'cursor-pointer'}`}
     >
       <Card className={`min-h-[23rem] p-4 bg-gradient-to-br from-white via-emerald-50/55 to-white backdrop-blur-lg border border-transparent shadow-[0_18px_44px_-34px_rgba(16,185,129,0.22)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
-              <Scale className="h-4 w-4 text-emerald-500" />
-            </div>
-            <h3 className="font-semibold text-xs">{copy.title}</h3>
+        <div className="mb-4 flex items-center gap-2">
+          <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
+            <Scale className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={openWeightEditor}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-primary"
-              aria-label={copy.editCurrent}
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-          </div>
+          <h3 className="font-semibold text-xs">{copy.title}</h3>
         </div>
 
         {/* Top Section: Current Weight + Goal + Change */}

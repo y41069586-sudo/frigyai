@@ -461,6 +461,63 @@ function validateMealPlanNutrition(mealPlan: any[], rawTargets: {
   }
 }
 
+function inferMealType(name: string, type: string): "breakfast" | "main" | "snack" {
+  const blob = `${name} ${type}`.toLowerCase();
+  if (/(frühstück|breakfast|petit|snack|zwischenmahlzeit|dessert)/i.test(blob)) return "breakfast";
+  if (/(mittag|abend|lunch|dinner|dejeuner|dejeuner|diner|dîner)/i.test(blob)) return "main";
+  return "snack";
+}
+
+function validateMealPlausibility(
+  mealPlan: any[],
+  targets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number },
+  mealsPerDay: number,
+) {
+  const avgMealKcal = Math.max(120, Math.round(targets.dailyCalories / Math.max(1, mealsPerDay)));
+
+  for (const [dayIdx, day] of mealPlan.entries()) {
+    for (const [mealIdx, meal] of (day.meals || []).entries()) {
+      const name = String(meal?.name || "Gericht");
+      const type = String(meal?.type || "Mahlzeit");
+      const p = Math.max(0, Number(meal?.protein) || 0);
+      const c = Math.max(0, Number(meal?.carbs) || 0);
+      const f = Math.max(0, Number(meal?.fat) || 0);
+      const kcal = Math.max(0, Number(meal?.calories) || 0);
+      const macroKcalValue = macroKcal(p, c, f);
+      const inferred = inferMealType(name, type);
+
+      const minKcal =
+        inferred === "main"
+          ? Math.max(260, Math.round(avgMealKcal * 0.65))
+          : inferred === "breakfast"
+            ? Math.max(180, Math.round(avgMealKcal * 0.45))
+            : Math.max(140, Math.round(avgMealKcal * 0.35));
+      const maxKcal =
+        inferred === "main"
+          ? Math.min(1250, Math.round(avgMealKcal * 1.95))
+          : inferred === "breakfast"
+            ? Math.min(900, Math.round(avgMealKcal * 1.45))
+            : Math.min(700, Math.round(avgMealKcal * 1.2));
+
+      if (kcal < minKcal || kcal > maxKcal) {
+        throw new Error(`Unplausible meal kcal on day ${dayIdx + 1}, meal ${mealIdx + 1}: ${name}`);
+      }
+
+      if (macroKcalValue <= 0) {
+        throw new Error(`Invalid macro values on day ${dayIdx + 1}, meal ${mealIdx + 1}: ${name}`);
+      }
+
+      const proteinShare = (p * 4) / macroKcalValue;
+      const carbsShare = (c * 4) / macroKcalValue;
+      const fatShare = (f * 9) / macroKcalValue;
+
+      if (proteinShare > 0.62 || carbsShare > 0.82 || fatShare > 0.72) {
+        throw new Error(`Macro split unrealistic on day ${dayIdx + 1}, meal ${mealIdx + 1}: ${name}`);
+      }
+    }
+  }
+}
+
 function buildMealPlanPrompts(params: {
   mealsPerDay: number;
   macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
@@ -487,15 +544,19 @@ REGELN:
 - Genau 7 Tage (${config.dayNames.join("-")})
 - Pro Tag genau ${params.mealsPerDay} Mahlzeiten
 - Einfache Hausmannskost, keine exotischen Zutaten
+- Normale deutsche Alltagsküche: Müsli, Porridge, Brot mit Aufstrich, Eier, Joghurt, Obst; Mittag/Abend: Nudeln, Reis, Kartoffeln, Fleisch/Fisch mit Gemüse, Pfannengerichte, Suppe mit Brot
+- VERBOTEN: Smoothies, Shakes, Protein-Shakes, Saftfasten, Detox-Drinks, Green Smoothies, Spinat-Shake, nur-Flüssig-Mahlzeiten, exotische Trend-Gerichte
 - Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
 - Nutze Kühlschrankzutaten nur wenn vorhanden und sinnvoll; ergänze fehlende Zutaten frei für Makroziele und Abwechslung
 - Nährwerte müssen realistisch sein (keine Fantasiewerte)
 - Kalorien jeder Mahlzeit MÜSSEN exakt zu den Makros passen: kcal = 4*Protein + 4*Kohlenhydrate + 9*Fett (max. +/-50 kcal Abweichung)
 - Makros jeder Mahlzeit müssen zum Gericht passen; keine unrealistischen Protein-/Carb-/Fett-Werte für den Namen der Mahlzeit
 - Gib realistische, messbare Makrowerte an
+- Prüfe pro Mahlzeit aktiv die Plausibilität mit typischen Nährwerten echter Lebensmittel (z. B. Bundeslebensmittelschlüssel/USDA-ähnliche Werte), keine geschätzten Fantasiezahlen
+- Jede Mahlzeit braucht eine realistische Portionsgröße; Kalorien und Makros müssen zur Portion und zum Gerichtsnamen passen
 - Antworte bei ALLEN sichtbaren Textfeldern (day, type, name, ingredients.amount, ingredients.name, instructions) konsequent auf ${config.outputLabel}
 ${params.constraintPrompt ? "- Allergien, Ernährungsziele und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend." : ""}
-${params.isRegeneration && params.previousMealNames.length > 0 ? "- Bei NEUGENERIERUNG darf keine Mahlzeit denselben Namen oder dieselbe Kerngericht-Idee wie im vorherigen Plan wiederholen." : ""}
+${params.isRegeneration && params.previousMealNames.length > 0 ? "- Bei NEUGENERIERUNG darf keine Mahlzeit denselben Namen oder dieselbe Kerngericht-Idee wie im vorherigen Plan wiederholen. Jede einzelne Mahlzeit braucht einen neuen, klar anderen Namen." : ""}
 ${compactRule}
 
 PRO TAG müssen die Summen ALLER Mahlzeiten EXAKT diesen Zielen entsprechen:
@@ -532,7 +593,7 @@ Antwort NUR als JSON:
       ? `Plan-ID ${params.varietySeed}: Erstelle einen komplett neuen Wochenplan.`
       : "",
     params.isRegeneration && params.previousMealNames.length > 0
-      ? `Verbotene Mahlzeiten aus dem bisherigen Plan (du musst alle ersetzen und neue Gerichte liefern): ${params.previousMealNames.join(", ")}.`
+      ? `Verbotene Mahlzeiten aus dem bisherigen Plan (ALLE ${params.previousMealNames.length} müssen durch komplett neue, alltägliche Gerichte ersetzt werden – keine Umbenennungen, keine Shakes/Smoothies): ${params.previousMealNames.join(", ")}.`
       : "",
     params.fridgeHint,
     params.constraintPrompt
@@ -597,7 +658,7 @@ async function requestMealPlanFromOpenAI(params: {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          temperature: params.isRegeneration ? 0.55 : 0.32,
+          temperature: params.isRegeneration ? 0.72 : 0.32,
           max_tokens: attempt.maxTokens,
           response_format: { type: "json_object" },
           messages: [
@@ -652,6 +713,7 @@ async function requestMealPlanFromOpenAI(params: {
       }));
 
       validateMealPlanShape(normalizedMealPlan, params.mealsPerDay);
+      validateMealPlausibility(normalizedMealPlan, params.macroTargets, params.mealsPerDay);
       return normalizedMealPlan;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -789,6 +851,7 @@ Deno.serve(async (req) => {
 
     const normalizedMealPlan = syncMealPlanToTargets(aiMealPlan, macroTargets);
     validateMealPlanNutrition(normalizedMealPlan, macroTargets);
+    validateMealPlausibility(normalizedMealPlan, macroTargets, mealsPerDay);
     const unsafeMeals = findSafetyViolations(normalizedMealPlan, allergies, dietaryPreferences, allergiesOther);
     if (unsafeMeals.length > 0) {
       throw new Error(`Allergy safety validation failed: ${unsafeMeals.slice(0, 5).join("; ")}`);

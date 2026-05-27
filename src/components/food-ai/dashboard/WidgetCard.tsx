@@ -17,11 +17,11 @@ export type WidgetCardProps = {
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
   glass:
-    "border border-transparent bg-white/84 shadow-[0_10px_24px_-20px_rgba(15,40,30,0.12)] sm:border-slate-200/70 sm:bg-white/62 sm:backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.06]",
+    "border border-slate-200/70 bg-white/84 shadow-[0_10px_24px_-20px_rgba(15,40,30,0.12)] sm:bg-white/62 sm:backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.06]",
   soft:
-    "border border-transparent bg-card/96 shadow-[0_8px_20px_-18px_rgba(0,0,0,0.12)] sm:border-slate-200/70 sm:bg-card/82 sm:backdrop-blur-md",
+    "border border-slate-200/70 bg-card/96 shadow-[0_8px_20px_-18px_rgba(0,0,0,0.12)] sm:bg-card/82 sm:backdrop-blur-md",
   gradient:
-    "border border-transparent bg-gradient-to-br from-primary/[0.045] via-white/[0.98] to-muted/[0.18] shadow-[0_10px_28px_-24px_hsl(var(--primary)/0.24)] sm:border-slate-200/70 sm:backdrop-blur-sm",
+    "border border-slate-200/70 bg-gradient-to-br from-primary/[0.045] via-white/[0.98] to-muted/[0.18] shadow-[0_10px_28px_-24px_hsl(var(--primary)/0.24)] sm:backdrop-blur-sm",
 };
 
 export function WidgetCard({

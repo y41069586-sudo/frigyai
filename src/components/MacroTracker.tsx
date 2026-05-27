@@ -36,7 +36,7 @@ import {
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { FRIGY_OPEN_LOG_MEAL, notifyOverlayOpen } from '@/lib/overlayEvents';
 import { getMinCaloriesForAge } from '@/components/onboarding/utils';
-import { getLocalDateString } from '@/lib/localDate';
+import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedCheetah } from './AnimatedAnimals';
@@ -413,7 +413,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     const totalCarb = entries.reduce((sum, e) => sum + e.carbs, 0);
     const totalFats = entries.reduce((sum, e) => sum + e.fat, 0);
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     
     try {
       const { error } = await supabase
@@ -549,6 +549,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           fat: data.fat,
         });
         setShowSuccessOverlay(true);
+        setShowFoodCamera(false);
+        notifyOverlayOpen(false);
         playSuccess();
       } else {
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
@@ -557,6 +559,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
       recordActivity();
       checkAndAwardBadge('meal_logged');
+      if (imageBase64) {
+        void checkAndAwardBadge('first_scan');
+      }
     } catch (error: any) {
       const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood || 'Analyse fehlgeschlagen';
       console.error('Error analyzing food:', errorMsg, error);
@@ -571,16 +576,18 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         );
       } else {
         toast({
-          title: t.error,
+          title: t.foodNotFound || t.error,
           description: errorMsg,
-          variant: 'destructive'
+          variant: 'destructive',
         });
       }
     } finally {
       if (!keepCameraOpenOnError) {
         setAnalyzingImage(null);
-        setShowFoodCamera(false);
-        notifyOverlayOpen(false);
+        if (!imageBase64) {
+          setShowFoodCamera(false);
+          notifyOverlayOpen(false);
+        }
       }
       setIsAnalyzing(false);
     }
@@ -713,6 +720,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     saveFoodEntries([...foodEntries, newEntry]);
     recordActivity();
     checkAndAwardBadge('meal_logged');
+    void checkAndAwardBadge('first_scan');
     playSuccess();
     setLastAnalyzedFood(food);
   };
@@ -1315,56 +1323,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         )}
       </AnimatePresence>
 
-      {/* Analyzing State — text search only (camera uses FrigyFoodScanFlow) */}
-      <AnimatePresence>
-        {isAnalyzing && !showFoodCamera && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
-          >
-            <motion.div
-            className="relative flex h-[min(72vw,280px)] w-[min(72vw,280px)] items-center justify-center rounded-full border-[3px] border-[#75FBB2]"
-              animate={{
-                boxShadow: [
-                  "0 0 0 0 rgba(117,251,178,0.35)",
-                  "0 0 48px 12px rgba(117,251,178,0.55)",
-                  "0 0 0 0 rgba(117,251,178,0.35)",
-                ],
-              }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <div className="flex flex-col items-center gap-4 px-6 text-center">
-                <motion.div
-                  animate={{ scale: [1, 1.08, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <Sparkles className="h-8 w-8 text-[#75FBB2]" />
-                </motion.div>
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={currentMessageIndex}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.5 }}
-                    className="text-base font-semibold text-[#75FBB2]"
-                  >
-                    {analyzingMessages[currentMessageIndex]}
-                  </motion.p>
-                </AnimatePresence>
-                <motion.div
-                  className="h-[3px] w-32 rounded-full bg-[#75FBB2]/80"
-                  style={{ boxShadow: "0 0 16px 4px rgba(117,251,178,0.6)" }}
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
-                />
-              </div>
-            </motion.div>          </motion.div>
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {showFoodCamera && (
           <FrigyFoodScanFlow
@@ -1392,7 +1350,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein={lastAnalyzedFood?.protein || 0}
         carbs={lastAnalyzedFood?.carbs || 0}
         fat={lastAnalyzedFood?.fat || 0}
-        onComplete={() => setShowSuccessOverlay(false)}
+        onComplete={() => {
+          setShowSuccessOverlay(false);
+          setAnalyzingImage(null);
+        }}
       />
 
       {/* Barcode Scanner */}
