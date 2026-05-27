@@ -24,13 +24,17 @@ interface BarcodeScannerProps {
   onFoodScanned: (food: NutritionInfo) => void;
 }
 
-async function waitForReader(el: HTMLDivElement | null, maxMs = 2500): Promise<HTMLDivElement | null> {
+async function waitForReader(
+  getEl: () => HTMLDivElement | null,
+  maxMs = 2500,
+): Promise<HTMLDivElement | null> {
   const start = performance.now();
   while (performance.now() - start < maxMs) {
+    const el = getEl();
     if (el) return el;
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
   }
-  return el;
+  return getEl();
 }
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
@@ -44,6 +48,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const readerRef = useRef<HTMLDivElement | null>(null);
   const startGenerationRef = useRef(0);
   const isOpenRef = useRef(isOpen);
+  const lastDetectedCodeRef = useRef<string | null>(null);
+  const lastDetectedHitsRef = useRef(0);
 
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -89,18 +95,33 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       }
       setIsScannerActive(false);
       setIsLoading(false);
+      lastDetectedCodeRef.current = null;
+      lastDetectedHitsRef.current = 0;
     } catch (err) {
       console.error('[BarcodeScanner] Unexpected error in stopScanner:', err);
       setIsScannerActive(false);
       setIsLoading(false);
+      lastDetectedCodeRef.current = null;
+      lastDetectedHitsRef.current = 0;
     }
   }, []);
 
   const handleBarcodeDetected = useCallback(
     async (barcode: string) => {
-      if (!barcode || detectionLockRef.current || productData) return;
+      const normalizedBarcode = String(barcode || '').replace(/\s+/g, '').trim();
+      if (!normalizedBarcode || normalizedBarcode.length < 8 || detectionLockRef.current || productData) return;
+
+      if (lastDetectedCodeRef.current === normalizedBarcode) {
+        lastDetectedHitsRef.current += 1;
+      } else {
+        lastDetectedCodeRef.current = normalizedBarcode;
+        lastDetectedHitsRef.current = 1;
+      }
+      if (lastDetectedHitsRef.current < 2) return;
 
     detectionLockRef.current = true;
+    lastDetectedCodeRef.current = null;
+    lastDetectedHitsRef.current = 0;
 
     try {
       const Quagga = quaggaRef.current;
@@ -119,7 +140,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const timeoutId = window.setTimeout(() => controller.abort(), 9000);
 
         const response = await fetch(
-          `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
+          `https://world.openfoodfacts.org/api/v0/product/${normalizedBarcode}.json`,
           { signal: controller.signal },
         );
         window.clearTimeout(timeoutId);
@@ -144,7 +165,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           fat: Math.round((nutriments.fat_100g || 0) * multiplier),
           image: p.image_front_small_url || p.image_url,
           brand: p.brands,
-          barcode: barcode,
+          barcode: normalizedBarcode,
         };
 
         setProductData(nutritionInfo);
@@ -206,6 +227,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsScannerActive(false);
       setIsLoading(false);
       detectionLockRef.current = false;
+      lastDetectedCodeRef.current = null;
+      lastDetectedHitsRef.current = 0;
 
       if (!navigator.mediaDevices?.getUserMedia) {
         setError('❌ Dein Browser unterstützt keinen Kamera-Zugriff');
@@ -217,7 +240,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         return;
       }
 
-      const reader = await waitForReader(readerRef.current);
+      const reader = await waitForReader(() => readerRef.current);
       if (!reader || generation !== startGenerationRef.current || !isOpenRef.current) {
         if (isOpenRef.current) setError('❌ Scanner konnte nicht geöffnet werden');
         return;
@@ -249,7 +272,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 width: { min: 480, ideal: 1280, max: 1920 },
                 height: { min: 360, ideal: 720, max: 1080 },
               },
-              area: { top: '38%', right: '6%', bottom: '38%', left: '6%' },
+              area: { top: '28%', right: '4%', bottom: '28%', left: '4%' },
             },
             locator: { patchSize: 'medium', halfSample: true },
             locate: true,
@@ -322,6 +345,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     setIsLoading(false);
     setIsScannerActive(false);
     detectionLockRef.current = false;
+    lastDetectedCodeRef.current = null;
+    lastDetectedHitsRef.current = 0;
 
     void startScanner();
 
@@ -493,8 +518,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               <div
                 className="relative rounded-2xl"
                 style={{
-                  width: "min(88vw, 340px)",
-                  height: "min(22vw, 108px)",
+                  width: "min(92vw, 372px)",
+                  height: "min(30vw, 144px)",
                 }}
               >
                 <div

@@ -244,8 +244,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       onClick={embedded ? undefined : handleCardClick}
       className={`relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`p-3 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
-        <div className="flex items-center justify-between gap-2 mb-3">
+      <Card className={`min-h-[23rem] p-4 bg-gradient-to-br from-white via-emerald-50/55 to-white backdrop-blur-lg border border-transparent shadow-[0_18px_44px_-34px_rgba(16,185,129,0.22)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
+        <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
               <Scale className="h-4 w-4 text-emerald-500" />
@@ -265,7 +265,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
         </div>
 
         {/* Top Section: Current Weight + Goal + Change */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="mb-4 flex items-start justify-between">
           {/* Left: Current Weight & Goal */}
           {currentWeight !== null ? (
             <div className="flex gap-4">
@@ -308,9 +308,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
 
         {/* Mini Weight Chart with Fade Out */}
         {weightHistory.length > 1 && (
-          <div className="mb-4 relative">
+          <div className="relative mb-5">
             <p className="text-xs text-muted-foreground mb-2">{copy.history}</p>
-            <div className="h-20 relative overflow-hidden rounded-lg">
+            <div className="relative h-24 overflow-hidden rounded-xl">
               {/* Fade out overlay on both sides */}
               <div className="absolute inset-0 bg-gradient-to-r from-card via-transparent to-card pointer-events-none z-10" />
 
@@ -355,7 +355,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
 
         {/* Progress Bar */}
         {currentWeight !== null && (
-          <div className="mb-4">
+          <div className="mb-5">
             <div className="flex justify-between mb-2">
               <span className="text-xs text-muted-foreground">{copy.goalProgress}</span>
               <span className="text-xs font-semibold text-emerald-600">

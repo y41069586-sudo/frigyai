@@ -468,6 +468,7 @@ function buildMealPlanPrompts(params: {
   fridgeHint: string;
   isRegeneration: boolean;
   varietySeed: string;
+  previousMealNames: string[];
   maxIngredients: number;
   language: SupportedLanguage;
 }) {
@@ -494,6 +495,7 @@ REGELN:
 - Gib realistische, messbare Makrowerte an
 - Antworte bei ALLEN sichtbaren Textfeldern (day, type, name, ingredients.amount, ingredients.name, instructions) konsequent auf ${config.outputLabel}
 ${params.constraintPrompt ? "- Allergien, Ernährungsziele und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend." : ""}
+${params.isRegeneration && params.previousMealNames.length > 0 ? "- Bei NEUGENERIERUNG darf keine Mahlzeit denselben Namen oder dieselbe Kerngericht-Idee wie im vorherigen Plan wiederholen." : ""}
 ${compactRule}
 
 PRO TAG müssen die Summen ALLER Mahlzeiten EXAKT diesen Zielen entsprechen:
@@ -528,6 +530,9 @@ Antwort NUR als JSON:
     `Die Ausgabe-Sprache muss ${config.outputLabel} sein.`,
     params.isRegeneration
       ? `Plan-ID ${params.varietySeed}: Erstelle einen komplett neuen Wochenplan.`
+      : "",
+    params.isRegeneration && params.previousMealNames.length > 0
+      ? `Verbotene Mahlzeiten aus dem bisherigen Plan (du musst alle ersetzen und neue Gerichte liefern): ${params.previousMealNames.join(", ")}.`
       : "",
     params.fridgeHint,
     params.constraintPrompt
@@ -572,6 +577,7 @@ async function requestMealPlanFromOpenAI(params: {
   fridgeHint: string;
   isRegeneration: boolean;
   varietySeed: string;
+  previousMealNames: string[];
   language: SupportedLanguage;
 }) {
   let lastError: Error | null = null;
@@ -733,6 +739,9 @@ Deno.serve(async (req) => {
     const language = resolveSupportedLanguage(body.language);
     const isRegeneration = body.isRegeneration === true;
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed : String(Date.now());
+    const previousMealNames = Array.isArray(body.previousMealNames)
+      ? body.previousMealNames.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 56)
+      : [];
 
     const macroTargets = harmonizeDailyTargets({
       dailyCalories,
@@ -774,6 +783,7 @@ Deno.serve(async (req) => {
       fridgeHint,
       isRegeneration,
       varietySeed,
+      previousMealNames,
       language,
     });
 

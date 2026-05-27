@@ -117,7 +117,7 @@ export function TrackerWidget({
         delay={delay}
         variant="glass"
         interactive={false}
-        className="-mx-1 w-[calc(100%+0.5rem)] rounded-[2rem] border border-slate-200/85 bg-white/82 p-5 shadow-[0_18px_44px_-32px_rgba(22,101,52,0.36)] sm:mx-0 sm:w-full sm:bg-white/78 sm:p-6 sm:shadow-[0_26px_70px_-34px_rgba(22,101,52,0.45)]"
+        className="-mx-1 w-[calc(100%+0.5rem)] rounded-[2rem] border border-transparent bg-white/88 p-5 shadow-[0_18px_44px_-32px_rgba(22,101,52,0.24)] sm:mx-0 sm:w-full sm:border-slate-200/70 sm:bg-white/78 sm:p-6 sm:shadow-[0_26px_70px_-34px_rgba(22,101,52,0.38)]"
       >
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
@@ -181,10 +181,10 @@ export function TrackerWidget({
                 whileTap={{ scale: 0.92, y: 2 }}
                 onClick={() => onAddMeal?.(slot.key)}
                 className={cn(
-                  "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border bg-white/84 px-1.5 py-2 text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.18)] transition-colors sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
+                  "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border border-transparent bg-white/88 px-1.5 py-2 text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.14)] transition-colors sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
                   logged
                     ? "border border-primary/30 bg-primary/12 text-primary"
-                    : "border border-neutral-200/90 text-foreground hover:bg-primary/8 dark:border-white/10",
+                    : "text-foreground hover:bg-primary/8 sm:border-neutral-200/75 dark:border-white/10",
                 )}
                 aria-label={`${copy.addMeal} ${slot.label}`}
               >
@@ -237,7 +237,7 @@ function InlineStat({
           background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(100,116,139,0.34) 0deg)`,
         }}
       />
-      <div className="pointer-events-none absolute inset-[3px] rounded-[0.82rem] border border-slate-200/80 bg-[#f6f8f6]/95" />
+      <div className="pointer-events-none absolute inset-[3px] rounded-[0.82rem] border border-transparent bg-[#f9fbf9]/96 sm:border-slate-200/65" />
       <div className="relative z-[1]">
         <span className={cn("mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full", colorClass)}>
           <Icon className="h-3.5 w-3.5" />

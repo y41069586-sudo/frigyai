@@ -577,12 +577,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         });
       }
     } finally {
-      setIsAnalyzing(false);
       if (!keepCameraOpenOnError) {
         setAnalyzingImage(null);
         setShowFoodCamera(false);
         notifyOverlayOpen(false);
       }
+      setIsAnalyzing(false);
     }
   };
 
@@ -681,6 +681,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setScannedProductData(food);
     setShowSuccessOverlay(true);
     setShowBarcodeScanner(false);
+    notifyOverlayOpen(false);
 
     let savedEntry;
     try {

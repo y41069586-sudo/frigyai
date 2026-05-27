@@ -103,7 +103,7 @@ export const MealPlanGeneratingOverlay = ({
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  const handleBackgroundPointerDown = (e: any) => {
+  const handleBackgroundTap = (e: any) => {
     if (!onMinimize) return;
 
     const target = e?.target as HTMLElement | null;
@@ -118,39 +118,46 @@ export const MealPlanGeneratingOverlay = ({
 
     if (typeof clientX !== "number" || typeof clientY !== "number") return;
 
-    // Forward the original tap to the element underneath so navigation works with a single tap.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-        if (!el) return;
+    // Forward the tap after the full-screen layer disappears so one tap can also navigate.
+    window.setTimeout(() => {
+      const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+      const interactiveTarget =
+        el?.closest?.('button, a, [role="button"], [role="tab"], [data-radix-collection-item]') as
+          | HTMLElement
+          | null;
+      const nextTarget = interactiveTarget ?? el;
+      if (!nextTarget) return;
 
-        try {
-          el.dispatchEvent(
-            new PointerEvent("pointerdown", {
-              bubbles: true,
-              clientX,
-              clientY,
-              pointerId: pointerId ?? 1,
-              pointerType,
-              isPrimary: true,
-            })
-          );
-          el.dispatchEvent(
-            new PointerEvent("pointerup", {
-              bubbles: true,
-              clientX,
-              clientY,
-              pointerId: pointerId ?? 1,
-              pointerType,
-              isPrimary: true,
-            })
-          );
-          el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX, clientY }));
-        } catch {
-          // ignore
+      try {
+        nextTarget.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            bubbles: true,
+            clientX,
+            clientY,
+            pointerId: pointerId ?? 1,
+            pointerType,
+            isPrimary: true,
+          }),
+        );
+        nextTarget.dispatchEvent(
+          new PointerEvent("pointerup", {
+            bubbles: true,
+            clientX,
+            clientY,
+            pointerId: pointerId ?? 1,
+            pointerType,
+            isPrimary: true,
+          }),
+        );
+        if (typeof (nextTarget as HTMLButtonElement).click === "function") {
+          (nextTarget as HTMLButtonElement).click();
+        } else {
+          nextTarget.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX, clientY }));
         }
-      });
-    });
+      } catch {
+        // ignore
+      }
+    }, 34);
   };
 
   // Minimized floating indicator
@@ -197,15 +204,15 @@ export const MealPlanGeneratingOverlay = ({
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
           style={{ pointerEvents: showOverlay ? "auto" : "none" }}
-          onPointerDown={handleBackgroundPointerDown}
+          onClick={handleBackgroundTap}
         >
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,#FCFFFD_0%,#F4FFF9_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(117,251,178,0.16),transparent_24%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(117,251,178,0.12),transparent_24%)]" />
 
           {!locked && (onBack || onMinimize) && (
             <motion.button
               data-mealplan-overlay-card="true"
-              onPointerDown={(e) => {
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 (onBack ?? onMinimize)?.();
@@ -227,7 +234,7 @@ export const MealPlanGeneratingOverlay = ({
               initial={{ opacity: 0, y: 14, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full overflow-hidden rounded-[28px] border border-white/80 bg-white/88 px-5 py-6 shadow-[0_18px_54px_-30px_rgba(34,197,94,0.20)] backdrop-blur-xl"
+              className="w-full overflow-hidden rounded-[28px] border border-transparent bg-white/92 px-5 py-6 shadow-[0_18px_54px_-30px_rgba(34,197,94,0.16)] backdrop-blur-xl"
             >
               <div className="flex flex-col items-center">
                 <div className="relative flex h-24 w-24 items-center justify-center">

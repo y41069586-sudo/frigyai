@@ -101,6 +101,14 @@ function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   return unsafe;
 }
 
+function summarizeExistingMealNames(plan: DayPlan[] | null): string[] {
+  return (plan ?? [])
+    .flatMap((day) => day.meals ?? [])
+    .map((meal) => String(meal?.name ?? '').trim())
+    .filter(Boolean)
+    .slice(0, 56);
+}
+
 function getPassiveGenerationProgress(elapsedSeconds: number, stage: GenerationStage): number {
   switch (stage) {
     case 'preparing':
@@ -108,16 +116,16 @@ function getPassiveGenerationProgress(elapsedSeconds: number, stage: GenerationS
     case 'requesting':
       return Math.min(16, 8 + elapsedSeconds);
     case 'waiting_ai':
-      if (elapsedSeconds <= 10) return 18 + elapsedSeconds * 2;
-      if (elapsedSeconds <= 25) return 38 + Math.round((elapsedSeconds - 10) * 1.2);
-      if (elapsedSeconds <= 50) return 56 + Math.round((elapsedSeconds - 25) * 0.4);
-      return Math.min(68, 66 + Math.round((elapsedSeconds - 50) * 0.05));
+      if (elapsedSeconds <= 10) return 18 + elapsedSeconds * 2.4;
+      if (elapsedSeconds <= 25) return 42 + Math.round((elapsedSeconds - 10) * 1.3);
+      if (elapsedSeconds <= 45) return 62 + Math.round((elapsedSeconds - 25) * 0.7);
+      return Math.min(84, 76 + Math.round((elapsedSeconds - 45) * 0.12));
     case 'processing':
-      return Math.min(82, 72 + elapsedSeconds);
+      return Math.min(90, 86 + elapsedSeconds);
     case 'saving':
-      return Math.min(92, 84 + elapsedSeconds);
+      return Math.min(97, 92 + elapsedSeconds * 2);
     case 'finalizing':
-      return Math.min(98, 94 + elapsedSeconds);
+      return Math.min(100, 98 + elapsedSeconds);
     default:
       return 0;
   }
@@ -495,17 +503,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     stageElapsedSecondsRef.current = 0;
     setGenerationProgressTarget(0);
     setGenerationStage('preparing');
-    setMealPlan(null);
-    setShoppingList(null);
-
-    console.log('[MEAL-PLAN-CLIENT] Clearing old meal plan before generation...');
-
-    // Clear old plan from localStorage and Supabase
-    localStorage.removeItem('weeklyMealPlan');
-    localStorage.removeItem('weeklyShoppingList');
-    localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
-    removeMealPlanShoppingSource();
-    notifyFrigyStorageUpdated();
     setGenerationStageWithFloor('preparing', 6);
 
     console.log('[MEAL-PLAN-CLIENT] Invoking generate-meal-plan function...');
@@ -519,6 +516,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           diet.allergiesOther,
           diet.healthGoals,
         );
+        const previousMealNames = summarizeExistingMealNames(mealPlan);
 
         setGenerationStageWithFloor('requesting', 14);
         const invokePromise = supabase.functions.invoke('generate-meal-plan', {
@@ -541,6 +539,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             language: getStoredLanguage(),
             isRegeneration,
             varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            previousMealNames,
           },
         });
         setGenerationStageWithFloor('waiting_ai', 18);
@@ -594,6 +593,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           setMealPlan(newPlan);
           setShoppingList(newShoppingList);
+          localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
+          removeMealPlanShoppingSource();
           localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
           localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
           localStorage.setItem(WEEKLY_PLAN_AI_GENERATED_KEY, '1');
@@ -643,8 +644,11 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           void refreshGenerationCount();
 
           notifyFrigyStorageUpdated();
-          updateGenerationProgressTarget(100);
-          await new Promise((resolve) => setTimeout(resolve, 240));
+          progressTargetRef.current = 100;
+          setGenerationProgressTarget(100);
+          setGenerationStage('finalizing');
+          setGenerationProgress(100);
+          await new Promise((resolve) => setTimeout(resolve, 420));
 
           toast({
             title: ui.generatedTitle,
@@ -700,7 +704,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount, isPremium, checkSubscription, updateGenerationProgressTarget]);
+  }, [session, refreshGenerationCount, isPremium, checkSubscription, updateGenerationProgressTarget, mealPlan]);
 
   const setMinimized = useCallback((minimized: boolean) => {
     setIsMinimized(minimized);

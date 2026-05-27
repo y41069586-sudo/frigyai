@@ -27,6 +27,7 @@ import { confettiBurst } from "@/lib/mobileEffects";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
+import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { isSubscriptionActive } from "@/lib/subscription";
 
@@ -295,7 +296,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
             {t.onboardingWelcomeHeadline1}
             <br />
             <span className="relative inline-block">
-              <span className="relative">{t.onboardingWelcomeHeadline2}</span>
+              <MintTextHighlight>{t.onboardingWelcomeHeadline2}</MintTextHighlight>
             </span>
           </h1>
 
