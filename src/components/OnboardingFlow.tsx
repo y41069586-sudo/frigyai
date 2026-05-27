@@ -440,7 +440,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     exit: { opacity: 0 },
   };
   const legacyStepTransition = {
-    duration: isMobile ? 0.2 : 0.32,
+    duration: isMobile ? 0.12 : 0.32,
     ease: [0.4, 0, 0.2, 1] as const,
   };
   const legacyStepVariants = isMobile
@@ -4015,7 +4015,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       {/* Main content */}
       {currentStep === "paywall" ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
-          <AnimatePresence initial={false} mode="wait">
+          <AnimatePresence initial={false} mode={isMobile ? "sync" : "wait"}>
             <motion.div
               key="paywall"
               className="flex min-h-0 flex-1 flex-col"
@@ -4033,7 +4033,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
         // These steps render fullscreen with their own layout
         <motion.div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-          <AnimatePresence initial={false} mode="wait">
+          <AnimatePresence initial={false} mode={isMobile ? "sync" : "wait"}>
             <motion.div
               key={currentStep}
               className="onboarding-step-surface flex min-h-0 flex-1 flex-col"
@@ -4058,7 +4058,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             canProceedNext={canProceed()}
             showBack={currentIndex > 0}
           >
-            <AnimatePresence initial={false} mode="wait">
+            <AnimatePresence initial={false} mode={isMobile ? "sync" : "wait"}>
               <motion.div
                 key={currentStep}
                 className="onboarding-step-surface mx-auto w-full max-w-lg pb-6"
@@ -4078,7 +4078,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           ref={scrollContainerRef}
           className="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-6"
         >
-          <AnimatePresence initial={false} mode="wait">
+          <AnimatePresence initial={false} mode={isMobile ? "sync" : "wait"}>
             <motion.div
               key={currentStep}
               className="onboarding-step-surface w-full max-w-md"

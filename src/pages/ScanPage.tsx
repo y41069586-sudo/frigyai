@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAICache } from "@/hooks/useAICache";
 import { checkImageQuality } from "@/utils/imageQualityCheck";
 import { validateImageFileSize, VALIDATION_RULES } from "@/utils/validation";
-import { analyzeImage as analyzeImageMock } from "@/lib/food-ai/mock";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { SHOPPING_CHECKED_NAMES_KEY } from "@/lib/shoppingSync";
 import { FrigyIngredientScanFlow } from "@/components/scan/FrigyIngredientScanFlow";
@@ -178,8 +177,6 @@ const ScanPage = () => {
 
     const batchIngredients: string[] = [];
     let processed = 0;
-    let usedMock = false;
-
     try {
     for (const file of files) {
     const fileSizeValidation = validateImageFileSize(file.size);
@@ -229,10 +226,18 @@ const ScanPage = () => {
 
       setCached(base64, data);
           batchIngredients.push(...(data.ingredients || []));
-        } catch {
-          const mockIngs = await analyzeImageMock(file);
-          batchIngredients.push(...mockIngs);
-          usedMock = true;
+        } catch (scanError) {
+          console.error("[ScanPage] analyze-ingredients failed:", scanError);
+          toast({
+            title: t.error,
+            description:
+              language === "de"
+                ? "Die KI-Analyse ist fehlgeschlagen. Bitte erneut versuchen oder ein klareres Foto nutzen."
+                : language === "fr"
+                  ? "L'analyse IA a échoué. Réessaie ou utilise une photo plus nette."
+                  : "AI analysis failed. Please try again or use a clearer photo.",
+            variant: "destructive",
+          });
         }
 
         processed += 1;
@@ -243,9 +248,7 @@ const ScanPage = () => {
         mergeRecognizedIngredients(batchIngredients, replaceResults);
         toast({
           title: t.ingredientsRecognized,
-          description: usedMock
-            ? `${batchIngredients.length} Zutaten (Demo).`
-            : `${files.length} Foto${files.length > 1 ? "s" : ""} analysiert.`,
+          description: `${files.length} Foto${files.length > 1 ? "s" : ""} analysiert.`,
         });
       } else {
         setAnalysisErrorMessage(

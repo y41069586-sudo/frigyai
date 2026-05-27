@@ -43,6 +43,7 @@ import {
 import { STRIPE_CHECKOUT_PENDING_KEY } from "@/lib/stripePaymentLinks";
 import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
 import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
+import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 
 type CachedTodayFoodEntry = {
@@ -231,8 +232,8 @@ const Index = () => {
 
   const updateWaterGlasses = async (newGlasses: number) => {
     if (!user) return;
-    const previousMl = waterGlasses * 250;
-    const nextMl = newGlasses * 250;
+    const previousMl = waterGlasses * ML_PER_WATER_GLASS;
+    const nextMl = newGlasses * ML_PER_WATER_GLASS;
     setWaterGlasses(newGlasses);
     dispatchWaterGlassesChanged(newGlasses);
     const goalMl = waterGoalMl > 0 ? waterGoalMl : goalCupsToMl(readWaterGoalCupsFromStorage());
@@ -625,7 +626,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col overflow-x-hidden">
+    <div className="min-h-dvh bg-[#FFFFFF] flex flex-col overflow-x-hidden">
       <div className="fixed inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)] pointer-events-none" />
 
       {/* Main Content */}

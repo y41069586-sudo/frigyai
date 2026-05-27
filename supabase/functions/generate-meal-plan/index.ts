@@ -405,11 +405,19 @@ function syncMealPlanToTargets(mealPlan: any[], targets: {
   return mealPlan.map((day) => syncDayToTargets(day, targets));
 }
 
+function getLocalDateISO(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 const getWeekStart = (): string => {
   const now = new Date();
   const day = now.getDay();
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(now.setDate(diff)).toISOString().split("T")[0];
+  now.setDate(diff);
+  return getLocalDateISO(now);
 };
 
 function validateMealPlanShape(mealPlan: any[], mealsPerDay: number) {
@@ -518,10 +526,166 @@ function validateMealPlausibility(
   }
 }
 
+function getDietaryCuisineGuidance(dietaryPreferences: string[], language: SupportedLanguage): string {
+  const d = (dietaryPreferences || []).filter((x) => x && x !== "none");
+  const guides: Record<SupportedLanguage, Record<string, string>> = {
+    de: {
+      balanced:
+        "Alltagsküche: Müsli, Porridge, Brot mit Aufstrich, Eier, Joghurt, Obst; Mittag/Abend: Nudeln, Reis, Kartoffeln, Fleisch/Fisch mit Gemüse, Pfannengerichte, Suppe.",
+      vegan:
+        "Alltagsküche (vegan): Tofu, Linsen, Kichererbsen, Gemüse-Pfannen, Salate mit Hülsenfrüchten, Nuss-Aufstriche, Obst – keine tierischen Produkte.",
+      vegetarian:
+        "Alltagsküche (vegetarisch): Eier, Käse, Joghurt, Gemüsepfannen, Linsensuppe, Pasta mit Gemüse, Salate – kein Fleisch/Fisch.",
+      keto:
+        "Alltagsküche (keto): Eier, Avocado, Salate mit Olivenöl, Fleisch/Fisch mit Gemüse, Käse, Nüsse – KEINE Pasta, Brot, Reis, Kartoffeln, Müsli, Zucker.",
+      lowCarb:
+        "Alltagsküche (kohlenhydratarm): Protein + Gemüse – keine großen Pasta-/Brot-/Reis-Portionen.",
+      paleo:
+        "Alltagsküche (paleo): Fleisch/Fisch/Eier mit Gemüse, Salate, Nüsse – KEIN Brot, Pasta, Müsli, Hülsenfrüchte, Milchprodukte.",
+    },
+    en: {
+      balanced:
+        "Everyday meals: oats, toast, eggs, yogurt, fruit; lunch/dinner: pasta, rice, potatoes, meat/fish with vegetables.",
+      vegan: "Everyday vegan: tofu, lentils, chickpeas, veggie stir-fries – no animal products.",
+      vegetarian: "Everyday vegetarian: eggs, cheese, yogurt, veggie meals – no meat or fish.",
+      keto: "Everyday keto: eggs, avocado, meat/fish with vegetables, cheese, nuts – NO pasta, bread, rice, potatoes, cereal, sugar.",
+      lowCarb: "Everyday low-carb: protein + vegetables – avoid large pasta/bread/rice portions.",
+      paleo: "Everyday paleo: meat/fish/eggs with vegetables, nuts – NO bread, pasta, cereal, legumes, dairy.",
+    },
+    fr: {
+      balanced:
+        "Repas du quotidien: flocons, pain, œufs, yaourt, fruits; déjeuner/dîner: pâtes, riz, pommes de terre, viande/poisson avec légumes.",
+      vegan: "Repas végan: tofu, lentilles, pois chiches, légumes – aucun produit animal.",
+      vegetarian: "Repas végétariens: œufs, fromage, yaourt, légumes – pas de viande ni poisson.",
+      keto: "Repas cétogènes: œufs, avocat, viande/poisson avec légumes – PAS de pâtes, pain, riz, céréales, sucre.",
+      lowCarb: "Repas faibles en glucides: protéines + légumes – éviter grandes portions de pâtes/pain/riz.",
+      paleo: "Repas paléo: viande/poisson/œufs avec légumes – PAS de pain, pâtes, céréales, légumineuses, lait.",
+    },
+  };
+  const L = guides[language] ?? guides.de;
+  if (d.includes("keto")) return L.keto;
+  if (d.includes("low-carb")) return L.lowCarb;
+  if (d.includes("paleo")) return L.paleo;
+  if (d.includes("vegan")) return L.vegan;
+  if (d.includes("vegetarian")) return L.vegetarian;
+  return L.balanced;
+}
+
+function buildServerConstraintPrompt(
+  allergies: string[],
+  dietaryPreferences: string[],
+  allergiesOther: string,
+  healthGoals: string[],
+  language: SupportedLanguage,
+): string {
+  const lines: string[] = [];
+  const a = allergies.filter((x) => x && x !== "none" && x !== "other");
+  const d = dietaryPreferences.filter((x) => x && x !== "none");
+  const goals = healthGoals.filter((x) => x && x !== "none");
+
+  if (a.length) {
+    lines.push(
+      language === "en"
+        ? "STRICT ALLERGEN RULES (must follow):"
+        : language === "fr"
+          ? "RÈGLES ALLERGÈNES STRICTES:"
+          : "STRIKTE ALLERGEN-REGELN (absolut einhalten):",
+      ...a.map((id) => `- ${id}: absolutely avoid any matching ingredients or dishes.`),
+    );
+  }
+
+  const dietLines: Record<SupportedLanguage, Record<string, string>> = {
+    de: {
+      balanced:
+        "Ernährungsziel (Onboarding „Wie ist dein Ernährungsziel?“): Ausgewogene Ernährung – Gemüse, komplexe Kohlenhydrate, mageres Protein, gesunde Fette.",
+      vegan: "Ernährungsziel (Onboarding): Vegan – keine tierischen Produkte.",
+      vegetarian: "Ernährungsziel (Onboarding): Vegetarisch – kein Fleisch und kein Fisch.",
+      keto: "Ernährungsziel (Onboarding): Keto – sehr kohlenhydratarm. KEINE Pasta, Brot, Reis, Kartoffeln, Müsli, Zucker.",
+      "low-carb":
+        "Ernährungsziel (Onboarding): Kohlenhydratarm – wenig Pasta, Brot, Reis, Kartoffeln, Müsli, Zucker.",
+      paleo: "Ernährungsziel (Onboarding): Paleo – kein Getreide, keine Hülsenfrüchte, keine Milchprodukte.",
+    },
+    en: {
+      balanced: "Dietary goal (onboarding): Balanced nutrition – vegetables, complex carbs, lean protein, healthy fats.",
+      vegan: "Dietary goal (onboarding): Vegan – no animal products.",
+      vegetarian: "Dietary goal (onboarding): Vegetarian – no meat or fish.",
+      keto: "Dietary goal (onboarding): Keto – very low carb. NO pasta, bread, rice, potatoes, cereal, sugar.",
+      "low-carb": "Dietary goal (onboarding): Low-carb – limit pasta, bread, rice, potatoes, cereal, sugar.",
+      paleo: "Dietary goal (onboarding): Paleo – no grains, legumes, or dairy.",
+    },
+    fr: {
+      balanced: "Objectif alimentaire (onboarding): Alimentation équilibrée.",
+      vegan: "Objectif alimentaire (onboarding): Végan – aucun produit animal.",
+      vegetarian: "Objectif alimentaire (onboarding): Végétarien – pas de viande ni poisson.",
+      keto: "Objectif alimentaire (onboarding): Cétogène – très faible en glucides. PAS de pâtes, pain, riz, céréales, sucre.",
+      "low-carb": "Objectif alimentaire (onboarding): Faible en glucides – limiter pâtes, pain, riz, céréales, sucre.",
+      paleo: "Objectif alimentaire (onboarding): Paléo – pas de céréales, légumineuses ni produits laitiers.",
+    },
+  };
+  const goalLines: Record<SupportedLanguage, Record<string, string>> = {
+    de: {
+      fitness: "Fitness & Straffung – proteinreich.",
+      performance: "Sportliche Leistung – Energie, Kohlenhydrate und Protein für Regeneration.",
+      "anti-inflammatory": "Entzündungshemmend – viel Gemüse, gesunde Fette, wenig Zucker.",
+      energy: "Energie steigern – ausgewogene Mahlzeiten, nicht zu schwer.",
+      pregnancy: "Schwangerschaft – keine rohen Eier/Fleisch/Fisch, kein Alkohol.",
+      digestion: "Verdauungsgesundheit – leicht verdaulich, nicht zu fettig.",
+    },
+    en: {
+      fitness: "Fitness – high protein.",
+      performance: "Athletic performance – energy, carbs, and protein for recovery.",
+      "anti-inflammatory": "Anti-inflammatory – vegetables, healthy fats, less sugar.",
+      energy: "More energy – balanced meals, not too heavy.",
+      pregnancy: "Pregnancy – no raw eggs/meat/fish, no alcohol.",
+      digestion: "Digestive health – easy to digest, not overly fatty.",
+    },
+    fr: {
+      fitness: "Fitness – riche en protéines.",
+      performance: "Performance sportive – énergie, glucides et protéines.",
+      "anti-inflammatory": "Anti-inflammatoire – légumes, bonnes graisses, moins de sucre.",
+      energy: "Plus d'énergie – repas équilibrés.",
+      pregnancy: "Grossesse – pas d'œufs/viande/poisson crus, pas d'alcool.",
+      digestion: "Digestion – facile à digérer.",
+    },
+  };
+
+  const dietMap = dietLines[language] ?? dietLines.de;
+  const goalMap = goalLines[language] ?? goalLines.de;
+
+  for (const pref of d) {
+    const line = dietMap[pref];
+    if (line) lines.push(line);
+  }
+  if (goals.length) {
+    lines.push(
+      language === "en"
+        ? "Additional onboarding goals:"
+        : language === "fr"
+          ? "Autres objectifs onboarding:"
+          : "Weitere Ziele aus dem Onboarding:",
+    );
+    for (const goal of goals) {
+      const line = goalMap[goal];
+      if (line) lines.push(`- ${line}`);
+    }
+  }
+  if (allergiesOther.trim()) {
+    lines.push(
+      language === "en"
+        ? `Additional allergy/intolerance: ${allergiesOther.trim()} – must avoid.`
+        : language === "fr"
+          ? `Allergie/intolérance: ${allergiesOther.trim()} – à éviter absolument.`
+          : `Zusätzliche Unverträglichkeit: ${allergiesOther.trim()} – absolut vermeiden.`,
+    );
+  }
+  return lines.join("\n");
+}
+
 function buildMealPlanPrompts(params: {
   mealsPerDay: number;
   macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
   constraintPrompt: string;
+  dietaryPreferences: string[];
   fridgeHint: string;
   isRegeneration: boolean;
   varietySeed: string;
@@ -531,6 +695,10 @@ function buildMealPlanPrompts(params: {
 }) {
   const config = LANGUAGE_CONFIG[params.language];
   const totalMeals = 7 * params.mealsPerDay;
+  const cuisineGuidance = getDietaryCuisineGuidance(params.dietaryPreferences, params.language);
+  const hasDietaryRules =
+    params.constraintPrompt.trim().length > 0 ||
+    params.dietaryPreferences.some((x) => x && x !== "none");
   const compactRule = `Halte die Antwort kompakt:
 - Pro Mahlzeit maximal ${params.maxIngredients} Zutaten
 - Kurze, klare Rezeptnamen
@@ -544,7 +712,7 @@ REGELN:
 - Genau 7 Tage (${config.dayNames.join("-")})
 - Pro Tag genau ${params.mealsPerDay} Mahlzeiten
 - Einfache Hausmannskost, keine exotischen Zutaten
-- Normale deutsche Alltagsküche: Müsli, Porridge, Brot mit Aufstrich, Eier, Joghurt, Obst; Mittag/Abend: Nudeln, Reis, Kartoffeln, Fleisch/Fisch mit Gemüse, Pfannengerichte, Suppe mit Brot
+- ${cuisineGuidance}
 - VERBOTEN: Smoothies, Shakes, Protein-Shakes, Saftfasten, Detox-Drinks, Green Smoothies, Spinat-Shake, nur-Flüssig-Mahlzeiten, exotische Trend-Gerichte
 - Der Plan darf und soll auch OHNE Kühlschrankscan erstellt werden
 - Nutze Kühlschrankzutaten nur wenn vorhanden und sinnvoll; ergänze fehlende Zutaten frei für Makroziele und Abwechslung
@@ -555,7 +723,7 @@ REGELN:
 - Prüfe pro Mahlzeit aktiv die Plausibilität mit typischen Nährwerten echter Lebensmittel (z. B. Bundeslebensmittelschlüssel/USDA-ähnliche Werte), keine geschätzten Fantasiezahlen
 - Jede Mahlzeit braucht eine realistische Portionsgröße; Kalorien und Makros müssen zur Portion und zum Gerichtsnamen passen
 - Antworte bei ALLEN sichtbaren Textfeldern (day, type, name, ingredients.amount, ingredients.name, instructions) konsequent auf ${config.outputLabel}
-${params.constraintPrompt ? "- Allergien, Ernährungsziele und weitere Onboarding-Vorgaben unten sind ABSOLUT bindend." : ""}
+${hasDietaryRules ? "- Das Ernährungsziel aus dem Onboarding („Wie ist dein Ernährungsziel?“) sowie Allergien und weitere Vorgaben unten sind ABSOLUT bindend und haben Vorrang vor Standard-Vorschlägen." : ""}
 ${params.isRegeneration && params.previousMealNames.length > 0 ? "- Bei NEUGENERIERUNG darf keine Mahlzeit denselben Namen oder dieselbe Kerngericht-Idee wie im vorherigen Plan wiederholen. Jede einzelne Mahlzeit braucht einen neuen, klar anderen Namen." : ""}
 ${compactRule}
 
@@ -635,6 +803,7 @@ async function requestMealPlanFromOpenAI(params: {
   mealsPerDay: number;
   macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
   constraintPrompt: string;
+  dietaryPreferences: string[];
   fridgeHint: string;
   isRegeneration: boolean;
   varietySeed: string;
@@ -737,7 +906,11 @@ async function resolvePremium(supabase: any, userId: string, email?: string | nu
     if (active) return true;
   }
 
-  if (email?.toLowerCase() === "yousef0089mohamed@gmail.com") return true;
+  const bypassList = (Deno.env.get("PREMIUM_BYPASS_EMAILS") || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (email && bypassList.includes(email.toLowerCase())) return true;
   return false;
 }
 
@@ -781,8 +954,6 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const constraintPrompt =
-      typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "";
     const mealsPerDay = Math.min(6, Math.max(3, Number(body.mealsPerDay) || 5));
     const dailyCalories = Number(body.dailyCalories) || 2000;
     const dailyProtein = Number(body.dailyProtein) || Math.round(dailyCalories * 0.075 / 4);
@@ -797,8 +968,21 @@ Deno.serve(async (req) => {
     const dietaryPreferences = Array.isArray(body.dietaryPreferences)
       ? body.dietaryPreferences.map((s: unknown) => String(s).trim()).filter(Boolean)
       : [];
+    const healthGoals = Array.isArray(body.healthGoals)
+      ? body.healthGoals.map((s: unknown) => String(s).trim()).filter(Boolean)
+      : [];
     const allergiesOther = typeof body.allergiesOther === "string" ? body.allergiesOther.trim() : "";
     const language = resolveSupportedLanguage(body.language);
+    const clientConstraint =
+      typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "";
+    const serverConstraint = buildServerConstraintPrompt(
+      allergies,
+      dietaryPreferences,
+      allergiesOther,
+      healthGoals,
+      language,
+    );
+    const constraintPrompt = [serverConstraint, clientConstraint].filter(Boolean).join("\n\n");
     const isRegeneration = body.isRegeneration === true;
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed : String(Date.now());
     const previousMealNames = Array.isArray(body.previousMealNames)
@@ -842,6 +1026,7 @@ Deno.serve(async (req) => {
       mealsPerDay,
       macroTargets,
       constraintPrompt,
+      dietaryPreferences,
       fridgeHint,
       isRegeneration,
       varietySeed,

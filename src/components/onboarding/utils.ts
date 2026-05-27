@@ -1,4 +1,5 @@
 import { UserData } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { saveReminderConfigFromOnboarding, syncRemindersFromStorage } from "@/lib/notifications";
 import { clearPendingReferralCode, REFERRAL_SKIP_PAYWALL_KEY } from "@/lib/referralCode";
@@ -72,6 +73,37 @@ export const calculateWeeksToGoal = (userData: UserData) => {
   return Math.ceil(weightDiff / userData.weeklyGoal);
 };
 
+async function syncTrackerProfileToCloud(settings: Record<string, unknown>) {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    await supabase.from("user_tracker_settings").upsert(
+      {
+        user_id: session.user.id,
+        age: (settings.age as number) || null,
+        weight: (settings.weight as number) || null,
+        target_weight: (settings.targetWeight as number) || null,
+        goal_mode: (settings.goalMode as string) || "lose",
+        weekly_goal: (settings.weeklyGoal as number) || 0.5,
+        daily_calories: (settings.dailyCalories as number) || null,
+        daily_protein: (settings.dailyProtein as number) || null,
+        daily_carbs: (settings.dailyCarbs as number) || null,
+        daily_fat: (settings.dailyFat as number) || null,
+        dietary_preferences: (settings.dietaryPreferences as string[]) ?? [],
+        health_goals: (settings.healthGoals as string[]) ?? [],
+        allergies: (settings.allergies as string[]) ?? [],
+        allergies_other: (settings.allergiesOther as string) ?? "",
+      },
+      { onConflict: "user_id" },
+    );
+  } catch (e) {
+    console.warn("[onboarding] cloud profile sync failed:", e);
+  }
+}
+
 export type SaveOnboardingOptions = {
   /** Default true — set false until paywall / post-signup flow is done */
   markOnboardingComplete?: boolean;
@@ -120,6 +152,7 @@ export const saveOnboardingData = (
   };
   localStorage.setItem("userProfile", JSON.stringify(trackerSettings));
   notifyFrigyStorageUpdated();
+  void syncTrackerProfileToCloud(trackerSettings);
 
   if (
     userData.notificationPrefs.meals ||

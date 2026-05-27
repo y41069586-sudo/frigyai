@@ -115,35 +115,48 @@ const PremiumPage = () => {
 
   // Handle returning from Stripe with success
   useEffect(() => {
-    if (isReturningFromStripe && session) {
-      setIsActivating(true);
-      
-      // Poll for subscription status
-      let attempts = 0;
+    if (!isReturningFromStripe || !session) return;
+
+    let cancelled = false;
+    setIsActivating(true);
+
+    const activatePremium = async () => {
       const maxAttempts = 15;
-      
-      const checkStatus = async () => {
-        attempts++;
-        await checkSubscription();
-        
-        if (subscriptionStatus?.subscribed) {
+
+      for (let attempt = 0; attempt < maxAttempts && !cancelled; attempt++) {
+        const status = await checkSubscription();
+        if (status?.subscribed) {
           setIsActivating(false);
           setShowSuccessDialog(true);
-          // Clear the URL param
-          setSearchParams({});
-        } else if (attempts < maxAttempts) {
-          setTimeout(checkStatus, 2000);
-        } else {
-          setIsActivating(false);
-          // Still show success - Stripe confirmed, sub might just be delayed
-          setShowSuccessDialog(true);
-          setSearchParams({});
+          setSearchParams({}, { replace: true });
+          return;
         }
-      };
-      
-      checkStatus();
-    }
-  }, [isReturningFromStripe, session]);
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+
+      if (!cancelled) {
+        setIsActivating(false);
+        setSearchParams({}, { replace: true });
+        toast({
+          title: language === "de" ? "Premium noch nicht aktiv" : "Premium not active yet",
+          description:
+            language === "de"
+              ? "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen."
+              : language === "fr"
+                ? "Le paiement a été reçu, mais Premium n'est pas encore actif. Rouvre l'app ou réessaie dans quelques minutes."
+                : "Payment received, but Premium is not active yet. Reopen the app or try again in a few minutes.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    void activatePremium();
+    return () => {
+      cancelled = true;
+    };
+  }, [isReturningFromStripe, session, checkSubscription, setSearchParams, toast, language]);
 
   // Auto-trigger checkout if coming from onboarding
   useEffect(() => {

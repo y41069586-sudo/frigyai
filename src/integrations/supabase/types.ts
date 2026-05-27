@@ -574,12 +574,16 @@ export type Database = {
       user_tracker_settings: {
         Row: {
           age: number | null
+          allergies: string[]
+          allergies_other: string
           created_at: string
           daily_calories: number | null
           daily_carbs: number | null
           daily_fat: number | null
           daily_protein: number | null
+          dietary_preferences: string[]
           goal_mode: string | null
+          health_goals: string[]
           id: string
           meals_per_day: number
           target_weight: number | null
@@ -590,12 +594,16 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          allergies?: string[]
+          allergies_other?: string
           created_at?: string
           daily_calories?: number | null
           daily_carbs?: number | null
           daily_fat?: number | null
           daily_protein?: number | null
+          dietary_preferences?: string[]
           goal_mode?: string | null
+          health_goals?: string[]
           id?: string
           meals_per_day?: number
           target_weight?: number | null
@@ -606,12 +614,16 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          allergies?: string[]
+          allergies_other?: string
           created_at?: string
           daily_calories?: number | null
           daily_carbs?: number | null
           daily_fat?: number | null
           daily_protein?: number | null
+          dietary_preferences?: string[]
           goal_mode?: string | null
+          health_goals?: string[]
           id?: string
           meals_per_day?: number
           target_weight?: number | null

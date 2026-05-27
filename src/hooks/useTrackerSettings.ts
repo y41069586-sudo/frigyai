@@ -13,6 +13,10 @@ export interface TrackerSettings {
   dailyCarbs: number;
   dailyFat: number;
   mealsPerDay: number;
+  dietaryPreferences?: string[];
+  healthGoals?: string[];
+  allergies?: string[];
+  allergiesOther?: string;
 }
 
 const LOCAL_STORAGE_KEY = 'userProfile';
@@ -36,6 +40,10 @@ export const useTrackerSettings = () => {
     dailyCarbs: data.daily_carbs || 0,
     dailyFat: data.daily_fat || 0,
     mealsPerDay: data.meals_per_day || 5,
+    dietaryPreferences: Array.isArray(data.dietary_preferences) ? data.dietary_preferences : [],
+    healthGoals: Array.isArray(data.health_goals) ? data.health_goals : [],
+    allergies: Array.isArray(data.allergies) ? data.allergies : [],
+    allergiesOther: typeof data.allergies_other === 'string' ? data.allergies_other : '',
   });
 
   // Save to database
@@ -54,6 +62,10 @@ export const useTrackerSettings = () => {
       daily_carbs: data.dailyCarbs,
       daily_fat: data.dailyFat,
       meals_per_day: data.mealsPerDay,
+      dietary_preferences: data.dietaryPreferences ?? [],
+      health_goals: data.healthGoals ?? [],
+      allergies: data.allergies ?? [],
+      allergies_other: data.allergiesOther ?? '',
     };
 
     const { error } = await supabase
@@ -107,7 +119,19 @@ export const useTrackerSettings = () => {
           try {
             const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (stored) {
-              merged = { ...JSON.parse(stored), ...dbSettings };
+              const parsed = JSON.parse(stored);
+              merged = {
+                ...parsed,
+                ...dbSettings,
+                dietaryPreferences: dbSettings.dietaryPreferences?.length
+                  ? dbSettings.dietaryPreferences
+                  : parsed.dietaryPreferences,
+                healthGoals: dbSettings.healthGoals?.length
+                  ? dbSettings.healthGoals
+                  : parsed.healthGoals,
+                allergies: dbSettings.allergies?.length ? dbSettings.allergies : parsed.allergies,
+                allergiesOther: dbSettings.allergiesOther || parsed.allergiesOther || '',
+              };
             }
             const onboardingRaw = localStorage.getItem('onboardingUserData');
             if (onboardingRaw) {

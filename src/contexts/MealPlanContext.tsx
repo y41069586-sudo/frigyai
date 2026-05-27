@@ -9,7 +9,7 @@ import { harmonizeDailyTargets, syncMealPlanToTargets } from '@/lib/mealPlanMacr
 import { isSubscriptionActive } from '@/lib/subscription';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import {
-  buildGermanConstraintPrompt,
+  buildConstraintPrompt,
   findMealSafetyViolations,
   readUserMealPlanProfile,
   type UserMealPlanProfile,
@@ -18,6 +18,7 @@ import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from './LanguageContext';
+import { getLocalWeekStartISO } from '@/lib/localDate';
 
 type GenerationStage =
   | 'preparing'
@@ -234,14 +235,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const leftMealPlansWhileGeneratingRef = useRef(false);
   const stageElapsedSecondsRef = useRef(0);
 
-  // Helper to get start of current week (Monday) in YYYY-MM-DD
-  const getWeekStart = (): string => {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(now.setDate(diff));
-    return monday.toISOString().split('T')[0];
-  };
+  const getWeekStart = getLocalWeekStartISO;
 
   const refreshGenerationCount = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -510,11 +504,12 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       try {
         const diet = readUserMealPlanProfile();
-        const constraintPrompt = buildGermanConstraintPrompt(
+        const constraintPrompt = buildConstraintPrompt(
           diet.allergies,
           diet.dietaryPreferences,
           diet.allergiesOther,
           diet.healthGoals,
+          getStoredLanguage(),
         );
         const previousMealNames = summarizeExistingMealNames(mealPlan);
 

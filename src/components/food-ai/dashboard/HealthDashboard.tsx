@@ -16,7 +16,9 @@ import type { MealFocusKey } from "@/lib/mealFocus";
 import { confettiBurst } from "@/lib/mobileEffects";
 import { getLocalDateISO } from "@/lib/localDate";
 
-const ML_PER_GLASS = 250;
+import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
+
+const ML_PER_GLASS = ML_PER_WATER_GLASS;
 const WATER_CONFETTI_GOAL_ML = 2000;
 
 export type HealthDashboardProps = {
@@ -132,7 +134,7 @@ export function HealthDashboard({
           <WaterWidget
             delay={0.14}
             waterGlasses={waterGlasses}
-            goalMl={Math.min(waterGoalMl, 2000)}
+            goalMl={waterGoalMl}
             onAdd250ml={handleAddWater250}
             onSubtract250ml={handleSubtractWater250}
           />

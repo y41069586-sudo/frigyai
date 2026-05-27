@@ -145,14 +145,14 @@ const BUILTIN_EXAMPLE_RECIPES: TrackerRecipeExample[] = [
   },
   {
     id: "example-protein-oats",
-    title: "Protein-Haferbrei",
+    title: "Haferbrei mit Banane",
     calories: 510,
     protein: 36,
     carbs: 62,
     fat: 12,
     prepTime: 10,
-    ingredients: ["70g Haferflocken", "250ml Milch oder Pflanzendrink", "30g Proteinpulver", "1 Banane", "Zimt"],
-    instructions: ["Haferflocken mit Milch aufkochen.", "Kurz abkühlen lassen und Proteinpulver einrühren.", "Banane schneiden und mit Zimt servieren."],
+    ingredients: ["70g Haferflocken", "250ml Milch oder Pflanzendrink", "1 Banane", "1 EL Honig", "Zimt"],
+    instructions: ["Haferflocken mit Milch aufkochen.", "Banane schneiden und mit Honig und Zimt servieren."],
   },
   {
     id: "example-salmon-potatoes",
@@ -255,14 +255,14 @@ const BUILTIN_EXAMPLE_RECIPES: TrackerRecipeExample[] = [
   },
   {
     id: "example-smoothie",
-    title: "Protein-Smoothie",
+    title: "Joghurt mit Beeren",
     calories: 360,
     protein: 32,
     carbs: 45,
     fat: 6,
     prepTime: 5,
-    ingredients: ["250ml Milch", "30g Proteinpulver", "1 Banane", "100g Beeren"],
-    instructions: ["Alle Zutaten in den Mixer geben.", "Cremig mixen.", "Direkt trinken."],
+    ingredients: ["200g Naturjoghurt", "100g Beeren", "1 Banane", "1 EL Honig"],
+    instructions: ["Joghurt in eine Schüssel geben.", "Beeren und Banane hinzufügen.", "Mit Honig servieren."],
   },
 ];
 

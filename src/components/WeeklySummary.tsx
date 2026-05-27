@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
+import { getLocalDateISO } from '@/lib/localDate';
 import {
   Dialog,
   DialogContent,
@@ -152,8 +153,8 @@ export const WeeklySummary = ({ open, onClose }: WeeklySummaryProps) => {
         .from('water_intake')
         .select('glasses, date')
         .eq('user_id', user.id)
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', endDate.toISOString().split('T')[0]);
+        .gte('date', getLocalDateISO(startDate))
+        .lte('date', getLocalDateISO(endDate));
 
       // Fetch streaks
       const { data: streakData } = await supabase

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Download, FileText, Calendar } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
+import { getLocalDateISO } from '@/lib/localDate';
 
 interface Ingredient {
   name: string;
@@ -136,7 +137,7 @@ export const ExportMealPlan = ({ mealPlan, pdfOnly = false }: ExportMealPlanProp
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${copy.weekPlanFile}-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `${copy.weekPlanFile}-${getLocalDateISO()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     

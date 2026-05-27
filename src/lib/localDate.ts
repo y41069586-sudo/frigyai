@@ -20,3 +20,12 @@ export function getLocalYesterdayISO(date = new Date()): string {
   d.setDate(d.getDate() - 1);
   return getLocalDateISO(d);
 }
+
+/** Montag der aktuellen Kalenderwoche (lokal) als YYYY-MM-DD. */
+export function getLocalWeekStartISO(date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return getLocalDateISO(d);
+}

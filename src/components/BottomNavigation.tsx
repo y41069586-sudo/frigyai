@@ -20,19 +20,19 @@ interface BottomNavigationProps {
 
 type NavId = "home" | "meals" | "shopping";
 
-const ITEMS: {
-  id: NavId;
-  label: string;
-  icon: LucideIcon;
-  activeClass: string;
-}[] = [
-  { id: "home", label: "Start", icon: Home, activeClass: "text-primary" },
-  { id: "meals", label: "Plan", icon: Calendar, activeClass: "text-primary" },
-  { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary" },
-];
+function navItems(t: ReturnType<typeof useLanguage>["t"], language: string) {
+  const homeLabel =
+    language === "de" ? "Start" : language === "fr" ? "Accueil" : "Home";
+  return [
+    { id: "home" as const, label: homeLabel, icon: Home, activeClass: "text-primary" },
+    { id: "meals" as const, label: t.navMealPlan, icon: Calendar, activeClass: "text-primary" },
+    { id: "shopping" as const, label: t.navShopping, icon: ShoppingCart, activeClass: "text-primary" },
+  ];
+}
 
 export const BottomNavigation = (_props: BottomNavigationProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const ITEMS = navItems(t, language);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -85,12 +85,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const bar = (
     <nav
       aria-label="Hauptnavigation"
-      className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
+      className="pointer-events-none fixed inset-x-0 bottom-2 z-[90] flex justify-center px-4 safe-bottom"
     >
       <div
         className={cn(
-          "pointer-events-auto flex w-full max-w-sm items-end gap-1 overflow-visible rounded-full border border-white/70 bg-white/95 px-2 py-1 pr-1",
-          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-background/92 sm:dark:bg-background/80",
+          "pointer-events-auto flex w-full max-w-sm items-end gap-1 overflow-visible rounded-full border border-white/70 bg-white/98 px-2 py-1 pr-1",
+          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] max-sm:backdrop-blur-none sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-background/95 sm:dark:bg-background/80",
         )}
       >
         {ITEMS.map((item) => {

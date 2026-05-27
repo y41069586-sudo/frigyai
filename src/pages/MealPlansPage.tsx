@@ -211,34 +211,54 @@ const MealPlansPage = () => {
     }
   }, [searchParams, setActiveTab, navigate]);
 
-  // Initialize reminder system
-  // Show success dialog and auto-refresh subscription after purchase
+  // Show success dialog only after subscription is confirmed
   useEffect(() => {
-    const subscriptionParam = searchParams.get('subscription');
-    if (subscriptionParam === 'success') {
-      setIsActivatingSubscription(true);
+    if (searchParams.get("subscription") !== "success") return;
 
-      // Poll for subscription activation every 2 seconds
-      let attempts = 0;
-      const maxAttempts = 15; // Max 30 seconds
+    let cancelled = false;
+    setIsActivatingSubscription(true);
 
-      const pollSubscription = setInterval(async () => {
-        attempts++;
+    const activatePremium = async () => {
+      const maxAttempts = 15;
+
+      for (let attempt = 0; attempt < maxAttempts && !cancelled; attempt++) {
         const status = await checkSubscription();
-
-        if (status?.subscribed || attempts >= maxAttempts) {
-          clearInterval(pollSubscription);
+        if (status?.subscribed) {
           setIsActivatingSubscription(false);
           setShowSuccessDialog(true);
-
-          searchParams.delete('subscription');
-          setSearchParams(searchParams, { replace: true });
+          const next = new URLSearchParams(searchParams);
+          next.delete("subscription");
+          setSearchParams(next, { replace: true });
+          return;
         }
-      }, 2000);
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
 
-      return () => clearInterval(pollSubscription);
-    }
-  }, [searchParams, setSearchParams, checkSubscription]);
+      if (!cancelled) {
+        setIsActivatingSubscription(false);
+        const next = new URLSearchParams(searchParams);
+        next.delete("subscription");
+        setSearchParams(next, { replace: true });
+        toast({
+          title: language === "de" ? "Premium noch nicht aktiv" : "Premium not active yet",
+          description:
+            language === "de"
+              ? "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen."
+              : language === "fr"
+                ? "Le paiement a été reçu, mais Premium n'est pas encore actif."
+                : "Payment received, but Premium is not active yet. Reopen the app or try again shortly.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    void activatePremium();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, setSearchParams, checkSubscription, language]);
 
   const pendingMealPlanRefreshRef = useRef(false);
   const scrolledToDayRef = useRef<string | null>(null);

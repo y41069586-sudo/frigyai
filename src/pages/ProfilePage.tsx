@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
 import { ReminderSettings } from "@/components/ReminderSettings";
+import { DietPreferencesSettings } from "@/components/DietPreferencesSettings";
 import { ReferralCodesAdmin } from "@/components/ReferralCodesAdmin";
 import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
@@ -116,7 +117,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, session, subscriptionStatus, signOut, checkSubscription } = useAuth();
   const { saveProgress } = useOnboardingProgress();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -313,6 +314,14 @@ const ProfilePage = () => {
                 <ReferralCodesAdmin />
               </div>
             )}
+          </SettingsGroup>
+
+          <SettingsGroup
+            title={
+              language === "de" ? "Ernährung" : language === "fr" ? "Alimentation" : "Nutrition"
+            }
+          >
+            <DietPreferencesSettings />
           </SettingsGroup>
 
           <SettingsGroup title={t.reminders}>

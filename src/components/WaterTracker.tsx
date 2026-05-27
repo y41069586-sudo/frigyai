@@ -20,7 +20,9 @@ import {
 import { getLocalDateISO } from '@/lib/localDate';
 import { recordWaterGoalDayMet } from '@/lib/waterGoalStreak';
 
-const ML_PER_CUP = 200;
+import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
+
+const ML_PER_CUP = ML_PER_WATER_GLASS;
 
 // Cup icon component
 const CupIcon = ({ className, filled }: { className?: string; filled?: boolean }) => (

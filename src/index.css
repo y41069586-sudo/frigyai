@@ -370,6 +370,21 @@ All colors MUST be HSL.
     .animate-pulse {
       animation: none !important;
     }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .max-md-solid-surface {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
   }
 
   /* Onboarding: promote step surfaces to their own layer to reduce mobile transition jank */

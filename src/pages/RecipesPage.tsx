@@ -12,7 +12,7 @@ import MealReplacementDialog from "@/components/MealReplacementDialog";
 import MealPlanSuccessOverlay from "@/components/MealPlanSuccessOverlay";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
-import { getLocalDateString } from "@/lib/localDate";
+import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
 
 interface Recipe {
   id: string;
@@ -265,7 +265,7 @@ const RecipesPage = () => {
       const mealPlanUpdate = {
         recipe: selectedRecipe,
         mealType,
-        date: targetDate.toISOString().split('T')[0],
+        date: getLocalDateISO(targetDate),
       };
       
       const stored = localStorage.getItem('mealPlanUpdates');

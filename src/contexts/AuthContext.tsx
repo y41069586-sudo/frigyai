@@ -15,7 +15,7 @@ import {
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
 import { isSubscriptionActive } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
-import { getStoredLanguage } from '@/contexts/LanguageContext';
+import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -333,19 +333,20 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     };
 
     const finishWithSession = async () => {
+      const tr = getTranslations(getStoredLanguage());
       const { session, error: signInError } = await signInAfterSignup();
       if (session) {
         if (!silent) {
           toast({
-            title: "Registrierung erfolgreich!",
-            description: "Du kannst jetzt fortfahren.",
+            title: tr.onboardingSuccessfullyRegistered,
+            description: tr.onboardingProgressSavedMsg,
           });
         }
         return { error: null };
       }
       if (!silent && signInError) {
         toast({
-          title: "Registrierung fehlgeschlagen",
+          title: tr.onboardingRegistrationFailed,
           description: signInError.message,
           variant: "destructive",
         });
@@ -390,12 +391,10 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       }
 
       if (!silent && !isUserAlreadyRegistered(error)) {
+        const tr = getTranslations(getStoredLanguage());
         toast({
-          title: "Registrierung fehlgeschlagen",
-          description: getPublicErrorMessage(
-            registered.error || error.message,
-            "Deine Registrierung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
-          ),
+          title: tr.onboardingRegistrationFailed,
+          description: getPublicErrorMessage(registered.error || error.message, tr.onboardingRegistrationFailed),
           variant: "destructive",
         });
       }
@@ -408,9 +407,10 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
 
     if (data.session) {
       if (!silent) {
+        const tr = getTranslations(getStoredLanguage());
         toast({
-          title: "Registrierung erfolgreich!",
-          description: "Du kannst jetzt fortfahren.",
+          title: tr.onboardingSuccessfullyRegistered,
+          description: tr.onboardingProgressSavedMsg,
         });
       }
       return { error: null };
