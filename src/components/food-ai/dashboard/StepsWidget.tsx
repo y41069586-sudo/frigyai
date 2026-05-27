@@ -3,6 +3,8 @@ import { toast } from "@/hooks/use-toast";
 import { memo, useMemo } from "react";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
+import { dashboardWidgetBorder } from "./dashboardStyles";
 
 type StepsWidgetProps = {
   steps: number;
@@ -99,7 +101,10 @@ export const StepsWidget = memo(function StepsWidget({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onToggleExpand}
-      className="relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem] border border-primary/20 bg-[linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_58%,#EFFAF3_100%)]"
+      className={cn(
+        "relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem] bg-[linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_58%,#EFFAF3_100%)]",
+        dashboardWidgetBorder,
+      )}
     >
       <div className="relative z-[10] grid min-h-[185px] grid-rows-[auto_1fr_auto] justify-items-center p-4">
         <div className="justify-self-start flex items-center gap-1.5">

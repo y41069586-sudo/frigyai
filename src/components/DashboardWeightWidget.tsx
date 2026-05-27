@@ -235,7 +235,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       onClick={embedded ? undefined : handleCardClick}
       className={`relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`min-h-[23rem] p-4 bg-gradient-to-br from-white via-emerald-50/55 to-white backdrop-blur-lg border border-transparent shadow-[0_18px_44px_-34px_rgba(16,185,129,0.22)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
+      <Card className={`min-h-[23rem] p-4 bg-gradient-to-br from-white via-emerald-50/40 to-white backdrop-blur-lg border border-slate-200/70 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.12)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
         <div className="mb-4 flex items-center gap-2">
           <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
             <Scale className="h-4 w-4 text-emerald-500" />

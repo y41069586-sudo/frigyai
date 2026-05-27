@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { entryFrom, entryTo, entryTransition } from "@/lib/motionPresets";
+import { dashboardWidgetBorder } from "./dashboardStyles";
 
 export type WidgetCardProps = {
   children: ReactNode;
@@ -17,11 +18,11 @@ export type WidgetCardProps = {
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
   glass:
-    "border border-slate-200/70 bg-white shadow-[0_10px_24px_-20px_rgba(15,40,30,0.12)] sm:bg-white/62 sm:backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.06]",
+    `${dashboardWidgetBorder} bg-white shadow-[0_10px_24px_-20px_rgba(15,40,30,0.1)] sm:bg-white/62 sm:backdrop-blur-xl dark:bg-white/[0.06]`,
   soft:
-    "border border-slate-200/70 bg-card shadow-[0_8px_20px_-18px_rgba(0,0,0,0.12)] sm:bg-card/82 sm:backdrop-blur-md",
+    `${dashboardWidgetBorder} bg-card shadow-[0_8px_20px_-18px_rgba(0,0,0,0.1)] sm:bg-card/82 sm:backdrop-blur-md`,
   gradient:
-    "border border-slate-200/70 bg-gradient-to-br from-primary/[0.045] via-white to-muted/[0.18] shadow-[0_10px_28px_-24px_hsl(var(--primary)/0.24)] sm:backdrop-blur-sm",
+    `${dashboardWidgetBorder} bg-gradient-to-br from-primary/[0.045] via-white to-muted/[0.18] shadow-[0_10px_28px_-24px_hsl(var(--primary)/0.2)] sm:backdrop-blur-sm`,
 };
 
 export function WidgetCard({

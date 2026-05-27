@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Droplet } from "lucide-react";
 import { memo } from "react";
 import { cn } from "@/lib/utils";
+import { dashboardWidgetBorder } from "./dashboardStyles";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
@@ -62,7 +63,8 @@ export const WaterWidget = memo(function WaterWidget({
       onClick={onToggleExpand}
       className={cn(
         "relative min-h-[158px] min-[360px]:min-h-[172px] sm:min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
-        "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
+        dashboardWidgetBorder,
+        "bg-gradient-to-br from-sky-50/90 via-white to-sky-100/50",
         "touch-manipulation",
       )}
     >

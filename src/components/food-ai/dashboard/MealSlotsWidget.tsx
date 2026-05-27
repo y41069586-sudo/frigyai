@@ -62,7 +62,7 @@ export function MealSlotsWidget({ delay = 0, onAddMeal, onFindMeals }: MealSlots
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.04 * i }}
-            className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 rounded-xl min-[360px]:rounded-2xl border border-border/40 bg-background/50 px-3 min-[360px]:px-4 py-2.5 min-[360px]:py-3 backdrop-blur-sm"
+            className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 rounded-xl min-[360px]:rounded-2xl border border-slate-200/70 bg-white px-3 min-[360px]:px-4 py-2.5 min-[360px]:py-3"
           >
             <span className="flex min-w-0 items-center gap-2 min-[360px]:gap-3">
               <span className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 shrink-0 items-center justify-center rounded-lg min-[360px]:rounded-xl bg-primary/10">
