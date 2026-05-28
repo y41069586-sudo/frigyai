@@ -82,6 +82,16 @@ const AuthPage = () => {
           setError(resolved?.message ?? error.message ?? 'Login fehlgeschlagen');
           if (resolved?.switchToLogin) setIsLogin(true);
         } else {
+          const hasSession = await waitForAuthSession(3500);
+          if (!hasSession) {
+            setError(
+              language === 'de'
+                ? 'Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.'
+                : 'Could not complete sign-in. Please try again.',
+            );
+            return;
+          }
+
           // Coming from onboarding or premium-pricing: go to paywall
           if (isFromOnboarding || isFromPremiumPricing) {
             navigate('/?onboardingStep=paywall', { replace: true });
