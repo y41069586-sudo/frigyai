@@ -35,13 +35,13 @@ interface AuthContextType {
     email: string,
     password: string,
     options?: { emailRedirectTo?: string; silent?: boolean }
-  ) => Promise<{ error: any }>;
+  ) => Promise<{ error: unknown }>;
   signIn: (
     email: string,
     password: string,
     options?: { silent?: boolean },
-  ) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
+  ) => Promise<{ error: unknown }>;
+  signInWithGoogle: () => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   checkSubscription: () => Promise<SubscriptionStatus | null>;
 }

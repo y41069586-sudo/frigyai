@@ -74,7 +74,7 @@ const RecipeDetailPage = () => {
       // Store recipe details
       const recipes = safeJsonParse<Record<string, Recipe>>(localStorage.getItem("recipeDetails"), {});
       if (typeof recipes === "object" && recipes !== null) {
-        (recipes as any)[recipe.id] = recipe;
+        recipes[recipe.id] = recipe;
         localStorage.setItem("recipeDetails", JSON.stringify(recipes));
       }
 

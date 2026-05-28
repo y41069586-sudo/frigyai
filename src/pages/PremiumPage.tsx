@@ -93,8 +93,11 @@ const PremiumPage = () => {
       } else {
         throw new Error(t.noCheckoutUrl);
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || error?.error?.message || String(error) || t.toastError;
+    } catch (error: unknown) {
+      const errorMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message?: unknown }).message ?? t.toastError)
+          : String(error ?? t.toastError);
       console.error('Checkout error:', errorMessage);
       toast({
         title: t.error,
@@ -237,7 +240,7 @@ const PremiumPage = () => {
       } else {
         throw new Error(t.noPortalUrl);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: t.error,
         description: getPublicErrorMessage(error, 'Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),

@@ -5,7 +5,7 @@
 export interface ApiError {
   code: string; // Machine-readable error code
   message: string; // German user-facing message
-  details?: Record<string, any>; // Optional additional details for debugging
+  details?: Record<string, unknown>; // Optional additional details for debugging
   status?: number; // HTTP status code
 }
 

@@ -16,6 +16,11 @@ interface LoggedMeal {
   fat: number;
 }
 
+interface MealPlanDay {
+  day: string;
+  meals?: LoggedMeal[];
+}
+
 export const DashboardTodayMealsCard = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -60,12 +65,12 @@ export const DashboardTodayMealsCard = () => {
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
       try {
-        const mealPlan = JSON.parse(saved);
+        const mealPlan = JSON.parse(saved) as MealPlanDay[];
         const today = new Date();
         const dayIndex = today.getDay();
         const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
         
-        const todayPlan = mealPlan.find((day: any) => day.day.toLowerCase() === dayNames[dayIndex].toLowerCase());
+        const todayPlan = mealPlan.find((day) => day.day.toLowerCase() === dayNames[dayIndex].toLowerCase());
         if (todayPlan?.meals) {
           setTodayMealPlan(todayPlan.meals);
         }

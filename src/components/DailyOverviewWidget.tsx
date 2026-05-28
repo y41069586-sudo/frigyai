@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Flame, Droplets, Apple, Check, ChevronRight } from "lucide-react";
-import { getLocalDateString } from "@/lib/localDate";
-import { FRIGY_STORAGE_UPDATED } from "@/lib/frigyStorageSync";
-import { glassesToMl } from "@/lib/waterUnits";
 
 interface DailyOverviewWidgetProps {
   targetCalories: number;
@@ -17,39 +16,35 @@ export const DailyOverviewWidget = ({
   caloriesEaten, 
   waterGlasses 
 }: DailyOverviewWidgetProps) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [mealsLogged, setMealsLogged] = useState(0);
 
   useEffect(() => {
     const loadMeals = () => {
-      const saved = localStorage.getItem("todayFood");
-      if (!saved) {
-        setMealsLogged(0);
-        return;
-      }
-      try {
-        const data = JSON.parse(saved);
-        if (data.date === getLocalDateString() && data.entries) {
-          setMealsLogged(data.entries.length);
-        } else {
+      const saved = localStorage.getItem('todayFood');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.date === new Date().toDateString() && data.entries) {
+            setMealsLogged(data.entries.length);
+          }
+        } catch (e) {
           setMealsLogged(0);
         }
-      } catch {
-        setMealsLogged(0);
       }
     };
-
+    
     loadMeals();
-    window.addEventListener(FRIGY_STORAGE_UPDATED, loadMeals);
-    return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, loadMeals);
+    const interval = setInterval(loadMeals, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const caloriePercent = Math.min(100, Math.round((caloriesEaten / targetCalories) * 100));
   const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
-  const waterMl = glassesToMl(waterGlasses);
-  const waterLiters = (waterMl / 1000).toFixed(1);
-  const waterTargetMl = 2000;
-  const waterPercent = Math.min(100, Math.round((waterMl / waterTargetMl) * 100));
+  const waterLiters = (waterGlasses * 0.25).toFixed(1);
+  const waterTarget = 2.0;
+  const waterPercent = Math.min(100, Math.round((parseFloat(waterLiters) / waterTarget) * 100));
 
   const items = [
     {
@@ -65,7 +60,7 @@ export const DailyOverviewWidget = ({
       icon: Droplets,
       label: "Wasser",
       value: `${waterLiters}L`,
-      subtext: `von ${(waterTargetMl / 1000).toFixed(1)}L`,
+      subtext: `von ${waterTarget}L`,
       percent: waterPercent,
       color: waterPercent >= 75 ? "emerald" : "sky",
       isComplete: waterPercent >= 75,

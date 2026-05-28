@@ -626,7 +626,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-[#FFFFFF] flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFFFFF] flex flex-col overflow-x-hidden">
       <div className="fixed inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)] pointer-events-none" />
 
       {/* Main Content */}

@@ -9,6 +9,18 @@ interface ShoppingItem {
   purchased: boolean;
 }
 
+interface PlanIngredient {
+  name?: string;
+}
+
+interface PlanMeal {
+  ingredients?: PlanIngredient[];
+}
+
+interface PlanDay {
+  meals?: PlanMeal[];
+}
+
 export const DashboardShoppingCard = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -35,13 +47,14 @@ export const DashboardShoppingCard = () => {
     // Calculate from meal plan if no saved items
     if (savedPlan) {
       try {
-        const plan = JSON.parse(savedPlan);
+        const plan = JSON.parse(savedPlan) as PlanDay[];
         const ingredientSet = new Set<string>();
         
-        plan.forEach((day: any) => {
-          day.meals?.forEach((meal: any) => {
-            meal.ingredients?.forEach((ing: any) => {
-              ingredientSet.add(ing.name.toLowerCase());
+        plan.forEach((day) => {
+          day.meals?.forEach((meal) => {
+            meal.ingredients?.forEach((ing) => {
+              const ingredientName = ing?.name?.toLowerCase();
+              if (ingredientName) ingredientSet.add(ingredientName);
             });
           });
         });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface AnimatedCounterProps {
   value: number;
@@ -7,9 +7,10 @@ interface AnimatedCounterProps {
 
 export const AnimatedCounter = ({ value, suffix = "" }: AnimatedCounterProps) => {
   const [displayValue, setDisplayValue] = useState(value);
+  const previousValueRef = useRef(value);
   
   useEffect(() => {
-    let start = displayValue;
+    const start = previousValueRef.current;
     const duration = 250;
     const startTime = Date.now();
     
@@ -26,6 +27,7 @@ export const AnimatedCounter = ({ value, suffix = "" }: AnimatedCounterProps) =>
     };
     
     requestAnimationFrame(animate);
+    previousValueRef.current = value;
   }, [value]);
   
   return <span>{displayValue}{suffix}</span>;

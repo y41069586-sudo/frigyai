@@ -67,7 +67,7 @@ const UpdatePasswordPage = () => {
         title: t.success,
         description: "Dein Passwort wurde erfolgreich geändert!",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: t.error,
         description: getPublicErrorMessage(error, "Das Passwort konnte gerade nicht geändert werden. Bitte versuche es erneut."),

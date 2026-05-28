@@ -605,10 +605,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   }, [currentStep]);
 
-  const finishOnboardingExit = () => {
+  const finishOnboardingExit = useCallback(() => {
     saveOnboardingData(userData, { markOnboardingComplete: true });
     onComplete();
-  };
+  }, [onComplete, userData]);
 
   const canAccessDashboard = useCallback(async (): Promise<boolean> => {
     if (consumeReferralSkipPaywall()) return true;
@@ -617,11 +617,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     return isSubscriptionActive(status);
   }, [isPremium, checkSubscription]);
 
-  const goToPaywall = () => {
+  const goToPaywall = useCallback(() => {
     if (onboardingSteps.includes("paywall")) {
       setCurrentStep("paywall");
     }
-  };
+  }, []);
 
   const tryFinishOnboardingWithAccess = useCallback(async () => {
     if (await canAccessDashboard()) {
@@ -629,7 +629,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       return;
     }
     goToPaywall();
-  }, [canAccessDashboard]);
+  }, [canAccessDashboard, finishOnboardingExit, goToPaywall]);
 
   const handlePaywallCheckout = async (plan: PaywallBillingPlan) => {
     lightTap();
@@ -745,7 +745,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const goBack = () => {
     lightTap(); // Haptic feedback on navigation
-    let prevIndex = currentIndex - 1;
+    const prevIndex = currentIndex - 1;
     
     if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
@@ -1008,7 +1008,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </div>
         );
 
-      case "goal":
+      case "goal": {
         const goalOptionsData = [
           { id: "lose", label: t.onboardingLoseWeight, Icon: Flame },
           { id: "maintain", label: t.onboardingMaintainWeight, Icon: Scale },
@@ -1040,11 +1040,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "motivation":
         return <MotivationStep {...stepProps} />;
 
-      case "success-stats":
+      case "success-stats": {
         const stats = [
           { value: 94, suffix: "%", label: t.onboardingReachGoals, color: "bg-primary" },
           { value: 2.5, suffix: "kg", label: t.onboardingAvgWeightLoss, color: "bg-primary/85" },
@@ -1132,6 +1133,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "tutorial-transition":
         return (
@@ -1644,7 +1646,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       case "cooking-time":
         return <CookingTimeStep {...stepProps} />;
 
-      case "cooking-experience":
+      case "cooking-experience": {
         const experienceOptions = [
           { id: 'beginner' as const, label: t.onboardingBeginner, icon: GraduationCap, desc: t.onboardingSimpleRecipes, color: 'from-green-500/20 to-emerald-500/20', iconColor: 'text-green-500' },
           { id: 'intermediate' as const, label: t.onboardingIntermediate, icon: ChefHat, desc: t.onboardingMediumDishes, color: 'from-yellow-500/20 to-orange-500/20', iconColor: 'text-yellow-500' },
@@ -1704,8 +1706,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
-      case "planning-setup":
+      case "planning-setup": {
         const activityLevels = [
           { id: "low", label: t.onboardingChill, icon: Armchair, desc: t.onboardingDeskJob, color: 'text-blue-500', bgColor: 'bg-blue-500/20' },
           { id: "medium", label: t.onboardingActive, icon: Footprints, desc: t.onboardingRegularWorkouts, color: 'text-yellow-500', bgColor: 'bg-yellow-500/20' },
@@ -1762,8 +1765,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
-      case "analyzing":
+      case "analyzing": {
         const analysisSteps = [
           { id: 1, text: t.onboardingAnalyzingGoals, delay: 0 },
           { id: 2, text: t.onboardingProcessingBodyData, delay: 1600 },
@@ -1822,8 +1826,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
-      case "macro-preview":
+      case "macro-preview": {
         const calculatedMacros = calculateMacros(userData);
         const weeksToGoal = calculateWeeksToGoal(userData);
         
@@ -2044,6 +2049,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "fridge-intro":
         return (
@@ -2103,7 +2109,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </StepCard>
         );
 
-      case "scan-feedback":
+      case "scan-feedback": {
         const feedbackReasons = [
           { id: 'not-enough', label: language === 'de' ? 'Zu wenige Zutaten erkannt' : 'Too few ingredients detected' },
           { id: 'wrong-items', label: language === 'de' ? 'Falsche Zutaten erkannt' : 'Wrong ingredients detected' },
@@ -2274,6 +2280,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "how-it-works":
         return (
@@ -2393,7 +2400,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </StepCard>
         );
 
-      case "permissions":
+      case "permissions": {
         const requestCameraPermission = async () => {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -2492,11 +2499,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "notification-prefs":
         return <NotificationPrefsStep {...stepProps} />;
 
-      case "weekly-plan":
+      case "weekly-plan": {
         // Generate personalized meal plan based on user's calculated macros
         const weeklyMacros = calculateMacros(userData);
         const targetCalories = userData.dailyCalories || weeklyMacros.dailyCalories;
@@ -2619,6 +2627,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "comparison":
         return (
@@ -2771,7 +2780,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </StepCard>
         );
 
-      case "transformation":
+      case "transformation": {
         const transformationItems = [
           { label: t.moreEnergyLabel, Icon: Zap, value: "+40%" },
           { label: t.timeSavedLabel, Icon: Clock, value: "15 min" },
@@ -2812,6 +2821,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "tutorial":
         return (
@@ -2907,7 +2917,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </StepCard>
         );
 
-      case "spontan-mode-1":
+      case "spontan-mode-1": {
         // Camera permission step for spontan mode
         const requestCameraPermissionSpontan = async () => {
           try {
@@ -3013,6 +3023,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "spontan-mode-2":
         return (
@@ -3414,7 +3425,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           </StepCard>
         );
 
-      case "save-progress":
+      case "save-progress": {
         const handleAuth = async () => {
           // Validate email and password
           if (!authEmail || !authPassword) {
@@ -3670,6 +3681,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </motion.div>
           </StepCard>
         );
+      }
 
       case "paywall":
         return (
@@ -3680,7 +3692,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           />
         );
 
-      case "premium-hint":
+      case "premium-hint": {
         const premiumFeaturesOnboarding = [
           t.unlimitedScansLabel,
           t.unlimitedMealPlanGen,
@@ -3773,8 +3785,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
-      case "community":
+      case "community": {
         const recipes = [
           { user: "Lisa M.", name: "Avocado Toast 🥑", likes: 234 },
           { user: "Tom K.", name: "Protein Bowl 💪", likes: 189 },
@@ -3816,6 +3829,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             </div>
           </StepCard>
         );
+      }
 
       case "celebration":
         return (

@@ -1165,7 +1165,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     const Icon = currentStepData.icon;
 
     return (
-      <div className="fixed inset-0 z-[70] flex flex-col overflow-y-auto overscroll-contain bg-background px-4 py-6 safe-top safe-bottom max-md-solid-surface">
+      <div className="fixed inset-0 z-[70] flex flex-col overflow-y-auto bg-background px-4 py-6 safe-top safe-bottom">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-2">
           {onboardingSteps.map((_, idx) => (

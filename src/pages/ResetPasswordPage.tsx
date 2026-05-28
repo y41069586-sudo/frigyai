@@ -34,7 +34,7 @@ const ResetPasswordPage = () => {
         title: "E-Mail gesendet!",
         description: "Überprüfe dein Postfach für den Reset-Link.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: t.error,
         description: getPublicErrorMessage(error, "Die Reset-E-Mail konnte gerade nicht gesendet werden. Bitte versuche es erneut."),

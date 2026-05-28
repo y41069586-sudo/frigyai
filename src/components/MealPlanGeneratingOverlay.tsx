@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type GenerationStage = "preparing" | "requesting" | "waiting_ai" | "processing" | "saving" | "finalizing";
@@ -34,7 +34,6 @@ export const MealPlanGeneratingOverlay = ({
   const copy = {
     de: {
       title: "Dein Wochenplan entsteht",
-      elapsed: "Laufzeit",
       stageTitles: {
         preparing: "Deine Ziele werden vorbereitet",
         requesting: "Die Anfrage wird gesendet",
@@ -46,7 +45,6 @@ export const MealPlanGeneratingOverlay = ({
     },
     en: {
       title: "Your weekly plan is coming together",
-      elapsed: "Elapsed",
       stageTitles: {
         preparing: "Preparing your targets",
         requesting: "Sending the request",
@@ -58,7 +56,6 @@ export const MealPlanGeneratingOverlay = ({
     },
     fr: {
       title: "Ton plan hebdomadaire prend forme",
-      elapsed: "Duree",
       stageTitles: {
         preparing: "Preparation de tes objectifs",
         requesting: "Envoi de la demande",
@@ -74,19 +71,18 @@ export const MealPlanGeneratingOverlay = ({
     ? Math.max(0, Math.min(100, Math.round(progressPercent)))
     : Math.max(0, Math.min(96, 8 + elapsedSeconds * 4));
 
-  const motivationalTexts = [
-    t.mealPlanGenerating1,
-    t.mealPlanGenerating2,
-    t.mealPlanGenerating3,
-    t.mealPlanGenerating4,
-    t.mealPlanGenerating5,
-    t.mealPlanGenerating6,
-    t.mealPlanGenerating7,
-  ];
-
-  const formattedElapsed = `${Math.floor(elapsedSeconds / 60)
-    .toString()
-    .padStart(2, "0")}:${(elapsedSeconds % 60).toString().padStart(2, "0")}`;
+  const motivationalTexts = useMemo(
+    () => [
+      t.mealPlanGenerating1,
+      t.mealPlanGenerating2,
+      t.mealPlanGenerating3,
+      t.mealPlanGenerating4,
+      t.mealPlanGenerating5,
+      t.mealPlanGenerating6,
+      t.mealPlanGenerating7,
+    ],
+    [t],
+  );
 
   const showOverlay = isGenerating && (!isMinimized || locked);
 
@@ -101,9 +97,9 @@ export const MealPlanGeneratingOverlay = ({
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [isGenerating]);
+  }, [isGenerating, motivationalTexts.length]);
 
-  const handleBackgroundTap = (e: any) => {
+  const handleBackgroundTap = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (!onMinimize) return;
 
     const target = e?.target as HTMLElement | null;
@@ -240,13 +236,11 @@ export const MealPlanGeneratingOverlay = ({
                 <div className="relative flex h-24 w-24 items-center justify-center">
                   <div className="absolute inset-0 rounded-full border border-emerald-100 bg-emerald-50/60" />
                   <div className="absolute inset-[9px] rounded-full border-[3px] border-emerald-100 border-t-[#39D47F] animate-spin" />
-                  <div className="relative text-center">
-                    <div className="text-[28px] font-black leading-none tracking-[-0.06em] text-slate-950">
+                  <div className="relative flex h-full w-full items-center justify-center">
+                    <span className="inline-flex items-center text-[30px] font-black leading-none tracking-[-0.04em] text-slate-950 tabular-nums">
                       {effectiveProgress}
-                    </div>
-                    <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      %
-                    </div>
+                      <span className="ml-0.5 text-[18px] font-extrabold leading-none text-slate-500">%</span>
+                    </span>
                   </div>
                 </div>
 
@@ -269,7 +263,7 @@ export const MealPlanGeneratingOverlay = ({
                 </motion.div>
               </div>
 
-              <div className="mt-5 flex items-center justify-between gap-3">
+              <div className="mt-5">
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={currentTextIndex}
@@ -277,14 +271,11 @@ export const MealPlanGeneratingOverlay = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="min-h-[2.5rem] flex-1 text-left text-sm font-medium text-slate-600"
+                    className="min-h-[2.5rem] text-left text-sm font-medium text-slate-600"
                   >
                     {motivationalTexts[currentTextIndex]}
                   </motion.p>
                 </AnimatePresence>
-                <div className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                  {currentCopy.elapsed} {formattedElapsed}
-                </div>
               </div>
             </motion.div>
 

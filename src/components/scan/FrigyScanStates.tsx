@@ -29,27 +29,22 @@ export function FrigyScanAnalyzingStage({
     >
       <style>{`
         @keyframes frigy-scan-line-move {
-          0% { transform: translateY(12%); opacity: 0.55; }
-          50% { transform: translateY(320%); opacity: 1; }
-          100% { transform: translateY(12%); opacity: 0.55; }
+          0% { top: 12%; opacity: 0.55; }
+          50% { top: 82%; opacity: 1; }
+          100% { top: 12%; opacity: 0.55; }
         }
         @keyframes frigy-scan-sweep-move {
-          0% { transform: translateY(-30%); opacity: 0.2; }
-          50% { transform: translateY(120%); opacity: 0.45; }
-          100% { transform: translateY(-30%); opacity: 0.2; }
+          0% { top: -30%; opacity: 0.2; }
+          50% { top: 70%; opacity: 0.45; }
+          100% { top: -30%; opacity: 0.2; }
         }
         .frigy-scan-line {
-          top: 12%;
           animation: frigy-scan-line-move 2.2s ease-in-out infinite;
-          will-change: transform, opacity;
+          will-change: top, opacity;
         }
         .frigy-scan-sweep {
-          top: 0;
           animation: frigy-scan-sweep-move 2.4s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .frigy-scan-line, .frigy-scan-sweep { animation: none; opacity: 0.6; }
+          will-change: top, opacity;
         }
       `}</style>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(117,251,178,0.18),transparent_28%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_45%,#EEF9F2_100%)]" />

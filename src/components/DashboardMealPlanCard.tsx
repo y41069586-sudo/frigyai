@@ -10,7 +10,7 @@ interface Meal {
   protein?: number;
   carbs?: number;
   fat?: number;
-  ingredients?: any[];
+  ingredients?: unknown[];
   prepTime?: number;
 }
 

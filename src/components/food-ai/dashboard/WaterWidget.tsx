@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Droplet } from "lucide-react";
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { dashboardWidgetBorder } from "./dashboardStyles";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
@@ -28,7 +27,7 @@ export const WaterWidget = memo(function WaterWidget({
   onToggleExpand,
 }: WaterWidgetProps) {
   const { language } = useLanguage();
-  const safeGoalMl = Math.max(ML_PER_GLASS, goalMl);
+  const safeGoalMl = Math.min(goalMl, 2000);
   const currentMl = waterGlasses * ML_PER_GLASS;
   const goalLiters = safeGoalMl / 1000;
   const litersText = (currentMl / 1000).toFixed(2);
@@ -57,14 +56,13 @@ export const WaterWidget = memo(function WaterWidget({
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.22, delay: Math.min(delay, 0.08), ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onToggleExpand}
       className={cn(
-        "relative min-h-[158px] min-[360px]:min-h-[172px] sm:min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
-        dashboardWidgetBorder,
-        "bg-gradient-to-br from-sky-50/90 via-white to-sky-100/50",
+        "relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
+        "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
         "touch-manipulation",
       )}
     >
