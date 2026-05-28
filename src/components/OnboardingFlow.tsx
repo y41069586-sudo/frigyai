@@ -726,6 +726,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       nextIndex++; // Skip to next step after scan-feedback
     }
 
+    // For maintain goal we do not ask weekly weight-change pace.
+    if (onboardingSteps[nextIndex] === "speed-select" && userData.goalMode === "maintain") {
+      nextIndex++;
+    }
+
     if (currentStep === "macro-preview") {
       setAuthMode("signup");
       if (user) {
@@ -745,7 +750,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const goBack = () => {
     lightTap(); // Haptic feedback on navigation
-    const prevIndex = currentIndex - 1;
+    let prevIndex = currentIndex - 1;
+
+    if (onboardingSteps[prevIndex] === "speed-select" && userData.goalMode === "maintain") {
+      prevIndex--;
+    }
     
     if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
