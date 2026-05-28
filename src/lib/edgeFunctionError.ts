@@ -6,8 +6,8 @@ export async function getEdgeFunctionErrorMessage(
   error: unknown,
   data?: { error?: string; message?: string } | null,
 ): Promise<string> {
-  if (data?.error) return data.error;
   if (data?.message) return data.message;
+  if (data?.error) return data.error;
 
   if (error instanceof Error && error.message && !error.message.includes("non-2xx")) {
     return error.message;
@@ -20,8 +20,8 @@ export async function getEdgeFunctionErrorMessage(
       if (text) {
         try {
           const parsed = JSON.parse(text) as { error?: string; message?: string };
-          if (parsed.error) return parsed.error;
           if (parsed.message) return parsed.message;
+          if (parsed.error) return parsed.error;
         } catch {
           if (text.length < 300) return text;
         }

@@ -10,9 +10,7 @@ declare const Deno: {
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 const OPENAI_ATTEMPTS = [
-  { name: "primary", maxTokens: 9000, maxIngredients: 5 },
-  { name: "fallback", maxTokens: 7600, maxIngredients: 4 },
-  { name: "compact", maxTokens: 6200, maxIngredients: 3 },
+  { name: "primary", maxTokens: 5600, maxIngredients: 4 },
 ] as const;
 type SupportedLanguage = "de" | "en" | "fr";
 
@@ -799,6 +797,76 @@ function parseOpenAIJsonPayload(content: string): { mealPlan?: unknown } {
   }
 }
 
+function shouldRetryOpenAIAttempt(message: string): boolean {
+  return (
+    message.includes("OpenAI response truncated") ||
+    message.includes("Incomplete meal plan") ||
+    message.includes("Invalid JSON from OpenAI") ||
+    message.includes("No response from OpenAI") ||
+    message.includes("Empty meal plan")
+  );
+}
+
+function createFallbackWeeklyMealPlan(params: {
+  mealsPerDay: number;
+  macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
+  dietaryPreferences: string[];
+  language: SupportedLanguage;
+}) {
+  const config = LANGUAGE_CONFIG[params.language];
+  const lowCarbMode = params.dietaryPreferences.includes("keto") || params.dietaryPreferences.includes("low-carb");
+  const paleoMode = params.dietaryPreferences.includes("paleo");
+  const veganMode = params.dietaryPreferences.includes("vegan");
+  const vegetarianMode = params.dietaryPreferences.includes("vegetarian");
+
+  const breakfastName =
+    params.language === "en" ? "Protein breakfast bowl" : params.language === "fr" ? "Bol petit-dejeuner proteine" : "Protein Frühstücks-Bowl";
+  const mainName =
+    params.language === "en" ? "Balanced power plate" : params.language === "fr" ? "Assiette equilibree power" : "Ausgewogener Power-Teller";
+  const snackName =
+    params.language === "en" ? "Quick protein snack" : params.language === "fr" ? "Snack proteine rapide" : "Schneller Protein-Snack";
+
+  const proteinIngredient =
+    veganMode || vegetarianMode || paleoMode || lowCarbMode ? "Tofu" : "Hähnchenbrust";
+  const carbIngredient = lowCarbMode || paleoMode ? "Blumenkohlreis" : "Reis";
+  const extraIngredient = lowCarbMode || paleoMode ? "Avocado" : "Banane";
+
+  const dayTemplate = Array.from({ length: params.mealsPerDay }, (_, index) => {
+    const type =
+      index === 0
+        ? "Frühstück"
+        : index === 1 || (params.mealsPerDay >= 5 && index === 3)
+          ? "Hauptmahlzeit"
+          : "Snack";
+    const baseName = type === "Frühstück" ? breakfastName : type === "Hauptmahlzeit" ? mainName : snackName;
+    return normalizeMeal({
+      type,
+      name: `${baseName} ${index + 1}`,
+      prepTime: type === "Hauptmahlzeit" ? 25 : 10,
+      ingredients: [
+        { name: proteinIngredient, amount: "1 Portion", price: 2.2 },
+        { name: "Gemüse-Mix", amount: "1 Portion", price: 1.8 },
+        { name: carbIngredient, amount: "1 Portion", price: 1.2 },
+        { name: extraIngredient, amount: "1 Portion", price: 1.1 },
+        { name: "Olivenöl", amount: "1 EL", price: 0.4 },
+      ],
+      instructions: [
+        "Zutaten vorbereiten und klein schneiden.",
+        "Kurz anbraten oder garen bis alles durch ist.",
+        "Mit Gewürzen abschmecken und servieren.",
+      ],
+      protein: Math.max(8, Math.round(params.macroTargets.dailyProtein / params.mealsPerDay)),
+      carbs: Math.max(8, Math.round(params.macroTargets.dailyCarbs / params.mealsPerDay)),
+      fat: Math.max(6, Math.round(params.macroTargets.dailyFat / params.mealsPerDay)),
+    });
+  });
+
+  return Array.from({ length: 7 }, (_, dayIndex) => ({
+    day: config.dayNames[dayIndex] || `${config.dayFallback} ${dayIndex + 1}`,
+    meals: dayTemplate.map((meal) => ({ ...meal })),
+  }));
+}
+
 async function requestMealPlanFromOpenAI(params: {
   mealsPerDay: number;
   macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
@@ -888,13 +956,43 @@ async function requestMealPlanFromOpenAI(params: {
       const message = error instanceof Error ? error.message : String(error);
       lastError = new Error(message);
       console.warn(`[MEAL-PLAN-EDGE] ${attempt.name} attempt failed: ${message}`);
+      if (!shouldRetryOpenAIAttempt(message)) {
+        break;
+      }
     }
   }
 
   throw lastError ?? new Error("Meal plan generation failed");
 }
 
-async function resolvePremium(supabase: any, userId: string, email?: string | null): Promise<boolean> {
+async function fetchLiveSubscriptionStatus(authHeader: string): Promise<boolean | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  if (!supabaseUrl) return null;
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/check-subscription`, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { subscribed?: unknown; subscription_end?: unknown };
+    if (data?.subscribed !== true) return false;
+    const subscriptionEnd = typeof data.subscription_end === "string" ? data.subscription_end : null;
+    return !subscriptionEnd || new Date(subscriptionEnd) > new Date();
+  } catch {
+    return null;
+  }
+}
+
+async function resolvePremium(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  email: string | null | undefined,
+  authHeader: string,
+): Promise<boolean> {
   const { data: cacheData } = await supabase
     .from("subscription_cache")
     .select("subscribed, subscription_end")
@@ -911,6 +1009,9 @@ async function resolvePremium(supabase: any, userId: string, email?: string | nu
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
   if (email && bypassList.includes(email.toLowerCase())) return true;
+
+  const liveSubscribed = await fetchLiveSubscriptionStatus(authHeader);
+  if (liveSubscribed === true) return true;
   return false;
 }
 
@@ -945,7 +1046,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = userData.user.id;
-    const isPremium = await resolvePremium(supabase, userId, userData.user.email);
+    const isPremium = await resolvePremium(supabase, userId, userData.user.email, authHeader);
     if (!isPremium) {
       return new Response(JSON.stringify({ error: "premium_required", message: "Premium erforderlich." }), {
         status: 403,
@@ -999,7 +1100,7 @@ Deno.serve(async (req) => {
     if (!OPENAI_API_KEY) {
       return new Response(
         JSON.stringify({
-          error: "OPENAI_API_KEY fehlt auf der Edge Function.",
+          error: "openai_key_missing",
           message: "Die KI-Wochenplanfunktion ist aktuell nicht konfiguriert.",
         }),
         {
@@ -1022,17 +1123,29 @@ Deno.serve(async (req) => {
             ? "\n\nNo fridge scan available: still create a complete weekly plan with suitable ingredients. The shopping list should then contain everything needed until a fridge scan subtracts what is already available."
             : "\n\nKein Kühlschrankscan vorhanden: Erstelle trotzdem einen vollständigen Wochenplan frei aus passenden Zutaten. Die Einkaufsliste enthält danach alle benötigten Zutaten, bis ein Kühlschrankscan vorhandene Zutaten abzieht.";
 
-    const aiMealPlan = await requestMealPlanFromOpenAI({
-      mealsPerDay,
-      macroTargets,
-      constraintPrompt,
-      dietaryPreferences,
-      fridgeHint,
-      isRegeneration,
-      varietySeed,
-      previousMealNames,
-      language,
-    });
+    let aiMealPlan: any[];
+    try {
+      aiMealPlan = await requestMealPlanFromOpenAI({
+        mealsPerDay,
+        macroTargets,
+        constraintPrompt,
+        dietaryPreferences,
+        fridgeHint,
+        isRegeneration,
+        varietySeed,
+        previousMealNames,
+        language,
+      });
+    } catch (openAiError) {
+      const reason = openAiError instanceof Error ? openAiError.message : String(openAiError);
+      console.warn(`[MEAL-PLAN-EDGE] Falling back to safe template meal plan: ${reason}`);
+      aiMealPlan = createFallbackWeeklyMealPlan({
+        mealsPerDay,
+        macroTargets,
+        dietaryPreferences,
+        language,
+      });
+    }
 
     const normalizedMealPlan = syncMealPlanToTargets(aiMealPlan, macroTargets);
     validateMealPlanNutrition(normalizedMealPlan, macroTargets);
@@ -1083,17 +1196,20 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : String(error);
-    const message =
+    const isAiInvalidResponse =
       rawMessage.includes("OpenAI response truncated") ||
       rawMessage.includes("Incomplete meal plan") ||
       rawMessage.includes("Invalid JSON from OpenAI") ||
       rawMessage.includes("No response from OpenAI") ||
-      rawMessage.includes("Empty meal plan")
-        ? "Die Wochenplan-KI konnte keinen vollständigen Plan liefern."
-        : rawMessage;
+      rawMessage.includes("Empty meal plan");
+    const errorCode = isAiInvalidResponse ? "ai_invalid_response" : "meal_plan_generation_failed";
+    const message = isAiInvalidResponse
+      ? "Die Wochenplan-KI konnte keinen vollständigen Plan liefern."
+      : rawMessage;
     return new Response(
       JSON.stringify({
-        error: message,
+        error: errorCode,
+        message,
       }),
       {
         status: 500,
