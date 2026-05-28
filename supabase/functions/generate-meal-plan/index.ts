@@ -10,7 +10,9 @@ declare const Deno: {
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 const OPENAI_ATTEMPTS = [
-  { name: "primary", maxTokens: 5600, maxIngredients: 4 },
+  { name: "primary", maxTokens: 7200, maxIngredients: 5 },
+  { name: "compact", maxTokens: 5800, maxIngredients: 4 },
+  { name: "minimal", maxTokens: 4800, maxIngredients: 3 },
 ] as const;
 type SupportedLanguage = "de" | "en" | "fr";
 
@@ -474,7 +476,7 @@ function inferMealType(name: string, type: string): "breakfast" | "main" | "snac
   return "snack";
 }
 
-function validateMealPlausibility(
+function validateMealKcalDistribution(
   mealPlan: any[],
   targets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number },
   mealsPerDay: number,
@@ -485,41 +487,42 @@ function validateMealPlausibility(
     for (const [mealIdx, meal] of (day.meals || []).entries()) {
       const name = String(meal?.name || "Gericht");
       const type = String(meal?.type || "Mahlzeit");
-      const p = Math.max(0, Number(meal?.protein) || 0);
-      const c = Math.max(0, Number(meal?.carbs) || 0);
-      const f = Math.max(0, Number(meal?.fat) || 0);
       const kcal = Math.max(0, Number(meal?.calories) || 0);
-      const macroKcalValue = macroKcal(p, c, f);
       const inferred = inferMealType(name, type);
 
       const minKcal =
         inferred === "main"
-          ? Math.max(260, Math.round(avgMealKcal * 0.65))
+          ? Math.max(220, Math.round(avgMealKcal * 0.5))
           : inferred === "breakfast"
-            ? Math.max(180, Math.round(avgMealKcal * 0.45))
-            : Math.max(140, Math.round(avgMealKcal * 0.35));
+            ? Math.max(150, Math.round(avgMealKcal * 0.35))
+            : Math.max(100, Math.round(avgMealKcal * 0.25));
       const maxKcal =
         inferred === "main"
-          ? Math.min(1250, Math.round(avgMealKcal * 1.95))
+          ? Math.min(1400, Math.round(avgMealKcal * 2.1))
           : inferred === "breakfast"
-            ? Math.min(900, Math.round(avgMealKcal * 1.45))
-            : Math.min(700, Math.round(avgMealKcal * 1.2));
+            ? Math.min(1000, Math.round(avgMealKcal * 1.55))
+            : Math.min(800, Math.round(avgMealKcal * 1.25));
 
       if (kcal < minKcal || kcal > maxKcal) {
         throw new Error(`Unplausible meal kcal on day ${dayIdx + 1}, meal ${mealIdx + 1}: ${name}`);
       }
+    }
+  }
+}
 
-      if (macroKcalValue <= 0) {
-        throw new Error(`Invalid macro values on day ${dayIdx + 1}, meal ${mealIdx + 1}: ${name}`);
+function enforceUniqueMealNames(mealPlan: any[]) {
+  const used = new Set<string>();
+  for (const day of mealPlan) {
+    for (const meal of day.meals || []) {
+      const base = String(meal?.name || "Gericht").trim() || "Gericht";
+      let candidate = base;
+      let suffix = 2;
+      while (used.has(candidate.toLowerCase())) {
+        candidate = `${base} (${suffix})`;
+        suffix += 1;
       }
-
-      const proteinShare = (p * 4) / macroKcalValue;
-      const carbsShare = (c * 4) / macroKcalValue;
-      const fatShare = (f * 9) / macroKcalValue;
-
-      if (proteinShare > 0.62 || carbsShare > 0.82 || fatShare > 0.72) {
-        throw new Error(`Macro split unrealistic on day ${dayIdx + 1}, meal ${mealIdx + 1}: ${name}`);
-      }
+      used.add(candidate.toLowerCase());
+      meal.name = candidate;
     }
   }
 }
@@ -807,6 +810,51 @@ function shouldRetryOpenAIAttempt(message: string): boolean {
   );
 }
 
+function pickUniqueMealName(pool: string[], globalIndex: number, usedNames: Set<string>): string {
+  for (let offset = 0; offset < pool.length; offset++) {
+    const candidate = pool[(globalIndex + offset) % pool.length];
+    const key = candidate.toLowerCase();
+    if (!usedNames.has(key)) {
+      usedNames.add(key);
+      return candidate;
+    }
+  }
+  const fallback = pool[globalIndex % pool.length];
+  let suffix = 2;
+  let unique = `${fallback} ${suffix}`;
+  while (usedNames.has(unique.toLowerCase())) {
+    suffix += 1;
+    unique = `${fallback} ${suffix}`;
+  }
+  usedNames.add(unique.toLowerCase());
+  return unique;
+}
+
+function finalizeMealPlan(
+  rawMealPlan: any[],
+  macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number },
+  mealsPerDay: number,
+) {
+  const synced = syncMealPlanToTargets(rawMealPlan, macroTargets);
+  validateMealPlanNutrition(synced, macroTargets);
+  validateMealKcalDistribution(synced, macroTargets, mealsPerDay);
+  enforceUniqueMealNames(synced);
+  return synced;
+}
+
+function getMealSlotWeights(mealsPerDay: number): number[] {
+  const presets: Record<number, number[]> = {
+    2: [0.42, 0.58],
+    3: [0.28, 0.44, 0.28],
+    4: [0.24, 0.38, 0.14, 0.24],
+    5: [0.22, 0.32, 0.12, 0.26, 0.08],
+    6: [0.2, 0.28, 0.1, 0.24, 0.1, 0.08],
+  };
+  if (presets[mealsPerDay]) return presets[mealsPerDay];
+  const even = 1 / Math.max(1, mealsPerDay);
+  return Array.from({ length: mealsPerDay }, () => even);
+}
+
 function createFallbackWeeklyMealPlan(params: {
   mealsPerDay: number;
   macroTargets: { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
@@ -818,50 +866,84 @@ function createFallbackWeeklyMealPlan(params: {
   const paleoMode = params.dietaryPreferences.includes("paleo");
   const veganMode = params.dietaryPreferences.includes("vegan");
   const vegetarianMode = params.dietaryPreferences.includes("vegetarian");
-  const mealTypeForSlot = (slotIndex: number): "Frühstück" | "Hauptmahlzeit" | "Snack" =>
-    slotIndex === 0 ? "Frühstück" : slotIndex === 1 || (params.mealsPerDay >= 5 && slotIndex === 3) ? "Hauptmahlzeit" : "Snack";
+  const slotWeights = getMealSlotWeights(params.mealsPerDay);
+  const mealTypeForSlot = (slotIndex: number): "Frühstück" | "Hauptmahlzeit" | "Snack" => {
+    if (slotIndex === 0) return "Frühstück";
+    const mainSlots = params.mealsPerDay >= 4 ? [1, 3] : [1];
+    if (mainSlots.includes(slotIndex) || (params.mealsPerDay === 3 && slotIndex === 1)) return "Hauptmahlzeit";
+    return "Snack";
+  };
 
   const breakfastNames =
     params.language === "en"
-      ? ["Oatmeal with berries", "Greek yogurt bowl", "Scrambled eggs with toast", "Banana peanut oats"]
+      ? ["Oatmeal with berries", "Greek yogurt bowl", "Scrambled eggs with toast", "Banana peanut oats", "Cottage cheese pancakes", "Avocado toast", "Berry smoothie bowl"]
       : params.language === "fr"
-        ? ["Porridge aux baies", "Bol de yaourt grec", "Oeufs brouilles et pain", "Flocons avoine banane"]
-        : ["Haferflocken mit Beeren", "Skyr mit Obst", "Rührei mit Vollkornbrot", "Joghurt mit Banane und Nüssen"];
+        ? ["Porridge aux baies", "Bol de yaourt grec", "Oeufs brouilles et pain", "Flocons avoine banane", "Pancakes au fromage blanc", "Toast avocat", "Bol smoothie fruits"]
+        : [
+          "Haferflocken mit Beeren", "Skyr mit Obst", "Rührei mit Vollkornbrot", "Joghurt mit Banane",
+          "Hüttenkäse-Pancakes", "Avocado-Toast", "Beeren-Müsli", "Vollkornbrot mit Käse",
+          "Overnight Oats", "Spinat-Omelett", "Quark mit Nüssen", "Bircher Müsli",
+          "French Toast", "Tomaten-Brot mit Mozzarella", "Protein-Porridge",
+        ];
   const mainNames =
     params.language === "en"
-      ? ["Chicken rice pan", "Salmon with potatoes", "Turkey vegetable bowl", "Pasta with tomato sauce"]
+      ? ["Chicken rice pan", "Salmon with potatoes", "Turkey vegetable bowl", "Pasta with tomato sauce", "Beef stir fry", "Tuna quinoa salad", "Lentil curry bowl"]
       : params.language === "fr"
-        ? ["Poelee poulet riz", "Saumon avec pommes de terre", "Bol dinde legumes", "Pates sauce tomate"]
-        : ["Hähnchen-Reis-Pfanne", "Lachs mit Kartoffeln", "Puten-Gemüse-Bowl", "Pasta mit Tomatensauce"];
+        ? ["Poelee poulet riz", "Saumon pommes de terre", "Bol dinde legumes", "Pates sauce tomate", "Sauté de boeuf", "Salade thon quinoa", "Curry de lentilles"]
+        : [
+          "Hähnchen-Reis-Pfanne", "Lachs mit Kartoffeln", "Puten-Gemüse-Bowl", "Pasta mit Tomatensauce",
+          "Rindfleisch-Gemüse-Pfanne", "Thunfisch-Quinoa-Salat", "Linsen-Curry", "Ofenkartoffel mit Hüttenkäse",
+          "Gnocchi mit Spinat", "Gebratener Reis mit Ei", "Kichererbsen-Bowl", "Zucchini-Nudeln mit Pesto",
+          "Hackfleisch-Bolognese", "Fischfilet im Ofen", "Bulgur-Salat mit Feta", "Chili sin Carne",
+        ];
   const snackNames =
     params.language === "en"
-      ? ["Apple with nuts", "Cottage cheese snack", "Whole grain sandwich", "Fruit and yogurt"]
+      ? ["Apple with nuts", "Cottage cheese snack", "Whole grain sandwich", "Fruit and yogurt", "Protein bar", "Hummus with veggies", "Rice cakes with peanut butter"]
       : params.language === "fr"
-        ? ["Pomme et noix", "Snack fromage blanc", "Sandwich complet", "Fruit et yaourt"]
-        : ["Apfel mit Nüssen", "Hüttenkäse-Snack", "Vollkornbrot-Snack", "Obst mit Joghurt"];
+        ? ["Pomme et noix", "Snack fromage blanc", "Sandwich complet", "Fruit et yaourt", "Barre proteinee", "Houmous legumes", "Galettes de riz beurre cacahuete"]
+        : [
+          "Apfel mit Nüssen", "Hüttenkäse-Snack", "Vollkornbrot mit Aufstrich", "Obst mit Joghurt",
+          "Protein-Riegel", "Hummus mit Gemüse", "Reiswaffeln mit Erdnussbutter", "Karotten mit Dip",
+          "Skyr mit Beeren", "Nuss-Mix", "Käse-Sticks", "Tomaten-Mozzarella-Snack",
+        ];
 
-  const proteinIngredient = veganMode ? "Tofu" : vegetarianMode ? "Eier" : paleoMode || lowCarbMode ? "Hähnchenbrust" : "Hähnchenbrust";
-  const carbIngredient = lowCarbMode || paleoMode ? "Blumenkohlreis" : "Reis";
-  const extraIngredient = lowCarbMode || paleoMode ? "Avocado" : "Banane";
+  const proteinOptions = veganMode
+    ? ["Tofu", "Tempeh", "Linsen", "Kichererbsen"]
+    : vegetarianMode
+      ? ["Eier", "Skyr", "Feta", "Linsen"]
+      : paleoMode || lowCarbMode
+        ? ["Hähnchenbrust", "Lachs", "Putenbrust", "Rindfleisch"]
+        : ["Hähnchenbrust", "Lachs", "Putenbrust", "Rinderhack"];
+  const carbOptions = lowCarbMode || paleoMode
+    ? ["Blumenkohlreis", "Süßkartoffel", "Zucchini-Nudeln", "Quinoa"]
+    : ["Vollkornreis", "Vollkornnudeln", "Kartoffeln", "Vollkornbrot"];
+  const vegOptions = ["Brokkoli", "Paprika", "Spinat", "Zucchini", "Tomaten", "Karotten"];
+  const extraOptions = lowCarbMode || paleoMode
+    ? ["Avocado", "Olivenöl", "Nüsse", "Oliven"]
+    : ["Banane", "Beeren", "Apfel", "Joghurt"];
 
-  const proteinPerMeal = Math.max(8, Math.round(params.macroTargets.dailyProtein / params.mealsPerDay));
-  const carbsPerMeal = Math.max(8, Math.round(params.macroTargets.dailyCarbs / params.mealsPerDay));
-  const fatPerMeal = Math.max(6, Math.round(params.macroTargets.dailyFat / params.mealsPerDay));
+  const targets = harmonizeDailyTargets(params.macroTargets);
+  const usedNames = new Set<string>();
 
   return Array.from({ length: 7 }, (_, dayIndex) => {
     const meals = Array.from({ length: params.mealsPerDay }, (_, slotIndex) => {
       const type = mealTypeForSlot(slotIndex);
       const pool = type === "Frühstück" ? breakfastNames : type === "Hauptmahlzeit" ? mainNames : snackNames;
-      const baseName = pool[(dayIndex + slotIndex) % pool.length];
+      const globalIndex = dayIndex * params.mealsPerDay + slotIndex;
+      const baseName = pickUniqueMealName(pool, globalIndex, usedNames);
+      const weight = slotWeights[slotIndex] ?? 1 / params.mealsPerDay;
+      const jitter = ((dayIndex + slotIndex) % 3) * 0.02 - 0.02;
+      const share = Math.max(0.06, weight + jitter);
+
       return normalizeMeal({
         type,
         name: baseName,
         prepTime: type === "Hauptmahlzeit" ? 25 : 10,
         ingredients: [
-          { name: proteinIngredient, amount: "1 Portion", price: 2.2 },
-          { name: "Gemüse-Mix", amount: "1 Portion", price: 1.8 },
-          { name: carbIngredient, amount: "1 Portion", price: 1.2 },
-          { name: extraIngredient, amount: "1 Portion", price: 1.1 },
+          { name: proteinOptions[(dayIndex + slotIndex) % proteinOptions.length], amount: "1 Portion", price: 2.2 },
+          { name: vegOptions[(dayIndex + slotIndex + 1) % vegOptions.length], amount: "1 Portion", price: 1.5 },
+          { name: carbOptions[(dayIndex + slotIndex + 2) % carbOptions.length], amount: "1 Portion", price: 1.2 },
+          { name: extraOptions[(dayIndex + slotIndex + 3) % extraOptions.length], amount: "1 Portion", price: 1.0 },
           { name: "Olivenöl", amount: "1 EL", price: 0.4 },
         ],
         instructions: [
@@ -869,9 +951,9 @@ function createFallbackWeeklyMealPlan(params: {
           "Kurz anbraten oder garen bis alles durch ist.",
           "Mit Gewürzen abschmecken und servieren.",
         ],
-        protein: proteinPerMeal,
-        carbs: carbsPerMeal,
-        fat: fatPerMeal,
+        protein: Math.max(4, Math.round(targets.dailyProtein * share)),
+        carbs: Math.max(4, Math.round(targets.dailyCarbs * share)),
+        fat: Math.max(3, Math.round(targets.dailyFat * share)),
       });
     });
     return {
@@ -964,7 +1046,6 @@ async function requestMealPlanFromOpenAI(params: {
       }));
 
       validateMealPlanShape(normalizedMealPlan, params.mealsPerDay);
-      validateMealPlausibility(normalizedMealPlan, params.macroTargets, params.mealsPerDay);
       return normalizedMealPlan;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1137,9 +1218,9 @@ Deno.serve(async (req) => {
             ? "\n\nNo fridge scan available: still create a complete weekly plan with suitable ingredients. The shopping list should then contain everything needed until a fridge scan subtracts what is already available."
             : "\n\nKein Kühlschrankscan vorhanden: Erstelle trotzdem einen vollständigen Wochenplan frei aus passenden Zutaten. Die Einkaufsliste enthält danach alle benötigten Zutaten, bis ein Kühlschrankscan vorhandene Zutaten abzieht.";
 
-    let aiMealPlan: any[];
+    let normalizedMealPlan: any[];
     try {
-      aiMealPlan = await requestMealPlanFromOpenAI({
+      const aiMealPlan = await requestMealPlanFromOpenAI({
         mealsPerDay,
         macroTargets,
         constraintPrompt,
@@ -1150,20 +1231,18 @@ Deno.serve(async (req) => {
         previousMealNames,
         language,
       });
+      normalizedMealPlan = finalizeMealPlan(aiMealPlan, macroTargets, mealsPerDay);
     } catch (openAiError) {
       const reason = openAiError instanceof Error ? openAiError.message : String(openAiError);
-      console.warn(`[MEAL-PLAN-EDGE] Falling back to safe template meal plan: ${reason}`);
-      aiMealPlan = createFallbackWeeklyMealPlan({
+      console.warn(`[MEAL-PLAN-EDGE] OpenAI/finalize failed, using template plan: ${reason}`);
+      const fallbackPlan = createFallbackWeeklyMealPlan({
         mealsPerDay,
         macroTargets,
         dietaryPreferences,
         language,
       });
+      normalizedMealPlan = finalizeMealPlan(fallbackPlan, macroTargets, mealsPerDay);
     }
-
-    const normalizedMealPlan = syncMealPlanToTargets(aiMealPlan, macroTargets);
-    validateMealPlanNutrition(normalizedMealPlan, macroTargets);
-    validateMealPlausibility(normalizedMealPlan, macroTargets, mealsPerDay);
     const unsafeMeals = findSafetyViolations(normalizedMealPlan, allergies, dietaryPreferences, allergiesOther);
     if (unsafeMeals.length > 0) {
       throw new Error(`Allergy safety validation failed: ${unsafeMeals.slice(0, 5).join("; ")}`);

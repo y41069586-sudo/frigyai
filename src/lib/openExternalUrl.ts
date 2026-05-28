@@ -16,6 +16,16 @@ export async function openExternalUrl(url: string): Promise<void> {
     } catch (err) {
       console.warn("[openExternalUrl] Capacitor Browser failed, fallback:", err);
     }
+
+    try {
+      const opened = window.open(target, "_blank", "noopener,noreferrer");
+      if (opened) return;
+    } catch (err) {
+      console.warn("[openExternalUrl] window.open failed:", err);
+    }
+
+    window.location.assign(target);
+    return;
   }
 
   window.location.assign(target);

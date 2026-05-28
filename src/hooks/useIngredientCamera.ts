@@ -77,7 +77,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
         };
         video.addEventListener("loadeddata", done);
         video.addEventListener("playing", done);
-        window.setTimeout(resolve, 2000);
+        window.setTimeout(resolve, 450);
       });
       const ok = video.videoWidth > 0;
       if (ok) {
@@ -154,7 +154,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
 
     if (!window.isSecureContext) {
       setStatus("fallback");
-      setErrorMessage("Kamera braucht localhost/HTTPS — starte mit npm run dev und öffne http://localhost:5173");
+      setErrorMessage("Kamera braucht localhost/HTTPS — starte mit npm run dev und öffne http://localhost:8080");
       return;
     }
 
@@ -172,7 +172,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
         setStatus("fallback");
         setErrorMessage("Kamera startet zu lange — nutze Galerie oder einen anderen Browser.");
       }
-    }, 8000);
+    }, 5500);
 
     try {
       const stream = await requestVideoStream();
@@ -185,11 +185,11 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
       streamRef.current = stream;
 
       let attached = false;
-      for (let attempt = 0; attempt < 40 && !attached; attempt += 1) {
+      for (let attempt = 0; attempt < 12 && !attached; attempt += 1) {
         if (generation !== generationRef.current) return;
         attached = await attachStreamToVideo();
         if (!attached) {
-          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+          await new Promise<void>((r) => window.setTimeout(r, 40));
         }
       }
 
@@ -230,30 +230,28 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
 
   const capturePhoto = useCallback(async (): Promise<File | null> => {
     const video = videoElRef.current;
-    if (!video || !previewReady || video.videoWidth < 1) return null;
+    if (!video || video.videoWidth < 1) return null;
+
+    const maxEdge = 1280;
+    const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
+    const width = Math.round(video.videoWidth * scale);
+    const height = Math.round(video.videoHeight * scale);
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, 0, 0, width, height);
 
-    return new Promise<File | null>((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(null);
-            return;
-          }
-          resolve(new File([blob], `frigy-scan-${Date.now()}.jpg`, { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        0.9,
-      );
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((result) => resolve(result), "image/jpeg", 0.82);
     });
-  }, [previewReady]);
+    if (!blob) return null;
+
+    return new File([blob], `frigy-scan-${Date.now()}.jpg`, { type: "image/jpeg" });
+  }, []);
 
   return {
     setVideoRef,

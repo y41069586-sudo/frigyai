@@ -29,7 +29,7 @@ import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
-import { isSubscriptionActive } from "@/lib/subscription";
+import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
 
 import { 
   OnboardingStep, UserData, defaultUserData, onboardingSteps,
@@ -58,7 +58,6 @@ import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep
 import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
 import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
-import { HealthConnectStep } from "./onboarding/components/HealthConnectStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
 import {
@@ -67,7 +66,6 @@ import {
   resolveAuthErrorMessage,
   waitForAuthSession,
 } from "@/lib/authErrors";
-import { consumeReferralSkipPaywall } from "@/lib/referralCode";
 import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
@@ -611,11 +609,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, [onComplete, userData]);
 
   const canAccessDashboard = useCallback(async (): Promise<boolean> => {
-    if (consumeReferralSkipPaywall()) return true;
     if (isPremium) return true;
-    const status = await checkSubscription();
-    return isSubscriptionActive(status);
-  }, [isPremium, checkSubscription]);
+    return resolvePremiumAccessAfterSignIn({
+      userId: user?.id,
+      checkSubscription,
+    });
+  }, [isPremium, checkSubscription, user?.id]);
 
   const goToPaywall = useCallback(() => {
     if (onboardingSteps.includes("paywall")) {
@@ -630,6 +629,21 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
     goToPaywall();
   }, [canAccessDashboard, finishOnboardingExit, goToPaywall]);
+
+  useEffect(() => {
+    if (currentStep !== "paywall" || !user) return;
+
+    let cancelled = false;
+    void (async () => {
+      if (await canAccessDashboard()) {
+        if (!cancelled) finishOnboardingExit();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStep, user, canAccessDashboard, finishOnboardingExit]);
 
   const handlePaywallCheckout = async (plan: PaywallBillingPlan) => {
     lightTap();
@@ -1539,16 +1553,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       case "shopping-list":
         return (
           <ShoppingListStep
-            userData={userData}
-            setUserData={setUserData}
-            onBack={currentIndex > 0 ? goBack : undefined}
-            onNext={goNext}
-          />
-        );
-
-      case "health-sync":
-        return (
-          <HealthConnectStep
             userData={userData}
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
@@ -4144,7 +4148,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </div>
             </motion.div>
           )}
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "macro-preview"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

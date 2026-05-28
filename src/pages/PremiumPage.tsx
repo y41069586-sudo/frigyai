@@ -15,6 +15,7 @@ import frigLogo from '@/assets/frigy-mascot.png';
 import { canManageStripeSubscription } from '@/lib/subscription';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
+import { openExternalUrl } from '@/lib/openExternalUrl';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -233,10 +234,7 @@ const PremiumPage = () => {
       }
 
       if (data?.url) {
-        const newWindow = window.open(data.url, '_blank');
-        if (!newWindow) {
-          window.location.href = data.url;
-        }
+        await openExternalUrl(data.url);
       } else {
         throw new Error(t.noPortalUrl);
       }

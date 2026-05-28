@@ -203,10 +203,12 @@ All colors MUST be HSL.
       scroll-behavior: auto;
     }
 
-    .dashboard-fast-scroll {
-      content-visibility: auto;
-      contain-intrinsic-size: 900px;
-    }
+  }
+
+  .dashboard-scroll-main {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
   }
 
   /* Better scrolling on mobile */

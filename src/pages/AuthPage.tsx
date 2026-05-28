@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
 import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
+import { resolvePremiumAccessAfterSignIn } from '@/lib/resolvePremiumAccessAfterSignIn';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
   const { t, language } = useLanguage();
@@ -18,7 +20,7 @@ const AuthPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signIn, signUp, signInWithGoogle, user, loading } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user, loading, checkSubscription } = useAuth();
   const navigate = useNavigate();
 
   // Check where user is coming from
@@ -51,12 +53,26 @@ const AuthPage = () => {
     return () => window.removeEventListener('popstate', handleBrowserBack);
   }, [isFromOnboarding, navigate]);
 
+  const redirectAfterOnboardingAuth = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    const hasPremium = await resolvePremiumAccessAfterSignIn({
+      userId: data.session?.user?.id ?? user?.id,
+      checkSubscription,
+    });
+    if (hasPremium) {
+      localStorage.setItem('onboardingComplete', 'true');
+      navigate('/', { replace: true });
+      return;
+    }
+    navigate('/?onboardingStep=paywall', { replace: true });
+  }, [checkSubscription, navigate, user?.id]);
+
   // Redirect if already logged in
   useEffect(() => {
     if (!user || loading) return;
 
     if (isFromOnboarding || isFromPremiumPricing) {
-      navigate('/?onboardingStep=paywall', { replace: true });
+      void redirectAfterOnboardingAuth();
       return;
     }
 
@@ -67,7 +83,7 @@ const AuthPage = () => {
     } else {
       navigate('/');
     }
-  }, [user, loading, navigate, isFromOnboarding, isFromPremiumPricing]);
+  }, [user, loading, isFromOnboarding, isFromPremiumPricing, redirectAfterOnboardingAuth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +108,8 @@ const AuthPage = () => {
             return;
           }
 
-          // Coming from onboarding or premium-pricing: go to paywall
           if (isFromOnboarding || isFromPremiumPricing) {
-            navigate('/?onboardingStep=paywall', { replace: true });
+            await redirectAfterOnboardingAuth();
             return;
           }
 

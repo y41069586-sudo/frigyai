@@ -135,7 +135,7 @@ export function HealthDashboard({
           onOpenPlan={() => navigate(mealPlansUrlForToday())}
         />
 
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 [content-visibility:auto] [contain-intrinsic-size:88px]">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
           <WaterWidget
             delay={0.14}
             waterGlasses={waterGlasses}

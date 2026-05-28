@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { dispatchLanguageChanged } from "@/lib/mealPlanLanguage";
 import {
   extendedTranslations,
   type ExtendedTranslations,
@@ -3406,6 +3407,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("app-language", lang);
+    dispatchLanguageChanged(lang);
   };
 
   useEffect(() => {

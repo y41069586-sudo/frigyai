@@ -23,7 +23,6 @@ type FrigyIngredientScanFlowProps = {
   analysisErrorMessage?: string | null;
   scanProgress: number;
   captureMode: boolean;
-  onAddPhotos: (files: File[]) => void;
   onQueueChange?: (files: File[]) => void;
   onConfirmAnalyze: () => void;
   onClose: () => void;
@@ -51,7 +50,6 @@ export function FrigyIngredientScanFlow({
   analysisErrorMessage,
   scanProgress,
   captureMode,
-  onAddPhotos,
   onQueueChange,
   onConfirmAnalyze,
   onClose,
@@ -62,6 +60,7 @@ export function FrigyIngredientScanFlow({
 }: FrigyIngredientScanFlowProps) {
   const { language, t } = useLanguage();
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const captureLockRef = useRef(false);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [analysisPreviewUrl, setAnalysisPreviewUrl] = useState<string | null>(null);
 
@@ -162,25 +161,42 @@ export function FrigyIngredientScanFlow({
     onQueueChange?.(photos.map((p) => p.file));
   };
 
-  const addFiles = (files: File[]) => {
-    if (files.length === 0) return;
-    const next = files.map((file) => ({
+  const toPendingPhotos = (files: File[]): PendingPhoto[] =>
+    files.map((file) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       file,
       previewUrl: URL.createObjectURL(file),
     }));
+
+  const addFiles = (files: File[]) => {
+    if (files.length === 0) return;
+    const next = toPendingPhotos(files);
     setPendingPhotos((prev) => {
       const merged = [...prev, ...next];
       syncQueue(merged);
       return merged;
     });
-    onAddPhotos(files);
+  };
+
+  const beginAnalyze = (photos: PendingPhoto[]) => {
+    if (photos.length === 0 || analyzing) return;
+    const last = photos[photos.length - 1];
+    setAnalysisPreviewUrl(last.previewUrl);
+    syncQueue(photos.map((p) => p.file));
+    onConfirmAnalyze();
   };
 
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (files.length) addFiles(files);
+    if (!files.length || analyzing) return;
+    if (files.length === 1) {
+      const [photo] = toPendingPhotos(files);
+      setPendingPhotos([photo]);
+      beginAnalyze([photo]);
+      return;
+    }
+    addFiles(files);
   };
 
   const removePhoto = (id: string) => {
@@ -202,14 +218,21 @@ export function FrigyIngredientScanFlow({
   };
 
   const handleShutterPress = async () => {
-    if (isLive) {
+    if (captureLockRef.current || analyzing || cameraStatus === "starting") return;
+
+    captureLockRef.current = true;
+    try {
+      if (!isLive) return;
+
       const file = await capturePhoto();
-      if (file) {
-        addFiles([file]);
-        return;
-      }
+      if (!file) return;
+
+      const [photo] = toPendingPhotos([file]);
+      setPendingPhotos([photo]);
+      beginAnalyze([photo]);
+    } finally {
+      captureLockRef.current = false;
     }
-    await retryCamera();
   };
 
   const handleConfirm = () => {
@@ -217,8 +240,7 @@ export function FrigyIngredientScanFlow({
       void handleShutterPress();
       return;
     }
-    setAnalysisPreviewUrl(pendingPhotos[pendingPhotos.length - 1]?.previewUrl ?? null);
-    onConfirmAnalyze();
+    beginAnalyze(pendingPhotos);
   };
 
   if (phase === "analyzing") {
@@ -369,7 +391,7 @@ export function FrigyIngredientScanFlow({
             <p className="text-sm font-medium text-white/90">{cameraError}</p>
             <p className="mt-2 text-xs text-white/55">
               {ui.openDevApp}<span className="text-[#75FBB2]">npm run dev</span>{ui.localhostJoin}
-              <span className="text-[#75FBB2]">http://localhost:5173</span>{ui.orGallery}
+              <span className="text-[#75FBB2]">http://localhost:8080</span>{ui.orGallery}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => void retryCamera()}>

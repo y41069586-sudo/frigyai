@@ -22,6 +22,7 @@ import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { FrigyFoodScanFlow } from '@/components/scan/FrigyFoodScanFlow';
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
+import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
@@ -37,6 +38,34 @@ import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { FRIGY_OPEN_LOG_MEAL, notifyOverlayOpen } from '@/lib/overlayEvents';
 import { getMinCaloriesForAge } from '@/components/onboarding/utils';
 import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
+
+const ANALYZE_FOOD_TIMEOUT_MS = 45_000;
+
+async function invokeAnalyzeFood(body: { food?: string; imageBase64?: string }) {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    window.setTimeout(() => {
+      reject(new Error('analyze_food_timeout'));
+    }, ANALYZE_FOOD_TIMEOUT_MS);
+  });
+
+  return Promise.race([
+    supabase.functions.invoke('analyze-food', { body }),
+    timeoutPromise,
+  ]) as Promise<{
+    data: {
+      error?: string;
+      message?: string;
+      not_found?: boolean;
+      name?: string;
+      calories?: number;
+      protein?: number;
+      carbs?: number;
+      fat?: number;
+      image_url?: string;
+    } | null;
+    error: unknown;
+  }>;
+}
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedCheetah } from './AnimatedAnimals';
@@ -468,37 +497,32 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       if (food && food.trim()) body.food = food.trim();
       if (imageBase64) body.imageBase64 = imageBase64;
 
-      let data;
-      try {
-        const response = await supabase.functions.invoke('analyze-food', {
-          body,
-        });
+      const { data, error: invokeError } = await invokeAnalyzeFood(body);
 
-        if (response.error) {
-          const errorMsg = response.error?.message || String(response.error);
-          console.error('[ANALYZE-FOOD] Function error:', errorMsg);
-          throw new Error(errorMsg || 'Analyse fehlgeschlagen');
-        }
-
-        data = response.data;
-      } catch (invokeError: any) {
-        const errorMsg = invokeError?.message || String(invokeError);
-        console.error('[ANALYZE-FOOD] Invoke error:', errorMsg, invokeError);
-        throw new Error(`Verbindungsfehler: ${errorMsg}`);
+      if (invokeError) {
+        const errorMsg = await getEdgeFunctionErrorMessage(
+          invokeError,
+          data as { error?: string; message?: string; not_found?: boolean } | null,
+        );
+        console.error('[ANALYZE-FOOD] Function error:', errorMsg);
+        throw new Error(errorMsg || 'Analyse fehlgeschlagen');
       }
 
       if (!data) {
         throw new Error('Keine Daten von der Analyse erhalten');
       }
 
-      // Check if the response contains an error field (from the function)
       if (data?.not_found) {
         throw new Error(t.foodNotFound);
       }
 
       if (data?.error) {
         throw new Error(
-          data.not_found ? t.foodNotFound : data.error,
+          typeof data.message === 'string' && data.message
+            ? data.message
+            : data.not_found
+              ? t.foodNotFound
+              : String(data.error),
         );
       }
 
@@ -548,9 +572,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           carbs: data.carbs,
           fat: data.fat,
         });
-        setShowSuccessOverlay(true);
+        setFoodScanError(null);
         setShowFoodCamera(false);
         notifyOverlayOpen(false);
+        setShowSuccessOverlay(true);
         playSuccess();
       } else {
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
@@ -567,12 +592,25 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       console.error('Error analyzing food:', errorMsg, error);
       if (imageBase64) {
         keepCameraOpenOnError = true;
+        const timeoutMsg =
+          errorMsg === "analyze_food_timeout"
+            ? language === "de"
+              ? "Die Analyse hat zu lange gedauert. Bitte nochmal versuchen."
+              : language === "fr"
+                ? "L'analyse a pris trop de temps. Réessaie."
+                : "Analysis took too long. Please try again."
+            : null;
+        const looksLikeNotFood =
+          /essen nicht|not.?found|kein essen|no food|pas de nourriture|nicht erkannt/i.test(errorMsg);
         setFoodScanError(
-          language === "de"
-            ? "Hmm, ich glaube nicht, dass das Essen ist. Versuchen wir es mal mit etwas Essbarem, okay?"
-            : language === "fr"
-              ? "Hmm, je ne pense pas que ce soit de la nourriture. On essaie avec quelque chose de comestible, d'accord ?"
-              : "Hmm, I do not think that is food. Let's try again with something edible, okay?",
+          timeoutMsg ??
+            (looksLikeNotFood
+              ? language === "de"
+                ? "Hmm, ich glaube nicht, dass das Essen ist. Versuchen wir es mal mit etwas Essbarem, okay?"
+                : language === "fr"
+                  ? "Hmm, je ne pense pas que ce soit de la nourriture. On essaie avec quelque chose de comestible, d'accord ?"
+                  : "Hmm, I do not think that is food. Let's try again with something edible, okay?"
+              : errorMsg),
         );
       } else {
         toast({
@@ -582,18 +620,17 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         });
       }
     } finally {
-      if (!keepCameraOpenOnError) {
-        setAnalyzingImage(null);
-        if (!imageBase64) {
-          setShowFoodCamera(false);
-          notifyOverlayOpen(false);
-        }
-      }
       setIsAnalyzing(false);
+      if (!keepCameraOpenOnError && !imageBase64) {
+        setAnalyzingImage(null);
+        setShowFoodCamera(false);
+        notifyOverlayOpen(false);
+      }
     }
   };
 
   const openFoodCamera = () => {
+    setLogMealPanelOpen(false);
     setFoodScanError(null);
     setAnalyzingImage(null);
     setShowFoodCamera(true);
@@ -1224,7 +1261,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               </div>
               
               {/* Content */}
-              <div className="min-h-[200px] flex flex-col justify-center">
+              <div className="min-h-[200px] max-h-[min(52vh,420px)] overflow-y-auto overscroll-contain flex flex-col justify-center">
                 {currentStepData.content}
               </div>
 

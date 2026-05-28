@@ -28,6 +28,7 @@ import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { useGamification } from "@/hooks/useGamification";
 import {
   WATER_GLASSES_CHANGED,
@@ -534,10 +535,7 @@ const Index = () => {
       });
       if (error) throw error;
       if (data?.url) {
-        const newWindow = window.open(data.url, '_blank');
-        if (!newWindow) {
-          window.location.href = data.url;
-        }
+        await openExternalUrl(data.url);
       }
     } catch (error: any) {
       toast({
@@ -626,12 +624,12 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col overflow-x-hidden">
-      <div className="fixed inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)] pointer-events-none" />
+    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#FFFFFF]">
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)]" />
 
-      {/* Main Content */}
-      <main className="relative flex-1 flex flex-col px-4 pb-bottom-nav pt-9 sm:px-6 sm:pt-11 safe-top">
-        <div className="flex-1 flex flex-col w-full max-w-full sm:max-w-md lg:max-w-2xl mx-auto space-y-8">
+      {/* Main Content — single scroll container (fixes stuck scroll at tracker height on mobile) */}
+      <main className="dashboard-scroll-main relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pb-bottom-nav pt-9 sm:px-6 sm:pt-11 safe-top [-webkit-overflow-scrolling:touch]">
+        <div className="mx-auto flex w-full max-w-full flex-col space-y-8 sm:max-w-md lg:max-w-2xl">
           
           {/* Header - Clean & Modern */}
           <motion.header
@@ -640,7 +638,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex-1 min-w-0">
-              <h1 className="text-[26px] font-black leading-tight tracking-[-0.05em] text-foreground">
+              <h1 className="text-[26px] font-black leading-tight tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-br from-[#D4FFE8] via-[#75FBB2] to-[#39D47F] drop-shadow-[0_0_20px_rgba(117,251,178,0.45)]">
                 Frigy
               </h1>
             </div>
@@ -681,8 +679,7 @@ const Index = () => {
             </div>
           </motion.header>
 
-          <div className="dashboard-fast-scroll">
-            <HealthDashboard
+          <HealthDashboard
               caloriesEaten={caloriesEaten}
               targetCalories={targetCalories}
               proteinEaten={proteinEaten}
@@ -701,7 +698,6 @@ const Index = () => {
                 setIsChatbotOpen(true);
               }}
             />
-          </div>
         </div>
       </main>
 

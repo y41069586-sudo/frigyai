@@ -17,8 +17,15 @@ import {
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
 import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
-import { getStoredLanguage, getTranslations } from './LanguageContext';
+import { getStoredLanguage, getTranslations, type Language } from './LanguageContext';
 import { getLocalWeekStartISO } from '@/lib/localDate';
+import {
+  FRIGY_LANGUAGE_CHANGED_EVENT,
+  getMealPlanStoredLanguage,
+  setMealPlanStoredLanguage,
+  type LanguageChangedDetail,
+} from '@/lib/mealPlanLanguage';
+import { translateMealPlanContent } from '@/lib/translateMealPlan';
 
 type GenerationStage =
   | 'preparing'
@@ -234,8 +241,18 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const progressTargetRef = useRef(0);
   const leftMealPlansWhileGeneratingRef = useRef(false);
   const stageElapsedSecondsRef = useRef(0);
+  const translatingPlanRef = useRef(false);
 
   const getWeekStart = getLocalWeekStartISO;
+
+  const persistMealPlanLocally = useCallback((plan: DayPlan[], list: ShoppingListItem[], language: Language) => {
+    setMealPlan(plan);
+    setShoppingList(list);
+    localStorage.setItem('weeklyMealPlan', JSON.stringify(plan));
+    localStorage.setItem('weeklyShoppingList', JSON.stringify(list));
+    setMealPlanStoredLanguage(language);
+    notifyFrigyStorageUpdated();
+  }, []);
 
   const refreshGenerationCount = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -400,6 +417,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Array.isArray(dbPlan) && dbPlan.length > 0) {
         setMealPlan(dbPlan);
         localStorage.setItem('weeklyMealPlan', JSON.stringify(dbPlan));
+        if (!getMealPlanStoredLanguage()) {
+          setMealPlanStoredLanguage(getStoredLanguage());
+        }
         notifyFrigyStorageUpdated();
         return;
       }
@@ -586,12 +606,9 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             avgPercentage: Math.round((avgCalories / macroTargets.dailyCalories) * 100)
           });
 
-          setMealPlan(newPlan);
-          setShoppingList(newShoppingList);
           localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
           removeMealPlanShoppingSource();
-          localStorage.setItem('weeklyMealPlan', JSON.stringify(newPlan));
-          localStorage.setItem('weeklyShoppingList', JSON.stringify(newShoppingList));
+          persistMealPlanLocally(newPlan, newShoppingList, getStoredLanguage());
           localStorage.setItem(WEEKLY_PLAN_AI_GENERATED_KEY, '1');
           setMealPlanShoppingSource('frigy');
           setGenerationStageWithFloor('saving', 86);
@@ -699,7 +716,58 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount, isPremium, checkSubscription, updateGenerationProgressTarget, mealPlan]);
+  }, [session, refreshGenerationCount, isPremium, checkSubscription, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally]);
+
+  useEffect(() => {
+    const syncPlanLanguage = async (nextLanguage: Language) => {
+      const rawPlan = localStorage.getItem('weeklyMealPlan');
+      if (!rawPlan || translatingPlanRef.current) return;
+
+      let currentPlan: DayPlan[];
+      let currentList: ShoppingListItem[];
+      try {
+        currentPlan = JSON.parse(rawPlan) as DayPlan[];
+        const rawList = localStorage.getItem('weeklyShoppingList');
+        currentList = rawList ? (JSON.parse(rawList) as ShoppingListItem[]) : [];
+      } catch {
+        return;
+      }
+
+      if (!currentPlan.length) return;
+
+      const storedLanguage = getMealPlanStoredLanguage();
+      if (!storedLanguage) {
+        setMealPlanStoredLanguage(nextLanguage);
+        return;
+      }
+      if (storedLanguage === nextLanguage) return;
+
+      translatingPlanRef.current = true;
+      try {
+        const translated = await translateMealPlanContent(
+          currentPlan,
+          currentList,
+          nextLanguage,
+          session?.access_token,
+        );
+        if (translated) {
+          persistMealPlanLocally(translated.mealPlan as DayPlan[], translated.shoppingList as ShoppingListItem[], nextLanguage);
+        }
+      } finally {
+        translatingPlanRef.current = false;
+      }
+    };
+
+    const onLanguageChanged = (event: Event) => {
+      const nextLanguage = (event as CustomEvent<LanguageChangedDetail>).detail?.language;
+      if (nextLanguage) void syncPlanLanguage(nextLanguage);
+    };
+
+    window.addEventListener(FRIGY_LANGUAGE_CHANGED_EVENT, onLanguageChanged);
+    void syncPlanLanguage(getStoredLanguage());
+
+    return () => window.removeEventListener(FRIGY_LANGUAGE_CHANGED_EVENT, onLanguageChanged);
+  }, [session?.access_token, persistMealPlanLocally]);
 
   const setMinimized = useCallback((minimized: boolean) => {
     setIsMinimized(minimized);
@@ -710,6 +778,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setShoppingList(null);
     localStorage.removeItem('weeklyMealPlan');
     localStorage.removeItem('weeklyShoppingList');
+    localStorage.removeItem('weeklyMealPlanLanguage');
     localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
     removeMealPlanShoppingSource();
     notifyFrigyStorageUpdated();

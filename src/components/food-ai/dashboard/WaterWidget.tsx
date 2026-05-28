@@ -16,6 +16,7 @@ type WaterWidgetProps = {
   onSubtract250ml: () => void;
   expanded?: boolean;
   onToggleExpand?: () => void;
+  className?: string;
 };
 
 export const WaterWidget = memo(function WaterWidget({
@@ -25,6 +26,7 @@ export const WaterWidget = memo(function WaterWidget({
   onAdd250ml,
   onSubtract250ml,
   onToggleExpand,
+  className,
 }: WaterWidgetProps) {
   const { language } = useLanguage();
   const safeGoalMl = Math.min(goalMl, 2000);
@@ -64,6 +66,7 @@ export const WaterWidget = memo(function WaterWidget({
         "relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
         "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
         "touch-manipulation",
+        className,
       )}
     >
       {currentMl > 0 && (
@@ -76,7 +79,7 @@ export const WaterWidget = memo(function WaterWidget({
       )}
       <div className="pointer-events-none absolute inset-x-5 top-10 hidden h-20 rounded-full bg-sky-300/55 blur-2xl sm:block" />
 
-      <div className="relative z-[10] grid min-h-[185px] grid-rows-[auto_1fr_auto] justify-items-center p-4">
+      <div className="relative z-[10] grid min-h-[inherit] grid-rows-[auto_1fr_auto] justify-items-center p-4">
         <div className="justify-self-start flex items-center gap-1.5">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
             <Droplet className="h-4 w-4 fill-sky-500 text-sky-500" />

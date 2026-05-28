@@ -6,7 +6,6 @@ import {
   LogOut,
   RefreshCw,
   Trash2,
-  RotateCcw,
   Globe,
   ChevronRight,
   CreditCard,
@@ -37,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { canManageStripeSubscription } from "@/lib/subscription";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 function SettingsGroup({
   title,
@@ -156,7 +156,7 @@ const ProfilePage = () => {
         throw new Error(await getEdgeFunctionErrorMessage(error, data));
       }
       if (data?.url) {
-        window.location.href = data.url;
+        await openExternalUrl(data.url);
       }
     } catch (error: unknown) {
       toast({
@@ -331,11 +331,6 @@ const ProfilePage = () => {
           </SettingsGroup>
 
           <SettingsGroup title={t.settingsAccountGroup}>
-            <SettingsRow
-              icon={RotateCcw}
-              label={t.settingsRestartOnboarding}
-              onClick={() => navigate("/?resetOnboarding=true")}
-            />
             <SettingsRow icon={LogOut} label={t.logout} onClick={() => void handleSignOut()} />
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <DialogTrigger asChild>
