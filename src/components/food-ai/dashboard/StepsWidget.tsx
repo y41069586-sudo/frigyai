@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getLocalDateISO } from "@/lib/localDate";
+import { FRIGY_STORAGE_UPDATED } from "@/lib/frigyStorageSync";
 
 type StepsWidgetProps = {
   steps: number;
@@ -18,6 +20,30 @@ export const StepsWidget = memo(function StepsWidget({
   delay = 0,
   onToggleExpand,
 }: StepsWidgetProps) {
+  const readSyncedSteps = () => {
+    const raw = localStorage.getItem(`frigy_steps_${getLocalDateISO()}`);
+    const parsed = raw != null ? Number.parseInt(raw, 10) : Number.NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  };
+  const [liveSteps, setLiveSteps] = useState(() => Math.max(steps, readSyncedSteps()));
+
+  useEffect(() => {
+    setLiveSteps(Math.max(steps, readSyncedSteps()));
+  }, [steps]);
+
+  useEffect(() => {
+    const refresh = () => setLiveSteps((prev) => Math.max(prev, readSyncedSteps()));
+    const onStorage = (e: StorageEvent) => {
+      if (e.key?.startsWith("frigy_steps_")) refresh();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(FRIGY_STORAGE_UPDATED, refresh);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(FRIGY_STORAGE_UPDATED, refresh);
+    };
+  }, []);
+
   const { language } = useLanguage();
   const { isNativeApp, platform, isLoading, requestPermissions, syncHealthData } = useHealthConnect();
   const healthSyncProvider = useMemo(() => {
@@ -71,8 +97,8 @@ export const StepsWidget = memo(function StepsWidget({
           today: "Heute",
         };
 
-  const hasSteps = steps > 0;
-  const progressPct = Math.min(100, Math.round((steps / goal) * 100));
+  const hasSteps = liveSteps > 0;
+  const progressPct = Math.min(100, Math.round((liveSteps / goal) * 100));
 
   const addSteps = async () => {
     if (isLoading) return;
@@ -81,6 +107,7 @@ export const StepsWidget = memo(function StepsWidget({
       const granted = await requestPermissions();
       if (granted) {
         await syncHealthData();
+        setLiveSteps(Math.max(readSyncedSteps(), steps));
       }
       return;
     }
@@ -114,7 +141,7 @@ export const StepsWidget = memo(function StepsWidget({
                 {copy.today}
               </p>
               <p className="text-[32px] font-bold tabular-nums leading-none tracking-tight text-foreground">
-                {steps.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}
+                {liveSteps.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}
               </p>
               <p className="text-[11px] font-medium text-muted-foreground">
                 {copy.goal}: {goal.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}

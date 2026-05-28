@@ -242,8 +242,8 @@ function InlineStat({
         <span className={cn("mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full", colorClass)}>
           <Icon className="h-3.5 w-3.5" />
         </span>
-        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-        <p className="mt-1 text-[10px] font-bold leading-none tabular-nums text-foreground">{value}</p>
+        <p className="text-[11px] font-medium text-slate-500">{label}</p>
+        <p className="mt-1 text-[10px] font-semibold leading-none tabular-nums text-slate-700">{value}</p>
       </div>
     </div>
   );

@@ -27,6 +27,21 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
+const ANALYZE_INGREDIENTS_TIMEOUT_MS = 45_000;
+
+async function invokeAnalyzeIngredientsWithTimeout(body: { image: string; isOnboarding: boolean }) {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    window.setTimeout(() => {
+      reject(new Error("analyze_ingredients_timeout"));
+    }, ANALYZE_INGREDIENTS_TIMEOUT_MS);
+  });
+
+  return Promise.race([
+    supabase.functions.invoke("analyze-ingredients", { body }),
+    timeoutPromise,
+  ]) as Promise<{ data: { error?: string; message?: string; ingredients?: string[] } | null; error: unknown }>;
+}
+
 const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -209,8 +224,9 @@ const ScanPage = () => {
         }
 
         try {
-          const { data, error } = await supabase.functions.invoke("analyze-ingredients", {
-            body: { image: base64, isOnboarding: false },
+          const { data, error } = await invokeAnalyzeIngredientsWithTimeout({
+            image: base64,
+            isOnboarding: false,
           });
 
           if (error) throw error;
@@ -228,14 +244,22 @@ const ScanPage = () => {
           batchIngredients.push(...(data.ingredients || []));
         } catch (scanError) {
           console.error("[ScanPage] analyze-ingredients failed:", scanError);
+          const isTimeout =
+            scanError instanceof Error && scanError.message === "analyze_ingredients_timeout";
           toast({
             title: t.error,
             description:
-              language === "de"
-                ? "Die KI-Analyse ist fehlgeschlagen. Bitte erneut versuchen oder ein klareres Foto nutzen."
-                : language === "fr"
-                  ? "L'analyse IA a échoué. Réessaie ou utilise une photo plus nette."
-                  : "AI analysis failed. Please try again or use a clearer photo.",
+              isTimeout
+                ? language === "de"
+                  ? "Analyse hat zu lange gedauert. Bitte erneut versuchen."
+                  : language === "fr"
+                    ? "L'analyse a pris trop de temps. Réessaie."
+                    : "Analysis took too long. Please try again."
+                : language === "de"
+                  ? "Die KI-Analyse ist fehlgeschlagen. Bitte erneut versuchen oder ein klareres Foto nutzen."
+                  : language === "fr"
+                    ? "L'analyse IA a échoué. Réessaie ou utilise une photo plus nette."
+                    : "AI analysis failed. Please try again or use a clearer photo.",
             variant: "destructive",
           });
         }

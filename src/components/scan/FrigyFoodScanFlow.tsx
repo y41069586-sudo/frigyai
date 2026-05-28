@@ -82,6 +82,18 @@ export function FrigyFoodScanFlow({
     }
   }, [capturedPreviewUrl, open]);
 
+  // Safety reset: if parent analysis never starts/completes, don't stay stuck forever.
+  useEffect(() => {
+    if (!pendingAnalysis) return;
+    if (analyzing || analysisErrorMessage) return;
+
+    const timer = window.setTimeout(() => {
+      setPendingAnalysis(false);
+    }, 1800);
+
+    return () => window.clearTimeout(timer);
+  }, [analysisErrorMessage, analyzing, pendingAnalysis]);
+
   if (!open) return null;
 
   const resetCapturedPreview = () => {

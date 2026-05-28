@@ -15,7 +15,6 @@ import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { toast } from '@/hooks/use-toast';
-import StreakBadge from '@/components/StreakBadge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
@@ -533,9 +532,7 @@ const MealPlansPage = () => {
               </div>
             </NavLink>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <StreakBadge />
-          </div>
+          <div className="flex shrink-0 items-center gap-1.5" />
         </div>
       </nav>
 

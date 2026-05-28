@@ -631,9 +631,28 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const processCameraFile = (file: File) => {
     const reader = new FileReader();
+    reader.onerror = () => {
+      setFoodScanError(
+        language === "de"
+          ? "Foto konnte nicht gelesen werden. Bitte nochmal aufnehmen."
+          : language === "fr"
+            ? "Impossible de lire la photo. Reprends-la."
+            : "Could not read the photo. Please capture it again.",
+      );
+    };
     reader.onloadend = () => {
       const base64 = (reader.result as string).split(",")[1];
-      if (base64) analyzeFood("", base64, mealPromptKey);
+      if (base64) {
+        analyzeFood("", base64, mealPromptKey);
+        return;
+      }
+      setFoodScanError(
+        language === "de"
+          ? "Foto konnte nicht verarbeitet werden. Bitte erneut versuchen."
+          : language === "fr"
+            ? "La photo n'a pas pu être traitée. Réessaie."
+            : "The photo could not be processed. Please try again.",
+      );
     };
     reader.readAsDataURL(file);
   };
