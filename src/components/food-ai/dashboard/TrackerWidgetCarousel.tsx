@@ -31,7 +31,7 @@ export function TrackerWidgetCarousel({ tracker, weight, className }: TrackerWid
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-none touch-pan-x"
+        className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-none touch-auto"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="w-full shrink-0 snap-center snap-always">{tracker}</div>

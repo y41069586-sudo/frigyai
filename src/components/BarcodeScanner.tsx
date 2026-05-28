@@ -48,6 +48,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const readerRef = useRef<HTMLDivElement | null>(null);
   const startGenerationRef = useRef(0);
   const isOpenRef = useRef(isOpen);
+  const watchdogTimerRef = useRef<number | null>(null);
   const lastDetectedCodeRef = useRef<string | null>(null);
   const lastDetectedHitsRef = useRef(0);
 
@@ -97,12 +98,20 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsLoading(false);
       lastDetectedCodeRef.current = null;
       lastDetectedHitsRef.current = 0;
+      if (watchdogTimerRef.current != null) {
+        window.clearInterval(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
     } catch (err) {
       console.error('[BarcodeScanner] Unexpected error in stopScanner:', err);
       setIsScannerActive(false);
       setIsLoading(false);
       lastDetectedCodeRef.current = null;
       lastDetectedHitsRef.current = 0;
+      if (watchdogTimerRef.current != null) {
+        window.clearInterval(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
     }
   }, []);
 
@@ -310,6 +319,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       Quagga.onDetected(detectionHandler);
 
       setIsScannerActive(true);
+
+      if (watchdogTimerRef.current != null) {
+        window.clearInterval(watchdogTimerRef.current);
+      }
+      watchdogTimerRef.current = window.setInterval(() => {
+        if (!isOpenRef.current || !readerRef.current) return;
+        const video = readerRef.current.querySelector('video') as HTMLVideoElement | null;
+        if (!video) return;
+        if (video.videoWidth < 1 || video.readyState < 2 || video.paused) {
+          prepareMobileVideo();
+        }
+      }, 1800);
     } catch (err: unknown) {
       if (generation !== startGenerationRef.current) return;
 
@@ -333,6 +354,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsScannerActive(false);
     }
   }, [handleBarcodeDetected, prepareMobileVideo]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && isOpenRef.current) {
+        window.setTimeout(() => {
+          prepareMobileVideo();
+          const video = readerRef.current?.querySelector('video') as HTMLVideoElement | null;
+          if (!video || video.videoWidth < 1) {
+            void startScanner();
+          }
+        }, 120);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isOpen, prepareMobileVideo, startScanner]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -512,26 +552,26 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
               <style>{`
                 @keyframes barcode-scan-line {
-                  0% { top: 10%; opacity: 0.6; }
-                  50% { top: 86%; opacity: 1; }
-                  100% { top: 10%; opacity: 0.6; }
+                  0% { transform: translateY(0%); opacity: 0.72; }
+                  50% { transform: translateY(760%); opacity: 1; }
+                  100% { transform: translateY(0%); opacity: 0.72; }
                 }
                 @keyframes barcode-scan-glow {
-                  0% { top: 8%; opacity: 0.25; }
-                  50% { top: 84%; opacity: 0.5; }
-                  100% { top: 8%; opacity: 0.25; }
+                  0% { transform: translateY(0%); opacity: 0.24; }
+                  50% { transform: translateY(720%); opacity: 0.5; }
+                  100% { transform: translateY(0%); opacity: 0.24; }
                 }
                 @keyframes barcode-frame-pulse {
                   0%, 100% { box-shadow: 0 0 10px 0 rgba(117,251,178,0.22); }
                   50% { box-shadow: 0 0 22px 3px rgba(117,251,178,0.38); }
                 }
                 .barcode-scan-line {
-                  animation: barcode-scan-line 2s ease-in-out infinite;
-                  will-change: top, opacity;
+                  animation: barcode-scan-line 1.55s linear infinite;
+                  will-change: transform, opacity;
                 }
                 .barcode-scan-glow {
-                  animation: barcode-scan-glow 2s ease-in-out infinite;
-                  will-change: top, opacity;
+                  animation: barcode-scan-glow 1.55s linear infinite;
+                  will-change: transform, opacity;
                 }
                 .barcode-frame-pulse {
                   animation: barcode-frame-pulse 1.8s ease-in-out infinite;

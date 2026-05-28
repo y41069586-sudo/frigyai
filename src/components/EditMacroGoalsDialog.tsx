@@ -181,77 +181,83 @@ export const EditMacroGoalsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] max-h-[88svh] overflow-y-auto rounded-[24px] p-4 sm:max-w-md sm:rounded-lg sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-center">
+      <DialogContent className="h-[100dvh] w-screen max-w-none overflow-hidden rounded-none border-0 p-0 sm:h-auto sm:w-[calc(100vw-1rem)] sm:max-w-md sm:max-h-[88svh] sm:overflow-y-auto sm:rounded-lg sm:border sm:p-6">
+        <div className="flex h-full min-h-0 flex-col sm:block">
+          <DialogHeader className="border-b border-border/70 px-4 py-4 sm:border-0 sm:px-0 sm:py-0">
+            <DialogTitle className="text-center">
             {t.changeGoal}
-          </DialogTitle>
-        </DialogHeader>
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-3 py-2 sm:space-y-4 sm:py-4">
-          {macros.map((macro, index) => {
-            const Icon = macro.icon;
-            const isHighlighted = focusMacro === macro.key;
-            return (
-              <motion.div
-                key={macro.key}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0,
-                  scale: isHighlighted ? 1.02 : 1,
-                }}
-                transition={{ delay: index * 0.05 }}
-                className={`flex items-center gap-3 rounded-xl p-2 transition-all sm:p-3 ${
-                  isHighlighted ? `${macro.highlightBorder} bg-muted/50` : ''
-                }`}
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-0 sm:py-4">
+            <div className="space-y-3 sm:space-y-4">
+              {macros.map((macro, index) => {
+                const Icon = macro.icon;
+                const isHighlighted = focusMacro === macro.key;
+                return (
+                  <motion.div
+                    key={macro.key}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ 
+                      opacity: 1, 
+                      y: 0,
+                      scale: isHighlighted ? 1.02 : 1,
+                    }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`flex items-center gap-3 rounded-xl p-2 transition-all sm:p-3 ${
+                      isHighlighted ? `${macro.highlightBorder} bg-muted/50` : ''
+                    }`}
+                  >
+                    <div className={`p-2.5 rounded-xl ${macro.bgColor}`}>
+                      <Icon className={`h-5 w-5 ${macro.color}`} />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium">{macro.label}</Label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Input
+                          ref={(el) => { inputRefs.current[macro.key] = el; }}
+                          type="number"
+                          value={macro.value}
+                          onChange={(e) => macro.setValue(Number(e.target.value))}
+                          min={macro.min}
+                          max={macro.max}
+                          className={`h-10 ${isHighlighted ? 'border-primary' : ''}`}
+                        />
+                        <span className="w-10 text-sm text-muted-foreground">{macro.unit}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-border/70 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.5rem)] pt-3 sm:border-0 sm:px-0 sm:pt-2 sm:pb-0">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => onOpenChange(false)}
               >
-                <div className={`p-2.5 rounded-xl ${macro.bgColor}`}>
-                  <Icon className={`h-5 w-5 ${macro.color}`} />
-                </div>
-                <div className="flex-1">
-                  <Label className="text-sm font-medium">{macro.label}</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      ref={(el) => { inputRefs.current[macro.key] = el; }}
-                      type="number"
-                      value={macro.value}
-                      onChange={(e) => macro.setValue(Number(e.target.value))}
-                      min={macro.min}
-                      max={macro.max}
-                      className={`h-10 ${isHighlighted ? 'border-primary' : ''}`}
-                    />
-                    <span className="text-sm text-muted-foreground w-10">{macro.unit}</span>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => onOpenChange(false)}
-          >
-            {t.cancel}
-          </Button>
-          <Button
-            variant="secondary"
-            className="flex-1 text-xs sm:text-sm"
-            onClick={handleAutoCalculateCarbs}
-            title={language === 'de' ? 'Berechnet Kohlenhydrate automatisch' : 'Auto-calculate carbs'}
-          >
-            {language === 'de' ? 'Auto-KH' : 'Auto-Carbs'}
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={handleSave}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {t.save}
-          </Button>
+                {t.cancel}
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 text-xs sm:text-sm"
+                onClick={handleAutoCalculateCarbs}
+                title={language === 'de' ? 'Berechnet Kohlenhydrate automatisch' : 'Auto-calculate carbs'}
+              >
+                {language === 'de' ? 'Auto-KH' : 'Auto-Carbs'}
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSave}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {t.save}
+              </Button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

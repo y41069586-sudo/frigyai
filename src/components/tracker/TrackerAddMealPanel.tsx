@@ -511,7 +511,8 @@ export function TrackerAddMealPanel({
   const handleModeSelect = (next: InputMode) => {
     setMode(next);
     if (next === "camera") {
-      if (onOpenLiveCamera) {
+      const canUseLiveCamera = window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia);
+      if (onOpenLiveCamera && canUseLiveCamera) {
         onOpenLiveCamera();
       } else {
         cameraInputRef.current?.click();

@@ -2,6 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFrigyStorageSnapshot } from "@/hooks/useFrigyStorageSnapshot";
 import { getWeekPlanPreviewFromStorage } from "@/lib/food-ai/dashboardMock";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { mealPlansUrlForToday } from "@/lib/food-ai/weeklyPlanWidgetData";
 import { notifyOpenLogMeal } from "@/lib/overlayEvents";
 import { WidgetContainer } from "./WidgetContainer";
@@ -61,7 +62,11 @@ export function HealthDashboard({
   onAiChatPromptSubmit,
 }: HealthDashboardProps) {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const storageVersion = useFrigyStorageSnapshot();
+  const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
+    ? (language as "de" | "en" | "fr")
+    : "de";
 
   const stepsDemo = useMemo(() => {
     if (stepsProp != null) return stepsProp;
@@ -71,7 +76,7 @@ export function HealthDashboard({
     return 0;
   }, [stepsProp, storageVersion]);
 
-  const weekPreview = useMemo(() => getWeekPlanPreviewFromStorage(), [storageVersion]);
+  const weekPreview = useMemo(() => getWeekPlanPreviewFromStorage(lng), [storageVersion, lng]);
   const currentWaterMl = waterGlasses * ML_PER_GLASS;
 
   const handleAddWater250 = useCallback(() => {

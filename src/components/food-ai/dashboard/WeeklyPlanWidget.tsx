@@ -48,18 +48,22 @@ const COPY = {
   },
 } as const;
 
-function resolveNextFromPreview(preview: WeekPlanPreviewData): NextMealInfo | null {
-  const today = preview.days.find((d) => d.dayLabel === "Heute") ?? preview.days[0];
+function resolveNextFromPreview(preview: WeekPlanPreviewData, language: "de" | "en" | "fr"): NextMealInfo | null {
+  const todayLabel = language === "en" ? "Today" : language === "fr" ? "Aujourd'hui" : "Heute";
+  const noPlanLabel =
+    language === "en" ? "No entry in plan" : language === "fr" ? "Aucune entrée dans le plan" : "Kein Eintrag im Plan";
+  const slotLabel = language === "en" ? "Meal" : language === "fr" ? "Repas" : "Mahlzeit";
+  const today = preview.days.find((d) => d.dayLabel === todayLabel) ?? preview.days[0];
   const name = today?.meals?.[0];
-  if (!name || name === "—" || name === "Kein Eintrag im Plan") return null;
+  if (!name || name === "—" || name === noPlanLabel) return null;
 
   const hour = new Date().getHours();
   const timeLabel =
     hour < 10 ? "08:00" : hour < 14 ? "12:30" : hour < 18 ? "15:30" : "19:00";
 
   return {
-    meal: { name, type: "Mahlzeit" },
-    slotLabel: "Mahlzeit",
+    meal: { name, type: slotLabel },
+    slotLabel,
     timeLabel,
   };
 }
@@ -79,7 +83,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
     if (hasPlan && todayPlan?.meals?.length) {
       return getNextMeal(todayPlan.meals);
     }
-    return resolveNextFromPreview(preview);
+    return resolveNextFromPreview(preview, lng);
   }, [hasPlan, todayPlan, preview]);
 
   const weekDays = useMemo(

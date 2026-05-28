@@ -78,18 +78,18 @@ export function TrackerWidget({
         }
       : {
           today: "Heute",
-          overGoal: "ueber dem Ziel",
-          remaining: "uebrig",
+          overGoal: "über dem Ziel",
+          remaining: "übrig",
           eaten: "gegessen",
           protein: "Protein",
           carbs: "Carbs",
           fat: "Fett",
           quickLog: "Schnell eintragen",
-          breakfast: "Fruehstueck",
+          breakfast: "Frühstück",
           lunch: "Mittag",
           dinner: "Abend",
           snack: "Snack",
-          addMeal: "Hinzufuegen",
+          addMeal: "Hinzufügen",
         };
   const mealSlots: { key: MealFocusKey; label: string; icon: string }[] = [
     { key: "breakfast", label: copy.breakfast, icon: "🍳" },

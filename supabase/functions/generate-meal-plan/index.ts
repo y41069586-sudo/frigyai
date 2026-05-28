@@ -818,53 +818,67 @@ function createFallbackWeeklyMealPlan(params: {
   const paleoMode = params.dietaryPreferences.includes("paleo");
   const veganMode = params.dietaryPreferences.includes("vegan");
   const vegetarianMode = params.dietaryPreferences.includes("vegetarian");
+  const mealTypeForSlot = (slotIndex: number): "Frühstück" | "Hauptmahlzeit" | "Snack" =>
+    slotIndex === 0 ? "Frühstück" : slotIndex === 1 || (params.mealsPerDay >= 5 && slotIndex === 3) ? "Hauptmahlzeit" : "Snack";
 
-  const breakfastName =
-    params.language === "en" ? "Protein breakfast bowl" : params.language === "fr" ? "Bol petit-dejeuner proteine" : "Protein Frühstücks-Bowl";
-  const mainName =
-    params.language === "en" ? "Balanced power plate" : params.language === "fr" ? "Assiette equilibree power" : "Ausgewogener Power-Teller";
-  const snackName =
-    params.language === "en" ? "Quick protein snack" : params.language === "fr" ? "Snack proteine rapide" : "Schneller Protein-Snack";
+  const breakfastNames =
+    params.language === "en"
+      ? ["Oatmeal with berries", "Greek yogurt bowl", "Scrambled eggs with toast", "Banana peanut oats"]
+      : params.language === "fr"
+        ? ["Porridge aux baies", "Bol de yaourt grec", "Oeufs brouilles et pain", "Flocons avoine banane"]
+        : ["Haferflocken mit Beeren", "Skyr mit Obst", "Rührei mit Vollkornbrot", "Joghurt mit Banane und Nüssen"];
+  const mainNames =
+    params.language === "en"
+      ? ["Chicken rice pan", "Salmon with potatoes", "Turkey vegetable bowl", "Pasta with tomato sauce"]
+      : params.language === "fr"
+        ? ["Poelee poulet riz", "Saumon avec pommes de terre", "Bol dinde legumes", "Pates sauce tomate"]
+        : ["Hähnchen-Reis-Pfanne", "Lachs mit Kartoffeln", "Puten-Gemüse-Bowl", "Pasta mit Tomatensauce"];
+  const snackNames =
+    params.language === "en"
+      ? ["Apple with nuts", "Cottage cheese snack", "Whole grain sandwich", "Fruit and yogurt"]
+      : params.language === "fr"
+        ? ["Pomme et noix", "Snack fromage blanc", "Sandwich complet", "Fruit et yaourt"]
+        : ["Apfel mit Nüssen", "Hüttenkäse-Snack", "Vollkornbrot-Snack", "Obst mit Joghurt"];
 
-  const proteinIngredient =
-    veganMode || vegetarianMode || paleoMode || lowCarbMode ? "Tofu" : "Hähnchenbrust";
+  const proteinIngredient = veganMode ? "Tofu" : vegetarianMode ? "Eier" : paleoMode || lowCarbMode ? "Hähnchenbrust" : "Hähnchenbrust";
   const carbIngredient = lowCarbMode || paleoMode ? "Blumenkohlreis" : "Reis";
   const extraIngredient = lowCarbMode || paleoMode ? "Avocado" : "Banane";
 
-  const dayTemplate = Array.from({ length: params.mealsPerDay }, (_, index) => {
-    const type =
-      index === 0
-        ? "Frühstück"
-        : index === 1 || (params.mealsPerDay >= 5 && index === 3)
-          ? "Hauptmahlzeit"
-          : "Snack";
-    const baseName = type === "Frühstück" ? breakfastName : type === "Hauptmahlzeit" ? mainName : snackName;
-    return normalizeMeal({
-      type,
-      name: `${baseName} ${index + 1}`,
-      prepTime: type === "Hauptmahlzeit" ? 25 : 10,
-      ingredients: [
-        { name: proteinIngredient, amount: "1 Portion", price: 2.2 },
-        { name: "Gemüse-Mix", amount: "1 Portion", price: 1.8 },
-        { name: carbIngredient, amount: "1 Portion", price: 1.2 },
-        { name: extraIngredient, amount: "1 Portion", price: 1.1 },
-        { name: "Olivenöl", amount: "1 EL", price: 0.4 },
-      ],
-      instructions: [
-        "Zutaten vorbereiten und klein schneiden.",
-        "Kurz anbraten oder garen bis alles durch ist.",
-        "Mit Gewürzen abschmecken und servieren.",
-      ],
-      protein: Math.max(8, Math.round(params.macroTargets.dailyProtein / params.mealsPerDay)),
-      carbs: Math.max(8, Math.round(params.macroTargets.dailyCarbs / params.mealsPerDay)),
-      fat: Math.max(6, Math.round(params.macroTargets.dailyFat / params.mealsPerDay)),
-    });
-  });
+  const proteinPerMeal = Math.max(8, Math.round(params.macroTargets.dailyProtein / params.mealsPerDay));
+  const carbsPerMeal = Math.max(8, Math.round(params.macroTargets.dailyCarbs / params.mealsPerDay));
+  const fatPerMeal = Math.max(6, Math.round(params.macroTargets.dailyFat / params.mealsPerDay));
 
-  return Array.from({ length: 7 }, (_, dayIndex) => ({
-    day: config.dayNames[dayIndex] || `${config.dayFallback} ${dayIndex + 1}`,
-    meals: dayTemplate.map((meal) => ({ ...meal })),
-  }));
+  return Array.from({ length: 7 }, (_, dayIndex) => {
+    const meals = Array.from({ length: params.mealsPerDay }, (_, slotIndex) => {
+      const type = mealTypeForSlot(slotIndex);
+      const pool = type === "Frühstück" ? breakfastNames : type === "Hauptmahlzeit" ? mainNames : snackNames;
+      const baseName = pool[(dayIndex + slotIndex) % pool.length];
+      return normalizeMeal({
+        type,
+        name: baseName,
+        prepTime: type === "Hauptmahlzeit" ? 25 : 10,
+        ingredients: [
+          { name: proteinIngredient, amount: "1 Portion", price: 2.2 },
+          { name: "Gemüse-Mix", amount: "1 Portion", price: 1.8 },
+          { name: carbIngredient, amount: "1 Portion", price: 1.2 },
+          { name: extraIngredient, amount: "1 Portion", price: 1.1 },
+          { name: "Olivenöl", amount: "1 EL", price: 0.4 },
+        ],
+        instructions: [
+          "Zutaten vorbereiten und klein schneiden.",
+          "Kurz anbraten oder garen bis alles durch ist.",
+          "Mit Gewürzen abschmecken und servieren.",
+        ],
+        protein: proteinPerMeal,
+        carbs: carbsPerMeal,
+        fat: fatPerMeal,
+      });
+    });
+    return {
+      day: config.dayNames[dayIndex] || `${config.dayFallback} ${dayIndex + 1}`,
+      meals,
+    };
+  });
 }
 
 async function requestMealPlanFromOpenAI(params: {

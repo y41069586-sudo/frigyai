@@ -1936,7 +1936,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   type="button"
                   onClick={() => openMacroEdit("calories")}
                   aria-label={t.changeGoal}
-                  className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-background border-2 border-primary/30 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all shadow-md touch-manipulation"
+                  className="absolute -top-2 -right-2 z-10 h-10 w-10 rounded-full bg-background border-2 border-primary/30 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all shadow-md touch-manipulation"
                 >
                   <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1964,7 +1964,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     type="button"
                     onClick={() => openMacroEdit("protein")}
                     aria-label={language === "de" ? "Protein anpassen" : "Edit protein"}
-                    className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-background border border-blue-300 flex items-center justify-center hover:bg-blue-50 transition-colors shadow-sm touch-manipulation"
+                    className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-background border border-blue-300 flex items-center justify-center hover:bg-blue-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1985,7 +1985,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     type="button"
                     onClick={() => openMacroEdit("carbs")}
                     aria-label={language === "de" ? "Kohlenhydrate anpassen" : "Edit carbs"}
-                    className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-background border border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors shadow-sm touch-manipulation"
+                    className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-background border border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -2006,7 +2006,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     type="button"
                     onClick={() => openMacroEdit("fat")}
                     aria-label={language === "de" ? "Fett anpassen" : "Edit fat"}
-                    className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-background border border-rose-300 flex items-center justify-center hover:bg-rose-50 transition-colors shadow-sm touch-manipulation"
+                    className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-background border border-rose-300 flex items-center justify-center hover:bg-rose-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />

@@ -29,22 +29,22 @@ export function FrigyScanAnalyzingStage({
     >
       <style>{`
         @keyframes frigy-scan-line-move {
-          0% { top: 12%; opacity: 0.55; }
-          50% { top: 82%; opacity: 1; }
-          100% { top: 12%; opacity: 0.55; }
+          0% { transform: translateY(0%); opacity: 0.62; }
+          50% { transform: translateY(760%); opacity: 1; }
+          100% { transform: translateY(0%); opacity: 0.62; }
         }
         @keyframes frigy-scan-sweep-move {
-          0% { top: -30%; opacity: 0.2; }
-          50% { top: 70%; opacity: 0.45; }
-          100% { top: -30%; opacity: 0.2; }
+          0% { transform: translateY(0%); opacity: 0.2; }
+          50% { transform: translateY(720%); opacity: 0.45; }
+          100% { transform: translateY(0%); opacity: 0.2; }
         }
         .frigy-scan-line {
-          animation: frigy-scan-line-move 2.2s ease-in-out infinite;
-          will-change: top, opacity;
+          animation: frigy-scan-line-move 1.5s linear infinite;
+          will-change: transform, opacity;
         }
         .frigy-scan-sweep {
-          animation: frigy-scan-sweep-move 2.4s ease-in-out infinite;
-          will-change: top, opacity;
+          animation: frigy-scan-sweep-move 1.5s linear infinite;
+          will-change: transform, opacity;
         }
       `}</style>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(117,251,178,0.18),transparent_28%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_45%,#EEF9F2_100%)]" />
