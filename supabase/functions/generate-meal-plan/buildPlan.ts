@@ -1,9 +1,9 @@
-import { generateAIDraft } from "../openai.ts";
-import { finishPlan } from "../meals.ts";
-import { auditPlan } from "../validation.ts";
+import { generateAIDraft } from "./openai.ts";
+import { finishPlan } from "./meals.ts";
+import { auditPlan } from "./validation.ts";
 import { generateFallbackDraft } from "./drafts.ts";
 import { repairPlan } from "./repairLoop.ts";
-import type { BuildPlanDeps, BuildPlanResult, PlanInput } from "../types.ts";
+import type { BuildPlanDeps, BuildPlanResult, PlanInput } from "./types.ts";
 
 export const defaultBuildPlanDeps: BuildPlanDeps = {
   generateAIDraft,

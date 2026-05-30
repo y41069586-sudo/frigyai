@@ -1,6 +1,6 @@
-import { fallbackPlan } from "../fallbacks.ts";
-import { finishPlan } from "../meals.ts";
-import type { MealPlan, PlanInput } from "../types.ts";
+import { fallbackPlan } from "./fallbacks.ts";
+import { finishPlan } from "./meals.ts";
+import type { MealPlan, PlanInput } from "./types.ts";
 
 export function generateFallbackDraft(
   input: PlanInput,

@@ -1,11 +1,11 @@
-import { normalizeMealStructure } from "../macros.ts";
-import { mealSlot } from "../meals.ts";
+import { normalizeMealStructure } from "./macros.ts";
+import { mealSlot } from "./meals.ts";
 import {
   filterPool,
   isMealSafe,
   SAFE_POOL_DEFAULTS,
-} from "../validation.ts";
-import type { Lang, Meal, MealPlan, SafetyContext } from "../types.ts";
+} from "./validation.ts";
+import type { Lang, Meal, MealPlan, SafetyContext } from "./types.ts";
 
 function slotTypeLabel(lang: Lang, slot: "b" | "m" | "s"): string {
   if (lang === "en") {

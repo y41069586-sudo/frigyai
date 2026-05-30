@@ -238,5 +238,3 @@ export function syncDay(day: DayPlan, targets: MacroTargets, mealsPerDay: number
 export function syncPlan(plan: MealPlan, targets: MacroTargets, mealsPerDay: number): MealPlan {
   return plan.map((d) => syncDay(d, targets, mealsPerDay));
 }
-
-export type { MacroAuthority, MacroReconcileWarning, ReconcileResult };

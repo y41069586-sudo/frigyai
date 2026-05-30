@@ -1,8 +1,8 @@
-import { guaranteedSafeMinimalPlan } from "../fallbacks.ts";
-import { auditPlan } from "../validation.ts";
+import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
+import { auditPlan } from "./validation.ts";
 import { generateFallbackDraft } from "./drafts.ts";
 import { sanitizeUnsafeMeals } from "./sanitize.ts";
-import type { MealPlan, PlanInput, SafetyViolation } from "../types.ts";
+import type { MealPlan, PlanInput, SafetyViolation } from "./types.ts";
 
 export function repairPlan(
   draft: MealPlan,
