@@ -9,5 +9,6 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["index.ts"]
+  "include": ["index.ts", "lib/**/*.ts"],
+  "exclude": ["lib/**/*_test.ts"]
 }

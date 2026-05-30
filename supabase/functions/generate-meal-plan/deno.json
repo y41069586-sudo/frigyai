@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["deno.window", "deno.ns"]
-  }
+  },
+  "include": ["index.ts", "lib/**/*.ts"],
+  "exclude": ["lib/**/*_test.ts"]
 }
