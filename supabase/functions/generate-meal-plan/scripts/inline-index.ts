@@ -18,6 +18,10 @@ const MODULES = [
   "drafts.ts",
   "repairLoop.ts",
   "buildPlan.ts",
+  "variety.ts",
+  "dietPools.ts",
+  "dietPrompts.ts",
+  "mealBlueprints.ts",
 ] as const;
 
 const HANDLER_START = "// ===== HTTP handler =====";

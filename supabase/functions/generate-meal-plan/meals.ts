@@ -36,16 +36,13 @@ export function shapeWeek(plan: MealPlan, mealsPerDay: number, lang: Lang): Meal
 export function uniqueNames(plan: MealPlan): MealPlan {
   const seen = new Map<string, number>();
   return plan.map((day) => {
-    const dayTag = String(day.day || "").trim().split(/\s+/)[0] || "";
     const meals = (day.meals || []).map((meal) => {
       const base = String(meal.name || "Gericht").trim() || "Gericht";
       const key = normNameKey(base);
       const n = seen.get(key) ?? 0;
       seen.set(key, n + 1);
-      let name = base;
-      if (n > 0) {
-        name = dayTag ? `${base} — ${dayTag}` : `${base} (${n + 1})`;
-      }
+      if (n === 0) return meal;
+      const name = `${base} (${n + 1})`;
       return name === meal.name ? meal : { ...meal, name };
     });
     return { ...day, meals };

@@ -50,6 +50,46 @@ const KETO_SAFE_RX = /(blumenkohl\s*reis|cauliflower\s*rice|konjac|shirataki|gem
 const PALEO_EXCLUDED: RegExp =
   /(nudel|pasta|spaghetti|brot|brötchen|reis|hafer|müsli|bohnen|linsen|kichererbsen|milch|käse|joghurt|quark|sahne|paniermehl|baguette)/i;
 
+const PLANT_MILK_PHRASES = [
+  "pflanzenmilch",
+  "hafermilch",
+  "sojamilch",
+  "reismilch",
+  "kokosmilch",
+  "cashewmilch",
+  "oat milk",
+  "soy milk",
+  "almond milk",
+  "rice milk",
+  "plant milk",
+] as const;
+
+const TOFU_SCRAMBLE_MARKERS = [
+  "tofu scramble",
+  "tofu-scramble",
+  "tofu rührei",
+  "tofu-rührei",
+  "tofu brouille",
+] as const;
+
+function scrubPlantMilksForDiet(blob: string): string {
+  let out = blob;
+  for (const phrase of PLANT_MILK_PHRASES) {
+    out = out.replaceAll(phrase, " ");
+  }
+  return out.replace(/\s+/g, " ").trim();
+}
+
+function isTofuScrambleDish(blob: string): boolean {
+  if (TOFU_SCRAMBLE_MARKERS.some((m) => blob.includes(m))) return true;
+  return /\btofu\b/.test(blob) && blob.includes("rührei");
+}
+
+function hasAnimalEggSignal(blob: string): boolean {
+  if (isTofuScrambleDish(blob)) return false;
+  return EGG_BLOB_RX.test(blob);
+}
+
 export type UserMealPlanProfile = {
   allergies: string[];
   allergiesOther: string;
@@ -277,30 +317,31 @@ export function violatesAllergy(blob: string, allergyId: string): boolean {
 export function violatesDietaryPreferences(blob: string, prefs: string[]): string[] {
   if (!prefs?.length) return [];
   const hit: string[] = [];
+  const dietBlob = scrubPlantMilksForDiet(blob);
   if (prefs.includes("vegan")) {
     if (
-      /(\bmilch\b|\bkäse\b|\beier\b|\bjoghurt\b|\bquark\b|\bbutter\b|\bsahne\b|\bhonig\b|\bfleisch\b|\bhähnchen\b|\blachs\b|\bfisch\b|\bthunfisch\b|\bwurst\b|\bhack\b|\bspeck\b|\bschinken\b|\bschnitzel\b|\bschwein\b|\bpute\b)/i.test(
-        blob,
+      /(\bkäse\b|\beier\b|\bjoghurt\b|\bquark\b|\bbutter\b|\bsahne\b|\bhonig\b|\bfleisch\b|\bhähnchen\b|\blachs\b|\bfisch\b|\bthunfisch\b|\bwurst\b|\bhack\b|\bspeck\b|\bschinken\b|\bschnitzel\b|\bschwein\b|\bpute\b|\bmilch\b)/i.test(
+        dietBlob,
       ) ||
-      hasEgg(blob)
+      hasAnimalEggSignal(dietBlob)
     ) {
       hit.push("vegan");
     }
   }
   if (prefs.includes("vegetarian") && !prefs.includes("vegan")) {
-    if (MEAT_FISH.test(blob)) hit.push("vegetarian");
-    else if (/(lachs|thunfisch|fischfilet|garnelen|lachsfilet|forelle|seelachs)/i.test(blob)) hit.push("vegetarian");
+    if (MEAT_FISH.test(dietBlob)) hit.push("vegetarian");
+    else if (/(lachs|thunfisch|fischfilet|garnelen|lachsfilet|forelle|seelachs)/i.test(dietBlob)) hit.push("vegetarian");
   }
   if (prefs.includes("pescatarian")) {
-    if (/(hackfleisch|hähnchen|pute|schwein|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell)/i.test(blob)) {
+    if (/(hackfleisch|hähnchen|pute|schwein|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell)/i.test(dietBlob)) {
       hit.push("pescatarian");
     }
   }
   if (prefs.includes("keto") || prefs.includes("low-carb")) {
-    const scrubbed = blob.replace(KETO_SAFE_RX, " ");
+    const scrubbed = dietBlob.replace(KETO_SAFE_RX, " ");
     if (HIGH_CARB_RX.test(scrubbed)) hit.push("low-carb");
   }
-  if (prefs.includes("paleo") && PALEO_EXCLUDED.test(blob)) hit.push("paleo");
+  if (prefs.includes("paleo") && PALEO_EXCLUDED.test(dietBlob)) hit.push("paleo");
   return [...new Set(hit)];
 }
 
@@ -460,6 +501,9 @@ export function buildConstraintPrompt(
   for (const pref of d) {
     const line = dietPrompts[pref];
     if (line) lines.push(line);
+  }
+  if (d.length) {
+    lines.push(getDietaryCuisineGuidance(d, lang));
   }
 
   if (goals.length) {

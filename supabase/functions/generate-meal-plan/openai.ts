@@ -8,7 +8,9 @@ import {
   violationWeight,
   violationsToStrings,
 } from "./validation.ts";
-import type { Lang, MacroTargets, MealPlan, PlanInput } from "./types.ts";
+import type { Lang, MacroTargets, MealPlan, PlanInput, PriorDishSnapshot } from "./types.ts";
+import { buildDietMandatoryBlock, buildRegenerationUserPrompt } from "./dietPrompts.ts";
+import { findRegenerationOverlaps, formatPriorDishesForPrompt } from "./variety.ts";
 
 const aiIngredientSchema = z.object({
   name: z.string().min(1),
@@ -89,6 +91,24 @@ export function parseOpenAiMealPlanContent(content: unknown): AiDayPlan[] {
   return parsed.data.mealPlan;
 }
 
+function formatVarietyBlock(
+  prior: PriorDishSnapshot[],
+  banned: string[],
+  isRegeneration: boolean,
+  mealsPerDay: number,
+): string {
+  if (isRegeneration && prior.length) {
+    return formatPriorDishesForPrompt(prior, mealsPerDay);
+  }
+  const names = banned.map((n) => n.trim()).filter(Boolean).slice(0, 40);
+  if (!names.length) return "";
+  const lines: string[] = [];
+  for (let i = 0; i < names.length; i += 8) {
+    lines.push(names.slice(i, i + 8).join("; "));
+  }
+  return [`Avoid repeating these meals:`, ...lines].join("\n");
+}
+
 export async function callOpenAI(params: {
   mealsPerDay: number;
   targets: MacroTargets;
@@ -98,27 +118,40 @@ export async function callOpenAI(params: {
   maxTokens: number;
   mode?: "initial" | "repair";
   repairHints?: string[];
+  isRegeneration?: boolean;
+  priorDishes?: PriorDishSnapshot[];
+  dietBlock?: string;
 }): Promise<MealPlan> {
   const L = LANG[params.lang];
+  const prior = params.priorDishes ?? [];
+  const regen = Boolean(params.isRegeneration && (prior.length || params.banned.length));
   const repairBlock =
     params.mode === "repair" && params.repairHints?.length
       ? `\nFIX:\n${params.repairHints.slice(0, 8).map((h) => `- ${h}`).join("\n")}`
       : "";
+
+  const bannedBlock = formatVarietyBlock(prior, params.banned, regen, params.mealsPerDay);
+
+  const dietBlock = params.dietBlock ?? "";
 
   const system = [
     `Nutrition coach. JSON only (${L.lang}). 7d: ${L.days.join(",")}. ${params.mealsPerDay} meals/d.`,
     `Fields: type,name,protein,carbs,fat,prepTime,ingredients[{name,amount,price}],instructions[],allergenTags[].`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish|none. instructions:[].`,
     `Server→${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F g/d. No smoothies.`,
-    params.banned.length ? `Avoid: ${params.banned.slice(0, 14).join(",")}.` : "",
+    dietBlock,
+    bannedBlock,
     params.constraints ? `Constraints:\n${params.constraints}` : "",
     repairBlock,
   ].filter(Boolean).join("\n");
 
-  const user =
-    params.mode === "repair"
+  const user = regen
+    ? params.mode === "repair"
+      ? `Still repeating old dishes. ${buildRegenerationUserPrompt(params.mealsPerDay, params.lang)}`
+      : buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
+    : params.mode === "repair"
       ? `Regenerate 7-day plan (${params.mealsPerDay}/day). Strict compliance.`
-      : `Create 7-day plan (${params.mealsPerDay}/day). Tag allergens per meal.`;
+      : `Create 7-day plan (${params.mealsPerDay}/day). Tag allergens per meal. Follow the mandatory diet rules exactly.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -128,7 +161,13 @@ export async function callOpenAI(params: {
     headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gpt-4o-mini",
-      temperature: params.mode === "repair" ? 0.15 : 0.25,
+      temperature: regen
+        ? params.mode === "repair"
+          ? 0.45
+          : 0.72
+        : params.mode === "repair"
+          ? 0.15
+          : 0.35,
       max_tokens: params.maxTokens,
       response_format: {
         type: "json_schema",
@@ -180,13 +219,23 @@ export async function generateAIDraft(input: PlanInput): Promise<MealPlan | null
     return null;
   }
 
-  const attempts: { maxTokens: number; mode: "initial" | "repair" }[] = [
-    { maxTokens: 3200, mode: "initial" },
-    { maxTokens: 2600, mode: "repair" },
-  ];
+  const attempts: { maxTokens: number; mode: "initial" | "repair" }[] = input.isRegeneration
+    ? [
+        { maxTokens: 4000, mode: "initial" },
+        { maxTokens: 3600, mode: "repair" },
+        { maxTokens: 3600, mode: "repair" },
+        { maxTokens: 3600, mode: "repair" },
+        { maxTokens: 3600, mode: "repair" },
+      ]
+    : [
+        { maxTokens: 3600, mode: "initial" },
+        { maxTokens: 3200, mode: "repair" },
+        { maxTokens: 3200, mode: "repair" },
+      ];
 
   let repairHints: string[] = [];
-  for (const attempt of attempts) {
+  for (let attemptIndex = 0; attemptIndex < attempts.length; attemptIndex++) {
+    const attempt = attempts[attemptIndex]!;
     try {
       const raw = await callOpenAI({
         mealsPerDay: input.mealsPerDay,
@@ -197,20 +246,49 @@ export async function generateAIDraft(input: PlanInput): Promise<MealPlan | null
         maxTokens: attempt.maxTokens,
         mode: attempt.mode,
         repairHints: attempt.mode === "repair" ? repairHints : undefined,
+        isRegeneration: input.isRegeneration,
+        priorDishes: input.priorDishes,
+        dietBlock: buildDietMandatoryBlock(input.lang, input.prefs),
       });
       const audited = auditPlan(raw, input.safetyCtx);
       const violations = violationsToStrings(audited);
+
+      if (input.isRegeneration && (input.priorDishes?.length || input.banned.length)) {
+        const prior = input.priorDishes ?? [];
+        const reused = findRegenerationOverlaps(raw, prior);
+        if (reused.length) {
+          repairHints = [
+            `Still same dishes as old week (${reused.length}): ${reused.slice(0, 8).join("; ")}`,
+            ...repairHints,
+          ];
+          console.warn(`[MEAL-PLAN] Regeneration repeated ${reused.length} dish(es)`);
+          continue;
+        }
+      }
+
       if (!violations.length) return raw;
-      if (shouldAbortAiRetries(audited)) {
+
+      const isLast = attemptIndex === attempts.length - 1;
+      const allergyFree = audited.every((v) => v.allergy.length === 0);
+
+      if (isLast && allergyFree) {
+        console.warn(
+          `[MEAL-PLAN] Using AI plan on final attempt (${audited.length} minor diet flags)`,
+        );
+        return raw;
+      }
+
+      if (shouldAbortAiRetries(audited) && !input.isRegeneration) {
         const weight = audited.reduce((s, v) => s + violationWeight(v), 0);
         console.warn(
           `[MEAL-PLAN] ${audited.length} violations (weight ${weight}) — aborting AI retries`,
         );
         return null;
       }
+
       repairHints = violations.slice(0, 12);
       console.warn(`[MEAL-PLAN] AI plan failed safety (${attempt.mode}), ${violations.length} violations`);
-      if (attempt.mode === "repair") break;
+      if (attempt.mode === "repair" && !input.isRegeneration) break;
     } catch (e) {
       console.warn("[MEAL-PLAN] OpenAI attempt failed:", e instanceof Error ? e.message : e);
     }

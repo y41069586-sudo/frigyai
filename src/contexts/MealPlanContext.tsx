@@ -121,11 +121,19 @@ function findUnsafeMeals(plan: DayPlan[], diet: UserMealPlanProfile): string[] {
   return unsafe;
 }
 
-function summarizeExistingMealNames(plan: DayPlan[] | null): string[] {
+function summarizeExistingMeals(plan: DayPlan[] | null): Array<{
+  name: string;
+  ingredients: Array<{ name: string }>;
+}> {
   return (plan ?? [])
     .flatMap((day) => day.meals ?? [])
-    .map((meal) => String(meal?.name ?? '').trim())
-    .filter(Boolean)
+    .map((meal) => ({
+      name: String(meal?.name ?? '').trim(),
+      ingredients: (meal.ingredients ?? []).map((i) => ({
+        name: String(i?.name ?? '').trim(),
+      })).filter((i) => i.name),
+    }))
+    .filter((m) => m.name)
     .slice(0, 56);
 }
 
@@ -520,7 +528,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       dailyCarbs: settings.dailyCarbs,
       dailyFat: settings.dailyFat,
     });
-    const isRegeneration = Boolean(localStorage.getItem(WEEKLY_PLAN_AI_GENERATED_KEY));
+    const previousMealsForRegen = summarizeExistingMeals(mealPlan);
+    const isRegeneration = previousMealsForRegen.length > 0;
 
     setIsGenerating(true);
     setIsMinimized(false);
@@ -543,7 +552,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           diet.healthGoals,
           getStoredLanguage(),
         );
-        const previousMealNames = summarizeExistingMealNames(mealPlan);
+        const previousMealNames = previousMealsForRegen.map((m) => m.name);
 
         setGenerationStageWithFloor('requesting', 14);
         const invokePromise = supabase.functions.invoke('generate-meal-plan', {
@@ -567,6 +576,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             isRegeneration,
             varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             previousMealNames,
+            previousMeals: previousMealsForRegen,
           },
         });
         setGenerationStageWithFloor('waiting_ai', 18);

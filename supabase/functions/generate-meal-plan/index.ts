@@ -125,6 +125,19 @@ export type PlanInput = {
   banned: string[];
   constraints: string;
   safetyCtx: SafetyContext;
+  /** User tapped regenerate — require all-new dishes (not just titles). */
+  isRegeneration?: boolean;
+  /** Client seed to shuffle fallback pools. */
+  varietySeed?: string;
+  /** Prior week meals for dish-level dedup (ingredients + fingerprints). */
+  priorDishes?: PriorDishSnapshot[];
+};
+
+export type PriorDishSnapshot = {
+  name: string;
+  mainIngredients: string[];
+  contentKey: string;
+  fingerprint: string;
 };
 
 export type BuildPlanResult = {
@@ -243,6 +256,23 @@ function mealNormCacheSet(key: string, norm: MealNorm) {
   mealNormCache.set(key, norm);
 }
 
+function accentFold(input: string): string {
+  return input.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+/** Sorted main ingredient names (accent-folded) — dish identity beyond title. */
+export function mealMainIngredients(meal: MealLike): string[] {
+  return (Array.isArray(meal?.ingredients) ? meal.ingredients : [])
+    .map((i) => accentFold(String(i?.name ?? "")))
+    .filter((n) => n.length >= 2)
+    .sort();
+}
+
+/** Fingerprint for variety checks (ingredients only). */
+export function mealDishFingerprint(meal: MealLike): string {
+  return mealMainIngredients(meal).join("|");
+}
+
 export function mealContentKey(meal: MealLike): string {
   const name = String(meal?.name || "").trim();
   const ings = Array.isArray(meal?.ingredients)
@@ -329,7 +359,7 @@ function normHasMarker(norm: MealNorm, markers: readonly string[]): boolean {
 }
 
 export function termMatches(norm: MealNorm, term: string): boolean {
-  const t = term.toLowerCase().trim().replace(/[-_/]+/g, " ");
+  const t = accentFold(term).replace(/[-_/]+/g, " ");
   if (!t) return false;
   const tCompact = t.replace(/\s+/g, "");
   if (t.includes(" ")) {
@@ -364,6 +394,15 @@ export const ALLERGEN_FALSE_POSITIVES: readonly AllergenFalsePositive[] = [
   { allergenId: "lactose", triggerPhrases: ["laktosefrei", "lactose-free", "milchfrei", "dairy-free"] },
   { allergenId: "gluten", triggerPhrases: ["glutenfrei", "gluten-free"] },
 ];
+
+/** Plant-based „scramble“ — not real eggs (avoids „Tofu Rührei“ false positive). */
+const TOFU_SCRAMBLE_MARKERS = [
+  "tofu scramble",
+  "tofu-scramble",
+  "tofu rührei",
+  "tofu brouille",
+  "tofu-rührei",
+] as const;
 
 /** Dishes with „milch“ in the name but real dairy — do not strip via plant-milk guard. */
 export const DAIRY_DISH_MARKERS = [
@@ -629,7 +668,7 @@ function scrubPlantMilkPhrases(blob: string): string {
   return out.replace(/\s+/g, " ").trim();
 }
 
-function hasRealDairyEvidence(norm: MealNorm): boolean {
+export function hasRealDairyEvidence(norm: MealNorm): boolean {
   if (DAIRY_DISH_MARKERS.some((m) => norm.blob.includes(m) || norm.compact.includes(m.replace(/\s+/g, "")))) {
     return true;
   }
@@ -708,7 +747,15 @@ export function classifyPresentAllergens(norm: MealNorm, aiTags: string[]): Set<
   }
   stripPlantMilkFalseDairy(present, norm);
   applyFalsePositiveFilters(present, norm);
+  if (present.has("eggs") && isTofuScrambleDish(norm)) {
+    present.delete("eggs");
+  }
   return present;
+}
+
+function isTofuScrambleDish(norm: MealNorm): boolean {
+  if (TOFU_SCRAMBLE_MARKERS.some((m) => norm.blob.includes(m))) return true;
+  return norm.tokens.includes("tofu") && norm.blob.includes("rührei");
 }
 
 export function activeUserAllergyIds(allergies: string[]): string[] {
@@ -736,6 +783,35 @@ export function mealPresentAllergens(meal: MealLike): Set<string> {
 }
 
 // ----- diets.ts -----
+const VEGAN_MEAT_FISH_TERMS = [
+  "hackfleisch",
+  "hähnchen",
+  "hahnchen",
+  "pute",
+  "schwein",
+  "fleisch",
+  "wurst",
+  "schnitzel",
+  "schinken",
+  "steak",
+  "speck",
+  "salami",
+  "bacon",
+  "lachs",
+  "thunfisch",
+  "fisch",
+  "forelle",
+  "garnelen",
+  "meat",
+  "chicken",
+  "beef",
+  "pork",
+  "fish",
+  "salmon",
+  "tuna",
+  "shrimp",
+] as const;
+
 const KETO_SAFE_PHRASES = [
   "blumenkohl reis",
   "cauliflower rice",
@@ -900,6 +976,12 @@ export function dietRuleMatches(
   return (rule.phrases ?? []).some((phrase) => blob.includes(phrase.toLowerCase()));
 }
 
+function veganDirectViolation(norm: MealNorm): boolean {
+  if (VEGAN_MEAT_FISH_TERMS.some((term) => termMatches(norm, term))) return true;
+  if (hasRealDairyEvidence(norm)) return true;
+  return false;
+}
+
 export function detectDietViolations(norm: MealNorm, present: Set<string>, prefs: string[]): string[] {
   const hit: string[] = [];
   const lowCarbBlob = scrubKetoSafeBlob(norm.blob);
@@ -907,6 +989,7 @@ export function detectDietViolations(norm: MealNorm, present: Set<string>, prefs
   if (prefs.includes("vegan")) {
     const rule = DIET_RULE_BY_ID.get("vegan");
     if (rule && dietRuleMatches(rule, norm, present)) hit.push("vegan");
+    if (!hit.includes("vegan") && veganDirectViolation(norm)) hit.push("vegan");
   }
   if (prefs.includes("vegetarian") && !prefs.includes("vegan")) {
     const rule = DIET_RULE_BY_ID.get("vegetarian");
@@ -1185,16 +1268,13 @@ export function shapeWeek(plan: MealPlan, mealsPerDay: number, lang: Lang): Meal
 export function uniqueNames(plan: MealPlan): MealPlan {
   const seen = new Map<string, number>();
   return plan.map((day) => {
-    const dayTag = String(day.day || "").trim().split(/\s+/)[0] || "";
     const meals = (day.meals || []).map((meal) => {
       const base = String(meal.name || "Gericht").trim() || "Gericht";
       const key = normNameKey(base);
       const n = seen.get(key) ?? 0;
       seen.set(key, n + 1);
-      let name = base;
-      if (n > 0) {
-        name = dayTag ? `${base} — ${dayTag}` : `${base} (${n + 1})`;
-      }
+      if (n === 0) return meal;
+      const name = `${base} (${n + 1})`;
       return name === meal.name ? meal : { ...meal, name };
     });
     return { ...day, meals };
@@ -1401,6 +1481,21 @@ export function buildConstraints(
 }
 
 // ----- fallbacks.ts -----
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  const out = [...items];
+  if (!seed || out.length < 2) return out;
+  let state = 0;
+  for (let i = 0; i < seed.length; i++) {
+    state = (state * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  for (let i = out.length - 1; i > 0; i--) {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    const j = state % (i + 1);
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
 /** Ultra-minimal plan — only whole vegetables/fruit; last-resort when pools fail. */
 export function guaranteedSafeMinimalPlan(params: {
   mealsPerDay: number;
@@ -1410,13 +1505,13 @@ export function guaranteedSafeMinimalPlan(params: {
   const templates: Record<Lang, { b: string; m: string; s: string; ings: [string, string, string] }> = {
     de: {
       b: "Obstsalat",
-      m: "Gemüsepfanne Natur",
+      m: "Gemüsepfanne",
       s: "Gemüse Sticks",
       ings: ["Apfel", "Karotte", "Brokkoli"],
     },
     en: {
       b: "Fruit salad",
-      m: "Plain veggie pan",
+      m: "Vegetable pan",
       s: "Veggie sticks",
       ings: ["Apple", "Carrot", "Broccoli"],
     },
@@ -1428,23 +1523,14 @@ export function guaranteedSafeMinimalPlan(params: {
     },
   };
   const t = templates[params.lang];
+  const ctx = createSafetyContext([], [], "");
 
   return Array.from({ length: 7 }, (_, di) => ({
     day: L.days[di],
     meals: Array.from({ length: params.mealsPerDay }, (_, si) => {
       const slot = mealSlot(si, params.mealsPerDay);
-      const name = slot === "b" ? t.b : slot === "m" ? t.m : t.s;
-      return normalizeMealStructure({
-        type: LANG[params.lang].meal,
-        name,
-        prepTime: 10,
-        allergenTags: ["none"],
-        ingredients: t.ings.map((n, i) => ({
-          name: n,
-          amount: "1 Portion",
-          price: i === 0 ? 1 : 0.8,
-        })),
-      });
+      const title = slot === "b" ? t.b : slot === "m" ? t.m : t.s;
+      return buildMealFromDishTitle(title, slot, params.lang, ctx);
     }),
   }));
 }
@@ -1457,76 +1543,52 @@ export function fallbackPlan(params: {
   other: string;
   lang: Lang;
   banned: Set<string>;
+  bannedFingerprints?: Set<string>;
+  varietySeed?: string;
+  isRegeneration?: boolean;
 }): MealPlan {
   const L = LANG[params.lang];
   const ctx = createSafetyContext(params.allergies, params.prefs, params.other);
-  const vegan = params.prefs.includes("vegan");
-  const veg = params.prefs.includes("vegetarian") || vegan;
-  const lowCarb = params.prefs.includes("keto") || params.prefs.includes("low-carb");
+
+  const basePools = getDietPools(params.lang, params.prefs);
   const pools = {
-    de: {
-      b: ["Haferflocken Beeren", "Skyr Obst", "Rührei Brot", "Joghurt Banane", "Hüttenkäse Toast", "Avocado Brot", "Müsli Apfel"],
-      m: ["Hähnchen Reis Pfanne", "Lachs Kartoffeln", "Puten Gemüse Bowl", "Pasta Tomate", "Rind Pfanne", "Thunfisch Salat", "Linsen Curry"],
-      s: ["Apfel Nüsse", "Quark", "Vollkornbrot Aufstrich", "Obst Joghurt", "Hummus Gemüse"],
-    },
-    en: {
-      b: ["Oatmeal berries", "Greek yogurt fruit", "Scrambled eggs toast", "Yogurt banana", "Cottage cheese toast"],
-      m: ["Chicken rice pan", "Salmon potatoes", "Turkey veggie bowl", "Pasta tomato", "Beef stir fry", "Tuna salad", "Lentil curry"],
-      s: ["Apple nuts", "Cottage cheese", "Sandwich", "Fruit yogurt", "Hummus veggies"],
-    },
-    fr: {
-      b: ["Porridge baies", "Yaourt fruits", "Oeufs pain", "Fromage blanc banane"],
-      m: ["Poulet riz", "Saumon pommes", "Dinde legumes", "Pates tomate", "Boeuf saute", "Thon salade", "Curry lentilles"],
-      s: ["Pomme noix", "Fromage blanc", "Sandwich", "Fruit yaourt"],
-    },
-  }[params.lang];
+    b: filterPool(basePools.b, ctx, params.lang, "b"),
+    m: filterPool(basePools.m, ctx, params.lang, "m"),
+    s: filterPool(basePools.s, ctx, params.lang, "s"),
+  };
 
-  if (vegan) {
-    const v = {
-      de: {
-        b: ["Haferflocken Beeren", "Tofu Rührei", "Avocado Brot", "Chia Pudding", "Banane Erdnuss", "Obstsalat", "Hummus Brot"],
-        m: ["Linsen Curry", "Tofu Reis Pfanne", "Kichererbsen Bowl", "Gemüsepfanne", "Buddha Bowl", "Tempeh Salat", "Bohnen Chili"],
-        s: ["Apfel Nüsse", "Hummus Gemüse", "Obst Mix", "Edamame", "Nussriegel"],
-      },
-      en: {
-        b: ["Oatmeal berries", "Tofu scramble", "Avocado toast", "Chia pudding", "Banana peanut", "Fruit salad"],
-        m: ["Lentil curry", "Tofu rice pan", "Chickpea bowl", "Veggie stir fry", "Buddha bowl", "Tempeh salad", "Bean chili"],
-        s: ["Apple nuts", "Hummus veggies", "Fruit mix", "Edamame"],
-      },
-      fr: {
-        b: ["Porridge baies", "Tofu brouille", "Avocat pain", "Chia pudding", "Salade fruits"],
-        m: ["Curry lentilles", "Tofu riz", "Bol pois chiches", "Legumes saute", "Buddha bowl", "Salade tempeh"],
-        s: ["Pomme noix", "Hummus legumes", "Fruits", "Edamame"],
-      },
-    }[params.lang];
-    pools.b = v.b;
-    pools.m = v.m;
-    pools.s = v.s;
-  } else if (veg) {
-    pools.b = filterPool(pools.b, ctx, params.lang, "b");
-    pools.m = filterPool(pools.m, ctx, params.lang, "m");
-    pools.s = filterPool(pools.s, ctx, params.lang, "s");
-  }
-
+  const shuffleKey = params.varietySeed || String(Date.now());
   const safePools = {
-    b: filterPool(pools.b, ctx, params.lang, "b"),
-    m: filterPool(pools.m, ctx, params.lang, "m"),
-    s: filterPool(pools.s, ctx, params.lang, "s"),
+    b: seededShuffle(pools.b, `${shuffleKey}-b-${params.isRegeneration ? "r" : "n"}`),
+    m: seededShuffle(pools.m, `${shuffleKey}-m-${params.isRegeneration ? "r" : "n"}`),
+    s: seededShuffle(pools.s, `${shuffleKey}-s-${params.isRegeneration ? "r" : "n"}`),
   };
 
   const used = new Set(params.banned);
-  const pick = (pool: string[], idx: number, dayTag: string) => {
-    for (let o = 0; o < pool.length; o++) {
-      const name = pool[(idx + o) % pool.length];
-      if (!used.has(name.toLowerCase())) {
+  const usedFp = new Set(params.bannedFingerprints ?? []);
+  const poolIndex = { b: 0, m: 0, s: 0 };
+  let synthCounter = 0;
+
+  const pickUniqueTitle = (pool: string[], slot: "b" | "m" | "s", dayTag: string): string => {
+    const list = pool.length ? pool : safePools[slot];
+    for (let round = 0; round < list.length + 2; round++) {
+      for (let o = 0; o < list.length; o++) {
+        const idx = (poolIndex[slot] + o) % list.length;
+        const name = list[idx]!;
+        poolIndex[slot] = idx + 1;
+        const fp = dishFingerprintFromTitle(name, ctx);
+        if (used.has(name.toLowerCase()) || (fp && usedFp.has(fp))) continue;
         used.add(name.toLowerCase());
+        if (fp) usedFp.add(fp);
         return name;
       }
     }
-    const base = pool[idx % pool.length];
-    const name = dayTag ? `${base} — ${dayTag}` : `${base} (alt)`;
-    used.add(name.toLowerCase());
-    return name;
+    synthCounter += 1;
+    const label = params.isRegeneration
+      ? `${dayTag} ${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${synthCounter}`
+      : `${list[0] ?? "Bowl"} · ${dayTag} ${synthCounter}`;
+    used.add(label.toLowerCase());
+    return label;
   };
 
   return Array.from({ length: 7 }, (_, di) => {
@@ -1534,31 +1596,8 @@ export function fallbackPlan(params: {
     const meals = Array.from({ length: params.mealsPerDay }, (_, si) => {
       const slot = mealSlot(si, params.mealsPerDay);
       const pool = slot === "b" ? safePools.b : slot === "m" ? safePools.m : safePools.s;
-      const name = pick(pool, di * params.mealsPerDay + si, dayTag);
-      const proteinOpts = vegan
-        ? ["Tofu", "Linsen", "Kichererbsen"]
-        : veg && slot === "m"
-          ? ["Linsen", "Kichererbsen", "Eier"]
-          : slot === "m"
-            ? ["Hähnchen", "Pute", "Fisch"]
-            : ["Joghurt", "Skyr", "Eier", "Hüttenkäse"];
-      const carbOpts = lowCarb
-        ? ["Gemüse", "Salat", "Zucchini"]
-        : slot === "b"
-          ? ["Haferflocken", "Brot", "Obst"]
-          : ["Reis", "Kartoffeln", "Nudeln"];
-      const protein = proteinOpts.find((n) => !nameUnsafe(n, ctx)) || proteinOpts[0];
-      const carb = carbOpts.find((n) => !nameUnsafe(n, ctx)) || carbOpts[0];
-      return normalizeMealStructure({
-        type: slot === "b" ? "Frühstück" : slot === "m" ? "Hauptmahlzeit" : "Snack",
-        name,
-        prepTime: slot === "m" ? 25 : 12,
-        ingredients: [
-          { name: protein, amount: "1 Portion", price: 2 },
-          { name: carb, amount: "1 Portion", price: 1.5 },
-          { name: "Gemüse", amount: "1 Portion", price: 1 },
-        ],
-      });
+      const name = pickUniqueTitle(pool, slot, dayTag);
+      return buildMealFromDishTitle(name, slot, params.lang, ctx);
     });
     return { day: L.days[di], meals };
   });
@@ -1644,6 +1683,24 @@ export function parseOpenAiMealPlanContent(content: unknown): AiDayPlan[] {
   return parsed.data.mealPlan;
 }
 
+function formatVarietyBlock(
+  prior: PriorDishSnapshot[],
+  banned: string[],
+  isRegeneration: boolean,
+  mealsPerDay: number,
+): string {
+  if (isRegeneration && prior.length) {
+    return formatPriorDishesForPrompt(prior, mealsPerDay);
+  }
+  const names = banned.map((n) => n.trim()).filter(Boolean).slice(0, 40);
+  if (!names.length) return "";
+  const lines: string[] = [];
+  for (let i = 0; i < names.length; i += 8) {
+    lines.push(names.slice(i, i + 8).join("; "));
+  }
+  return [`Avoid repeating these meals:`, ...lines].join("\n");
+}
+
 export async function callOpenAI(params: {
   mealsPerDay: number;
   targets: MacroTargets;
@@ -1653,27 +1710,40 @@ export async function callOpenAI(params: {
   maxTokens: number;
   mode?: "initial" | "repair";
   repairHints?: string[];
+  isRegeneration?: boolean;
+  priorDishes?: PriorDishSnapshot[];
+  dietBlock?: string;
 }): Promise<MealPlan> {
   const L = LANG[params.lang];
+  const prior = params.priorDishes ?? [];
+  const regen = Boolean(params.isRegeneration && (prior.length || params.banned.length));
   const repairBlock =
     params.mode === "repair" && params.repairHints?.length
       ? `\nFIX:\n${params.repairHints.slice(0, 8).map((h) => `- ${h}`).join("\n")}`
       : "";
+
+  const bannedBlock = formatVarietyBlock(prior, params.banned, regen, params.mealsPerDay);
+
+  const dietBlock = params.dietBlock ?? "";
 
   const system = [
     `Nutrition coach. JSON only (${L.lang}). 7d: ${L.days.join(",")}. ${params.mealsPerDay} meals/d.`,
     `Fields: type,name,protein,carbs,fat,prepTime,ingredients[{name,amount,price}],instructions[],allergenTags[].`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish|none. instructions:[].`,
     `Server→${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F g/d. No smoothies.`,
-    params.banned.length ? `Avoid: ${params.banned.slice(0, 14).join(",")}.` : "",
+    dietBlock,
+    bannedBlock,
     params.constraints ? `Constraints:\n${params.constraints}` : "",
     repairBlock,
   ].filter(Boolean).join("\n");
 
-  const user =
-    params.mode === "repair"
+  const user = regen
+    ? params.mode === "repair"
+      ? `Still repeating old dishes. ${buildRegenerationUserPrompt(params.mealsPerDay, params.lang)}`
+      : buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
+    : params.mode === "repair"
       ? `Regenerate 7-day plan (${params.mealsPerDay}/day). Strict compliance.`
-      : `Create 7-day plan (${params.mealsPerDay}/day). Tag allergens per meal.`;
+      : `Create 7-day plan (${params.mealsPerDay}/day). Tag allergens per meal. Follow the mandatory diet rules exactly.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -1683,7 +1753,13 @@ export async function callOpenAI(params: {
     headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gpt-4o-mini",
-      temperature: params.mode === "repair" ? 0.15 : 0.25,
+      temperature: regen
+        ? params.mode === "repair"
+          ? 0.45
+          : 0.72
+        : params.mode === "repair"
+          ? 0.15
+          : 0.35,
       max_tokens: params.maxTokens,
       response_format: {
         type: "json_schema",
@@ -1735,13 +1811,23 @@ export async function generateAIDraft(input: PlanInput): Promise<MealPlan | null
     return null;
   }
 
-  const attempts: { maxTokens: number; mode: "initial" | "repair" }[] = [
-    { maxTokens: 3200, mode: "initial" },
-    { maxTokens: 2600, mode: "repair" },
-  ];
+  const attempts: { maxTokens: number; mode: "initial" | "repair" }[] = input.isRegeneration
+    ? [
+        { maxTokens: 4000, mode: "initial" },
+        { maxTokens: 3600, mode: "repair" },
+        { maxTokens: 3600, mode: "repair" },
+        { maxTokens: 3600, mode: "repair" },
+        { maxTokens: 3600, mode: "repair" },
+      ]
+    : [
+        { maxTokens: 3600, mode: "initial" },
+        { maxTokens: 3200, mode: "repair" },
+        { maxTokens: 3200, mode: "repair" },
+      ];
 
   let repairHints: string[] = [];
-  for (const attempt of attempts) {
+  for (let attemptIndex = 0; attemptIndex < attempts.length; attemptIndex++) {
+    const attempt = attempts[attemptIndex]!;
     try {
       const raw = await callOpenAI({
         mealsPerDay: input.mealsPerDay,
@@ -1752,20 +1838,49 @@ export async function generateAIDraft(input: PlanInput): Promise<MealPlan | null
         maxTokens: attempt.maxTokens,
         mode: attempt.mode,
         repairHints: attempt.mode === "repair" ? repairHints : undefined,
+        isRegeneration: input.isRegeneration,
+        priorDishes: input.priorDishes,
+        dietBlock: buildDietMandatoryBlock(input.lang, input.prefs),
       });
       const audited = auditPlan(raw, input.safetyCtx);
       const violations = violationsToStrings(audited);
+
+      if (input.isRegeneration && (input.priorDishes?.length || input.banned.length)) {
+        const prior = input.priorDishes ?? [];
+        const reused = findRegenerationOverlaps(raw, prior);
+        if (reused.length) {
+          repairHints = [
+            `Still same dishes as old week (${reused.length}): ${reused.slice(0, 8).join("; ")}`,
+            ...repairHints,
+          ];
+          console.warn(`[MEAL-PLAN] Regeneration repeated ${reused.length} dish(es)`);
+          continue;
+        }
+      }
+
       if (!violations.length) return raw;
-      if (shouldAbortAiRetries(audited)) {
+
+      const isLast = attemptIndex === attempts.length - 1;
+      const allergyFree = audited.every((v) => v.allergy.length === 0);
+
+      if (isLast && allergyFree) {
+        console.warn(
+          `[MEAL-PLAN] Using AI plan on final attempt (${audited.length} minor diet flags)`,
+        );
+        return raw;
+      }
+
+      if (shouldAbortAiRetries(audited) && !input.isRegeneration) {
         const weight = audited.reduce((s, v) => s + violationWeight(v), 0);
         console.warn(
           `[MEAL-PLAN] ${audited.length} violations (weight ${weight}) — aborting AI retries`,
         );
         return null;
       }
+
       repairHints = violations.slice(0, 12);
       console.warn(`[MEAL-PLAN] AI plan failed safety (${attempt.mode}), ${violations.length} violations`);
-      if (attempt.mode === "repair") break;
+      if (attempt.mode === "repair" && !input.isRegeneration) break;
     } catch (e) {
       console.warn("[MEAL-PLAN] OpenAI attempt failed:", e instanceof Error ? e.message : e);
     }
@@ -1930,48 +2045,9 @@ export async function requireAuthUser(
 }
 
 // ----- sanitize.ts -----
-function slotTypeLabel(lang: Lang, slot: "b" | "m" | "s"): string {
-  if (lang === "en") {
-    return slot === "b" ? "Breakfast" : slot === "m" ? "Main meal" : "Snack";
-  }
-  if (lang === "fr") {
-    return slot === "b" ? "Petit-dejeuner" : slot === "m" ? "Repas principal" : "Collation";
-  }
-  return slot === "b" ? "Frühstück" : slot === "m" ? "Hauptmahlzeit" : "Snack";
-}
-
-function safeReplacementMeal(
-  ctx: SafetyContext,
-  lang: Lang,
-  slot: "b" | "m" | "s",
-  pickIndex: number,
-): Meal {
-  const pool = filterPool(SAFE_POOL_DEFAULTS[lang][slot], ctx, lang, slot);
-  const name = pool[pickIndex % pool.length] ?? pool[0] ?? "Gemüse Bowl";
-  return normalizeMealStructure({
-    type: slotTypeLabel(lang, slot),
-    name,
-    prepTime: slot === "m" ? 22 : 12,
-    ingredients: [
-      {
-        name: lang === "de" ? "Gemüse" : lang === "fr" ? "Legumes" : "Vegetables",
-        amount: "1 Portion",
-        price: 1,
-      },
-      {
-        name: lang === "de" ? "Olivenöl" : lang === "fr" ? "Huile d olive" : "Olive oil",
-        amount: "1 EL",
-        price: 0.5,
-      },
-    ],
-    instructions: [],
-    allergenTags: ["none"],
-  });
-}
-
-/** In-place: swap meals that fail allergy/diet checks with safe pool picks. */
+/** In-place: fix unsafe meals — keep name when possible; pool names only as last resort. */
 export function sanitizeUnsafeMeals(plan: MealPlan, ctx: SafetyContext, lang: Lang): void {
-  let pick = 0;
+  let poolPick = 0;
   for (const day of plan) {
     const meals = day.meals;
     if (!Array.isArray(meals)) continue;
@@ -1979,7 +2055,16 @@ export function sanitizeUnsafeMeals(plan: MealPlan, ctx: SafetyContext, lang: La
       const meal = meals[si];
       if (!meal || isMealSafe(meal, ctx)) continue;
       const slot = mealSlot(si, meals.length);
-      meals[si] = safeReplacementMeal(ctx, lang, slot, pick++);
+
+      const fixed = buildMealFromDishTitle(String(meal.name || "Gericht"), slot, lang, ctx);
+      if (isMealSafe(fixed, ctx)) {
+        meals[si] = fixed;
+        continue;
+      }
+
+      const pool = filterPool(SAFE_POOL_DEFAULTS[lang][slot], ctx, lang, slot);
+      const name = pool[poolPick++ % pool.length] ?? pool[0] ?? "Gemüse Bowl";
+      meals[si] = buildMealFromDishTitle(name, slot, lang, ctx);
     }
   }
 }
@@ -2003,12 +2088,18 @@ export function generateFallbackDraft(
     other: input.other,
     lang: input.lang,
     banned: mergedBanned,
+    bannedFingerprints: new Set(
+      (input.priorDishes ?? []).map((p) => p.fingerprint).filter(Boolean),
+    ),
+    varietySeed: input.varietySeed,
+    isRegeneration: input.isRegeneration,
   });
 
   return finishPlan(raw, input.targets, input.mealsPerDay, input.lang) ?? raw;
 }
 
 // ----- repairLoop.ts -----
+/** Fix unsafe meals in-place (keep AI title). Template pools only when OpenAI key is missing. */
 export function repairPlan(
   draft: MealPlan,
   input: PlanInput,
@@ -2019,31 +2110,32 @@ export function repairPlan(
   let violations = priorViolations.length ? priorViolations : auditPlan(plan, input.safetyCtx);
 
   if (violations.length) {
-    console.warn(`[MEAL-PLAN] Sanitizing unsafe meals (attempt ${attempt})`);
-    sanitizeUnsafeMeals(plan, input.safetyCtx, input.lang);
+    console.warn(`[MEAL-PLAN] Fixing unsafe meals in-place (attempt ${attempt})`);
+    for (const day of plan) {
+      const meals = day.meals;
+      if (!Array.isArray(meals)) continue;
+      for (let si = 0; si < meals.length; si++) {
+        const meal = meals[si];
+        if (!meal || isMealSafe(meal, input.safetyCtx)) continue;
+        const slot = mealSlot(si, meals.length);
+        meals[si] = buildMealFromDishTitle(String(meal.name || "Gericht"), slot, input.lang, input.safetyCtx);
+      }
+    }
     violations = auditPlan(plan, input.safetyCtx);
   }
 
-  if (violations.length && attempt >= 2) {
-    console.warn(`[MEAL-PLAN] Fallback draft (attempt ${attempt})`);
+  if (violations.length && !getOpenAIKey() && attempt >= 2) {
+    console.warn("[MEAL-PLAN] No OpenAI key — template fallback after repair");
     plan = generateFallbackDraft(input, new Set());
-    sanitizeUnsafeMeals(plan, input.safetyCtx, input.lang);
     violations = auditPlan(plan, input.safetyCtx);
   }
 
-  if (violations.length && attempt >= 3) {
-    console.warn(`[MEAL-PLAN] Strict vegan fallback (attempt ${attempt})`);
-    const strictPrefs = [...new Set([...input.prefs.filter((p) => p !== "pescatarian"), "vegan"])];
-    plan = generateFallbackDraft(input, new Set(), strictPrefs);
-    sanitizeUnsafeMeals(plan, input.safetyCtx, input.lang);
-    violations = auditPlan(plan, input.safetyCtx);
-  }
-
-  if (violations.length && attempt > 3) {
+  if (violations.length && attempt > 4) {
     console.warn("[MEAL-PLAN] Hard escape: guaranteedSafeMinimalPlan");
     plan = guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
     violations = auditPlan(plan, input.safetyCtx);
   }
+
   return { plan, violations };
 }
 
@@ -2053,11 +2145,34 @@ export const defaultBuildPlanDeps: BuildPlanDeps = {
 };
 
 const MAX_REPAIR_ROUNDS = 4;
+const MAX_AI_RETRIES_AFTER_REPAIR = 2;
+
+function alignPlanIngredientsToTitles(
+  plan: MealPlan,
+  lang: Lang,
+  ctx: SafetyContext,
+  mealsPerDay: number,
+): MealPlan {
+  return plan.map((day) => ({
+    ...day,
+    meals: (day.meals || []).map((meal, si) => {
+      const titleParts = parseIngredientNamesFromDishTitle(String(meal.name || ""));
+      if (titleParts.length < 1) return meal;
+      const ingBlob = (meal.ingredients || []).map((i) => String(i.name).toLowerCase()).join(" ");
+      const matched = titleParts.filter((t) => ingBlob.includes(t.toLowerCase())).length;
+      const need = titleParts.length >= 2 ? 2 : 1;
+      if (matched >= need) return meal;
+      const slot = mealSlot(si, mealsPerDay);
+      return buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+    }),
+  }));
+}
 
 export async function buildPlan(
   input: PlanInput,
   deps: BuildPlanDeps = defaultBuildPlanDeps,
 ): Promise<BuildPlanResult> {
+  const aiAvailable = Boolean(getOpenAIKey());
   let usedAi = false;
   let repairAttempts = 0;
 
@@ -2066,8 +2181,23 @@ export async function buildPlan(
   let raw = await deps.generateAIDraft(input);
   if (raw) {
     usedAi = true;
-  } else {
+  } else if (!aiAvailable) {
+    console.warn("[MEAL-PLAN] No OPENAI_API_KEY — using template plan");
     raw = generateFallbackDraft(input, banned);
+  } else {
+    console.warn("[MEAL-PLAN] OpenAI failed — retrying full generation");
+    for (let i = 0; i < MAX_AI_RETRIES_AFTER_REPAIR && !raw; i++) {
+      raw = await deps.generateAIDraft({ ...input, isRegeneration: true });
+    }
+    if (raw) usedAi = true;
+  }
+
+  if (!raw) {
+    throw new Error(
+      aiAvailable
+        ? "KI konnte keinen Wochenplan erstellen. Bitte in ein paar Sekunden erneut versuchen."
+        : "OPENAI_API_KEY fehlt auf dem Server.",
+    );
   }
 
   let plan = finishPlan(raw, input.targets, input.mealsPerDay, input.lang) ?? raw;
@@ -2082,8 +2212,557 @@ export async function buildPlan(
       : auditPlan(plan, input.safetyCtx);
   }
 
-  const finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
+  if (violations.length > 0 && aiAvailable) {
+    console.warn(`[MEAL-PLAN] ${violations.length} violation(s) — re-asking OpenAI (no template pool)`);
+    for (let i = 0; i < MAX_AI_RETRIES_AFTER_REPAIR && violations.length > 0; i++) {
+      const aiPlan = await deps.generateAIDraft({ ...input, isRegeneration: true });
+      if (!aiPlan) continue;
+      usedAi = true;
+      plan = finishPlan(aiPlan, input.targets, input.mealsPerDay, input.lang) ?? aiPlan;
+      violations = auditPlan(plan, input.safetyCtx);
+    }
+  }
+
+  if (violations.length > 0 && !aiAvailable) {
+    console.warn(`[MEAL-PLAN] ${violations.length} violation(s) — template fallback (no API key)`);
+    const strictPrefs = input.prefs.includes("vegan")
+      ? [...new Set([...input.prefs.filter((p) => p !== "pescatarian"), "vegan"])]
+      : input.prefs;
+    plan = generateFallbackDraft(input, banned, strictPrefs);
+    plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
+    violations = auditPlan(plan, input.safetyCtx);
+    usedAi = false;
+  }
+
+  if (violations.length > 0) {
+    console.warn("[MEAL-PLAN] Last resort: minimal safe plan");
+    plan = guaranteedSafeMinimalPlan({
+      mealsPerDay: input.mealsPerDay,
+      lang: input.lang,
+    });
+    plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
+    violations = auditPlan(plan, input.safetyCtx);
+    usedAi = false;
+  }
+
+  let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
+  finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
+  finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
   return { plan: finalPlan, usedAi, repairAttempts };
+}
+
+// ----- variety.ts -----
+export function snapshotPriorMeal(meal: MealLike): PriorDishSnapshot {
+  const name = String(meal?.name ?? "").trim();
+  const mainIngredients = mealMainIngredients(meal);
+  return {
+    name,
+    mainIngredients,
+    contentKey: mealContentKey(meal),
+    fingerprint: mealDishFingerprint(meal),
+  };
+}
+
+export function parsePriorMealsFromBody(
+  previousMeals: unknown,
+  previousMealNames: string[],
+): PriorDishSnapshot[] {
+  if (Array.isArray(previousMeals)) {
+    const out: PriorDishSnapshot[] = [];
+    for (const raw of previousMeals) {
+      if (!raw || typeof raw !== "object") continue;
+      const m = raw as Record<string, unknown>;
+      const name = String(m.name ?? "").trim();
+      if (!name) continue;
+      const ingredients = Array.isArray(m.ingredients)
+        ? m.ingredients.map((i) => {
+          const row = i as Record<string, unknown>;
+          return { name: String(row?.name ?? "").trim() };
+        }).filter((i) => i.name)
+        : [];
+      out.push(snapshotPriorMeal({ name, ingredients }));
+    }
+    if (out.length) return out.slice(0, 56);
+  }
+  return previousMealNames.map((name) => snapshotPriorMeal({ name, ingredients: [] }));
+}
+
+function ingredientJaccard(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const setA = new Set(a.split("|").filter(Boolean));
+  const setB = new Set(b.split("|").filter(Boolean));
+  if (!setA.size || !setB.size) return 0;
+  let inter = 0;
+  for (const x of setA) {
+    if (setB.has(x)) inter++;
+  }
+  const union = new Set([...setA, ...setB]).size;
+  return union ? inter / union : 0;
+}
+
+function dishesTooSimilar(fpA: string, fpB: string): boolean {
+  if (!fpA || !fpB) return false;
+  if (fpA === fpB) return true;
+  const j = ingredientJaccard(fpA, fpB);
+  if (j >= 0.65) return true;
+  const setA = new Set(fpA.split("|").filter(Boolean));
+  let shared = 0;
+  for (const x of fpB.split("|").filter(Boolean)) {
+    if (setA.has(x)) shared++;
+  }
+  return shared >= 2 && j >= 0.4;
+}
+
+/** Same dish if name, content key, or ≥70% ingredient overlap with any prior meal. */
+export function mealMatchesPriorDish(meal: MealLike, prior: PriorDishSnapshot[]): string | null {
+  const name = String(meal?.name ?? "").toLowerCase().trim();
+  const contentKey = mealContentKey(meal);
+  const fingerprint = mealDishFingerprint(meal);
+
+  for (const p of prior) {
+    if (name && p.name.toLowerCase().trim() === name) return p.name;
+    if (contentKey && p.contentKey && contentKey === p.contentKey) return p.name;
+    if (fingerprint && p.fingerprint && fingerprint === p.fingerprint) return p.name;
+    if (fingerprint && p.fingerprint && dishesTooSimilar(fingerprint, p.fingerprint)) {
+      return p.name;
+    }
+  }
+  return null;
+}
+
+export function findRegenerationOverlaps(plan: MealPlan, prior: PriorDishSnapshot[]): string[] {
+  const hits: string[] = [];
+  for (const day of plan) {
+    for (const meal of day.meals ?? []) {
+      const match = mealMatchesPriorDish(meal, prior);
+      if (match) hits.push(`${meal.name} ≈ ${match}`);
+    }
+  }
+  return hits;
+}
+
+export function formatPriorDishesForPrompt(prior: PriorDishSnapshot[], mealsPerDay: number): string {
+  if (!prior.length) return "";
+  const lines = prior.slice(0, 40).map((p) => {
+    const ings = p.mainIngredients.length
+      ? p.mainIngredients.slice(0, 6).join(", ")
+      : "(see title)";
+    return `- ${p.name} [${ings}]`;
+  });
+  return [
+    "OLD WEEK — forbidden (do NOT reuse, reshuffle to other days, or rename):",
+    ...lines,
+    `Create ${7 * mealsPerDay} completely NEW recipes.`,
+    "Do NOT move old meals to different weekdays. Do NOT use the same main ingredients with a new title.",
+    "Each meal needs a new cooking style, new primary protein, and mostly new ingredients.",
+  ].join("\n");
+}
+
+// ----- dietPools.ts -----
+export type PoolSet = { b: string[]; m: string[]; s: string[] };
+
+const DE: Record<string, PoolSet> = {
+  balanced: {
+    b: [
+      "Haferflocken Beeren", "Skyr Obst", "Rührei Vollkornbrot", "Joghurt Banane", "Hüttenkäse Toast",
+      "Avocado Brot", "Müsli Apfel", "Porridge Nüsse", "French Toast", "Quark Honig",
+    ],
+    m: [
+      "Hähnchen Reis Pfanne", "Lachs Kartoffeln", "Puten Gemüse Bowl", "Pasta Tomate Basilikum",
+      "Rind Pfanne Asia", "Thunfisch Salat", "Linsen Curry", "Gyros Bowl", "Falafel Teller",
+      "Wrap Hähnchen", "Spaghetti Bolognese", "Fish and Chips Ofen", "Chili con Carne", "Risotto Pilze",
+    ],
+    s: ["Apfel Nüsse", "Quark Beeren", "Vollkornbrot Aufstrich", "Obst Joghurt", "Hummus Gemüse", "Protein Riegel", "Käse Sticks"],
+  },
+  vegan: {
+    b: [
+      "Haferflocken Beeren", "Tofu-Scramble", "Avocado Brot", "Chia Pudding", "Banane Erdnuss",
+      "Obstsalat", "Hummus Brot", "Porridge Kokos", "Smoothie Bowl", "Vollkorn mit Marmelade",
+    ],
+    m: [
+      "Linsen Curry", "Tofu Reis Pfanne", "Kichererbsen Bowl", "Gemüsepfanne Sesam", "Buddha Bowl",
+      "Tempeh Salat", "Bohnen Chili", "Pad Thai Tofu", "Falafel mit Tahini", "Linsensuppe",
+      "Veggie Burger Bowl", "Couscous Gemüse", "Thai Gemüse Kokos", "Burrito Bowl vegan", "Ramen Gemüsebrühe",
+    ],
+    s: ["Apfel Nüsse", "Hummus Gemüse", "Obst Mix", "Edamame", "Nussriegel", "Rice Cakes Avocado", "Energy Balls"],
+  },
+  vegetarian: {
+    b: [
+      "Haferflocken Beeren", "Rührei Toast", "Joghurt Granola", "Käse Brötchen", "Pancakes Beeren",
+      "Obst Quark", "Müsli Mandel", "Eier Benedict light",
+    ],
+    m: [
+      "Caprese Pasta", "Spinat Ricotta Nudeln", "Gemüse Lasagne", "Kichererbsen Curry", "Falafel Teller",
+      "Margherita Pizza Ofen", "Risotto Safran", "Eier Fried Rice", "Halloumi Grill Gemüse", "Linsen Bolognese",
+      "Paneer Tikka", "Quiche Gemüse", "Burrito vegetarisch",
+    ],
+    s: ["Käse Sticks", "Obst Joghurt", "Hummus Karotten", "Nuss Mix", "Smoothie"],
+  },
+  keto: {
+    b: [
+      "Rührei Avocado", "Speck Eier", "Käse Omelett", "Griechischer Joghurt Nüsse", "Chia Kokos",
+      "Salami Eier", "Smoked Salmon Frühstück",
+    ],
+    m: [
+      "Lachs Brokkoli Butter", "Hähnchen Caesar ohne Croutons", "Rindersteak Blumenkohl", "Puten Zucchini Pfanne",
+      "Thunfisch Salat Olive", "Hackfleisch Kohl", "Garnelen Knoblauch", "Ente Gemüse", "Lamm Rosmarin",
+      "Schweinefilet Pilze", "Zucchini Lasagne keto", "Cobb Salad",
+    ],
+    s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Pepperoni Snack"],
+  },
+  "low-carb": {
+    b: ["Rührei Spinat", "Skyr Nüsse", "Omelett Gemüse", "Hüttenkäse Beeren", "Avocado Ei"],
+    m: [
+      "Hähnchen Salat", "Lachs Spargel", "Pute Paprika Pfanne", "Rind Gemüse Wok", "Fisch Zucchini",
+      "Garnelen Salat", "Hack Salat Bowl", "Curry ohne Reis", "Steak grüne Bohnen",
+    ],
+    s: ["Nüsse", "Käse", "Gemüse Sticks", "Hard Boiled Eggs", "Oliven"],
+  },
+  paleo: {
+    b: ["Eier Süßkartoffel", "Obst Nüsse", "Rührei Champignons", "Smoothie ohne Milch"],
+    m: [
+      "Hähnchen Ofengemüse", "Lachs Spargel", "Rind Stir Fry", "Pute Süßkartoffel", "Hack Zucchini",
+      "Ente Rotkohl", "Schweine Medaillons", "Lamm Karotten", "Fisch Kräuter",
+    ],
+    s: ["Mandeln", "Beeren", "Rind Biltong Style", "Karotten Hummus ohne Kichererbsen"],
+  },
+};
+
+const EN: Record<string, PoolSet> = {
+  balanced: {
+    b: ["Oatmeal berries", "Greek yogurt fruit", "Scrambled eggs toast", "Yogurt banana", "Cottage cheese toast", "Avocado toast", "Granola apple"],
+    m: ["Chicken rice pan", "Salmon potatoes", "Turkey veggie bowl", "Pasta tomato", "Beef stir fry", "Tuna salad", "Lentil curry", "Chicken wrap", "Beef tacos", "Shrimp pasta", "Pork chops veg", "Lamb stew"],
+    s: ["Apple nuts", "Cottage cheese", "Sandwich", "Fruit yogurt", "Hummus veggies", "Cheese cubes"],
+  },
+  vegan: {
+    b: ["Oatmeal berries", "Tofu scramble", "Avocado toast", "Chia pudding", "Banana peanut", "Fruit salad", "Hummus toast"],
+    m: ["Lentil curry", "Tofu rice pan", "Chickpea bowl", "Veggie stir fry", "Buddha bowl", "Tempeh salad", "Bean chili", "Vegan pad thai", "Falafel plate", "Lentil soup", "Veggie burger bowl", "Coconut veg curry", "Mexican bean bowl", "Ramen veggie"],
+    s: ["Apple nuts", "Hummus veggies", "Fruit mix", "Edamame", "Nut bar"],
+  },
+  vegetarian: {
+    b: ["Oatmeal berries", "Eggs toast", "Yogurt granola", "Cheese croissant", "Pancakes berries"],
+    m: ["Caprese pasta", "Spinach ricotta pasta", "Veg lasagna", "Chickpea curry", "Falafel plate", "Margherita pizza", "Risotto", "Egg fried rice", "Halloumi grill", "Paneer tikka"],
+    s: ["Cheese sticks", "Fruit yogurt", "Hummus carrots", "Nut mix"],
+  },
+  keto: {
+    b: ["Eggs avocado", "Bacon eggs", "Cheese omelette", "Greek yogurt nuts", "Chia coconut"],
+    m: ["Salmon broccoli", "Chicken caesar no croutons", "Steak cauliflower", "Turkey zucchini", "Tuna olive salad", "Beef cabbage", "Shrimp garlic", "Pork tenderloin mushrooms", "Cobb salad", "Zucchini lasagna keto"],
+    s: ["Cheese cubes", "Nut mix", "Cucumber dip", "Olives"],
+  },
+  "low-carb": {
+    b: ["Eggs spinach", "Skyr nuts", "Veggie omelette", "Cottage cheese berries"],
+    m: ["Chicken salad", "Salmon asparagus", "Turkey pepper pan", "Beef veg wok", "Fish zucchini", "Shrimp salad", "Steak green beans"],
+    s: ["Nuts", "Cheese", "Veggie sticks", "Boiled eggs"],
+  },
+  paleo: {
+    b: ["Eggs sweet potato", "Fruit nuts", "Mushroom scramble"],
+    m: ["Chicken roast veg", "Salmon asparagus", "Beef stir fry", "Turkey sweet potato", "Pork zucchini", "Duck cabbage", "Fish herbs"],
+    s: ["Almonds", "Berries", "Carrot sticks"],
+  },
+};
+
+const FR: Record<string, PoolSet> = {
+  balanced: {
+    b: ["Porridge baies", "Yaourt fruits", "Oeufs pain", "Fromage blanc banane", "Avocat pain"],
+    m: ["Poulet riz", "Saumon pommes", "Dinde legumes", "Pates tomate", "Boeuf saute", "Thon salade", "Curry lentilles", "Wrap poulet"],
+    s: ["Pomme noix", "Fromage blanc", "Sandwich", "Fruit yaourt"],
+  },
+  vegan: {
+    b: ["Porridge baies", "Tofu brouille", "Avocat pain", "Chia pudding", "Salade fruits", "Hummus pain"],
+    m: ["Curry lentilles", "Tofu riz", "Bol pois chiches", "Legumes saute", "Buddha bowl", "Salade tempeh", "Chili haricots", "Pad thai tofu", "Falafel", "Soupe lentilles", "Bowl burrito vegan"],
+    s: ["Pomme noix", "Hummus legumes", "Fruits", "Edamame"],
+  },
+  vegetarian: {
+    b: ["Porridge baies", "Oeufs pain", "Yaourt granola", "Fromage brioche"],
+    m: ["Pates caprese", "Lasagne legumes", "Curry pois chiches", "Falafel", "Pizza margherita", "Risotto", "Riz oeuf"],
+    s: ["Fromage", "Fruit yaourt", "Hummus"],
+  },
+  keto: {
+    b: ["Oeufs avocat", "Bacon oeufs", "Omelette fromage"],
+    m: ["Saumon brocoli", "Poulet salade", "Steak chou-fleur", "Dinde courgette", "Thon olives", "Porc champignons"],
+    s: ["Fromage", "Noix", "Olives"],
+  },
+  "low-carb": {
+    b: ["Oeufs epinards", "Skyr noix", "Omelette legumes"],
+    m: ["Salade poulet", "Saumon asperges", "Boeuf legumes", "Poisson courgette"],
+    s: ["Noix", "Fromage", "Legumes crus"],
+  },
+  paleo: {
+    b: ["Oeufs patate douce", "Fruits noix"],
+    m: ["Poulet legumes rotis", "Saumon asperges", "Boeuf saute", "Porc courgette"],
+    s: ["Amandes", "Baies"],
+  },
+};
+
+const BY_LANG: Record<Lang, Record<string, PoolSet>> = { de: DE, en: EN, fr: FR };
+
+export function resolveDietKey(prefs: string[]): string {
+  const p = prefs.filter((x) => x && x !== "none" && x !== "balanced");
+  if (p.includes("vegan")) return "vegan";
+  if (p.includes("keto")) return "keto";
+  if (p.includes("low-carb")) return "low-carb";
+  if (p.includes("paleo")) return "paleo";
+  if (p.includes("vegetarian")) return "vegetarian";
+  return "balanced";
+}
+
+export function getDietPools(lang: Lang, prefs: string[]): PoolSet {
+  const diet = resolveDietKey(prefs);
+  const pools = BY_LANG[lang][diet] ?? BY_LANG[lang].balanced;
+  return pools;
+}
+
+// ----- dietPrompts.ts -----
+const CUISINE: Record<Lang, Record<string, string>> = {
+  de: {
+    balanced:
+      "ERNÄHRUNGSFORM: Ausgewogen. Erlaubt: Fleisch, Fisch, Eier, Milch, Vollkorn. Abwechslungsreiche Alltagsküche.",
+    vegan:
+      "ERNÄHRUNGSFORM: VEGAN (Pflicht). KEIN Fleisch, Fisch, Eier, Milch, Honig, Gelatine. Nur pflanzlich: Tofu, Tempeh, Linsen, Kichererbsen, Hülsenfrüchte, Gemüse, Nüsse, Hafer, pflanzliche Milch.",
+    vegetarian:
+      "ERNÄHRUNGSFORM: VEGETARISCH (Pflicht). KEIN Fleisch, kein Fisch. Erlaubt: Eier, Milchprodukte, Hülsenfrüchte, Gemüse.",
+    keto:
+      "ERNÄHRUNGSFORM: KETO (Pflicht). Sehr wenig Kohlenhydrate. KEINE Pasta, Brot, Reis, Kartoffeln, Müsli, Zucker. Erlaubt: Fleisch, Fisch, Eier, Käse, Avocado, Gemüse, Nüsse.",
+    "low-carb":
+      "ERNÄHRUNGSFORM: KOHLENHYDRATARM. Wenig Reis, Pasta, Brot, Kartoffeln. Fokus: Protein + Gemüse + gesunde Fette.",
+    paleo:
+      "ERNÄHRUNGSFORM: PALEO. KEIN Getreide, KEINE Hülsenfrüchte, KEINE Milchprodukte. Fleisch, Fisch, Eier, Gemüse, Nüsse, Obst.",
+  },
+  en: {
+    balanced: "DIET: Balanced. Meat, fish, eggs, dairy, whole grains allowed.",
+    vegan: "DIET: VEGAN (mandatory). NO meat, fish, eggs, dairy, honey. Plant-only proteins and ingredients.",
+    vegetarian: "DIET: VEGETARIAN (mandatory). NO meat or fish. Eggs and dairy allowed.",
+    keto: "DIET: KETO (mandatory). NO pasta, bread, rice, potatoes, cereal, sugar. High fat, moderate protein, very low carb.",
+    "low-carb": "DIET: LOW-CARB. Small portions of grains; focus protein + vegetables.",
+    paleo: "DIET: PALEO. NO grains, legumes, or dairy. Meat, fish, eggs, vegetables, nuts.",
+  },
+  fr: {
+    balanced: "RÉGIME: Équilibré. Viande, poisson, œufs, produits laitiers autorisés.",
+    vegan: "RÉGIME: VÉGAN (obligatoire). AUCUNE viande, poisson, œufs, lait, miel. Uniquement végétal.",
+    vegetarian: "RÉGIME: VÉGÉTARIEN. Pas de viande ni poisson. Œufs et produits laitiers autorisés.",
+    keto: "RÉGIME: CÉTO. PAS de pâtes, pain, riz, pommes de terre, sucre.",
+    "low-carb": "RÉGIME: FAIBLE EN GLUCIDES. Protéines + légumes.",
+    paleo: "RÉGIME: PALÉO. Pas de céréales, légumineuses ni produits laitiers.",
+  },
+};
+
+const FORBID_CROSS: Record<string, string[]> = {
+  vegan: ["chicken", "hähnchen", "beef", "rind", "salmon", "lachs", "fish", "fisch", "egg", "ei", "cheese", "käse", "milk", "milch", "yogurt", "joghurt"],
+  keto: ["pasta", "nudel", "bread", "brot", "rice", "reis", "potato", "kartoffel", "müsli", "oatmeal hafer only small"],
+  vegetarian: ["chicken", "hähnchen", "beef", "salmon", "lachs", "fish", "fisch", "tuna", "thunfisch"],
+};
+
+export function buildDietMandatoryBlock(lang: Lang, prefs: string[]): string {
+  const key = resolveDietKey(prefs);
+  const line = CUISINE[lang][key] ?? CUISINE[lang].balanced;
+  const forbid = FORBID_CROSS[key];
+  if (!forbid?.length) return line;
+  return `${line}\nVERBOTEN in diesem Plan: ${forbid.slice(0, 12).join(", ")}.`;
+}
+
+export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): string {
+  const days =
+    lang === "en"
+      ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      : lang === "fr"
+        ? ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+        : ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+  const cuisines =
+    lang === "de"
+      ? ["mediterran", "asiatisch", "mexikanisch", "nahöstlich", "italienisch", "indisch", "deutsch-leicht"]
+      : lang === "fr"
+        ? ["méditerranéen", "asiatique", "mexicain", "moyen-orient", "italien", "indien", "français léger"]
+        : ["Mediterranean", "Asian", "Mexican", "Middle Eastern", "Italian", "Indian", "American"];
+  const dayCuisine = days.map((d, i) => `${d}=${cuisines[i]}`).join(", ");
+  if (lang === "de") {
+    return [
+      `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag).`,
+      "WICHTIG: Nicht die alten Gerichte auf andere Wochentage verschieben oder umbenennen.",
+      "Jede einzelne Mahlzeit = komplett neues Rezept (andere Hauptzutaten, andere Zubereitung, anderer Stil).",
+      `Küchen-Rotation pro Tag: ${dayCuisine}.`,
+      "Keine Wiederholung derselben Gericht-Idee in der Woche.",
+    ].join(" ");
+  }
+  if (lang === "fr") {
+    return [
+      `NOUVEAU plan (${mealsPerDay} repas/jour).`,
+      "Ne pas déplacer les anciens plats sur d'autres jours.",
+      "Chaque repas = nouvelle recette (nouveaux ingrédients principaux).",
+      `Cuisines par jour: ${dayCuisine}.`,
+    ].join(" ");
+  }
+  return [
+    `NEW weekly plan (${mealsPerDay} meals/day).`,
+    "Do NOT shuffle old dishes to different weekdays or rename them.",
+    "Every meal = brand-new recipe (different main ingredients and cooking style).",
+    `Cuisine rotation: ${dayCuisine}.`,
+  ].join(" ");
+}
+
+// ----- mealBlueprints.ts -----
+/** Cooking-style tokens — not standalone shopping ingredients. */
+const NOISE_TOKENS = new Set([
+  "pfanne",
+  "pan",
+  "fry",
+  "bowl",
+  "wok",
+  "ofen",
+  "oven",
+  "natur",
+  "nature",
+  "style",
+  "light",
+  "sticks",
+  "mix",
+  "veggie",
+  "veggies",
+  "vegetable",
+  "vegetables",
+  "gemuse",
+  "gemüse",
+  "saute",
+  "sauté",
+  "sautee",
+  "baked",
+  "grill",
+  "asian",
+  "asia",
+  "mediterranean",
+  "italian",
+  "indian",
+  "mexican",
+  "classic",
+  "homemade",
+  "fresh",
+  "plain",
+  "simple",
+  "stir",
+  "baked",
+  "roast",
+  "filet",
+  "medaillons",
+]);
+
+const MULTI_WORD_HEADS: readonly string[] = [
+  "haferflocken",
+  "greek yogurt",
+  "cottage cheese",
+  "fromage blanc",
+  "peanut butter",
+  "sweet potato",
+  "süßkartoffel",
+  "olive oil",
+  "olivenöl",
+  "rice cakes",
+  "fish and chips",
+  "chicken rice",
+  "tofu scramble",
+  "tofu-scramble",
+  "chia pudding",
+  "fruit salad",
+  "obstsalat",
+  "energy balls",
+  "nut bar",
+];
+
+function fold(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function capitalizeWord(w: string): string {
+  const t = w.trim();
+  if (!t) return t;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** Pull ingredient-like tokens from a dish title (e.g. "Joghurt Banane" → Joghurt, Banane). */
+export function parseIngredientNamesFromDishTitle(title: string): string[] {
+  let blob = title.trim();
+  if (!blob) return ["Gemüse"];
+
+  blob = blob
+    .replace(/\s+mit\s+/gi, " ")
+    .replace(/\s+und\s+/gi, " ")
+    .replace(/\s+with\s+/gi, " ")
+    .replace(/\s+and\s+/gi, " ")
+    .replace(/[–—]/g, " ");
+
+  const foldedBlob = fold(blob);
+  const picked: string[] = [];
+
+  for (const phrase of MULTI_WORD_HEADS) {
+    if (foldedBlob.includes(phrase)) {
+      const start = foldedBlob.indexOf(phrase);
+      picked.push(blob.slice(start, start + phrase.length).trim());
+    }
+  }
+
+  const parts = blob
+    .split(/[\s,&+\-/]+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length >= 2);
+
+  for (const part of parts) {
+    const f = fold(part);
+    if (NOISE_TOKENS.has(f)) continue;
+    if (picked.some((p) => fold(p) === f)) continue;
+    picked.push(part);
+  }
+
+  if (!picked.length) {
+    return [capitalizeWord(blob.split(/\s+/)[0] || "Gemüse")];
+  }
+
+  return picked.slice(0, 5).map(capitalizeWord);
+}
+
+export function ingredientsFromDishTitle(
+  title: string,
+  ctx: SafetyContext,
+): Ingredient[] {
+  const names = parseIngredientNamesFromDishTitle(title).filter((n) => !nameUnsafe(n, ctx));
+  const safe = names.length ? names : parseIngredientNamesFromDishTitle(title).slice(0, 1);
+  const list = safe.length ? safe : ["Gemüse"];
+
+  return list.map((name, i) => ({
+    name,
+    amount: i === 0 ? "1 Portion" : "1 Portion",
+    price: i === 0 ? 2 : Math.round((1.2 + i * 0.1) * 100) / 100,
+  }));
+}
+
+export function slotTypeLabel(lang: Lang, slot: "b" | "m" | "s"): string {
+  if (lang === "en") {
+    return slot === "b" ? "Breakfast" : slot === "m" ? "Main meal" : "Snack";
+  }
+  if (lang === "fr") {
+    return slot === "b" ? "Petit-déjeuner" : slot === "m" ? "Repas principal" : "Collation";
+  }
+  return slot === "b" ? "Frühstück" : slot === "m" ? "Hauptmahlzeit" : "Snack";
+}
+
+export function buildMealFromDishTitle(
+  name: string,
+  slot: "b" | "m" | "s",
+  lang: Lang,
+  ctx: SafetyContext,
+): Meal {
+  const ingredients = ingredientsFromDishTitle(name, ctx);
+  const tags = mealAllergenTags({ name, ingredients, allergenTags: [] });
+  return normalizeMealStructure({
+    type: slotTypeLabel(lang, slot),
+    name: name.trim(),
+    prepTime: slot === "m" ? 25 : 12,
+    ingredients,
+    instructions: [],
+    allergenTags: tags.length ? tags : ["none"],
+  });
+}
+
+export function dishFingerprintFromTitle(title: string, ctx: SafetyContext): string {
+  const meal = buildMealFromDishTitle(title, "m", "de", ctx);
+  return mealDishFingerprint(meal);
 }
 
 // ===== HTTP handler =====
@@ -2134,6 +2813,9 @@ Deno.serve(async (req) => {
     const lang = resolveLang(body.language);
     const fridge = Array.isArray(body.fridgeIngredients) ? body.fridgeIngredients.map(String).filter(Boolean) : [];
     const banned = Array.isArray(body.previousMealNames) ? body.previousMealNames.map(String).filter(Boolean) : [];
+    const priorDishes = parsePriorMealsFromBody(body.previousMeals, banned);
+    const isRegeneration = body.isRegeneration === true || body.isRegeneration === "true";
+    const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed.trim() : "";
     const constraints = [
       buildConstraints(allergies, prefs, goals, other, lang),
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "",
@@ -2153,6 +2835,9 @@ Deno.serve(async (req) => {
       banned,
       constraints,
       safetyCtx: createSafetyContext(allergies, prefs, other),
+      isRegeneration: isRegeneration || priorDishes.length > 0,
+      varietySeed,
+      priorDishes,
     });
 
     const list = shoppingList(plan, fridge);

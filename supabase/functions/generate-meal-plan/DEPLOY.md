@@ -1,5 +1,7 @@
 # generate-meal-plan deploy (Supabase Dashboard)
 
+**Mit `OPENAI_API_KEY`:** Der Wochenplan kommt von OpenAI (auch bei „Neu generieren“). Die festen Listen in `dietPools.ts` / `fallbacks.ts` sind nur **Notfall ohne API-Key** oder wenn die KI nach allen Versuchen scheitert.
+
 The Dashboard only accepts **one file**: paste/deploy `index.ts` only.
 
 ## After editing modules (`auth.ts`, `macros.ts`, …)

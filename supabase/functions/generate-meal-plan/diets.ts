@@ -1,5 +1,35 @@
+import { hasRealDairyEvidence } from "./allergens.ts";
 import { termMatches } from "./normalize.ts";
 import type { DietRule, MealNorm } from "./types.ts";
+
+const VEGAN_MEAT_FISH_TERMS = [
+  "hackfleisch",
+  "hähnchen",
+  "hahnchen",
+  "pute",
+  "schwein",
+  "fleisch",
+  "wurst",
+  "schnitzel",
+  "schinken",
+  "steak",
+  "speck",
+  "salami",
+  "bacon",
+  "lachs",
+  "thunfisch",
+  "fisch",
+  "forelle",
+  "garnelen",
+  "meat",
+  "chicken",
+  "beef",
+  "pork",
+  "fish",
+  "salmon",
+  "tuna",
+  "shrimp",
+] as const;
 
 const KETO_SAFE_PHRASES = [
   "blumenkohl reis",
@@ -165,6 +195,12 @@ export function dietRuleMatches(
   return (rule.phrases ?? []).some((phrase) => blob.includes(phrase.toLowerCase()));
 }
 
+function veganDirectViolation(norm: MealNorm): boolean {
+  if (VEGAN_MEAT_FISH_TERMS.some((term) => termMatches(norm, term))) return true;
+  if (hasRealDairyEvidence(norm)) return true;
+  return false;
+}
+
 export function detectDietViolations(norm: MealNorm, present: Set<string>, prefs: string[]): string[] {
   const hit: string[] = [];
   const lowCarbBlob = scrubKetoSafeBlob(norm.blob);
@@ -172,6 +208,7 @@ export function detectDietViolations(norm: MealNorm, present: Set<string>, prefs
   if (prefs.includes("vegan")) {
     const rule = DIET_RULE_BY_ID.get("vegan");
     if (rule && dietRuleMatches(rule, norm, present)) hit.push("vegan");
+    if (!hit.includes("vegan") && veganDirectViolation(norm)) hit.push("vegan");
   }
   if (prefs.includes("vegetarian") && !prefs.includes("vegan")) {
     const rule = DIET_RULE_BY_ID.get("vegetarian");

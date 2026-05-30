@@ -1,3 +1,5 @@
+import { parsePriorMealsFromBody } from "./variety.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -45,6 +47,9 @@ Deno.serve(async (req) => {
     const lang = resolveLang(body.language);
     const fridge = Array.isArray(body.fridgeIngredients) ? body.fridgeIngredients.map(String).filter(Boolean) : [];
     const banned = Array.isArray(body.previousMealNames) ? body.previousMealNames.map(String).filter(Boolean) : [];
+    const priorDishes = parsePriorMealsFromBody(body.previousMeals, banned);
+    const isRegeneration = body.isRegeneration === true || body.isRegeneration === "true";
+    const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed.trim() : "";
     const constraints = [
       buildConstraints(allergies, prefs, goals, other, lang),
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "",
@@ -64,6 +69,9 @@ Deno.serve(async (req) => {
       banned,
       constraints,
       safetyCtx: createSafetyContext(allergies, prefs, other),
+      isRegeneration: isRegeneration || priorDishes.length > 0,
+      varietySeed,
+      priorDishes,
     });
 
     const list = shoppingList(plan, fridge);

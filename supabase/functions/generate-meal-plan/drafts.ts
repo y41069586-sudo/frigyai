@@ -20,6 +20,11 @@ export function generateFallbackDraft(
     other: input.other,
     lang: input.lang,
     banned: mergedBanned,
+    bannedFingerprints: new Set(
+      (input.priorDishes ?? []).map((p) => p.fingerprint).filter(Boolean),
+    ),
+    varietySeed: input.varietySeed,
+    isRegeneration: input.isRegeneration,
   });
 
   return finishPlan(raw, input.targets, input.mealsPerDay, input.lang) ?? raw;

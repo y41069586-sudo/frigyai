@@ -21,6 +21,23 @@ function mealNormCacheSet(key: string, norm: MealNorm) {
   mealNormCache.set(key, norm);
 }
 
+function accentFold(input: string): string {
+  return input.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+/** Sorted main ingredient names (accent-folded) — dish identity beyond title. */
+export function mealMainIngredients(meal: MealLike): string[] {
+  return (Array.isArray(meal?.ingredients) ? meal.ingredients : [])
+    .map((i) => accentFold(String(i?.name ?? "")))
+    .filter((n) => n.length >= 2)
+    .sort();
+}
+
+/** Fingerprint for variety checks (ingredients only). */
+export function mealDishFingerprint(meal: MealLike): string {
+  return mealMainIngredients(meal).join("|");
+}
+
 export function mealContentKey(meal: MealLike): string {
   const name = String(meal?.name || "").trim();
   const ings = Array.isArray(meal?.ingredients)
@@ -107,7 +124,7 @@ function normHasMarker(norm: MealNorm, markers: readonly string[]): boolean {
 }
 
 export function termMatches(norm: MealNorm, term: string): boolean {
-  const t = term.toLowerCase().trim().replace(/[-_/]+/g, " ");
+  const t = accentFold(term).replace(/[-_/]+/g, " ");
   if (!t) return false;
   const tCompact = t.replace(/\s+/g, "");
   if (t.includes(" ")) {

@@ -1,9 +1,12 @@
-import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
-import { auditPlan } from "./validation.ts";
+import { getOpenAIKey } from "./constants.ts";
 import { generateFallbackDraft } from "./drafts.ts";
-import { sanitizeUnsafeMeals } from "./sanitize.ts";
+import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
+import { buildMealFromDishTitle } from "./mealBlueprints.ts";
+import { mealSlot } from "./meals.ts";
+import { auditPlan, isMealSafe } from "./validation.ts";
 import type { MealPlan, PlanInput, SafetyViolation } from "./types.ts";
 
+/** Fix unsafe meals in-place (keep AI title). Template pools only when OpenAI key is missing. */
 export function repairPlan(
   draft: MealPlan,
   input: PlanInput,
@@ -14,30 +17,31 @@ export function repairPlan(
   let violations = priorViolations.length ? priorViolations : auditPlan(plan, input.safetyCtx);
 
   if (violations.length) {
-    console.warn(`[MEAL-PLAN] Sanitizing unsafe meals (attempt ${attempt})`);
-    sanitizeUnsafeMeals(plan, input.safetyCtx, input.lang);
+    console.warn(`[MEAL-PLAN] Fixing unsafe meals in-place (attempt ${attempt})`);
+    for (const day of plan) {
+      const meals = day.meals;
+      if (!Array.isArray(meals)) continue;
+      for (let si = 0; si < meals.length; si++) {
+        const meal = meals[si];
+        if (!meal || isMealSafe(meal, input.safetyCtx)) continue;
+        const slot = mealSlot(si, meals.length);
+        meals[si] = buildMealFromDishTitle(String(meal.name || "Gericht"), slot, input.lang, input.safetyCtx);
+      }
+    }
     violations = auditPlan(plan, input.safetyCtx);
   }
 
-  if (violations.length && attempt >= 2) {
-    console.warn(`[MEAL-PLAN] Fallback draft (attempt ${attempt})`);
+  if (violations.length && !getOpenAIKey() && attempt >= 2) {
+    console.warn("[MEAL-PLAN] No OpenAI key — template fallback after repair");
     plan = generateFallbackDraft(input, new Set());
-    sanitizeUnsafeMeals(plan, input.safetyCtx, input.lang);
     violations = auditPlan(plan, input.safetyCtx);
   }
 
-  if (violations.length && attempt >= 3) {
-    console.warn(`[MEAL-PLAN] Strict vegan fallback (attempt ${attempt})`);
-    const strictPrefs = [...new Set([...input.prefs.filter((p) => p !== "pescatarian"), "vegan"])];
-    plan = generateFallbackDraft(input, new Set(), strictPrefs);
-    sanitizeUnsafeMeals(plan, input.safetyCtx, input.lang);
-    violations = auditPlan(plan, input.safetyCtx);
-  }
-
-  if (violations.length && attempt > 3) {
+  if (violations.length && attempt > 4) {
     console.warn("[MEAL-PLAN] Hard escape: guaranteedSafeMinimalPlan");
     plan = guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
     violations = auditPlan(plan, input.safetyCtx);
   }
+
   return { plan, violations };
 }

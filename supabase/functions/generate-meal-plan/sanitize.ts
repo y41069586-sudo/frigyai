@@ -1,54 +1,11 @@
-import { normalizeMealStructure } from "./macros.ts";
+import { buildMealFromDishTitle } from "./mealBlueprints.ts";
 import { mealSlot } from "./meals.ts";
-import {
-  filterPool,
-  isMealSafe,
-  SAFE_POOL_DEFAULTS,
-} from "./validation.ts";
-import type { Lang, Meal, MealPlan, SafetyContext } from "./types.ts";
+import { filterPool, isMealSafe, SAFE_POOL_DEFAULTS } from "./validation.ts";
+import type { Lang, MealPlan, SafetyContext } from "./types.ts";
 
-function slotTypeLabel(lang: Lang, slot: "b" | "m" | "s"): string {
-  if (lang === "en") {
-    return slot === "b" ? "Breakfast" : slot === "m" ? "Main meal" : "Snack";
-  }
-  if (lang === "fr") {
-    return slot === "b" ? "Petit-dejeuner" : slot === "m" ? "Repas principal" : "Collation";
-  }
-  return slot === "b" ? "Frühstück" : slot === "m" ? "Hauptmahlzeit" : "Snack";
-}
-
-function safeReplacementMeal(
-  ctx: SafetyContext,
-  lang: Lang,
-  slot: "b" | "m" | "s",
-  pickIndex: number,
-): Meal {
-  const pool = filterPool(SAFE_POOL_DEFAULTS[lang][slot], ctx, lang, slot);
-  const name = pool[pickIndex % pool.length] ?? pool[0] ?? "Gemüse Bowl";
-  return normalizeMealStructure({
-    type: slotTypeLabel(lang, slot),
-    name,
-    prepTime: slot === "m" ? 22 : 12,
-    ingredients: [
-      {
-        name: lang === "de" ? "Gemüse" : lang === "fr" ? "Legumes" : "Vegetables",
-        amount: "1 Portion",
-        price: 1,
-      },
-      {
-        name: lang === "de" ? "Olivenöl" : lang === "fr" ? "Huile d olive" : "Olive oil",
-        amount: "1 EL",
-        price: 0.5,
-      },
-    ],
-    instructions: [],
-    allergenTags: ["none"],
-  });
-}
-
-/** In-place: swap meals that fail allergy/diet checks with safe pool picks. */
+/** In-place: fix unsafe meals — keep name when possible; pool names only as last resort. */
 export function sanitizeUnsafeMeals(plan: MealPlan, ctx: SafetyContext, lang: Lang): void {
-  let pick = 0;
+  let poolPick = 0;
   for (const day of plan) {
     const meals = day.meals;
     if (!Array.isArray(meals)) continue;
@@ -56,7 +13,16 @@ export function sanitizeUnsafeMeals(plan: MealPlan, ctx: SafetyContext, lang: La
       const meal = meals[si];
       if (!meal || isMealSafe(meal, ctx)) continue;
       const slot = mealSlot(si, meals.length);
-      meals[si] = safeReplacementMeal(ctx, lang, slot, pick++);
+
+      const fixed = buildMealFromDishTitle(String(meal.name || "Gericht"), slot, lang, ctx);
+      if (isMealSafe(fixed, ctx)) {
+        meals[si] = fixed;
+        continue;
+      }
+
+      const pool = filterPool(SAFE_POOL_DEFAULTS[lang][slot], ctx, lang, slot);
+      const name = pool[poolPick++ % pool.length] ?? pool[0] ?? "Gemüse Bowl";
+      meals[si] = buildMealFromDishTitle(name, slot, lang, ctx);
     }
   }
 }

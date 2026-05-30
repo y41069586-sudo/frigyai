@@ -16,6 +16,15 @@ export const ALLERGEN_FALSE_POSITIVES: readonly AllergenFalsePositive[] = [
   { allergenId: "gluten", triggerPhrases: ["glutenfrei", "gluten-free"] },
 ];
 
+/** Plant-based „scramble“ — not real eggs (avoids „Tofu Rührei“ false positive). */
+const TOFU_SCRAMBLE_MARKERS = [
+  "tofu scramble",
+  "tofu-scramble",
+  "tofu rührei",
+  "tofu brouille",
+  "tofu-rührei",
+] as const;
+
 /** Dishes with „milch“ in the name but real dairy — do not strip via plant-milk guard. */
 export const DAIRY_DISH_MARKERS = [
   "milchreis",
@@ -280,7 +289,7 @@ function scrubPlantMilkPhrases(blob: string): string {
   return out.replace(/\s+/g, " ").trim();
 }
 
-function hasRealDairyEvidence(norm: MealNorm): boolean {
+export function hasRealDairyEvidence(norm: MealNorm): boolean {
   if (DAIRY_DISH_MARKERS.some((m) => norm.blob.includes(m) || norm.compact.includes(m.replace(/\s+/g, "")))) {
     return true;
   }
@@ -359,7 +368,15 @@ export function classifyPresentAllergens(norm: MealNorm, aiTags: string[]): Set<
   }
   stripPlantMilkFalseDairy(present, norm);
   applyFalsePositiveFilters(present, norm);
+  if (present.has("eggs") && isTofuScrambleDish(norm)) {
+    present.delete("eggs");
+  }
   return present;
+}
+
+function isTofuScrambleDish(norm: MealNorm): boolean {
+  if (TOFU_SCRAMBLE_MARKERS.some((m) => norm.blob.includes(m))) return true;
+  return norm.tokens.includes("tofu") && norm.blob.includes("rührei");
 }
 
 export function activeUserAllergyIds(allergies: string[]): string[] {

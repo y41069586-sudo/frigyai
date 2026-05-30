@@ -114,6 +114,19 @@ export type PlanInput = {
   banned: string[];
   constraints: string;
   safetyCtx: SafetyContext;
+  /** User tapped regenerate — require all-new dishes (not just titles). */
+  isRegeneration?: boolean;
+  /** Client seed to shuffle fallback pools. */
+  varietySeed?: string;
+  /** Prior week meals for dish-level dedup (ingredients + fingerprints). */
+  priorDishes?: PriorDishSnapshot[];
+};
+
+export type PriorDishSnapshot = {
+  name: string;
+  mainIngredients: string[];
+  contentKey: string;
+  fingerprint: string;
 };
 
 export type BuildPlanResult = {
