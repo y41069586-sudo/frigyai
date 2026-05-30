@@ -166,8 +166,8 @@ All colors MUST be HSL.
 
   /* Scroll padding under fixed BottomNavigation (bottom offset + pill + FAB) + home indicator */
   .pb-bottom-nav {
-    padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
-    scroll-padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .safe-top {
