@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, Camera, ChevronLeft, Plus, Search, Trash2, X } from "lucide-react";
+import { Barcode, Camera, ChevronLeft, Plus, Refrigerator, Search, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brandColors";
 import {
@@ -46,7 +46,7 @@ export type TrackerLoggedMeal = {
   mealType?: MealFocusKey;
 };
 
-type InputMode = "search" | "camera" | "barcode";
+type InputMode = "search" | "camera" | "barcode" | "ingredients";
 
 type Props = {
   /** Nur gesetzt, wenn Nutzer über Mahlzeiten-Slot (+) kommt — dann Titel oben anzeigen */
@@ -58,6 +58,8 @@ type Props = {
   onOpenLiveCamera?: () => void;
   onCameraFile: (file: File) => void;
   onBarcode: () => void;
+  /** Kühlschrank / Zutaten-Erkennung (Live-Kamera auf /scan) */
+  onIngredientScan: () => void;
   onAddRecipe: (recipe: TrackerRecipeExample) => void;
   onDeleteMeal?: (id: string) => void;
   loggedMeals?: TrackerLoggedMeal[];
@@ -326,6 +328,7 @@ export function TrackerAddMealPanel({
   onOpenLiveCamera,
   onCameraFile,
   onBarcode,
+  onIngredientScan,
   onAddRecipe,
   onDeleteMeal,
   loggedMeals = [],
@@ -349,6 +352,7 @@ export function TrackerAddMealPanel({
         back: "Retour",
         camera: "Camera",
         barcode: "Code-barres",
+        ingredientsScan: "Ingredients",
         noRecipes: "Aucune recette en base pour le moment. Decris ton repas ci-dessus ou scanne-le.",
         detailsAria: (title: string) => `Afficher les details de ${title}`,
         detailsClose: "Fermer les details",
@@ -378,6 +382,7 @@ export function TrackerAddMealPanel({
           back: "Back",
           camera: "Camera",
           barcode: "Barcode",
+          ingredientsScan: "Ingredients",
           noRecipes: "No recipes in the database yet. Describe your meal above or scan it.",
           detailsAria: (title: string) => `Show details for ${title}`,
           detailsClose: "Close details",
@@ -406,6 +411,7 @@ export function TrackerAddMealPanel({
           back: "Zurück",
           camera: "Kamera",
           barcode: "Barcode",
+          ingredientsScan: "Zutaten",
           noRecipes: "Noch keine Rezepte in der Datenbank. Beschreibe dein Essen oben oder scanne es.",
           detailsAria: (title: string) => `${title} Details anzeigen`,
           detailsClose: "Details schließen",
@@ -439,6 +445,7 @@ export function TrackerAddMealPanel({
   }[] = [
     { id: "camera", label: copy.camera, icon: Camera, tint: "#EC4899" },
     { id: "barcode", label: copy.barcode, icon: Barcode, tint: "#EF4444" },
+    { id: "ingredients", label: copy.ingredientsScan, icon: Refrigerator, tint: "#22C55E" },
   ];
 
   const showMealTitle = mealFocus != null;
@@ -521,6 +528,10 @@ export function TrackerAddMealPanel({
     }
     if (next === "barcode") {
       onBarcode();
+      return;
+    }
+    if (next === "ingredients") {
+      onIngredientScan();
     }
   };
 

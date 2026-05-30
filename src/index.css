@@ -211,6 +211,13 @@ All colors MUST be HSL.
     touch-action: pan-y;
   }
 
+  /* Let vertical scroll pass through dashboard cards/buttons (override global manipulation). */
+  .dashboard-scroll-main .dashboard-touch-scroll,
+  .dashboard-scroll-main .dashboard-touch-scroll button,
+  .dashboard-scroll-main .dashboard-touch-scroll [role="button"] {
+    touch-action: pan-y;
+  }
+
   /* Better scrolling on mobile */
   .scroll-smooth-touch {
     -webkit-overflow-scrolling: touch;

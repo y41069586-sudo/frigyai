@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { Check, Flame, X } from "lucide-react";
+import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { confettiBurst } from "@/lib/mobileEffects";
 
 type FrigyScanAnalyzingStageProps = {
   previewUrl?: string | null;
@@ -175,6 +177,115 @@ export function FrigyScanFailureStage({
           className="mx-auto flex h-14 w-full max-w-[360px] items-center justify-center rounded-full bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] px-6 text-[18px] font-semibold text-[#082013] shadow-[0_18px_44px_-24px_rgba(57,212,127,0.45)]"
         >
           {actionLabel}
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
+export type FrigyScanSuccessData = {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+type FrigyScanSuccessStageProps = {
+  result: FrigyScanSuccessData;
+  onDismiss: () => void;
+};
+
+/** Erfolg nach Essens-Scan — gleicher Look wie Analyse / „Frigy sagt“. */
+export function FrigyScanSuccessStage({ result, onDismiss }: FrigyScanSuccessStageProps) {
+  const { language } = useLanguage();
+  const copy =
+    language === "fr"
+      ? {
+          success: "Reconnu avec succes !",
+          protein: "Proteines",
+          carbs: "Glucides",
+          fat: "Lipides",
+          continue: "Weiter",
+        }
+      : language === "en"
+        ? {
+            success: "Recognized successfully!",
+            protein: "Protein",
+            carbs: "Carbs",
+            fat: "Fat",
+            continue: "Continue",
+          }
+        : {
+            success: "Erfolgreich erkannt!",
+            protein: "Protein",
+            carbs: "Carbs",
+            fat: "Fett",
+            continue: "Weiter",
+          };
+
+  useEffect(() => {
+    confettiBurst({
+      particleCount: 80,
+      spread: 60,
+      origin: { y: 0.55 },
+      colors: ["#75FBB2", "#39D47F", "#86efac", "#ffffff"],
+    });
+    const timer = window.setTimeout(onDismiss, 2800);
+    return () => window.clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[145] flex flex-col overflow-hidden bg-[#F6FFFA] text-neutral-950 safe-area-inset"
+      onClick={onDismiss}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(117,251,178,0.22),transparent_30%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_50%,#EEF9F2_100%)]" />
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-[max(2rem,env(safe-area-inset-bottom)+1rem)]">
+        <motion.div
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", damping: 16, stiffness: 220 }}
+          className="w-full max-w-[360px] rounded-[28px] border border-[#D8FCE8] bg-white/90 p-6 shadow-[0_28px_70px_-40px_rgba(57,212,127,0.45)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-4 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#75FBB2]/25 ring-2 ring-[#75FBB2]/50">
+              <Check className="h-9 w-9 text-[#2EB56D]" strokeWidth={3} />
+            </div>
+          </div>
+          <h2 className="text-center text-[20px] font-black tracking-[-0.04em] text-neutral-950">{result.name}</h2>
+          <p className="mt-1 text-center text-[14px] font-semibold text-[#39D47F]">{copy.success}</p>
+          <div className="mt-5 flex items-center justify-center gap-2">
+            <Flame className="h-6 w-6 text-orange-400" />
+            <span className="text-[32px] font-black tabular-nums">{Math.round(result.calories)}</span>
+            <span className="text-[15px] font-medium text-neutral-500">kcal</span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="rounded-xl bg-[#F4FFF9] px-2 py-2.5 text-center">
+              <p className="text-[17px] font-bold text-red-500">{Math.round(result.protein)}g</p>
+              <p className="text-[10px] font-medium text-neutral-500">{copy.protein}</p>
+            </div>
+            <div className="rounded-xl bg-[#F4FFF9] px-2 py-2.5 text-center">
+              <p className="text-[17px] font-bold text-amber-500">{Math.round(result.carbs)}g</p>
+              <p className="text-[10px] font-medium text-neutral-500">{copy.carbs}</p>
+            </div>
+            <div className="rounded-xl bg-[#F4FFF9] px-2 py-2.5 text-center">
+              <p className="text-[17px] font-bold text-blue-500">{Math.round(result.fat)}g</p>
+              <p className="text-[10px] font-medium text-neutral-500">{copy.fat}</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={onDismiss}
+          className="mt-8 flex h-14 w-full max-w-[360px] items-center justify-center rounded-full bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] text-[17px] font-semibold text-[#082013] shadow-[0_16px_40px_-22px_rgba(57,212,127,0.5)]"
+        >
+          {copy.continue}
         </motion.button>
       </div>
     </motion.div>

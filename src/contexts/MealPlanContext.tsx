@@ -51,6 +51,10 @@ function getMealPlanUiCopy() {
       caloriesErrorTitle: 'Objectif calorique non atteint',
       caloriesErrorDesc:
         'Le plan genere ne respecte pas ton objectif calorique. Reessaie ou verifie tes reglages.',
+      targetAdjustedTitle: 'Objectifs ajustes',
+      targetAdjustedMacrosPrimary: (kcal: number) =>
+        `Tes macros ont ete priorisees. Le plan vise ${kcal} kcal/jour (calcule a partir des proteines, glucides et lipides).`,
+      targetAdjustedDesc: 'Les objectifs nutritionnels ont ete legerement ajustes pour le plan.',
       genericErrorTitle: 'Erreur',
       genericErrorDesc: 'Le plan hebdomadaire n a pas pu etre genere. Reessaie.',
     };
@@ -69,6 +73,10 @@ function getMealPlanUiCopy() {
       caloriesErrorTitle: 'Calorie target not reached',
       caloriesErrorDesc:
         'The generated plan does not meet your calorie target. Please try again or review your settings.',
+      targetAdjustedTitle: 'Targets adjusted',
+      targetAdjustedMacrosPrimary: (kcal: number) =>
+        `Your macros were prioritized. The plan targets ${kcal} kcal/day (derived from protein, carbs, and fat).`,
+      targetAdjustedDesc: 'Nutrition targets were slightly adjusted for this plan.',
       genericErrorTitle: 'Error',
       genericErrorDesc: 'The meal plan could not be generated. Please try again.',
     };
@@ -86,6 +94,10 @@ function getMealPlanUiCopy() {
     caloriesErrorTitle: 'Kalorienziel nicht erreicht',
     caloriesErrorDesc:
       'Der generierte Plan erfüllt Ihr Kalorienziel nicht. Bitte versuchen Sie es erneut oder überprüfen Sie Ihre Einstellungen.',
+    targetAdjustedTitle: 'Ziele angepasst',
+    targetAdjustedMacrosPrimary: (kcal: number) =>
+      `Deine Makros wurden priorisiert. Der Plan zielt auf ${kcal} kcal/Tag (berechnet aus Protein, Kohlenhydraten und Fett).`,
+    targetAdjustedDesc: 'Die Ernährungsziele wurden für diesen Plan leicht angepasst.',
     genericErrorTitle: 'Fehler',
     genericErrorDesc: 'Wochenplan konnte nicht generiert werden. Bitte versuche es erneut.',
   };
@@ -571,8 +583,25 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         if (Array.isArray((data as any)?.mealPlan) && (data as any).mealPlan.length > 0) {
           const rawPlan = (data as any).mealPlan;
-          const newPlan = syncMealPlanToTargets(rawPlan, macroTargets);
+          const appliedFromServer = (data as any)?.appliedTargets;
+          const effectiveTargets = appliedFromServer
+            ? harmonizeDailyTargets({
+                dailyCalories: Number(appliedFromServer.dailyCalories) || macroTargets.dailyCalories,
+                dailyProtein: Number(appliedFromServer.dailyProtein) || macroTargets.dailyProtein,
+                dailyCarbs: Number(appliedFromServer.dailyCarbs) || macroTargets.dailyCarbs,
+                dailyFat: Number(appliedFromServer.dailyFat) || macroTargets.dailyFat,
+              })
+            : macroTargets;
+          const newPlan = syncMealPlanToTargets(rawPlan, effectiveTargets);
           const newShoppingList = (data as any).shoppingList || [];
+          const targetWarning = (data as any)?.targetWarning as
+            | { type?: string; message?: string; appliedKcal?: number }
+            | undefined;
+          const macroAuthority = (data as any)?.macroAuthority as
+            | "harmonized"
+            | "macros"
+            | "scaled_to_kcal"
+            | undefined;
           const unsafeMeals = findUnsafeMeals(newPlan, diet);
           updateGenerationProgressTarget(80);
 
@@ -597,13 +626,15 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // Verify calories per day
           const dailyCalorieAnalysis = newPlan.map((day: any) => {
             const totalCals = (day.meals || []).reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
-            return { day: day.day, calories: totalCals, meets_target: totalCals === macroTargets.dailyCalories };
+            return { day: day.day, calories: totalCals, meets_target: totalCals === effectiveTargets.dailyCalories };
           });
           const avgCalories = dailyCalorieAnalysis.reduce((sum: number, d: any) => sum + d.calories, 0) / dailyCalorieAnalysis.length;
           console.log('[MEAL-PLAN] Daily calorie analysis:', {
             analysis: dailyCalorieAnalysis,
             avgCalories: Math.round(avgCalories),
-            avgPercentage: Math.round((avgCalories / macroTargets.dailyCalories) * 100)
+            avgPercentage: Math.round((avgCalories / effectiveTargets.dailyCalories) * 100),
+            targetWarning: targetWarning?.type ?? null,
+            macroAuthority: macroAuthority ?? null,
           });
 
           localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);
@@ -665,9 +696,20 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           toast({
             title: ui.generatedTitle,
             description: options?.fridgeIngredients?.length
-              ? ui.generatedDescWithFridge(settings.dailyCalories)
+              ? ui.generatedDescWithFridge(effectiveTargets.dailyCalories)
               : ui.generatedDescWithoutFridge
           });
+
+          if (targetWarning || (macroAuthority && macroAuthority !== "harmonized")) {
+            const appliedKcal = targetWarning?.appliedKcal ?? effectiveTargets.dailyCalories;
+            toast({
+              title: ui.targetAdjustedTitle,
+              description:
+                targetWarning?.type === "macros_primary" || macroAuthority === "macros"
+                  ? targetWarning?.message || ui.targetAdjustedMacrosPrimary(appliedKcal)
+                  : targetWarning?.message || ui.targetAdjustedDesc,
+            });
+          }
           return true;
         } else {
           throw new Error('Leerer Wochenplan erhalten');

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useScrollFriendlyTap } from "@/hooks/useScrollFriendlyTap";
 import type { WeekPlanPreviewData } from "@/lib/food-ai/dashboardMock";
 import {
   buildWeekDayStatuses,
@@ -96,19 +97,25 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
   const hasNext = Boolean(nextMeal?.meal.name?.trim());
   const mealName = hasNext ? nextMeal!.meal.name!.trim() : t.nextFallback;
   const ctaText = hasNext ? t.cta : t.ctaEmpty;
+  const openPlanTap = useScrollFriendlyTap(onOpenPlan);
 
   return (
-    <motion.button
-      type="button"
+    <motion.div
+      role="button"
+      tabIndex={0}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.34, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.99 }}
-      onClick={onOpenPlan}
+      {...openPlanTap}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenPlan();
+        }
+      }}
       aria-label={`${t.title}: ${mealName}`}
       className={cn(
-        "group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] border border-slate-200/75 p-5 text-left",
+        "dashboard-touch-scroll group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] border border-slate-200/75 p-5 text-left",
         "bg-gradient-to-br from-white via-white to-primary/[0.06]",
         "shadow-[0_18px_44px_-32px_rgba(74,232,150,0.32)]",
         "transition-[box-shadow,transform] duration-300",
@@ -199,6 +206,6 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
           <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
         </p>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

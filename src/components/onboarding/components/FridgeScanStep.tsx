@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
+import { Camera, ChevronLeft } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
@@ -12,6 +12,8 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
+  /** Öffnet die Zutaten-Live-Kamera (/scan) */
+  onStartScan?: () => void;
 };
 
 const PALETTE = {
@@ -93,6 +95,7 @@ function CameraIcon() {
 export function FridgeScanStep({
   onBack,
   onNext,
+  onStartScan,
 }: Props) {
   const { language } = useLanguage();
   const lng: Lng = (["de", "en", "fr"] as const).includes(language as never)
@@ -105,7 +108,8 @@ export function FridgeScanStep({
       titleHighlight: "Kühlschrank",
       subtitle:
         "Entdecke sofort, welche Zutaten du bereits hast und was dir für deinen Plan noch fehlt.",
-      cta: "Weiter",
+      cta: "Kamera öffnen",
+      skip: "Später scannen",
       back: "Zurück",
     },
     en: {
@@ -113,7 +117,8 @@ export function FridgeScanStep({
       titleHighlight: "fridge",
       subtitle:
         "Instantly see which ingredients you already have and what's missing for your plan.",
-      cta: "Next",
+      cta: "Open camera",
+      skip: "Scan later",
       back: "Back",
     },
     fr: {
@@ -121,7 +126,8 @@ export function FridgeScanStep({
       titleHighlight: "frigo",
       subtitle:
         "Découvre tout de suite ce que tu as déjà et ce qu'il te manque pour ton plan.",
-      cta: "Suivant",
+      cta: "Ouvrir la camera",
+      skip: "Scanner plus tard",
       back: "Retour",
     },
   } as const;
@@ -174,9 +180,21 @@ export function FridgeScanStep({
         {t.subtitle}
       </motion.p>
 
-      {/* Hero: camera icon */}
+      {/* Hero: camera icon — tap opens live scan */}
       <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
-        <CameraIcon />
+        {onStartScan ? (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.97 }}
+            onClick={onStartScan}
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#75FBB2]/60"
+            aria-label={t.cta}
+          >
+            <CameraIcon />
+          </motion.button>
+        ) : (
+          <CameraIcon />
+        )}
       </div>
 
       {/* Continue */}
@@ -188,7 +206,7 @@ export function FridgeScanStep({
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
-          onClick={onNext}
+          onClick={onStartScan ?? onNext}
           className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
@@ -196,9 +214,20 @@ export function FridgeScanStep({
               "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
+          <Camera className="size-5" strokeWidth={2.2} />
           {t.cta}
-          <ChevronRight className="size-5" strokeWidth={2.5} />
         </motion.button>
+        {onStartScan && onNext ? (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={onNext}
+            className="mt-3 flex h-11 w-full items-center justify-center rounded-[14px] text-[14px] font-medium transition-colors"
+            style={{ color: PALETTE.subtext }}
+          >
+            {t.skip}
+          </motion.button>
+        ) : null}
       </div>
     </div>
   );

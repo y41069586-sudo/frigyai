@@ -28,11 +28,11 @@ export function clearOnboardingForLogout() {
 // Macro calculation using Mifflin-St Jeor BMR formula
 export const calculateMacros = (userData: UserData) => {
   const { weight, height, age, gender, activityLevel, goalMode, weeklyGoal } = userData;
-
+  
   const genderConstant =
     gender === "female" ? -161 : gender === "non-binary" ? -78 : 5;
   const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
-
+  
   const activityMultipliers: Record<string, number> = {
     low: 1.2,
     medium: 1.55,
@@ -41,24 +41,24 @@ export const calculateMacros = (userData: UserData) => {
 
   const tdee = bmr * (activityMultipliers[activityLevel || "medium"] || 1.55);
   const dailyCalorieChange = weeklyGoal * 1100;
-
+  
   let dailyCalories: number;
   if (goalMode === "lose") {
     dailyCalories = tdee - dailyCalorieChange;
   } else {
     dailyCalories = tdee + dailyCalorieChange;
   }
-
+  
   dailyCalories = Math.max(dailyCalories, getMinCaloriesForAge(age));
   dailyCalories = Math.round(dailyCalories);
-
+  
   const dailyProtein = Math.round(weight * 2);
   const dailyFat = Math.round(weight * 0.9);
   const proteinCalories = dailyProtein * 4;
   const fatCalories = dailyFat * 9;
   const remainingCalories = dailyCalories - proteinCalories - fatCalories;
   const dailyCarbs = Math.max(50, Math.round(remainingCalories / 4));
-
+  
   return { dailyCalories, dailyProtein, dailyCarbs, dailyFat };
 };
 
@@ -123,13 +123,13 @@ export const saveOnboardingData = (
   if (userData.name) {
     localStorage.setItem("userName", userData.name);
   }
-
+  
   const calculatedMacros = calculateMacros(userData);
   const dailyCalories = userData.dailyCalories || calculatedMacros.dailyCalories;
   const dailyProtein = userData.dailyProtein || calculatedMacros.dailyProtein;
   const dailyCarbs = userData.dailyCarbs || calculatedMacros.dailyCarbs;
   const dailyFat = userData.dailyFat || calculatedMacros.dailyFat;
-
+  
   const trackerSettings = {
     age: userData.age,
     height: userData.height,

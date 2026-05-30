@@ -197,7 +197,7 @@ function nextDailyOccurrence(hour: number, minute: number): Date {
   return at;
 }
 
-function reminderNotificationCopy(language: Language) {
+export function reminderNotificationCopy(language: Language) {
   if (language === "en") {
     return {
       waterTitle: "💧 Time to drink water!",
@@ -240,7 +240,8 @@ function reminderNotificationCopy(language: Language) {
   };
 }
 
-function buildWaterSchedule(intervalHours: number): { hour: number; minute: number }[] {
+/** Daily water slots for web + native (no tight setInterval). */
+export function buildWaterSchedule(intervalHours: number): { hour: number; minute: number }[] {
   const step = Math.max(2, Math.min(4, intervalHours));
   const slots: { hour: number; minute: number }[] = [];
   for (let i = 0; i < DEFAULT_WATER_SLOTS.length; i++) {
@@ -277,7 +278,7 @@ async function cancelAllFrigyNotifications(
 
 export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
   const normalized = normalizeReminderConfig(config);
-  notifyFrigyStorageUpdated();
+  // Do not notifyFrigyStorageUpdated here — would re-sync on every food/plan save and spam notifications.
 
   if (!isNativeApp()) return;
 

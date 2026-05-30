@@ -382,28 +382,17 @@ export const usePushNotifications = () => {
     return false;
   }, [isCapacitor, isBrowserSupported, permissionStatus, scheduleReminder]);
 
-  // Check for pending reminders on page load (browser)
+  // Legacy frigy_reminders queue — clear on load; web reminders use useReminders (time slots).
   useEffect(() => {
-    if (!isBrowserSupported || permissionStatus !== 'granted') return;
-
-    const checkPendingReminders = () => {
-      const reminders = JSON.parse(localStorage.getItem('frigy_reminders') || '[]');
-      const now = Date.now();
-      
-      reminders.forEach((reminder: any) => {
-        const reminderTime = new Date(reminder.time).getTime();
-        const delay = reminderTime - now;
-        
-        if (delay > 0 && delay < 24 * 60 * 60 * 1000) { // Within 24 hours
-          setTimeout(() => {
-            sendLocalNotification(reminder.title, reminder.body, { type: reminder.type });
-          }, delay);
-        }
-      });
-    };
-
-    checkPendingReminders();
-  }, [isBrowserSupported, permissionStatus, sendLocalNotification]);
+    if (!isBrowserSupported) return;
+    try {
+      localStorage.removeItem("frigy_reminders");
+    } catch {
+      /* ignore */
+    }
+    reminderTimeouts.current.forEach((id) => clearTimeout(id));
+    reminderTimeouts.current.clear();
+  }, [isBrowserSupported]);
 
   return {
     isCapacitor,

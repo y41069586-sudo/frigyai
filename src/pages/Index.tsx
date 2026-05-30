@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Settings, Bot, Crown } from "lucide-react";
 import { PremiumSuccessDialog } from "@/components/PremiumSuccessDialog";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +108,7 @@ function readTodayFoodSnapshot() {
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription, isPremium } = useAuth();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isActivatingPremium, setIsActivatingPremium] = useState(
     () => searchParams.get("subscription") === "success",
@@ -126,9 +127,13 @@ const Index = () => {
   const isFromSubscription = searchParams.get("subscription") === "success";
   const resetOnboarding = searchParams.get("resetOnboarding") === "true";
   const onboardingResumeStep = useMemo(() => {
+    const fromState = (location.state as { onboardingStep?: string } | null)?.onboardingStep;
+    if (fromState && onboardingSteps.includes(fromState as OnboardingStep)) {
+      return fromState as OnboardingStep;
+    }
     const step = searchParams.get("onboardingStep");
     return onboardingSteps.includes(step as OnboardingStep) ? (step as OnboardingStep) : undefined;
-  }, [searchParams]);
+  }, [searchParams, location.state]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("subscription") === "success") {
@@ -395,7 +400,10 @@ const Index = () => {
   // Update onboarding visibility when loading completes
   useEffect(() => {
     if (!onboardingLoading && !loading) {
-      if (onboardingResumeStep) {
+      const returnToOnboarding =
+        (location.state as { returnToOnboarding?: boolean } | null)?.returnToOnboarding === true;
+
+      if (onboardingResumeStep || returnToOnboarding) {
         setShowOnboarding(true);
         setOnboardingComplete(false);
         return;
@@ -405,7 +413,15 @@ const Index = () => {
       setShowOnboarding(!skip);
       setOnboardingComplete(skip);
     }
-  }, [onboardingLoading, loading, user, dbOnboardingComplete, hasCompletedOnboarding, onboardingResumeStep]);
+  }, [
+    onboardingLoading,
+    loading,
+    user,
+    dbOnboardingComplete,
+    hasCompletedOnboarding,
+    onboardingResumeStep,
+    location.state,
+  ]);
   
   // Skip onboarding only if coming from subscription success
   useEffect(() => {

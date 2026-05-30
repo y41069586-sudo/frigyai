@@ -24,7 +24,7 @@ type FrigyIngredientScanFlowProps = {
   scanProgress: number;
   captureMode: boolean;
   onQueueChange?: (files: File[]) => void;
-  onConfirmAnalyze: () => void;
+  onConfirmAnalyze: (files: File[]) => void;
   onClose: () => void;
   onCreateShoppingList: () => void;
   onAddMorePhotos: () => void;
@@ -182,20 +182,15 @@ export function FrigyIngredientScanFlow({
     if (photos.length === 0 || analyzing) return;
     const last = photos[photos.length - 1];
     setAnalysisPreviewUrl(last.previewUrl);
-    syncQueue(photos.map((p) => p.file));
-    onConfirmAnalyze();
+    const files = photos.map((p) => p.file);
+    syncQueue(files);
+    onConfirmAnalyze(files);
   };
 
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (!files.length || analyzing) return;
-    if (files.length === 1) {
-      const [photo] = toPendingPhotos(files);
-      setPendingPhotos([photo]);
-      beginAnalyze([photo]);
-      return;
-    }
     addFiles(files);
   };
 
@@ -227,9 +222,7 @@ export function FrigyIngredientScanFlow({
       const file = await capturePhoto();
       if (!file) return;
 
-      const [photo] = toPendingPhotos([file]);
-      setPendingPhotos([photo]);
-      beginAnalyze([photo]);
+      addFiles([file]);
     } finally {
       captureLockRef.current = false;
     }
@@ -355,7 +348,7 @@ export function FrigyIngredientScanFlow({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white safe-area-inset overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white safe-area-inset">
       <style>{`
         .frigy-scan-video::-webkit-media-controls,
         .frigy-scan-video::-webkit-media-controls-panel,
@@ -443,24 +436,27 @@ export function FrigyIngredientScanFlow({
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute left-4 right-4 top-[max(3.25rem,env(safe-area-inset-top)+2rem)] z-10 flex gap-2 overflow-x-auto pb-1"
+            className="absolute left-0 right-0 top-[max(3.5rem,env(safe-area-inset-top)+2.25rem)] z-10 px-4 pt-2"
           >
-            {pendingPhotos.map((photo) => (
-              <div key={photo.id} className="relative shrink-0">
-                <img
-                  src={photo.previewUrl}
-                  alt=""
-                  className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(photo.id)}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+            <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+              {pendingPhotos.map((photo) => (
+                <div key={photo.id} className="relative shrink-0 pt-1 pr-1">
+                  <img
+                    src={photo.previewUrl}
+                    alt=""
+                    className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(photo.id)}
+                    className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-white shadow-sm"
+                    aria-label={ui.close}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -471,8 +467,14 @@ export function FrigyIngredientScanFlow({
             type="button"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            disabled={analyzing}
             onClick={handleConfirm}
-            className="mb-4 w-full rounded-2xl bg-white/16 py-3.5 text-center text-sm font-semibold text-[#75FBB2] ring-1 ring-[#75FBB2]/40"
+            className={cn(
+              "mb-4 w-full rounded-2xl py-3.5 text-center text-sm font-semibold ring-1",
+              analyzing
+                ? "cursor-not-allowed bg-white/8 text-white/40 ring-white/10"
+                : "bg-white/16 text-[#75FBB2] ring-[#75FBB2]/40 active:scale-[0.99]",
+            )}
           >
             {L.finishScan} ({pendingPhotos.length})
           </motion.button>

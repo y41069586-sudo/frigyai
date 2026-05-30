@@ -137,8 +137,11 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('reminderConfig', JSON.stringify(config));
-    void syncRemindersFromConfig(config);
+    localStorage.setItem("reminderConfig", JSON.stringify(config));
+    const timer = window.setTimeout(() => {
+      void syncRemindersFromConfig(config);
+    }, 500);
+    return () => window.clearTimeout(timer);
   }, [config]);
 
   const requestPermission = async (enableAll = false): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> => {

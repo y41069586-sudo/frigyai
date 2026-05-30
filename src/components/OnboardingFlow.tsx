@@ -1547,6 +1547,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
+            onStartScan={() =>
+              navigate("/scan", {
+                state: {
+                  fromOnboarding: true,
+                  returnToOnboarding: true,
+                  nextOnboardingStep: "shopping-list",
+                },
+              })
+            }
           />
         );
 

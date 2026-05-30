@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { FRIGY_STORAGE_UPDATED } from "@/lib/frigyStorageSync";
+import { useEffect, useRef } from "react";
 import { isNativeApp, syncRemindersFromStorage } from "@/lib/notifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useReminders } from "@/hooks/useReminders";
@@ -9,15 +8,22 @@ export function NotificationBootstrap() {
   usePushNotifications();
   useReminders();
 
+  const syncInFlight = useRef(false);
+
   useEffect(() => {
     if (!isNativeApp()) return;
-    void syncRemindersFromStorage();
 
-    const onStorageUpdate = () => {
-      void syncRemindersFromStorage();
+    const runSync = async () => {
+      if (syncInFlight.current) return;
+      syncInFlight.current = true;
+      try {
+        await syncRemindersFromStorage();
+      } finally {
+        syncInFlight.current = false;
+      }
     };
-    window.addEventListener(FRIGY_STORAGE_UPDATED, onStorageUpdate);
-    return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, onStorageUpdate);
+
+    void runSync();
   }, []);
 
   return null;

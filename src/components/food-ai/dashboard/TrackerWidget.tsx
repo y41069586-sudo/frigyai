@@ -4,6 +4,7 @@ import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useScrollFriendlyTap } from "@/hooks/useScrollFriendlyTap";
 
 type TrackerWidgetProps = {
   delay?: number;
@@ -110,9 +111,10 @@ export function TrackerWidget({
   const proteinPct = targetProtein > 0 ? Math.min(100, (proteinEaten / targetProtein) * 100) : 0;
   const carbsPct = targetCarbs > 0 ? Math.min(100, (carbsEaten / targetCarbs) * 100) : 0;
   const fatPct = targetFat > 0 ? Math.min(100, (fatEaten / targetFat) * 100) : 0;
+  const openTrackerTap = useScrollFriendlyTap(() => onOpenTracker?.());
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-touch-scroll space-y-6">
       <WidgetCard
         delay={delay}
         variant="glass"
@@ -124,9 +126,9 @@ export function TrackerWidget({
             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary/75">{copy.today}</p>
             <button
               type="button"
-              onClick={onOpenTracker}
+              {...openTrackerTap}
               className={cn(
-                "block text-left text-[34px] font-black leading-none tracking-[-0.04em] tabular-nums active:scale-[0.99] sm:text-[38px]",
+                "block w-full text-left text-[34px] font-black leading-none tracking-[-0.04em] tabular-nums active:scale-[0.99] sm:text-[38px]",
                 isOverGoal ? "text-rose-600" : "text-foreground",
               )}
             >
@@ -172,45 +174,70 @@ export function TrackerWidget({
           {mealSlots.map((slot, index) => {
             const logged = loggedMealTypes.includes(slot.key);
             return (
-              <motion.button
+              <MealSlotButton
                 key={slot.key}
-                type="button"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: delay + 0.08 + index * 0.03, duration: 0.28 }}
-                whileTap={{ scale: 0.92, y: 2 }}
-                onClick={() => onAddMeal?.(slot.key)}
-                className={cn(
-                  "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border border-transparent bg-white/88 px-1.5 py-2 text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.14)] transition-colors sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
-                  logged
-                    ? "border border-primary/30 bg-primary/12 text-primary"
-                    : "text-foreground hover:bg-primary/8 sm:border-neutral-200/75 dark:border-white/10",
-                )}
-                aria-label={`${copy.addMeal} ${slot.label}`}
-              >
-                <span className="text-[23px] sm:text-[24px]" aria-hidden>{slot.icon}</span>
-                <span className="text-[10px] font-bold leading-tight sm:text-[11px]">
-                  {slot.label}
-                </span>
-                <span
-                  className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full sm:h-5.5 sm:w-5.5",
-                    logged ? "bg-primary" : "bg-primary/12",
-                  )}
-                >
-                  {logged ? (
-                    <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
-                  ) : (
-                    <Plus className="h-3 w-3 text-primary" strokeWidth={3} />
-                  )}
-                </span>
-              </motion.button>
+                slot={slot}
+                logged={logged}
+                delay={delay}
+                index={index}
+                addMealLabel={copy.addMeal}
+                onAddMeal={() => onAddMeal?.(slot.key)}
+              />
             );
           })}
         </div>
       </section>
       )}
     </div>
+  );
+}
+
+function MealSlotButton({
+  slot,
+  logged,
+  delay,
+  index,
+  addMealLabel,
+  onAddMeal,
+}: {
+  slot: { key: MealFocusKey; label: string; icon: string };
+  logged: boolean;
+  delay: number;
+  index: number;
+  addMealLabel: string;
+  onAddMeal: () => void;
+}) {
+  const tap = useScrollFriendlyTap(onAddMeal);
+  return (
+    <motion.button
+      type="button"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay + 0.08 + index * 0.03, duration: 0.28 }}
+      {...tap}
+      className={cn(
+        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border border-transparent bg-white/88 px-1.5 py-2 text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.14)] transition-colors sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
+        logged
+          ? "border border-primary/30 bg-primary/12 text-primary"
+          : "text-foreground hover:bg-primary/8 sm:border-neutral-200/75 dark:border-white/10",
+      )}
+      aria-label={`${addMealLabel} ${slot.label}`}
+    >
+      <span className="text-[23px] sm:text-[24px]" aria-hidden>{slot.icon}</span>
+      <span className="text-[10px] font-bold leading-tight sm:text-[11px]">{slot.label}</span>
+      <span
+        className={cn(
+          "flex h-5 w-5 items-center justify-center rounded-full sm:h-5.5 sm:w-5.5",
+          logged ? "bg-primary" : "bg-primary/12",
+        )}
+      >
+        {logged ? (
+          <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
+        ) : (
+          <Plus className="h-3 w-3 text-primary" strokeWidth={3} />
+        )}
+      </span>
+    </motion.button>
   );
 }
 

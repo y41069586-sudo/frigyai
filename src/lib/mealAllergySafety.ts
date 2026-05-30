@@ -5,6 +5,22 @@
 
 import type { Language } from "@/contexts/LanguageContext";
 
+const EGG_BLOB_RX = /(\bei\b|\beier\b|\begg\b|\beggs\b|omelett|omelette|rührei|mayonnaise|\bmayo\b)/i;
+
+const ALLERGY_DENY_TERMS: Record<string, string[]> = {
+  gluten: ["semolina", "durum", "crouton", "croutons", "grieß", "spelt", "seitan", "caesar", "tempura", "udon", "ramen"],
+  lactose: ["milch", "käse", "joghurt", "quark", "sahne", "butter", "lactose", "cream", "yogurt", "cheese"],
+  milk: ["milch", "käse", "joghurt", "quark", "sahne", "butter", "cream", "yogurt", "cheese", "whey"],
+  nuts: ["mandel", "haselnuss", "walnuss", "cashew", "pistaz", "nussmus", "almond"],
+  treeNuts: ["mandel", "haselnuss", "walnuss", "cashew", "pistaz", "nussmus", "almond"],
+  "tree-nuts": ["mandel", "haselnuss", "walnuss", "cashew", "pistaz", "nussmus"],
+  peanuts: ["erdnuss", "peanut", "erdnussbutter", "erdnussmus"],
+  soy: ["soja", "soy", "tofu", "tempeh", "edamame", "sojasauce", "miso"],
+  eggs: ["ei", "eier", "egg", "eggs", "omelett", "omelette", "rührei", "mayonnaise", "mayo", "carbonara"],
+  fish: ["fisch", "lachs", "thunfisch", "forelle", "fish", "salmon", "tuna"],
+  shellfish: ["garnele", "garnelen", "shrimp", "krabbe", "krebs", "hummer", "muschel", "auster", "scampi"],
+};
+
 const ALLERGY_PATTERNS: Record<string, RegExp> = {
   gluten:
     /(brot|brötchen|nudel|pasta|spaghetti|paniermehl|couscous|bulgur|lasagne|pizza|gnocchi|weizen|dinkel|rogge|gerste|wrap|mehl|baguette|toast|pizzateig|panko|semmel|lasagne)/i,
@@ -19,8 +35,6 @@ const ALLERGY_PATTERNS: Record<string, RegExp> = {
   treeNuts: /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
   "tree-nuts": /(nuss|nüsse|mandel|haselnuss|walnuss|cashew|pistaz|paranuss|macadam|pekannuss|nussmus|mandelmilch)/i,
   soy: /(soja|soy|tofu|tempeh|edamame|sojasauce)/i,
-  eggs: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
-  egg: /(ei\b|eier|omelett|rührei|mayonnaise|mayo\b)/i,
   fish: /(fisch|lachs|thunfisch|forelle|seelachs|kabeljau|sardine|makrele)/i,
   shellfish: /(garnele|garnelen|shrimp|krabbe|krebs|hummer|muschel|auster|scampi)/i,
 };
@@ -28,8 +42,10 @@ const ALLERGY_PATTERNS: Record<string, RegExp> = {
 const MEAT_FISH: RegExp =
   /(hackfleisch|hähnchen|pute|schwein|fleisch|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell)/i;
 
-const HIGH_CARB_FOODS: RegExp =
-  /(nudel|pasta|spaghetti|brot|brötchen|reis|hafer|müsli|kartoffel|pommes|paniermehl|honig|baguette|toast|lasagne|bulgur|couscous|gnocchi|pizza)/i;
+const HIGH_CARB_RX =
+  /(\bnudeln?\b|\bpasta\b|\bspaghetti\b|\bbrot\b|\bbrötchen\b|\breis\b|\bhafer\b|\bmüsli\b|\bkartoffel\b|\bpommes\b|\bhonig\b|\bbaguette\b|\btoast\b|\blasagne\b|\bbulgur\b|\bcouscous\b|\bgnocchi\b|\bpizza\b|\bbread\b|\brice\b|\bpotato\b|\boats?\b)/i;
+
+const KETO_SAFE_RX = /(blumenkohl\s*reis|cauliflower\s*rice|konjac|shirataki|gemüse\s*reis)/i;
 
 const PALEO_EXCLUDED: RegExp =
   /(nudel|pasta|spaghetti|brot|brötchen|reis|hafer|müsli|bohnen|linsen|kichererbsen|milch|käse|joghurt|quark|sahne|paniermehl|baguette)/i;
@@ -227,42 +243,65 @@ export function readUserMealPlanProfile(): UserMealPlanProfile {
 }
 
 export function mealTextBlob(meal: { name: string; ingredients: { name: string }[] }): string {
-  return `${meal.name} ${meal.ingredients.map((i) => i.name).join(" ")}`.toLowerCase();
+  const joined = `${meal.name} ${meal.ingredients.map((i) => i.name).join(" ")}`;
+  return joined.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function blobContainsDenyTerm(blob: string, term: string): boolean {
+  const t = term.toLowerCase().trim();
+  if (!t) return false;
+  if (t.length <= 3) return blob.split(/\s+/).includes(t);
+  return blob.includes(t);
+}
+
+function denyTermsHit(allergyId: string, blob: string): boolean {
+  const id = allergyId === "egg" ? "eggs" : allergyId;
+  const terms = ALLERGY_DENY_TERMS[id];
+  if (!terms) return false;
+  return terms.some((term) => blobContainsDenyTerm(blob, term));
+}
+
+function hasEgg(blob: string): boolean {
+  return EGG_BLOB_RX.test(blob);
 }
 
 export function violatesAllergy(blob: string, allergyId: string): boolean {
-  const re = ALLERGY_PATTERNS[allergyId];
+  const id = allergyId === "egg" ? "eggs" : allergyId;
+  if (id === "eggs") return hasEgg(blob);
+  if (denyTermsHit(id, blob)) return true;
+  const re = ALLERGY_PATTERNS[id];
   if (!re) return false;
   return re.test(blob);
 }
 
-export function violatesDietaryPreferences(blob: string, prefs: string[]): boolean {
-  if (!prefs?.length) return false;
+export function violatesDietaryPreferences(blob: string, prefs: string[]): string[] {
+  if (!prefs?.length) return [];
+  const hit: string[] = [];
   if (prefs.includes("vegan")) {
     if (
-      /(milch|käse|ei|eier|joghurt|quark|butter|sahne|honig|fleisch|hähnchen|lachs|fisch|thunfisch|wurst|hack|speck|schinken|schnitzel|schwein|pute)/i.test(
+      /(\bmilch\b|\bkäse\b|\beier\b|\bjoghurt\b|\bquark\b|\bbutter\b|\bsahne\b|\bhonig\b|\bfleisch\b|\bhähnchen\b|\blachs\b|\bfisch\b|\bthunfisch\b|\bwurst\b|\bhack\b|\bspeck\b|\bschinken\b|\bschnitzel\b|\bschwein\b|\bpute\b)/i.test(
         blob,
-      )
+      ) ||
+      hasEgg(blob)
     ) {
-      return true;
+      hit.push("vegan");
     }
   }
   if (prefs.includes("vegetarian") && !prefs.includes("vegan")) {
-    if (MEAT_FISH.test(blob)) return true;
-    if (/(lachs|thunfisch|fischfilet|garnelen|garnelen|lachsfilet|forelle|seelachs)/i.test(blob)) return true;
+    if (MEAT_FISH.test(blob)) hit.push("vegetarian");
+    else if (/(lachs|thunfisch|fischfilet|garnelen|lachsfilet|forelle|seelachs)/i.test(blob)) hit.push("vegetarian");
   }
   if (prefs.includes("pescatarian")) {
     if (/(hackfleisch|hähnchen|pute|schwein|wurst|schnitzel|schinken|steak|speck|salami|bacon|currywurst|bratwurst|frikadell)/i.test(blob)) {
-      return true;
+      hit.push("pescatarian");
     }
   }
   if (prefs.includes("keto") || prefs.includes("low-carb")) {
-    if (HIGH_CARB_FOODS.test(blob)) return true;
+    const scrubbed = blob.replace(KETO_SAFE_RX, " ");
+    if (HIGH_CARB_RX.test(scrubbed)) hit.push("low-carb");
   }
-  if (prefs.includes("paleo") && PALEO_EXCLUDED.test(blob)) {
-    return true;
-  }
-  return false;
+  if (prefs.includes("paleo") && PALEO_EXCLUDED.test(blob)) hit.push("paleo");
+  return [...new Set(hit)];
 }
 
 export function isMealSafeForUser(
@@ -275,22 +314,24 @@ export function isMealSafeForUser(
     if (a === "none") continue;
     if (violatesAllergy(blob, a)) return false;
   }
-  if (violatesDietaryPreferences(blob, dietaryPreferences || [])) return false;
+  if (violatesDietaryPreferences(blob, dietaryPreferences || []).length) return false;
   return true;
 }
 
-export function findMealSafetyViolations(
+export type MealSafetyReasons = { allergy: string[]; diet: string[] };
+
+export function mealSafetyReasons(
   meal: { name: string; ingredients: { name: string }[] },
   allergies: string[],
   dietaryPreferences: string[],
   allergiesOther = "",
-): string[] {
+): MealSafetyReasons {
   const blob = mealTextBlob(meal);
-  const violations: string[] = [];
+  const allergy: string[] = [];
 
-  for (const allergy of allergies || []) {
-    if (!allergy || allergy === "none" || allergy === "other") continue;
-    if (violatesAllergy(blob, allergy)) violations.push(allergy);
+  for (const allergyId of allergies || []) {
+    if (!allergyId || allergyId === "none" || allergyId === "other") continue;
+    if (violatesAllergy(blob, allergyId)) allergy.push(allergyId === "egg" ? "eggs" : allergyId);
   }
 
   const custom = allergiesOther.trim().toLowerCase();
@@ -299,11 +340,29 @@ export function findMealSafetyViolations(
       .split(/[,;/\n]+/)
       .map((term) => term.trim())
       .filter((term) => term.length >= 3);
-    if (customTerms.some((term) => blob.includes(term))) violations.push("other");
+    for (const term of customTerms) {
+      if (blobContainsDenyTerm(blob, term)) allergy.push(`other:${term}`);
+    }
   }
 
-  if (violatesDietaryPreferences(blob, dietaryPreferences || [])) violations.push("dietaryPreferences");
-  return [...new Set(violations)];
+  return {
+    allergy: [...new Set(allergy)],
+    diet: violatesDietaryPreferences(blob, dietaryPreferences || []),
+  };
+}
+
+/** Flat list for logs/UI — e.g. `allergy:gluten`, `diet:vegan`. */
+export function findMealSafetyViolations(
+  meal: { name: string; ingredients: { name: string }[] },
+  allergies: string[],
+  dietaryPreferences: string[],
+  allergiesOther = "",
+): string[] {
+  const r = mealSafetyReasons(meal, allergies, dietaryPreferences, allergiesOther);
+  return [
+    ...r.allergy.map((a) => `allergy:${a}`),
+    ...r.diet.map((d) => `diet:${d}`),
+  ];
 }
 
 const ALLERGY_LABELS: Record<Language, Record<string, string>> = {

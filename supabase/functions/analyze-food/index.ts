@@ -365,6 +365,17 @@ REGELN:
   }
 }
 
+function authFailureMessage(err: { message?: string } | null): string {
+  const msg = (err?.message ?? "").toLowerCase();
+  if (msg.includes("expired") || msg.includes("jwt expired")) {
+    return "Session abgelaufen. Bitte erneut anmelden.";
+  }
+  if (msg.includes("invalid") || msg.includes("malformed")) {
+    return "Ungültige Anmeldung. Bitte erneut anmelden.";
+  }
+  return "Anmeldung erforderlich. Bitte einloggen.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -392,22 +403,28 @@ serve(async (req) => {
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: "Authentication required" }),
+        JSON.stringify({ error: "unauthorized", message: "Anmeldung erforderlich. Bitte einloggen." }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
-      token,
-    );
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
-    if (authError || !user) {
+    if (authError) {
+      console.warn("[ANALYZE-FOOD] auth failed:", authError.message);
       return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
+        JSON.stringify({ error: "unauthorized", message: authFailureMessage(authError) }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "unauthorized", message: "Ungültige Session. Bitte erneut anmelden." }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

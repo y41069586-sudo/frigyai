@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import type { OnboardingStep } from "@/components/onboarding/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -26,6 +27,12 @@ const fileToBase64 = (file: File): Promise<string> =>
 
 const ANALYZE_INGREDIENTS_TIMEOUT_MS = 45_000;
 
+type ScanNavState = {
+  fromOnboarding?: boolean;
+  returnToOnboarding?: boolean;
+  nextOnboardingStep?: OnboardingStep;
+};
+
 async function invokeAnalyzeIngredientsWithTimeout(body: { image: string; isOnboarding: boolean }) {
   const timeoutPromise = new Promise<never>((_, reject) => {
     window.setTimeout(() => {
@@ -41,6 +48,8 @@ async function invokeAnalyzeIngredientsWithTimeout(body: { image: string; isOnbo
 
 const ScanPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const scanNav = (location.state ?? {}) as ScanNavState;
   const { toast } = useToast();
   const { t, language } = useLanguage();
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -164,8 +173,8 @@ const ScanPage = () => {
     return merged;
   };
 
-  const analyzePhotoQueue = async () => {
-    const files = [...photoQueueRef.current];
+  const analyzePhotoQueue = async (explicitFiles?: File[]) => {
+    const files = explicitFiles?.length ? explicitFiles : [...photoQueueRef.current];
     photoQueueRef.current = [];
     if (files.length === 0) return;
 
@@ -182,29 +191,29 @@ const ScanPage = () => {
     const batchIngredients: string[] = [];
     let processed = 0;
     try {
-      for (const file of files) {
-        const fileSizeValidation = validateImageFileSize(file.size);
-        if (!fileSizeValidation.valid) {
-          toast({
-            title: "Datei zu groß",
-            description: fileSizeValidation.error || VALIDATION_RULES.IMAGE_FILE_SIZE.message,
-            variant: "destructive",
-          });
+    for (const file of files) {
+    const fileSizeValidation = validateImageFileSize(file.size);
+    if (!fileSizeValidation.valid) {
+      toast({
+        title: "Datei zu groß",
+        description: fileSizeValidation.error || VALIDATION_RULES.IMAGE_FILE_SIZE.message,
+        variant: "destructive",
+      });
           continue;
         }
 
         const base64 = await fileToBase64(file);
-        const qualityCheck = await checkImageQuality(base64);
-        if (!qualityCheck.isGoodQuality) {
-          toast({
-            title: qualityCheck.message,
-            description: qualityCheck.suggestion,
-            variant: "destructive",
-          });
+    const qualityCheck = await checkImageQuality(base64);
+    if (!qualityCheck.isGoodQuality) {
+      toast({
+        title: qualityCheck.message,
+        description: qualityCheck.suggestion,
+        variant: "destructive",
+      });
           continue;
-        }
+    }
 
-        const cachedResult = getCached(base64);
+    const cachedResult = getCached(base64);
         if (cachedResult?.ingredients) {
           batchIngredients.push(...cachedResult.ingredients);
           processed += 1;
@@ -221,15 +230,15 @@ const ScanPage = () => {
           if (error) throw error;
 
           if (data?.error === "scan_limit_exceeded" || data?.error === "premium_required") {
-            toast({
-              title: t.error,
+        toast({
+          title: t.error,
               description: data?.message || t.premiumRequired || t.couldNotAnalyze,
-              variant: "destructive",
-            });
+          variant: "destructive",
+        });
             break;
-          }
+      }
 
-          setCached(base64, data);
+      setCached(base64, data);
           batchIngredients.push(...(data.ingredients || []));
         } catch (scanError) {
           console.error("[ScanPage] analyze-ingredients failed:", scanError);
@@ -275,14 +284,33 @@ const ScanPage = () => {
     } finally {
       window.clearInterval(progressInterval);
       setScanProgress(100);
-      setAnalyzing(false);
-      setScanProgress(0);
+        setAnalyzing(false);
+        setScanProgress(0);
     }
+  };
+
+  const exitScan = (didRecognizeIngredients: boolean) => {
+    if (scanNav.returnToOnboarding) {
+      navigate("/", {
+        replace: true,
+        state: {
+          returnToOnboarding: true,
+          showScanFeedback: didRecognizeIngredients,
+          onboardingStep: scanNav.nextOnboardingStep ?? "shopping-list",
+        },
+      });
+      return;
+    }
+    if (didRecognizeIngredients) {
+      navigate("/meal-plans?tab=shopping");
+      return;
+    }
+    navigate("/");
   };
 
   const finishScanResult = () => {
     applyScannedIngredientsToShoppingList(ingredients);
-    navigate("/meal-plans?tab=shopping");
+    exitScan(ingredients.length > 0);
   };
 
   return (
@@ -296,10 +324,10 @@ const ScanPage = () => {
       onQueueChange={(files) => {
         photoQueueRef.current = files;
       }}
-      onConfirmAnalyze={() => void analyzePhotoQueue()}
+      onConfirmAnalyze={(files) => void analyzePhotoQueue(files)}
       onClose={() => {
         setAnalysisErrorMessage(null);
-        navigate("/");
+        exitScan(ingredients.length > 0);
       }}
       onCreateShoppingList={finishScanResult}
       onAddMorePhotos={() => {

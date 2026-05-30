@@ -5,9 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useIngredientCamera } from "@/hooks/useIngredientCamera";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
+import {
+  FrigyScanAnalyzingStage,
+  FrigyScanFailureStage,
+  FrigyScanSuccessStage,
+  type FrigyScanSuccessData,
+} from "./FrigyScanStates";
 
-type Phase = "capture" | "analyzing" | "error";
+type Phase = "capture" | "analyzing" | "error" | "success";
 
 type FrigyFoodScanFlowProps = {
   open: boolean;
@@ -15,9 +20,11 @@ type FrigyFoodScanFlowProps = {
   analyzingLabel?: string;
   previewImage?: string | null;
   analysisErrorMessage?: string | null;
+  successResult?: FrigyScanSuccessData | null;
   onClose: () => void;
   onCapture: (file: File) => void;
   onRetryAfterError?: () => void;
+  onSuccessDismiss?: () => void;
 };
 
 export function FrigyFoodScanFlow({
@@ -26,14 +33,17 @@ export function FrigyFoodScanFlow({
   analyzingLabel,
   previewImage,
   analysisErrorMessage,
+  successResult,
   onClose,
   onCapture,
   onRetryAfterError,
+  onSuccessDismiss,
 }: FrigyFoodScanFlowProps) {
   const { language, t } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
+  const wasAnalyzingRef = useRef(false);
 
   const copy =
     language === "fr"
@@ -81,11 +91,13 @@ export function FrigyFoodScanFlow({
             captureSr: "Aufnahme",
           };
 
-  const phase: Phase = analysisErrorMessage
-    ? "error"
-    : analyzing || pendingAnalysis
-      ? "analyzing"
-      : "capture";
+  const phase: Phase = successResult
+    ? "success"
+    : analysisErrorMessage
+      ? "error"
+      : analyzing || pendingAnalysis
+        ? "analyzing"
+        : "capture";
 
   const {
     setVideoRef,
@@ -112,9 +124,10 @@ export function FrigyFoodScanFlow({
   }, [capturedPreviewUrl, open]);
 
   useEffect(() => {
-    if (!analyzing) {
+    if (wasAnalyzingRef.current && !analyzing) {
       setPendingAnalysis(false);
     }
+    wasAnalyzingRef.current = analyzing;
   }, [analyzing]);
 
   useEffect(() => {
@@ -162,6 +175,15 @@ export function FrigyFoodScanFlow({
   };
 
   const activePreviewImage = previewImage ?? capturedPreviewUrl;
+
+  if (phase === "success" && successResult) {
+    return (
+      <FrigyScanSuccessStage
+        result={successResult}
+        onDismiss={() => onSuccessDismiss?.()}
+      />
+    );
+  }
 
   if (phase === "error" && analysisErrorMessage) {
     return (

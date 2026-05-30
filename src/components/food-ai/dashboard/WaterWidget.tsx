@@ -61,11 +61,10 @@ export const WaterWidget = memo(function WaterWidget({
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
-      onClick={onToggleExpand}
+      {...(onToggleExpand ? { onClick: onToggleExpand } : {})}
       className={cn(
-        "relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
+        "dashboard-touch-scroll relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
         "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
-        "touch-manipulation",
         className,
       )}
     >
