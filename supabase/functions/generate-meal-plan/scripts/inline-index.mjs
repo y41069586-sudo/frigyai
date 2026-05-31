@@ -13,6 +13,7 @@ const MODULES = [
   "meals.ts",
   "validation.ts",
   "constraints.ts",
+  "shuffle.ts",
   "fallbacks.ts",
   "openai.ts",
   "shopping.ts",

@@ -22,38 +22,12 @@ type WeeklyPlanWidgetProps = {
   onOpenPlan: () => void;
 };
 
-const COPY = {
-  de: {
-    title: "Wochenplan",
-    nextLabel: "Nächstes Essen",
-    nextFallback: "Noch kein Plan",
-    hint: "Erstelle deinen Wochenplan",
-    cta: "Heute ansehen",
-    ctaEmpty: "Zum Wochenplan",
-  },
-  en: {
-    title: "Weekly plan",
-    nextLabel: "Next meal",
-    nextFallback: "No plan yet",
-    hint: "Create your weekly plan",
-    cta: "View today",
-    ctaEmpty: "Open plan",
-  },
-  fr: {
-    title: "Plan hebdo",
-    nextLabel: "Prochain repas",
-    nextFallback: "Pas encore de plan",
-    hint: "Crée ton plan hebdomadaire",
-    cta: "Voir aujourd'hui",
-    ctaEmpty: "Voir le plan",
-  },
-} as const;
-
-function resolveNextFromPreview(preview: WeekPlanPreviewData, language: "de" | "en" | "fr"): NextMealInfo | null {
-  const todayLabel = language === "en" ? "Today" : language === "fr" ? "Aujourd'hui" : "Heute";
-  const noPlanLabel =
-    language === "en" ? "No entry in plan" : language === "fr" ? "Aucune entrée dans le plan" : "Kein Eintrag im Plan";
-  const slotLabel = language === "en" ? "Meal" : language === "fr" ? "Repas" : "Mahlzeit";
+function resolveNextFromPreview(
+  preview: WeekPlanPreviewData,
+  todayLabel: string,
+  noPlanLabel: string,
+  slotLabel: string,
+): NextMealInfo | null {
   const today = preview.days.find((d) => d.dayLabel === todayLabel) ?? preview.days[0];
   const name = today?.meals?.[0];
   if (!name || name === "—" || name === noPlanLabel) return null;
@@ -70,11 +44,10 @@ function resolveNextFromPreview(preview: WeekPlanPreviewData, language: "de" | "
 }
 
 export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanWidgetProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
     ? (language as "de" | "en" | "fr")
     : "de";
-  const t = COPY[lng];
 
   const plan = useMemo(() => readWeeklyPlanFromStorage(), [preview]);
   const hasPlan = plan.length > 0 && countPlannedMeals(plan) > 0;
@@ -84,8 +57,8 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
     if (hasPlan && todayPlan?.meals?.length) {
       return getNextMeal(todayPlan.meals);
     }
-    return resolveNextFromPreview(preview, lng);
-  }, [hasPlan, todayPlan, preview]);
+    return resolveNextFromPreview(preview, t.today, t.dashboardNoPlanEntry, t.defaultMealName);
+  }, [hasPlan, todayPlan, preview, t.today, t.dashboardNoPlanEntry, t.defaultMealName]);
 
   const weekDays = useMemo(
     () =>
@@ -95,8 +68,8 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
 
   const weekday = getTodayWeekdayFull(lng);
   const hasNext = Boolean(nextMeal?.meal.name?.trim());
-  const mealName = hasNext ? nextMeal!.meal.name!.trim() : t.nextFallback;
-  const ctaText = hasNext ? t.cta : t.ctaEmpty;
+  const mealName = hasNext ? nextMeal!.meal.name!.trim() : t.dashboardWeeklyPlanNextFallback;
+  const ctaText = hasNext ? t.dashboardWeeklyPlanCta : t.dashboardWeeklyPlanCtaEmpty;
   const openPlanTap = useScrollFriendlyTap(onOpenPlan);
 
   return (
@@ -113,7 +86,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
           onOpenPlan();
         }
       }}
-      aria-label={`${t.title}: ${mealName}`}
+      aria-label={`${t.weeklyPlan}: ${mealName}`}
       className={cn(
         "dashboard-touch-scroll group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] border border-slate-200/75 p-5 text-left",
         "bg-gradient-to-br from-white via-white to-primary/[0.06]",
@@ -137,7 +110,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
             </span>
             <div className="min-w-0">
               <h3 className="text-[17px] font-bold tracking-[-0.03em] text-foreground">
-                {t.title}
+                {t.weeklyPlan}
               </h3>
               <p className="text-[12px] font-medium text-primary/75">{weekday}</p>
             </div>
@@ -153,7 +126,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
           {hasNext ? (
             <>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
-                {t.nextLabel}
+                {t.dashboardWeeklyPlanNextLabel}
               </p>
               <p className="mt-1.5 line-clamp-2 text-[19px] font-bold leading-snug tracking-[-0.03em] text-foreground">
                 {mealName}
@@ -172,7 +145,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
               </div>
             </>
           ) : (
-            <p className="text-[15px] font-semibold leading-snug text-muted-foreground">{t.hint}</p>
+            <p className="text-[15px] font-semibold leading-snug text-muted-foreground">{t.dashboardWeeklyPlanHint}</p>
           )}
         </div>
 

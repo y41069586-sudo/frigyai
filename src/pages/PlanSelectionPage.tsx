@@ -81,7 +81,7 @@ const PlanSelectionPage = () => {
         <img src={frigLogo} alt="Frigy" className="h-14 w-14 rounded-xl mb-4" />
         
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold">{t.choosePlan || "Wähle deinen Plan"}</h2>
+          <h2 className="text-2xl font-bold">{t.choosePlan}</h2>
           <p className="text-muted-foreground text-sm mt-1">
             {user.email}
           </p>

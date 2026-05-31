@@ -29,6 +29,7 @@ import { FrigyMascotInline, FrigyPeek } from "./FrigyMascot";
 import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
 
 import { 
@@ -56,7 +57,6 @@ import { HealthGoalsSelectStep } from "./onboarding/components/HealthGoalsSelect
 import { DietStyleSelectStep } from "./onboarding/components/DietStyleSelectStep";
 import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep";
 import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
-import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
@@ -1001,7 +1001,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               >
                 <span className="text-xl">👋</span>
                 <span className="text-primary font-semibold">
-                  {language === 'de' ? 'Hallo' : language === 'fr' ? 'Salut' : 'Hello'}, {userData.name || 'du'}!
+                  {t.onboardingHelloPrefix}, {userData.name || t.onboardingHelloDefaultName}!
                 </span>
               </motion.div>
 
@@ -1540,25 +1540,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           />
         );
 
-      case "scan-fridge":
-        return (
-          <FridgeScanStep
-            userData={userData}
-            setUserData={setUserData}
-            onBack={currentIndex > 0 ? goBack : undefined}
-            onNext={goNext}
-            onStartScan={() =>
-              navigate("/scan", {
-                state: {
-                  fromOnboarding: true,
-                  returnToOnboarding: true,
-                  nextOnboardingStep: "shopping-list",
-                },
-              })
-            }
-          />
-        );
-
       case "shopping-list":
         return (
           <ShoppingListStep
@@ -1611,7 +1592,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     <TrendingUp className="w-6 h-6 text-red-500 rotate-180" />
                   </div>
                   <span className="text-lg font-bold block">{t.onboardingLoseWeightMode}</span>
-                  <span className="text-xs text-muted-foreground/40">{language === 'de' ? 'Kaloriendefizit' : language === 'fr' ? 'Déficit calorique' : 'Calorie deficit'}</span>
+                  <span className="text-xs text-muted-foreground/40">{t.calorieDeficitLabel}</span>
                   {userData.goalMode === 'lose' && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-4 h-4 text-primary-foreground" />
@@ -1633,7 +1614,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     <TrendingUp className="w-6 h-6 text-green-500" />
                   </div>
                   <span className="text-lg font-bold block">{t.onboardingGainWeightMode}</span>
-                  <span className="text-xs text-muted-foreground/40">{language === 'de' ? 'Kalorienüberschuss' : language === 'fr' ? 'Surplus calorique' : 'Calorie surplus'}</span>
+                  <span className="text-xs text-muted-foreground/40">{t.calorieSurplusLabel}</span>
                   {userData.goalMode === 'gain' && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-4 h-4 text-primary-foreground" />
@@ -1857,7 +1838,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         // Calculate goal date
         const goalDate = new Date();
         goalDate.setDate(goalDate.getDate() + (weeksToGoal * 7));
-        const goalDateFormatted = goalDate.toLocaleDateString(language === 'de' ? 'de-DE' : language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long' });
+        const goalDateFormatted = goalDate.toLocaleDateString(getAppLocale(language), { day: 'numeric', month: 'long' });
         
         return (
           <StepCard step="macro-preview">
@@ -1891,7 +1872,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                       transition={{ delay: 0.3, duration: 0.4 }}
                     >
                       <p className="mb-1 text-base font-bold text-primary-foreground sm:text-lg">
-                        {t.youWillReach} <span className="text-[1.55rem] sm:text-2xl">{userData.targetWeight}kg</span> {language === 'de' ? 'erreichen' : ''}
+                        {t.youWillReach} <span className="text-[1.55rem] sm:text-2xl">{userData.targetWeight}kg</span> {t.youWillReachSuffix}
                       </p>
                       <div className="flex items-center justify-center gap-2">
                         <Calendar className="w-4 h-4 text-primary-foreground/70" />
@@ -1976,7 +1957,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   <button
                     type="button"
                     onClick={() => openMacroEdit("protein")}
-                    aria-label={language === "de" ? "Protein anpassen" : "Edit protein"}
+                    aria-label={t.macroEditProteinAria}
                     className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-background border border-blue-300 flex items-center justify-center hover:bg-blue-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1997,7 +1978,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   <button
                     type="button"
                     onClick={() => openMacroEdit("carbs")}
-                    aria-label={language === "de" ? "Kohlenhydrate anpassen" : "Edit carbs"}
+                    aria-label={t.macroEditCarbsAria}
                     className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-background border border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2018,7 +1999,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   <button
                     type="button"
                     onClick={() => openMacroEdit("fat")}
-                    aria-label={language === "de" ? "Fett anpassen" : "Edit fat"}
+                    aria-label={t.macroEditFatAria}
                     className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-background border border-rose-300 flex items-center justify-center hover:bg-rose-50 transition-colors shadow-sm touch-manipulation"
                   >
                     <svg className="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2115,7 +2096,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   {t.onboardingScanFridgeNow}
                 </Button>
                 <Button onClick={goNext} variant="ghost" className="w-full h-10 text-muted-foreground/60">
-                  {language === 'de' ? 'Später scannen' : 'Scan later'}
+                  {t.scanLaterShort}
                 </Button>
               </div>
               
@@ -2133,10 +2114,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
       case "scan-feedback": {
         const feedbackReasons = [
-          { id: 'not-enough', label: language === 'de' ? 'Zu wenige Zutaten erkannt' : 'Too few ingredients detected' },
-          { id: 'wrong-items', label: language === 'de' ? 'Falsche Zutaten erkannt' : 'Wrong ingredients detected' },
-          { id: 'too-slow', label: language === 'de' ? 'Zu langsam' : 'Too slow' },
-          { id: 'other', label: language === 'de' ? 'Sonstiges' : 'Other' },
+          { id: 'not-enough', label: t.scanFeedbackNotEnough },
+          { id: 'wrong-items', label: t.scanFeedbackWrongItems },
+          { id: 'too-slow', label: t.scanFeedbackTooSlow },
+          { id: 'other', label: t.scanFeedbackOther },
         ];
         
         const handleFeedbackContinue = () => {
@@ -2171,7 +2152,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                {language === 'de' ? 'Hat der Scan gefallen?' : 'Did you like the scan?'}
+                {t.scanFeedbackTitle}
               </motion.h1>
               
               <motion.p 
@@ -2180,7 +2161,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                {language === 'de' ? 'Dein Feedback hilft uns besser zu werden' : 'Your feedback helps us improve'}
+                {t.scanFeedbackSubtitle}
               </motion.p>
               
               {/* Feedback buttons */}
@@ -2197,7 +2178,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     className="flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border bg-card hover:border-primary/50 transition-all"
                   >
                     <span className="text-4xl">👍</span>
-                    <span className="font-semibold text-lg">{language === 'de' ? 'Ja!' : 'Yes!'}</span>
+                    <span className="font-semibold text-lg">{t.scanFeedbackYes}</span>
                   </motion.button>
                   
                   <motion.button
@@ -2206,7 +2187,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     className="flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-border bg-card hover:border-destructive/50 transition-all"
                   >
                     <span className="text-4xl">👎</span>
-                    <span className="font-semibold text-lg">{language === 'de' ? 'Nein' : 'No'}</span>
+                    <span className="font-semibold text-lg">{t.scanFeedbackNo}</span>
                   </motion.button>
                 </motion.div>
               )}
@@ -2228,7 +2209,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                       <Check className="w-10 h-10 text-primary" />
                     </motion.div>
                     <p className="text-lg font-semibold text-primary">
-                      {language === 'de' ? 'Super, danke! 🎉' : 'Great, thanks! 🎉'}
+                      {t.scanFeedbackThanks}
                     </p>
                   </div>
                   
@@ -2236,7 +2217,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     onClick={handleFeedbackContinue}
                     className="w-full h-14 text-lg font-semibold rounded-2xl"
                   >
-                    {language === 'de' ? 'Weiter' : 'Continue'} <ChevronRight className="w-5 h-5 ml-2" />
+                    {t.next} <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </motion.div>
               )}
@@ -2249,7 +2230,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <p className="text-sm text-muted-foreground mb-4">
-                    {language === 'de' ? 'Was war das Problem?' : 'What was the issue?'}
+                    {t.scanFeedbackIssueTitle}
                   </p>
                   
                   <div className="space-y-2 mb-6">
@@ -2282,7 +2263,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     disabled={!selectedFeedbackReason}
                     className="w-full h-14 text-lg font-semibold rounded-2xl"
                   >
-                    {language === 'de' ? 'Weiter' : 'Continue'} <ChevronRight className="w-5 h-5 ml-2" />
+                    {t.next} <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </motion.div>
               )}
@@ -2296,7 +2277,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   onClick={goNext}
                   className="mt-6 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                 >
-                  {language === 'de' ? 'Ich habe nicht gescannt' : 'I didn\'t scan'}
+                  {t.scanFeedbackDidntScan}
                 </motion.button>
               )}
             </div>
@@ -2873,7 +2854,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {language === 'de' ? 'Wie möchtest du kochen?' : language === 'fr' ? 'Comment veux-tu cuisiner ?' : 'How do you want to cook?'}
+                {t.onboardingCookingStyleTitle}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground text-sm mb-8"
@@ -2881,7 +2862,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {language === 'de' ? 'Wähle deinen Stil – du kannst ihn später ändern' : language === 'fr' ? 'Choisis ton style – tu peux le changer plus tard' : 'Choose your style – you can change it later'}
+                {t.onboardingCookingStyleSubtitle}
               </motion.p>
               
               <div className="w-full max-w-sm space-y-4">
@@ -2900,10 +2881,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">
-                        {language === 'de' ? '🎲 Spontan & Flexibel' : language === 'fr' ? '🎲 Spontané & Flexible' : '🎲 Spontaneous & Flexible'}
+                        {t.onboardingSpontaneousLabel}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {language === 'de' ? 'Scanne deinen Kühlschrank, wähle deine Stimmung – bekomme passende Rezepte' : language === 'fr' ? 'Scanne ton frigo, choisis ton humeur – reçois des recettes adaptées' : 'Scan your fridge, choose your mood – get matching recipes'}
+                        {t.onboardingSpontaneousDesc}
                       </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors mt-4" />
@@ -2925,10 +2906,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">
-                        {language === 'de' ? '📋 Strukturiert & Geplant' : language === 'fr' ? '📋 Structuré & Planifié' : '📋 Structured & Planned'}
+                        {t.onboardingStructuredLabel}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {language === 'de' ? 'Wochenplan der täglich deine Makros trifft + automatische Einkaufsliste' : language === 'fr' ? 'Plan hebdomadaire qui atteint tes macros + liste de courses automatique' : 'Weekly plan that hits your daily macros + automatic shopping list'}
+                        {t.onboardingStructuredDesc}
                       </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors mt-4" />
@@ -2963,7 +2944,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium mb-4"
               >
-                {language === 'de' ? 'Spontan-Modus' : language === 'fr' ? 'Mode Spontané' : 'Spontaneous Mode'}
+                {t.onboardingSpontaneousModeTitle}
               </motion.div>
               
               <motion.div 
@@ -2981,7 +2962,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {language === 'de' ? 'Kühlschrank scannen' : language === 'fr' ? 'Scanne ton frigo' : 'Scan Your Fridge'}
+                {t.onboardingScanFridgeIntroTitle}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground text-sm mb-6"
@@ -2989,7 +2970,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {language === 'de' ? 'Zeig uns was du hast – wir machen Rezepte draus' : language === 'fr' ? 'Montre-nous ce que tu as – on en fait des recettes' : 'Show us what you have – we\'ll make recipes from it'}
+                {t.onboardingScanFridgeIntroSubtitle}
               </motion.p>
               
               <motion.div
@@ -2999,9 +2980,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: Camera, desc: language === 'de' ? 'Mach ein Foto von deinem Kühlschrank' : language === 'fr' ? 'Prends une photo de ton frigo' : 'Take a photo of your fridge', color: "text-amber-500" },
-                  { Icon: Brain, desc: language === 'de' ? 'KI erkennt automatisch alle Zutaten' : language === 'fr' ? 'L\'IA reconnaît automatiquement tous les ingrédients' : 'AI automatically recognizes all ingredients', color: "text-violet-500" },
-                  { Icon: ChefHat, desc: language === 'de' ? 'Bekomme 3 Rezepte basierend auf deiner Stimmung' : language === 'fr' ? 'Reçois 3 recettes selon ton humeur' : 'Get 3 recipes based on your mood', color: "text-emerald-500" },
+                  { Icon: Camera, desc: t.onboardingScanFeaturePhoto, color: "text-amber-500" },
+                  { Icon: Brain, desc: t.onboardingScanFeatureAi, color: "text-violet-500" },
+                  { Icon: ChefHat, desc: t.onboardingScanFeatureRecipes, color: "text-emerald-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -3025,21 +3006,21 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               >
                 <Camera className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-xs text-primary font-medium text-left">
-                  {language === 'de' ? 'Wir benötigen Kamera-Zugriff für den Scan' : language === 'fr' ? 'Nous avons besoin d\'accéder à la caméra pour le scan' : 'We need camera access for scanning'}
+                  {t.onboardingCameraRequiredHint}
                 </span>
               </motion.div>
               
               <div className="w-full max-w-xs space-y-3">
                 <Button onClick={requestCameraPermissionSpontan} className="w-full h-12 rounded-xl">
                   <Camera className="w-5 h-5 mr-2" />
-                  {language === 'de' ? 'Jetzt scannen' : language === 'fr' ? 'Scanner maintenant' : 'Scan Now'}
+                  {t.onboardingScanNowBtn}
                 </Button>
                 <Button 
                   variant="ghost" 
                   onClick={() => setCurrentStep("spontan-mode-2")}
                   className="w-full h-10 text-muted-foreground"
                 >
-                  {language === 'de' ? 'Später scannen' : language === 'fr' ? 'Scanner plus tard' : 'Scan Later'}
+                  {t.onboardingScanLaterBtn}
                 </Button>
               </div>
             </div>
@@ -3056,7 +3037,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium mb-4"
               >
-                {language === 'de' ? 'Schritt 2 von 2' : language === 'fr' ? 'Étape 2 sur 2' : 'Step 2 of 2'}
+                {t.onboardingStep2of2}
               </motion.div>
               
               <motion.div 
@@ -3074,7 +3055,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {language === 'de' ? 'Wie fühlst du dich?' : language === 'fr' ? 'Comment te sens-tu ?' : 'How are you feeling?'}
+                {t.onboardingMoodTitle}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground text-sm mb-6"
@@ -3082,7 +3063,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {language === 'de' ? 'Deine Stimmung bestimmt die Rezept-Komplexität' : language === 'fr' ? 'Ton humeur détermine la complexité des recettes' : 'Your mood determines recipe complexity'}
+                {t.onboardingMoodSubtitle}
               </motion.p>
               
               <motion.div
@@ -3092,9 +3073,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { emoji: "😴", label: language === 'de' ? 'Müde' : language === 'fr' ? 'Fatigué' : 'Tired', desc: language === 'de' ? 'Super einfache 5-Minuten Rezepte' : language === 'fr' ? 'Recettes super simples de 5 minutes' : 'Super simple 5-minute recipes', color: "from-blue-400 to-indigo-500" },
-                  { emoji: "😊", label: language === 'de' ? 'Normal' : language === 'fr' ? 'Normal' : 'Normal', desc: language === 'de' ? 'Ausgewogene 15-20 Minuten Gerichte' : language === 'fr' ? 'Plats équilibrés de 15-20 minutes' : 'Balanced 15-20 minute dishes', color: "from-emerald-400 to-green-500" },
-                  { emoji: "🔥", label: language === 'de' ? 'Motiviert' : language === 'fr' ? 'Motivé' : 'Motivated', desc: language === 'de' ? 'Anspruchsvollere Kreationen' : language === 'fr' ? 'Créations plus élaborées' : 'More challenging creations', color: "from-orange-400 to-red-500" },
+                  { emoji: "😴", label: t.onboardingMoodTiredLabel, desc: t.onboardingMoodTiredDesc, color: "from-blue-400 to-indigo-500" },
+                  { emoji: "😊", label: t.onboardingMoodNormalLabel, desc: t.onboardingMoodNormalDesc, color: "from-emerald-400 to-green-500" },
+                  { emoji: "🔥", label: t.onboardingMoodMotivatedLabel, desc: t.onboardingMoodMotivatedDesc, color: "from-orange-400 to-red-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -3122,13 +3103,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               >
                 <ChefHat className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-xs text-primary font-medium text-left">
-                  {language === 'de' ? 'Du bekommst 3 personalisierte Rezepte basierend auf deinen Zutaten + Stimmung' : language === 'fr' ? 'Tu reçois 3 recettes personnalisées basées sur tes ingrédients + humeur' : 'You get 3 personalized recipes based on your ingredients + mood'}
+                  {t.onboardingMoodRecipesHint}
                 </span>
               </motion.div>
               
               <Button onClick={() => setCurrentStep("notification-prefs")} className="w-full max-w-xs h-12 rounded-xl">
                 <Check className="w-5 h-5 mr-2" />
-                {language === 'de' ? 'Verstanden!' : language === 'fr' ? 'Compris !' : 'Got it!'}
+                {t.onboardingGotIt}
               </Button>
             </div>
           </StepCard>
@@ -3143,7 +3124,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium mb-4"
               >
-                {language === 'de' ? 'Schritt 1 von 3' : language === 'fr' ? 'Étape 1 sur 3' : 'Step 1 of 3'}
+                {t.onboardingStep1of3}
               </motion.div>
               
               <motion.div 
@@ -3161,7 +3142,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {language === 'de' ? 'Dein Wochenplan' : language === 'fr' ? 'Ton plan hebdomadaire' : 'Your Weekly Plan'}
+                {t.onboardingWeeklyPlanIntroTitle}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground text-sm mb-6"
@@ -3169,7 +3150,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {language === 'de' ? '7 Tage perfekt auf deine Makros abgestimmt' : language === 'fr' ? '7 jours parfaitement adaptés à tes macros' : '7 days perfectly matched to your macros'}
+                {t.onboardingWeeklyPlanIntroSubtitle}
               </motion.p>
               
               <motion.div
@@ -3179,9 +3160,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: Target, desc: language === 'de' ? 'Jeder Tag trifft exakt deine Kalorien & Makros' : language === 'fr' ? 'Chaque jour atteint exactement tes calories & macros' : 'Every day hits your exact calories & macros', color: "text-violet-500" },
-                  { Icon: ChefHat, desc: language === 'de' ? '5 Mahlzeiten pro Tag – Frühstück bis Abendessen' : language === 'fr' ? '5 repas par jour – du petit-déjeuner au dîner' : '5 meals per day – breakfast to dinner', color: "text-emerald-500" },
-                  { Icon: RefreshCw, desc: language === 'de' ? 'Einzelne Mahlzeiten jederzeit austauschen' : language === 'fr' ? 'Échanger des repas individuels à tout moment' : 'Swap individual meals anytime', color: "text-amber-500" },
+                  { Icon: Target, desc: t.onboardingWeeklyPlanFeature1, color: "text-violet-500" },
+                  { Icon: ChefHat, desc: t.onboardingWeeklyPlanFeature2, color: "text-emerald-500" },
+                  { Icon: RefreshCw, desc: t.onboardingWeeklyPlanFeature3, color: "text-amber-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -3240,7 +3221,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium mb-4"
               >
-                {language === 'de' ? 'Schritt 2 von 3' : language === 'fr' ? 'Étape 2 sur 3' : 'Step 2 of 3'}
+                {t.onboardingStep2of3}
               </motion.div>
               
               <motion.div 
@@ -3258,7 +3239,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {language === 'de' ? 'Automatische Einkaufsliste' : language === 'fr' ? 'Liste de courses automatique' : 'Automatic Shopping List'}
+                {t.onboardingShoppingIntroTitle}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground text-sm mb-6"
@@ -3266,7 +3247,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {language === 'de' ? 'Alles was du für die Woche brauchst' : language === 'fr' ? 'Tout ce dont tu as besoin pour la semaine' : 'Everything you need for the week'}
+                {t.onboardingShoppingIntroSubtitle}
               </motion.p>
               
               <motion.div
@@ -3276,9 +3257,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 transition={{ delay: 0.2 }}
               >
                 {[
-                  { Icon: ListChecks, desc: language === 'de' ? 'Liste wird aus Wochenplan generiert' : language === 'fr' ? 'Liste générée à partir du plan hebdomadaire' : 'List is generated from weekly plan', color: "text-pink-500" },
-                  { Icon: Check, desc: language === 'de' ? 'Abhaken beim Einkaufen' : language === 'fr' ? 'Cocher en faisant les courses' : 'Check off while shopping', color: "text-emerald-500" },
-                  { Icon: Camera, desc: language === 'de' ? 'Scan aktualisiert deine Liste automatisch' : language === 'fr' ? 'Le scan met à jour ta liste automatiquement' : 'Scan automatically updates your list', color: "text-amber-500" },
+                  { Icon: ListChecks, desc: t.onboardingShoppingFeature1, color: "text-pink-500" },
+                  { Icon: Check, desc: t.onboardingShoppingFeature2, color: "text-emerald-500" },
+                  { Icon: Camera, desc: t.onboardingShoppingFeature3, color: "text-amber-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -3340,7 +3321,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium mb-4"
               >
-                {language === 'de' ? 'Schritt 3 von 3' : language === 'fr' ? 'Étape 3 sur 3' : 'Step 3 of 3'}
+                {t.onboardingStep3of3}
               </motion.div>
               
               <motion.div 
@@ -3358,7 +3339,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                {language === 'de' ? 'Der Kreislauf' : language === 'fr' ? 'Le cycle' : 'The Cycle'}
+                {t.onboardingCycleTitle}
               </motion.h1>
               <motion.p 
                 className="text-muted-foreground text-sm mb-6"
@@ -3366,7 +3347,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                {language === 'de' ? 'Scan → Plan → Einkaufen → Wiederholen' : language === 'fr' ? 'Scan → Plan → Courses → Répéter' : 'Scan → Plan → Shop → Repeat'}
+                {t.onboardingCycleSubtitle}
               </motion.p>
               
               {/* Cycle diagram */}
@@ -3380,9 +3361,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   {/* Circle items */}
                   <div className="flex justify-center gap-2 flex-wrap">
                     {[
-                      { Icon: Camera, label: language === 'de' ? 'Scannen' : language === 'fr' ? 'Scanner' : 'Scan', color: "from-cyan-500 to-blue-500" },
-                      { Icon: Calendar, label: language === 'de' ? 'Planen' : language === 'fr' ? 'Planifier' : 'Plan', color: "from-violet-500 to-purple-500" },
-                      { Icon: ShoppingCart, label: language === 'de' ? 'Einkaufen' : language === 'fr' ? 'Courses' : 'Shop', color: "from-pink-500 to-rose-500" },
+                      { Icon: Camera, label: t.onboardingCycleLabelScan, color: "from-cyan-500 to-blue-500" },
+                      { Icon: Calendar, label: t.onboardingCycleLabelPlan, color: "from-violet-500 to-purple-500" },
+                      { Icon: ShoppingCart, label: t.onboardingCycleLabelShop, color: "from-pink-500 to-rose-500" },
                     ].map((item, i) => (
                       <motion.div
                         key={i}
@@ -3420,7 +3401,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
                       <RefreshCw className="w-4 h-4 text-primary" />
                       <span className="text-xs text-primary font-medium">
-                        {language === 'de' ? 'Jede Woche neu' : language === 'fr' ? 'Chaque semaine' : 'Every week'}
+                        {t.onboardingCycleEveryWeek}
                       </span>
                     </div>
                   </motion.div>
@@ -3435,13 +3416,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               >
                 <Target className="w-5 h-5 text-emerald-500 shrink-0" />
                 <span className="text-xs text-emerald-600 font-medium text-left">
-                  {language === 'de' ? 'Dein Kühlschrank-Scan aktualisiert automatisch was du noch brauchst' : language === 'fr' ? 'Ton scan de frigo met à jour automatiquement ce dont tu as besoin' : 'Your fridge scan automatically updates what you still need'}
+                  {t.onboardingCycleFridgeUpdateHint}
                 </span>
               </motion.div>
               
               <Button onClick={() => setCurrentStep("notification-prefs")} className="w-full max-w-xs h-12 rounded-xl">
                 <Check className="w-5 h-5 mr-2" />
-                {language === 'de' ? 'Verstanden!' : language === 'fr' ? 'Compris !' : 'Got it!'}
+                {t.onboardingGotIt}
               </Button>
             </div>
           </StepCard>
@@ -3974,13 +3955,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   };
 
   const notebookQuestionLines =
-    currentStep === "gender"
-      ? language === "de"
-        ? "WAS IST DEIN\nGESCHLECHT?"
-        : language === "fr"
-          ? "QUEL EST TON\nGENRE ?"
-          : "WHAT'S YOUR\nGENDER?"
-      : "";
+    currentStep === "gender" ? t.onboardingGenderNotebookQuestion : "";
 
   return (
         <motion.div
@@ -4157,7 +4132,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </div>
             </motion.div>
           )}
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

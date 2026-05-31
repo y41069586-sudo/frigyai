@@ -22,13 +22,13 @@ type NavId = "home" | "meals" | "shopping";
 
 const ITEMS: {
   id: NavId;
-  label: string;
+  labelKey: "navHome" | "navPlanShort" | "navShoppingShort";
   icon: LucideIcon;
   activeClass: string;
 }[] = [
-  { id: "home", label: "Start", icon: Home, activeClass: "text-primary" },
-  { id: "meals", label: "Plan", icon: Calendar, activeClass: "text-primary" },
-  { id: "shopping", label: "Einkauf", icon: ShoppingCart, activeClass: "text-primary" },
+  { id: "home", labelKey: "navHome", icon: Home, activeClass: "text-primary" },
+  { id: "meals", labelKey: "navPlanShort", icon: Calendar, activeClass: "text-primary" },
+  { id: "shopping", labelKey: "navShoppingShort", icon: ShoppingCart, activeClass: "text-primary" },
 ];
 
 export const BottomNavigation = (_props: BottomNavigationProps) => {
@@ -43,6 +43,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Overlay state can get stuck after scan/camera — reset when route changes
+  useEffect(() => {
+    setOverlayOpen(false);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const onOverlay = (e: Event) => {
@@ -84,7 +89,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
 
   const bar = (
     <nav
-      aria-label="Hauptnavigation"
+      aria-label={t.ariaMainNavigation}
       className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
     >
       <div
@@ -127,7 +132,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
-                {item.label}
+                {t[item.labelKey]}
               </span>
             </button>
           );

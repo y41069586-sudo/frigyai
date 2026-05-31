@@ -228,7 +228,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
     const video = videoElRef.current;
     if (!video || video.videoWidth < 1) return null;
 
-    const maxEdge = 1280;
+    const maxEdge = 1536;
     const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
     const width = Math.round(video.videoWidth * scale);
     const height = Math.round(video.videoHeight * scale);
@@ -242,7 +242,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
     ctx.drawImage(video, 0, 0, width, height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((result) => resolve(result), "image/jpeg", 0.82);
+      canvas.toBlob((result) => resolve(result), "image/jpeg", 0.88);
     });
     if (!blob) return null;
 

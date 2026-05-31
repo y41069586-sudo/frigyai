@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
+import { getStoredAppLocale } from '@/lib/mealPlanLanguage';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
@@ -93,7 +94,7 @@ export const useFoodEntries = () => {
         meal_type: entry.meal_type,
         image_url: entry.image_url,
         created_at: entry.created_at,
-        time: new Date(entry.created_at).toLocaleTimeString('de-DE', {
+        time: new Date(entry.created_at).toLocaleTimeString(getStoredAppLocale(), {
           hour: '2-digit',
           minute: '2-digit',
         }),

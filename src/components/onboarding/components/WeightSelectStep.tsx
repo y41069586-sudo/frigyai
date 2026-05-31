@@ -71,7 +71,7 @@ export function WeightSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [weightInput, setWeightInput] = useState("");
 
   const unit = userData.weightUnit;
@@ -125,21 +125,13 @@ export function WeightSelectStep({
     setUserData({ ...userData, weightUnit: nextUnit });
   };
 
-  const title =
-    language === "de"
-      ? "Wie viel wiegst du aktuell?"
-      : language === "fr"
-        ? "Quel est ton poids actuel ?"
-        : "What's your current weight?";
+  const title = t.onboardingCurrentWeightTitle;
 
   const unitLabel = isMetric ? "kg" : "lbs";
 
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
-    {
-      id: "metric",
-      label: language === "fr" ? "Métrique" : language === "en" ? "Metric" : "Metrisch",
-    },
-    { id: "imperial", label: "Imperial" },
+    { id: "metric", label: t.onboardingUnitMetric },
+    { id: "imperial", label: t.onboardingUnitImperial },
   ];
 
   return (
@@ -154,7 +146,7 @@ export function WeightSelectStep({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
               backgroundColor: "#FBFFFD",
@@ -184,7 +176,7 @@ export function WeightSelectStep({
           options={unitOptions}
           value={unit}
           onChange={handleUnitChange}
-          ariaLabel="Einheit"
+          ariaLabel={t.onboardingUnitAriaLabel}
         />
       </div>
 
@@ -214,28 +206,12 @@ export function WeightSelectStep({
             style={{ color: weightInput.length > 0 && !canProceed ? "#DC2626" : PALETTE.textMuted }}
           >
             {weightInput.length > 0 && !canProceed
-              ? language === "de"
-                ? isMetric
-                  ? "Bitte gib ein Gewicht zwischen 30,0 und 250,0 kg ein."
-                  : "Bitte gib ein Gewicht zwischen 66.0 und 550.0 lbs ein."
-                : language === "fr"
-                  ? isMetric
-                    ? "Entre un poids entre 30,0 et 250,0 kg."
-                    : "Entre un poids entre 66.0 et 550.0 lbs."
-                  : isMetric
-                    ? "Enter a weight between 30.0 and 250.0 kg."
-                    : "Enter a weight between 66.0 and 550.0 lbs."
-              : language === "de"
-                ? isMetric
-                  ? "Zum Beispiel 70,0"
-                  : "Zum Beispiel 154.3"
-                : language === "fr"
-                  ? isMetric
-                    ? "Par exemple 70,0"
-                    : "Par exemple 154.3"
-                  : isMetric
-                    ? "For example 70.0"
-                    : "For example 154.3"}
+              ? isMetric
+                ? t.onboardingWeightErrorMetric
+                : t.onboardingWeightErrorImperial
+              : isMetric
+                ? t.onboardingWeightHelperMetric
+                : t.onboardingWeightHelperImperial}
           </p>
         </div>
       </div>

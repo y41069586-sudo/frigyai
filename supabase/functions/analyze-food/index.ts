@@ -14,11 +14,12 @@ const corsHeaders = {
 
 const MAX_BASE64_SIZE = 6_700_000;
 const FOOD_NOT_FOUND = "Essen nicht gefunden";
-const AI_MACRO_KCAL_TOLERANCE = 35;
-const MAX_AI_CALORIES = 1600;
-const MAX_AI_PROTEIN = 120;
-const MAX_AI_CARBS = 220;
-const MAX_AI_FAT = 120;
+const AI_MACRO_KCAL_TOLERANCE = 50;
+/** Single visible plate/bowl — clamp instead of rejecting large meals */
+const MAX_AI_CALORIES = 2800;
+const MAX_AI_PROTEIN = 180;
+const MAX_AI_CARBS = 350;
+const MAX_AI_FAT = 180;
 
 const requestSchema = z
   .object({
@@ -226,27 +227,37 @@ function macroCalories(protein: number, carbs: number, fat: number) {
   return protein * 4 + carbs * 4 + fat * 9;
 }
 
+function clampMacroGrams(value: number, max: number): number {
+  return Math.max(0, Math.min(max, Math.round(value)));
+}
+
 function normalizeAiFoodEstimate(parsed: Record<string, unknown>) {
   const name = String(parsed.name || "").trim();
   if (!name) return null;
 
-  const protein = Math.max(0, Math.round(Number(parsed.protein) || 0));
-  const carbs = Math.max(0, Math.round(Number(parsed.carbs) || 0));
-  const fat = Math.max(0, Math.round(Number(parsed.fat) || 0));
+  let protein = clampMacroGrams(Number(parsed.protein) || 0, MAX_AI_PROTEIN);
+  let carbs = clampMacroGrams(Number(parsed.carbs) || 0, MAX_AI_CARBS);
+  let fat = clampMacroGrams(Number(parsed.fat) || 0, MAX_AI_FAT);
   const statedCalories = Math.max(0, Math.round(Number(parsed.calories) || 0));
-  const derivedCalories = Math.max(0, Math.round(macroCalories(protein, carbs, fat)));
+  let derivedCalories = Math.max(0, Math.round(macroCalories(protein, carbs, fat)));
 
   if (protein + carbs + fat <= 0) {
-    return null;
+    if (statedCalories > 0) {
+      protein = Math.round(statedCalories * 0.25 / 4);
+      carbs = Math.round(statedCalories * 0.45 / 4);
+      fat = Math.round(statedCalories * 0.30 / 9);
+      derivedCalories = Math.round(macroCalories(protein, carbs, fat));
+    } else {
+      return null;
+    }
   }
 
-  if (
-    protein > MAX_AI_PROTEIN ||
-    carbs > MAX_AI_CARBS ||
-    fat > MAX_AI_FAT ||
-    derivedCalories > MAX_AI_CALORIES
-  ) {
-    return null;
+  if (derivedCalories > MAX_AI_CALORIES) {
+    const scale = MAX_AI_CALORIES / derivedCalories;
+    protein = clampMacroGrams(protein * scale, MAX_AI_PROTEIN);
+    carbs = clampMacroGrams(carbs * scale, MAX_AI_CARBS);
+    fat = clampMacroGrams(fat * scale, MAX_AI_FAT);
+    derivedCalories = Math.round(macroCalories(protein, carbs, fat));
   }
 
   if (
@@ -275,21 +286,21 @@ async function analyzeWithOpenAI(
   food: string | undefined,
   imageBase64: string | undefined,
 ): Promise<Record<string, unknown> | null> {
-  const systemPrompt = `Du bist Ernährungs-Assistent. Antworte NUR mit JSON, kein anderer Text.
+  const systemPrompt = `Du bist Ernährungs-Assistent für ein Foto-Tagebuch. Antworte NUR mit JSON, kein anderer Text.
 
-Wenn du das Essen als echtes Lebensmittel mit verlässlichen Nährwerten kennst:
-{"found":true,"name":"Name mit Menge","calories":123,"protein":10,"carbs":20,"fat":5,"portion":"Portionsangabe"}
+Wenn auf dem Bild erkennbar ESSEN oder ein GETRÄNK ist (auch einfache Dinge: Brot, Obst, Joghurt, Müsli, Pizza, Nudeln, Reis, Salat, Suppe, Sandwich, Kaffee mit Milch, Smoothie, Snacks):
+{"found":true,"name":"Deutscher Name mit Menge","calories":123,"protein":10,"carbs":20,"fat":5,"portion":"z.B. 1 Teller"}
 
-Wenn unbekannt, erfunden, keine Speise, nur Zutaten ohne Gericht, oder unsicher:
+NUR wenn das Bild KEIN Essen zeigt (leerer Teller, nur Besteck, Person, Landschaft, Verpackung ohne sichtbares Essen):
 {"found":false}
 
 REGELN:
-- Schätze nur die SICHTBARE einzelne Portion auf dem Bild, nicht eine ganze Packung oder mehrere Portionen
-- Sei konservativ; wenn Portion oder Gericht unsicher ist, antworte mit {"found":false}
-- Keine Fantasiewerte
-- Kalorien müssen exakt zu den Makros passen: kcal = 4*protein + 4*carbs + 9*fat
-- Kalorien und Makros als ganze Zahlen
-- Deutsche Namen.`;
+- Schätze die SICHTBARE Portion auf dem Foto — lieber eine grobe Schätzung als ablehnen
+- Typische Gerichte und Zutaten erkennen, auch bei unperfektem Foto
+- Keine Fantasie-Produkte erfinden
+- Kalorien müssen zu den Makros passen: kcal = 4*protein + 4*carbs + 9*fat
+- Ganze Zahlen für Kalorien und Makros
+- Deutsche Namen`;
 
   const messages: { role: string; content: unknown }[] = [
     { role: "system", content: systemPrompt },
@@ -299,7 +310,7 @@ REGELN:
     messages.push({
       role: "user",
       content: [
-        { type: "text", text: food?.trim() ? `Analysiere: ${food.trim()}` : "Analysiere:" },
+        { type: "text", text: food?.trim() ? `Was ist auf diesem Foto? Kontext: ${food.trim()}` : "Was ist das Essen auf diesem Foto? Schätze Nährwerte für die sichtbare Portion." },
         {
           type: "image_url",
           image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" },
@@ -314,7 +325,7 @@ REGELN:
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 45_000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -325,9 +336,11 @@ REGELN:
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages,
-        max_tokens: 180,
+        max_tokens: 280,
+        temperature: 0.25,
+        response_format: { type: "json_object" },
       }),
     });
     clearTimeout(timeoutId);
@@ -354,6 +367,9 @@ REGELN:
     }
 
     if (parsed.found === false) return null;
+
+    // Accept legacy responses without explicit "found" when macros are present
+    if (parsed.found !== true && !parsed.name) return null;
 
     return normalizeAiFoodEstimate(parsed);
   } catch (fetchError) {

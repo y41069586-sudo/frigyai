@@ -71,7 +71,7 @@ export function TargetWeightSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const [targetWeightInput, setTargetWeightInput] = useState("");
 
   const unit = userData.weightUnit;
@@ -121,51 +121,21 @@ export function TargetWeightSelectStep({
     setUserData({ ...userData, weightUnit: nextUnit });
   };
 
-  const titles = {
-    de: {
-      lose: "Was ist dein Zielgewicht?",
-      gain: "Was ist dein Wunschgewicht?",
-      maintain: "Bestätige dein Zielgewicht",
-      fallback: "Was ist dein Zielgewicht?",
-    },
-    en: {
-      lose: "What's your target weight?",
-      gain: "What's your desired weight?",
-      maintain: "Confirm your target weight",
-      fallback: "What's your target weight?",
-    },
-    fr: {
-      lose: "Quel est ton poids cible ?",
-      gain: "Quel est ton poids souhaité ?",
-      maintain: "Confirme ton poids cible",
-      fallback: "Quel est ton poids cible ?",
-    },
-  } as const;
-  const buttonLabel = {
-    de: "Ziel festlegen",
-    en: "Set goal",
-    fr: "Définir l'objectif",
-  } as const;
-
-  const lng = (language as "de" | "en" | "fr") in titles ? (language as "de" | "en" | "fr") : "de";
   const goal = userData.goalMode;
   const title =
     goal === "lose"
-      ? titles[lng].lose
+      ? t.onboardingTargetWeightLoseTitle
       : goal === "gain"
-        ? titles[lng].gain
+        ? t.onboardingTargetWeightGainTitle
         : goal === "maintain"
-          ? titles[lng].maintain
-          : titles[lng].fallback;
+          ? t.onboardingTargetWeightMaintainTitle
+          : t.onboardingTargetWeightFallbackTitle;
 
   const unitLabel = isMetric ? "kg" : "lbs";
 
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
-    {
-      id: "metric",
-      label: language === "fr" ? "Métrique" : language === "en" ? "Metric" : "Metrisch",
-    },
-    { id: "imperial", label: "Imperial" },
+    { id: "metric", label: t.onboardingUnitMetric },
+    { id: "imperial", label: t.onboardingUnitImperial },
   ];
 
   useEffect(() => {
@@ -192,30 +162,8 @@ export function TargetWeightSelectStep({
     parsedTargetWeight >= minWhole &&
     parsedTargetWeight <= maxWhole;
 
-  const helperText =
-    language === "de"
-      ? isMetric
-        ? "Zum Beispiel 65,0"
-        : "Zum Beispiel 143.3"
-      : language === "fr"
-        ? isMetric
-          ? "Par exemple 65,0"
-          : "Par exemple 143.3"
-        : isMetric
-          ? "For example 65,0"
-          : "For example 143.3";
-  const errorText =
-    language === "de"
-      ? isMetric
-        ? "Bitte gib ein Zielgewicht zwischen 30,0 und 250,0 kg ein."
-        : "Bitte gib ein Zielgewicht zwischen 66.0 und 550.0 lbs ein."
-      : language === "fr"
-        ? isMetric
-          ? "Entre un poids cible entre 30,0 et 250,0 kg."
-          : "Entre un poids cible entre 66.0 et 550.0 lbs."
-        : isMetric
-          ? "Enter a target weight between 30.0 and 250.0 kg."
-          : "Enter a target weight between 66.0 and 550.0 lbs.";
+  const helperText = isMetric ? t.onboardingTargetWeightHelperMetric : t.onboardingTargetWeightHelperImperial;
+  const errorText = isMetric ? t.onboardingTargetWeightErrorMetric : t.onboardingTargetWeightErrorImperial;
 
   const handleTargetWeightChange = (raw: string) => {
     const nextValue = sanitizeDecimalInput(raw);
@@ -241,7 +189,7 @@ export function TargetWeightSelectStep({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
               backgroundColor: "#FBFFFD",
@@ -271,7 +219,7 @@ export function TargetWeightSelectStep({
           options={unitOptions}
           value={unit}
           onChange={handleUnitChange}
-          ariaLabel="Einheit"
+          ariaLabel={t.onboardingUnitAriaLabel}
         />
       </div>
 
@@ -328,7 +276,7 @@ export function TargetWeightSelectStep({
             opacity: canProceed ? 1 : 0.85,
           }}
         >
-          {buttonLabel[lng]}
+          {t.onboardingTargetWeightSetGoal}
           <ChevronRight className="size-5" strokeWidth={2.5} />
         </motion.button>
       </div>

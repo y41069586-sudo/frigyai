@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,6 @@ import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
 import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
 import { resolvePremiumAccessAfterSignIn } from '@/lib/resolvePremiumAccessAfterSignIn';
-import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
   const { t, language } = useLanguage();
@@ -22,6 +21,34 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const { signIn, signUp, signInWithGoogle, user, loading, checkSubscription } = useAuth();
   const navigate = useNavigate();
+  const redirectStartedRef = useRef(false);
+
+  const finishAuthRedirect = useCallback(async () => {
+    if (redirectStartedRef.current) return;
+    redirectStartedRef.current = true;
+
+    if (isFromOnboarding || isFromPremiumPricing) {
+      const hasPremium = await resolvePremiumAccessAfterSignIn({
+        userId: user?.id,
+        checkSubscription,
+      });
+      if (hasPremium) {
+        localStorage.setItem('onboardingComplete', 'true');
+        navigate('/', { replace: true });
+        return;
+      }
+      navigate('/?onboardingStep=paywall', { replace: true });
+      return;
+    }
+
+    const redirectPath = localStorage.getItem('redirectAfterAuth');
+    if (redirectPath) {
+      localStorage.removeItem('redirectAfterAuth');
+      navigate(redirectPath);
+    } else {
+      navigate('/');
+    }
+  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, navigate, user?.id]);
 
   // Check where user is coming from
   const searchParams = new URLSearchParams(window.location.search);
@@ -54,36 +81,14 @@ const AuthPage = () => {
   }, [isFromOnboarding, navigate]);
 
   const redirectAfterOnboardingAuth = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    const hasPremium = await resolvePremiumAccessAfterSignIn({
-      userId: data.session?.user?.id ?? user?.id,
-      checkSubscription,
-    });
-    if (hasPremium) {
-      localStorage.setItem('onboardingComplete', 'true');
-      navigate('/', { replace: true });
-      return;
-    }
-    navigate('/?onboardingStep=paywall', { replace: true });
-  }, [checkSubscription, navigate, user?.id]);
+    await finishAuthRedirect();
+  }, [finishAuthRedirect]);
 
   // Redirect if already logged in
   useEffect(() => {
     if (!user || loading) return;
-
-    if (isFromOnboarding || isFromPremiumPricing) {
-      void redirectAfterOnboardingAuth();
-      return;
-    }
-
-    const redirectPath = localStorage.getItem('redirectAfterAuth');
-    if (redirectPath) {
-      localStorage.removeItem('redirectAfterAuth');
-      navigate(redirectPath);
-    } else {
-      navigate('/');
-    }
-  }, [user, loading, isFromOnboarding, isFromPremiumPricing, redirectAfterOnboardingAuth]);
+    void finishAuthRedirect();
+  }, [user, loading, finishAuthRedirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,16 +100,12 @@ const AuthPage = () => {
         const { error } = await signIn(email, password);
         if (error) {
           const resolved = resolveAuthErrorMessage(error, language, 'login');
-          setError(resolved?.message ?? error.message ?? 'Login fehlgeschlagen');
+          setError(resolved?.message ?? error.message ?? t.authLoginFailed);
           if (resolved?.switchToLogin) setIsLogin(true);
         } else {
           const hasSession = await waitForAuthSession(3500);
           if (!hasSession) {
-            setError(
-              language === 'de'
-                ? 'Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.'
-                : 'Could not complete sign-in. Please try again.',
-            );
+            setError(t.authSignInIncomplete);
             return;
           }
 
@@ -134,18 +135,14 @@ const AuthPage = () => {
               return;
             }
           } else if (error.message?.includes('Password should be at least')) {
-            setError('Passwort muss mindestens 6 Zeichen lang sein');
+            setError(t.authPasswordMinLength);
           } else if (error.message?.includes('Invalid email')) {
-            setError('Bitte geben Sie eine gültige E-Mail-Adresse ein');
+            setError(t.authInvalidEmail);
           } else {
-            setError(error.message || 'Registrierung fehlgeschlagen');
+            setError(error.message || t.authSignupFailed);
           }
         } else if (!(await waitForAuthSession(3000))) {
-          setError(
-            language === 'de'
-              ? 'Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.'
-              : 'Could not complete sign-in. Please try again.',
-          );
+          setError(t.authSignInIncomplete);
         } else if (shouldGoToPricing) {
           navigate('/?onboardingStep=paywall', { replace: true });
         } else {

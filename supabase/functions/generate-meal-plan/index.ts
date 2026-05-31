@@ -1552,8 +1552,8 @@ export function buildConstraints(
   return buildConstraintPrompt({ allergies, prefs, goals, other, lang });
 }
 
-// ----- fallbacks.ts -----
-function seededShuffle<T>(items: T[], seed: string): T[] {
+// ----- shuffle.ts -----
+export function seededShuffle<T>(items: T[], seed: string): T[] {
   const out = [...items];
   if (!seed || out.length < 2) return out;
   let state = 0;
@@ -1568,6 +1568,7 @@ function seededShuffle<T>(items: T[], seed: string): T[] {
   return out;
 }
 
+// ----- fallbacks.ts -----
 /** Ultra-minimal plan — only whole vegetables/fruit; last-resort when pools fail. */
 export function guaranteedSafeMinimalPlan(params: {
   mealsPerDay: number;
@@ -2908,19 +2909,6 @@ export function sanitizeMealInstructions(instructions: unknown): string[] {
     .map((s) => String(s).trim())
     .filter((s) => s.length > 2 && !BAD_INSTRUCTION.test(s))
     .slice(0, 8);
-}
-
-function seededShuffle<T>(items: T[], seed: string): T[] {
-  const out = [...items];
-  if (!seed || out.length < 2) return out;
-  let state = 0;
-  for (let i = 0; i < seed.length; i++) state = (state * 31 + seed.charCodeAt(i)) >>> 0;
-  for (let i = out.length - 1; i > 0; i--) {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    const j = state % (i + 1);
-    [out[i], out[j]] = [out[j]!, out[i]!];
-  }
-  return out;
 }
 
 class PoolPicker {

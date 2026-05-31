@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage, type Language } from '@/contexts/LanguageContext';
+import { useLanguage, formatTranslation, type Language } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 import { confettiBurst } from '@/lib/mobileEffects';
 import { notifyBadgeUnlocked } from '@/lib/badgeEvents';
@@ -86,7 +86,7 @@ export function getBadgeDefinitions(language: Language): BadgeDefinition[] {
 
 export const useGamification = () => {
   const { user } = useAuth();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [streak, setStreak] = useState<Streak>({ current_streak: 0, longest_streak: 0, last_activity_date: null });
   const [badges, setBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,11 +263,7 @@ export const useGamification = () => {
       triggerConfetti();
       
       toast({
-        title: language === 'de'
-          ? `${badgeDef?.icon} Neues Badge freigeschaltet!`
-          : language === 'fr'
-            ? `${badgeDef?.icon} Nouveau badge debloque !`
-            : `${badgeDef?.icon} New badge unlocked!`,
+        title: formatTranslation(t.badgeUnlockedToast, { icon: badgeDef?.icon ?? '' }),
         description: badgeName,
       });
 

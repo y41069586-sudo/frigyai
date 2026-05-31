@@ -3,6 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { getLocalDateISO } from "@/lib/localDate";
 import { FRIGY_STORAGE_UPDATED } from "@/lib/frigyStorageSync";
 
@@ -44,7 +45,8 @@ export const StepsWidget = memo(function StepsWidget({
     };
   }, []);
 
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
+  const numberLocale = getAppLocale(language);
   const { isNativeApp, platform, isLoading, requestPermissions, syncHealthData } = useHealthConnect();
   const healthSyncProvider = useMemo(() => {
     try {
@@ -64,38 +66,16 @@ export const StepsWidget = memo(function StepsWidget({
     if (healthSyncProvider === "health-connect") return "Health Connect";
     return "Health Sync";
   }, [healthSyncProvider, platform]);
-  const copy = language === "fr"
-    ? {
-        title: "Pas",
-        hint: "Et si tu faisais\nune petite\nmarche ?",
-        syncing: "Synchronisation...",
-        sync: "Synchroniser les pas",
-        mobileOnly: "Health Sync seulement sur mobile",
-        openInApp: "Ouvrir dans l app",
-        goal: "Objectif",
-        today: "Aujourd'hui",
-      }
-    : language === "en"
-      ? {
-          title: "Steps",
-          hint: "How about\na short\nwalk?",
-          syncing: "Syncing...",
-          sync: "Sync steps",
-          mobileOnly: "Health Sync only on mobile",
-          openInApp: "Open in app",
-          goal: "Goal",
-          today: "Today",
-        }
-      : {
-          title: "Schritte",
-          hint: "Wie waer's mit\neinem kurzen\nSpaziergang?",
-          syncing: "Synchronisiere...",
-          sync: "Schritte syncen",
-          mobileOnly: "Health Sync nur auf dem Handy",
-          openInApp: "In App oeffnen",
-          goal: "Ziel",
-          today: "Heute",
-        };
+  const copy = {
+    title: t.dashboardStepsTitle,
+    hint: t.dashboardStepsHint,
+    syncing: t.dashboardStepsSyncing,
+    sync: t.dashboardStepsSync,
+    mobileOnly: t.dashboardStepsMobileOnly,
+    openInApp: t.dashboardStepsOpenInApp,
+    goal: t.goal,
+    today: t.today,
+  };
 
   const hasSteps = liveSteps > 0;
   const progressPct = Math.min(100, Math.round((liveSteps / goal) * 100));
@@ -141,10 +121,10 @@ export const StepsWidget = memo(function StepsWidget({
                 {copy.today}
               </p>
               <p className="text-[32px] font-bold tabular-nums leading-none tracking-tight text-foreground">
-                {liveSteps.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}
+                {liveSteps.toLocaleString(numberLocale)}
               </p>
               <p className="text-[11px] font-medium text-muted-foreground">
-                {copy.goal}: {goal.toLocaleString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US")}
+                {copy.goal}: {goal.toLocaleString(numberLocale)}
               </p>
               <div className="h-1.5 w-full max-w-[150px] overflow-hidden rounded-full bg-primary/15">
                 <div

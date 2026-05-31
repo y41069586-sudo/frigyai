@@ -23,3 +23,17 @@ export function dispatchLanguageChanged(language: Language): void {
     }),
   );
 }
+
+/** BCP-47 locale for dates/times based on app language. */
+export function getAppLocale(language: Language): string {
+  if (language === "fr") return "fr-FR";
+  if (language === "en") return "en-US";
+  return "de-DE";
+}
+
+export function getStoredAppLocale(): string {
+  if (typeof window === "undefined") return "en-US";
+  const raw = localStorage.getItem("app-language");
+  const lang = raw === "de" || raw === "en" || raw === "fr" ? raw : "en";
+  return getAppLocale(lang);
+}

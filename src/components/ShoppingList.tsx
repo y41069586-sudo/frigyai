@@ -4,7 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, formatTranslation, type Translations } from '@/contexts/LanguageContext';
+import { getAppLocale } from '@/lib/mealPlanLanguage';
 import { toast } from '@/hooks/use-toast';
 import { groupByCategory, getCategoryColor, getCategoryEmoji, IngredientCategory } from '@/lib/ingredient-categories';
 import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
@@ -33,6 +34,18 @@ interface ShoppingListProps {
 const OFFLINE_SHOPPING_LIST_KEY = 'frigai_offline_shopping_list';
 const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 
+function getShoppingCategoryLabel(t: Translations, category: IngredientCategory): string {
+  const labels: Record<IngredientCategory, string> = {
+    'Obst & Gemüse': t.shoppingCategoryFruitVeg,
+    'Fleisch & Fisch': t.shoppingCategoryMeatFish,
+    Milchprodukte: t.shoppingCategoryDairy,
+    'Brot & Getreide': t.shoppingCategoryBreadGrains,
+    Pantry: t.shoppingCategoryPantry,
+    Sonstiges: t.shoppingCategoryOther,
+  };
+  return labels[category] ?? category;
+}
+
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t, language } = useLanguage();
   const isMobile = useIsMobile();
@@ -41,81 +54,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
   const lastToggleAtRef = useRef<Record<string, number>>({});
-  const locale = language === 'fr' ? 'fr-FR' : language === 'en' ? 'en-US' : 'de-DE';
-  const copy = language === 'fr'
-    ? {
-        offlineMode: 'Mode hors ligne actif',
-        stillNeeded: 'encore necessaire',
-        showAll: 'Tout afficher',
-        collapseAll: 'Tout reduire',
-        saveOffline: 'Enregistrer hors ligne',
-        lastSaved: 'Derniere sauvegarde',
-        cacheLoaded: 'Donnees chargees depuis le cache',
-        offlineSavedTitle: '✅ Enregistre hors ligne !',
-        offlineSavedDesc: 'La liste de courses est maintenant disponible sans internet.',
-        offlineToastTitle: '📴 Mode hors ligne',
-        offlineToastDesc: 'La liste de courses reste disponible !',
-        ofCount: 'sur',
-        notGenerated: 'Pas encore genere',
-        dayCount: (count: number) => `${count} jours`,
-        categories: {
-          'Obst & Gemüse': 'Fruits et legumes',
-          'Fleisch & Fisch': 'Viande et poisson',
-          'Milchprodukte': 'Produits laitiers',
-          'Brot & Getreide': 'Pain et cereales',
-          Pantry: 'Placard',
-          Sonstiges: 'Autres',
-        } as Record<IngredientCategory, string>,
-      }
-    : language === 'en'
-      ? {
-          offlineMode: 'Offline mode active',
-          stillNeeded: 'still needed',
-          showAll: 'Show all',
-          collapseAll: 'Collapse all',
-          saveOffline: 'Save offline',
-          lastSaved: 'Last saved',
-          cacheLoaded: 'Loaded from cache',
-          offlineSavedTitle: '✅ Saved offline!',
-          offlineSavedDesc: 'Your shopping list is now available in the store without internet.',
-          offlineToastTitle: '📴 Offline mode',
-          offlineToastDesc: 'The shopping list is still available!',
-          ofCount: 'of',
-          notGenerated: 'Not generated yet',
-          dayCount: (count: number) => `${count} days`,
-          categories: {
-            'Obst & Gemüse': 'Fruit & vegetables',
-            'Fleisch & Fisch': 'Meat & fish',
-            'Milchprodukte': 'Dairy',
-            'Brot & Getreide': 'Bread & grains',
-            Pantry: 'Pantry',
-            Sonstiges: 'Other',
-          } as Record<IngredientCategory, string>,
-        }
-      : {
-          offlineMode: 'Offline-Modus aktiv',
-          stillNeeded: 'noch nötig',
-          showAll: 'Alle anzeigen',
-          collapseAll: 'Alle minimieren',
-          saveOffline: 'Für Offline speichern',
-          lastSaved: 'Zuletzt gespeichert',
-          cacheLoaded: 'Daten aus Cache geladen',
-          offlineSavedTitle: '✅ Offline gespeichert!',
-          offlineSavedDesc: 'Einkaufsliste ist jetzt im Supermarkt ohne Internet verfügbar.',
-          offlineToastTitle: '📴 Offline-Modus',
-          offlineToastDesc: 'Einkaufsliste ist weiterhin verfügbar!',
-          ofCount: 'von',
-          notGenerated: 'Nicht generiert',
-          dayCount: (count: number) => `${count} Tage`,
-          categories: {
-            'Obst & Gemüse': 'Obst & Gemüse',
-            'Fleisch & Fisch': 'Fleisch & Fisch',
-            'Milchprodukte': 'Milchprodukte',
-            'Brot & Getreide': 'Brot & Getreide',
-            Pantry: 'Pantry',
-            Sonstiges: 'Sonstiges',
-          } as Record<IngredientCategory, string>,
-        };
+  const locale = getAppLocale(language);
 
   // Offline-Status überwachen
   useEffect(() => {
@@ -123,8 +62,8 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     const handleOffline = () => {
       setIsOffline(true);
       toast({
-        title: copy.offlineToastTitle,
-        description: copy.offlineToastDesc,
+        title: t.shoppingListOfflineToastTitle,
+        description: t.shoppingListOfflineToastDesc,
       });
     };
     
@@ -396,8 +335,8 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const forceSync = () => {
     saveToCache(items);
     toast({
-      title: copy.offlineSavedTitle,
-      description: copy.offlineSavedDesc,
+      title: t.shoppingListOfflineSavedTitle,
+      description: t.shoppingListOfflineSavedDesc,
     });
   };
 
@@ -408,9 +347,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         <Card className="p-3 bg-amber-500/20 border-amber-500/50 flex items-center gap-3">
           <WifiOff className="h-5 w-5 text-amber-500" />
           <div className="flex-1">
-            <p className="font-medium text-amber-500">{copy.offlineMode}</p>
+            <p className="font-medium text-amber-500">{t.shoppingListOfflineMode}</p>
             <p className="text-xs text-muted-foreground">
-              {lastSyncTime ? `${copy.lastSaved}: ${lastSyncTime}` : copy.cacheLoaded}
+              {lastSyncTime ? `${t.shoppingListLastSaved}: ${lastSyncTime}` : t.shoppingListCacheLoaded}
             </p>
           </div>
         </Card>
@@ -435,7 +374,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             <div className="space-y-0.5 text-xs text-muted-foreground">
                 <p>€{purchasedPrice.toFixed(2)} {t.spent}</p>
               {remainingPrice > 0 && (
-                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} {copy.stillNeeded}</p>
+                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} {t.shoppingListStillNeeded}</p>
               )}
             </div>
           </div>
@@ -450,7 +389,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               onClick={() => setExpandedCategories(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']))}
               className="h-7 text-xs"
             >
-              {copy.showAll}
+              {t.shoppingListShowAll}
             </Button>
             <Button
               variant="ghost"
@@ -458,7 +397,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               onClick={() => setExpandedCategories(new Set())}
               className="h-7 text-xs"
             >
-              {copy.collapseAll}
+              {t.shoppingListCollapseAll}
             </Button>
           </div>
         )}
@@ -481,14 +420,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             onClick={forceSync}
           >
             <RefreshCw className="h-4 w-4" />
-            {copy.saveOffline}
+            {t.shoppingListSaveOffline}
           </Button>
         </div>
 
         {/* Sync Status */}
         {lastSyncTime && !isOffline && (
           <p className="text-xs text-muted-foreground text-center mt-2">
-            {copy.lastSaved}: {lastSyncTime}
+            {t.shoppingListLastSaved}: {lastSyncTime}
           </p>
         )}
       </Card>
@@ -510,9 +449,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                 <div className="flex items-center gap-3 flex-1 text-left">
                   <span className="text-xl">{getCategoryEmoji(group.category)}</span>
                   <div className="flex-1">
-                    <p className="font-semibold text-sm">{copy.categories[group.category]}</p>
+                    <p className="font-semibold text-sm">{getShoppingCategoryLabel(t, group.category)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {categoryPurchasedCount} {copy.ofCount} {group.items.length} • €{categoryTotalPrice.toFixed(2)}
+                      {categoryPurchasedCount} {t.shoppingListOfCount} {group.items.length} • €{categoryTotalPrice.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -588,7 +527,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground mb-2">{t.generateMealPlanForList}</p>
           <p className="text-xs text-muted-foreground/60">
-            {t.mealPlans}: {mealPlan?.length > 0 ? copy.dayCount(mealPlan.length) : copy.notGenerated}
+            {t.mealPlans}: {mealPlan?.length > 0 ? formatTranslation(t.shoppingListDayCount, { count: mealPlan.length }) : t.shoppingListNotGenerated}
           </p>
         </Card>
       )}

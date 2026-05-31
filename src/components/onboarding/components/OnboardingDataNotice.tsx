@@ -11,14 +11,7 @@ export function OnboardingDataNotice({
   className,
   variant = "default",
 }: OnboardingDataNoticeProps) {
-  const { language } = useLanguage();
-
-  const message =
-    language === "de"
-      ? "Ihre Daten werden nach Erstellung eines Plans gelöscht."
-      : language === "fr"
-        ? "Vos données seront supprimées après la création d'un plan."
-        : "Your data will be deleted after a plan is created.";
+  const { t } = useLanguage();
 
   const textColor = variant === "mint" ? "#7C9388" : undefined;
 
@@ -42,7 +35,7 @@ export function OnboardingDataNotice({
       >
         !
       </span>
-      <span>{message}</span>
+      <span>{t.onboardingDataDeletedAfterPlan}</span>
     </p>
   );
 }

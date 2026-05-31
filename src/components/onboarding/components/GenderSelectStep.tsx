@@ -38,7 +38,7 @@ export function GenderSelectStep({
   onBack,
   onNext,
 }: GenderSelectStepProps) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
 
   const binaryOptions: {
     id: "male" | "female";
@@ -49,15 +49,9 @@ export function GenderSelectStep({
     { id: "female", image: GENDER_IMAGES.female, label: t.onboardingFemale },
   ];
 
-  const nonBinaryLabel =
-    language === "de" ? "Nicht-binär" : language === "fr" ? "Non-binaire" : "Non-binary";
+  const nonBinaryLabel = t.onboardingNonBinaryLabel;
 
-  const title =
-    language === "de"
-      ? "Was ist dein Geschlecht?"
-      : language === "fr"
-        ? "Quel est ton genre ?"
-        : "What is your gender?";
+  const title = t.onboardingGenderQuestionTitle;
 
   const canProceed = userData.gender !== null;
 

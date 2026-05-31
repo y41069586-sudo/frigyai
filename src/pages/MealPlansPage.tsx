@@ -62,9 +62,9 @@ interface DayPlan {
 
 // Empty placeholder - no more demo plan, real plan gets auto-generated
 
-const normalizeMeal = (meal: Partial<Meal> | null | undefined, fallbackType: string): Meal => ({
+const normalizeMeal = (meal: Partial<Meal> | null | undefined, fallbackType: string, defaultMealName: string): Meal => ({
   type: typeof meal?.type === 'string' ? meal.type : fallbackType,
-  name: typeof meal?.name === 'string' ? meal.name : 'Mahlzeit',
+  name: typeof meal?.name === 'string' ? meal.name : defaultMealName,
   calories: Number(meal?.calories) || 0,
   protein: Number(meal?.protein) || 0,
   carbs: Number(meal?.carbs) || 0,
@@ -74,7 +74,7 @@ const normalizeMeal = (meal: Partial<Meal> | null | undefined, fallbackType: str
   instructions: Array.isArray(meal?.instructions) ? meal.instructions : [],
 });
 
-const normalizeMealPlan = (value: unknown): DayPlan[] => {
+const normalizeMealPlan = (value: unknown, defaultMealName: string): DayPlan[] => {
   if (!Array.isArray(value)) return [];
 
   return value
@@ -82,7 +82,7 @@ const normalizeMealPlan = (value: unknown): DayPlan[] => {
     .map((day, index) => ({
       day: typeof day.day === 'string' && day.day.trim() ? day.day : `Tag ${index + 1}`,
       meals: Array.isArray(day.meals)
-        ? day.meals.map((meal, mealIndex) => normalizeMeal(meal, `Mahlzeit ${mealIndex + 1}`))
+        ? day.meals.map((meal, mealIndex) => normalizeMeal(meal, `${defaultMealName} ${mealIndex + 1}`, defaultMealName))
         : [],
     }));
 };
@@ -93,7 +93,7 @@ const normalizeShoppingList = (value: unknown): Ingredient[] => {
   return value
     .filter((item): item is Partial<Ingredient> => Boolean(item) && typeof item === 'object')
     .map((item) => ({
-      name: typeof item.name === 'string' && item.name.trim() ? item.name : 'Zutat',
+      name: typeof item.name === 'string' && item.name.trim() ? item.name : t.ingredientDefaultName,
       amount: typeof item.amount === 'string' && item.amount.trim() ? item.amount : '—',
       price: Number(item.price) || 0,
     }));
@@ -128,7 +128,7 @@ const MealPlansPage = () => {
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
-    return normalizeMealPlan(readJsonArray('weeklyMealPlan'));
+    return normalizeMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName);
   });
   const [shoppingList, setShoppingList] = useState<Ingredient[]>(() => {
     return normalizeShoppingList(readJsonArray('weeklyShoppingList'));
@@ -140,50 +140,20 @@ const MealPlansPage = () => {
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
-  const pageCopy = language === 'fr'
-    ? {
-        premiumActivatingTitle: 'Premium s active...',
-        premiumActivatingDesc: 'Patiente un instant pendant que nous configurons ton abonnement.',
-        detectIngredients: 'Reconnaitre les ingredients',
-        creating: 'Creation...',
-        createShort: 'Creer',
-        createMealPlan: 'Creer le plan',
-        createPlanFirst: 'Cree ton premier plan Frigy !',
-        createPlanDesc: 'Frigy organise ta semaine selon tes macros, avec la liste de courses incluse.',
-        shoppingHint: 'Cree un plan Frigy ou scanne ton frigo : la liste de courses affichera alors seulement ce qu il manque.',
-        mealAddedTitle: `${t.eaten}! ✓`,
-        mealAddedDesc: 'Repas ajoute a ton suivi',
-        notGenerated: 'Pas encore genere',
-      }
-    : language === 'en'
-      ? {
-          premiumActivatingTitle: 'Premium is being activated...',
-          premiumActivatingDesc: 'Please wait a moment while we set up your subscription.',
-          detectIngredients: 'Detect ingredients',
-          creating: 'Creating...',
-          createShort: 'Create',
-          createMealPlan: 'Create meal plan',
-          createPlanFirst: 'Create your first Frigy meal plan!',
-          createPlanDesc: 'Frigy plans your week around your macro goals, including the shopping list.',
-          shoppingHint: 'Create a Frigy plan or scan your fridge: the shopping list will then show only missing ingredients.',
-          mealAddedTitle: `${t.eaten}! ✓`,
-          mealAddedDesc: 'Meal added to your tracker',
-          notGenerated: 'Not generated yet',
-        }
-      : {
-          premiumActivatingTitle: 'Premium wird aktiviert...',
-          premiumActivatingDesc: 'Bitte warte einen Moment, während wir dein Abo einrichten.',
-          detectIngredients: 'Zutaten erkennen',
-          creating: 'Erstellt...',
-          createShort: 'Erstellen',
-          createMealPlan: 'Wochenplan erstellen',
-          createPlanFirst: 'Erstell deinen ersten Frigy Wochenplan!',
-          createPlanDesc: 'Frigy plant deine Woche passend zu deinen Makrozielen — inklusive Einkaufsliste.',
-          shoppingHint: 'Erstelle einen Frigy Plan oder scanne den Kühlschrank: Die Einkaufsliste zeigt dann nur Zutaten, die noch fehlen.',
-          mealAddedTitle: `${t.eaten}! ✓`,
-          mealAddedDesc: 'Mahlzeit zu deinem Tracker hinzugefügt',
-          notGenerated: 'Nicht generiert',
-        };
+  const pageCopy = {
+    mealAddedTitle: `${t.eaten}! ✓`,
+    premiumActivatingTitle: t.mealPlanPremiumActivatingTitle,
+    premiumActivatingDesc: t.mealPlanPremiumActivatingDesc,
+    detectIngredients: t.mealPlanDetectIngredients,
+    creating: t.mealPlanCreating,
+    createShort: t.mealPlanCreateShort,
+    createMealPlan: t.createWeeklyPlan,
+    createPlanFirst: t.onboardingFirstWeeklyPlanTitle,
+    createPlanDesc: t.onboardingFirstWeeklyPlanDesc,
+    shoppingHint: t.mealPlanShoppingHint,
+    mealAddedDesc: t.mealPlanMealAddedDesc,
+    notGenerated: t.shoppingListNotGenerated,
+  };
 
   // Sync activeTab with URL params
   const rawTab = searchParams.get('tab') || 'meals';
@@ -241,13 +211,8 @@ const MealPlansPage = () => {
         next.delete("subscription");
         setSearchParams(next, { replace: true });
         toast({
-          title: language === "de" ? "Premium noch nicht aktiv" : "Premium not active yet",
-          description:
-            language === "de"
-              ? "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen."
-              : language === "fr"
-                ? "Le paiement a été reçu, mais Premium n'est pas encore actif."
-                : "Payment received, but Premium is not active yet. Reopen the app or try again shortly.",
+          title: t.premiumNotActiveYet,
+          description: t.premiumNotActiveDesc,
           variant: "destructive",
         });
       }
@@ -271,9 +236,9 @@ const MealPlansPage = () => {
     });
 
     if (globalMealPlan && globalMealPlan.length > 0) {
-      setMealPlan(normalizeMealPlan(globalMealPlan));
+      setMealPlan(normalizeMealPlan(globalMealPlan, t.defaultMealName));
     } else {
-      setMealPlan(normalizeMealPlan(readJsonArray('weeklyMealPlan')));
+      setMealPlan(normalizeMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName));
     }
 
     if (globalShoppingList && globalShoppingList.length > 0) {
@@ -281,7 +246,7 @@ const MealPlansPage = () => {
     } else {
       setShoppingList(normalizeShoppingList(readJsonArray('weeklyShoppingList')));
     }
-  }, [globalMealPlan, globalShoppingList]);
+  }, [globalMealPlan, globalShoppingList, t.defaultMealName]);
 
   // Auto-generate meal plan on login was removed: plans are persisted and should never regenerate automatically.
 
@@ -605,11 +570,10 @@ const MealPlansPage = () => {
                     <Card className="border-primary/20 bg-card/90 p-6 text-center sm:p-8">
                       <Calendar className="mx-auto mb-4 h-12 w-12 text-primary" />
                       <h3 className="text-lg font-bold mb-2">
-                        {t.onboardingFirstWeeklyPlanTitle || pageCopy.createPlanFirst}
+                        {t.onboardingFirstWeeklyPlanTitle}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
-                        {t.onboardingFirstWeeklyPlanDesc ||
-                          pageCopy.createPlanDesc}
+                        {t.onboardingFirstWeeklyPlanDesc}
                       </p>
                       <Button
                         type="button"
@@ -617,7 +581,7 @@ const MealPlansPage = () => {
                         onClick={() => void generateMealPlan()}
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        {t.generateMealPlan || 'Wochenplan erstellen'}
+                        {t.createWeeklyPlan}
                       </Button>
                     </Card>
                   )}

@@ -790,6 +790,19 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: ui.connectionErrorDesc,
           variant: 'destructive',
         });
+      } else if (
+        message.includes('503') ||
+        message.includes('502') ||
+        message.includes('504') ||
+        message.includes('non-2xx') ||
+        message.includes('FunctionsHttpError') ||
+        message.includes('meal_plan_generation_failed')
+      ) {
+        toast({
+          title: ui.connectionErrorTitle,
+          description: ui.connectionErrorDesc,
+          variant: 'destructive',
+        });
       } else if (message.includes('meal_plan_timeout') || message.includes('timeout')) {
         toast({
           title: ui.connectionErrorTitle,

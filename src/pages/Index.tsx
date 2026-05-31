@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Settings, Bot, Crown } from "lucide-react";
 import { PremiumSuccessDialog } from "@/components/PremiumSuccessDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -46,6 +47,11 @@ import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
 import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
+import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
+
+function readOnboardingCompleteLocal(): boolean {
+  return localStorage.getItem("onboardingComplete") === "true";
+}
 
 type CachedTodayFoodEntry = {
   name?: string;
@@ -59,7 +65,7 @@ type CachedTodayFoodEntry = {
   mealType?: MealFocusKey;
 };
 
-function readTodayFoodSnapshot() {
+function readTodayFoodSnapshot(timeLocale: string, defaultMealName: string) {
   const saved = localStorage.getItem("todayFood");
   if (!saved) return null;
 
@@ -70,15 +76,15 @@ function readTodayFoodSnapshot() {
     }
 
     const meals = data.entries.map((entry: CachedTodayFoodEntry) => ({
-      name: entry.name || "Mahlzeit",
+      name: entry.name || defaultMealName,
       time:
         entry.time ||
         (entry.created_at
-          ? new Date(entry.created_at).toLocaleTimeString("de-DE", {
+          ? new Date(entry.created_at).toLocaleTimeString(timeLocale, {
               hour: "2-digit",
               minute: "2-digit",
             })
-          : new Date().toLocaleTimeString("de-DE", {
+          : new Date().toLocaleTimeString(timeLocale, {
               hour: "2-digit",
               minute: "2-digit",
             })),
@@ -108,6 +114,7 @@ function readTodayFoodSnapshot() {
 
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription, isPremium } = useAuth();
+  const onboardingExitInFlightRef = useRef(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isActivatingPremium, setIsActivatingPremium] = useState(
@@ -115,6 +122,7 @@ const Index = () => {
   );
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   const { t, language } = useLanguage();
+  const timeLocale = getAppLocale(language);
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
   const { streak, recordActivity, checkAndAwardBadge } = useGamification();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
@@ -268,7 +276,7 @@ const Index = () => {
     let frameId: number | null = null;
 
     const loadTodayMeals = () => {
-      const snapshot = readTodayFoodSnapshot();
+      const snapshot = readTodayFoodSnapshot(timeLocale, t.defaultMealName);
       if (!snapshot) {
         setTodayMeals([]);
         setCaloriesEaten(0);
@@ -317,7 +325,7 @@ const Index = () => {
   useEffect(() => {
     const fetchDailyMacros = async () => {
       if (!user) return;
-      if (readTodayFoodSnapshot()) return;
+      if (readTodayFoodSnapshot(timeLocale, t.defaultMealName)) return;
       const today = getLocalDateISO();
       const { data } = await supabase
         .from('daily_macros')
@@ -336,7 +344,7 @@ const Index = () => {
     fetchDailyMacros();
 
     const handleFoodEntryChanged = () => {
-      if (!readTodayFoodSnapshot()) {
+      if (!readTodayFoodSnapshot(timeLocale, t.defaultMealName)) {
         void fetchDailyMacros();
       }
     };
@@ -345,7 +353,7 @@ const Index = () => {
 
     if (user) {
       const intervalId = setInterval(async () => {
-        if (readTodayFoodSnapshot()) return;
+        if (readTodayFoodSnapshot(timeLocale, t.defaultMealName)) return;
         const today = getLocalDateISO();
         const { data } = await supabase
           .from('daily_macros')
@@ -390,12 +398,21 @@ const Index = () => {
   // TESTMODUS: Onboarding wird bei jeder Session angezeigt (Login bleibt möglich)
   const ONBOARDING_TEST_MODE = false; // Testmodus deaktiviert
   
-  const hasCompletedOnboarding = localStorage.getItem('onboardingComplete') === 'true';
+  const [localOnboardingComplete, setLocalOnboardingComplete] = useState(readOnboardingCompleteLocal);
+  const hasCompletedOnboarding = localOnboardingComplete;
   // Skip only when onboarding was actually completed (local or DB), not merely because user is logged in
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
+  const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const sync = () => setLocalOnboardingComplete(readOnboardingCompleteLocal());
+    sync();
+    window.addEventListener(FRIGY_STORAGE_UPDATED, sync);
+    return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, sync);
+  }, [user, dbOnboardingComplete]);
 
   // Update onboarding visibility when loading completes
   useEffect(() => {
@@ -488,11 +505,8 @@ const Index = () => {
         next.delete("subscription");
         setSearchParams(next, { replace: true });
         toast({
-          title: language === "de" ? "Premium noch nicht aktiv" : "Premium not active yet",
-          description:
-            language === "de"
-              ? "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen."
-              : "Payment received, but Premium is not active yet. Reopen the app or try again in a few minutes.",
+          title: t.premiumNotActiveYet,
+          description: t.premiumNotActiveDesc,
           variant: "destructive",
         });
       }
@@ -514,29 +528,80 @@ const Index = () => {
     return () => window.clearTimeout(t);
   }, [user, onboardingComplete]);
 
-  const handleOnboardingComplete = () => {
-    // Im Testmodus: Onboarding neu starten statt zum Dashboard
+  const handleOnboardingComplete = useCallback(async () => {
     if (ONBOARDING_TEST_MODE) {
-      // Onboarding bleibt sichtbar, nur zurück zum Anfang
       window.location.reload();
       return;
     }
 
-    if (user && !isPremium && !hasReferralSkipPaywallPending()) {
-      setShowOnboarding(true);
-      setOnboardingComplete(false);
-      window.history.replaceState(window.history.state, "", "/?onboardingStep=paywall");
-      return;
-    }
+    if (onboardingExitInFlightRef.current) return;
+    onboardingExitInFlightRef.current = true;
 
-    setShowOnboarding(false);
+    try {
+      const completedLocally = readOnboardingCompleteLocal();
 
-    if (!user) {
-      window.history.replaceState(window.history.state, '', '/?onboardingStep=save-progress');
-      setShowOnboarding(true);
-      setOnboardingComplete(false);
+      if (user && (completedLocally || dbOnboardingComplete || hasReferralSkipPaywallPending())) {
+        setShowOnboarding(false);
+        setOnboardingComplete(true);
+        setLocalOnboardingComplete(true);
+        if (!dbOnboardingComplete) {
+          await saveProgress({ onboarding_complete: true });
+        }
+        const next = new URLSearchParams(searchParams);
+        if (next.has("onboardingStep")) {
+          next.delete("onboardingStep");
+          setSearchParams(next, { replace: true });
+        }
+        return;
+      }
+
+      if (user && !hasReferralSkipPaywallPending()) {
+        const hasAccess =
+          isPremium ||
+          (await resolvePremiumAccessAfterSignIn({
+            userId: user.id,
+            checkSubscription,
+          }));
+        if (!hasAccess) {
+          setShowOnboarding(true);
+          setOnboardingComplete(false);
+          window.history.replaceState(window.history.state, "", "/?onboardingStep=paywall");
+          return;
+        }
+
+        localStorage.setItem("onboardingComplete", "true");
+        setLocalOnboardingComplete(true);
+        setShowOnboarding(false);
+        setOnboardingComplete(true);
+        await saveProgress({ onboarding_complete: true });
+        const next = new URLSearchParams(searchParams);
+        if (next.has("onboardingStep")) {
+          next.delete("onboardingStep");
+          setSearchParams(next, { replace: true });
+        }
+        return;
+      }
+
+      setShowOnboarding(false);
+      setOnboardingComplete(true);
+
+      if (!user) {
+        window.history.replaceState(window.history.state, "", "/?onboardingStep=save-progress");
+        setShowOnboarding(true);
+        setOnboardingComplete(false);
+      }
+    } finally {
+      onboardingExitInFlightRef.current = false;
     }
-  };
+  }, [
+    user,
+    isPremium,
+    dbOnboardingComplete,
+    checkSubscription,
+    saveProgress,
+    searchParams,
+    setSearchParams,
+  ]);
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -617,12 +682,10 @@ const Index = () => {
             </div>
           </div>
           <h2 className="text-[1.35rem] font-bold leading-tight tracking-tight">
-            {language === "de" ? "Premium wird aktiviert…" : "Activating Premium…"}
+            {t.premiumActivating}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            {language === "de"
-              ? "Einen Moment – wir verbinden deine Zahlung mit deinem Konto."
-              : "One moment — linking your payment to your account."}
+            {t.premiumActivatingDesc}
           </p>
         </motion.div>
       </div>
@@ -717,12 +780,12 @@ const Index = () => {
         </div>
       </main>
 
-      {user && onboardingComplete && (
+      {user && dashboardReady && (
         <MacroTracker onSetupComplete={reloadSettings} />
       )}
 
       {/* Bottom Navigation - Show for all logged in users */}
-      {user && onboardingComplete && (
+      {user && dashboardReady && (
         <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
       )}
 

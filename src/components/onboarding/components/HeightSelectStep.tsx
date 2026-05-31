@@ -61,7 +61,7 @@ export function HeightSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [heightInput, setHeightInput] = useState("");
 
   const unit = userData.heightUnit;
@@ -103,19 +103,11 @@ export function HeightSelectStep({
     setUserData({ ...userData, heightUnit: nextUnit });
   };
 
-  const title =
-    language === "de"
-      ? "Wie groß bist du?"
-      : language === "fr"
-        ? "Quelle est ta taille ?"
-        : "How tall are you?";
+  const title = t.onboardingHowTallTitle;
 
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
-    {
-      id: "metric",
-      label: language === "fr" ? "Métrique" : language === "en" ? "Metric" : "Metrisch",
-    },
-    { id: "imperial", label: "Imperial" },
+    { id: "metric", label: t.onboardingUnitMetric },
+    { id: "imperial", label: t.onboardingUnitImperial },
   ];
 
   const parsedMetricHeight =
@@ -125,30 +117,8 @@ export function HeightSelectStep({
     ? parsedMetricHeight !== null && Number.isFinite(parsedMetricHeight) && parsedMetricHeight >= 100 && parsedMetricHeight <= 250
     : parsedImperialHeight !== null;
 
-  const helperText =
-    language === "de"
-      ? isMetric
-        ? "Zum Beispiel 170"
-        : "Zum Beispiel 5'7"
-      : language === "fr"
-        ? isMetric
-          ? "Par exemple 170"
-          : "Par exemple 5'7"
-        : isMetric
-          ? "For example 170"
-          : "For example 5'7";
-  const errorText =
-    language === "de"
-      ? isMetric
-        ? "Bitte gib eine Groesse zwischen 100 und 250 cm ein."
-        : "Bitte gib eine Groesse wie 5'7 ein."
-      : language === "fr"
-        ? isMetric
-          ? "Entre une taille entre 100 et 250 cm."
-          : "Entre une taille comme 5'7."
-        : isMetric
-          ? "Enter a height between 100 and 250 cm."
-          : "Enter a height like 5'7.";
+  const helperText = isMetric ? t.onboardingHeightHelperMetric : t.onboardingHeightHelperImperial;
+  const errorText = isMetric ? t.onboardingHeightErrorMetric : t.onboardingHeightErrorImperial;
 
   const handleHeightChange = (raw: string) => {
     const nextValue = isMetric ? sanitizeMetricHeightInput(raw) : raw.replace(/[^\d' ftin]/gi, "");
@@ -190,7 +160,7 @@ export function HeightSelectStep({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
               backgroundColor: "#FBFFFD",
@@ -220,7 +190,7 @@ export function HeightSelectStep({
           options={unitOptions}
           value={unit}
           onChange={handleUnitChange}
-          ariaLabel="Einheit"
+          ariaLabel={t.onboardingUnitAriaLabel}
         />
       </div>
 

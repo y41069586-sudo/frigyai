@@ -17,38 +17,18 @@ const DIET_OPTIONS: { id: DietId; emoji: string }[] = [
   { id: "paleo", emoji: "🍖" },
 ];
 
-const DIET_LABELS: Record<"de" | "en" | "fr", Record<DietId, string>> = {
-  de: {
-    balanced: "Ausgewogene Ernährung",
-    vegan: "Vegan",
-    vegetarian: "Vegetarisch",
-    keto: "Keto",
-    "low-carb": "Kohlenhydratarm",
-    paleo: "Paleo",
-  },
-  en: {
-    balanced: "Balanced nutrition",
-    vegan: "Vegan",
-    vegetarian: "Vegetarian",
-    keto: "Keto",
-    "low-carb": "Low-carb",
-    paleo: "Paleo",
-  },
-  fr: {
-    balanced: "Alimentation équilibrée",
-    vegan: "Végan",
-    vegetarian: "Végétarien",
-    keto: "Cétogène",
-    "low-carb": "Faible en glucides",
-    paleo: "Paléo",
-  },
-};
-
 export function DietPreferencesSettings() {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const { settings, saveSettings, loading } = useTrackerSettings();
-  const lang = (language === "en" || language === "fr" ? language : "de") as "de" | "en" | "fr";
-  const labels = DIET_LABELS[lang];
+
+  const dietLabels: Record<DietId, string> = {
+    balanced: t.dietBalanced,
+    vegan: t.dietVegan,
+    vegetarian: t.dietVegetarian,
+    keto: t.dietKeto,
+    "low-carb": t.dietLowCarb,
+    paleo: t.dietPaleo,
+  };
 
   const [selectedDiet, setSelectedDiet] = useState<DietId | null>(null);
   const [saving, setSaving] = useState(false);
@@ -87,13 +67,8 @@ export function DietPreferencesSettings() {
       }
 
       toast({
-        title: lang === "de" ? "Gespeichert" : lang === "fr" ? "Enregistré" : "Saved",
-        description:
-          lang === "de"
-            ? "Dein Ernährungsziel wird beim nächsten Wochenplan berücksichtigt."
-            : lang === "fr"
-              ? "Ton objectif alimentaire sera pris en compte au prochain plan."
-              : "Your dietary goal will apply to the next weekly plan.",
+        title: t.dietPreferencesSavedTitle,
+        description: t.dietPreferencesSavedDesc,
       });
     } finally {
       setSaving(false);
@@ -105,23 +80,10 @@ export function DietPreferencesSettings() {
     void persist(id);
   };
 
-  const sectionTitle =
-    lang === "de"
-      ? "Ernährungsziel"
-      : lang === "fr"
-        ? "Objectif alimentaire"
-        : "Dietary goal";
-
   return (
     <div className="px-4 py-3 space-y-3">
-      <p className="text-[15px] font-medium text-foreground">{sectionTitle}</p>
-      <p className="text-xs text-muted-foreground">
-        {lang === "de"
-          ? "Wirkt auf KI-Wochenplan und Rezeptvorschläge."
-          : lang === "fr"
-            ? "S'applique au plan hebdomadaire IA et aux recettes."
-            : "Applies to AI weekly plan and recipe suggestions."}
-      </p>
+      <p className="text-[15px] font-medium text-foreground">{t.dietPreferencesTitle}</p>
+      <p className="text-xs text-muted-foreground">{t.dietPreferencesSubtitle}</p>
       <div className="grid grid-cols-2 gap-2">
         {DIET_OPTIONS.map((opt) => {
           const active = selectedDiet === opt.id;
@@ -131,15 +93,15 @@ export function DietPreferencesSettings() {
               type="button"
               disabled={saving}
               onClick={() => select(opt.id)}
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+              className={`relative flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
                 active
-                  ? "border-primary bg-primary/10 font-semibold text-primary"
-                  : "border-slate-200 bg-white hover:bg-slate-50"
+                  ? "border-primary bg-primary/10 font-semibold text-foreground"
+                  : "border-border/60 bg-background hover:border-primary/30"
               }`}
             >
               <span className="text-lg">{opt.emoji}</span>
-              <span className="min-w-0 flex-1 leading-tight">{labels[opt.id]}</span>
-              {active && <Check className="h-4 w-4 shrink-0" />}
+              <span className="flex-1 leading-tight">{dietLabels[opt.id]}</span>
+              {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
             </button>
           );
         })}

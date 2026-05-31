@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LanguageSettings } from "@/components/LanguageSettings";
@@ -118,6 +119,7 @@ const ProfilePage = () => {
   const { user, session, subscriptionStatus, signOut, checkSubscription } = useAuth();
   const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
+  const dateLocale = getAppLocale(language);
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -266,7 +268,7 @@ const ProfilePage = () => {
               label={t.premiumActive}
               description={
                 subscriptionStatus?.subscription_end
-                  ? `${t.renewsOn}: ${new Date(subscriptionStatus.subscription_end).toLocaleDateString("de-DE")}`
+                  ? `${t.renewsOn}: ${new Date(subscriptionStatus.subscription_end).toLocaleDateString(dateLocale)}`
                   : undefined
               }
               trailing={
@@ -316,11 +318,7 @@ const ProfilePage = () => {
             )}
           </SettingsGroup>
 
-          <SettingsGroup
-            title={
-              language === "de" ? "Ernährung" : language === "fr" ? "Alimentation" : "Nutrition"
-            }
-          >
+          <SettingsGroup title={t.profileNutritionSection}>
             <DietPreferencesSettings />
           </SettingsGroup>
 
@@ -358,7 +356,7 @@ const ProfilePage = () => {
                     onClick={handleDeleteAccount}
                     disabled={deleteLoading}
                   >
-                    {deleteLoading ? "Wird gelöscht…" : "Löschen"}
+                    {deleteLoading ? t.profileDeleting : t.profileDeleteBtn}
                   </Button>
                 </div>
               </DialogContent>

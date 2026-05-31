@@ -144,13 +144,8 @@ const PremiumPage = () => {
         setIsActivating(false);
         setSearchParams({}, { replace: true });
         toast({
-          title: language === "de" ? "Premium noch nicht aktiv" : "Premium not active yet",
-          description:
-            language === "de"
-              ? "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen."
-              : language === "fr"
-                ? "Le paiement a été reçu, mais Premium n'est pas encore actif. Rouvre l'app ou réessaie dans quelques minutes."
-                : "Payment received, but Premium is not active yet. Reopen the app or try again in a few minutes.",
+          title: t.premiumNotActiveYet,
+          description: t.premiumNotActiveDesc,
           variant: "destructive",
         });
       }
@@ -182,8 +177,8 @@ const PremiumPage = () => {
           className="text-center"
         >
           <img src={frigLogo} alt="Frigy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
-          <h2 className="text-xl font-bold mb-2">{"Premium wird aktiviert..."}</h2>
-          <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
+          <h2 className="text-xl font-bold mb-2">{t.premiumActivating}</h2>
+          <p className="text-muted-foreground">{t.pleaseWait}</p>
         </motion.div>
       </div>
     );
@@ -199,8 +194,8 @@ const PremiumPage = () => {
           className="text-center"
         >
           <img src={frigLogo} alt="Frigy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
-          <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe || "Weiterleitung zu Stripe..."}</h2>
-          <p className="text-muted-foreground">{t.pleaseWait || "Bitte warten..."}</p>
+          <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe}</h2>
+          <p className="text-muted-foreground">{t.pleaseWait}</p>
         </motion.div>
       </div>
     );
@@ -471,11 +466,7 @@ const PremiumPage = () => {
                   Frigy Premium
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {language === "de"
-                    ? "Monatlich oder jährlich – Details beim Checkout"
-                    : language === "fr"
-                      ? "Mensuel ou annuel – détails au paiement"
-                      : "Monthly or yearly – see checkout for details"}
+                  {t.premiumCheckoutHint}
                 </p>
               </div>
 
@@ -503,15 +494,11 @@ const PremiumPage = () => {
                 className="w-full h-12 text-base font-semibold"
                 size="lg"
               >
-                {loading ? t.loading : "Pläne ansehen"}
+                {loading ? t.loading : t.premiumViewPlansBtn}
               </Button>
               
               <p className="text-xs text-center text-muted-foreground mt-3">
-                {language === "de"
-                  ? "3 Tage kostenlos testen · jederzeit kündbar"
-                  : language === "fr"
-                    ? "3 jours gratuits · résiliable à tout moment"
-                    : "3-day free trial · cancel anytime"}
+                {t.premiumTrialHint}
               </p>
             </div>
           )}

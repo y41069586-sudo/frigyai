@@ -24,6 +24,7 @@ import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getAppLocale } from '@/lib/mealPlanLanguage';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
 import {
@@ -41,7 +42,7 @@ import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 
 const ANALYZE_FOOD_TIMEOUT_MS = 45_000;
 
-async function fileToCompressedBase64(file: File, maxEdge = 1280): Promise<string | null> {
+async function fileToCompressedBase64(file: File, maxEdge = 1536): Promise<string | null> {
   const blobUrl = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -73,7 +74,7 @@ async function fileToCompressedBase64(file: File, maxEdge = 1280): Promise<strin
           reader.readAsDataURL(blob);
         },
         "image/jpeg",
-        0.82,
+        0.88,
       );
     });
     if (!dataUrl) return null;
@@ -153,7 +154,8 @@ interface MacroTrackerProps {
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const timeLocale = getAppLocale(language);
   const { user } = useAuth();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
@@ -230,6 +232,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showFoodCamera, setShowFoodCamera] = useState(false);
   const [foodScanPhase, setFoodScanPhase] = useState<FoodScanPhase>('capture');
+  const [foodScanProgress, setFoodScanProgress] = useState(0);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
   const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
@@ -310,7 +313,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       openLogMealPanel(focus);
     };
     window.addEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
-    return () => window.removeEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
+    return () => {
+      window.removeEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
+      notifyOverlayOpen(false);
+    };
   }, [step, openLogMealPanel]);
 
   // Animated analyzing messages - use translations
@@ -342,7 +348,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       protein: entry.protein,
       carbs: entry.carbs,
       fat: entry.fat,
-      time: new Date(entry.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(entry.created_at).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
       image_url: entry.image_url,
       meal_type: parseMealFocus(entry.meal_type ?? null) ?? undefined,
     }));
@@ -547,9 +553,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setIsAnalyzing(true);
     setFoodScanError(null);
     let scanFlowSettled = false;
+    let progressInterval: number | null = null;
     if (imageBase64) {
       setFoodScanPhase('analyzing');
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
+      setFoodScanProgress(10);
+      progressInterval = window.setInterval(() => {
+        setFoodScanProgress((prev) => (prev < 88 ? prev + Math.random() * 6 + 2 : prev + 0.4));
+      }, 280);
       playScanStart();
     }
     try {
@@ -603,6 +614,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setFoodScanError(null);
         setFoodScanSuccess(scanResult);
         setFoodScanPhase('success');
+        setFoodScanProgress(100);
         scanFlowSettled = true;
         playSuccess();
       }
@@ -631,7 +643,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein: data.protein,
         carbs: data.carbs,
         fat: data.fat,
-        time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
         image_url: data.image_url,
         meal_type: mealType ?? undefined,
       };
@@ -670,6 +682,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         });
       }
     } finally {
+      if (progressInterval != null) {
+        window.clearInterval(progressInterval);
+      }
       setIsAnalyzing(false);
       if (!imageBase64) {
         setAnalyzingImage(null);
@@ -689,6 +704,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setFoodScanError(null);
     setFoodScanSuccess(null);
     setAnalyzingImage(null);
+    setFoodScanProgress(0);
     setFoodScanPhase('capture');
   };
 
@@ -706,7 +722,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const scanAnotherFoodFromCamera = () => {
-    resetFoodScanToCapture();
+    setIsAnalyzing(false);
+    setFoodScanError(null);
+    setFoodScanSuccess(null);
+    setAnalyzingImage(null);
+    setFoodScanProgress(0);
+    setFoodScanPhase('capture');
+    setShowFoodCamera(true);
+    notifyOverlayOpen(true);
   };
 
   const closeFoodCamera = () => {
@@ -787,7 +810,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein: recipe.protein,
         carbs: recipe.carbs,
         fat: recipe.fat,
-        time: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString(timeLocale, { hour: "2-digit", minute: "2-digit" }),
         meal_type: mealPromptKey ?? undefined,
       };
       saveFoodEntries([...foodEntries, newEntry]);
@@ -833,7 +856,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
-      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
       image_url: food.image,
       meal_type: mealPromptKey ?? undefined,
     };
@@ -852,10 +875,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   // Get speed label and emoji based on weeklyLossRate
   const getSpeedInfo = () => {
-    if (weeklyLossRate <= 0.5) return { emoji: '🐢', label: 'Langsam & Nachhaltig', color: 'text-green-400' };
-    if (weeklyLossRate <= 0.75) return { emoji: '🐇', label: 'Moderat', color: 'text-amber-400' };
-    if (weeklyLossRate <= 1.0) return { emoji: '🐇', label: 'Schnell', color: 'text-orange-400' };
-    return { emoji: '🐆', label: 'Sehr Schnell', color: 'text-red-400' };
+    if (weeklyLossRate <= 0.5) return { emoji: '🐢', label: t.trackerPaceSlow, color: 'text-green-400' };
+    if (weeklyLossRate <= 0.75) return { emoji: '🐇', label: t.trackerPaceModerate, color: 'text-amber-400' };
+    if (weeklyLossRate <= 1) return { emoji: '🐆', label: t.trackerPaceFast, color: 'text-orange-400' };
+    return { emoji: '🚀', label: t.trackerPaceVeryFast, color: 'text-red-400' };
   };
   const speedInfo = getSpeedInfo();
 
@@ -1242,8 +1265,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Plus,
-      title: "Mahlzeiten pro Tag",
-      subtitle: "Wie viele Mahlzeiten möchtest du täglich haben?",
+      title: t.trackerMealsPerDayTitle,
+      subtitle: t.trackerMealsPerDaySubtitle,
       content: (
         <div className="w-full space-y-6">
           <div className="grid grid-cols-3 gap-3">
@@ -1263,7 +1286,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                   <Flame className="w-6 h-6 text-orange-500" />
                 </div>
                 <span className="text-2xl font-bold block">{option}</span>
-                <span className="text-xs text-muted-foreground/60">Mahlzeiten</span>
+                <span className="text-xs text-muted-foreground/60">{t.trackerMealsUnit}</span>
               </motion.button>
             ))}
           </div>
@@ -1451,6 +1474,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             phase={foodScanPhase}
             analyzing={isAnalyzing}
             analyzingLabel={analyzingMessages[currentMessageIndex]}
+            analyzingProgress={foodScanProgress}
             previewImage={analyzingImage}
             analysisErrorMessage={foodScanError}
             successResult={foodScanSuccess}

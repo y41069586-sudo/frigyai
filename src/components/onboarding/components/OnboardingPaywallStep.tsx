@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronLeft, Lock, Bell, Crown } from "lucide-react";
 import { Language } from "@/contexts/LanguageContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
 
 export type PaywallBillingPlan = "monthly" | "yearly";
@@ -113,10 +114,11 @@ const copy = {
 function formatBillingDate(language: Language): string {
   const d = new Date();
   d.setDate(d.getDate() + 3);
-  return d.toLocaleDateString(
-    language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : "en-US",
-    { day: "numeric", month: "long", year: "numeric" },
-  );
+  return d.toLocaleDateString(getAppLocale(language), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function PlanRadio({ selected }: { selected: boolean }) {

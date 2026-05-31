@@ -19,6 +19,7 @@ type FrigyFoodScanFlowProps = {
   phase: FoodScanPhase;
   analyzing: boolean;
   analyzingLabel?: string;
+  analyzingProgress?: number;
   previewImage?: string | null;
   analysisErrorMessage?: string | null;
   successResult?: FrigyScanSuccessData | null;
@@ -34,6 +35,7 @@ export function FrigyFoodScanFlow({
   phase,
   analyzing,
   analyzingLabel,
+  analyzingProgress,
   previewImage,
   analysisErrorMessage,
   successResult,
@@ -167,6 +169,7 @@ export function FrigyFoodScanFlow({
         title={t.foodScanPlateTitle}
         subtitle={t.foodScanAiPowered}
         message={analyzingLabel ?? t.analyzingFood}
+        progress={analyzingProgress}
         onClose={onClose}
       />
     );

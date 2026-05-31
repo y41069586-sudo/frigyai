@@ -656,7 +656,7 @@ export function TrackerAddMealPanel({
               <RoundPlusButton
                 onClick={submitSearch}
                 disabled={isAnalyzing || !query.trim()}
-                label={copy.addSearch ?? "Essen hinzufügen"}
+                label={copy.addSearch}
                 size="sm"
               />
             </div>

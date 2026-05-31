@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Flame, Dumbbell, Wheat, Droplets, Save, X } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, formatTranslation } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 
 interface MacroGoals {
@@ -49,7 +49,7 @@ export const EditMacroGoalsDialog = ({
   onSave,
   focusMacro = null,
 }: EditMacroGoalsDialogProps) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [calories, setCalories] = useState(currentGoals.dailyCalories);
   const [protein, setProtein] = useState(currentGoals.dailyProtein);
   const [carbs, setCarbs] = useState(currentGoals.dailyCarbs);
@@ -112,12 +112,11 @@ export const EditMacroGoalsDialog = ({
     setCarbsText(formatDigits(newCarbs));
 
     toast({
-      title: language === 'de' ? 'Kohlenhydrate berechnet' : language === 'fr' ? 'Glucides calculés' : 'Carbs calculated',
-      description: language === 'de'
-        ? `Kohlenhydrate auf ${newCarbs}g eingestellt, um ${calories} kcal zu erreichen.`
-        : language === 'fr'
-          ? `Les glucides ont été définis à ${newCarbs}g pour atteindre ${calories} kcal.`
-          : `Carbs set to ${newCarbs}g to reach ${calories} kcal.`,
+      title: t.macroEditCarbsCalculated,
+      description: formatTranslation(t.macroEditCarbsCalculatedDesc, {
+        carbs: newCarbs,
+        calories,
+      }),
     });
   };
 
@@ -129,8 +128,8 @@ export const EditMacroGoalsDialog = ({
 
     if (resolvedCalories < 800 || resolvedCalories > 10000) {
       toast({
-        title: language === 'de' ? 'Ungültiger Wert' : language === 'fr' ? 'Valeur invalide' : 'Invalid value',
-        description: language === 'de' ? 'Kalorien müssen zwischen 800 und 10000 liegen' : language === 'fr' ? 'Les calories doivent être entre 800 et 10000' : 'Calories must be between 800 and 10000',
+        title: t.macroEditInvalidValue,
+        description: t.macroEditCaloriesRange,
         variant: 'destructive',
       });
       return;
@@ -142,12 +141,8 @@ export const EditMacroGoalsDialog = ({
 
     if (remainingForCarbs < 0) {
       toast({
-        title: language === 'de' ? 'Warnung' : language === 'fr' ? 'Avertissement' : 'Warning',
-        description: language === 'de'
-          ? 'Protein und Fett sind zusammen zu hoch für dein Kalorienziel. Bitte senke einen der Werte oder erhöhe die Kalorien.'
-          : language === 'fr'
-            ? 'Les protéines et les lipides sont trop élevés pour cet objectif calorique.'
-            : 'Protein and fat are too high for this calorie target.',
+        title: t.macroEditMacroMismatchWarning,
+        description: t.macroEditMacroMismatchDesc,
         variant: 'destructive',
       });
       return;
@@ -163,8 +158,8 @@ export const EditMacroGoalsDialog = ({
     });
 
     toast({
-      title: language === 'de' ? 'Ziele gespeichert!' : language === 'fr' ? 'Objectifs sauvegardés!' : 'Goals saved!',
-      description: language === 'de' ? 'Deine neuen Makroziele wurden übernommen.' : language === 'fr' ? 'Vos nouveaux objectifs macro ont été appliqués.' : 'Your new macro goals have been applied.',
+      title: t.macroEditGoalsSaved,
+      description: t.macroEditGoalsSavedDesc,
     });
 
     onOpenChange(false);
@@ -187,7 +182,7 @@ export const EditMacroGoalsDialog = ({
   const macros = [
     {
       key: 'calories' as const,
-      label: language === 'de' ? 'Kalorien' : language === 'fr' ? 'Calories' : 'Calories',
+      label: t.macroEditCaloriesLabel,
       unit: 'kcal',
       icon: Flame,
       color: 'text-orange-500',
@@ -315,7 +310,7 @@ export const EditMacroGoalsDialog = ({
             className="h-11 flex-1 touch-manipulation text-xs sm:text-sm"
             onClick={handleAutoCalculateCarbs}
           >
-            {language === 'de' ? 'Auto-KH' : 'Auto-Carbs'}
+            {t.macroEditAutoCarbs}
           </Button>
           <Button className="h-11 flex-1 touch-manipulation" onClick={handleSave}>
             <Save className="mr-2 h-4 w-4" />

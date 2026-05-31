@@ -22,7 +22,7 @@ function tokenize(name: string): string[] {
         .replace(/(en|er|e|n|s)$/i, "")
         .trim(),
     )
-    .filter((t) => t.length >= 3);
+    .filter((t) => t.length >= 2);
 }
 
 /** Prüft ob eine Rezeptzutat durch den Kühlschrank abgedeckt ist */
@@ -39,7 +39,7 @@ export function fridgeCoversIngredient(ingredientName: string, fridgeIngredients
     const ftoks = tokenize(raw);
     const itoks = tokenize(ingredientName);
     for (const t of ftoks) {
-      if (t.length >= 3 && (n.includes(t) || itoks.includes(t))) return true;
+      if (t.length >= 2 && (n.includes(t) || itoks.includes(t))) return true;
     }
   }
   return false;

@@ -4,6 +4,7 @@ import { X, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { notifyOverlayOpen } from '@/lib/overlayEvents';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type QuaggaApi = typeof import('@ericblade/quagga2').default;
 
@@ -38,6 +39,7 @@ async function waitForReader(
 }
 
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [productData, setProductData] = useState<NutritionInfo | null>(null);
@@ -51,6 +53,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const watchdogTimerRef = useRef<number | null>(null);
   const lastDetectedCodeRef = useRef<string | null>(null);
   const lastDetectedHitsRef = useRef(0);
+  const healthFailCountRef = useRef(0);
+  const recoverInFlightRef = useRef(false);
+  const productDataRef = useRef(productData);
+
+  useEffect(() => {
+    productDataRef.current = productData;
+  }, [productData]);
 
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -167,7 +176,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         const nutriments = p.nutriments || {};
 
         const nutritionInfo: NutritionInfo = {
-          name: p.product_name_de || p.product_name || 'Unbekanntes Produkt',
+          name: p.product_name_de || p.product_name || t.barcodeUnknownProduct,
           calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
           protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
           carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
@@ -179,14 +188,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
         setProductData(nutritionInfo);
         toast({
-          title: '✅ Produkt erkannt!',
+          title: `✅ ${t.barcodeProductRecognized}`,
           description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
         });
           void onFoodScanned(nutritionInfo);
       } else {
         toast({
-          title: '❌ Produkt nicht gefunden',
-          description: 'Dieser Barcode existiert nicht in der Datenbank',
+          title: `❌ ${t.barcodeProductNotFound}`,
+          description: t.barcodeNotInDatabase,
           variant: 'destructive',
         });
 
@@ -205,8 +214,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     } catch (err: any) {
       console.error('[BarcodeScanner] Error:', err);
       toast({
-        title: '⚠️ Fehler',
-        description: err.message || 'Fehler beim Abrufen der Produktdaten',
+        title: t.error,
+        description: err.message || t.barcodeFetchError,
         variant: 'destructive',
       });
 
@@ -225,10 +234,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         setIsLoading(false);
       }
     },
-    [onFoodScanned, prepareMobileVideo, productData],
+    [onFoodScanned, prepareMobileVideo, productData, t],
   );
 
-  const startScanner = useCallback(async () => {
+  const startScanner = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     const generation = ++startGenerationRef.current;
 
     try {
@@ -240,18 +250,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       lastDetectedHitsRef.current = 0;
 
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError('❌ Dein Browser unterstützt keinen Kamera-Zugriff');
+        setError(`❌ ${t.barcodeNoCameraSupport}`);
         return;
       }
 
       if (!window.isSecureContext) {
-        setError('❌ Kamera braucht HTTPS. Öffne die App über localhost, HTTPS oder als installierte App.');
+        setError(`❌ ${t.barcodeNeedsHttps}`);
         return;
       }
 
       const reader = await waitForReader(() => readerRef.current);
       if (!reader || generation !== startGenerationRef.current || !isOpenRef.current) {
-        if (isOpenRef.current) setError('❌ Scanner konnte nicht geöffnet werden');
+        if (isOpenRef.current && !silent) setError(`❌ ${t.barcodeScannerOpenFailed}`);
         return;
       }
 
@@ -259,7 +269,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
       const Quagga = (await import('@ericblade/quagga2')).default;
       if (!Quagga || generation !== startGenerationRef.current || !isOpenRef.current) {
-        setError('❌ Barcode-Scanner konnte nicht geladen werden');
+        if (!silent) setError(`❌ ${t.barcodeScannerLoadFailed}`);
         return;
       }
 
@@ -284,7 +294,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               area: { top: '28%', right: '4%', bottom: '28%', left: '4%' },
             },
             locator: { patchSize: 'medium', halfSample: true },
-            locate: true,
+            locate: false,
             numOfWorkers: 0,
             decoder: {
               readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader'],
@@ -319,60 +329,79 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       Quagga.onDetected(detectionHandler);
 
       setIsScannerActive(true);
+      healthFailCountRef.current = 0;
 
       if (watchdogTimerRef.current != null) {
         window.clearInterval(watchdogTimerRef.current);
       }
       watchdogTimerRef.current = window.setInterval(() => {
-        if (!isOpenRef.current || !readerRef.current) return;
+        if (!isOpenRef.current || !readerRef.current || detectionLockRef.current || productDataRef.current) return;
         const video = readerRef.current.querySelector('video') as HTMLVideoElement | null;
         if (!video) return;
-        if (video.videoWidth < 1 || video.readyState < 2 || video.paused) {
+
+        const streamLive = video.srcObject instanceof MediaStream
+          ? video.srcObject.getVideoTracks().some((t) => t.readyState === 'live')
+          : true;
+
+        if (video.videoWidth < 1 || video.readyState < 2 || video.paused || !streamLive) {
+          healthFailCountRef.current += 1;
           prepareMobileVideo();
+          if (healthFailCountRef.current >= 4 && !recoverInFlightRef.current) {
+            recoverInFlightRef.current = true;
+            healthFailCountRef.current = 0;
+            void (async () => {
+              try {
+                await stopScanner();
+                if (isOpenRef.current) await startScanner({ silent: true });
+              } catch (recoverErr) {
+                console.warn('[BarcodeScanner] Silent recover failed:', recoverErr);
+              } finally {
+                recoverInFlightRef.current = false;
+              }
+            })();
+          }
+          return;
         }
-      }, 1800);
+
+        healthFailCountRef.current = 0;
+      }, 2500);
     } catch (err: unknown) {
       if (generation !== startGenerationRef.current) return;
 
       console.error('[BarcodeScanner] Scanner init error:', err);
+      if (silent) return;
 
-      let errorMsg = '❌ Kamera konnte nicht gestartet werden';
+      let errorMsg = `❌ ${t.barcodeCameraStartFailed}`;
       const errorName = `${(err as Error)?.name ?? ''} ${(err as Error)?.message ?? ''}`;
       if (errorName.includes('NotAllowedError') || errorName.includes('PermissionDeniedError')) {
-        errorMsg = '❌ Kamera-Zugriff verweigert!';
+        errorMsg = `❌ ${t.barcodeCameraDenied}`;
       } else if (errorName.includes('NotFoundError') || errorName.includes('DevicesNotFoundError')) {
-        errorMsg = '❌ Keine Kamera gefunden!';
+        errorMsg = `❌ ${t.barcodeCameraNotFound}`;
       } else if (errorName.includes('NotReadableError') || errorName.includes('TrackStartError')) {
-        errorMsg = '❌ Kamera wird bereits verwendet!';
+        errorMsg = `❌ ${t.barcodeCameraInUse}`;
       } else if (errorName.includes('NotSupportedError') || errorName.includes('SecurityError')) {
-        errorMsg = '❌ Kamera braucht HTTPS oder localhost';
+        errorMsg = `❌ ${t.barcodeCameraHttpsRequired}`;
       } else if (errorName.includes('timeout')) {
-        errorMsg = '❌ Kamera-Initialisierung zu langsam';
+        errorMsg = `❌ ${t.barcodeCameraInitSlow}`;
       }
 
       setError(errorMsg);
       setIsScannerActive(false);
     }
-  }, [handleBarcodeDetected, prepareMobileVideo]);
+  }, [handleBarcodeDetected, prepareMobileVideo, stopScanner, t]);
 
   useEffect(() => {
     if (!isOpen) return;
     const onVisible = () => {
       if (document.visibilityState === 'visible' && isOpenRef.current) {
-        window.setTimeout(() => {
-          prepareMobileVideo();
-          const video = readerRef.current?.querySelector('video') as HTMLVideoElement | null;
-          if (!video || video.videoWidth < 1) {
-            void startScanner();
-          }
-        }, 120);
+        window.setTimeout(() => prepareMobileVideo(), 120);
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isOpen, prepareMobileVideo, startScanner]);
+  }, [isOpen, prepareMobileVideo]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -435,7 +464,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             size="icon"
             onClick={handleClose}
             className="h-11 w-11 rounded-full bg-black/45 text-white backdrop-blur-md hover:bg-white/20"
-            aria-label="Scanner schließen"
+            aria-label={t.ariaCloseScanner}
           >
             <X className="h-6 w-6" />
           </Button>
@@ -454,11 +483,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             >
               <AlertCircle className="mx-auto h-20 w-20 text-destructive" />
               <div>
-                <p className="mb-2 text-base font-semibold text-white">Fehler</p>
+                <p className="mb-2 text-base font-semibold text-white">{t.error}</p>
                 <p className="text-sm text-white/70">{error}</p>
               </div>
               <Button onClick={handleClose} className="bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]">
-                Schließen
+                {t.close}
               </Button>
             </motion.div>
           ) : productData ? (
@@ -483,29 +512,29 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 <h3 className="text-lg font-bold text-gray-900">{productData.name}</h3>
                 {productData.brand && (
                   <p className="text-sm text-gray-600">
-                    <b>Marke:</b> {productData.brand}
+                    <b>{t.barcodeBrandLabel}</b> {productData.brand}
                   </p>
                 )}
               </div>
               <div className="space-y-2 rounded-lg bg-gray-100 p-4 text-black">
                 <p className="text-sm">
-                  <b>Kalorien:</b> {productData.calories} kcal
+                  <b>{t.barcodeCaloriesLabel}</b> {productData.calories} kcal
                 </p>
                 <p className="text-sm">
-                  <b>Protein:</b> {productData.protein}g
+                  <b>{t.barcodeProteinLabel}</b> {productData.protein}g
                 </p>
                 <p className="text-sm">
-                  <b>Kohlenhydrate:</b> {productData.carbs}g
+                  <b>{t.barcodeCarbsLabel}</b> {productData.carbs}g
                 </p>
                 <p className="text-sm">
-                  <b>Fett:</b> {productData.fat}g
+                  <b>{t.barcodeFatLabel}</b> {productData.fat}g
                 </p>
               </div>
               <Button
                 onClick={handleScanAnother}
                 className="w-full bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]"
               >
-                🔄 Neues Produkt scannen
+                🔄 {t.barcodeScanNewProduct}
               </Button>
             </motion.div>
           ) : null}
@@ -544,6 +573,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   width: 100% !important;
                   height: 100% !important;
                   object-fit: cover !important;
+                  opacity: 0 !important;
+                  pointer-events: none !important;
                 }
               `}</style>
           <div id="barcode-reader" ref={readerRef} className="absolute inset-0 h-full w-full overflow-hidden" />
@@ -551,34 +582,65 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           {showScanner && (
             <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
               <style>{`
-                @keyframes barcode-scan-line {
-                  0% { transform: translateY(0%); opacity: 0.72; }
-                  50% { transform: translateY(760%); opacity: 1; }
-                  100% { transform: translateY(0%); opacity: 0.72; }
+                @keyframes barcode-scan-sweep {
+                  0%, 100% { top: 10%; }
+                  50% { top: 86%; }
                 }
-                @keyframes barcode-scan-glow {
-                  0% { transform: translateY(0%); opacity: 0.24; }
-                  50% { transform: translateY(720%); opacity: 0.5; }
-                  100% { transform: translateY(0%); opacity: 0.24; }
+                @keyframes barcode-scan-glow-sweep {
+                  0%, 100% { top: 10%; opacity: 0.35; }
+                  50% { top: 86%; opacity: 0.75; }
                 }
                 @keyframes barcode-frame-pulse {
-                  0%, 100% { box-shadow: 0 0 10px 0 rgba(117,251,178,0.22); }
-                  50% { box-shadow: 0 0 22px 3px rgba(117,251,178,0.38); }
+                  0%, 100% { box-shadow: inset 0 0 0 1px rgba(117,251,178,0.28); }
+                  50% { box-shadow: inset 0 0 0 1px rgba(117,251,178,0.55); }
                 }
                 .barcode-scan-line {
-                  animation: barcode-scan-line 1.55s linear infinite;
-                  will-change: transform, opacity;
+                  position: absolute;
+                  left: 12px;
+                  right: 12px;
+                  height: 2px;
+                  border-radius: 9999px;
+                  background: linear-gradient(
+                    90deg,
+                    transparent 0%,
+                    rgba(117, 251, 178, 0.55) 12%,
+                    #75fbb2 50%,
+                    rgba(117, 251, 178, 0.55) 88%,
+                    transparent 100%
+                  );
+                  box-shadow:
+                    0 0 6px 1px rgba(117, 251, 178, 0.95),
+                    0 0 16px 3px rgba(117, 251, 178, 0.45),
+                    0 0 28px 6px rgba(117, 251, 178, 0.2);
+                  animation: barcode-scan-sweep 2.1s ease-in-out infinite;
+                  will-change: top;
                 }
                 .barcode-scan-glow {
-                  animation: barcode-scan-glow 1.55s linear infinite;
-                  will-change: transform, opacity;
+                  position: absolute;
+                  left: 12px;
+                  right: 12px;
+                  height: 36px;
+                  margin-top: -17px;
+                  border-radius: 9999px;
+                  background: linear-gradient(
+                    to bottom,
+                    transparent,
+                    rgba(117, 251, 178, 0.22) 45%,
+                    rgba(117, 251, 178, 0.38) 50%,
+                    rgba(117, 251, 178, 0.22) 55%,
+                    transparent
+                  );
+                  filter: blur(1px);
+                  animation: barcode-scan-glow-sweep 2.1s ease-in-out infinite;
+                  will-change: top, opacity;
+                  pointer-events: none;
                 }
                 .barcode-frame-pulse {
-                  animation: barcode-frame-pulse 1.8s ease-in-out infinite;
+                  animation: barcode-frame-pulse 2.4s ease-in-out infinite;
                 }
               `}</style>
               <div
-                className="relative rounded-2xl"
+                className="relative overflow-hidden rounded-2xl"
                 style={{
                   width: "min(94vw, 400px)",
                   height: "min(44vw, 196px)",
@@ -589,7 +651,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.52)" }}
                 />
 
-                <div className="absolute inset-0 rounded-2xl border border-[#75FBB2]/40 barcode-frame-pulse" />
+                <div className="absolute inset-0 rounded-2xl barcode-frame-pulse" />
 
                 {(
                   [
@@ -605,19 +667,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   />
                 ))}
 
-                <div
-                  className="barcode-scan-line absolute left-3 right-3 h-[2px] rounded-full bg-[#75FBB2]"
-                  style={{
-                    boxShadow:
-                      "0 0 8px 2px rgba(117,251,178,0.85), 0 0 18px 3px rgba(117,251,178,0.28)",
-                  }}
-                />
-
-                <div className="barcode-scan-glow absolute left-3 right-3 h-10 rounded-full bg-gradient-to-b from-[#75FBB2]/25 to-transparent blur-[2px]" />
+                <div className="barcode-scan-glow" aria-hidden />
+                <div className="barcode-scan-line" aria-hidden />
               </div>
 
               <p className="absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] px-6 text-center text-sm font-medium text-white/90">
-                Barcode in den Rahmen halten
+                {t.barcodeHoldInFrame}
               </p>
             </div>
           )}
@@ -629,7 +684,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75"
                 >
               <Loader2 className="mb-4 h-16 w-16 animate-spin text-[#75FBB2]" />
-              <p className="font-semibold text-white">Produkt wird geladen…</p>
+              <p className="font-semibold text-white">{t.barcodeLoadingProduct}</p>
                 </motion.div>
           )}
         </motion.div>

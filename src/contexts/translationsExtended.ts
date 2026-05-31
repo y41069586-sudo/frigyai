@@ -193,6 +193,299 @@ export interface ExtendedTranslations {
   postPayCoachBody3: string;
   postPayCoachScanLine: string;
   postPayCoachShoppingLine: string;
+
+  navHome: string;
+  navPlanShort: string;
+  navShoppingShort: string;
+  ariaMainNavigation: string;
+
+  scanAllIngredientsPresent: string;
+  scanCameraDevHintOpen: string;
+  scanCameraDevHintLocalhost: string;
+  scanCameraDevHintOrGallery: string;
+  scanCapturePhoto: string;
+  scanCaptureSr: string;
+  scanPhotosQueued: string;
+  scanPhotoCounter: string;
+  scanFileTooLarge: string;
+  scanPhotoReadError: string;
+  scanPhotoFailedContinue: string;
+  scanPhotoTimeoutContinue: string;
+  scanPhotosAnalyzedSummary: string;
+  scanPhotosSkippedSuffix: string;
+
+  barcodeUnknownProduct: string;
+  barcodeProductRecognized: string;
+  barcodeProductNotFound: string;
+  barcodeFetchError: string;
+  barcodeNoCameraSupport: string;
+  barcodeNeedsHttps: string;
+  barcodeScannerOpenFailed: string;
+  barcodeScannerLoadFailed: string;
+  barcodeCameraStartFailed: string;
+  barcodeCameraDenied: string;
+  barcodeCameraNotFound: string;
+  barcodeCameraInUse: string;
+  barcodeCameraHttpsRequired: string;
+  barcodeCameraInitSlow: string;
+  barcodeScanNewProduct: string;
+  barcodeHoldInFrame: string;
+  barcodeLoadingProduct: string;
+  ariaCloseScanner: string;
+  barcodeBrandLabel: string;
+  barcodeCaloriesLabel: string;
+  barcodeCarbsLabel: string;
+  barcodeFatLabel: string;
+  barcodeProteinLabel: string;
+
+  scanResultGeneratePlan: string;
+  scanResultGeneratePlanDesc: string;
+  scanResultGeneratingPlan: string;
+  scanResultNewPhoto: string;
+  scanResultRetryScan: string;
+
+  premiumActivating: string;
+  premiumActivatingDesc: string;
+  premiumNotActiveYet: string;
+  premiumNotActiveDesc: string;
+  defaultMealName: string;
+
+  onboardingStepCounter: string;
+  trackerMealsPerDayTitle: string;
+  trackerMealsPerDaySubtitle: string;
+  trackerMealsUnit: string;
+  trackerPaceSlow: string;
+  trackerPaceModerate: string;
+  trackerPaceFast: string;
+  trackerPaceVeryFast: string;
+  dailyOverviewTitle: string;
+  dailyOverviewGoalsBadge: string;
+  dailyOverviewMealsLogged: string;
+  dailyOverviewRemainingCalories: string;
+  dailyOverviewCalorieGoalReached: string;
+  dailyOverviewOfKcal: string;
+  dailyOverviewOfLiters: string;
+  macroEditCarbsCalculated: string;
+  macroEditCarbsCalculatedDesc: string;
+  macroEditInvalidValue: string;
+  macroEditCaloriesRange: string;
+  macroEditMacroMismatchWarning: string;
+  macroEditMacroMismatchDesc: string;
+  macroEditGoalsSaved: string;
+  macroEditGoalsSavedDesc: string;
+  macroEditAutoCarbs: string;
+  macroEditCaloriesLabel: string;
+  profileDeleting: string;
+  profileDeleteBtn: string;
+
+  motivationTitle: string;
+  motivationSubtitle: string;
+  motivationHealthLabel: string;
+  motivationHealthDesc: string;
+  motivationConfidenceLabel: string;
+  motivationConfidenceDesc: string;
+  motivationEventLabel: string;
+  motivationEventDesc: string;
+  motivationDoctorLabel: string;
+  motivationDoctorDesc: string;
+  motivationFitnessLabel: string;
+  motivationFitnessDesc: string;
+  motivationHabitLabel: string;
+  motivationHabitDesc: string;
+  cookingTimeTitle: string;
+  cookingTimeSubtitle: string;
+  cookingTimeChangeLaterHint: string;
+  cookingTime15Label: string;
+  cookingTime15Desc: string;
+  cookingTime30Label: string;
+  cookingTime30Desc: string;
+  cookingTime45Label: string;
+  cookingTime45Desc: string;
+  onboardingNonBinaryLabel: string;
+  onboardingGenderQuestionTitle: string;
+  onboardingDataDeletedAfterPlan: string;
+  onboardingHowTallTitle: string;
+  onboardingCurrentWeightTitle: string;
+  onboardingBirthdateTitle: string;
+  onboardingBirthdateFormat: string;
+  onboardingBirthdateError: string;
+  onboardingUnitMetric: string;
+  onboardingUnitImperial: string;
+  onboardingHeightHelperMetric: string;
+  onboardingHeightHelperImperial: string;
+  onboardingHeightErrorMetric: string;
+  onboardingHeightErrorImperial: string;
+  onboardingWeightHelperMetric: string;
+  onboardingWeightHelperImperial: string;
+  onboardingWeightErrorMetric: string;
+  onboardingWeightErrorImperial: string;
+  onboardingTargetWeightLoseTitle: string;
+  onboardingTargetWeightGainTitle: string;
+  onboardingTargetWeightMaintainTitle: string;
+  onboardingTargetWeightFallbackTitle: string;
+  onboardingTargetWeightSetGoal: string;
+  onboardingTargetWeightHelperMetric: string;
+  onboardingTargetWeightHelperImperial: string;
+  onboardingTargetWeightErrorMetric: string;
+  onboardingTargetWeightErrorImperial: string;
+  authLoginFailed: string;
+  authSignInIncomplete: string;
+  authPasswordMinLength: string;
+  authInvalidEmail: string;
+  authSignupFailed: string;
+  premiumCheckoutHint: string;
+  premiumTrialHint: string;
+  premiumViewPlansBtn: string;
+  choosePlanTitle: string;
+  healthSyncStepsLogged: string;
+  onboardingUnitAriaLabel: string;
+  onboardingHelloPrefix: string;
+  onboardingHelloDefaultName: string;
+  calorieDeficitLabel: string;
+  calorieSurplusLabel: string;
+  youWillReachSuffix: string;
+  macroEditProteinAria: string;
+  macroEditCarbsAria: string;
+  macroEditFatAria: string;
+  scanLaterShort: string;
+  scanFeedbackNotEnough: string;
+  scanFeedbackWrongItems: string;
+  scanFeedbackTooSlow: string;
+  scanFeedbackOther: string;
+  scanFeedbackTitle: string;
+  scanFeedbackSubtitle: string;
+  scanFeedbackYes: string;
+  scanFeedbackNo: string;
+  scanFeedbackThanks: string;
+  scanFeedbackIssueTitle: string;
+  scanFeedbackDidntScan: string;
+  onboardingCookingStyleTitle: string;
+  onboardingCookingStyleSubtitle: string;
+  onboardingSpontaneousLabel: string;
+  onboardingSpontaneousDesc: string;
+  onboardingStructuredLabel: string;
+  onboardingStructuredDesc: string;
+  onboardingSpontaneousModeTitle: string;
+  onboardingScanFridgeIntroTitle: string;
+  onboardingScanFridgeIntroSubtitle: string;
+  onboardingScanFeaturePhoto: string;
+  onboardingScanFeatureAi: string;
+  onboardingScanFeatureRecipes: string;
+  onboardingCameraRequiredHint: string;
+  onboardingScanNowBtn: string;
+  onboardingScanLaterBtn: string;
+  onboardingStep2of2: string;
+  onboardingMoodTitle: string;
+  onboardingMoodSubtitle: string;
+  onboardingMoodTiredLabel: string;
+  onboardingMoodTiredDesc: string;
+  onboardingMoodNormalLabel: string;
+  onboardingMoodNormalDesc: string;
+  onboardingMoodMotivatedLabel: string;
+  onboardingMoodMotivatedDesc: string;
+  onboardingMoodRecipesHint: string;
+  onboardingGotIt: string;
+  onboardingStep1of3: string;
+  onboardingStep2of3: string;
+  onboardingStep3of3: string;
+  onboardingWeeklyPlanIntroTitle: string;
+  onboardingWeeklyPlanIntroSubtitle: string;
+  onboardingWeeklyPlanFeature1: string;
+  onboardingWeeklyPlanFeature2: string;
+  onboardingWeeklyPlanFeature3: string;
+  onboardingShoppingIntroTitle: string;
+  onboardingShoppingIntroSubtitle: string;
+  onboardingShoppingFeature1: string;
+  onboardingShoppingFeature2: string;
+  onboardingShoppingFeature3: string;
+  onboardingCycleTitle: string;
+  onboardingCycleSubtitle: string;
+  onboardingCycleLabelScan: string;
+  onboardingCycleLabelPlan: string;
+  onboardingCycleLabelShop: string;
+  onboardingCycleEveryWeek: string;
+  onboardingCycleFridgeUpdateHint: string;
+  onboardingGenderNotebookQuestion: string;
+  profileNutritionSection: string;
+  badgeUnlockedToast: string;
+
+  dashboardWaterEmpty: string;
+  dashboardAddMealLabel: string;
+  dashboardAddMealTitle: string;
+  dashboardScanMealTitle: string;
+  dashboardScanMealSubtitle: string;
+  dashboardManualMealTitle: string;
+  dashboardManualMealSubtitle: string;
+  dashboardGenerateRecipeTitle: string;
+  dashboardGenerateRecipeSubtitle: string;
+  dashboardShoppingWidgetLabel: string;
+  dashboardShoppingEmpty: string;
+  dashboardShoppingAllDone: string;
+  dashboardShoppingOpenCount: string;
+  dashboardShoppingOpen: string;
+  dashboardShoppingNoIngredients: string;
+  dashboardShoppingHint: string;
+  dashboardWeeklyPlanNextLabel: string;
+  dashboardWeeklyPlanNextFallback: string;
+  dashboardWeeklyPlanHint: string;
+  dashboardWeeklyPlanCta: string;
+  dashboardWeeklyPlanCtaEmpty: string;
+  dashboardNoPlanEntry: string;
+  dashboardTrackerOverGoal: string;
+  dashboardTrackerRemaining: string;
+  dashboardQuickLog: string;
+  dashboardAddMealBtn: string;
+  dashboardMealsTitle: string;
+  dashboardMealSlotsSubtitle: string;
+  dashboardFindThreeMeals: string;
+  dashboardAiAdvisorLabel: string;
+  dashboardAiAskTitle: string;
+  dashboardAiPlaceholder: string;
+  dashboardAiInputAria: string;
+  dashboardAiSubmitAria: string;
+  dashboardStepsTitle: string;
+  dashboardStepsHint: string;
+  dashboardStepsSyncing: string;
+  dashboardStepsSync: string;
+  dashboardStepsMobileOnly: string;
+  dashboardStepsOpenInApp: string;
+  shoppingListOfflineMode: string;
+  shoppingListStillNeeded: string;
+  shoppingListShowAll: string;
+  shoppingListCollapseAll: string;
+  shoppingListSaveOffline: string;
+  shoppingListLastSaved: string;
+  shoppingListCacheLoaded: string;
+  shoppingListOfflineSavedTitle: string;
+  shoppingListOfflineSavedDesc: string;
+  shoppingListOfflineToastTitle: string;
+  shoppingListOfflineToastDesc: string;
+  shoppingListOfCount: string;
+  shoppingListNotGenerated: string;
+  shoppingListDayCount: string;
+  shoppingCategoryFruitVeg: string;
+  shoppingCategoryMeatFish: string;
+  shoppingCategoryDairy: string;
+  shoppingCategoryBreadGrains: string;
+  shoppingCategoryPantry: string;
+  shoppingCategoryOther: string;
+  mealPlanPremiumActivatingTitle: string;
+  mealPlanPremiumActivatingDesc: string;
+  mealPlanDetectIngredients: string;
+  mealPlanCreating: string;
+  mealPlanCreateShort: string;
+  mealPlanMealAddedDesc: string;
+  ingredientDefaultName: string;
+  dietBalanced: string;
+  dietVegan: string;
+  dietVegetarian: string;
+  dietKeto: string;
+  dietLowCarb: string;
+  dietPaleo: string;
+  dietPreferencesTitle: string;
+  dietPreferencesSubtitle: string;
+  dietPreferencesSavedTitle: string;
+  dietPreferencesSavedDesc: string;
 }
 
 export const extendedTranslations: Record<Language, ExtendedTranslations> = {
@@ -380,6 +673,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingWelcomeHeadline2: "Leb leichter.",
     onboardingWelcomeSubline: "Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.",
     onboardingGetStarted: "Loslegen",
+    onboardingFirstWeeklyPlanTitle: "Erstelle deinen ersten Frigy-Wochenplan!",
+    onboardingFirstWeeklyPlanDesc:
+      "Frigy plant deine Woche passend zu deinen Makrozielen — inklusive Einkaufsliste.",
     onboardingCommunityStepTitle: "Gemeinsam kochen",
     onboardingCommunityStepDesc: "Entdecke Rezepte aus der Community",
     ariaBack: "Zurück",
@@ -398,6 +694,300 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
       "Scanne deinen Kühlschrank – Frigy erkennt deine Zutaten und erstellt daraus einen",
     postPayCoachShoppingLine:
       "Die Einkaufsliste entsteht automatisch aus dem Wochenplan als Lücke: nur Zutaten, die dir noch fehlen.",
+
+    navHome: "Start",
+    navPlanShort: "Plan",
+    navShoppingShort: "Einkauf",
+    ariaMainNavigation: "Hauptnavigation",
+
+    scanAllIngredientsPresent: "Alles vorhanden – nichts fehlt.",
+    scanCameraDevHintOpen: "Öffne die App mit ",
+    scanCameraDevHintLocalhost: " unter ",
+    scanCameraDevHintOrGallery: " — oder Galerie unten.",
+    scanCapturePhoto: "Foto aufnehmen",
+    scanCaptureSr: "Aufnahme",
+    scanPhotosQueued: "{count} Foto(s)",
+    scanPhotoCounter: "Foto {current} von {total}",
+    scanFileTooLarge: "Datei zu groß",
+    scanPhotoReadError: "Foto konnte nicht gelesen werden.",
+    scanPhotoFailedContinue: "Foto {n} fehlgeschlagen. Weiter mit nächstem Foto…",
+    scanPhotoTimeoutContinue: "Foto {n} hat zu lange gedauert. Weiter mit nächstem Foto…",
+    scanPhotosAnalyzedSummary: "{analyzed} von {total} Foto(s) analysiert",
+    scanPhotosSkippedSuffix: " ({skipped} übersprungen)",
+
+    barcodeUnknownProduct: "Unbekanntes Produkt",
+    barcodeProductRecognized: "Produkt erkannt!",
+    barcodeProductNotFound: "Produkt nicht gefunden",
+    barcodeFetchError: "Fehler beim Abrufen der Produktdaten",
+    barcodeNoCameraSupport: "Dein Browser unterstützt keinen Kamera-Zugriff",
+    barcodeNeedsHttps: "Kamera braucht HTTPS. Öffne die App über localhost, HTTPS oder als installierte App.",
+    barcodeScannerOpenFailed: "Scanner konnte nicht geöffnet werden",
+    barcodeScannerLoadFailed: "Barcode-Scanner konnte nicht geladen werden",
+    barcodeCameraStartFailed: "Kamera konnte nicht gestartet werden",
+    barcodeCameraDenied: "Kamera-Zugriff verweigert!",
+    barcodeCameraNotFound: "Keine Kamera gefunden!",
+    barcodeCameraInUse: "Kamera wird bereits verwendet!",
+    barcodeCameraHttpsRequired: "Kamera braucht HTTPS oder localhost",
+    barcodeCameraInitSlow: "Kamera-Initialisierung zu langsam",
+    barcodeScanNewProduct: "Neues Produkt scannen",
+    barcodeHoldInFrame: "Barcode in den Rahmen halten",
+    barcodeLoadingProduct: "Produkt wird geladen…",
+    ariaCloseScanner: "Scanner schließen",
+    barcodeBrandLabel: "Marke:",
+    barcodeCaloriesLabel: "Kalorien:",
+    barcodeCarbsLabel: "Kohlenhydrate:",
+    barcodeFatLabel: "Fett:",
+    barcodeProteinLabel: "Protein:",
+
+    scanResultGeneratePlan: "Wochenplan generieren",
+    scanResultGeneratePlanDesc: "Aus deinen analysierten Zutaten und Makrozielen.",
+    scanResultGeneratingPlan: "Erstelle deinen persönlichen Wochenplan…",
+    scanResultNewPhoto: "Neues Foto",
+    scanResultRetryScan: "Scan wiederholen oder Bild mit besserem Winkel aufnehmen.",
+
+    premiumActivating: "Premium wird aktiviert…",
+    premiumActivatingDesc: "Einen Moment – wir verbinden deine Zahlung mit deinem Konto.",
+    premiumNotActiveYet: "Premium noch nicht aktiv",
+    premiumNotActiveDesc:
+      "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen.",
+    defaultMealName: "Mahlzeit",
+
+    onboardingStepCounter: "Schritt {current} von {total}",
+    trackerMealsPerDayTitle: "Mahlzeiten pro Tag",
+    trackerMealsPerDaySubtitle: "Wie viele Mahlzeiten möchtest du täglich haben?",
+    trackerMealsUnit: "Mahlzeiten",
+    trackerPaceSlow: "Langsam & Nachhaltig",
+    trackerPaceModerate: "Moderat",
+    trackerPaceFast: "Schnell",
+    trackerPaceVeryFast: "Sehr Schnell",
+    dailyOverviewTitle: "Tagesübersicht",
+    dailyOverviewGoalsBadge: "{count}/3 Ziele",
+    dailyOverviewMealsLogged: "eingetragen",
+    dailyOverviewRemainingCalories: "Noch {calories} kcal übrig für heute",
+    dailyOverviewCalorieGoalReached: "Kalorienziel erreicht!",
+    dailyOverviewOfKcal: "von {target} kcal",
+    dailyOverviewOfLiters: "von {target}L",
+    macroEditCarbsCalculated: "Kohlenhydrate berechnet",
+    macroEditCarbsCalculatedDesc: "Kohlenhydrate auf {carbs}g eingestellt, um {calories} kcal zu erreichen.",
+    macroEditInvalidValue: "Ungültiger Wert",
+    macroEditCaloriesRange: "Kalorien müssen zwischen 800 und 10000 liegen",
+    macroEditMacroMismatchWarning: "Warnung",
+    macroEditMacroMismatchDesc: "Protein und Fett sind zusammen zu hoch für dein Kalorienziel. Bitte senke einen der Werte oder erhöhe die Kalorien.",
+    macroEditGoalsSaved: "Ziele gespeichert!",
+    macroEditGoalsSavedDesc: "Deine neuen Makroziele wurden übernommen.",
+    macroEditAutoCarbs: "Auto-KH",
+    macroEditCaloriesLabel: "Kalorien",
+    profileDeleting: "Wird gelöscht…",
+    profileDeleteBtn: "Löschen",
+
+    motivationTitle: "Was motiviert dich?",
+    motivationSubtitle: "Wähle deinen Hauptgrund",
+    motivationHealthLabel: "Gesünder leben",
+    motivationHealthDesc: "Mehr Energie im Alltag",
+    motivationConfidenceLabel: "Selbstbewusster fühlen",
+    motivationConfidenceDesc: "Wohler im eigenen Körper",
+    motivationEventLabel: "Für ein Event",
+    motivationEventDesc: "Hochzeit, Urlaub, etc.",
+    motivationDoctorLabel: "Arzt empfohlen",
+    motivationDoctorDesc: "Medizinischer Rat",
+    motivationFitnessLabel: "Fitness verbessern",
+    motivationFitnessDesc: "Sportliche Ziele",
+    motivationHabitLabel: "Bessere Gewohnheiten",
+    motivationHabitDesc: "Langfristige Änderung",
+    cookingTimeTitle: "Wie viel Zeit zum Kochen?",
+    cookingTimeSubtitle: "Für passende Rezeptvorschläge",
+    cookingTimeChangeLaterHint: "Du kannst dies später in den Einstellungen ändern",
+    cookingTime15Label: "15 Minuten",
+    cookingTime15Desc: "Schnelle Gerichte",
+    cookingTime30Label: "30 Minuten",
+    cookingTime30Desc: "Normale Rezepte",
+    cookingTime45Label: "45+ Minuten",
+    cookingTime45Desc: "Aufwendige Küche",
+    onboardingNonBinaryLabel: "Nicht-binär",
+    onboardingGenderQuestionTitle: "Was ist dein Geschlecht?",
+    onboardingDataDeletedAfterPlan: "Ihre Daten werden nach Erstellung eines Plans gelöscht.",
+    onboardingHowTallTitle: "Wie groß bist du?",
+    onboardingCurrentWeightTitle: "Wie viel wiegst du aktuell?",
+    onboardingBirthdateTitle: "Wann bist du geboren?",
+    onboardingBirthdateFormat: "Format: TT.MM.JJJJ",
+    onboardingBirthdateError: "Bitte gib ein gültiges Geburtsdatum ein.",
+    onboardingUnitMetric: "Metrisch",
+    onboardingUnitImperial: "Imperial",
+    onboardingHeightHelperMetric: "Zum Beispiel 170",
+    onboardingHeightHelperImperial: "Zum Beispiel 5'7",
+    onboardingHeightErrorMetric: "Bitte gib eine Größe zwischen 100 und 250 cm ein.",
+    onboardingHeightErrorImperial: "Bitte gib eine Größe wie 5'7 ein.",
+    onboardingWeightHelperMetric: "Zum Beispiel 70,0",
+    onboardingWeightHelperImperial: "Zum Beispiel 154.3",
+    onboardingWeightErrorMetric: "Bitte gib ein Gewicht zwischen 30,0 und 250,0 kg ein.",
+    onboardingWeightErrorImperial: "Bitte gib ein Gewicht zwischen 66.0 und 550.0 lbs ein.",
+    onboardingTargetWeightLoseTitle: "Was ist dein Zielgewicht?",
+    onboardingTargetWeightGainTitle: "Was ist dein Wunschgewicht?",
+    onboardingTargetWeightMaintainTitle: "Bestätige dein Zielgewicht",
+    onboardingTargetWeightFallbackTitle: "Was ist dein Zielgewicht?",
+    onboardingTargetWeightSetGoal: "Ziel festlegen",
+    onboardingTargetWeightHelperMetric: "Zum Beispiel 65,0",
+    onboardingTargetWeightHelperImperial: "Zum Beispiel 143.3",
+    onboardingTargetWeightErrorMetric: "Bitte gib ein Zielgewicht zwischen 30,0 und 250,0 kg ein.",
+    onboardingTargetWeightErrorImperial: "Bitte gib ein Zielgewicht zwischen 66.0 und 550.0 lbs ein.",
+    authLoginFailed: "Login fehlgeschlagen",
+    authSignInIncomplete: "Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.",
+    authPasswordMinLength: "Passwort muss mindestens 6 Zeichen lang sein",
+    authInvalidEmail: "Bitte gib eine gültige E-Mail-Adresse ein",
+    authSignupFailed: "Registrierung fehlgeschlagen",
+    premiumCheckoutHint: "Monatlich oder jährlich – Details beim Checkout",
+    premiumTrialHint: "3 Tage kostenlos testen · jederzeit kündbar",
+    premiumViewPlansBtn: "Pläne ansehen",
+    choosePlanTitle: "Wähle deinen Plan",
+    healthSyncStepsLogged: "{count} Schritte",
+    onboardingUnitAriaLabel: "Einheit",
+    onboardingHelloPrefix: "Hallo",
+    onboardingHelloDefaultName: "du",
+    calorieDeficitLabel: "Kaloriendefizit",
+    calorieSurplusLabel: "Kalorienüberschuss",
+    youWillReachSuffix: "erreichen",
+    macroEditProteinAria: "Protein anpassen",
+    macroEditCarbsAria: "Kohlenhydrate anpassen",
+    macroEditFatAria: "Fett anpassen",
+    scanLaterShort: "Später scannen",
+    scanFeedbackNotEnough: "Zu wenige Zutaten erkannt",
+    scanFeedbackWrongItems: "Falsche Zutaten erkannt",
+    scanFeedbackTooSlow: "Zu langsam",
+    scanFeedbackOther: "Sonstiges",
+    scanFeedbackTitle: "Hat der Scan gefallen?",
+    scanFeedbackSubtitle: "Dein Feedback hilft uns besser zu werden",
+    scanFeedbackYes: "Ja!",
+    scanFeedbackNo: "Nein",
+    scanFeedbackThanks: "Super, danke! 🎉",
+    scanFeedbackIssueTitle: "Was war das Problem?",
+    scanFeedbackDidntScan: "Ich habe nicht gescannt",
+    onboardingCookingStyleTitle: "Wie möchtest du kochen?",
+    onboardingCookingStyleSubtitle: "Wähle deinen Stil – du kannst ihn später ändern",
+    onboardingSpontaneousLabel: "🎲 Spontan & Flexibel",
+    onboardingSpontaneousDesc: "Scanne deinen Kühlschrank, wähle deine Stimmung – bekomme passende Rezepte",
+    onboardingStructuredLabel: "📋 Strukturiert & Geplant",
+    onboardingStructuredDesc: "Wochenplan der täglich deine Makros trifft + automatische Einkaufsliste",
+    onboardingSpontaneousModeTitle: "Spontan-Modus",
+    onboardingScanFridgeIntroTitle: "Kühlschrank scannen",
+    onboardingScanFridgeIntroSubtitle: "Zeig uns was du hast – wir machen Rezepte draus",
+    onboardingScanFeaturePhoto: "Mach ein Foto von deinem Kühlschrank",
+    onboardingScanFeatureAi: "KI erkennt automatisch alle Zutaten",
+    onboardingScanFeatureRecipes: "Bekomme 3 Rezepte basierend auf deiner Stimmung",
+    onboardingCameraRequiredHint: "Wir benötigen Kamera-Zugriff für den Scan",
+    onboardingScanNowBtn: "Jetzt scannen",
+    onboardingScanLaterBtn: "Später scannen",
+    onboardingStep2of2: "Schritt 2 von 2",
+    onboardingMoodTitle: "Wie fühlst du dich?",
+    onboardingMoodSubtitle: "Deine Stimmung bestimmt die Rezept-Komplexität",
+    onboardingMoodTiredLabel: "Müde",
+    onboardingMoodTiredDesc: "Super einfache 5-Minuten Rezepte",
+    onboardingMoodNormalLabel: "Normal",
+    onboardingMoodNormalDesc: "Ausgewogene 15-20 Minuten Gerichte",
+    onboardingMoodMotivatedLabel: "Motiviert",
+    onboardingMoodMotivatedDesc: "Anspruchsvollere Kreationen",
+    onboardingMoodRecipesHint: "Du bekommst 3 personalisierte Rezepte basierend auf deinen Zutaten + Stimmung",
+    onboardingGotIt: "Verstanden!",
+    onboardingStep1of3: "Schritt 1 von 3",
+    onboardingStep2of3: "Schritt 2 von 3",
+    onboardingStep3of3: "Schritt 3 von 3",
+    onboardingWeeklyPlanIntroTitle: "Dein Wochenplan",
+    onboardingWeeklyPlanIntroSubtitle: "7 Tage perfekt auf deine Makros abgestimmt",
+    onboardingWeeklyPlanFeature1: "Jeder Tag trifft exakt deine Kalorien & Makros",
+    onboardingWeeklyPlanFeature2: "5 Mahlzeiten pro Tag – Frühstück bis Abendessen",
+    onboardingWeeklyPlanFeature3: "Einzelne Mahlzeiten jederzeit austauschen",
+    onboardingShoppingIntroTitle: "Automatische Einkaufsliste",
+    onboardingShoppingIntroSubtitle: "Alles was du für die Woche brauchst",
+    onboardingShoppingFeature1: "Liste wird aus Wochenplan generiert",
+    onboardingShoppingFeature2: "Abhaken beim Einkaufen",
+    onboardingShoppingFeature3: "Scan aktualisiert deine Liste automatisch",
+    onboardingCycleTitle: "Der Kreislauf",
+    onboardingCycleSubtitle: "Scan → Plan → Einkaufen → Wiederholen",
+    onboardingCycleLabelScan: "Scannen",
+    onboardingCycleLabelPlan: "Planen",
+    onboardingCycleLabelShop: "Einkaufen",
+    onboardingCycleEveryWeek: "Jede Woche neu",
+    onboardingCycleFridgeUpdateHint: "Dein Kühlschrank-Scan aktualisiert automatisch was du noch brauchst",
+    onboardingGenderNotebookQuestion: "WAS IST DEIN\nGESCHLECHT?",
+    profileNutritionSection: "Ernährung",
+    badgeUnlockedToast: "{icon} Neues Badge freigeschaltet!",
+
+    dashboardWaterEmpty: "Noch durstig? Fang\nmit einem Glas\nWasser an",
+    dashboardAddMealLabel: "Essen",
+    dashboardAddMealTitle: "Was isst du?",
+    dashboardScanMealTitle: "Meal scannen",
+    dashboardScanMealSubtitle: "Kamera · schnell erfassen",
+    dashboardManualMealTitle: "Manuell hinzufügen",
+    dashboardManualMealSubtitle: "Tracker",
+    dashboardGenerateRecipeTitle: "Rezept generieren",
+    dashboardGenerateRecipeSubtitle: "KI · aus Vorrat",
+    dashboardShoppingWidgetLabel: "Liste",
+    dashboardShoppingEmpty: "Leer",
+    dashboardShoppingAllDone: "Alles da",
+    dashboardShoppingOpenCount: "{count} offen",
+    dashboardShoppingOpen: "Öffnen",
+    dashboardShoppingNoIngredients: "Noch keine Zutaten",
+    dashboardShoppingHint: "Tippe Zutaten ab. Mehr im Tab Einkauf.",
+    dashboardWeeklyPlanNextLabel: "Nächstes Essen",
+    dashboardWeeklyPlanNextFallback: "Noch kein Plan",
+    dashboardWeeklyPlanHint: "Erstelle deinen Wochenplan",
+    dashboardWeeklyPlanCta: "Heute ansehen",
+    dashboardWeeklyPlanCtaEmpty: "Zum Wochenplan",
+    dashboardNoPlanEntry: "Kein Eintrag im Plan",
+    dashboardTrackerOverGoal: "über dem Ziel",
+    dashboardTrackerRemaining: "übrig",
+    dashboardQuickLog: "Schnell eintragen",
+    dashboardAddMealBtn: "Hinzufügen",
+    dashboardMealsTitle: "Mahlzeiten",
+    dashboardMealSlotsSubtitle: "Heute eintragen",
+    dashboardFindThreeMeals: "3 Gerichte suchen",
+    dashboardAiAdvisorLabel: "KI-Berater",
+    dashboardAiAskTitle: "Frage stellen",
+    dashboardAiPlaceholder: "Wie decke ich meine Proteine? ...",
+    dashboardAiInputAria: "Frage an die KI",
+    dashboardAiSubmitAria: "Senden und Chat öffnen",
+    dashboardStepsTitle: "Schritte",
+    dashboardStepsHint: "Wie wär's mit\neinem kurzen\nSpaziergang?",
+    dashboardStepsSyncing: "Synchronisiere...",
+    dashboardStepsSync: "Schritte syncen",
+    dashboardStepsMobileOnly: "Health Sync nur auf dem Handy",
+    dashboardStepsOpenInApp: "In App öffnen",
+    shoppingListOfflineMode: "Offline-Modus aktiv",
+    shoppingListStillNeeded: "noch nötig",
+    shoppingListShowAll: "Alle anzeigen",
+    shoppingListCollapseAll: "Alle minimieren",
+    shoppingListSaveOffline: "Für Offline speichern",
+    shoppingListLastSaved: "Zuletzt gespeichert",
+    shoppingListCacheLoaded: "Daten aus Cache geladen",
+    shoppingListOfflineSavedTitle: "✅ Offline gespeichert!",
+    shoppingListOfflineSavedDesc: "Einkaufsliste ist jetzt im Supermarkt ohne Internet verfügbar.",
+    shoppingListOfflineToastTitle: "📴 Offline-Modus",
+    shoppingListOfflineToastDesc: "Einkaufsliste ist weiterhin verfügbar!",
+    shoppingListOfCount: "von",
+    shoppingListNotGenerated: "Nicht generiert",
+    shoppingListDayCount: "{count} Tage",
+    shoppingCategoryFruitVeg: "Obst & Gemüse",
+    shoppingCategoryMeatFish: "Fleisch & Fisch",
+    shoppingCategoryDairy: "Milchprodukte",
+    shoppingCategoryBreadGrains: "Brot & Getreide",
+    shoppingCategoryPantry: "Pantry",
+    shoppingCategoryOther: "Sonstiges",
+    mealPlanPremiumActivatingTitle: "Premium wird aktiviert...",
+    mealPlanPremiumActivatingDesc: "Bitte warte einen Moment, während wir dein Abo einrichten.",
+    mealPlanDetectIngredients: "Zutaten erkennen",
+    mealPlanCreating: "Erstellt...",
+    mealPlanCreateShort: "Erstellen",
+    mealPlanMealAddedDesc: "Mahlzeit zu deinem Tracker hinzugefügt",
+    ingredientDefaultName: "Zutat",
+    dietBalanced: "Ausgewogene Ernährung",
+    dietVegan: "Vegan",
+    dietVegetarian: "Vegetarisch",
+    dietKeto: "Keto",
+    dietLowCarb: "Kohlenhydratarm",
+    dietPaleo: "Paleo",
+    dietPreferencesTitle: "Ernährungsweise",
+    dietPreferencesSubtitle: "Wird für Rezepte und Wochenplan verwendet",
+    dietPreferencesSavedTitle: "Gespeichert",
+    dietPreferencesSavedDesc: "Deine Ernährungsweise wurde aktualisiert.",
   },
   en: {
     toastPleaseLogin: "Please sign in",
@@ -599,6 +1189,300 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
       "Scan your fridge — Frigy detects your ingredients and creates a",
     postPayCoachShoppingLine:
       "The shopping list is built from your weekly plan — only ingredients you still need.",
+
+    navHome: "Home",
+    navPlanShort: "Plan",
+    navShoppingShort: "Shop",
+    ariaMainNavigation: "Main navigation",
+
+    scanAllIngredientsPresent: "Everything is available — nothing is missing.",
+    scanCameraDevHintOpen: "Open the app with ",
+    scanCameraDevHintLocalhost: " at ",
+    scanCameraDevHintOrGallery: " — or use the gallery below.",
+    scanCapturePhoto: "Take photo",
+    scanCaptureSr: "Capture",
+    scanPhotosQueued: "{count} photo(s)",
+    scanPhotoCounter: "Photo {current} of {total}",
+    scanFileTooLarge: "File too large",
+    scanPhotoReadError: "Could not read photo.",
+    scanPhotoFailedContinue: "Photo {n} failed. Continuing with next photo…",
+    scanPhotoTimeoutContinue: "Photo {n} timed out. Continuing with next photo…",
+    scanPhotosAnalyzedSummary: "{analyzed} of {total} photo(s) analyzed",
+    scanPhotosSkippedSuffix: " ({skipped} skipped)",
+
+    barcodeUnknownProduct: "Unknown product",
+    barcodeProductRecognized: "Product recognized!",
+    barcodeProductNotFound: "Product not found",
+    barcodeFetchError: "Error fetching product data",
+    barcodeNoCameraSupport: "Your browser does not support camera access",
+    barcodeNeedsHttps: "Camera requires HTTPS. Open the app via localhost, HTTPS, or as an installed app.",
+    barcodeScannerOpenFailed: "Could not open scanner",
+    barcodeScannerLoadFailed: "Could not load barcode scanner",
+    barcodeCameraStartFailed: "Could not start camera",
+    barcodeCameraDenied: "Camera access denied!",
+    barcodeCameraNotFound: "No camera found!",
+    barcodeCameraInUse: "Camera is already in use!",
+    barcodeCameraHttpsRequired: "Camera requires HTTPS or localhost",
+    barcodeCameraInitSlow: "Camera initialization too slow",
+    barcodeScanNewProduct: "Scan new product",
+    barcodeHoldInFrame: "Hold barcode inside the frame",
+    barcodeLoadingProduct: "Loading product…",
+    ariaCloseScanner: "Close scanner",
+    barcodeBrandLabel: "Brand:",
+    barcodeCaloriesLabel: "Calories:",
+    barcodeCarbsLabel: "Carbs:",
+    barcodeFatLabel: "Fat:",
+    barcodeProteinLabel: "Protein:",
+
+    scanResultGeneratePlan: "Generate weekly plan",
+    scanResultGeneratePlanDesc: "From your analyzed ingredients and macro goals.",
+    scanResultGeneratingPlan: "Creating your personal weekly plan…",
+    scanResultNewPhoto: "New photo",
+    scanResultRetryScan: "Retry scan or take a photo from a better angle.",
+
+    premiumActivating: "Activating Premium…",
+    premiumActivatingDesc: "One moment — linking your payment to your account.",
+    premiumNotActiveYet: "Premium not active yet",
+    premiumNotActiveDesc:
+      "Payment received, but Premium is not active yet. Reopen the app or try again in a few minutes.",
+    defaultMealName: "Meal",
+
+    onboardingStepCounter: "Step {current} of {total}",
+    trackerMealsPerDayTitle: "Meals per day",
+    trackerMealsPerDaySubtitle: "How many meals do you want each day?",
+    trackerMealsUnit: "meals",
+    trackerPaceSlow: "Slow & sustainable",
+    trackerPaceModerate: "Moderate",
+    trackerPaceFast: "Fast",
+    trackerPaceVeryFast: "Very fast",
+    dailyOverviewTitle: "Daily overview",
+    dailyOverviewGoalsBadge: "{count}/3 goals",
+    dailyOverviewMealsLogged: "logged",
+    dailyOverviewRemainingCalories: "{calories} kcal left for today",
+    dailyOverviewCalorieGoalReached: "Calorie goal reached!",
+    dailyOverviewOfKcal: "of {target} kcal",
+    dailyOverviewOfLiters: "of {target}L",
+    macroEditCarbsCalculated: "Carbs calculated",
+    macroEditCarbsCalculatedDesc: "Carbs set to {carbs}g to reach {calories} kcal.",
+    macroEditInvalidValue: "Invalid value",
+    macroEditCaloriesRange: "Calories must be between 800 and 10000",
+    macroEditMacroMismatchWarning: "Warning",
+    macroEditMacroMismatchDesc: "Protein and fat are too high for your calorie goal. Lower one or increase calories.",
+    macroEditGoalsSaved: "Goals saved!",
+    macroEditGoalsSavedDesc: "Your new macro goals have been applied.",
+    macroEditAutoCarbs: "Auto carbs",
+    macroEditCaloriesLabel: "Calories",
+    profileDeleting: "Deleting…",
+    profileDeleteBtn: "Delete",
+
+    motivationTitle: "What motivates you?",
+    motivationSubtitle: "Choose your main reason",
+    motivationHealthLabel: "Live healthier",
+    motivationHealthDesc: "More daily energy",
+    motivationConfidenceLabel: "Feel more confident",
+    motivationConfidenceDesc: "Comfortable in your body",
+    motivationEventLabel: "For an event",
+    motivationEventDesc: "Wedding, vacation, etc.",
+    motivationDoctorLabel: "Doctor recommended",
+    motivationDoctorDesc: "Medical advice",
+    motivationFitnessLabel: "Improve fitness",
+    motivationFitnessDesc: "Athletic goals",
+    motivationHabitLabel: "Better habits",
+    motivationHabitDesc: "Long-term change",
+    cookingTimeTitle: "How much time to cook?",
+    cookingTimeSubtitle: "For matching recipe suggestions",
+    cookingTimeChangeLaterHint: "You can change this later in settings",
+    cookingTime15Label: "15 minutes",
+    cookingTime15Desc: "Quick meals",
+    cookingTime30Label: "30 minutes",
+    cookingTime30Desc: "Standard recipes",
+    cookingTime45Label: "45+ minutes",
+    cookingTime45Desc: "Elaborate cooking",
+    onboardingNonBinaryLabel: "Non-binary",
+    onboardingGenderQuestionTitle: "What is your gender?",
+    onboardingDataDeletedAfterPlan: "Your data will be deleted after a plan is created.",
+    onboardingHowTallTitle: "How tall are you?",
+    onboardingCurrentWeightTitle: "What's your current weight?",
+    onboardingBirthdateTitle: "When were you born?",
+    onboardingBirthdateFormat: "Format: DD.MM.YYYY",
+    onboardingBirthdateError: "Enter a valid birth date.",
+    onboardingUnitMetric: "Metric",
+    onboardingUnitImperial: "Imperial",
+    onboardingHeightHelperMetric: "For example 170",
+    onboardingHeightHelperImperial: "For example 5'7",
+    onboardingHeightErrorMetric: "Enter a height between 100 and 250 cm.",
+    onboardingHeightErrorImperial: "Enter a height like 5'7.",
+    onboardingWeightHelperMetric: "For example 70.0",
+    onboardingWeightHelperImperial: "For example 154.3",
+    onboardingWeightErrorMetric: "Enter a weight between 30.0 and 250.0 kg.",
+    onboardingWeightErrorImperial: "Enter a weight between 66.0 and 550.0 lbs.",
+    onboardingTargetWeightLoseTitle: "What's your target weight?",
+    onboardingTargetWeightGainTitle: "What's your desired weight?",
+    onboardingTargetWeightMaintainTitle: "Confirm your target weight",
+    onboardingTargetWeightFallbackTitle: "What's your target weight?",
+    onboardingTargetWeightSetGoal: "Set goal",
+    onboardingTargetWeightHelperMetric: "For example 65.0",
+    onboardingTargetWeightHelperImperial: "For example 143.3",
+    onboardingTargetWeightErrorMetric: "Enter a target weight between 30.0 and 250.0 kg.",
+    onboardingTargetWeightErrorImperial: "Enter a target weight between 66.0 and 550.0 lbs.",
+    authLoginFailed: "Login failed",
+    authSignInIncomplete: "Could not complete sign-in. Please try again.",
+    authPasswordMinLength: "Password must be at least 6 characters",
+    authInvalidEmail: "Please enter a valid email address",
+    authSignupFailed: "Registration failed",
+    premiumCheckoutHint: "Monthly or yearly – see checkout for details",
+    premiumTrialHint: "3-day free trial · cancel anytime",
+    premiumViewPlansBtn: "View plans",
+    choosePlanTitle: "Choose your plan",
+    healthSyncStepsLogged: "{count} steps",
+    onboardingUnitAriaLabel: "Unit",
+    onboardingHelloPrefix: "Hello",
+    onboardingHelloDefaultName: "you",
+    calorieDeficitLabel: "Calorie deficit",
+    calorieSurplusLabel: "Calorie surplus",
+    youWillReachSuffix: "",
+    macroEditProteinAria: "Edit protein",
+    macroEditCarbsAria: "Edit carbs",
+    macroEditFatAria: "Edit fat",
+    scanLaterShort: "Scan later",
+    scanFeedbackNotEnough: "Too few ingredients detected",
+    scanFeedbackWrongItems: "Wrong ingredients detected",
+    scanFeedbackTooSlow: "Too slow",
+    scanFeedbackOther: "Other",
+    scanFeedbackTitle: "Did you like the scan?",
+    scanFeedbackSubtitle: "Your feedback helps us improve",
+    scanFeedbackYes: "Yes!",
+    scanFeedbackNo: "No",
+    scanFeedbackThanks: "Great, thanks! 🎉",
+    scanFeedbackIssueTitle: "What was the issue?",
+    scanFeedbackDidntScan: "I didn't scan",
+    onboardingCookingStyleTitle: "How do you want to cook?",
+    onboardingCookingStyleSubtitle: "Choose your style – you can change it later",
+    onboardingSpontaneousLabel: "🎲 Spontaneous & Flexible",
+    onboardingSpontaneousDesc: "Scan your fridge, choose your mood – get matching recipes",
+    onboardingStructuredLabel: "📋 Structured & Planned",
+    onboardingStructuredDesc: "Weekly plan that hits your daily macros + automatic shopping list",
+    onboardingSpontaneousModeTitle: "Spontaneous Mode",
+    onboardingScanFridgeIntroTitle: "Scan Your Fridge",
+    onboardingScanFridgeIntroSubtitle: "Show us what you have – we'll make recipes from it",
+    onboardingScanFeaturePhoto: "Take a photo of your fridge",
+    onboardingScanFeatureAi: "AI automatically recognizes all ingredients",
+    onboardingScanFeatureRecipes: "Get 3 recipes based on your mood",
+    onboardingCameraRequiredHint: "We need camera access for scanning",
+    onboardingScanNowBtn: "Scan Now",
+    onboardingScanLaterBtn: "Scan Later",
+    onboardingStep2of2: "Step 2 of 2",
+    onboardingMoodTitle: "How are you feeling?",
+    onboardingMoodSubtitle: "Your mood determines recipe complexity",
+    onboardingMoodTiredLabel: "Tired",
+    onboardingMoodTiredDesc: "Super simple 5-minute recipes",
+    onboardingMoodNormalLabel: "Normal",
+    onboardingMoodNormalDesc: "Balanced 15-20 minute dishes",
+    onboardingMoodMotivatedLabel: "Motivated",
+    onboardingMoodMotivatedDesc: "More challenging creations",
+    onboardingMoodRecipesHint: "You get 3 personalized recipes based on your ingredients + mood",
+    onboardingGotIt: "Got it!",
+    onboardingStep1of3: "Step 1 of 3",
+    onboardingStep2of3: "Step 2 of 3",
+    onboardingStep3of3: "Step 3 of 3",
+    onboardingWeeklyPlanIntroTitle: "Your Weekly Plan",
+    onboardingWeeklyPlanIntroSubtitle: "7 days perfectly matched to your macros",
+    onboardingWeeklyPlanFeature1: "Every day hits your exact calories & macros",
+    onboardingWeeklyPlanFeature2: "5 meals per day – breakfast to dinner",
+    onboardingWeeklyPlanFeature3: "Swap individual meals anytime",
+    onboardingShoppingIntroTitle: "Automatic Shopping List",
+    onboardingShoppingIntroSubtitle: "Everything you need for the week",
+    onboardingShoppingFeature1: "List is generated from weekly plan",
+    onboardingShoppingFeature2: "Check off while shopping",
+    onboardingShoppingFeature3: "Scan automatically updates your list",
+    onboardingCycleTitle: "The Cycle",
+    onboardingCycleSubtitle: "Scan → Plan → Shop → Repeat",
+    onboardingCycleLabelScan: "Scan",
+    onboardingCycleLabelPlan: "Plan",
+    onboardingCycleLabelShop: "Shop",
+    onboardingCycleEveryWeek: "Every week",
+    onboardingCycleFridgeUpdateHint: "Your fridge scan automatically updates what you still need",
+    onboardingGenderNotebookQuestion: "WHAT'S YOUR\nGENDER?",
+    profileNutritionSection: "Nutrition",
+    badgeUnlockedToast: "{icon} New badge unlocked!",
+
+    dashboardWaterEmpty: "Still thirsty?\nStart with\none glass of water",
+    dashboardAddMealLabel: "Meals",
+    dashboardAddMealTitle: "What are you eating?",
+    dashboardScanMealTitle: "Scan meal",
+    dashboardScanMealSubtitle: "Camera · quick capture",
+    dashboardManualMealTitle: "Add manually",
+    dashboardManualMealSubtitle: "Tracker",
+    dashboardGenerateRecipeTitle: "Generate recipe",
+    dashboardGenerateRecipeSubtitle: "AI · from your fridge",
+    dashboardShoppingWidgetLabel: "List",
+    dashboardShoppingEmpty: "Empty",
+    dashboardShoppingAllDone: "All set",
+    dashboardShoppingOpenCount: "{count} open",
+    dashboardShoppingOpen: "Open",
+    dashboardShoppingNoIngredients: "No ingredients yet",
+    dashboardShoppingHint: "Check ingredients off here. More in the shopping tab.",
+    dashboardWeeklyPlanNextLabel: "Next meal",
+    dashboardWeeklyPlanNextFallback: "No plan yet",
+    dashboardWeeklyPlanHint: "Create your weekly plan",
+    dashboardWeeklyPlanCta: "View today",
+    dashboardWeeklyPlanCtaEmpty: "Open plan",
+    dashboardNoPlanEntry: "No entry in plan",
+    dashboardTrackerOverGoal: "over goal",
+    dashboardTrackerRemaining: "left",
+    dashboardQuickLog: "Quick add",
+    dashboardAddMealBtn: "Add",
+    dashboardMealsTitle: "Meals",
+    dashboardMealSlotsSubtitle: "Log today",
+    dashboardFindThreeMeals: "Find 3 meals",
+    dashboardAiAdvisorLabel: "AI advisor",
+    dashboardAiAskTitle: "Ask a question",
+    dashboardAiPlaceholder: "How do I hit my protein target? ...",
+    dashboardAiInputAria: "Question for AI",
+    dashboardAiSubmitAria: "Send and open chat",
+    dashboardStepsTitle: "Steps",
+    dashboardStepsHint: "How about\na short\nwalk?",
+    dashboardStepsSyncing: "Syncing...",
+    dashboardStepsSync: "Sync steps",
+    dashboardStepsMobileOnly: "Health Sync only on mobile",
+    dashboardStepsOpenInApp: "Open in app",
+    shoppingListOfflineMode: "Offline mode active",
+    shoppingListStillNeeded: "still needed",
+    shoppingListShowAll: "Show all",
+    shoppingListCollapseAll: "Collapse all",
+    shoppingListSaveOffline: "Save offline",
+    shoppingListLastSaved: "Last saved",
+    shoppingListCacheLoaded: "Loaded from cache",
+    shoppingListOfflineSavedTitle: "✅ Saved offline!",
+    shoppingListOfflineSavedDesc: "Your shopping list is now available in the store without internet.",
+    shoppingListOfflineToastTitle: "📴 Offline mode",
+    shoppingListOfflineToastDesc: "The shopping list is still available!",
+    shoppingListOfCount: "of",
+    shoppingListNotGenerated: "Not generated yet",
+    shoppingListDayCount: "{count} days",
+    shoppingCategoryFruitVeg: "Fruit & vegetables",
+    shoppingCategoryMeatFish: "Meat & fish",
+    shoppingCategoryDairy: "Dairy",
+    shoppingCategoryBreadGrains: "Bread & grains",
+    shoppingCategoryPantry: "Pantry",
+    shoppingCategoryOther: "Other",
+    mealPlanPremiumActivatingTitle: "Premium is being activated...",
+    mealPlanPremiumActivatingDesc: "Please wait a moment while we set up your subscription.",
+    mealPlanDetectIngredients: "Detect ingredients",
+    mealPlanCreating: "Creating...",
+    mealPlanCreateShort: "Create",
+    mealPlanMealAddedDesc: "Meal added to your tracker",
+    ingredientDefaultName: "Ingredient",
+    dietBalanced: "Balanced nutrition",
+    dietVegan: "Vegan",
+    dietVegetarian: "Vegetarian",
+    dietKeto: "Keto",
+    dietLowCarb: "Low-carb",
+    dietPaleo: "Paleo",
+    dietPreferencesTitle: "Diet style",
+    dietPreferencesSubtitle: "Used for recipes and weekly plan",
+    dietPreferencesSavedTitle: "Saved",
+    dietPreferencesSavedDesc: "Your diet preference was updated.",
   },
   fr: {
     toastPleaseLogin: "Veuillez vous connecter",
@@ -799,6 +1683,304 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     postPayCoachBody2: "plan hebdo de 7 jours",
     postPayCoachBody3:
       "Frigy priorise ce que tu as et complète automatiquement ce qui manque pour tes objectifs macros.",
+    postPayCoachScanLine:
+      "Scanne ton frigo — Frigy détecte tes ingrédients et crée un",
+    postPayCoachShoppingLine:
+      "La liste de courses est générée à partir du plan hebdo — seulement ce qui te manque encore.",
+
+    navHome: "Accueil",
+    navPlanShort: "Plan",
+    navShoppingShort: "Courses",
+    ariaMainNavigation: "Navigation principale",
+
+    scanAllIngredientsPresent: "Tout est disponible — rien ne manque.",
+    scanCameraDevHintOpen: "Ouvre l'app avec ",
+    scanCameraDevHintLocalhost: " sur ",
+    scanCameraDevHintOrGallery: " — ou utilise la galerie en bas.",
+    scanCapturePhoto: "Prendre une photo",
+    scanCaptureSr: "Capture",
+    scanPhotosQueued: "{count} photo(s)",
+    scanPhotoCounter: "Photo {current} sur {total}",
+    scanFileTooLarge: "Fichier trop volumineux",
+    scanPhotoReadError: "Impossible de lire la photo.",
+    scanPhotoFailedContinue: "Échec photo {n}. Photo suivante…",
+    scanPhotoTimeoutContinue: "La photo {n} a pris trop de temps. Photo suivante…",
+    scanPhotosAnalyzedSummary: "{analyzed} sur {total} photo(s) analysée(s)",
+    scanPhotosSkippedSuffix: " ({skipped} ignorée(s))",
+
+    barcodeUnknownProduct: "Produit inconnu",
+    barcodeProductRecognized: "Produit reconnu !",
+    barcodeProductNotFound: "Produit introuvable",
+    barcodeFetchError: "Erreur lors de la récupération du produit",
+    barcodeNoCameraSupport: "Ton navigateur ne prend pas en charge la caméra",
+    barcodeNeedsHttps: "La caméra nécessite HTTPS. Ouvre l'app via localhost, HTTPS ou en app installée.",
+    barcodeScannerOpenFailed: "Impossible d'ouvrir le scanner",
+    barcodeScannerLoadFailed: "Impossible de charger le scanner de codes-barres",
+    barcodeCameraStartFailed: "Impossible de démarrer la caméra",
+    barcodeCameraDenied: "Accès à la caméra refusé !",
+    barcodeCameraNotFound: "Aucune caméra trouvée !",
+    barcodeCameraInUse: "La caméra est déjà utilisée !",
+    barcodeCameraHttpsRequired: "La caméra nécessite HTTPS ou localhost",
+    barcodeCameraInitSlow: "Initialisation de la caméra trop lente",
+    barcodeScanNewProduct: "Scanner un nouveau produit",
+    barcodeHoldInFrame: "Place le code-barres dans le cadre",
+    barcodeLoadingProduct: "Chargement du produit…",
+    ariaCloseScanner: "Fermer le scanner",
+    barcodeBrandLabel: "Marque :",
+    barcodeCaloriesLabel: "Calories :",
+    barcodeCarbsLabel: "Glucides :",
+    barcodeFatLabel: "Lipides :",
+    barcodeProteinLabel: "Protéines :",
+
+    scanResultGeneratePlan: "Générer le plan hebdo",
+    scanResultGeneratePlanDesc: "À partir de tes ingrédients analysés et de tes objectifs macros.",
+    scanResultGeneratingPlan: "Création de ton plan hebdo personnel…",
+    scanResultNewPhoto: "Nouvelle photo",
+    scanResultRetryScan: "Réessayer ou prendre une photo sous un meilleur angle.",
+
+    premiumActivating: "Activation de Premium…",
+    premiumActivatingDesc: "Un instant — nous lions ton paiement à ton compte.",
+    premiumNotActiveYet: "Premium pas encore actif",
+    premiumNotActiveDesc:
+      "Paiement reçu, mais Premium n'est pas encore activé. Rouvre l'app ou réessaie dans quelques minutes.",
+    defaultMealName: "Repas",
+
+    onboardingStepCounter: "Étape {current} sur {total}",
+    trackerMealsPerDayTitle: "Repas par jour",
+    trackerMealsPerDaySubtitle: "Combien de repas veux-tu par jour ?",
+    trackerMealsUnit: "repas",
+    trackerPaceSlow: "Lent & durable",
+    trackerPaceModerate: "Modéré",
+    trackerPaceFast: "Rapide",
+    trackerPaceVeryFast: "Très rapide",
+    dailyOverviewTitle: "Aperçu du jour",
+    dailyOverviewGoalsBadge: "{count}/3 objectifs",
+    dailyOverviewMealsLogged: "enregistrés",
+    dailyOverviewRemainingCalories: "Encore {calories} kcal pour aujourd'hui",
+    dailyOverviewCalorieGoalReached: "Objectif calories atteint !",
+    dailyOverviewOfKcal: "sur {target} kcal",
+    dailyOverviewOfLiters: "sur {target}L",
+    macroEditCarbsCalculated: "Glucides calculés",
+    macroEditCarbsCalculatedDesc: "Glucides définis à {carbs}g pour atteindre {calories} kcal.",
+    macroEditInvalidValue: "Valeur invalide",
+    macroEditCaloriesRange: "Les calories doivent être entre 800 et 10000",
+    macroEditMacroMismatchWarning: "Avertissement",
+    macroEditMacroMismatchDesc: "Les protéines et les lipides sont trop élevés pour cet objectif calorique.",
+    macroEditGoalsSaved: "Objectifs sauvegardés !",
+    macroEditGoalsSavedDesc: "Tes nouveaux objectifs macro ont été appliqués.",
+    macroEditAutoCarbs: "Auto glucides",
+    macroEditCaloriesLabel: "Calories",
+    profileDeleting: "Suppression…",
+    profileDeleteBtn: "Supprimer",
+
+    motivationTitle: "Qu'est-ce qui te motive ?",
+    motivationSubtitle: "Choisis ta raison principale",
+    motivationHealthLabel: "Vivre plus sainement",
+    motivationHealthDesc: "Plus d'énergie au quotidien",
+    motivationConfidenceLabel: "Plus de confiance",
+    motivationConfidenceDesc: "Bien dans son corps",
+    motivationEventLabel: "Pour un événement",
+    motivationEventDesc: "Mariage, vacances, etc.",
+    motivationDoctorLabel: "Recommandé par médecin",
+    motivationDoctorDesc: "Conseil médical",
+    motivationFitnessLabel: "Améliorer fitness",
+    motivationFitnessDesc: "Objectifs sportifs",
+    motivationHabitLabel: "Meilleures habitudes",
+    motivationHabitDesc: "Changement durable",
+    cookingTimeTitle: "Combien de temps pour cuisiner ?",
+    cookingTimeSubtitle: "Pour des suggestions adaptées",
+    cookingTimeChangeLaterHint: "Tu peux changer cela plus tard dans les paramètres",
+    cookingTime15Label: "15 minutes",
+    cookingTime15Desc: "Plats rapides",
+    cookingTime30Label: "30 minutes",
+    cookingTime30Desc: "Recettes normales",
+    cookingTime45Label: "45+ minutes",
+    cookingTime45Desc: "Cuisine élaborée",
+    onboardingNonBinaryLabel: "Non-binaire",
+    onboardingGenderQuestionTitle: "Quel est ton genre ?",
+    onboardingDataDeletedAfterPlan: "Vos données seront supprimées après la création d'un plan.",
+    onboardingHowTallTitle: "Quelle est ta taille ?",
+    onboardingCurrentWeightTitle: "Quel est ton poids actuel ?",
+    onboardingBirthdateTitle: "Quand es-tu né(e) ?",
+    onboardingBirthdateFormat: "Format : JJ.MM.AAAA",
+    onboardingBirthdateError: "Entre une date de naissance valide.",
+    onboardingUnitMetric: "Métrique",
+    onboardingUnitImperial: "Imperial",
+    onboardingHeightHelperMetric: "Par exemple 170",
+    onboardingHeightHelperImperial: "Par exemple 5'7",
+    onboardingHeightErrorMetric: "Entre une taille entre 100 et 250 cm.",
+    onboardingHeightErrorImperial: "Entre une taille comme 5'7.",
+    onboardingWeightHelperMetric: "Par exemple 70,0",
+    onboardingWeightHelperImperial: "Par exemple 154.3",
+    onboardingWeightErrorMetric: "Entre un poids entre 30,0 et 250,0 kg.",
+    onboardingWeightErrorImperial: "Entre un poids entre 66.0 et 550.0 lbs.",
+    onboardingTargetWeightLoseTitle: "Quel est ton poids cible ?",
+    onboardingTargetWeightGainTitle: "Quel est ton poids souhaité ?",
+    onboardingTargetWeightMaintainTitle: "Confirme ton poids cible",
+    onboardingTargetWeightFallbackTitle: "Quel est ton poids cible ?",
+    onboardingTargetWeightSetGoal: "Définir l'objectif",
+    onboardingTargetWeightHelperMetric: "Par exemple 65,0",
+    onboardingTargetWeightHelperImperial: "Par exemple 143.3",
+    onboardingTargetWeightErrorMetric: "Entre un poids cible entre 30,0 et 250,0 kg.",
+    onboardingTargetWeightErrorImperial: "Entre un poids cible entre 66.0 et 550.0 lbs.",
+    authLoginFailed: "Échec de connexion",
+    authSignInIncomplete: "Connexion impossible. Réessaie.",
+    authPasswordMinLength: "Le mot de passe doit contenir au moins 6 caractères",
+    authInvalidEmail: "Entre une adresse e-mail valide",
+    authSignupFailed: "Inscription échouée",
+    premiumCheckoutHint: "Mensuel ou annuel – détails au paiement",
+    premiumTrialHint: "3 jours d'essai gratuit · résiliable à tout moment",
+    premiumViewPlansBtn: "Voir les plans",
+    choosePlanTitle: "Choisis ton plan",
+    healthSyncStepsLogged: "{count} pas",
+    onboardingUnitAriaLabel: "Unité",
+    onboardingHelloPrefix: "Salut",
+    onboardingHelloDefaultName: "toi",
+    calorieDeficitLabel: "Déficit calorique",
+    calorieSurplusLabel: "Surplus calorique",
+    youWillReachSuffix: "",
+    macroEditProteinAria: "Modifier les protéines",
+    macroEditCarbsAria: "Modifier les glucides",
+    macroEditFatAria: "Modifier les lipides",
+    scanLaterShort: "Scanner plus tard",
+    scanFeedbackNotEnough: "Trop peu d'ingrédients détectés",
+    scanFeedbackWrongItems: "Mauvais ingrédients détectés",
+    scanFeedbackTooSlow: "Trop lent",
+    scanFeedbackOther: "Autre",
+    scanFeedbackTitle: "Le scan t'a plu ?",
+    scanFeedbackSubtitle: "Ton avis nous aide à nous améliorer",
+    scanFeedbackYes: "Oui !",
+    scanFeedbackNo: "Non",
+    scanFeedbackThanks: "Super, merci ! 🎉",
+    scanFeedbackIssueTitle: "Quel était le problème ?",
+    scanFeedbackDidntScan: "Je n'ai pas scanné",
+    onboardingCookingStyleTitle: "Comment veux-tu cuisiner ?",
+    onboardingCookingStyleSubtitle: "Choisis ton style – tu peux le changer plus tard",
+    onboardingSpontaneousLabel: "🎲 Spontané & Flexible",
+    onboardingSpontaneousDesc: "Scanne ton frigo, choisis ton humeur – reçois des recettes adaptées",
+    onboardingStructuredLabel: "📋 Structuré & Planifié",
+    onboardingStructuredDesc: "Plan hebdomadaire qui atteint tes macros + liste de courses automatique",
+    onboardingSpontaneousModeTitle: "Mode Spontané",
+    onboardingScanFridgeIntroTitle: "Scanne ton frigo",
+    onboardingScanFridgeIntroSubtitle: "Montre-nous ce que tu as – on en fait des recettes",
+    onboardingScanFeaturePhoto: "Prends une photo de ton frigo",
+    onboardingScanFeatureAi: "L'IA reconnaît automatiquement tous les ingrédients",
+    onboardingScanFeatureRecipes: "Reçois 3 recettes selon ton humeur",
+    onboardingCameraRequiredHint: "Nous avons besoin d'accéder à la caméra pour le scan",
+    onboardingScanNowBtn: "Scanner maintenant",
+    onboardingScanLaterBtn: "Scanner plus tard",
+    onboardingStep2of2: "Étape 2 sur 2",
+    onboardingMoodTitle: "Comment te sens-tu ?",
+    onboardingMoodSubtitle: "Ton humeur détermine la complexité des recettes",
+    onboardingMoodTiredLabel: "Fatigué",
+    onboardingMoodTiredDesc: "Recettes super simples de 5 minutes",
+    onboardingMoodNormalLabel: "Normal",
+    onboardingMoodNormalDesc: "Plats équilibrés de 15-20 minutes",
+    onboardingMoodMotivatedLabel: "Motivé",
+    onboardingMoodMotivatedDesc: "Créations plus élaborées",
+    onboardingMoodRecipesHint: "Tu reçois 3 recettes personnalisées basées sur tes ingrédients + humeur",
+    onboardingGotIt: "Compris !",
+    onboardingStep1of3: "Étape 1 sur 3",
+    onboardingStep2of3: "Étape 2 sur 3",
+    onboardingStep3of3: "Étape 3 sur 3",
+    onboardingWeeklyPlanIntroTitle: "Ton plan hebdomadaire",
+    onboardingWeeklyPlanIntroSubtitle: "7 jours parfaitement adaptés à tes macros",
+    onboardingWeeklyPlanFeature1: "Chaque jour atteint exactement tes calories & macros",
+    onboardingWeeklyPlanFeature2: "5 repas par jour – du petit-déjeuner au dîner",
+    onboardingWeeklyPlanFeature3: "Échanger des repas individuels à tout moment",
+    onboardingShoppingIntroTitle: "Liste de courses automatique",
+    onboardingShoppingIntroSubtitle: "Tout ce dont tu as besoin pour la semaine",
+    onboardingShoppingFeature1: "Liste générée à partir du plan hebdomadaire",
+    onboardingShoppingFeature2: "Cocher en faisant les courses",
+    onboardingShoppingFeature3: "Le scan met à jour ta liste automatiquement",
+    onboardingCycleTitle: "Le cycle",
+    onboardingCycleSubtitle: "Scan → Plan → Courses → Répéter",
+    onboardingCycleLabelScan: "Scanner",
+    onboardingCycleLabelPlan: "Planifier",
+    onboardingCycleLabelShop: "Courses",
+    onboardingCycleEveryWeek: "Chaque semaine",
+    onboardingCycleFridgeUpdateHint: "Ton scan de frigo met à jour automatiquement ce dont tu as besoin",
+    onboardingGenderNotebookQuestion: "QUEL EST TON\nGENRE ?",
+    profileNutritionSection: "Alimentation",
+    badgeUnlockedToast: "{icon} Nouveau badge débloqué !",
+
+    dashboardWaterEmpty: "Encore soif ?\nCommence avec\nun verre d'eau",
+    dashboardAddMealLabel: "Repas",
+    dashboardAddMealTitle: "Que manges-tu ?",
+    dashboardScanMealTitle: "Scanner un repas",
+    dashboardScanMealSubtitle: "Caméra · saisie rapide",
+    dashboardManualMealTitle: "Ajouter manuellement",
+    dashboardManualMealSubtitle: "Suivi",
+    dashboardGenerateRecipeTitle: "Générer une recette",
+    dashboardGenerateRecipeSubtitle: "IA · depuis ton frigo",
+    dashboardShoppingWidgetLabel: "Liste",
+    dashboardShoppingEmpty: "Vide",
+    dashboardShoppingAllDone: "Tout est là",
+    dashboardShoppingOpenCount: "{count} ouverts",
+    dashboardShoppingOpen: "Ouvrir",
+    dashboardShoppingNoIngredients: "Aucun ingrédient pour le moment",
+    dashboardShoppingHint: "Coche les ingrédients ici. Plus dans l'onglet Courses.",
+    dashboardWeeklyPlanNextLabel: "Prochain repas",
+    dashboardWeeklyPlanNextFallback: "Pas encore de plan",
+    dashboardWeeklyPlanHint: "Crée ton plan hebdomadaire",
+    dashboardWeeklyPlanCta: "Voir aujourd'hui",
+    dashboardWeeklyPlanCtaEmpty: "Voir le plan",
+    dashboardNoPlanEntry: "Aucune entrée dans le plan",
+    dashboardTrackerOverGoal: "au-dessus de l'objectif",
+    dashboardTrackerRemaining: "restants",
+    dashboardQuickLog: "Ajout rapide",
+    dashboardAddMealBtn: "Ajouter",
+    dashboardMealsTitle: "Repas",
+    dashboardMealSlotsSubtitle: "Ajouter aujourd'hui",
+    dashboardFindThreeMeals: "Trouver 3 plats",
+    dashboardAiAdvisorLabel: "Conseiller IA",
+    dashboardAiAskTitle: "Poser une question",
+    dashboardAiPlaceholder: "Comment couvrir mes protéines ? ...",
+    dashboardAiInputAria: "Question pour l'IA",
+    dashboardAiSubmitAria: "Envoyer et ouvrir le chat",
+    dashboardStepsTitle: "Pas",
+    dashboardStepsHint: "Et si tu faisais\nune petite\nmarche ?",
+    dashboardStepsSyncing: "Synchronisation...",
+    dashboardStepsSync: "Synchroniser les pas",
+    dashboardStepsMobileOnly: "Health Sync seulement sur mobile",
+    dashboardStepsOpenInApp: "Ouvrir dans l'app",
+    shoppingListOfflineMode: "Mode hors ligne actif",
+    shoppingListStillNeeded: "encore nécessaire",
+    shoppingListShowAll: "Tout afficher",
+    shoppingListCollapseAll: "Tout réduire",
+    shoppingListSaveOffline: "Enregistrer hors ligne",
+    shoppingListLastSaved: "Dernière sauvegarde",
+    shoppingListCacheLoaded: "Données chargées depuis le cache",
+    shoppingListOfflineSavedTitle: "✅ Enregistré hors ligne !",
+    shoppingListOfflineSavedDesc: "La liste de courses est maintenant disponible sans internet.",
+    shoppingListOfflineToastTitle: "📴 Mode hors ligne",
+    shoppingListOfflineToastDesc: "La liste de courses reste disponible !",
+    shoppingListOfCount: "sur",
+    shoppingListNotGenerated: "Pas encore généré",
+    shoppingListDayCount: "{count} jours",
+    shoppingCategoryFruitVeg: "Fruits et légumes",
+    shoppingCategoryMeatFish: "Viande et poisson",
+    shoppingCategoryDairy: "Produits laitiers",
+    shoppingCategoryBreadGrains: "Pain et céréales",
+    shoppingCategoryPantry: "Placard",
+    shoppingCategoryOther: "Autres",
+    mealPlanPremiumActivatingTitle: "Premium s'active...",
+    mealPlanPremiumActivatingDesc: "Patiente un instant pendant que nous configurons ton abonnement.",
+    mealPlanDetectIngredients: "Reconnaître les ingrédients",
+    mealPlanCreating: "Création...",
+    mealPlanCreateShort: "Créer",
+    mealPlanMealAddedDesc: "Repas ajouté à ton suivi",
+    ingredientDefaultName: "Ingrédient",
+    dietBalanced: "Alimentation équilibrée",
+    dietVegan: "Végan",
+    dietVegetarian: "Végétarien",
+    dietKeto: "Cétogène",
+    dietLowCarb: "Faible en glucides",
+    dietPaleo: "Paléo",
+    dietPreferencesTitle: "Régime alimentaire",
+    dietPreferencesSubtitle: "Utilisé pour les recettes et le plan hebdo",
+    dietPreferencesSavedTitle: "Enregistré",
+    dietPreferencesSavedDesc: "Ton régime alimentaire a été mis à jour.",
   },
 };
 

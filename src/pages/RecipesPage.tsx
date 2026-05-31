@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MealReplacementDialog from "@/components/MealReplacementDialog";
@@ -58,7 +59,8 @@ const RecipesPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const timeLocale = getAppLocale(language);
   const { addEntry } = useFoodEntries();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recommendedReason, setRecommendedReason] = useState<string>("");
@@ -237,7 +239,7 @@ const RecipesPage = () => {
           fat: result.fat,
           portion: "1 Portion",
           meal_type: mealType,
-          time: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+          time: new Date().toLocaleTimeString(timeLocale, { hour: "2-digit", minute: "2-digit" }),
         });
         localStorage.setItem("todayFood", JSON.stringify(data));
         notifyFrigyStorageUpdated();

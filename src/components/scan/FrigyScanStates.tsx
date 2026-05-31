@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Check, Flame, X } from "lucide-react";
 import { useEffect } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 import { confettiBurst } from "@/lib/mobileEffects";
 
 type FrigyScanAnalyzingStageProps = {
@@ -10,6 +10,8 @@ type FrigyScanAnalyzingStageProps = {
   subtitle?: string;
   message?: string;
   progress?: number;
+  photoIndex?: number;
+  photoTotal?: number;
   onClose: () => void;
 };
 
@@ -19,9 +21,19 @@ export function FrigyScanAnalyzingStage({
   subtitle,
   message,
   progress,
+  photoIndex,
+  photoTotal,
   onClose,
 }: FrigyScanAnalyzingStageProps) {
   const { t } = useLanguage();
+  const showPhotoCounter =
+    typeof photoIndex === "number" &&
+    typeof photoTotal === "number" &&
+    photoTotal > 0;
+  const photoCounterLabel = showPhotoCounter
+    ? formatTranslation(t.scanPhotoCounter, { current: photoIndex!, total: photoTotal! })
+    : "";
+  const progressValue = typeof progress === "number" ? Math.min(100, Math.max(0, progress)) : null;
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -31,22 +43,30 @@ export function FrigyScanAnalyzingStage({
     >
       <style>{`
         @keyframes frigy-scan-line-move {
-          0% { transform: translateY(0%); opacity: 0.62; }
-          50% { transform: translateY(760%); opacity: 1; }
-          100% { transform: translateY(0%); opacity: 0.62; }
+          0%, 100% { top: 12%; opacity: 0.62; }
+          50% { top: 84%; opacity: 1; }
         }
         @keyframes frigy-scan-sweep-move {
-          0% { transform: translateY(0%); opacity: 0.2; }
-          50% { transform: translateY(720%); opacity: 0.45; }
-          100% { transform: translateY(0%); opacity: 0.2; }
+          0%, 100% { top: 12%; opacity: 0.2; }
+          50% { top: 84%; opacity: 0.45; }
         }
         .frigy-scan-line {
-          animation: frigy-scan-line-move 1.5s linear infinite;
-          will-change: transform, opacity;
+          position: absolute;
+          left: 9%;
+          right: 9%;
+          height: 3px;
+          border-radius: 9999px;
+          animation: frigy-scan-line-move 1.5s ease-in-out infinite;
+          will-change: top, opacity;
         }
         .frigy-scan-sweep {
-          animation: frigy-scan-sweep-move 1.5s linear infinite;
-          will-change: transform, opacity;
+          position: absolute;
+          left: 7%;
+          right: 7%;
+          height: 18%;
+          border-radius: 9999px;
+          animation: frigy-scan-sweep-move 1.5s ease-in-out infinite;
+          will-change: top, opacity;
         }
       `}</style>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(117,251,178,0.18),transparent_28%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_45%,#EEF9F2_100%)]" />
@@ -71,6 +91,7 @@ export function FrigyScanAnalyzingStage({
           <div className="absolute inset-[8%] overflow-hidden rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.95)]">
             {previewUrl ? (
               <img
+                key={previewUrl}
                 src={previewUrl}
                 alt=""
                 className="h-full w-full object-cover"
@@ -82,8 +103,8 @@ export function FrigyScanAnalyzingStage({
 
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.42),transparent_38%)]" />
 
-            <div className="pointer-events-none absolute inset-x-[7%] h-[18%] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.55),rgba(255,255,255,0))] blur-sm frigy-scan-sweep" />
-            <div className="pointer-events-none absolute left-[9%] right-[9%] h-[3px] rounded-full bg-[linear-gradient(90deg,rgba(117,251,178,0),rgba(117,251,178,1),rgba(117,251,178,0))] shadow-[0_0_20px_rgba(117,251,178,0.9)] frigy-scan-line" />
+            <div className="pointer-events-none absolute inset-x-[7%] frigy-scan-sweep rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.55),rgba(255,255,255,0))] blur-sm" />
+            <div className="pointer-events-none absolute frigy-scan-line bg-[linear-gradient(90deg,rgba(117,251,178,0),rgba(117,251,178,1),rgba(117,251,178,0))] shadow-[0_0_20px_rgba(117,251,178,0.9)]" />
           </div>
 
           <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/90" />
@@ -104,15 +125,28 @@ export function FrigyScanAnalyzingStage({
               {subtitle}
             </p>
           ) : null}
+          {showPhotoCounter ? (
+            <p className="mt-4 text-[13px] font-bold tracking-[0.06em] text-[#39D47F]">
+              {photoCounterLabel}
+            </p>
+          ) : null}
           {message ? (
             <p className="mt-6 text-[15px] font-medium leading-relaxed tracking-[-0.02em] text-neutral-500">
               {message}
             </p>
           ) : null}
-          {typeof progress === "number" ? (
-            <p className="mt-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400">
-              {Math.round(progress)}%
-            </p>
+          {progressValue != null ? (
+            <div className="mt-5 w-full max-w-[240px]">
+              <p className="mb-2 text-[12px] font-semibold tracking-[0.08em] text-neutral-400">
+                {Math.round(progressValue)}%
+              </p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[#D8FCE8]">
+                <div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#75FBB2,#39D47F)] transition-[width] duration-300 ease-out"
+                  style={{ width: `${progressValue}%` }}
+                />
+              </div>
+            </div>
           ) : null}
         </motion.div>
       </div>
@@ -234,7 +268,9 @@ export function FrigyScanSuccessStage({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[145] flex flex-col overflow-hidden bg-[#F6FFFA] text-neutral-950 safe-area-inset"
-      onClick={onDismiss}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onDismiss();
+      }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(117,251,178,0.22),transparent_30%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_50%,#EEF9F2_100%)]" />
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-[max(2rem,env(safe-area-inset-bottom)+1rem)]">
@@ -277,7 +313,10 @@ export function FrigyScanSuccessStage({
             <motion.button
               type="button"
               whileTap={{ scale: 0.98 }}
-              onClick={onScanAnother}
+              onClick={(e) => {
+                e.stopPropagation();
+                onScanAnother();
+              }}
               className="flex h-14 w-full items-center justify-center rounded-full border-2 border-[#75FBB2] bg-white text-[17px] font-semibold text-[#082013]"
             >
               {copy.scanAnother}
@@ -286,7 +325,10 @@ export function FrigyScanSuccessStage({
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
-            onClick={onDismiss}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss();
+            }}
             className="flex h-14 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] text-[17px] font-semibold text-[#082013] shadow-[0_16px_40px_-22px_rgba(57,212,127,0.5)]"
           >
             {copy.continue}

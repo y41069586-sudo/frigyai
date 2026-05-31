@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useIngredientCamera } from "@/hooks/useIngredientCamera";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
 
 export type PendingPhoto = {
@@ -22,6 +22,9 @@ type FrigyIngredientScanFlowProps = {
   analyzing: boolean;
   analysisErrorMessage?: string | null;
   scanProgress: number;
+  scanPhotoIndex?: number;
+  scanPhotoTotal?: number;
+  analyzingPreviewUrl?: string | null;
   captureMode: boolean;
   onQueueChange?: (files: File[]) => void;
   onConfirmAnalyze: (files: File[]) => void;
@@ -49,6 +52,9 @@ export function FrigyIngredientScanFlow({
   analyzing,
   analysisErrorMessage,
   scanProgress,
+  scanPhotoIndex,
+  scanPhotoTotal,
+  analyzingPreviewUrl: externalAnalyzingPreviewUrl,
   captureMode,
   onQueueChange,
   onConfirmAnalyze,
@@ -58,7 +64,7 @@ export function FrigyIngredientScanFlow({
   onRetryAfterError,
   labels = {},
 }: FrigyIngredientScanFlowProps) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const captureLockRef = useRef(false);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
@@ -88,52 +94,28 @@ export function FrigyIngredientScanFlow({
     (cameraStatus === "error" || cameraStatus === "denied" || cameraStatus === "fallback");
 
   const L = {
-    analyzingTitle: labels.analyzingTitle ?? "Zutaten werden analysiert",
-    analyzingSubtitle: labels.analyzingSubtitle ?? "Frigy erkennt deine Vorräte…",
-    present: labels.present ?? "Vorhanden",
-    missing: labels.missing ?? "Fehlend",
-    createList: labels.createList ?? "Einkaufsliste erstellen",
-    addPhoto: labels.addPhoto ?? "Foto hinzufügen",
-    finishScan: labels.finishScan ?? "Fertig",
-    tapShutter: labels.tapShutter ?? "Foto aufnehmen oder Galerie",
+    analyzingTitle: labels.analyzingTitle ?? t.ingredientScanAnalyzingTitle,
+    analyzingSubtitle: labels.analyzingSubtitle ?? t.aiAnalyzingIngredients,
+    present: labels.present ?? t.ingredientsPresentLabel,
+    missing: labels.missing ?? t.ingredientsMissingLabel,
+    createList: labels.createList ?? t.createShoppingListBtn,
+    addPhoto: labels.addPhoto ?? t.addPhotoBtn,
+    finishScan: labels.finishScan ?? t.finishScanAnalyzeBtn,
+    tapShutter: labels.tapShutter ?? t.ingredientScanTapShutter,
     errorTitle: labels.errorTitle ?? t.frigySays,
-    errorAction: labels.errorAction ?? t.tryAgain,
+    errorAction: labels.errorAction ?? t.ingredientScanRetryAction,
   };
-  const ui = language === "fr"
-    ? {
-        close: t.close,
-        allPresent: "Tout est disponible - rien ne manque.",
-        openDevApp: "Ouvre l'app avec ",
-        localhostJoin: " sur ",
-        orGallery: " - ou utilise la galerie en bas.",
-        retry: "Reessayer",
-        gallery: "Galerie",
-        capture: "Prendre une photo",
-        captureSr: "Capture",
-      }
-    : language === "en"
-      ? {
-          close: t.close,
-          allPresent: "Everything is available - nothing is missing.",
-          openDevApp: "Open the app with ",
-          localhostJoin: " at ",
-          orGallery: " - or use the gallery below.",
-          retry: "Retry",
-          gallery: "Gallery",
-          capture: "Take photo",
-          captureSr: "Capture",
-        }
-      : {
-          close: t.close,
-          allPresent: "Alles vorhanden – nichts fehlt.",
-          openDevApp: "Öffne die App mit ",
-          localhostJoin: " unter ",
-          orGallery: " — oder Galerie unten.",
-          retry: "Erneut",
-          gallery: "Galerie",
-          capture: "Foto aufnehmen",
-          captureSr: "Aufnahme",
-        };
+  const ui = {
+    close: t.close,
+    allPresent: t.scanAllIngredientsPresent,
+    openDevApp: t.scanCameraDevHintOpen,
+    localhostJoin: t.scanCameraDevHintLocalhost,
+    orGallery: t.scanCameraDevHintOrGallery,
+    retry: t.tryAgain,
+    gallery: t.gallery,
+    capture: t.scanCapturePhoto,
+    captureSr: t.scanCaptureSr,
+  };
 
   useEffect(() => {
     return () => {
@@ -178,8 +160,8 @@ export function FrigyIngredientScanFlow({
 
   const beginAnalyze = (photos: PendingPhoto[]) => {
     if (photos.length === 0 || analyzing) return;
-    const last = photos[photos.length - 1];
-    setAnalysisPreviewUrl(last.previewUrl);
+    const first = photos[0];
+    setAnalysisPreviewUrl(first.previewUrl);
     const files = photos.map((p) => p.file);
     syncQueue(files);
     onConfirmAnalyze(files);
@@ -237,11 +219,13 @@ export function FrigyIngredientScanFlow({
   if (phase === "analyzing") {
     return (
       <FrigyScanAnalyzingStage
-        previewUrl={analysisPreviewUrl}
+        previewUrl={externalAnalyzingPreviewUrl ?? analysisPreviewUrl}
         title={L.analyzingTitle}
         subtitle={t.foodScanAiPowered}
         message={L.analyzingSubtitle}
         progress={scanProgress}
+        photoIndex={scanPhotoIndex}
+        photoTotal={scanPhotoTotal}
         onClose={onClose}
       />
     );
@@ -411,7 +395,7 @@ export function FrigyIngredientScanFlow({
       />
       <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
-      <header className="relative z-10 flex shrink-0 items-center px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="relative z-10 flex shrink-0 items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button
           type="button"
           onClick={onClose}
@@ -420,6 +404,13 @@ export function FrigyIngredientScanFlow({
         >
           <X className="h-5 w-5" />
         </button>
+        {pendingPhotos.length > 0 ? (
+          <span className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-[#75FBB2] backdrop-blur-sm">
+            {formatTranslation(t.scanPhotosQueued, { count: pendingPhotos.length })}
+          </span>
+        ) : (
+          <span className="w-10" />
+        )}
       </header>
 
       <div className="relative z-10 mx-4 flex flex-1 min-h-0 items-center justify-center pointer-events-none">

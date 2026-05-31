@@ -103,7 +103,7 @@ export function BirthdateSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [birthdateInput, setBirthdateInput] = useState("");
 
   useEffect(() => {
@@ -115,26 +115,11 @@ export function BirthdateSelectStep({
     setBirthdateInput(formatBirthdateValue(userData.birthdate));
   }, [userData.birthdate, userData.birthdateConfirmed]);
 
-  const title =
-    language === "de"
-      ? "Wann bist du geboren?"
-      : language === "fr"
-        ? "Quand es-tu né(e) ?"
-        : "When were you born?";
+  const title = t.onboardingBirthdateTitle;
 
   const placeholder = "16.05.2002";
-  const helperText =
-    language === "de"
-      ? "Format: TT.MM.JJJJ"
-      : language === "fr"
-        ? "Format : JJ.MM.AAAA"
-        : "Format: DD.MM.YYYY";
-  const errorText =
-    language === "de"
-      ? "Bitte gib ein gueltiges Geburtsdatum ein."
-      : language === "fr"
-        ? "Entre une date de naissance valide."
-        : "Enter a valid birth date.";
+  const helperText = t.onboardingBirthdateFormat;
+  const errorText = t.onboardingBirthdateError;
 
   const parsedBirthdate = parseBirthdateInput(birthdateInput);
   const canProceed = Boolean(parsedBirthdate);
@@ -170,7 +155,7 @@ export function BirthdateSelectStep({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="ZurÃ¼ck"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
               backgroundColor: "#FBFFFD",

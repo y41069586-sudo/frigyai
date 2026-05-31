@@ -28,33 +28,13 @@ export const WaterWidget = memo(function WaterWidget({
   onToggleExpand,
   className,
 }: WaterWidgetProps) {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const safeGoalMl = Math.min(goalMl, 2000);
   const currentMl = waterGlasses * ML_PER_GLASS;
   const goalLiters = safeGoalMl / 1000;
   const litersText = (currentMl / 1000).toFixed(2);
   const waterFillPct = safeGoalMl > 0 ? Math.min(100, (currentMl / safeGoalMl) * 100) : 0;
-  const copy = language === "fr"
-    ? {
-        title: "Eau",
-        empty: "Encore soif ?\nCommence avec\nun verre d'eau",
-        today: "Aujourd'hui",
-        addGlass: "Ajouter un verre",
-      }
-    : language === "en"
-      ? {
-          title: "Water",
-          empty: "Still thirsty?\nStart with\none glass of water",
-          today: "Today",
-          addGlass: "Add glass",
-        }
-      : {
-          title: "Wasser",
-          empty: "Noch durstig? Fang\nmit einem Glas\nWasser an",
-          today: "Heute",
-          addGlass: "Glas hinzufügen",
-        };
-  const emptyLines = copy.empty.split("\n");
+  const emptyLines = t.dashboardWaterEmpty.split("\n");
 
   return (
     <motion.div
@@ -83,7 +63,7 @@ export const WaterWidget = memo(function WaterWidget({
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
             <Droplet className="h-4 w-4 fill-sky-500 text-sky-500" />
           </span>
-          <h3 className="min-w-0 text-[14px] font-semibold tracking-[-0.03em] text-foreground">{copy.title}</h3>
+          <h3 className="min-w-0 text-[14px] font-semibold tracking-[-0.03em] text-foreground">{t.water}</h3>
         </div>
 
         <div className="flex w-full items-center justify-center px-1 py-1 text-center">
@@ -112,7 +92,7 @@ export const WaterWidget = memo(function WaterWidget({
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
               >
-                <p className="text-[11px] font-medium text-muted-foreground">{copy.today}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">{t.today}</p>
                 <p className="mt-1 text-[22px] font-semibold leading-none tracking-[-0.04em] text-foreground">
                   {litersText} <span className="text-[15px] text-muted-foreground">/ {goalLiters.toFixed(1)} l</span>
                 </p>
@@ -137,7 +117,7 @@ export const WaterWidget = memo(function WaterWidget({
               }}
               className="mx-auto flex h-9 w-full min-w-0 items-center justify-center rounded-2xl border-2 border-sky-300 bg-white/45 px-1 text-[9px] font-medium leading-none whitespace-nowrap text-sky-900 transition-colors active:bg-sky-50"
             >
-              <span className="whitespace-nowrap">{copy.addGlass}</span>
+              <span className="whitespace-nowrap">{t.addGlass}</span>
             </motion.button>
           ) : (
             <motion.div
