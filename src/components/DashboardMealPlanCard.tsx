@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { FRIGY_STORAGE_UPDATED } from '@/lib/frigyStorageSync';
 
 interface Meal {
   type?: string;
@@ -51,19 +52,33 @@ export const DashboardMealPlanCard = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('weeklyMealPlan');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as DayPlan[];
-        setMealPlan(parsed);
-        const currentDayIndex = getCurrentDayIndex();
-        if (parsed[currentDayIndex]) {
-          setTodayPlan(parsed[currentDayIndex]);
+    const load = () => {
+      const saved = localStorage.getItem('weeklyMealPlan');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as DayPlan[];
+          setMealPlan(parsed);
+          const currentDayIndex = getCurrentDayIndex();
+          if (parsed[currentDayIndex]) {
+            setTodayPlan(parsed[currentDayIndex]);
+          } else {
+            setTodayPlan(null);
+          }
+        } catch (e) {
+          console.error('Failed to load meal plan preview');
         }
-      } catch (e) {
-        console.error('Failed to load meal plan preview');
+      } else {
+        setMealPlan([]);
+        setTodayPlan(null);
       }
-    }
+    };
+
+    load();
+    window.addEventListener(FRIGY_STORAGE_UPDATED, load);
+    return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, load);
+  }, []);
+
+  useEffect(() => {
     setTimeout(() => setIsVisible(true), 100);
   }, []);
 

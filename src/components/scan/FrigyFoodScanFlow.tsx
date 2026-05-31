@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X, ImagePlus, Camera, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,18 @@ export function FrigyFoodScanFlow({
   const captureLockRef = useRef(false);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
 
+  const resolvedPhase: FoodScanPhase = useMemo(
+    () =>
+      analysisErrorMessage
+        ? "error"
+        : successResult
+          ? "success"
+          : analyzing || phase === "analyzing"
+            ? "analyzing"
+            : phase,
+    [analysisErrorMessage, successResult, analyzing, phase],
+  );
+
   const {
     setVideoRef,
     status: cameraStatus,
@@ -56,7 +68,7 @@ export function FrigyFoodScanFlow({
     capturePhoto,
     retry: retryCamera,
     isLive,
-  } = useIngredientCamera({ active: open && phase === "capture" });
+  } = useIngredientCamera({ active: open && resolvedPhase === "capture" });
 
   const showCameraHint =
     !previewReady &&
@@ -97,7 +109,7 @@ export function FrigyFoodScanFlow({
   };
 
   const handleShutterPress = async () => {
-    if (captureLockRef.current || analyzing || phase !== "capture") return;
+    if (captureLockRef.current || analyzing || resolvedPhase !== "capture") return;
 
     captureLockRef.current = true;
     try {
@@ -115,7 +127,7 @@ export function FrigyFoodScanFlow({
   };
 
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (analyzing || phase !== "capture") return;
+    if (analyzing || resolvedPhase !== "capture") return;
     const file = e.target.files?.[0];
     if (file) beginAnalysis(file);
     e.target.value = "";
@@ -123,7 +135,7 @@ export function FrigyFoodScanFlow({
 
   const activePreviewImage = previewImage ?? capturedPreviewUrl;
 
-  if (phase === "success" && successResult) {
+  if (resolvedPhase === "success" && successResult) {
     return (
       <FrigyScanSuccessStage
         result={successResult}
@@ -133,7 +145,7 @@ export function FrigyFoodScanFlow({
     );
   }
 
-  if (phase === "error" && analysisErrorMessage) {
+  if (resolvedPhase === "error" && analysisErrorMessage) {
     return (
       <FrigyScanFailureStage
         title={t.frigySays}
@@ -148,7 +160,7 @@ export function FrigyFoodScanFlow({
     );
   }
 
-  if (phase === "analyzing") {
+  if (resolvedPhase === "analyzing") {
     return (
       <FrigyScanAnalyzingStage
         previewUrl={activePreviewImage}

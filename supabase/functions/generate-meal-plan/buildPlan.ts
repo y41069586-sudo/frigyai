@@ -102,5 +102,16 @@ export async function buildPlan(
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
+
+  if (!Array.isArray(finalPlan) || finalPlan.length < 7) {
+    console.warn("[MEAL-PLAN] Plan shorter than 7 days — rebuilding from fallback");
+    const fallback = generateFallbackDraft(input, banned);
+    finalPlan =
+      finishPlan(fallback, input.targets, input.mealsPerDay, input.lang) ??
+      guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+    finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
+    usedAi = false;
+  }
+
   return { plan: finalPlan, usedAi, repairAttempts };
 }

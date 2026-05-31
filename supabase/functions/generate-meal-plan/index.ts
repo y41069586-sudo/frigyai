@@ -232,9 +232,11 @@ export function getOpenAIMealPlanModel(): string {
   return Deno.env.get("OPENAI_MEAL_PLAN_MODEL")?.trim() || "gpt-4o";
 }
 
-/** Max output tokens for one weekly plan (gpt-4o supports 16k). */
-export const OPENAI_PLAN_MAX_TOKENS = 16384;
+/** Max output tokens — lower keeps responses fast enough for Edge Function limits. */
+export const OPENAI_PLAN_MAX_TOKENS = 8192;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
+/** Abort OpenAI fetch before Supabase Edge wall-clock timeout; triggers template fallback. */
+export const OPENAI_FETCH_TIMEOUT_MS = 50_000;
 
 // ----- http.ts -----
 export const corsHeaders = {
@@ -1674,22 +1676,33 @@ export function fallbackPlan(params: {
 }
 
 // ----- openai.ts -----
+const coerceNumber = z.union([z.number(), z.string()]).transform((v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+});
+
+const coerceAllergenTag = z.union([z.string(), z.number()]).transform((v) => {
+  const s = String(v).trim().toLowerCase();
+  const hit = ALLERGEN_TAG_IDS.find((id) => id.toLowerCase() === s);
+  return hit ?? "none";
+});
+
 const aiIngredientSchema = z.object({
-  name: z.string().min(1),
-  amount: z.string(),
-  price: z.number(),
+  name: z.union([z.string(), z.number()]).transform((v) => String(v).trim()).pipe(z.string().min(1)),
+  amount: z.union([z.string(), z.number()]).transform((v) => String(v).trim() || "—"),
+  price: coerceNumber,
 });
 
 const aiMealSchema = z.object({
-  name: z.string().min(1),
-  type: z.string(),
-  protein: z.number(),
-  carbs: z.number(),
-  fat: z.number(),
-  prepTime: z.number(),
-  ingredients: z.array(aiIngredientSchema),
-  instructions: z.array(z.string()),
-  allergenTags: z.array(z.enum(ALLERGEN_TAG_IDS)),
+  name: z.union([z.string(), z.number()]).transform((v) => String(v).trim()).pipe(z.string().min(1)),
+  type: z.union([z.string(), z.number()]).transform((v) => String(v).trim() || "Meal"),
+  protein: coerceNumber,
+  carbs: coerceNumber,
+  fat: coerceNumber,
+  prepTime: coerceNumber,
+  ingredients: z.array(aiIngredientSchema).default([]),
+  instructions: z.array(z.union([z.string(), z.number()]).transform((v) => String(v))).default([]),
+  allergenTags: z.array(coerceAllergenTag).default(["none"]),
 });
 
 const aiDaySchema = z.object({
@@ -1814,23 +1827,37 @@ async function callOpenAIOnce(params: {
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: getOpenAIMealPlanModel(),
-      temperature: regen ? 0.65 : 0.32,
-      max_tokens: OPENAI_PLAN_MAX_TOKENS,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
-        },
-        { role: "user", content: user },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), OPENAI_FETCH_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: getOpenAIMealPlanModel(),
+        temperature: regen ? 0.65 : 0.32,
+        max_tokens: OPENAI_PLAN_MAX_TOKENS,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
+          },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("OpenAI timeout — using template fallback");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
@@ -1838,7 +1865,9 @@ async function callOpenAIOnce(params: {
   const messageContent = data.choices?.[0]?.message?.content;
   const finishReason = data.choices?.[0]?.finish_reason;
   if (messageContent == null || messageContent === "") throw new Error("Empty OpenAI response");
-  if (finishReason === "length") throw new Error("OpenAI response truncated");
+  if (finishReason === "length") {
+    console.warn("[MEAL-PLAN] OpenAI response truncated — attempting partial parse");
+  }
 
   const raw = parseOpenAiMealPlanContent(messageContent);
 
@@ -2244,6 +2273,17 @@ export async function buildPlan(
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
+
+  if (!Array.isArray(finalPlan) || finalPlan.length < 7) {
+    console.warn("[MEAL-PLAN] Plan shorter than 7 days — rebuilding from fallback");
+    const fallback = generateFallbackDraft(input, banned);
+    finalPlan =
+      finishPlan(fallback, input.targets, input.mealsPerDay, input.lang) ??
+      guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+    finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
+    usedAi = false;
+  }
+
   return { plan: finalPlan, usedAi, repairAttempts };
 }
 

@@ -90,33 +90,40 @@ function balanceDayMacro(meals: MacroMeal[], macro: "protein" | "carbs" | "fat",
   }
 }
 
-function validateSyncedDay(meals: MacroMeal[], targets: DailyMacroTargets) {
-  const totals = sumMealMacros(meals);
-  const expectedCalories = macroCaloriesFromGrams(
-    targets.dailyProtein,
-    targets.dailyCarbs,
-    targets.dailyFat,
-  );
-
-  if (
-    totals.protein !== targets.dailyProtein ||
-    totals.carbs !== targets.dailyCarbs ||
-    totals.fat !== targets.dailyFat ||
-    totals.calories !== expectedCalories
-  ) {
-    throw new Error("Meal plan macros out of sync");
-  }
-
-  for (const meal of meals) {
-    const expectedMealCalories = macroCaloriesFromGrams(
-      Number(meal.protein) || 0,
-      Number(meal.carbs) || 0,
-      Number(meal.fat) || 0,
+/** Nudge last meal so daily P/C/F totals match targets (never throw). */
+function correctDayMacroDrift(meals: MacroMeal[], targets: DailyMacroTargets): MacroMeal[] {
+  if (!meals.length) return meals;
+  let adjusted = meals.map((m) => recalcMealCalories(m));
+  const sum = () => sumMealMacros(adjusted);
+  let totals = sum();
+  const dp = targets.dailyProtein - totals.protein;
+  const dc = targets.dailyCarbs - totals.carbs;
+  const df = targets.dailyFat - totals.fat;
+  if (dp !== 0 || dc !== 0 || df !== 0) {
+    const lastIdx = adjusted.length - 1;
+    const last = adjusted[lastIdx]!;
+    adjusted[lastIdx] = recalcMealCalories({
+      ...last,
+      protein: Math.max(0, (Number(last.protein) || 0) + dp),
+      carbs: Math.max(0, (Number(last.carbs) || 0) + dc),
+      fat: Math.max(0, (Number(last.fat) || 0) + df),
+    });
+    totals = sum();
+    const expectedKcal = macroCaloriesFromGrams(
+      targets.dailyProtein,
+      targets.dailyCarbs,
+      targets.dailyFat,
     );
-    if ((Number(meal.calories) || 0) !== expectedMealCalories) {
-      throw new Error("Meal calories do not match macros");
+    if (
+      totals.protein !== targets.dailyProtein ||
+      totals.carbs !== targets.dailyCarbs ||
+      totals.fat !== targets.dailyFat ||
+      totals.calories !== expectedKcal
+    ) {
+      console.warn("[MEAL-PLAN] Macro drift after client sync", { totals, targets });
     }
   }
+  return adjusted;
 }
 
 /**
@@ -154,9 +161,20 @@ export function syncDayToTargets<T extends MacroDay>(day: T, rawTargets: DailyMa
   balanceDayMacro(meals, "protein", targets.dailyProtein);
   balanceDayMacro(meals, "carbs", targets.dailyCarbs);
   balanceDayMacro(meals, "fat", targets.dailyFat);
-  validateSyncedDay(meals, targets);
+  meals = correctDayMacroDrift(meals, targets);
 
   return { ...day, meals } as T;
+}
+
+/**
+ * Server plans are already macro-synced — only recalc kcal from P/C/F per meal.
+ * Avoids double-sync throws that blocked Wochenplan save.
+ */
+export function normalizeMealPlanMacros<T extends MacroDay>(mealPlan: T[]): T[] {
+  return mealPlan.map((day) => ({
+    ...day,
+    meals: (day.meals || []).map((m) => recalcMealCalories(normalizeMealMacros(m))),
+  }));
 }
 
 export function syncMealPlanToTargets<T extends MacroDay>(

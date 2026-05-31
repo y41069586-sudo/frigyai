@@ -63,6 +63,8 @@ export function getOpenAIMealPlanModel(): string {
   return Deno.env.get("OPENAI_MEAL_PLAN_MODEL")?.trim() || "gpt-4o";
 }
 
-/** Max output tokens for one weekly plan (gpt-4o supports 16k). */
-export const OPENAI_PLAN_MAX_TOKENS = 16384;
+/** Max output tokens — lower keeps responses fast enough for Edge Function limits. */
+export const OPENAI_PLAN_MAX_TOKENS = 8192;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
+/** Abort OpenAI fetch before Supabase Edge wall-clock timeout; triggers template fallback. */
+export const OPENAI_FETCH_TIMEOUT_MS = 50_000;

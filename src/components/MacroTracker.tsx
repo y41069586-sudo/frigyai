@@ -41,6 +41,50 @@ import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 
 const ANALYZE_FOOD_TIMEOUT_MS = 45_000;
 
+async function fileToCompressedBase64(file: File, maxEdge = 1280): Promise<string | null> {
+  const blobUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("image_load_failed"));
+      el.src = blobUrl;
+    });
+    const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight, 1));
+    const width = Math.max(1, Math.round(img.naturalWidth * scale));
+    const height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, width, height);
+    const dataUrl = await new Promise<string | null>((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(null);
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () =>
+            resolve(typeof reader.result === "string" ? reader.result : null);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        0.82,
+      );
+    });
+    if (!dataUrl) return null;
+    return dataUrl.split(",")[1] || null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
+}
+
 async function invokeAnalyzeFood(body: { food?: string; imageBase64?: string }) {
   const timeoutPromise = new Promise<never>((_, reject) => {
     window.setTimeout(() => {
@@ -48,8 +92,15 @@ async function invokeAnalyzeFood(body: { food?: string; imageBase64?: string }) 
     }, ANALYZE_FOOD_TIMEOUT_MS);
   });
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const headers = session?.access_token
+    ? { Authorization: `Bearer ${session.access_token}` }
+    : undefined;
+
   return Promise.race([
-    supabase.functions.invoke('analyze-food', { body }),
+    supabase.functions.invoke('analyze-food', { body, headers }),
     timeoutPromise,
   ]) as Promise<{
     data: {
@@ -495,6 +546,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const analyzeFood = async (food: string, imageBase64?: string, mealType: MealFocusKey | null = mealPromptKey) => {
     setIsAnalyzing(true);
     setFoodScanError(null);
+    let scanFlowSettled = false;
     if (imageBase64) {
       setFoodScanPhase('analyzing');
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
@@ -538,7 +590,24 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         throw new Error(t.foodNotFound);
       }
 
-      // Save to database with image_url
+      const scanResult = {
+        name: data.name,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat,
+      };
+
+      if (imageBase64) {
+        setLastAnalyzedFood(scanResult);
+        setFoodScanError(null);
+        setFoodScanSuccess(scanResult);
+        setFoodScanPhase('success');
+        scanFlowSettled = true;
+        playSuccess();
+      }
+
+      // Save to database with image_url (after UI update so scan flow never hangs)
       let savedEntry;
       try {
         savedEntry = await addDbEntry({
@@ -550,13 +619,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           meal_type: mealType ?? undefined,
           image_url: data.image_url,
         });
-      } catch (dbError: any) {
+      } catch (dbError: unknown) {
         console.error('Database save error:', dbError);
-        // If database save fails, still continue with local state
         savedEntry = null;
       }
 
-      // Also update local state for immediate UI feedback
       const newEntry: FoodEntry = {
         id: savedEntry?.id || Date.now().toString(),
         name: data.name,
@@ -572,20 +639,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
 
-      if (imageBase64) {
-        const result = {
-          name: data.name,
-          calories: data.calories,
-          protein: data.protein,
-          carbs: data.carbs,
-          fat: data.fat,
-        };
-        setLastAnalyzedFood(result);
-        setFoodScanError(null);
-        setFoodScanSuccess(result);
-        setFoodScanPhase('success');
-        playSuccess();
-      } else {
+      if (!imageBase64) {
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
         playClick();
       }
@@ -607,6 +661,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           timeoutMsg ?? (looksLikeNotFood ? t.foodNotFoodHint : errorMsg),
         );
         setFoodScanPhase('error');
+        scanFlowSettled = true;
       } else {
         toast({
           title: t.foodNotFound || t.error,
@@ -621,6 +676,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setShowFoodCamera(false);
         setFoodScanPhase('capture');
         notifyOverlayOpen(false);
+        return;
+      }
+      if (!scanFlowSettled) {
+        setFoodScanError((prev) => prev ?? t.couldNotAnalyzeFood);
+        setFoodScanPhase('error');
       }
     }
   };
@@ -676,27 +736,26 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const processCameraFile = (file: File) => {
+    setLogMealPanelOpen(false);
+    setShowFoodCamera(true);
+    notifyOverlayOpen(true);
     setFoodScanPhase('analyzing');
     setIsAnalyzing(true);
     setFoodScanError(null);
     setFoodScanSuccess(null);
-    const reader = new FileReader();
-    reader.onerror = () => {
-      setIsAnalyzing(false);
-      setFoodScanError(t.foodPhotoReadError);
-      setFoodScanPhase('error');
-    };
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      if (base64) {
-        void analyzeFood("", base64, mealPromptKey);
+    setAnalyzingImage(URL.createObjectURL(file));
+
+    void (async () => {
+      const base64 = await fileToCompressedBase64(file);
+      if (!base64) {
+        setIsAnalyzing(false);
+        setFoodScanError(t.foodPhotoReadError);
+        setFoodScanPhase('error');
         return;
       }
-      setIsAnalyzing(false);
-      setFoodScanError(t.foodPhotoProcessError);
-      setFoodScanPhase('error');
-    };
-    reader.readAsDataURL(file);
+      setAnalyzingImage(`data:image/jpeg;base64,${base64}`);
+      await analyzeFood("", base64, mealPromptKey);
+    })();
   };
 
   const handleBarcodeClick = () => {
