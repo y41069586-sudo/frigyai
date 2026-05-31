@@ -12,10 +12,11 @@ import {
   type FrigyScanSuccessData,
 } from "./FrigyScanStates";
 
-type Phase = "capture" | "analyzing" | "error" | "success";
+export type FoodScanPhase = "capture" | "analyzing" | "error" | "success";
 
 type FrigyFoodScanFlowProps = {
   open: boolean;
+  phase: FoodScanPhase;
   analyzing: boolean;
   analyzingLabel?: string;
   previewImage?: string | null;
@@ -25,10 +26,12 @@ type FrigyFoodScanFlowProps = {
   onCapture: (file: File) => void;
   onRetryAfterError?: () => void;
   onSuccessDismiss?: () => void;
+  onScanAnotherAfterSuccess?: () => void;
 };
 
 export function FrigyFoodScanFlow({
   open,
+  phase,
   analyzing,
   analyzingLabel,
   previewImage,
@@ -38,66 +41,12 @@ export function FrigyFoodScanFlow({
   onCapture,
   onRetryAfterError,
   onSuccessDismiss,
+  onScanAnotherAfterSuccess,
 }: FrigyFoodScanFlowProps) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
+  const captureLockRef = useRef(false);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
-  const [pendingAnalysis, setPendingAnalysis] = useState(false);
-  const wasAnalyzingRef = useRef(false);
-
-  const copy =
-    language === "fr"
-      ? {
-          analyzingLabel: "Analyse de votre nourriture...",
-          analyzingTitle: "L'assiette est scannée.",
-          analyzingSubtitle: "Propulsé par l'IA ✨",
-          errorTitle: "Frigy dit",
-          retryLabel: "Essayer un autre plat",
-          openDevApp: "Ouvre l'app avec ",
-          localhostJoin: " sur ",
-          orGallery: " - ou utilise la galerie en bas.",
-          retry: "Reessayer",
-          gallery: "Galerie",
-          capture: "Prendre une photo",
-          captureSr: "Capture",
-        }
-      : language === "en"
-        ? {
-            analyzingLabel: "Analyzing your food...",
-            analyzingTitle: "Plate is being scanned.",
-            analyzingSubtitle: "AI-powered ✨",
-            errorTitle: "Frigy says",
-            retryLabel: "Try another dish",
-            openDevApp: "Open the app with ",
-            localhostJoin: " at ",
-            orGallery: " - or use the gallery below.",
-            retry: "Retry",
-            gallery: "Gallery",
-            capture: "Take photo",
-            captureSr: "Capture",
-          }
-        : {
-            analyzingLabel: "Essen wird analysiert…",
-            analyzingTitle: "Teller wird gescannt.",
-            analyzingSubtitle: "KI-gestützt ✨",
-            errorTitle: "Frigy sagt",
-            retryLabel: "Anderes Gericht versuchen",
-            openDevApp: "Öffne die App mit ",
-            localhostJoin: " unter ",
-            orGallery: " — oder Galerie unten.",
-            retry: "Erneut",
-            gallery: "Galerie",
-            capture: "Foto aufnehmen",
-            captureSr: "Aufnahme",
-          };
-
-  const phase: Phase = successResult
-    ? "success"
-    : analysisErrorMessage
-      ? "error"
-      : analyzing || pendingAnalysis
-        ? "analyzing"
-        : "capture";
 
   const {
     setVideoRef,
@@ -115,20 +64,12 @@ export function FrigyFoodScanFlow({
 
   useEffect(() => {
     if (!open) {
-      setPendingAnalysis(false);
       if (capturedPreviewUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(capturedPreviewUrl);
       }
       setCapturedPreviewUrl(null);
     }
   }, [capturedPreviewUrl, open]);
-
-  useEffect(() => {
-    if (wasAnalyzingRef.current && !analyzing) {
-      setPendingAnalysis(false);
-    }
-    wasAnalyzingRef.current = analyzing;
-  }, [analyzing]);
 
   useEffect(() => {
     return () => {
@@ -145,7 +86,6 @@ export function FrigyFoodScanFlow({
       URL.revokeObjectURL(capturedPreviewUrl);
     }
     setCapturedPreviewUrl(null);
-    setPendingAnalysis(false);
   };
 
   const beginAnalysis = (file: File) => {
@@ -153,22 +93,29 @@ export function FrigyFoodScanFlow({
       URL.revokeObjectURL(capturedPreviewUrl);
     }
     setCapturedPreviewUrl(URL.createObjectURL(file));
-    setPendingAnalysis(true);
     onCapture(file);
   };
 
   const handleShutterPress = async () => {
-    if (isLive) {
-      const file = await capturePhoto();
-      if (file) {
-        beginAnalysis(file);
-        return;
+    if (captureLockRef.current || analyzing || phase !== "capture") return;
+
+    captureLockRef.current = true;
+    try {
+      if (isLive) {
+        const file = await capturePhoto();
+        if (file) {
+          beginAnalysis(file);
+          return;
+        }
       }
+      await retryCamera();
+    } finally {
+      captureLockRef.current = false;
     }
-    await retryCamera();
   };
 
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (analyzing || phase !== "capture") return;
     const file = e.target.files?.[0];
     if (file) beginAnalysis(file);
     e.target.value = "";
@@ -181,6 +128,7 @@ export function FrigyFoodScanFlow({
       <FrigyScanSuccessStage
         result={successResult}
         onDismiss={() => onSuccessDismiss?.()}
+        onScanAnother={onScanAnotherAfterSuccess}
       />
     );
   }
@@ -188,9 +136,9 @@ export function FrigyFoodScanFlow({
   if (phase === "error" && analysisErrorMessage) {
     return (
       <FrigyScanFailureStage
-        title={copy.errorTitle}
+        title={t.frigySays}
         message={analysisErrorMessage}
-        actionLabel={copy.retryLabel}
+        actionLabel={t.foodScanTryAnotherDish}
         onAction={() => {
           resetCapturedPreview();
           onRetryAfterError?.();
@@ -204,9 +152,9 @@ export function FrigyFoodScanFlow({
     return (
       <FrigyScanAnalyzingStage
         previewUrl={activePreviewImage}
-        title={copy.analyzingTitle}
-        subtitle={copy.analyzingSubtitle}
-        message={analyzingLabel ?? copy.analyzingLabel}
+        title={t.foodScanPlateTitle}
+        subtitle={t.foodScanAiPowered}
+        message={analyzingLabel ?? t.analyzingFood}
         onClose={onClose}
       />
     );
@@ -253,11 +201,11 @@ export function FrigyFoodScanFlow({
             <Camera className="mx-auto mb-3 h-8 w-8 text-[#75FBB2]" />
             <p className="text-sm font-medium text-white/90">{cameraError}</p>
             <p className="mt-2 text-xs text-white/55">
-              {copy.openDevApp}
+              {t.cameraOpenDevHint}
               <span className="text-[#75FBB2]">npm run dev</span>
-              {copy.localhostJoin}
+              {t.cameraLocalhostHint}
               <span className="text-[#75FBB2]">http://localhost:8080</span>
-              {copy.orGallery}
+              {t.cameraGalleryHint}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button
@@ -268,7 +216,7 @@ export function FrigyFoodScanFlow({
                 onClick={() => void retryCamera()}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                {copy.retry}
+                {t.tryAgain}
               </Button>
               <Button
                 type="button"
@@ -276,7 +224,7 @@ export function FrigyFoodScanFlow({
                 className="rounded-full bg-[#75FBB2] text-[#0a1f14]"
                 onClick={() => galleryRef.current?.click()}
               >
-                {copy.gallery}
+                {t.gallery}
               </Button>
             </div>
           </div>
@@ -316,21 +264,24 @@ export function FrigyFoodScanFlow({
             type="button"
             whileTap={{ scale: 0.94 }}
             onClick={() => void handleShutterPress()}
+            disabled={analyzing}
             className={cn(
               "relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white shadow-[0_8px_32px_rgba(110,240,168,0.45)]",
               "ring-[3px] ring-[#75FBB2] ring-offset-4 ring-offset-black/80",
+              analyzing && "opacity-60",
             )}
-            aria-label={copy.capture}
+            aria-label={t.foodScanPlateTitle}
           >
-            <span className="sr-only">{copy.captureSr}</span>
+            <span className="sr-only">{t.foodScanPlateTitle}</span>
           </motion.button>
 
           <motion.button
             type="button"
             whileTap={{ scale: 0.95 }}
             onClick={() => galleryRef.current?.click()}
-            className="absolute bottom-1 right-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20 backdrop-blur-md"
-            aria-label={copy.gallery}
+            disabled={analyzing}
+            className="absolute bottom-1 right-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20 backdrop-blur-md disabled:opacity-60"
+            aria-label={t.gallery}
           >
             <ImagePlus className="h-6 w-6 text-[#75FBB2]" />
           </motion.button>

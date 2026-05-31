@@ -57,3 +57,12 @@ export const KCAL_MACRO_TOLERANCE = 50;
 export const RECONCILE_RATIO_MIN = 0.85;
 export const RECONCILE_RATIO_MAX = 1.15;
 export const MACRO_CAPS = { protein: 350, carbs: 600, fat: 250 };
+
+/** Default: gpt-4o (override via Edge secret OPENAI_MEAL_PLAN_MODEL). */
+export function getOpenAIMealPlanModel(): string {
+  return Deno.env.get("OPENAI_MEAL_PLAN_MODEL")?.trim() || "gpt-4o";
+}
+
+/** Max output tokens for one weekly plan (gpt-4o supports 16k). */
+export const OPENAI_PLAN_MAX_TOKENS = 16384;
+export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;

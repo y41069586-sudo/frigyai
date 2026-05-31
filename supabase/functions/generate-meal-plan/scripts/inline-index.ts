@@ -46,12 +46,11 @@ function processModule(name: string): string {
 }
 
 const header = `// generate-meal-plan — single file for Supabase Dashboard deploy.
-// Regenerate: deno run --allow-read --allow-write scripts/inline-index.ts
+// Regenerate: node scripts/inline-index.mjs  (or: deno run --allow-read --allow-write scripts/inline-index.ts)
 // Edit auth.ts, macros.ts, … then run the script; paste/deploy only this index.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://esm.sh/zod@3.24.1";
-import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema@3.23.5?target=deno";
 
 /// <reference lib="deno.ns" />
 

@@ -11,12 +11,9 @@ import { TrackerWidget } from "./TrackerWidget";
 import { TrackerWidgetCarousel } from "./TrackerWidgetCarousel";
 import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
 import { WaterWidget } from "./WaterWidget";
-import { StepsWidget } from "./StepsWidget";
 import { AiChatPromptWidget } from "./AiChatPromptWidget";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { confettiBurst } from "@/lib/mobileEffects";
-import { getLocalDateISO } from "@/lib/localDate";
-
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 
 const ML_PER_GLASS = ML_PER_WATER_GLASS;
@@ -36,8 +33,6 @@ export type HealthDashboardProps = {
   /** Tagesziel in ml (wie auf der Wasser-Seite, Standard 2000) */
   waterGoalMl?: number;
   onWaterGlassesChange: (glasses: number) => void;
-  steps?: number;
-  stepsGoal?: number;
   /** Premium: Schnellfrage unter „Heute eintragen“, öffnet den KI-Chat */
   aiChatEnabled?: boolean;
   onAiChatPromptSubmit?: (message: string) => void;
@@ -56,8 +51,6 @@ export function HealthDashboard({
   waterGlasses,
   waterGoalMl = 2000,
   onWaterGlassesChange,
-  steps: stepsProp,
-  stepsGoal = 10_000,
   aiChatEnabled = false,
   onAiChatPromptSubmit,
 }: HealthDashboardProps) {
@@ -67,14 +60,6 @@ export function HealthDashboard({
   const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
     ? (language as "de" | "en" | "fr")
     : "de";
-
-  const stepsDemo = useMemo(() => {
-    if (stepsProp != null) return stepsProp;
-    const key = `frigy_steps_${getLocalDateISO()}`;
-    const raw = localStorage.getItem(key);
-    if (raw != null) return parseInt(raw, 10) || 0;
-    return 0;
-  }, [stepsProp, storageVersion]);
 
   const weekPreview = useMemo(() => getWeekPlanPreviewFromStorage(lng), [storageVersion, lng]);
   const currentWaterMl = waterGlasses * ML_PER_GLASS;
@@ -119,7 +104,6 @@ export function HealthDashboard({
               targetFat={targetFat}
               waterMl={currentWaterMl}
               waterGoalMl={waterGoalMl}
-              steps={stepsDemo}
               loggedMealTypes={loggedMealTypes}
               onAddMeal={(slot) => notifyOpenLogMeal(slot)}
               onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
@@ -135,20 +119,14 @@ export function HealthDashboard({
           onOpenPlan={() => navigate(mealPlansUrlForToday())}
         />
 
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <WaterWidget
-            delay={0.14}
-            waterGlasses={waterGlasses}
-            goalMl={waterGoalMl}
-            onAdd250ml={handleAddWater250}
-            onSubtract250ml={handleSubtractWater250}
-          />
-          <StepsWidget
-            delay={0.16}
-            steps={stepsDemo}
-            goal={stepsGoal}
-          />
-        </div>
+        <WaterWidget
+          delay={0.14}
+          waterGlasses={waterGlasses}
+          goalMl={waterGoalMl}
+          onAdd250ml={handleAddWater250}
+          onSubtract250ml={handleSubtractWater250}
+          className="min-h-[200px]"
+        />
 
         {aiChatEnabled && onAiChatPromptSubmit && (
           <AiChatPromptWidget delay={0.18} onSubmit={onAiChatPromptSubmit} />

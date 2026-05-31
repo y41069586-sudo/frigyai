@@ -273,13 +273,7 @@ const ScanPage = () => {
           description: `${files.length} Foto${files.length > 1 ? "s" : ""} analysiert.`,
         });
       } else {
-        setAnalysisErrorMessage(
-          language === "de"
-            ? "Hmm, ich konnte keine Zutaten erkennen. Versuchen wir es nochmal mit einem klareren Foto, okay?"
-            : language === "fr"
-              ? "Hmm, je n'ai pas reussi a reconnaitre les ingredients. On reessaie avec une photo plus nette ?"
-              : "Hmm, I could not recognize any ingredients. Let's try again with a clearer photo, okay?",
-        );
+        setAnalysisErrorMessage(t.ingredientsNotRecognizedHint);
       }
     } finally {
       window.clearInterval(progressInterval);
@@ -339,16 +333,16 @@ const ScanPage = () => {
         setCaptureMode(true);
       }}
       labels={{
-        analyzingTitle: language === "de" ? "Zutaten werden gescannt." : language === "fr" ? "Les ingredients sont scannes." : "Ingredients are being scanned.",
-        analyzingSubtitle: t.aiAnalyzingIngredients ?? "Frigy erkennt deine Vorräte…",
-        present: "Vorhanden",
-        missing: "Fehlend",
-        createList: "Einkaufsliste erstellen",
-        addPhoto: "Foto hinzufügen",
-        finishScan: "Fertig – analysieren",
-        tapShutter: "Frigy-Kamera: unten aufnehmen, rechts Galerie",
-        errorTitle: "Frigy sagt",
-        errorAction: language === "de" ? "Zutaten nochmal scannen" : language === "fr" ? "Scanner encore" : "Scan again",
+        analyzingTitle: t.ingredientScanAnalyzingTitle,
+        analyzingSubtitle: t.aiAnalyzingIngredients,
+        present: t.ingredientsPresentLabel,
+        missing: t.ingredientsMissingLabel,
+        createList: t.createShoppingListBtn,
+        addPhoto: t.addPhotoBtn,
+        finishScan: t.finishScanAnalyzeBtn,
+        tapShutter: t.ingredientScanTapShutter,
+        errorTitle: t.frigySays,
+        errorAction: t.ingredientScanRetryAction,
       }}
     />
   );

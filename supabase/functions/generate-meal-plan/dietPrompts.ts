@@ -4,7 +4,7 @@ import { resolveDietKey } from "./dietPools.ts";
 const CUISINE: Record<Lang, Record<string, string>> = {
   de: {
     balanced:
-      "ERNÄHRUNGSFORM: Ausgewogen. Erlaubt: Fleisch, Fisch, Eier, Milch, Vollkorn. Abwechslungsreiche Alltagsküche.",
+      "ERNÄHRUNGSFORM: Ausgewogen. Normale internationale Alltagsküche (Pasta, Reis, Hähnchen, Fisch, Salat, Eier, Bowl).",
     vegan:
       "ERNÄHRUNGSFORM: VEGAN (Pflicht). KEIN Fleisch, Fisch, Eier, Milch, Honig, Gelatine. Nur pflanzlich: Tofu, Tempeh, Linsen, Kichererbsen, Hülsenfrüchte, Gemüse, Nüsse, Hafer, pflanzliche Milch.",
     vegetarian:
@@ -17,7 +17,7 @@ const CUISINE: Record<Lang, Record<string, string>> = {
       "ERNÄHRUNGSFORM: PALEO. KEIN Getreide, KEINE Hülsenfrüchte, KEINE Milchprodukte. Fleisch, Fisch, Eier, Gemüse, Nüsse, Obst.",
   },
   en: {
-    balanced: "DIET: Balanced. Meat, fish, eggs, dairy, whole grains allowed.",
+    balanced: "DIET: Balanced. Normal international everyday food (pasta, rice, chicken, fish, salad, eggs).",
     vegan: "DIET: VEGAN (mandatory). NO meat, fish, eggs, dairy, honey. Plant-only proteins and ingredients.",
     vegetarian: "DIET: VEGETARIAN (mandatory). NO meat or fish. Eggs and dairy allowed.",
     keto: "DIET: KETO (mandatory). NO pasta, bread, rice, potatoes, cereal, sugar. High fat, moderate protein, very low carb.",
@@ -25,7 +25,7 @@ const CUISINE: Record<Lang, Record<string, string>> = {
     paleo: "DIET: PALEO. NO grains, legumes, or dairy. Meat, fish, eggs, vegetables, nuts.",
   },
   fr: {
-    balanced: "RÉGIME: Équilibré. Viande, poisson, œufs, produits laitiers autorisés.",
+    balanced: "RÉGIME: Équilibré. Cuisine internationale du quotidien (pâtes, riz, poulet, poisson, salade).",
     vegan: "RÉGIME: VÉGAN (obligatoire). AUCUNE viande, poisson, œufs, lait, miel. Uniquement végétal.",
     vegetarian: "RÉGIME: VÉGÉTARIEN. Pas de viande ni poisson. Œufs et produits laitiers autorisés.",
     keto: "RÉGIME: CÉTO. PAS de pâtes, pain, riz, pommes de terre, sucre.",
@@ -49,40 +49,50 @@ export function buildDietMandatoryBlock(lang: Lang, prefs: string[]): string {
 }
 
 export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): string {
-  const days =
-    lang === "en"
-      ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-      : lang === "fr"
-        ? ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-        : ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
-  const cuisines =
-    lang === "de"
-      ? ["mediterran", "asiatisch", "mexikanisch", "nahöstlich", "italienisch", "indisch", "deutsch-leicht"]
-      : lang === "fr"
-        ? ["méditerranéen", "asiatique", "mexicain", "moyen-orient", "italien", "indien", "français léger"]
-        : ["Mediterranean", "Asian", "Mexican", "Middle Eastern", "Italian", "Indian", "American"];
-  const dayCuisine = days.map((d, i) => `${d}=${cuisines[i]}`).join(", ");
+  const total = 7 * mealsPerDay;
   if (lang === "de") {
     return [
-      `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag).`,
-      "WICHTIG: Nicht die alten Gerichte auf andere Wochentage verschieben oder umbenennen.",
-      "Jede einzelne Mahlzeit = komplett neues Rezept (andere Hauptzutaten, andere Zubereitung, anderer Stil).",
-      `Küchen-Rotation pro Tag: ${dayCuisine}.`,
-      "Keine Wiederholung derselben Gericht-Idee in der Woche.",
+      `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag, ${total} Mahlzeiten gesamt).`,
+      "Normale internationale Alltagsküche — abwechslungsreich, aber nicht exotisch-zwingend.",
+      "JEDE Mahlzeit an JEDEM Tag ein anderer Gerichtname — nicht dieselben Gerichte die ganze Woche wiederholen.",
+      "Makros pro Mahlzeit realistisch unterschiedlich (leichter Snack weniger kcal, große Hauptmahlzeit mehr) — nicht jede Mahlzeit gleich groß.",
     ].join(" ");
   }
   if (lang === "fr") {
     return [
-      `NOUVEAU plan (${mealsPerDay} repas/jour).`,
-      "Ne pas déplacer les anciens plats sur d'autres jours.",
-      "Chaque repas = nouvelle recette (nouveaux ingrédients principaux).",
-      `Cuisines par jour: ${dayCuisine}.`,
+      `NOUVEAU plan (${mealsPerDay} repas/jour, ${total} repas).`,
+      "Cuisine internationale simple du quotidien.",
+      "Chaque repas de chaque jour = plat différent.",
+      "Calories par repas variables et réalistes (collation légère, repas principal plus copieux).",
     ].join(" ");
   }
   return [
-    `NEW weekly plan (${mealsPerDay} meals/day).`,
-    "Do NOT shuffle old dishes to different weekdays or rename them.",
-    "Every meal = brand-new recipe (different main ingredients and cooking style).",
-    `Cuisine rotation: ${dayCuisine}.`,
+    `NEW weekly plan (${mealsPerDay} meals/day, ${total} meals total).`,
+    "Normal international everyday meals — varied but approachable.",
+    "Every meal on every day = different dish name.",
+    "Macros per meal should vary naturally (light snack smaller, main meal larger) — not every meal the same size.",
   ].join(" ");
+}
+
+export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {
+  const total = 7 * mealsPerDay;
+  if (lang === "de") {
+    return [
+      "STIL: Normale internationale Alltagsküche (italienisch, asiatisch-leicht, mediterran, amerikanisch, deutsch — gemischt).",
+      `VARIATION: ${total} verschiedene Gerichtnamen in der Woche.`,
+      "MAKROS: Pro Mahlzeit unterschiedliche realistische Größe (Snack ~150–350 kcal, Hauptmahlzeit ~450–750 kcal) — Tagesziel trotzdem exakt einhalten.",
+    ].join("\n");
+  }
+  if (lang === "fr") {
+    return [
+      "STYLE: Cuisine internationale quotidienne variée.",
+      `VARIÉTÉ: ${total} noms de plats différents.`,
+      "MACROS: Tailles de repas réalistes et différentes; objectif journalier respecté.",
+    ].join("\n");
+  }
+  return [
+    "STYLE: Normal international everyday food (Italian, Asian-inspired, Mediterranean, American — mixed).",
+    `VARIETY: ${total} unique dish names across the week.`,
+    "MACROS: Realistic different meal sizes (snack ~150–350 kcal, main ~450–750 kcal); daily totals must still match targets.",
+  ].join("\n");
 }

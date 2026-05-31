@@ -1,6 +1,14 @@
-import { mealContentKey, mealDishFingerprint, mealMainIngredients } from "./normalize.ts";
-import type { MealLike, MealPlan } from "./types.ts";
-import type { PriorDishSnapshot } from "./types.ts";
+import { getDietPools } from "./dietPools.ts";
+import { buildMealFromDishTitle } from "./mealBlueprints.ts";
+import { mealSlot } from "./meals.ts";
+import { mealContentKey, mealDishFingerprint, mealMainIngredients, normNameKey } from "./normalize.ts";
+import { filterPool } from "./validation.ts";
+import type { Lang, MealLike, MealPlan, PlanInput, PriorDishSnapshot, SafetyContext } from "./types.ts";
+
+function titleKey(name: string): string {
+  const base = String(name || "").split("·")[0]?.trim() || String(name || "");
+  return normNameKey(base) || base.toLowerCase().trim();
+}
 
 export function snapshotPriorMeal(meal: MealLike): PriorDishSnapshot {
   const name = String(meal?.name ?? "").trim();
@@ -32,7 +40,7 @@ export function parsePriorMealsFromBody(
         : [];
       out.push(snapshotPriorMeal({ name, ingredients }));
     }
-    if (out.length) return out.slice(0, 56);
+    if (out.length) return out.slice(0, 28);
   }
   return previousMealNames.map((name) => snapshotPriorMeal({ name, ingredients: [] }));
 }
@@ -91,9 +99,69 @@ export function findRegenerationOverlaps(plan: MealPlan, prior: PriorDishSnapsho
   return hits;
 }
 
+/**
+ * Fixes AI/template pattern where meal slot 1..N is identical on every weekday.
+ * Replaces duplicates with unique titles from diet pools (keeps macros; finishPlan resyncs).
+ */
+export function ensureDistinctMealsAcrossWeek(
+  plan: MealPlan,
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs"> & { safetyCtx: SafetyContext },
+): MealPlan {
+  const base = getDietPools(input.lang, input.prefs);
+  const pools = {
+    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
+    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
+    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+  };
+  const cursor = { b: 0, m: 0, s: 0 };
+
+  const pickNew = (slot: "b" | "m" | "s", used: Set<string>): string => {
+    const list = pools[slot];
+    for (let pass = 0; pass < list.length + 2; pass++) {
+      for (let o = 0; o < Math.max(list.length, 1); o++) {
+        const title = list.length ? list[(cursor[slot] + o) % list.length]! : "Gemüsepfanne";
+        cursor[slot] = (cursor[slot] + o + 1) % Math.max(list.length, 1);
+        const key = titleKey(title);
+        if (!used.has(key)) {
+          used.add(key);
+          return title;
+        }
+      }
+    }
+    const fallback = `${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${used.size + 1}`;
+    used.add(titleKey(fallback));
+    return fallback;
+  };
+
+  const out = plan.map((day) => ({
+    ...day,
+    meals: [...(day.meals ?? [])],
+  }));
+
+  for (let si = 0; si < input.mealsPerDay; si++) {
+    const slot = mealSlot(si, input.mealsPerDay);
+    const usedInSlot = new Set<string>();
+    for (let di = 0; di < out.length; di++) {
+      const meals = out[di]?.meals;
+      if (!meals?.[si]) continue;
+      const meal = meals[si]!;
+      let key = titleKey(String(meal.name || ""));
+      if (usedInSlot.has(key)) {
+        const newTitle = pickNew(slot, usedInSlot);
+        console.warn(`[MEAL-PLAN] Replaced repeated "${meal.name}" on ${out[di]?.day} slot ${si} → ${newTitle}`);
+        meals[si] = buildMealFromDishTitle(newTitle, slot, input.lang, input.safetyCtx);
+        key = titleKey(newTitle);
+      }
+      usedInSlot.add(key);
+    }
+  }
+
+  return out;
+}
+
 export function formatPriorDishesForPrompt(prior: PriorDishSnapshot[], mealsPerDay: number): string {
   if (!prior.length) return "";
-  const lines = prior.slice(0, 40).map((p) => {
+  const lines = prior.slice(0, 20).map((p) => {
     const ings = p.mainIngredients.length
       ? p.mainIngredients.slice(0, 6).join(", ")
       : "(see title)";

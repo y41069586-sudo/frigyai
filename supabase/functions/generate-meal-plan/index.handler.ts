@@ -4,6 +4,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    resetOpenAiCallBudget();
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl) {
@@ -56,6 +58,14 @@ Deno.serve(async (req) => {
     ]
       .filter(Boolean)
       .join("\n\n");
+
+    const hasOpenAiKey = Boolean(getOpenAIKey());
+    console.log("[MEAL-PLAN] request", {
+      hasOpenAiKey,
+      isRegeneration: isRegeneration || priorDishes.length > 0,
+      mealsPerDay,
+      priorDishes: priorDishes.length,
+    });
 
     const { plan, usedAi, repairAttempts } = await buildPlan({
       mealsPerDay,

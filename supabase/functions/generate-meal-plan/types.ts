@@ -135,9 +135,16 @@ export type BuildPlanResult = {
   repairAttempts: number;
 };
 
+/** Result of a single OpenAI generation pass (or full retry loop). */
+export type AiDraftResult = {
+  plan: MealPlan | null;
+  /** Why the last attempt failed — surfaced to the client when plan is null. */
+  failureReason?: string;
+};
+
 /** Injectable dependencies for buildPlan (tests / future AI backends). */
 export type BuildPlanDeps = {
-  generateAIDraft: (input: PlanInput) => Promise<MealPlan | null>;
+  generateAIDraft: (input: PlanInput) => Promise<AiDraftResult>;
 };
 
 export type ShoppingItem = {

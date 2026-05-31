@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, Camera, ChevronLeft, Plus, Refrigerator, Search, Trash2, X } from "lucide-react";
+import { Barcode, Camera, ChevronLeft, Plus, Search, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brandColors";
 import {
@@ -46,7 +46,7 @@ export type TrackerLoggedMeal = {
   mealType?: MealFocusKey;
 };
 
-type InputMode = "search" | "camera" | "barcode" | "ingredients";
+type InputMode = "search" | "camera" | "barcode";
 
 type Props = {
   /** Nur gesetzt, wenn Nutzer über Mahlzeiten-Slot (+) kommt — dann Titel oben anzeigen */
@@ -58,8 +58,6 @@ type Props = {
   onOpenLiveCamera?: () => void;
   onCameraFile: (file: File) => void;
   onBarcode: () => void;
-  /** Kühlschrank / Zutaten-Erkennung (Live-Kamera auf /scan) */
-  onIngredientScan: () => void;
   onAddRecipe: (recipe: TrackerRecipeExample) => void;
   onDeleteMeal?: (id: string) => void;
   loggedMeals?: TrackerLoggedMeal[];
@@ -328,7 +326,6 @@ export function TrackerAddMealPanel({
   onOpenLiveCamera,
   onCameraFile,
   onBarcode,
-  onIngredientScan,
   onAddRecipe,
   onDeleteMeal,
   loggedMeals = [],
@@ -445,7 +442,6 @@ export function TrackerAddMealPanel({
   }[] = [
     { id: "camera", label: copy.camera, icon: Camera, tint: "#EC4899" },
     { id: "barcode", label: copy.barcode, icon: Barcode, tint: "#EF4444" },
-    { id: "ingredients", label: copy.ingredientsScan, icon: Refrigerator, tint: "#22C55E" },
   ];
 
   const showMealTitle = mealFocus != null;
@@ -528,10 +524,6 @@ export function TrackerAddMealPanel({
     }
     if (next === "barcode") {
       onBarcode();
-      return;
-    }
-    if (next === "ingredients") {
-      onIngredientScan();
     }
   };
 

@@ -430,6 +430,39 @@ export interface Translations extends ExtendedTranslations {
   calculatingCalories: string;
   determiningNutrients: string;
   almostDone: string;
+  frigySays: string;
+  foodScanPlateTitle: string;
+  foodScanAiPowered: string;
+  foodScanTryAnotherDish: string;
+  foodScanRecognized: string;
+  foodScanScanAnother: string;
+  foodScanContinue: string;
+  foodNotFoodHint: string;
+  foodAnalyzeTimeout: string;
+  foodPhotoReadError: string;
+  foodPhotoProcessError: string;
+  noAnalysisData: string;
+  gallery: string;
+  cameraGalleryHint: string;
+  cameraOpenDevHint: string;
+  cameraLocalhostHint: string;
+  cameraBlockedHint: string;
+  cameraNoDeviceGallery: string;
+  cameraInUseHint: string;
+  cameraLiveUnavailableHint: string;
+  cameraUnsupportedHint: string;
+  cameraHttpsHint: string;
+  cameraStartSlowHint: string;
+  cameraPreviewHint: string;
+  ingredientsNotRecognizedHint: string;
+  ingredientScanAnalyzingTitle: string;
+  ingredientsPresentLabel: string;
+  ingredientsMissingLabel: string;
+  createShoppingListBtn: string;
+  addPhotoBtn: string;
+  finishScanAnalyzeBtn: string;
+  ingredientScanTapShutter: string;
+  ingredientScanRetryAction: string;
   
   // Meal Plans
   weeklyPlan: string;
@@ -1039,6 +1072,39 @@ const translations: Record<Language, Translations> = {
     calculatingCalories: "Kalorien werden berechnet...",
     determiningNutrients: "Nährwerte ermitteln...",
     almostDone: "Fast fertig...",
+    frigySays: "Frigy sagt",
+    foodScanPlateTitle: "Teller wird gescannt.",
+    foodScanAiPowered: "KI-gestützt ✨",
+    foodScanTryAnotherDish: "Anderes Gericht versuchen",
+    foodScanRecognized: "Erfolgreich erkannt!",
+    foodScanScanAnother: "Weiteres Gericht",
+    foodScanContinue: "Weiter",
+    foodNotFoodHint: "Hmm, ich glaube nicht, dass das Essen ist. Versuchen wir es mal mit etwas Essbarem, okay?",
+    foodAnalyzeTimeout: "Die Analyse hat zu lange gedauert. Bitte nochmal versuchen.",
+    foodPhotoReadError: "Foto konnte nicht gelesen werden. Bitte nochmal aufnehmen.",
+    foodPhotoProcessError: "Foto konnte nicht verarbeitet werden. Bitte erneut versuchen.",
+    noAnalysisData: "Keine Daten von der Analyse erhalten",
+    gallery: "Galerie",
+    cameraGalleryHint: " — oder Galerie unten.",
+    cameraOpenDevHint: "Öffne die App mit ",
+    cameraLocalhostHint: " unter ",
+    cameraBlockedHint: "Kamera blockiert — erlaube den Zugriff in der Browser-Leiste oder nutze Galerie.",
+    cameraNoDeviceGallery: "Keine Kamera — nutze Galerie oder „Foto wählen“.",
+    cameraInUseHint: "Kamera ist belegt (andere App schließen).",
+    cameraLiveUnavailableHint: "Live-Kamera hier nicht möglich (z. B. Cursor-Vorschau). Nutze Galerie unten rechts.",
+    cameraUnsupportedHint: "Live-Kamera nicht unterstützt — Galerie oder Datei-Upload nutzen.",
+    cameraHttpsHint: "Kamera braucht localhost/HTTPS — starte mit npm run dev und öffne http://localhost:8080",
+    cameraStartSlowHint: "Kamera startet zu lange — nutze Galerie oder einen anderen Browser.",
+    cameraPreviewHint: "Vorschau nicht sichtbar — nutze Galerie oder einen anderen Browser.",
+    ingredientsNotRecognizedHint: "Hmm, ich konnte keine Zutaten erkennen. Versuchen wir es nochmal mit einem klareren Foto, okay?",
+    ingredientScanAnalyzingTitle: "Zutaten werden gescannt.",
+    ingredientsPresentLabel: "Vorhanden",
+    ingredientsMissingLabel: "Fehlend",
+    createShoppingListBtn: "Einkaufsliste erstellen",
+    addPhotoBtn: "Foto hinzufügen",
+    finishScanAnalyzeBtn: "Fertig – analysieren",
+    ingredientScanTapShutter: "Frigy-Kamera: unten aufnehmen, rechts Galerie",
+    ingredientScanRetryAction: "Zutaten nochmal scannen",
     
     // Meal Plans
     weeklyPlan: "Wochenplan",
@@ -1885,6 +1951,39 @@ const translations: Record<Language, Translations> = {
     calculatingCalories: "Calculating calories...",
     determiningNutrients: "Determining nutrients...",
     almostDone: "Almost done...",
+    frigySays: "Frigy says",
+    foodScanPlateTitle: "Plate is being scanned.",
+    foodScanAiPowered: "AI-powered ✨",
+    foodScanTryAnotherDish: "Try another dish",
+    foodScanRecognized: "Recognized successfully!",
+    foodScanScanAnother: "Scan another dish",
+    foodScanContinue: "Continue",
+    foodNotFoodHint: "Hmm, I do not think that is food. Let's try again with something edible, okay?",
+    foodAnalyzeTimeout: "Analysis took too long. Please try again.",
+    foodPhotoReadError: "Could not read the photo. Please capture it again.",
+    foodPhotoProcessError: "The photo could not be processed. Please try again.",
+    noAnalysisData: "No data received from analysis",
+    gallery: "Gallery",
+    cameraGalleryHint: " — or use the gallery below.",
+    cameraOpenDevHint: "Open the app with ",
+    cameraLocalhostHint: " at ",
+    cameraBlockedHint: "Camera blocked — allow access in the browser bar or use the gallery.",
+    cameraNoDeviceGallery: "No camera — use the gallery or choose a photo.",
+    cameraInUseHint: "Camera is in use (close other apps).",
+    cameraLiveUnavailableHint: "Live camera unavailable here (e.g. preview). Use the gallery bottom right.",
+    cameraUnsupportedHint: "Live camera not supported — use gallery or file upload.",
+    cameraHttpsHint: "Camera needs localhost/HTTPS — run npm run dev and open http://localhost:8080",
+    cameraStartSlowHint: "Camera is taking too long — use the gallery or another browser.",
+    cameraPreviewHint: "Preview not visible — use the gallery or another browser.",
+    ingredientsNotRecognizedHint: "Hmm, I could not recognize any ingredients. Let's try again with a clearer photo, okay?",
+    ingredientScanAnalyzingTitle: "Ingredients are being scanned.",
+    ingredientsPresentLabel: "Available",
+    ingredientsMissingLabel: "Missing",
+    createShoppingListBtn: "Create shopping list",
+    addPhotoBtn: "Add photo",
+    finishScanAnalyzeBtn: "Done — analyze",
+    ingredientScanTapShutter: "Frigy camera: capture below, gallery on the right",
+    ingredientScanRetryAction: "Scan ingredients again",
     
     // Meal Plans
     weeklyPlan: "Weekly Plan",
@@ -2731,6 +2830,39 @@ const translations: Record<Language, Translations> = {
     calculatingCalories: "Calcul des calories...",
     determiningNutrients: "Détermination des nutriments...",
     almostDone: "Presque terminé...",
+    frigySays: "Frigy dit",
+    foodScanPlateTitle: "L'assiette est scannée.",
+    foodScanAiPowered: "Propulsé par l'IA ✨",
+    foodScanTryAnotherDish: "Essayer un autre plat",
+    foodScanRecognized: "Reconnu avec succès !",
+    foodScanScanAnother: "Autre plat",
+    foodScanContinue: "Continuer",
+    foodNotFoodHint: "Hmm, je ne pense pas que ce soit de la nourriture. On essaie avec quelque chose de comestible, d'accord ?",
+    foodAnalyzeTimeout: "L'analyse a pris trop de temps. Réessaie.",
+    foodPhotoReadError: "Impossible de lire la photo. Reprends-la.",
+    foodPhotoProcessError: "La photo n'a pas pu être traitée. Réessaie.",
+    noAnalysisData: "Aucune donnée reçue de l'analyse",
+    gallery: "Galerie",
+    cameraGalleryHint: " — ou utilise la galerie en bas.",
+    cameraOpenDevHint: "Ouvre l'app avec ",
+    cameraLocalhostHint: " sur ",
+    cameraBlockedHint: "Caméra bloquée — autorise l'accès dans le navigateur ou utilise la galerie.",
+    cameraNoDeviceGallery: "Pas de caméra — utilise la galerie ou choisis une photo.",
+    cameraInUseHint: "Caméra occupée (ferme les autres apps).",
+    cameraLiveUnavailableHint: "Caméra live indisponible ici. Utilise la galerie en bas à droite.",
+    cameraUnsupportedHint: "Caméra live non prise en charge — utilise la galerie.",
+    cameraHttpsHint: "La caméra nécessite localhost/HTTPS — lance npm run dev et ouvre http://localhost:8080",
+    cameraStartSlowHint: "La caméra met trop de temps — utilise la galerie ou un autre navigateur.",
+    cameraPreviewHint: "Aperçu invisible — utilise la galerie ou un autre navigateur.",
+    ingredientsNotRecognizedHint: "Hmm, je n'ai pas réussi à reconnaître les ingrédients. On réessaie avec une photo plus nette ?",
+    ingredientScanAnalyzingTitle: "Les ingrédients sont scannés.",
+    ingredientsPresentLabel: "Disponible",
+    ingredientsMissingLabel: "Manquant",
+    createShoppingListBtn: "Créer la liste de courses",
+    addPhotoBtn: "Ajouter une photo",
+    finishScanAnalyzeBtn: "Terminé — analyser",
+    ingredientScanTapShutter: "Caméra Frigy : capture en bas, galerie à droite",
+    ingredientScanRetryAction: "Scanner à nouveau",
     
     // Meal Plans
     weeklyPlan: "Plan de la semaine",

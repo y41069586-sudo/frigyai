@@ -3,6 +3,8 @@ import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
 import { buildMealFromDishTitle, parseIngredientNamesFromDishTitle } from "./mealBlueprints.ts";
 import { generateAIDraft } from "./openai.ts";
 import { finishPlan, mealSlot } from "./meals.ts";
+import { sanitizePlaceholderMeals } from "./planMealSanitize.ts";
+import { ensureDistinctMealsAcrossWeek } from "./variety.ts";
 import { auditPlan } from "./validation.ts";
 import { generateFallbackDraft } from "./drafts.ts";
 import { repairPlan } from "./repairLoop.ts";
@@ -12,8 +14,7 @@ export const defaultBuildPlanDeps: BuildPlanDeps = {
   generateAIDraft,
 };
 
-const MAX_REPAIR_ROUNDS = 4;
-const MAX_AI_RETRIES_AFTER_REPAIR = 2;
+const MAX_REPAIR_ROUNDS = 2;
 
 function alignPlanIngredientsToTitles(
   plan: MealPlan,
@@ -46,26 +47,21 @@ export async function buildPlan(
 
   const banned = new Set(input.banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
 
-  let raw = await deps.generateAIDraft(input);
+  const draft = await deps.generateAIDraft(input);
+  let raw = draft.plan;
+
   if (raw) {
     usedAi = true;
   } else if (!aiAvailable) {
-    console.warn("[MEAL-PLAN] No OPENAI_API_KEY — using template plan");
+    console.warn("[MEAL-PLAN] No OPENAI_API_KEY — template plan");
     raw = generateFallbackDraft(input, banned);
   } else {
-    console.warn("[MEAL-PLAN] OpenAI failed — retrying full generation");
-    for (let i = 0; i < MAX_AI_RETRIES_AFTER_REPAIR && !raw; i++) {
-      raw = await deps.generateAIDraft({ ...input, isRegeneration: true });
-    }
-    if (raw) usedAi = true;
-  }
-
-  if (!raw) {
-    throw new Error(
-      aiAvailable
-        ? "KI konnte keinen Wochenplan erstellen. Bitte in ein paar Sekunden erneut versuchen."
-        : "OPENAI_API_KEY fehlt auf dem Server.",
+    console.warn(
+      "[MEAL-PLAN] OpenAI failed — safe template plan:",
+      draft.failureReason ?? "unknown",
     );
+    raw = generateFallbackDraft(input, banned);
+    usedAi = false;
   }
 
   let plan = finishPlan(raw, input.targets, input.mealsPerDay, input.lang) ?? raw;
@@ -80,28 +76,6 @@ export async function buildPlan(
       : auditPlan(plan, input.safetyCtx);
   }
 
-  if (violations.length > 0 && aiAvailable) {
-    console.warn(`[MEAL-PLAN] ${violations.length} violation(s) — re-asking OpenAI (no template pool)`);
-    for (let i = 0; i < MAX_AI_RETRIES_AFTER_REPAIR && violations.length > 0; i++) {
-      const aiPlan = await deps.generateAIDraft({ ...input, isRegeneration: true });
-      if (!aiPlan) continue;
-      usedAi = true;
-      plan = finishPlan(aiPlan, input.targets, input.mealsPerDay, input.lang) ?? aiPlan;
-      violations = auditPlan(plan, input.safetyCtx);
-    }
-  }
-
-  if (violations.length > 0 && !aiAvailable) {
-    console.warn(`[MEAL-PLAN] ${violations.length} violation(s) — template fallback (no API key)`);
-    const strictPrefs = input.prefs.includes("vegan")
-      ? [...new Set([...input.prefs.filter((p) => p !== "pescatarian"), "vegan"])]
-      : input.prefs;
-    plan = generateFallbackDraft(input, banned, strictPrefs);
-    plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
-    violations = auditPlan(plan, input.safetyCtx);
-    usedAi = false;
-  }
-
   if (violations.length > 0) {
     console.warn("[MEAL-PLAN] Last resort: minimal safe plan");
     plan = guaranteedSafeMinimalPlan({
@@ -109,10 +83,22 @@ export async function buildPlan(
       lang: input.lang,
     });
     plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
-    violations = auditPlan(plan, input.safetyCtx);
     usedAi = false;
   }
 
+  plan = sanitizePlaceholderMeals(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+    varietySeed: input.varietySeed,
+  });
+  plan = ensureDistinctMealsAcrossWeek(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+  });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;

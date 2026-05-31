@@ -96,10 +96,8 @@ export function FrigyIngredientScanFlow({
     addPhoto: labels.addPhoto ?? "Foto hinzufügen",
     finishScan: labels.finishScan ?? "Fertig",
     tapShutter: labels.tapShutter ?? "Foto aufnehmen oder Galerie",
-    errorTitle: labels.errorTitle ?? "Frigy sagt",
-    errorAction:
-      labels.errorAction ??
-      (language === "de" ? "Nochmal versuchen" : language === "fr" ? "Reessayer" : "Try again"),
+    errorTitle: labels.errorTitle ?? t.frigySays,
+    errorAction: labels.errorAction ?? t.tryAgain,
   };
   const ui = language === "fr"
     ? {
@@ -241,7 +239,7 @@ export function FrigyIngredientScanFlow({
       <FrigyScanAnalyzingStage
         previewUrl={analysisPreviewUrl}
         title={L.analyzingTitle}
-        subtitle={language === "de" ? "KI-gestützt ✨" : language === "fr" ? "Propulsé par l'IA ✨" : "AI-powered ✨"}
+        subtitle={t.foodScanAiPowered}
         message={L.analyzingSubtitle}
         progress={scanProgress}
         onClose={onClose}

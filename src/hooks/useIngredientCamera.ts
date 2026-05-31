@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefCallback } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type IngredientCameraStatus = "idle" | "starting" | "live" | "error" | "denied" | "fallback";
 
@@ -25,6 +26,7 @@ async function requestVideoStream(): Promise<MediaStream> {
 }
 
 export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
+  const { t } = useLanguage();
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const generationRef = useRef(0);
@@ -126,21 +128,15 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
   const mapMediaError = (err: unknown): { status: IngredientCameraStatus; message: string } => {
     const msg = `${(err as Error)?.name ?? ""} ${(err as Error)?.message ?? ""}`;
     if (msg.includes("NotAllowed") || msg.includes("PermissionDenied")) {
-      return {
-        status: "denied",
-        message: "Kamera blockiert — erlaube den Zugriff in der Browser-Leiste oder nutze Galerie.",
-      };
+      return { status: "denied", message: t.cameraBlockedHint };
     }
     if (msg.includes("NotFound") || msg.includes("DevicesNotFound")) {
-      return { status: "fallback", message: "Keine Kamera — nutze Galerie oder „Foto wählen“." };
+      return { status: "fallback", message: t.cameraNoDeviceGallery };
     }
     if (msg.includes("NotReadable") || msg.includes("TrackStart")) {
-      return { status: "error", message: "Kamera ist belegt (andere App schließen)." };
+      return { status: "error", message: t.cameraInUseHint };
     }
-    return {
-      status: "fallback",
-      message: "Live-Kamera hier nicht möglich (z. B. Cursor-Vorschau). Nutze Galerie unten rechts.",
-    };
+    return { status: "fallback", message: t.cameraLiveUnavailableHint };
   };
 
   const startCamera = useCallback(async () => {
@@ -148,13 +144,13 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus("fallback");
-      setErrorMessage("Live-Kamera nicht unterstützt — Galerie oder Datei-Upload nutzen.");
+      setErrorMessage(t.cameraUnsupportedHint);
       return;
     }
 
     if (!window.isSecureContext) {
       setStatus("fallback");
-      setErrorMessage("Kamera braucht localhost/HTTPS — starte mit npm run dev und öffne http://localhost:8080");
+      setErrorMessage(t.cameraHttpsHint);
       return;
     }
 
@@ -170,7 +166,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
       const video = videoElRef.current;
       if (!video || video.videoWidth < 1) {
         setStatus("fallback");
-        setErrorMessage("Kamera startet zu lange — nutze Galerie oder einen anderen Browser.");
+        setErrorMessage(t.cameraStartSlowHint);
       }
     }, 5500);
 
@@ -199,7 +195,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
 
       if (!attached && !timedOut) {
         setStatus("fallback");
-        setErrorMessage("Vorschau nicht sichtbar — nutze Galerie oder einen anderen Browser.");
+        setErrorMessage(t.cameraPreviewHint);
       }
     } catch (err) {
       window.clearTimeout(startTimeout);
@@ -209,7 +205,7 @@ export function useIngredientCamera({ active }: UseIngredientCameraOptions) {
       setErrorMessage(mapped.message);
       stopStream();
     }
-  }, [attachStreamToVideo, stopStream]);
+  }, [attachStreamToVideo, stopStream, t]);
 
   useEffect(() => {
     if (!active) {

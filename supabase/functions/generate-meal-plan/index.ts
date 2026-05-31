@@ -1,10 +1,9 @@
 // generate-meal-plan — single file for Supabase Dashboard deploy.
-// Regenerate: deno run --allow-read --allow-write scripts/inline-index.ts
-// Edit auth.ts, macros.ts, … then run the script; paste/deploy only this index.ts.
+// Regenerate: node scripts/inline-index.mjs
+// Edit modules then run; paste/deploy only this index.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://esm.sh/zod@3.24.1";
-import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema@3.23.5?target=deno";
 
 /// <reference lib="deno.ns" />
 
@@ -146,9 +145,16 @@ export type BuildPlanResult = {
   repairAttempts: number;
 };
 
+/** Result of a single OpenAI generation pass (or full retry loop). */
+export type AiDraftResult = {
+  plan: MealPlan | null;
+  /** Why the last attempt failed — surfaced to the client when plan is null. */
+  failureReason?: string;
+};
+
 /** Injectable dependencies for buildPlan (tests / future AI backends). */
 export type BuildPlanDeps = {
-  generateAIDraft: (input: PlanInput) => Promise<MealPlan | null>;
+  generateAIDraft: (input: PlanInput) => Promise<AiDraftResult>;
 };
 
 export type ShoppingItem = {
@@ -220,6 +226,15 @@ export const KCAL_MACRO_TOLERANCE = 50;
 export const RECONCILE_RATIO_MIN = 0.85;
 export const RECONCILE_RATIO_MAX = 1.15;
 export const MACRO_CAPS = { protein: 350, carbs: 600, fat: 250 };
+
+/** Default: gpt-4o (override via Edge secret OPENAI_MEAL_PLAN_MODEL). */
+export function getOpenAIMealPlanModel(): string {
+  return Deno.env.get("OPENAI_MEAL_PLAN_MODEL")?.trim() || "gpt-4o";
+}
+
+/** Max output tokens for one weekly plan (gpt-4o supports 16k). */
+export const OPENAI_PLAN_MAX_TOKENS = 16384;
+export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
 
 // ----- http.ts -----
 export const corsHeaders = {
@@ -1107,9 +1122,7 @@ export function recalcMeal(m: MealLike): Meal {
             price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
           }))
       : [],
-    instructions: Array.isArray(m.instructions)
-      ? m.instructions.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
-      : [],
+    instructions: sanitizeMealInstructions(m.instructions),
     allergenTags: Array.isArray(m.allergenTags)
       ? m.allergenTags.map((t) => String(t).trim()).filter(Boolean).slice(0, 12)
       : [],
@@ -1132,9 +1145,7 @@ export function normalizeMealStructure(m: MealLike): Meal {
           price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
         }))
     : [];
-  const instructions = Array.isArray(m?.instructions)
-    ? m.instructions.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
-    : [];
+  const instructions = sanitizeMealInstructions(m?.instructions);
   return {
     type: String(m?.type || "Mahlzeit").trim(),
     name: String(m?.name || "Gericht").trim(),
@@ -1155,6 +1166,12 @@ function slotWeights(mealsPerDay: number): number[] {
   const w = SLOT_WEIGHTS[mealsPerDay];
   if (w?.length === mealsPerDay) return w;
   return Array.from({ length: mealsPerDay }, () => 1 / mealsPerDay);
+}
+
+function mealSlotForSync(si: number, mpd: number): "b" | "m" | "s" {
+  if (si === 0) return "b";
+  const mains = mpd >= 4 ? [1, 3] : [1];
+  return mains.includes(si) ? "m" : "s";
 }
 
 /** Largest-remainder: exact integer split of total across weights — O(n). */
@@ -1209,29 +1226,82 @@ export function correctSyncedDayDrift(meals: Meal[], targets: MacroTargets): Mea
   return adjusted;
 }
 
-/**
- * Single macro authority: slot weights → exact integer grams (no iterative loop).
- */
-export function syncDay(day: DayPlan, targets: MacroTargets, mealsPerDay: number): DayPlan {
+/** Per-meal kcal weights: AI ratios when present, else slot + day + dish name (not identical every day). */
+function mealKcalWeights(meals: Meal[], mealsPerDay: number, dayIndex: number): number[] {
+  const baseSlot = slotWeights(mealsPerDay);
+  return meals.map((m, i) => {
+    const p = Math.max(0, Number(m.protein) || 0);
+    const c = Math.max(0, Number(m.carbs) || 0);
+    const f = Math.max(0, Number(m.fat) || 0);
+    const aiKcal = macroKcal(p, c, f);
+    if (aiKcal >= 80) return aiKcal;
+
+    const slot = mealSlotForSync(i, mealsPerDay);
+    const slotHint = slot === "b" ? 0.2 : slot === "m" ? 0.36 : 0.12;
+    const base = baseSlot[i] ?? slotHint;
+    const name = String(m.name || "");
+    let h = (dayIndex + 1) * 7919;
+    for (let j = 0; j < name.length; j++) h = (Math.imul(h, 31) + name.charCodeAt(j)) >>> 0;
+    const jitter = 0.62 + (h % 76) / 100;
+    return Math.max(0.05, base * jitter);
+  });
+}
+
+function scaleMealsToDailyTargets(meals: Meal[], targets: MacroTargets): Meal[] {
   const t = harmonizeTargets(targets);
-  const weights = slotWeights(mealsPerDay);
+  const sum = sumMeals(meals);
+  if (sum.protein + sum.carbs + sum.fat <= 0) return meals;
+
+  const scaleP = sum.protein > 0 ? t.dailyProtein / sum.protein : 1;
+  const scaleC = sum.carbs > 0 ? t.dailyCarbs / sum.carbs : 1;
+  const scaleF = sum.fat > 0 ? t.dailyFat / sum.fat : 1;
+
+  return meals.map((m) =>
+    recalcMeal({
+      ...m,
+      protein: Math.max(0, Math.round((Number(m.protein) || 0) * scaleP)),
+      carbs: Math.max(0, Math.round((Number(m.carbs) || 0) * scaleC)),
+      fat: Math.max(0, Math.round((Number(m.fat) || 0) * scaleF)),
+    }),
+  );
+}
+
+/**
+ * Daily totals exact; per-meal size varies by dish (not the same kcal on every weekday for slot 1..N).
+ */
+export function syncDay(
+  day: DayPlan,
+  targets: MacroTargets,
+  mealsPerDay: number,
+  dayIndex = 0,
+): DayPlan {
+  const t = harmonizeTargets(targets);
   let meals = (day.meals || []).map((m) => normalizeMealStructure({ ...m }));
   if (!meals.length) return { ...day, meals };
 
-  const w = weights.slice(0, meals.length);
-  const proteins = distributeIntegers(t.dailyProtein, w);
-  const carbs = distributeIntegers(t.dailyCarbs, w);
-  const fats = distributeIntegers(t.dailyFat, w);
+  const sum = sumMeals(meals);
+  const aiTotals = sum.protein + sum.carbs + sum.fat;
+  const kcalSpread = meals.map((m) => macroKcal(Number(m.protein) || 0, Number(m.carbs) || 0, Number(m.fat) || 0));
+  const distinctKcals = new Set(kcalSpread.map((k) => Math.round(k / 40))).size;
 
-  meals = meals.map((m, i) =>
-    recalcMeal({ ...m, protein: proteins[i], carbs: carbs[i], fat: fats[i] }),
-  );
+  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length)) {
+    meals = scaleMealsToDailyTargets(meals, t);
+  } else {
+    const w = mealKcalWeights(meals, mealsPerDay, dayIndex);
+    const proteins = distributeIntegers(t.dailyProtein, w);
+    const carbs = distributeIntegers(t.dailyCarbs, w);
+    const fats = distributeIntegers(t.dailyFat, w);
+    meals = meals.map((m, i) =>
+      recalcMeal({ ...m, protein: proteins[i]!, carbs: carbs[i]!, fat: fats[i]! }),
+    );
+  }
+
   meals = correctSyncedDayDrift(meals, t);
   return { ...day, meals };
 }
 
 export function syncPlan(plan: MealPlan, targets: MacroTargets, mealsPerDay: number): MealPlan {
-  return plan.map((d) => syncDay(d, targets, mealsPerDay));
+  return plan.map((d, dayIndex) => syncDay(d, targets, mealsPerDay, dayIndex));
 }
 
 // ----- meals.ts -----
@@ -1633,15 +1703,8 @@ const aiPlanSchema = z.object({
 
 type AiDayPlan = z.infer<typeof aiDaySchema>;
 
-/** OpenAI json_schema — generated once from Zod (single source of truth). */
-export const OPENAI_MEAL_PLAN_JSON_SCHEMA: Record<string, unknown> = (() => {
-  const schema = zodToJsonSchema(aiPlanSchema, {
-    name: "MealPlanResponse",
-    $refStrategy: "none",
-  }) as Record<string, unknown>;
-  delete schema.$schema;
-  return schema;
-})();
+/** No-op kept for handler compatibility (single OpenAI call per request). */
+export function resetOpenAiCallBudget(): void {}
 
 function extractJsonPayload(content: string): string {
   const trimmed = content.trim();
@@ -1653,7 +1716,6 @@ function extractJsonPayload(content: string): string {
   return trimmed;
 }
 
-/** json_schema responses are JSON strings; accept pre-parsed objects as well. */
 function coerceOpenAiJsonValue(content: unknown): unknown {
   if (content == null || content === "") throw new Error("Empty OpenAI response");
   if (typeof content === "object") return content;
@@ -1661,16 +1723,11 @@ function coerceOpenAiJsonValue(content: unknown): unknown {
 
   const trimmed = content.trim();
   if (!trimmed) throw new Error("Empty OpenAI response");
-  if (trimmed.length > 120_000) throw new Error("OpenAI response too large");
 
   try {
     return JSON.parse(trimmed);
   } catch {
-    try {
-      return JSON.parse(extractJsonPayload(trimmed));
-    } catch {
-      throw new Error("Invalid JSON from OpenAI");
-    }
+    return JSON.parse(extractJsonPayload(trimmed));
   }
 }
 
@@ -1692,58 +1749,67 @@ function formatVarietyBlock(
   if (isRegeneration && prior.length) {
     return formatPriorDishesForPrompt(prior, mealsPerDay);
   }
-  const names = banned.map((n) => n.trim()).filter(Boolean).slice(0, 40);
+  const names = banned.map((n) => n.trim()).filter(Boolean).slice(0, 16);
   if (!names.length) return "";
-  const lines: string[] = [];
-  for (let i = 0; i < names.length; i += 8) {
-    lines.push(names.slice(i, i + 8).join("; "));
-  }
-  return [`Avoid repeating these meals:`, ...lines].join("\n");
+  return `Avoid repeating: ${names.join("; ")}`;
 }
 
-export async function callOpenAI(params: {
+function buildCompactSystemPrompt(params: {
+  lang: Lang;
+  mealsPerDay: number;
+  targets: MacroTargets;
+  dietBlock: string;
+  bannedBlock: string;
+  constraints: string;
+  maxIngredients: number;
+}): string {
+  const L = LANG[params.lang];
+  return [
+    `Nutrition expert. JSON only (${L.lang}). Exactly 7 days: ${L.days.join(", ")}.`,
+    `Exactly ${params.mealsPerDay} meals per day. Complete week — no empty days.`,
+    buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
+    `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
+    `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
+    `Every meal needs a REAL dish name (e.g. "Chicken Rice Bowl") — NEVER "Friday Meal 3" or "Meal 2".`,
+    `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
+    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
+    params.dietBlock,
+    params.bannedBlock,
+    params.constraints ? `Constraints:\n${params.constraints.slice(0, 1200)}` : "",
+  ].filter(Boolean).join("\n");
+}
+
+async function callOpenAIOnce(params: {
   mealsPerDay: number;
   targets: MacroTargets;
   constraints: string;
   lang: Lang;
   banned: string[];
-  maxTokens: number;
-  mode?: "initial" | "repair";
-  repairHints?: string[];
   isRegeneration?: boolean;
   priorDishes?: PriorDishSnapshot[];
   dietBlock?: string;
+  prefs: string[];
 }): Promise<MealPlan> {
   const L = LANG[params.lang];
   const prior = params.priorDishes ?? [];
   const regen = Boolean(params.isRegeneration && (prior.length || params.banned.length));
-  const repairBlock =
-    params.mode === "repair" && params.repairHints?.length
-      ? `\nFIX:\n${params.repairHints.slice(0, 8).map((h) => `- ${h}`).join("\n")}`
-      : "";
 
   const bannedBlock = formatVarietyBlock(prior, params.banned, regen, params.mealsPerDay);
+  const dietBlock = params.dietBlock ?? buildDietMandatoryBlock(params.lang, params.prefs);
 
-  const dietBlock = params.dietBlock ?? "";
-
-  const system = [
-    `Nutrition coach. JSON only (${L.lang}). 7d: ${L.days.join(",")}. ${params.mealsPerDay} meals/d.`,
-    `Fields: type,name,protein,carbs,fat,prepTime,ingredients[{name,amount,price}],instructions[],allergenTags[].`,
-    `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish|none. instructions:[].`,
-    `Server→${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F g/d. No smoothies.`,
+  const system = buildCompactSystemPrompt({
+    lang: params.lang,
+    mealsPerDay: params.mealsPerDay,
+    targets: params.targets,
     dietBlock,
     bannedBlock,
-    params.constraints ? `Constraints:\n${params.constraints}` : "",
-    repairBlock,
-  ].filter(Boolean).join("\n");
+    constraints: params.constraints,
+    maxIngredients: OPENAI_MAX_INGREDIENTS_PER_MEAL,
+  });
 
   const user = regen
-    ? params.mode === "repair"
-      ? `Still repeating old dishes. ${buildRegenerationUserPrompt(params.mealsPerDay, params.lang)}`
-      : buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
-    : params.mode === "repair"
-      ? `Regenerate 7-day plan (${params.mealsPerDay}/day). Strict compliance.`
-      : `Create 7-day plan (${params.mealsPerDay}/day). Tag allergens per meal. Follow the mandatory diet rules exactly.`;
+    ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
+    : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. International everyday food. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -1752,37 +1818,34 @@ export async function callOpenAI(params: {
     method: "POST",
     headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: regen
-        ? params.mode === "repair"
-          ? 0.45
-          : 0.72
-        : params.mode === "repair"
-          ? 0.15
-          : 0.35,
-      max_tokens: params.maxTokens,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "meal_plan",
-          strict: true,
-          schema: OPENAI_MEAL_PLAN_JSON_SCHEMA,
+      model: getOpenAIMealPlanModel(),
+      temperature: regen ? 0.65 : 0.32,
+      max_tokens: OPENAI_PLAN_MAX_TOKENS,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
         },
-      },
-      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+        { role: "user", content: user },
+      ],
     }),
   });
 
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
+
   const data = await res.json();
   const messageContent = data.choices?.[0]?.message?.content;
+  const finishReason = data.choices?.[0]?.finish_reason;
   if (messageContent == null || messageContent === "") throw new Error("Empty OpenAI response");
-  if (data.choices?.[0]?.finish_reason === "length") throw new Error("Truncated response");
+  if (finishReason === "length") throw new Error("OpenAI response truncated");
 
   const raw = parseOpenAiMealPlanContent(messageContent);
 
   return raw.map((day, i: number) => {
-    let meals = Array.isArray(day?.meals) ? day.meals.slice(0, params.mealsPerDay).map(normalizeMealStructure) : [];
+    let meals = Array.isArray(day?.meals)
+      ? day.meals.slice(0, params.mealsPerDay).map(normalizeMealStructure)
+      : [];
     while (meals.length < params.mealsPerDay) {
       meals.push(
         normalizeMealStructure({
@@ -1805,87 +1868,36 @@ export async function callOpenAI(params: {
   });
 }
 
-export async function generateAIDraft(input: PlanInput): Promise<MealPlan | null> {
+export async function fetchAIWeeklyPlan(input: PlanInput): Promise<MealPlan> {
+  return await callOpenAIOnce({
+    mealsPerDay: input.mealsPerDay,
+    targets: input.targets,
+    constraints: input.constraints,
+    lang: input.lang,
+    banned: input.banned,
+    isRegeneration: input.isRegeneration,
+    priorDishes: input.priorDishes,
+    prefs: input.prefs,
+  });
+}
+
+export async function generateAIDraft(input: PlanInput): Promise<AiDraftResult> {
   if (!getOpenAIKey()) {
-    console.warn("[MEAL-PLAN] OPENAI_API_KEY fehlt – Vorlagen-Plan ohne KI");
-    return null;
+    return { plan: null, failureReason: "OPENAI_API_KEY fehlt auf dem Server." };
   }
 
-  const attempts: { maxTokens: number; mode: "initial" | "repair" }[] = input.isRegeneration
-    ? [
-        { maxTokens: 4000, mode: "initial" },
-        { maxTokens: 3600, mode: "repair" },
-        { maxTokens: 3600, mode: "repair" },
-        { maxTokens: 3600, mode: "repair" },
-        { maxTokens: 3600, mode: "repair" },
-      ]
-    : [
-        { maxTokens: 3600, mode: "initial" },
-        { maxTokens: 3200, mode: "repair" },
-        { maxTokens: 3200, mode: "repair" },
-      ];
-
-  let repairHints: string[] = [];
-  for (let attemptIndex = 0; attemptIndex < attempts.length; attemptIndex++) {
-    const attempt = attempts[attemptIndex]!;
-    try {
-      const raw = await callOpenAI({
-        mealsPerDay: input.mealsPerDay,
-        targets: input.targets,
-        constraints: input.constraints,
-        lang: input.lang,
-        banned: input.banned,
-        maxTokens: attempt.maxTokens,
-        mode: attempt.mode,
-        repairHints: attempt.mode === "repair" ? repairHints : undefined,
-        isRegeneration: input.isRegeneration,
-        priorDishes: input.priorDishes,
-        dietBlock: buildDietMandatoryBlock(input.lang, input.prefs),
-      });
-      const audited = auditPlan(raw, input.safetyCtx);
-      const violations = violationsToStrings(audited);
-
-      if (input.isRegeneration && (input.priorDishes?.length || input.banned.length)) {
-        const prior = input.priorDishes ?? [];
-        const reused = findRegenerationOverlaps(raw, prior);
-        if (reused.length) {
-          repairHints = [
-            `Still same dishes as old week (${reused.length}): ${reused.slice(0, 8).join("; ")}`,
-            ...repairHints,
-          ];
-          console.warn(`[MEAL-PLAN] Regeneration repeated ${reused.length} dish(es)`);
-          continue;
-        }
-      }
-
-      if (!violations.length) return raw;
-
-      const isLast = attemptIndex === attempts.length - 1;
-      const allergyFree = audited.every((v) => v.allergy.length === 0);
-
-      if (isLast && allergyFree) {
-        console.warn(
-          `[MEAL-PLAN] Using AI plan on final attempt (${audited.length} minor diet flags)`,
-        );
-        return raw;
-      }
-
-      if (shouldAbortAiRetries(audited) && !input.isRegeneration) {
-        const weight = audited.reduce((s, v) => s + violationWeight(v), 0);
-        console.warn(
-          `[MEAL-PLAN] ${audited.length} violations (weight ${weight}) — aborting AI retries`,
-        );
-        return null;
-      }
-
-      repairHints = violations.slice(0, 12);
-      console.warn(`[MEAL-PLAN] AI plan failed safety (${attempt.mode}), ${violations.length} violations`);
-      if (attempt.mode === "repair" && !input.isRegeneration) break;
-    } catch (e) {
-      console.warn("[MEAL-PLAN] OpenAI attempt failed:", e instanceof Error ? e.message : e);
-    }
+  try {
+    const raw = await fetchAIWeeklyPlan(input);
+    const audited = auditPlan(raw, input.safetyCtx);
+    const allergyFree = audited.every((v) => v.allergy.length === 0);
+    if (allergyFree) return { plan: raw };
+    console.warn(`[MEAL-PLAN] AI plan has ${audited.length} safety flags — using plan (local repair may follow)`);
+    return { plan: raw };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.warn("[MEAL-PLAN] OpenAI failed:", message);
+    return { plan: null, failureReason: message };
   }
-  return null;
 }
 
 // ----- shopping.ts -----
@@ -2144,8 +2156,7 @@ export const defaultBuildPlanDeps: BuildPlanDeps = {
   generateAIDraft,
 };
 
-const MAX_REPAIR_ROUNDS = 4;
-const MAX_AI_RETRIES_AFTER_REPAIR = 2;
+const MAX_REPAIR_ROUNDS = 2;
 
 function alignPlanIngredientsToTitles(
   plan: MealPlan,
@@ -2178,26 +2189,21 @@ export async function buildPlan(
 
   const banned = new Set(input.banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
 
-  let raw = await deps.generateAIDraft(input);
+  const draft = await deps.generateAIDraft(input);
+  let raw = draft.plan;
+
   if (raw) {
     usedAi = true;
   } else if (!aiAvailable) {
-    console.warn("[MEAL-PLAN] No OPENAI_API_KEY — using template plan");
+    console.warn("[MEAL-PLAN] No OPENAI_API_KEY — template plan");
     raw = generateFallbackDraft(input, banned);
   } else {
-    console.warn("[MEAL-PLAN] OpenAI failed — retrying full generation");
-    for (let i = 0; i < MAX_AI_RETRIES_AFTER_REPAIR && !raw; i++) {
-      raw = await deps.generateAIDraft({ ...input, isRegeneration: true });
-    }
-    if (raw) usedAi = true;
-  }
-
-  if (!raw) {
-    throw new Error(
-      aiAvailable
-        ? "KI konnte keinen Wochenplan erstellen. Bitte in ein paar Sekunden erneut versuchen."
-        : "OPENAI_API_KEY fehlt auf dem Server.",
+    console.warn(
+      "[MEAL-PLAN] OpenAI failed — safe template plan:",
+      draft.failureReason ?? "unknown",
     );
+    raw = generateFallbackDraft(input, banned);
+    usedAi = false;
   }
 
   let plan = finishPlan(raw, input.targets, input.mealsPerDay, input.lang) ?? raw;
@@ -2212,28 +2218,6 @@ export async function buildPlan(
       : auditPlan(plan, input.safetyCtx);
   }
 
-  if (violations.length > 0 && aiAvailable) {
-    console.warn(`[MEAL-PLAN] ${violations.length} violation(s) — re-asking OpenAI (no template pool)`);
-    for (let i = 0; i < MAX_AI_RETRIES_AFTER_REPAIR && violations.length > 0; i++) {
-      const aiPlan = await deps.generateAIDraft({ ...input, isRegeneration: true });
-      if (!aiPlan) continue;
-      usedAi = true;
-      plan = finishPlan(aiPlan, input.targets, input.mealsPerDay, input.lang) ?? aiPlan;
-      violations = auditPlan(plan, input.safetyCtx);
-    }
-  }
-
-  if (violations.length > 0 && !aiAvailable) {
-    console.warn(`[MEAL-PLAN] ${violations.length} violation(s) — template fallback (no API key)`);
-    const strictPrefs = input.prefs.includes("vegan")
-      ? [...new Set([...input.prefs.filter((p) => p !== "pescatarian"), "vegan"])]
-      : input.prefs;
-    plan = generateFallbackDraft(input, banned, strictPrefs);
-    plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
-    violations = auditPlan(plan, input.safetyCtx);
-    usedAi = false;
-  }
-
   if (violations.length > 0) {
     console.warn("[MEAL-PLAN] Last resort: minimal safe plan");
     plan = guaranteedSafeMinimalPlan({
@@ -2241,10 +2225,22 @@ export async function buildPlan(
       lang: input.lang,
     });
     plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
-    violations = auditPlan(plan, input.safetyCtx);
     usedAi = false;
   }
 
+  plan = sanitizePlaceholderMeals(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+    varietySeed: input.varietySeed,
+  });
+  plan = ensureDistinctMealsAcrossWeek(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+  });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
@@ -2252,6 +2248,11 @@ export async function buildPlan(
 }
 
 // ----- variety.ts -----
+function titleKey(name: string): string {
+  const base = String(name || "").split("·")[0]?.trim() || String(name || "");
+  return normNameKey(base) || base.toLowerCase().trim();
+}
+
 export function snapshotPriorMeal(meal: MealLike): PriorDishSnapshot {
   const name = String(meal?.name ?? "").trim();
   const mainIngredients = mealMainIngredients(meal);
@@ -2282,7 +2283,7 @@ export function parsePriorMealsFromBody(
         : [];
       out.push(snapshotPriorMeal({ name, ingredients }));
     }
-    if (out.length) return out.slice(0, 56);
+    if (out.length) return out.slice(0, 28);
   }
   return previousMealNames.map((name) => snapshotPriorMeal({ name, ingredients: [] }));
 }
@@ -2341,9 +2342,69 @@ export function findRegenerationOverlaps(plan: MealPlan, prior: PriorDishSnapsho
   return hits;
 }
 
+/**
+ * Fixes AI/template pattern where meal slot 1..N is identical on every weekday.
+ * Replaces duplicates with unique titles from diet pools (keeps macros; finishPlan resyncs).
+ */
+export function ensureDistinctMealsAcrossWeek(
+  plan: MealPlan,
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs"> & { safetyCtx: SafetyContext },
+): MealPlan {
+  const base = getDietPools(input.lang, input.prefs);
+  const pools = {
+    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
+    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
+    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+  };
+  const cursor = { b: 0, m: 0, s: 0 };
+
+  const pickNew = (slot: "b" | "m" | "s", used: Set<string>): string => {
+    const list = pools[slot];
+    for (let pass = 0; pass < list.length + 2; pass++) {
+      for (let o = 0; o < Math.max(list.length, 1); o++) {
+        const title = list.length ? list[(cursor[slot] + o) % list.length]! : "Gemüsepfanne";
+        cursor[slot] = (cursor[slot] + o + 1) % Math.max(list.length, 1);
+        const key = titleKey(title);
+        if (!used.has(key)) {
+          used.add(key);
+          return title;
+        }
+      }
+    }
+    const fallback = `${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${used.size + 1}`;
+    used.add(titleKey(fallback));
+    return fallback;
+  };
+
+  const out = plan.map((day) => ({
+    ...day,
+    meals: [...(day.meals ?? [])],
+  }));
+
+  for (let si = 0; si < input.mealsPerDay; si++) {
+    const slot = mealSlot(si, input.mealsPerDay);
+    const usedInSlot = new Set<string>();
+    for (let di = 0; di < out.length; di++) {
+      const meals = out[di]?.meals;
+      if (!meals?.[si]) continue;
+      const meal = meals[si]!;
+      let key = titleKey(String(meal.name || ""));
+      if (usedInSlot.has(key)) {
+        const newTitle = pickNew(slot, usedInSlot);
+        console.warn(`[MEAL-PLAN] Replaced repeated "${meal.name}" on ${out[di]?.day} slot ${si} → ${newTitle}`);
+        meals[si] = buildMealFromDishTitle(newTitle, slot, input.lang, input.safetyCtx);
+        key = titleKey(newTitle);
+      }
+      usedInSlot.add(key);
+    }
+  }
+
+  return out;
+}
+
 export function formatPriorDishesForPrompt(prior: PriorDishSnapshot[], mealsPerDay: number): string {
   if (!prior.length) return "";
-  const lines = prior.slice(0, 40).map((p) => {
+  const lines = prior.slice(0, 20).map((p) => {
     const ings = p.mainIngredients.length
       ? p.mainIngredients.slice(0, 6).join(", ")
       : "(see title)";
@@ -2364,27 +2425,31 @@ export type PoolSet = { b: string[]; m: string[]; s: string[] };
 const DE: Record<string, PoolSet> = {
   balanced: {
     b: [
-      "Haferflocken Beeren", "Skyr Obst", "Rührei Vollkornbrot", "Joghurt Banane", "Hüttenkäse Toast",
-      "Avocado Brot", "Müsli Apfel", "Porridge Nüsse", "French Toast", "Quark Honig",
+      "Haferflocken mit Beeren", "Joghurt mit Banane", "Rührei mit Brot", "Avocado Toast",
+      "Müsli mit Apfel", "Porridge", "Greek Yogurt mit Honig", "Vollkornbrot mit Käse",
     ],
     m: [
-      "Hähnchen Reis Pfanne", "Lachs Kartoffeln", "Puten Gemüse Bowl", "Pasta Tomate Basilikum",
-      "Rind Pfanne Asia", "Thunfisch Salat", "Linsen Curry", "Gyros Bowl", "Falafel Teller",
-      "Wrap Hähnchen", "Spaghetti Bolognese", "Fish and Chips Ofen", "Chili con Carne", "Risotto Pilze",
+      "Chicken Rice Bowl", "Lachs mit Kartoffeln", "Pasta Tomatensauce", "Beef Stir Fry",
+      "Thunfisch Salat", "Spaghetti Bolognese", "Hähnchen Curry mild", "Fish Tacos",
+      "Puten Gemüse Pfanne", "Risotto", "Chili con Carne", "Wrap mit Hähnchen",
+      "Linsensuppe", "Pizza Margherita",
     ],
-    s: ["Apfel Nüsse", "Quark Beeren", "Vollkornbrot Aufstrich", "Obst Joghurt", "Hummus Gemüse", "Protein Riegel", "Käse Sticks"],
+    s: [
+      "Apfel mit Nüssen", "Quark mit Beeren", "Brot mit Aufstrich", "Obst mit Joghurt",
+      "Käse mit Gurke", "Vollkornkeks", "Milchreis",
+    ],
   },
   vegan: {
     b: [
-      "Haferflocken Beeren", "Tofu-Scramble", "Avocado Brot", "Chia Pudding", "Banane Erdnuss",
-      "Obstsalat", "Hummus Brot", "Porridge Kokos", "Smoothie Bowl", "Vollkorn mit Marmelade",
+      "Haferflocken mit Beeren", "Tofu-Rührei", "Brot mit Marmelade", "Obstsalat",
+      "Haferdrink mit Müsli", "Banane mit Erdnussmus", "Toast mit Hummus",
     ],
     m: [
-      "Linsen Curry", "Tofu Reis Pfanne", "Kichererbsen Bowl", "Gemüsepfanne Sesam", "Buddha Bowl",
-      "Tempeh Salat", "Bohnen Chili", "Pad Thai Tofu", "Falafel mit Tahini", "Linsensuppe",
-      "Veggie Burger Bowl", "Couscous Gemüse", "Thai Gemüse Kokos", "Burrito Bowl vegan", "Ramen Gemüsebrühe",
+      "Linsensuppe mit Brot", "Tofu mit Reis", "Kichererbsen mit Gemüse", "Gemüsepfanne mit Kartoffeln",
+      "Nudeln mit Tomatensauce", "Bohneneintopf", "Reis mit Brokkoli", "Kartoffeln mit Salat",
+      "Vollkornnudeln mit Pesto", "Gemüselasagne vegan", "Linsen mit Spätzle",
     ],
-    s: ["Apfel Nüsse", "Hummus Gemüse", "Obst Mix", "Edamame", "Nussriegel", "Rice Cakes Avocado", "Energy Balls"],
+    s: ["Apfel mit Nüssen", "Gemüsesticks", "Obstmix", "Brot mit Aufstrich", "Reiswaffeln mit Avocado"],
   },
   vegetarian: {
     b: [
@@ -2516,7 +2581,7 @@ export function getDietPools(lang: Lang, prefs: string[]): PoolSet {
 const CUISINE: Record<Lang, Record<string, string>> = {
   de: {
     balanced:
-      "ERNÄHRUNGSFORM: Ausgewogen. Erlaubt: Fleisch, Fisch, Eier, Milch, Vollkorn. Abwechslungsreiche Alltagsküche.",
+      "ERNÄHRUNGSFORM: Ausgewogen. Normale internationale Alltagsküche (Pasta, Reis, Hähnchen, Fisch, Salat, Eier, Bowl).",
     vegan:
       "ERNÄHRUNGSFORM: VEGAN (Pflicht). KEIN Fleisch, Fisch, Eier, Milch, Honig, Gelatine. Nur pflanzlich: Tofu, Tempeh, Linsen, Kichererbsen, Hülsenfrüchte, Gemüse, Nüsse, Hafer, pflanzliche Milch.",
     vegetarian:
@@ -2529,7 +2594,7 @@ const CUISINE: Record<Lang, Record<string, string>> = {
       "ERNÄHRUNGSFORM: PALEO. KEIN Getreide, KEINE Hülsenfrüchte, KEINE Milchprodukte. Fleisch, Fisch, Eier, Gemüse, Nüsse, Obst.",
   },
   en: {
-    balanced: "DIET: Balanced. Meat, fish, eggs, dairy, whole grains allowed.",
+    balanced: "DIET: Balanced. Normal international everyday food (pasta, rice, chicken, fish, salad, eggs).",
     vegan: "DIET: VEGAN (mandatory). NO meat, fish, eggs, dairy, honey. Plant-only proteins and ingredients.",
     vegetarian: "DIET: VEGETARIAN (mandatory). NO meat or fish. Eggs and dairy allowed.",
     keto: "DIET: KETO (mandatory). NO pasta, bread, rice, potatoes, cereal, sugar. High fat, moderate protein, very low carb.",
@@ -2537,7 +2602,7 @@ const CUISINE: Record<Lang, Record<string, string>> = {
     paleo: "DIET: PALEO. NO grains, legumes, or dairy. Meat, fish, eggs, vegetables, nuts.",
   },
   fr: {
-    balanced: "RÉGIME: Équilibré. Viande, poisson, œufs, produits laitiers autorisés.",
+    balanced: "RÉGIME: Équilibré. Cuisine internationale du quotidien (pâtes, riz, poulet, poisson, salade).",
     vegan: "RÉGIME: VÉGAN (obligatoire). AUCUNE viande, poisson, œufs, lait, miel. Uniquement végétal.",
     vegetarian: "RÉGIME: VÉGÉTARIEN. Pas de viande ni poisson. Œufs et produits laitiers autorisés.",
     keto: "RÉGIME: CÉTO. PAS de pâtes, pain, riz, pommes de terre, sucre.",
@@ -2561,42 +2626,52 @@ export function buildDietMandatoryBlock(lang: Lang, prefs: string[]): string {
 }
 
 export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): string {
-  const days =
-    lang === "en"
-      ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-      : lang === "fr"
-        ? ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-        : ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
-  const cuisines =
-    lang === "de"
-      ? ["mediterran", "asiatisch", "mexikanisch", "nahöstlich", "italienisch", "indisch", "deutsch-leicht"]
-      : lang === "fr"
-        ? ["méditerranéen", "asiatique", "mexicain", "moyen-orient", "italien", "indien", "français léger"]
-        : ["Mediterranean", "Asian", "Mexican", "Middle Eastern", "Italian", "Indian", "American"];
-  const dayCuisine = days.map((d, i) => `${d}=${cuisines[i]}`).join(", ");
+  const total = 7 * mealsPerDay;
   if (lang === "de") {
     return [
-      `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag).`,
-      "WICHTIG: Nicht die alten Gerichte auf andere Wochentage verschieben oder umbenennen.",
-      "Jede einzelne Mahlzeit = komplett neues Rezept (andere Hauptzutaten, andere Zubereitung, anderer Stil).",
-      `Küchen-Rotation pro Tag: ${dayCuisine}.`,
-      "Keine Wiederholung derselben Gericht-Idee in der Woche.",
+      `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag, ${total} Mahlzeiten gesamt).`,
+      "Normale internationale Alltagsküche — abwechslungsreich, aber nicht exotisch-zwingend.",
+      "JEDE Mahlzeit an JEDEM Tag ein anderer Gerichtname — nicht dieselben Gerichte die ganze Woche wiederholen.",
+      "Makros pro Mahlzeit realistisch unterschiedlich (leichter Snack weniger kcal, große Hauptmahlzeit mehr) — nicht jede Mahlzeit gleich groß.",
     ].join(" ");
   }
   if (lang === "fr") {
     return [
-      `NOUVEAU plan (${mealsPerDay} repas/jour).`,
-      "Ne pas déplacer les anciens plats sur d'autres jours.",
-      "Chaque repas = nouvelle recette (nouveaux ingrédients principaux).",
-      `Cuisines par jour: ${dayCuisine}.`,
+      `NOUVEAU plan (${mealsPerDay} repas/jour, ${total} repas).`,
+      "Cuisine internationale simple du quotidien.",
+      "Chaque repas de chaque jour = plat différent.",
+      "Calories par repas variables et réalistes (collation légère, repas principal plus copieux).",
     ].join(" ");
   }
   return [
-    `NEW weekly plan (${mealsPerDay} meals/day).`,
-    "Do NOT shuffle old dishes to different weekdays or rename them.",
-    "Every meal = brand-new recipe (different main ingredients and cooking style).",
-    `Cuisine rotation: ${dayCuisine}.`,
+    `NEW weekly plan (${mealsPerDay} meals/day, ${total} meals total).`,
+    "Normal international everyday meals — varied but approachable.",
+    "Every meal on every day = different dish name.",
+    "Macros per meal should vary naturally (light snack smaller, main meal larger) — not every meal the same size.",
   ].join(" ");
+}
+
+export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {
+  const total = 7 * mealsPerDay;
+  if (lang === "de") {
+    return [
+      "STIL: Normale internationale Alltagsküche (italienisch, asiatisch-leicht, mediterran, amerikanisch, deutsch — gemischt).",
+      `VARIATION: ${total} verschiedene Gerichtnamen in der Woche.`,
+      "MAKROS: Pro Mahlzeit unterschiedliche realistische Größe (Snack ~150–350 kcal, Hauptmahlzeit ~450–750 kcal) — Tagesziel trotzdem exakt einhalten.",
+    ].join("\n");
+  }
+  if (lang === "fr") {
+    return [
+      "STYLE: Cuisine internationale quotidienne variée.",
+      `VARIÉTÉ: ${total} noms de plats différents.`,
+      "MACROS: Tailles de repas réalistes et différentes; objectif journalier respecté.",
+    ].join("\n");
+  }
+  return [
+    "STYLE: Normal international everyday food (Italian, Asian-inspired, Mediterranean, American — mixed).",
+    `VARIETY: ${total} unique dish names across the week.`,
+    "MACROS: Realistic different meal sizes (snack ~150–350 kcal, main ~450–750 kcal); daily totals must still match targets.",
+  ].join("\n");
 }
 
 // ----- mealBlueprints.ts -----
@@ -2765,11 +2840,138 @@ export function dishFingerprintFromTitle(title: string, ctx: SafetyContext): str
   return mealDishFingerprint(meal);
 }
 
+// ----- planMealSanitize.ts -----
+const BAD_INSTRUCTION =
+  /kein\s+essen|nicht\s+essen|no\s+food|no\s+eating|no\s+meal|without\s+eating|pas\s+de\s+manger|nicht\s+essbar|do\s+not\s+eat/i;
+
+const DAY_IN_NAME =
+  /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/i;
+
+/** AI / padding junk like "Friday meal 3", "Mahlzeit 2", "Meal 1". */
+export function isPlaceholderMealName(name: string): boolean {
+  const n = String(name || "").trim();
+  if (!n || n.length < 4) return true;
+  const lower = n.toLowerCase();
+  if (/^(meal|mahlzeit|gericht|repas|breakfast|lunch|dinner|snack)\s*#?\d+$/i.test(lower)) {
+    return true;
+  }
+  if (DAY_IN_NAME.test(lower) && /\b(meal|mahlzeit|repas|breakfast|lunch|dinner|snack)\b/i.test(lower)) {
+    return true;
+  }
+  if (/^gericht\s*\d+$/i.test(lower)) return true;
+  return false;
+}
+
+export function sanitizeMealInstructions(instructions: unknown): string[] {
+  if (!Array.isArray(instructions)) return [];
+  return instructions
+    .map((s) => String(s).trim())
+    .filter((s) => s.length > 2 && !BAD_INSTRUCTION.test(s))
+    .slice(0, 8);
+}
+
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  const out = [...items];
+  if (!seed || out.length < 2) return out;
+  let state = 0;
+  for (let i = 0; i < seed.length; i++) state = (state * 31 + seed.charCodeAt(i)) >>> 0;
+  for (let i = out.length - 1; i > 0; i--) {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    const j = state % (i + 1);
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+class PoolPicker {
+  private pools: { b: string[]; m: string[]; s: string[] };
+  private cursor = { b: 0, m: 0, s: 0 };
+  private used = new Set<string>();
+
+  constructor(lang: Lang, prefs: string[], ctx: SafetyContext, seed: string) {
+    const base = getDietPools(lang, prefs);
+    const key = seed || String(Date.now());
+    this.pools = {
+      b: seededShuffle(filterPool(base.b, ctx, lang, "b"), `${key}-b`),
+      m: seededShuffle(filterPool(base.m, ctx, lang, "m"), `${key}-m`),
+      s: seededShuffle(filterPool(base.s, ctx, lang, "s"), `${key}-s`),
+    };
+  }
+
+  pick(slot: "b" | "m" | "s", dayIndex: number, slotIndex: number): string {
+    const list = this.pools[slot];
+    for (let pass = 0; pass < list.length + 2; pass++) {
+      for (let o = 0; o < Math.max(list.length, 1); o++) {
+        const idx = list.length ? (this.cursor[slot] + o + dayIndex + slotIndex) % list.length : 0;
+        const title = list[idx] ?? "Gemüsepfanne";
+        this.cursor[slot] = (idx + 1) % Math.max(list.length, 1);
+        const key = normNameKey(title);
+        if (!this.used.has(key)) {
+          this.used.add(key);
+          return title;
+        }
+      }
+    }
+    const fallback = slot === "b" ? "Haferflocken Beeren" : slot === "m" ? "Chicken Rice Bowl" : "Obst Joghurt";
+    this.used.add(normNameKey(fallback));
+    return fallback;
+  }
+}
+
+export function sanitizePlaceholderMeals(
+  plan: MealPlan,
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "varietySeed"> & {
+    safetyCtx: SafetyContext;
+  },
+): MealPlan {
+  const picker = new PoolPicker(input.lang, input.prefs, input.safetyCtx, input.varietySeed ?? "");
+
+  return plan.map((day, dayIndex) => ({
+    ...day,
+    meals: (day.meals ?? []).map((meal, slotIndex) => {
+      const slot = mealSlot(slotIndex, input.mealsPerDay);
+      let name = String(meal.name || "").trim();
+      const instructions = sanitizeMealInstructions(meal.instructions);
+
+      if (isPlaceholderMealName(name)) {
+        const replacement = picker.pick(slot, dayIndex, slotIndex);
+        console.warn(`[MEAL-PLAN] Replaced placeholder "${name}" → ${replacement}`);
+        name = replacement;
+      }
+
+      const rebuilt = buildMealFromDishTitle(name, slot, input.lang, input.safetyCtx);
+      const hasMacros = (Number(meal.protein) || 0) + (Number(meal.carbs) || 0) + (Number(meal.fat) || 0) > 0;
+
+      const out: Meal = {
+        ...rebuilt,
+        type: rebuilt.type,
+        name: rebuilt.name,
+        instructions,
+        allergenTags:
+          Array.isArray(meal.allergenTags) && meal.allergenTags.length
+            ? meal.allergenTags.map(String)
+            : rebuilt.allergenTags,
+      };
+
+      if (hasMacros) {
+        out.protein = Number(meal.protein) || 0;
+        out.carbs = Number(meal.carbs) || 0;
+        out.fat = Number(meal.fat) || 0;
+        out.calories = Number(meal.calories) || rebuilt.calories;
+      }
+
+      return out;
+    }),
+  }));
+}
+
 // ===== HTTP handler =====
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    resetOpenAiCallBudget();
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl) {
@@ -2822,6 +3024,14 @@ Deno.serve(async (req) => {
     ]
       .filter(Boolean)
       .join("\n\n");
+
+    const hasOpenAiKey = Boolean(getOpenAIKey());
+    console.log("[MEAL-PLAN] request", {
+      hasOpenAiKey,
+      isRegeneration: isRegeneration || priorDishes.length > 0,
+      mealsPerDay,
+      priorDishes: priorDishes.length,
+    });
 
     const { plan, usedAi, repairAttempts } = await buildPlan({
       mealsPerDay,

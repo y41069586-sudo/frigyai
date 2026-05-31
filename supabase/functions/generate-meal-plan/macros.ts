@@ -5,6 +5,7 @@ import {
   RECONCILE_RATIO_MIN,
   SLOT_WEIGHTS,
 } from "./constants.ts";
+import { sanitizeMealInstructions } from "./planMealSanitize.ts";
 import type {
   DayPlan,
   MacroAuthority,
@@ -15,6 +16,7 @@ import type {
   MealPlan,
   ReconcileResult,
 } from "./types.ts";
+
 
 export function macroKcal(p: number, c: number, f: number) {
   return p * 4 + c * 4 + f * 9;
@@ -112,9 +114,7 @@ export function recalcMeal(m: MealLike): Meal {
             price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
           }))
       : [],
-    instructions: Array.isArray(m.instructions)
-      ? m.instructions.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
-      : [],
+    instructions: sanitizeMealInstructions(m.instructions),
     allergenTags: Array.isArray(m.allergenTags)
       ? m.allergenTags.map((t) => String(t).trim()).filter(Boolean).slice(0, 12)
       : [],
@@ -137,9 +137,7 @@ export function normalizeMealStructure(m: MealLike): Meal {
           price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
         }))
     : [];
-  const instructions = Array.isArray(m?.instructions)
-    ? m.instructions.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
-    : [];
+  const instructions = sanitizeMealInstructions(m?.instructions);
   return {
     type: String(m?.type || "Mahlzeit").trim(),
     name: String(m?.name || "Gericht").trim(),
@@ -160,6 +158,12 @@ function slotWeights(mealsPerDay: number): number[] {
   const w = SLOT_WEIGHTS[mealsPerDay];
   if (w?.length === mealsPerDay) return w;
   return Array.from({ length: mealsPerDay }, () => 1 / mealsPerDay);
+}
+
+function mealSlotForSync(si: number, mpd: number): "b" | "m" | "s" {
+  if (si === 0) return "b";
+  const mains = mpd >= 4 ? [1, 3] : [1];
+  return mains.includes(si) ? "m" : "s";
 }
 
 /** Largest-remainder: exact integer split of total across weights — O(n). */
@@ -214,27 +218,80 @@ export function correctSyncedDayDrift(meals: Meal[], targets: MacroTargets): Mea
   return adjusted;
 }
 
-/**
- * Single macro authority: slot weights → exact integer grams (no iterative loop).
- */
-export function syncDay(day: DayPlan, targets: MacroTargets, mealsPerDay: number): DayPlan {
+/** Per-meal kcal weights: AI ratios when present, else slot + day + dish name (not identical every day). */
+function mealKcalWeights(meals: Meal[], mealsPerDay: number, dayIndex: number): number[] {
+  const baseSlot = slotWeights(mealsPerDay);
+  return meals.map((m, i) => {
+    const p = Math.max(0, Number(m.protein) || 0);
+    const c = Math.max(0, Number(m.carbs) || 0);
+    const f = Math.max(0, Number(m.fat) || 0);
+    const aiKcal = macroKcal(p, c, f);
+    if (aiKcal >= 80) return aiKcal;
+
+    const slot = mealSlotForSync(i, mealsPerDay);
+    const slotHint = slot === "b" ? 0.2 : slot === "m" ? 0.36 : 0.12;
+    const base = baseSlot[i] ?? slotHint;
+    const name = String(m.name || "");
+    let h = (dayIndex + 1) * 7919;
+    for (let j = 0; j < name.length; j++) h = (Math.imul(h, 31) + name.charCodeAt(j)) >>> 0;
+    const jitter = 0.62 + (h % 76) / 100;
+    return Math.max(0.05, base * jitter);
+  });
+}
+
+function scaleMealsToDailyTargets(meals: Meal[], targets: MacroTargets): Meal[] {
   const t = harmonizeTargets(targets);
-  const weights = slotWeights(mealsPerDay);
+  const sum = sumMeals(meals);
+  if (sum.protein + sum.carbs + sum.fat <= 0) return meals;
+
+  const scaleP = sum.protein > 0 ? t.dailyProtein / sum.protein : 1;
+  const scaleC = sum.carbs > 0 ? t.dailyCarbs / sum.carbs : 1;
+  const scaleF = sum.fat > 0 ? t.dailyFat / sum.fat : 1;
+
+  return meals.map((m) =>
+    recalcMeal({
+      ...m,
+      protein: Math.max(0, Math.round((Number(m.protein) || 0) * scaleP)),
+      carbs: Math.max(0, Math.round((Number(m.carbs) || 0) * scaleC)),
+      fat: Math.max(0, Math.round((Number(m.fat) || 0) * scaleF)),
+    }),
+  );
+}
+
+/**
+ * Daily totals exact; per-meal size varies by dish (not the same kcal on every weekday for slot 1..N).
+ */
+export function syncDay(
+  day: DayPlan,
+  targets: MacroTargets,
+  mealsPerDay: number,
+  dayIndex = 0,
+): DayPlan {
+  const t = harmonizeTargets(targets);
   let meals = (day.meals || []).map((m) => normalizeMealStructure({ ...m }));
   if (!meals.length) return { ...day, meals };
 
-  const w = weights.slice(0, meals.length);
-  const proteins = distributeIntegers(t.dailyProtein, w);
-  const carbs = distributeIntegers(t.dailyCarbs, w);
-  const fats = distributeIntegers(t.dailyFat, w);
+  const sum = sumMeals(meals);
+  const aiTotals = sum.protein + sum.carbs + sum.fat;
+  const kcalSpread = meals.map((m) => macroKcal(Number(m.protein) || 0, Number(m.carbs) || 0, Number(m.fat) || 0));
+  const distinctKcals = new Set(kcalSpread.map((k) => Math.round(k / 40))).size;
 
-  meals = meals.map((m, i) =>
-    recalcMeal({ ...m, protein: proteins[i], carbs: carbs[i], fat: fats[i] }),
-  );
+  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length)) {
+    meals = scaleMealsToDailyTargets(meals, t);
+  } else {
+    const w = mealKcalWeights(meals, mealsPerDay, dayIndex);
+    const proteins = distributeIntegers(t.dailyProtein, w);
+    const carbs = distributeIntegers(t.dailyCarbs, w);
+    const fats = distributeIntegers(t.dailyFat, w);
+    meals = meals.map((m, i) =>
+      recalcMeal({ ...m, protein: proteins[i]!, carbs: carbs[i]!, fat: fats[i]! }),
+    );
+  }
+
   meals = correctSyncedDayDrift(meals, t);
   return { ...day, meals };
 }
 
 export function syncPlan(plan: MealPlan, targets: MacroTargets, mealsPerDay: number): MealPlan {
-  return plan.map((d) => syncDay(d, targets, mealsPerDay));
+  return plan.map((d, dayIndex) => syncDay(d, targets, mealsPerDay, dayIndex));
 }

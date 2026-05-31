@@ -135,8 +135,8 @@ export function FrigyScanFailureStage({
   onClose,
   title,
 }: FrigyScanFailureStageProps) {
-  const { t, language } = useLanguage();
-  const resolvedTitle = title ?? (language === "fr" ? "Frigy dit" : language === "en" ? "Frigy says" : "Frigy sagt");
+  const { t } = useLanguage();
+  const resolvedTitle = title ?? t.frigySays;
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -194,35 +194,27 @@ export type FrigyScanSuccessData = {
 type FrigyScanSuccessStageProps = {
   result: FrigyScanSuccessData;
   onDismiss: () => void;
+  /** Wenn gesetzt: kein Auto-Schließen, zweiter Button „nochmal scannen“. */
+  onScanAnother?: () => void;
+  autoDismissMs?: number;
 };
 
 /** Erfolg nach Essens-Scan — gleicher Look wie Analyse / „Frigy sagt“. */
-export function FrigyScanSuccessStage({ result, onDismiss }: FrigyScanSuccessStageProps) {
-  const { language } = useLanguage();
-  const copy =
-    language === "fr"
-      ? {
-          success: "Reconnu avec succes !",
-          protein: "Proteines",
-          carbs: "Glucides",
-          fat: "Lipides",
-          continue: "Weiter",
-        }
-      : language === "en"
-        ? {
-            success: "Recognized successfully!",
-            protein: "Protein",
-            carbs: "Carbs",
-            fat: "Fat",
-            continue: "Continue",
-          }
-        : {
-            success: "Erfolgreich erkannt!",
-            protein: "Protein",
-            carbs: "Carbs",
-            fat: "Fett",
-            continue: "Weiter",
-          };
+export function FrigyScanSuccessStage({
+  result,
+  onDismiss,
+  onScanAnother,
+  autoDismissMs = onScanAnother ? 0 : 2800,
+}: FrigyScanSuccessStageProps) {
+  const { t } = useLanguage();
+  const copy = {
+    success: t.foodScanRecognized,
+    protein: t.protein,
+    carbs: t.carbs,
+    fat: t.fat,
+    continue: t.foodScanContinue,
+    scanAnother: t.foodScanScanAnother,
+  };
 
   useEffect(() => {
     confettiBurst({
@@ -231,9 +223,10 @@ export function FrigyScanSuccessStage({ result, onDismiss }: FrigyScanSuccessSta
       origin: { y: 0.55 },
       colors: ["#75FBB2", "#39D47F", "#86efac", "#ffffff"],
     });
-    const timer = window.setTimeout(onDismiss, 2800);
+    if (autoDismissMs <= 0) return;
+    const timer = window.setTimeout(onDismiss, autoDismissMs);
     return () => window.clearTimeout(timer);
-  }, [onDismiss]);
+  }, [autoDismissMs, onDismiss]);
 
   return (
     <motion.div
@@ -279,14 +272,26 @@ export function FrigyScanSuccessStage({ result, onDismiss }: FrigyScanSuccessSta
             </div>
           </div>
         </motion.div>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={onDismiss}
-          className="mt-8 flex h-14 w-full max-w-[360px] items-center justify-center rounded-full bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] text-[17px] font-semibold text-[#082013] shadow-[0_16px_40px_-22px_rgba(57,212,127,0.5)]"
-        >
-          {copy.continue}
-        </motion.button>
+        <div className="mt-8 flex w-full max-w-[360px] flex-col gap-2.5">
+          {onScanAnother ? (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={onScanAnother}
+              className="flex h-14 w-full items-center justify-center rounded-full border-2 border-[#75FBB2] bg-white text-[17px] font-semibold text-[#082013]"
+            >
+              {copy.scanAnother}
+            </motion.button>
+          ) : null}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={onDismiss}
+            className="flex h-14 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] text-[17px] font-semibold text-[#082013] shadow-[0_16px_40px_-22px_rgba(57,212,127,0.5)]"
+          >
+            {copy.continue}
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );

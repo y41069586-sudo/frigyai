@@ -616,12 +616,17 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           updateGenerationProgressTarget(80);
 
           if (unsafeMeals.length > 0) {
-            console.error('[MEAL-PLAN-SAFETY] Unsafe meals returned:', unsafeMeals);
-            throw new Error(
-              `Der generierte Plan enthält Zutaten, die nicht zu deinen Allergien/Unverträglichkeiten passen: ${unsafeMeals
-                .slice(0, 3)
-                .join('; ')}. Bitte Plan erneut generieren.`,
-            );
+            console.warn('[MEAL-PLAN-SAFETY] Client flagged meals (plan still saved):', unsafeMeals);
+            const lang = getStoredLanguage();
+            toast({
+              title: lang === 'fr' ? 'Vérification' : lang === 'en' ? 'Safety check' : 'Hinweis',
+              description:
+                lang === 'fr'
+                  ? `Certains plats pourraient ne pas correspondre à vos restrictions (${unsafeMeals.slice(0, 2).join('; ')}). Vérifiez le plan.`
+                  : lang === 'en'
+                    ? `Some meals may not match your restrictions (${unsafeMeals.slice(0, 2).join('; ')}). Please review the plan.`
+                    : `Einige Gerichte könnten zu deinen Vorgaben passen (${unsafeMeals.slice(0, 2).join('; ')}). Bitte Plan kurz prüfen.`,
+            });
           }
 
           // Debug: Check if ingredients are present
@@ -735,13 +740,30 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const message = error instanceof Error ? error.message : String(error);
       console.error('[MEAL-PLAN-CLIENT] Error in generateMealPlan catch block:', message);
 
-      if (message.includes('plan_limit_exceeded')) {
-        // Refresh count from server just in case
+      if (
+        message.includes('plan_limit_exceeded') ||
+        message.includes('premium_required') ||
+        message.includes('Premium required')
+      ) {
         await refreshGenerationCount();
-
+        toast({
+          title: ui.premiumRequired,
+          description: ui.premiumRequiredDesc,
+          variant: 'destructive',
+        });
+      } else if (
+        message.includes('meal_plan_generation_failed') ||
+        message.includes('OPENAI_API_KEY')
+      ) {
         toast({
           title: ui.genericErrorTitle,
-          description: ui.genericErrorDesc,
+          description: ui.connectionErrorDesc,
+          variant: 'destructive',
+        });
+      } else if (message.includes('unauthorized') || message.includes('Anmeldung')) {
+        toast({
+          title: tr.notLoggedIn,
+          description: message,
           variant: 'destructive',
         });
       } else if (message.includes('Load failed') || message.includes('Failed to fetch')) {

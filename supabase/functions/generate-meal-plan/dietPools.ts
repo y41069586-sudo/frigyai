@@ -5,27 +5,31 @@ export type PoolSet = { b: string[]; m: string[]; s: string[] };
 const DE: Record<string, PoolSet> = {
   balanced: {
     b: [
-      "Haferflocken Beeren", "Skyr Obst", "Rührei Vollkornbrot", "Joghurt Banane", "Hüttenkäse Toast",
-      "Avocado Brot", "Müsli Apfel", "Porridge Nüsse", "French Toast", "Quark Honig",
+      "Haferflocken mit Beeren", "Joghurt mit Banane", "Rührei mit Brot", "Avocado Toast",
+      "Müsli mit Apfel", "Porridge", "Greek Yogurt mit Honig", "Vollkornbrot mit Käse",
     ],
     m: [
-      "Hähnchen Reis Pfanne", "Lachs Kartoffeln", "Puten Gemüse Bowl", "Pasta Tomate Basilikum",
-      "Rind Pfanne Asia", "Thunfisch Salat", "Linsen Curry", "Gyros Bowl", "Falafel Teller",
-      "Wrap Hähnchen", "Spaghetti Bolognese", "Fish and Chips Ofen", "Chili con Carne", "Risotto Pilze",
+      "Chicken Rice Bowl", "Lachs mit Kartoffeln", "Pasta Tomatensauce", "Beef Stir Fry",
+      "Thunfisch Salat", "Spaghetti Bolognese", "Hähnchen Curry mild", "Fish Tacos",
+      "Puten Gemüse Pfanne", "Risotto", "Chili con Carne", "Wrap mit Hähnchen",
+      "Linsensuppe", "Pizza Margherita",
     ],
-    s: ["Apfel Nüsse", "Quark Beeren", "Vollkornbrot Aufstrich", "Obst Joghurt", "Hummus Gemüse", "Protein Riegel", "Käse Sticks"],
+    s: [
+      "Apfel mit Nüssen", "Quark mit Beeren", "Brot mit Aufstrich", "Obst mit Joghurt",
+      "Käse mit Gurke", "Vollkornkeks", "Milchreis",
+    ],
   },
   vegan: {
     b: [
-      "Haferflocken Beeren", "Tofu-Scramble", "Avocado Brot", "Chia Pudding", "Banane Erdnuss",
-      "Obstsalat", "Hummus Brot", "Porridge Kokos", "Smoothie Bowl", "Vollkorn mit Marmelade",
+      "Haferflocken mit Beeren", "Tofu-Rührei", "Brot mit Marmelade", "Obstsalat",
+      "Haferdrink mit Müsli", "Banane mit Erdnussmus", "Toast mit Hummus",
     ],
     m: [
-      "Linsen Curry", "Tofu Reis Pfanne", "Kichererbsen Bowl", "Gemüsepfanne Sesam", "Buddha Bowl",
-      "Tempeh Salat", "Bohnen Chili", "Pad Thai Tofu", "Falafel mit Tahini", "Linsensuppe",
-      "Veggie Burger Bowl", "Couscous Gemüse", "Thai Gemüse Kokos", "Burrito Bowl vegan", "Ramen Gemüsebrühe",
+      "Linsensuppe mit Brot", "Tofu mit Reis", "Kichererbsen mit Gemüse", "Gemüsepfanne mit Kartoffeln",
+      "Nudeln mit Tomatensauce", "Bohneneintopf", "Reis mit Brokkoli", "Kartoffeln mit Salat",
+      "Vollkornnudeln mit Pesto", "Gemüselasagne vegan", "Linsen mit Spätzle",
     ],
-    s: ["Apfel Nüsse", "Hummus Gemüse", "Obst Mix", "Edamame", "Nussriegel", "Rice Cakes Avocado", "Energy Balls"],
+    s: ["Apfel mit Nüssen", "Gemüsesticks", "Obstmix", "Brot mit Aufstrich", "Reiswaffeln mit Avocado"],
   },
   vegetarian: {
     b: [
