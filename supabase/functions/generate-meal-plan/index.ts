@@ -1784,7 +1784,7 @@ function buildCompactSystemPrompt(params: {
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
-    `Every meal needs a REAL dish name (e.g. "Chicken Rice Bowl") — NEVER "Friday Meal 3" or "Meal 2".`,
+    `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3" or "Meal 2".`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
     `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
     params.dietBlock,
@@ -1823,7 +1823,9 @@ async function callOpenAIOnce(params: {
 
   const user = regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
-    : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. International everyday food. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
+    : params.lang === "de"
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen.`
+      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -1839,7 +1841,7 @@ async function callOpenAIOnce(params: {
       headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: getOpenAIMealPlanModel(),
-        temperature: regen ? 0.65 : 0.32,
+        temperature: regen ? 0.5 : 0.28,
         max_tokens: OPENAI_PLAN_MAX_TOKENS,
         response_format: { type: "json_object" },
         messages: [
@@ -2470,9 +2472,9 @@ const DE: Record<string, PoolSet> = {
       "Müsli mit Apfel", "Porridge", "Greek Yogurt mit Honig", "Vollkornbrot mit Käse",
     ],
     m: [
-      "Chicken Rice Bowl", "Lachs mit Kartoffeln", "Pasta Tomatensauce", "Beef Stir Fry",
-      "Thunfisch Salat", "Spaghetti Bolognese", "Hähnchen Curry mild", "Fish Tacos",
-      "Puten Gemüse Pfanne", "Risotto", "Chili con Carne", "Wrap mit Hähnchen",
+      "Reis mit Hackfleisch", "Lachs mit Kartoffeln", "Nudeln mit Tomatensoße", "Hähnchen mit Reis",
+      "Thunfisch Salat", "Spaghetti Bolognese", "Hähnchenbrust mit Gemüse", "Kartoffeln mit Schnitzel",
+      "Putenpfanne mit Gemüse", "Eintopf mit Brot", "Chili con Carne", "Hähnchen-Wrap",
       "Linsensuppe", "Pizza Margherita",
     ],
     s: [
@@ -2498,9 +2500,9 @@ const DE: Record<string, PoolSet> = {
       "Obst Quark", "Müsli Mandel", "Eier Benedict light",
     ],
     m: [
-      "Caprese Pasta", "Spinat Ricotta Nudeln", "Gemüse Lasagne", "Kichererbsen Curry", "Falafel Teller",
-      "Margherita Pizza Ofen", "Risotto Safran", "Eier Fried Rice", "Halloumi Grill Gemüse", "Linsen Bolognese",
-      "Paneer Tikka", "Quiche Gemüse", "Burrito vegetarisch",
+      "Nudeln mit Tomatensoße", "Spinat-Nudeln mit Käse", "Gemüselasagne", "Kichererbsen-Eintopf",
+      "Margherita Pizza", "Reis mit Gemüse", "Eier mit Kartoffeln", "Halloumi mit Salat",
+      "Linsen-Bolognese", "Gemüsepfanne mit Reis", "Käsespätzle", "Quiche mit Gemüse",
     ],
     s: ["Käse Sticks", "Obst Joghurt", "Hummus Karotten", "Nuss Mix", "Smoothie"],
   },
@@ -2510,9 +2512,9 @@ const DE: Record<string, PoolSet> = {
       "Salami Eier", "Smoked Salmon Frühstück",
     ],
     m: [
-      "Lachs Brokkoli Butter", "Hähnchen Caesar ohne Croutons", "Rindersteak Blumenkohl", "Puten Zucchini Pfanne",
-      "Thunfisch Salat Olive", "Hackfleisch Kohl", "Garnelen Knoblauch", "Ente Gemüse", "Lamm Rosmarin",
-      "Schweinefilet Pilze", "Zucchini Lasagne keto", "Cobb Salad",
+      "Lachs mit Brokkoli", "Hähnchensalat", "Rindersteak mit Blumenkohl", "Pute mit Zucchini",
+      "Thunfischsalat", "Hackfleisch mit Kohl", "Hähnchen mit Salat", "Schweinesteak mit Pilzen",
+      "Zucchini-Auflauf", "Omelett mit Salat", "Frikadellen mit Gemüse",
     ],
     s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Pepperoni Snack"],
   },
@@ -2622,7 +2624,7 @@ export function getDietPools(lang: Lang, prefs: string[]): PoolSet {
 const CUISINE: Record<Lang, Record<string, string>> = {
   de: {
     balanced:
-      "ERNÄHRUNGSFORM: Ausgewogen. Normale internationale Alltagsküche (Pasta, Reis, Hähnchen, Fisch, Salat, Eier, Bowl).",
+      "ERNÄHRUNGSFORM: Ausgewogen. Normale Hausmannskost & Alltagsgerichte (Reis mit Hackfleisch, Nudeln mit Soße, Schnitzel mit Kartoffeln, Hähnchen mit Reis, Eintopf, Salat, Omelett).",
     vegan:
       "ERNÄHRUNGSFORM: VEGAN (Pflicht). KEIN Fleisch, Fisch, Eier, Milch, Honig, Gelatine. Nur pflanzlich: Tofu, Tempeh, Linsen, Kichererbsen, Hülsenfrüchte, Gemüse, Nüsse, Hafer, pflanzliche Milch.",
     vegetarian:
@@ -2671,7 +2673,7 @@ export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): st
   if (lang === "de") {
     return [
       `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag, ${total} Mahlzeiten gesamt).`,
-      "Normale internationale Alltagsküche — abwechslungsreich, aber nicht exotisch-zwingend.",
+      "Normale Hausmannskost — wie im Supermarkt/Rezeptbuch: Reis Hackfleisch, Nudeln Bolognese, Kartoffelsuppe. Keine exotischen oder Restaurant-Gerichte.",
       "JEDE Mahlzeit an JEDEM Tag ein anderer Gerichtname — nicht dieselben Gerichte die ganze Woche wiederholen.",
       "Makros pro Mahlzeit realistisch unterschiedlich (leichter Snack weniger kcal, große Hauptmahlzeit mehr) — nicht jede Mahlzeit gleich groß.",
     ].join(" ");
@@ -2692,11 +2694,19 @@ export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): st
   ].join(" ");
 }
 
+export function buildEverydayDishExample(lang: Lang): string {
+  if (lang === "de") return "Reis mit Hackfleisch";
+  if (lang === "fr") return "Riz bœuf haché";
+  return "Chicken and rice";
+}
+
 export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {
   const total = 7 * mealsPerDay;
   if (lang === "de") {
     return [
-      "STIL: Normale internationale Alltagsküche (italienisch, asiatisch-leicht, mediterran, amerikanisch, deutsch — gemischt).",
+      "STIL: Normale deutsche & internationale Hausmannskost — einfache Gerichte, die jeder kennt.",
+      "BEISPIELE (gut): Reis mit Hackfleisch, Spaghetti Bolognese, Hähnchen mit Kartoffeln, Nudeln mit Tomatensoße, Kartoffelsuppe, Omelett mit Brot, Putenschnitzel mit Salat.",
+      "VERMEIDEN: Exotische Küche, Fine Dining, seltene Zutaten (Ente, Lamm, Garnelen als Standard), englische Marketing-Namen (Bowl, Tacos, Tikka, Risotto-Safran) — kurze verständliche Namen auf Deutsch.",
       `VARIATION: ${total} verschiedene Gerichtnamen in der Woche.`,
       "MAKROS: Pro Mahlzeit unterschiedliche realistische Größe (Snack ~150–350 kcal, Hauptmahlzeit ~450–750 kcal) — Tagesziel trotzdem exakt einhalten.",
     ].join("\n");
@@ -2912,11 +2922,13 @@ export function sanitizeMealInstructions(instructions: unknown): string[] {
 }
 
 class PoolPicker {
+  private lang: Lang;
   private pools: { b: string[]; m: string[]; s: string[] };
   private cursor = { b: 0, m: 0, s: 0 };
   private used = new Set<string>();
 
   constructor(lang: Lang, prefs: string[], ctx: SafetyContext, seed: string) {
+    this.lang = lang;
     const base = getDietPools(lang, prefs);
     const key = seed || String(Date.now());
     this.pools = {
@@ -2940,7 +2952,11 @@ class PoolPicker {
         }
       }
     }
-    const fallback = slot === "b" ? "Haferflocken Beeren" : slot === "m" ? "Chicken Rice Bowl" : "Obst Joghurt";
+    const fallback = slot === "b"
+      ? (this.lang === "de" ? "Haferflocken mit Beeren" : "Oatmeal berries")
+      : slot === "m"
+        ? (this.lang === "de" ? "Reis mit Hackfleisch" : "Chicken and rice")
+        : (this.lang === "de" ? "Obst mit Joghurt" : "Fruit yogurt");
     this.used.add(normNameKey(fallback));
     return fallback;
   }

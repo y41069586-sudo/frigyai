@@ -36,11 +36,13 @@ export function sanitizeMealInstructions(instructions: unknown): string[] {
 }
 
 class PoolPicker {
+  private lang: Lang;
   private pools: { b: string[]; m: string[]; s: string[] };
   private cursor = { b: 0, m: 0, s: 0 };
   private used = new Set<string>();
 
   constructor(lang: Lang, prefs: string[], ctx: SafetyContext, seed: string) {
+    this.lang = lang;
     const base = getDietPools(lang, prefs);
     const key = seed || String(Date.now());
     this.pools = {
@@ -64,7 +66,11 @@ class PoolPicker {
         }
       }
     }
-    const fallback = slot === "b" ? "Haferflocken Beeren" : slot === "m" ? "Chicken Rice Bowl" : "Obst Joghurt";
+    const fallback = slot === "b"
+      ? (this.lang === "de" ? "Haferflocken mit Beeren" : "Oatmeal berries")
+      : slot === "m"
+        ? (this.lang === "de" ? "Reis mit Hackfleisch" : "Chicken and rice")
+        : (this.lang === "de" ? "Obst mit Joghurt" : "Fruit yogurt");
     this.used.add(normNameKey(fallback));
     return fallback;
   }

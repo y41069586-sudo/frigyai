@@ -52,6 +52,7 @@ interface MealDetailDialogProps {
 const LOG_BTN_COPY = {
   de: {
     log: "Gegessen loggen",
+    logShort: "Gegessen",
     logLong: "Als gegessen markieren",
     logging: "Wird geloggt…",
     done: "Gegessen!",
@@ -59,6 +60,7 @@ const LOG_BTN_COPY = {
   },
   en: {
     log: "Log meal",
+    logShort: "Log",
     logLong: "Mark as eaten",
     logging: "Logging…",
     done: "Logged!",
@@ -66,6 +68,7 @@ const LOG_BTN_COPY = {
   },
   fr: {
     log: "Noter repas",
+    logShort: "Noter",
     logLong: "Marquer mangé",
     logging: "Enregistrement…",
     done: "Noté !",
@@ -258,7 +261,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             <div
               ref={scrollRef}
               data-sheet-scroll
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-28 pt-1 sm:px-6 sm:pb-24"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-1 sm:px-6 sm:pb-24"
             >
               <div className="my-3 grid grid-cols-4 gap-2">
                 <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(activeMeal.calories)} label={ui.kcal} />
@@ -345,33 +348,47 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               </section>
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 z-10 flex gap-2 border-t border-slate-200/80 bg-white/95 px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-3 backdrop-blur-xl sm:px-4">
+            <div
+              className={cn(
+                "absolute inset-x-0 bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl",
+                "gap-3 px-5 pt-3",
+                "pb-[max(0.75rem,env(safe-area-inset-bottom,0px)+0.5rem)]",
+                isMobile ? "grid grid-cols-2" : "flex items-center",
+                isMobile && "rounded-b-[1.75rem]",
+              )}
+            >
               <Button
                 onClick={handleLogMeal}
                 disabled={isLogging || isLogged}
-                className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-2xl bg-primary px-2 text-[11px] font-bold leading-tight hover:bg-primary/90 whitespace-normal sm:h-12 sm:px-3 sm:text-xs"
+                className={cn(
+                  "h-11 min-h-11 gap-2 rounded-xl bg-primary text-sm font-semibold hover:bg-primary/90 sm:h-12",
+                  isMobile ? "w-full" : "min-w-0 flex-1",
+                )}
               >
                 {isLogged ? (
                   <>
-                    <Check className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                    <Check className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="truncate">{t.toastFoodLogged || btn.done}</span>
                   </>
                 ) : isLogging ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin sm:h-4 sm:w-4" aria-hidden />
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
                     <span className="truncate">{btn.logging}</span>
                   </>
                 ) : (
                   <>
-                    <Check className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                    <span className="truncate">{isMobile ? btn.log : btn.logLong}</span>
+                    <Check className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="truncate">{isMobile ? btn.logShort : btn.logLong}</span>
                   </>
                 )}
               </Button>
               <Button
                 onClick={() => onOpenChange(false)}
                 variant="outline"
-                className="h-11 w-[4.75rem] shrink-0 rounded-2xl px-2 text-[11px] font-bold sm:h-12 sm:w-24 sm:text-xs"
+                className={cn(
+                  "h-11 min-h-11 rounded-xl px-4 text-sm font-semibold sm:h-12",
+                  isMobile ? "w-full" : "shrink-0 sm:min-w-[6.5rem]",
+                )}
               >
                 {btn.close}
               </Button>

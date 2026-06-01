@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -404,13 +404,26 @@ export const useFoodEntries = () => {
     return () => clearInterval(intervalId);
   }, [user, loadEntries]);
 
+  const loadEntriesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const handleFoodEntryAdded = () => {
-      loadEntries();
+      if (loadEntriesDebounceRef.current) {
+        clearTimeout(loadEntriesDebounceRef.current);
+      }
+      loadEntriesDebounceRef.current = setTimeout(() => {
+        loadEntriesDebounceRef.current = null;
+        void loadEntries();
+      }, 450);
     };
 
     window.addEventListener('foodEntryAdded', handleFoodEntryAdded);
-    return () => window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+    return () => {
+      window.removeEventListener('foodEntryAdded', handleFoodEntryAdded);
+      if (loadEntriesDebounceRef.current) {
+        clearTimeout(loadEntriesDebounceRef.current);
+      }
+    };
   }, [loadEntries]);
 
   return {

@@ -9,9 +9,9 @@ const DE: Record<string, PoolSet> = {
       "Müsli mit Apfel", "Porridge", "Greek Yogurt mit Honig", "Vollkornbrot mit Käse",
     ],
     m: [
-      "Chicken Rice Bowl", "Lachs mit Kartoffeln", "Pasta Tomatensauce", "Beef Stir Fry",
-      "Thunfisch Salat", "Spaghetti Bolognese", "Hähnchen Curry mild", "Fish Tacos",
-      "Puten Gemüse Pfanne", "Risotto", "Chili con Carne", "Wrap mit Hähnchen",
+      "Reis mit Hackfleisch", "Lachs mit Kartoffeln", "Nudeln mit Tomatensoße", "Hähnchen mit Reis",
+      "Thunfisch Salat", "Spaghetti Bolognese", "Hähnchenbrust mit Gemüse", "Kartoffeln mit Schnitzel",
+      "Putenpfanne mit Gemüse", "Eintopf mit Brot", "Chili con Carne", "Hähnchen-Wrap",
       "Linsensuppe", "Pizza Margherita",
     ],
     s: [
@@ -37,9 +37,9 @@ const DE: Record<string, PoolSet> = {
       "Obst Quark", "Müsli Mandel", "Eier Benedict light",
     ],
     m: [
-      "Caprese Pasta", "Spinat Ricotta Nudeln", "Gemüse Lasagne", "Kichererbsen Curry", "Falafel Teller",
-      "Margherita Pizza Ofen", "Risotto Safran", "Eier Fried Rice", "Halloumi Grill Gemüse", "Linsen Bolognese",
-      "Paneer Tikka", "Quiche Gemüse", "Burrito vegetarisch",
+      "Nudeln mit Tomatensoße", "Spinat-Nudeln mit Käse", "Gemüselasagne", "Kichererbsen-Eintopf",
+      "Margherita Pizza", "Reis mit Gemüse", "Eier mit Kartoffeln", "Halloumi mit Salat",
+      "Linsen-Bolognese", "Gemüsepfanne mit Reis", "Käsespätzle", "Quiche mit Gemüse",
     ],
     s: ["Käse Sticks", "Obst Joghurt", "Hummus Karotten", "Nuss Mix", "Smoothie"],
   },
@@ -49,9 +49,9 @@ const DE: Record<string, PoolSet> = {
       "Salami Eier", "Smoked Salmon Frühstück",
     ],
     m: [
-      "Lachs Brokkoli Butter", "Hähnchen Caesar ohne Croutons", "Rindersteak Blumenkohl", "Puten Zucchini Pfanne",
-      "Thunfisch Salat Olive", "Hackfleisch Kohl", "Garnelen Knoblauch", "Ente Gemüse", "Lamm Rosmarin",
-      "Schweinefilet Pilze", "Zucchini Lasagne keto", "Cobb Salad",
+      "Lachs mit Brokkoli", "Hähnchensalat", "Rindersteak mit Blumenkohl", "Pute mit Zucchini",
+      "Thunfischsalat", "Hackfleisch mit Kohl", "Hähnchen mit Salat", "Schweinesteak mit Pilzen",
+      "Zucchini-Auflauf", "Omelett mit Salat", "Frikadellen mit Gemüse",
     ],
     s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Pepperoni Snack"],
   },

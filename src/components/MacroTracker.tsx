@@ -160,7 +160,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
-  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
+  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, refreshEntries, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
   
   const [step, setStep] = useState<'onboarding' | 'tracker'>('tracker');
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -218,6 +218,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const [logMealPanelOpen, setLogMealPanelOpen] = useState(false);
   const foodTextInputRef = useRef<HTMLInputElement>(null);
   const addFoodSectionRef = useRef<HTMLDivElement>(null);
+  const pendingDeletesRef = useRef<Set<string>>(new Set());
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
   const [foodScanError, setFoodScanError] = useState<string | null>(null);
@@ -357,7 +358,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   useEffect(() => {
     if (!user || foodEntriesLoading) return;
 
-    const freshEntries = mapDbEntriesToTrackerEntries(dbEntries);
+    const dbIds = new Set(dbEntries.map((e) => e.id));
+    for (const pendingId of pendingDeletesRef.current) {
+      if (!dbIds.has(pendingId)) pendingDeletesRef.current.delete(pendingId);
+    }
+
+    const freshEntries = mapDbEntriesToTrackerEntries(dbEntries).filter(
+      (e) => !pendingDeletesRef.current.has(e.id),
+    );
     setFoodEntries(freshEntries);
 
     localStorage.setItem('todayFood', JSON.stringify({
@@ -738,19 +746,33 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const removeEntry = async (id: string) => {
-    // Remove from local state first
-    const nextEntries = foodEntries.filter(e => e.id !== id);
-    saveFoodEntries(nextEntries);
+    if (pendingDeletesRef.current.has(id)) return;
+    pendingDeletesRef.current.add(id);
 
-    // Try to delete from database if user is logged in
-    // UUID format check: if it looks like a database ID (contains hyphens or is long), delete from DB
-    if (user && id.length > 15) {
-      try {
-        await deleteDbEntry(id);
-      } catch (error) {
-        // Silently fail if it doesn't exist in database
-        console.log('Entry not found in database or already deleted:', id);
+    setFoodEntries((prev) => {
+      const nextEntries = prev.filter((e) => e.id !== id);
+      localStorage.setItem('todayFood', JSON.stringify({
+        date: getLocalDateString(),
+        entries: nextEntries,
+      }));
+      notifyFrigyStorageUpdated();
+      void syncMacrosToDatabase(nextEntries);
+      return nextEntries;
+    });
+
+    try {
+      if (user && id.length > 15) {
+        const ok = await deleteDbEntry(id);
+        if (!ok) {
+          pendingDeletesRef.current.delete(id);
+          void refreshEntries();
+        }
+      } else {
+        pendingDeletesRef.current.delete(id);
       }
+    } catch {
+      pendingDeletesRef.current.delete(id);
+      void refreshEntries();
     }
   };
 

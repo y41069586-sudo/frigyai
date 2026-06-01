@@ -877,7 +877,10 @@ export function TrackerAddMealPanel({
                         {onDeleteMeal ? (
                           <button
                             type="button"
-                            onClick={() => onDeleteMeal(meal.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteMeal(meal.id);
+                            }}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95"
                             style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
                             aria-label={copy.deleteMeal(meal.name)}

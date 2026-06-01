@@ -14,6 +14,7 @@ import type { AiDraftResult, Lang, MacroTargets, MealPlan, PlanInput, PriorDishS
 import {
   buildDietMandatoryBlock,
   buildRegenerationUserPrompt,
+  buildEverydayDishExample,
   buildSimpleFoodStyleBlock,
 } from "./dietPrompts.ts";
 import { formatPriorDishesForPrompt } from "./variety.ts";
@@ -125,7 +126,7 @@ function buildCompactSystemPrompt(params: {
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
-    `Every meal needs a REAL dish name (e.g. "Chicken Rice Bowl") — NEVER "Friday Meal 3" or "Meal 2".`,
+    `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3" or "Meal 2".`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
     `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
     params.dietBlock,
@@ -164,7 +165,9 @@ async function callOpenAIOnce(params: {
 
   const user = regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
-    : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. International everyday food. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
+    : params.lang === "de"
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen.`
+      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -180,7 +183,7 @@ async function callOpenAIOnce(params: {
       headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: getOpenAIMealPlanModel(),
-        temperature: regen ? 0.65 : 0.32,
+        temperature: regen ? 0.5 : 0.28,
         max_tokens: OPENAI_PLAN_MAX_TOKENS,
         response_format: { type: "json_object" },
         messages: [

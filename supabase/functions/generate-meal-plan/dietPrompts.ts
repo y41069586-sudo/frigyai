@@ -4,7 +4,7 @@ import { resolveDietKey } from "./dietPools.ts";
 const CUISINE: Record<Lang, Record<string, string>> = {
   de: {
     balanced:
-      "ERNÄHRUNGSFORM: Ausgewogen. Normale internationale Alltagsküche (Pasta, Reis, Hähnchen, Fisch, Salat, Eier, Bowl).",
+      "ERNÄHRUNGSFORM: Ausgewogen. Normale Hausmannskost & Alltagsgerichte (Reis mit Hackfleisch, Nudeln mit Soße, Schnitzel mit Kartoffeln, Hähnchen mit Reis, Eintopf, Salat, Omelett).",
     vegan:
       "ERNÄHRUNGSFORM: VEGAN (Pflicht). KEIN Fleisch, Fisch, Eier, Milch, Honig, Gelatine. Nur pflanzlich: Tofu, Tempeh, Linsen, Kichererbsen, Hülsenfrüchte, Gemüse, Nüsse, Hafer, pflanzliche Milch.",
     vegetarian:
@@ -53,7 +53,7 @@ export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): st
   if (lang === "de") {
     return [
       `NEUER Wochenplan (${mealsPerDay} Mahlzeiten/Tag, ${total} Mahlzeiten gesamt).`,
-      "Normale internationale Alltagsküche — abwechslungsreich, aber nicht exotisch-zwingend.",
+      "Normale Hausmannskost — wie im Supermarkt/Rezeptbuch: Reis Hackfleisch, Nudeln Bolognese, Kartoffelsuppe. Keine exotischen oder Restaurant-Gerichte.",
       "JEDE Mahlzeit an JEDEM Tag ein anderer Gerichtname — nicht dieselben Gerichte die ganze Woche wiederholen.",
       "Makros pro Mahlzeit realistisch unterschiedlich (leichter Snack weniger kcal, große Hauptmahlzeit mehr) — nicht jede Mahlzeit gleich groß.",
     ].join(" ");
@@ -74,11 +74,19 @@ export function buildRegenerationUserPrompt(mealsPerDay: number, lang: Lang): st
   ].join(" ");
 }
 
+export function buildEverydayDishExample(lang: Lang): string {
+  if (lang === "de") return "Reis mit Hackfleisch";
+  if (lang === "fr") return "Riz bœuf haché";
+  return "Chicken and rice";
+}
+
 export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {
   const total = 7 * mealsPerDay;
   if (lang === "de") {
     return [
-      "STIL: Normale internationale Alltagsküche (italienisch, asiatisch-leicht, mediterran, amerikanisch, deutsch — gemischt).",
+      "STIL: Normale deutsche & internationale Hausmannskost — einfache Gerichte, die jeder kennt.",
+      "BEISPIELE (gut): Reis mit Hackfleisch, Spaghetti Bolognese, Hähnchen mit Kartoffeln, Nudeln mit Tomatensoße, Kartoffelsuppe, Omelett mit Brot, Putenschnitzel mit Salat.",
+      "VERMEIDEN: Exotische Küche, Fine Dining, seltene Zutaten (Ente, Lamm, Garnelen als Standard), englische Marketing-Namen (Bowl, Tacos, Tikka, Risotto-Safran) — kurze verständliche Namen auf Deutsch.",
       `VARIATION: ${total} verschiedene Gerichtnamen in der Woche.`,
       "MAKROS: Pro Mahlzeit unterschiedliche realistische Größe (Snack ~150–350 kcal, Hauptmahlzeit ~450–750 kcal) — Tagesziel trotzdem exakt einhalten.",
     ].join("\n");
