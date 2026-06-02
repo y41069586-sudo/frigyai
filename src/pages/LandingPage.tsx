@@ -9,7 +9,7 @@ import {
   Droplets,
   TrendingDown,
   Apple,
-  Activity,
+  CalendarDays,
   ChevronRight,
   Star,
   Check,
@@ -30,7 +30,7 @@ export const LandingPage = () => {
       { icon: Flame, title: t.landingFeatureCaloriesTitle, description: t.landingFeatureCaloriesDesc },
       { icon: TrendingDown, title: t.landingFeatureWeightTitle, description: t.landingFeatureWeightDesc },
       { icon: Droplets, title: t.landingFeatureWaterTitle, description: t.landingFeatureWaterDesc },
-      { icon: Activity, title: t.landingFeatureHealthTitle, description: t.landingFeatureHealthDesc },
+      { icon: CalendarDays, title: t.landingFeatureHealthTitle, description: t.landingFeatureHealthDesc },
     ],
     [t],
   );

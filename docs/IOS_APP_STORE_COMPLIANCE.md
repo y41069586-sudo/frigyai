@@ -51,6 +51,8 @@ Optional path alias `https://app.frigy.app/apple/s2s` → reverse-proxy to the s
 - [ ] App launches without login (Landing / Onboarding)
 - [ ] No HealthKit capability
 - [ ] Sandbox subscription test on real device
+- [ ] App Store prices: monthly **€9,99** (3-day free trial), yearly **€36,95** — match paywall copy
+- [ ] No Apple Health / Google Fit claims in UI (feature removed)
 
 ## StoreKit 2
 

@@ -5,8 +5,9 @@ Die **native iOS/Android-App** nutzt **In-App-Käufe** über [RevenueCat](https:
 ## 1. App Store Connect (iOS)
 
 1. Erstelle Auto-Renewable Subscriptions (z. B. `premium_monthly`, `premium_yearly`).
-2. Lege eine **Subscription Group** an und veröffentliche die Produkte (mind. Sandbox).
-3. Notiere die **Product IDs** – sie müssen in RevenueCat übereinstimmen.
+2. **Preise (UI / Marketing):** Monat **€9,99** mit **3 Tagen** Gratis-Testphase (Introductory Offer), Jahr **€36,95** — müssen exakt in App Store Connect / Play Console eingetragen sein.
+3. Lege eine **Subscription Group** an und veröffentliche die Produkte (mind. Sandbox).
+4. Notiere die **Product IDs** – sie müssen in RevenueCat übereinstimmen.
 
 ## 2. Google Play Console (Android)
 
