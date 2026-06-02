@@ -8,14 +8,13 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
 
-    # Team settings → Integrations → App Store Connect API key
-    # Reference name below must match exactly (e.g. "codemagic" or your key name).
-    integrations:
-      app_store_connect: codemagic
-
+    # App settings → Environment variables → group "appstore_credentials"
+    # (see docs/CODEMAGIC.md — works when Team integrations UI is not available)
     environment:
       xcode: latest
       node: 20
+      groups:
+        - appstore_credentials
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App

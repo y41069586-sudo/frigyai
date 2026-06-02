@@ -21,7 +21,38 @@ Der **Android-Workflow wurde entfernt**. In Codemagic startest du nur noch:
 
 Ohne Signing schlägt der iOS-Build fehl. **Du brauchst kein Mac** — Codemagic erzeugt das Zertifikat über die **App Store Connect API**.
 
-### Schritt 1 — App Store Connect API Key (einmalig)
+### Alternative: Nur App settings (Name + Value) — ohne Team-Integration
+
+Wenn Codemagic sagt „in App settings machen“ und du **nur Variable name / value** siehst:
+
+**App frigyai → Settings → Environment variables**
+
+Gruppe anlegen: **`appstore_credentials`**
+
+| Variable name | Value | Secret? |
+|---------------|-------|---------|
+| `APP_STORE_CONNECT_KEY_IDENTIFIER` | `BFQ5G69F89` | nein |
+| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID aus App Store Connect (UUID) | nein |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | **Kompletter Inhalt** der `.p8`-Datei | **ja** |
+
+**`.p8` einfügen (Windows):**
+
+1. `AuthKey_BFQ5G69F89.p8` mit **Notepad** öffnen  
+2. Alles markieren und kopieren — inkl. Zeilen:
+   ```
+   -----BEGIN PRIVATE KEY-----
+   ...
+   -----END PRIVATE KEY-----
+   ```
+3. In Codemagic bei **Value** einfügen (kein Base64, kein JSON)
+
+Issuer ID: [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API** → oben **Issuer ID**.
+
+Der Workflow nutzt die Gruppe `appstore_credentials` und holt beim Build Zertifikat + Profil automatisch.
+
+**Generate certificate** in der UI brauchst du dann **nicht** — der Build-Schritt `Fetch code signing files` reicht.
+
+### Schritt 1 — App Store Connect API Key (Referenz)
 
 1. [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API**
 2. **+** → Name z. B. `codemagic` → Rolle **App Manager**
