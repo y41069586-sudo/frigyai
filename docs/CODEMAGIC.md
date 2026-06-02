@@ -19,20 +19,50 @@ Der **Android-Workflow wurde entfernt**. In Codemagic startest du nur noch:
 
 ## 2. Apple Code Signing (Pflicht)
 
-Ohne Signing schlägt der iOS-Build fehl.
+Ohne Signing schlägt der iOS-Build fehl. **Du brauchst kein Mac** — Codemagic erzeugt das Zertifikat über die **App Store Connect API**.
 
-### Variante A — Codemagic UI (einfach)
+### Schritt 1 — App Store Connect API Key (einmalig)
 
-1. **Team settings → Code signing identities**
-2. **iOS certificates**: Apple Distribution Certificate hochladen (`.p12` + Passwort)
-3. **iOS provisioning profiles**: App Store Profil für `com.frigyapp.app`
-4. Referenzname wird von `ios_signing` in `codemagic.yaml` genutzt
+1. [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API**
+2. **+** → Name z. B. `codemagic` → Rolle **App Manager**
+3. **Generate** → Datei **`.p8` herunterladen** (nur einmal!)
+4. **Issuer ID** (oben auf der Seite) und **Key ID** notieren
 
-### Variante B — App Store Connect API (TestFlight automatisch)
+### Schritt 2 — Key in Codemagic
 
-1. **Team settings → Integrations → App Store Connect**
-2. API Key (.p8), Key ID, Issuer ID eintragen
-3. Optional in `codemagic.yaml` unter `publishing → app_store_connect` aktivieren
+1. Codemagic → **Team settings** (Zahnrad, nicht App-Einstellungen)
+2. **Team integrations** → **Developer Portal** / **App Store Connect**
+3. **Add key** → Issuer ID, Key ID, `.p8` hochladen
+4. **Reference name** merken — z. B. `codemagic`
+
+### Schritt 3 — `codemagic.yaml` anpassen
+
+In `codemagic.yaml` muss der Name passen:
+
+```yaml
+integrations:
+  app_store_connect: codemagic   # ← genau dein Reference name
+```
+
+Beim Build holt Codemagic automatisch:
+
+- **Apple Distribution** Zertifikat (`--create`)
+- **App Store** Provisioning Profile für `com.frigyapp.app`
+
+(Dafür sind die Script-Schritte `Fetch code signing files` / `keychain add-certificates` im Workflow.)
+
+### Optional — Zertifikat manuell in der UI erzeugen
+
+Falls du es trotzdem in der UI machen willst:
+
+1. **Team settings → Code signing identities → iOS certificates**
+2. **Generate certificate** → Typ **Apple Distribution** → API Key wählen
+3. **Wichtig:** `.p12` sofort **downloaden** und unter **Upload certificate** wieder **hochladen** (Codemagic braucht die Datei im Account)
+4. **iOS provisioning profiles → Fetch profiles** → **App Store** → `com.frigyapp.app`
+
+### App Store Connect App
+
+Unter [App Store Connect → Apps](https://appstoreconnect.apple.com) muss eine App mit Bundle ID **`com.frigyapp.app`** existieren (sonst kein App-Store-Profil).
 
 ---
 
