@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.frigy.app',
+  appId: 'com.frigyapp.app',
   appName: 'Fridgie',
   webDir: 'dist',
   /** Deep links: frigy://callback (Stripe), frigy://signup?ref= (ChottuLink) */

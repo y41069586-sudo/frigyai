@@ -24,7 +24,7 @@ Before **Archive / App Store**: set `aps-environment` to `production` in `App.en
 
 ## Apple Developer
 
-1. **Identifiers → App ID** `com.frigy.app`: Sign in with Apple, Push Notifications.
+1. **Identifiers → App ID** `com.frigyapp.app`: Sign in with Apple, Push Notifications.
 2. **Sign in with Apple → Configure**: Server-to-Server Notification Endpoint:
    - `https://<project-ref>.supabase.co/functions/v1/apple-signin-s2s`
 3. **Subscriptions**: monthly/yearly products → RevenueCat (see `STORE_BILLING_SETUP.md`).
@@ -32,7 +32,7 @@ Before **Archive / App Store**: set `aps-environment` to `production` in `App.en
 ### Deploy Apple S2S function
 
 ```bash
-supabase secrets set APPLE_CLIENT_ID=com.frigy.app
+supabase secrets set APPLE_CLIENT_ID=com.frigyapp.app
 supabase secrets set APPLE_S2S_WEBHOOK_SECRET=<optional-bearer-secret>
 supabase functions deploy apple-signin-s2s --no-verify-jwt
 ```

@@ -15,11 +15,11 @@ workflows:
         # Codemagic → Team settings → Code signing identities (Distribution cert + profile)
         # Für TestFlight / App Store:
         distribution_type: app_store
-        bundle_identifier: com.frigy.app
+        bundle_identifier: com.frigyapp.app
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
-        BUNDLE_ID: com.frigy.app
+        BUNDLE_ID: com.frigyapp.app
         # Pflicht in Codemagic → Environment variables (oder Variable groups):
         # VITE_SUPABASE_URL
         # VITE_SUPABASE_PUBLISHABLE_KEY
@@ -82,11 +82,11 @@ workflows:
       node: 20
       ios_signing:
         distribution_type: ad_hoc
-        bundle_identifier: com.frigy.app
+        bundle_identifier: com.frigyapp.app
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
-        BUNDLE_ID: com.frigy.app
+        BUNDLE_ID: com.frigyapp.app
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps

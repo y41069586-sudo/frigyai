@@ -18,9 +18,9 @@ export const APP_LINK_HOSTS = [CHOTTULINK_HOST, APP_WEB_HOST].filter(Boolean);
 export const IOS_TEAM_ID =
   (import.meta.env.VITE_IOS_TEAM_ID as string | undefined)?.trim() || "TEAMID";
 
-export const IOS_BUNDLE_ID = "com.frigy.app";
+export const IOS_BUNDLE_ID = "com.frigyapp.app";
 
-export const ANDROID_PACKAGE = "com.frigy.app";
+export const ANDROID_PACKAGE = "com.frigyapp.app";
 
 /** ChottuLink dashboard → Destination URL (deep link target) */
 export const CHOTTU_LINK_DESTINATION_URL = `${FRIGY_APP_SCHEME}://signup?ref={ref}`;

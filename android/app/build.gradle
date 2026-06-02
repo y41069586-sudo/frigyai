@@ -15,7 +15,7 @@ android {
         }
     }
     defaultConfig {
-        applicationId "com.frigy.app"
+        applicationId "com.frigyapp.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 2

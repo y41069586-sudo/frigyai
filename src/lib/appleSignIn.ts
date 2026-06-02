@@ -2,7 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { signInWithOAuthProvider } from "@/lib/authOAuth";
 
-const BUNDLE_ID = import.meta.env.VITE_APPLE_BUNDLE_ID?.trim() || "com.frigy.app";
+const BUNDLE_ID = import.meta.env.VITE_APPLE_BUNDLE_ID?.trim() || "com.frigyapp.app";
 const APPLE_REDIRECT_URI =
   import.meta.env.VITE_APPLE_REDIRECT_URI?.trim() || "https://app.frigy.app/auth/callback";
 

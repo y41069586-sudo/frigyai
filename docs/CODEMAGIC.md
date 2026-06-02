@@ -25,7 +25,7 @@ Ohne Signing schlägt der iOS-Build fehl.
 
 1. **Team settings → Code signing identities**
 2. **iOS certificates**: Apple Distribution Certificate hochladen (`.p12` + Passwort)
-3. **iOS provisioning profiles**: App Store Profil für `com.frigy.app`
+3. **iOS provisioning profiles**: App Store Profil für `com.frigyapp.app`
 4. Referenzname wird von `ios_signing` in `codemagic.yaml` genutzt
 
 ### Variante B — App Store Connect API (TestFlight automatisch)
@@ -46,8 +46,8 @@ Ohne Signing schlägt der iOS-Build fehl.
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key |
 | `VITE_REVENUECAT_API_KEY_IOS` | `appl_…` aus RevenueCat |
 | `VITE_REVENUECAT_ENTITLEMENT_ID` | `premium` |
-| `VITE_APPLE_BUNDLE_ID` | `com.frigy.app` |
-| `VITE_APPLE_CLIENT_ID` | `com.frigy.app` |
+| `VITE_APPLE_BUNDLE_ID` | `com.frigyapp.app` |
+| `VITE_APPLE_CLIENT_ID` | `com.frigyapp.app` |
 | `VITE_APPLE_REDIRECT_URI` | `https://app.frigy.app/auth/callback` |
 | `VITE_PRIVACY_POLICY_URL` | `https://app.frigy.app/legal/datenschutz` |
 | `VITE_CHOTTULINK_API_KEY` | optional |
@@ -92,7 +92,7 @@ xcode-project build-ipa
 
 Xcode-Projekt: `ios/App/App.xcodeproj`  
 Scheme: **App**  
-Bundle ID: **com.frigy.app**
+Bundle ID: **com.frigyapp.app**
 
 ---
 
@@ -117,7 +117,7 @@ Dann committen und in Codemagic neu bauen.
 | Fehler | Lösung |
 |--------|--------|
 | No signing certificate | Code signing in Codemagic Team settings |
-| Provisioning profile doesn't match | Bundle ID `com.frigy.app` überall gleich |
+| Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed | `npm run build` lokal fixen; Node 20 |
 | Leere App / kein Login | `VITE_SUPABASE_*` in Codemagic setzen |
 | RevenueCat / IAP fehlt | `VITE_REVENUECAT_API_KEY_IOS` setzen |
