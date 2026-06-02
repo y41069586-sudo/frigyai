@@ -87,6 +87,8 @@ export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): stri
       "STIL: Normale deutsche & internationale Hausmannskost — einfache Gerichte, die jeder kennt.",
       "BEISPIELE (gut): Reis mit Hackfleisch, Spaghetti Bolognese, Hähnchen mit Kartoffeln, Nudeln mit Tomatensoße, Kartoffelsuppe, Omelett mit Brot, Putenschnitzel mit Salat.",
       "VERMEIDEN: Exotische Küche, Fine Dining, seltene Zutaten (Ente, Lamm, Garnelen als Standard), englische Marketing-Namen (Bowl, Tacos, Tikka, Risotto-Safran) — kurze verständliche Namen auf Deutsch.",
+      "KEIN SCHWEIN: Kein Schweinefleisch, Speck, Schinken, Bacon oder andere Schweineprodukte.",
+      "NAMEN: Jede Mahlzeit braucht einen echten Gerichtnamen — niemals „Hauptgericht 1“, „Mahlzeit 2“ o. ä.",
       `VARIATION: ${total} verschiedene Gerichtnamen in der Woche.`,
       "MAKROS: Pro Mahlzeit unterschiedliche realistische Größe (Snack ~150–350 kcal, Hauptmahlzeit ~450–750 kcal) — Tagesziel trotzdem exakt einhalten.",
     ].join("\n");

@@ -9,6 +9,7 @@ const MODULES = [
   "normalize.ts",
   "allergens.ts",
   "diets.ts",
+  "porkBan.ts",
   "macros.ts",
   "meals.ts",
   "validation.ts",

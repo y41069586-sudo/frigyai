@@ -12,10 +12,14 @@ import { WaterTracker } from '@/components/WaterTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import frigLogo from '@/assets/frigy-mascot.png';
-import { canManageStripeSubscription } from '@/lib/subscription';
+import { canManageStripeSubscription, canManageStoreSubscription } from '@/lib/subscription';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { openExternalUrl } from '@/lib/openExternalUrl';
+import { startPremiumCheckout } from '@/lib/purchaseCheckout';
+import type { PaywallBillingPlan } from '@/components/onboarding/components/OnboardingPaywallStep';
+import { openStoreSubscriptionManagement } from '@/lib/storeBilling';
+import { usesStoreBilling } from '@/lib/billingPlatform';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -28,7 +32,9 @@ const PremiumPage = () => {
   const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
-  const canManageSubscription = canManageStripeSubscription(subscriptionStatus);
+  const canManageStripe = canManageStripeSubscription(subscriptionStatus);
+  const canManageStore = canManageStoreSubscription(subscriptionStatus);
+  const canManageSubscription = canManageStripe || canManageStore;
   
   // Check if we're returning from Stripe payment
   const isReturningFromStripe = searchParams.get('subscription') === 'success';
@@ -54,55 +60,34 @@ const PremiumPage = () => {
 
     setLoading(true);
     try {
-      console.log('Starting checkout process...');
-      const response = await supabase.functions.invoke('create-checkout', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const stored = localStorage.getItem('selectedPlan');
+      const plan: PaywallBillingPlan =
+        stored === 'monthly' || stored === 'yearly' ? stored : 'yearly';
+
+      const result = await startPremiumCheckout(plan, {
+        userId: user?.id,
+        email: user?.email,
+        accessToken: session.access_token,
+        attributionSource: 'premium_page',
       });
 
-      console.log('Checkout response:', response);
-
-      const errorMessage = response.error?.message || response.data?.error || response.data?.message;
-
-      if (errorMessage) {
-        if (errorMessage.includes('401') || 
-            errorMessage.includes('anmelden') || 
-            errorMessage.includes('abgelaufen') || 
-            errorMessage.includes('Sitzung') ||
-            errorMessage.includes('session') ||
-            errorMessage.includes('Auth')) {
-          toast({
-            title: t.sessionExpired,
-            description: t.pleaseLoginAgain,
-            variant: 'destructive',
-          });
-          await supabase.auth.signOut();
-          navigate('/auth');
-          return;
+      if (result.ok && result.channel === 'store') {
+        const status = await checkSubscription();
+        if (status?.subscribed) {
+          setShowSuccessDialog(true);
         }
-        throw new Error(errorMessage);
-      }
-
-      if (response.data?.url) {
-        console.log('Redirecting to payment link:', response.data.url);
+      } else if (!result.ok && !result.cancelled && result.message) {
         toast({
-          title: t.redirectingToStripe,
-          description: t.pleaseWait,
+          title: t.error,
+          description: getPublicErrorMessage(result.message, 'Premium konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
+          variant: 'destructive',
         });
-        window.location.href = response.data.url;
-      } else {
-        throw new Error(t.noCheckoutUrl);
+        setIsAutoCheckout(false);
       }
     } catch (error: unknown) {
-      const errorMessage =
-        typeof error === 'object' && error !== null && 'message' in error
-          ? String((error as { message?: unknown }).message ?? t.toastError)
-          : String(error ?? t.toastError);
-      console.error('Checkout error:', errorMessage);
       toast({
         title: t.error,
-        description: getPublicErrorMessage(errorMessage, 'Premium konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
+        description: getPublicErrorMessage(error, 'Premium konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
         variant: 'destructive',
       });
       setIsAutoCheckout(false);
@@ -194,7 +179,7 @@ const PremiumPage = () => {
           className="text-center"
         >
           <img src={frigLogo} alt="Frigy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
-          <h2 className="text-xl font-bold mb-2">{t.redirectingToStripe}</h2>
+          <h2 className="text-xl font-bold mb-2">{usesStoreBilling() ? t.premiumActivating : t.redirectingToStripe}</h2>
           <p className="text-muted-foreground">{t.pleaseWait}</p>
         </motion.div>
       </div>
@@ -216,8 +201,12 @@ const PremiumPage = () => {
     }
 
     setLoading(true);
-    toast({ title: t.loadingStripePortal, description: t.pleaseWait });
     try {
+      if (canManageStore) {
+        await openStoreSubscriptionManagement();
+        return;
+      }
+      toast({ title: t.loadingStripePortal, description: t.pleaseWait });
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,

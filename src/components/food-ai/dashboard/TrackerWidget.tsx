@@ -27,6 +27,8 @@ type TrackerWidgetProps = {
   showQuickLog?: boolean;
   expanded?: boolean;
   onToggleExpand?: () => void;
+  /** false while tracker goals still load — suppresses brief “over goal” flash */
+  targetsReady?: boolean;
 };
 
 export function TrackerWidget({
@@ -43,6 +45,7 @@ export function TrackerWidget({
   onOpenTracker,
   loggedMealTypes = [],
   showQuickLog = true,
+  targetsReady = true,
 }: TrackerWidgetProps) {
   const { t, language } = useLanguage();
   const locale = getAppLocale(language);
@@ -57,8 +60,11 @@ export function TrackerWidget({
   const rawCalorieDelta = roundedTargetCalories - roundedCaloriesEaten;
   const caloriesOver = rawCalorieDelta < -1 ? Math.abs(rawCalorieDelta) : 0;
   const caloriesRemaining = rawCalorieDelta > 1 ? rawCalorieDelta : 0;
-  const isOverGoal = caloriesOver > 0;
-  const calPct = targetCalories > 0 ? Math.min(100, (caloriesEaten / targetCalories) * 100) : 0;
+  const isOverGoal = targetsReady && caloriesOver > 0;
+  const calPct =
+    targetsReady && targetCalories > 0
+      ? Math.min(100, (caloriesEaten / targetCalories) * 100)
+      : 0;
   const proteinText = `${Math.round(proteinEaten)} / ${Math.round(targetProtein)}g`;
   const carbsText = `${Math.round(carbsEaten)} / ${Math.round(targetCarbs)}g`;
   const fatText = `${Math.round(fatEaten)} / ${Math.round(targetFat)}g`;

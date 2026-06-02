@@ -392,6 +392,9 @@ export interface Translations extends ExtendedTranslations {
   signIn: string;
   signUp: string;
   signInWithGoogle: string;
+  signInWithApple: string;
+  restorePurchases: string;
+  linkAppleAccount: string;
   noAccount: string;
   alreadyHaveAccount: string;
   forgotPassword: string;
@@ -1027,6 +1030,9 @@ const translations: Record<Language, Translations> = {
     signIn: "Anmelden",
     signUp: "Registrieren",
     signInWithGoogle: "Mit Google anmelden",
+    signInWithApple: "Mit Apple anmelden",
+    restorePurchases: "Käufe wiederherstellen",
+    linkAppleAccount: "Apple-Konto verknüpfen",
     noAccount: "Noch kein Konto? Jetzt registrieren",
     alreadyHaveAccount: "Bereits registriert? Jetzt anmelden",
     forgotPassword: "Passwort vergessen?",
@@ -1906,6 +1912,9 @@ const translations: Record<Language, Translations> = {
     signIn: "Sign In",
     signUp: "Sign Up",
     signInWithGoogle: "Sign in with Google",
+    signInWithApple: "Sign in with Apple",
+    restorePurchases: "Restore purchases",
+    linkAppleAccount: "Link Apple account",
     noAccount: "No account yet? Sign up now",
     alreadyHaveAccount: "Already have an account? Sign in",
     forgotPassword: "Forgot password?",
@@ -2785,6 +2794,9 @@ const translations: Record<Language, Translations> = {
     signIn: "Connexion",
     signUp: "Inscription",
     signInWithGoogle: "Se connecter avec Google",
+    signInWithApple: "Se connecter avec Apple",
+    restorePurchases: "Restaurer les achats",
+    linkAppleAccount: "Lier le compte Apple",
     noAccount: "Pas encore de compte? Inscrivez-vous",
     alreadyHaveAccount: "Déjà un compte? Connectez-vous",
     forgotPassword: "Mot de passe oublié?",

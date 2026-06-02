@@ -4,6 +4,7 @@ import {
   mealAllergenTags,
 } from "./allergens.ts";
 import { detectDietViolations } from "./diets.ts";
+import { mealContainsPork } from "./porkBan.ts";
 import { getMealNorm, termMatches } from "./normalize.ts";
 import type { Lang, MealLike, MealPlan, MealSafetyReasons, SafetyContext, SafetyViolation } from "./types.ts";
 
@@ -35,9 +36,12 @@ export function evaluateMeal(meal: MealLike, ctx: SafetyContext): MealSafetyReas
   for (const term of ctx.customTerms) {
     if (termMatches(norm, term)) hit.push(`other:${term}`);
   }
+  const diet = detectDietViolations(norm, present, ctx.prefs);
+  if (mealContainsPork(meal)) diet.push("no-pork");
+
   return {
     allergy: [...new Set(hit)],
-    diet: detectDietViolations(norm, present, ctx.prefs),
+    diet: [...new Set(diet)],
   };
 }
 

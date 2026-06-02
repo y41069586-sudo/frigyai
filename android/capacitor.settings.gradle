@@ -13,6 +13,3 @@ project(':capacitor-local-notifications').projectDir = new File('../node_modules
 
 include ':capacitor-push-notifications'
 project(':capacitor-push-notifications').projectDir = new File('../node_modules/@capacitor/push-notifications/android')
-
-include ':devmaxime-capacitor-health-connect'
-project(':devmaxime-capacitor-health-connect').projectDir = new File('../node_modules/@devmaxime/capacitor-health-connect/android')

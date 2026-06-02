@@ -36,10 +36,6 @@ const plugins = [
     pkg: "@capacitor/push-notifications",
     classpath: "com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin",
   },
-  {
-    pkg: "@devmaxime/capacitor-health-connect",
-    classpath: "com.devmaxime.capacitor.health.connect.HealthConnectPlugin",
-  },
 ];
 
 const publicDir = "android/app/src/main/assets/public";

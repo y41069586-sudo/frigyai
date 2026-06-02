@@ -16,6 +16,8 @@ import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
 import { isSubscriptionActive } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
+import { signInWithOAuthProvider } from '@/lib/authOAuth';
+import { linkAppleIdentity, signInWithApple as nativeAppleSignIn } from '@/lib/appleSignIn';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -42,6 +44,8 @@ interface AuthContextType {
     options?: { silent?: boolean },
   ) => Promise<{ error: unknown }>;
   signInWithGoogle: () => Promise<{ error: unknown }>;
+  signInWithApple: () => Promise<{ error: unknown }>;
+  linkAppleAccount: () => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   checkSubscription: () => Promise<SubscriptionStatus | null>;
 }
@@ -442,12 +446,8 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        // Google bestätigt die E-Mail – direkt zur Paywall statt ins leere Dashboard
-        redirectTo: `${window.location.origin}/premium-pricing`,
-      },
+    const { error } = await signInWithOAuthProvider('google', {
+      redirectPath: '/premium-pricing',
     });
 
     if (error) {
@@ -458,6 +458,32 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       });
     }
 
+    return { error };
+  };
+
+  const signInWithApple = async () => {
+    const { error } = await nativeAppleSignIn();
+
+    if (error) {
+      toast({
+        title: "Apple-Anmeldung fehlgeschlagen",
+        description: getPublicErrorMessage(error, "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
+        variant: "destructive",
+      });
+    }
+
+    return { error };
+  };
+
+  const linkAppleAccount = async () => {
+    const { error } = await linkAppleIdentity();
+    if (error) {
+      toast({
+        title: "Verknüpfung fehlgeschlagen",
+        description: getPublicErrorMessage(error, "Apple konnte nicht mit deinem Konto verknüpft werden."),
+        variant: "destructive",
+      });
+    }
     return { error };
   };
 
@@ -495,6 +521,8 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
         signUp,
         signIn,
         signInWithGoogle,
+        signInWithApple,
+        linkAppleAccount,
         signOut,
         checkSubscription,
       }}

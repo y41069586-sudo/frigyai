@@ -8,7 +8,6 @@ function isRelevantStorageKey(key: string | null): boolean {
     key.startsWith("weekly") ||
     key.startsWith("frigy_") ||
     key.startsWith("frigai_") ||
-    key.startsWith("frigy_steps_") ||
     key === "todayFood" ||
     key === "waterDailyGoalCups" ||
     key === "userFoodGoal" ||

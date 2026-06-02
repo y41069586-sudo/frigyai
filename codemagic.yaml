@@ -1,72 +1,108 @@
-workflows:
-  android-build:
-    name: Android Build
+# Frigy — iOS Build (Capacitor). Kein Android-Workflow mehr.
+# Setup: docs/CODEMAGIC.md
 
-    max_build_duration: 90
+workflows:
+  ios-build:
+    name: iOS Build
+
+    max_build_duration: 120
+    instance_type: mac_mini_m2
 
     environment:
-      java: 21
+      xcode: latest
+      node: 20
+      ios_signing:
+        # Codemagic → Team settings → Code signing identities (Distribution cert + profile)
+        # Für TestFlight / App Store:
+        distribution_type: app_store
+        bundle_identifier: com.frigy.app
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
-      # Optional: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY
-      # Für Updates OHNE Deinstall: in Codemagic → Code signing identities
-      # denselben Keystore wie früher (EAS) hochladen, Referenzname: frigy_release
-      # android_signing:
-      #   - frigy_release
+        XCODE_SCHEME: App
+        BUNDLE_ID: com.frigy.app
+        # Pflicht in Codemagic → Environment variables (oder Variable groups):
+        # VITE_SUPABASE_URL
+        # VITE_SUPABASE_PUBLISHABLE_KEY
+        # VITE_REVENUECAT_API_KEY_IOS
+        # VITE_REVENUECAT_ENTITLEMENT_ID=premium
+        # Optional: VITE_CHOTTULINK_API_KEY, VITE_APP_WEB_HOST, VITE_PRIVACY_POLICY_URL
 
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
 
-      - name: Build web app
+      - name: Build web app (Vite → dist/)
         script: npm run build
 
-      - name: Sync Capacitor web assets
-        script: node scripts/prepare-android-web-assets.mjs
+      - name: Sync Capacitor iOS
+        script: npx cap sync ios
 
-      - name: Build installable Release APK
+      - name: Set up code signing
+        script: xcode-project use-profiles --project ios/App/App.xcodeproj
+
+      - name: Set iOS build number
         script: |
           set -e
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
-          mkdir -p ../build
-          APK_SRC="app/build/outputs/apk/release/app-release.apk"
-          if [ ! -f "$APK_SRC" ]; then
-            echo "ERROR: Release APK not found at $APK_SRC"
-            find app/build/outputs -name "*.apk" || true
-            exit 1
-          fi
-          cp -f "$APK_SRC" ../build/Frigy.apk
-          ls -lh ../build/Frigy.apk
-          cat > ../build/INSTALL-HANDY.txt << 'EOF'
-          Frigy auf dem Android-Handy installieren
-          ======================================
+          cd ios/App
+          BUILD_NUM="${CM_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          agvtool new-version -all "$BUILD_NUM"
+          echo "iOS CFBundleVersion=$BUILD_NUM"
 
-          PAKET-KONFLIKT (alte EAS-APK z.B. application-xxxxx.apk)?
-          → Zuerst die alte Frigy/Fridgie-App DEINSTALLIEREN:
-            Einstellungen → Apps → Frigy (oder Fridgie) → Deinstallieren
-          → Dann Frigy.apk neu installieren.
-          (Andere Signatur als früherer EAS-Build — einmalig nötig.)
-
-          1) Frigy.apk vom PC (Codemagic → Artifacts) aufs Handy kopieren.
-          2) APK öffnen → ggf. „Unbekannte Apps installieren“ erlauben.
-          3) Installieren.
-
-          Ab dann: immer dieselbe Build-Pipeline nutzen, damit Updates drübergehen.
-          EOF
-          echo "Fertig: build/Frigy.apk (eine Datei, Release-Build)"
+      - name: Build IPA
+        script: |
+          set -e
+          cd ios/App
+          xcode-project build-ipa \
+            --project "App.xcodeproj" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-flags="-destination 'generic/platform=iOS'"
 
     artifacts:
-      - build/Frigy.apk
-      - build/INSTALL-HANDY.txt
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
 
     publishing:
       scripts:
-        - name: Download-Hinweis
+        - name: Build info
           script: |
             echo "=========================================="
-            echo "  Handy: Artifacts → Frigy.apk herunterladen"
-            echo "  Nicht Quick Launch (nur Emulator)"
-            echo "  APK per Mail/Drive/USB aufs Handy kopieren"
+            echo "  iOS: Artifacts → *.ipa"
+            echo "  TestFlight: App Store Connect Integration in Codemagic aktivieren"
+            echo "  docs/CODEMAGIC.md"
             echo "=========================================="
+
+  # Optional: internes Testen auf registrierten Geräten (Ad Hoc), nicht App Store.
+  # In Codemagic Ad-Hoc-Profil hinterlegen, dann diesen Workflow starten.
+  ios-build-adhoc:
+    name: iOS Build (Ad Hoc)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      node: 20
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.frigy.app
+      vars:
+        NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+        XCODE_SCHEME: App
+        BUNDLE_ID: com.frigy.app
+    scripts:
+      - name: Install dependencies
+        script: npm ci --legacy-peer-deps
+      - name: Build web app
+        script: npm run build
+      - name: Sync Capacitor iOS
+        script: npx cap sync ios
+      - name: Set up code signing
+        script: xcode-project use-profiles --project ios/App/App.xcodeproj
+      - name: Build IPA
+        script: |
+          set -e
+          cd ios/App
+          xcode-project build-ipa \
+            --project "App.xcodeproj" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-flags="-destination 'generic/platform=iOS'"
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa

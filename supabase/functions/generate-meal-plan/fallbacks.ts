@@ -94,9 +94,11 @@ export function fallbackPlan(params: {
       }
     }
     synthCounter += 1;
-    const label = params.isRegeneration
-      ? `${dayTag} ${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${synthCounter}`
-      : `${list[0] ?? "Bowl"} · ${dayTag} ${synthCounter}`;
+    const pool = safePools[slot];
+    const base = pool.length ? pool[(synthCounter - 1) % pool.length]! : (slot === "m" ? "Gemüsepfanne" : slot === "b" ? "Haferflocken mit Beeren" : "Obst Mix");
+    const label = params.isRegeneration && pool.length > 1
+      ? `${base} (${dayTag})`
+      : base;
     used.add(label.toLowerCase());
     return label;
   };

@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CreditCard,
   Settings,
+  Apple,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,10 +35,14 @@ import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
-import { canManageStripeSubscription } from "@/lib/subscription";
+import { canManageStripeSubscription, canManageStoreSubscription } from "@/lib/subscription";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { openStoreSubscriptionManagement, restoreStorePurchases } from "@/lib/storeBilling";
+import { usesStoreBilling } from "@/lib/billingPlatform";
+import { isAppleSignInAvailable } from "@/lib/appleSignIn";
+import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
 
 function SettingsGroup({
   title,
@@ -116,7 +121,8 @@ function SettingsRow({
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, session, subscriptionStatus, signOut, checkSubscription } = useAuth();
+  const { user, session, subscriptionStatus, signOut, checkSubscription, linkAppleAccount } = useAuth();
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
   const dateLocale = getAppLocale(language);
@@ -124,7 +130,9 @@ const ProfilePage = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const canManageSubscription = canManageStripeSubscription(subscriptionStatus);
+  const canManageStripe = canManageStripeSubscription(subscriptionStatus);
+  const canManageStore = canManageStoreSubscription(subscriptionStatus);
+  const canManageSubscription = canManageStripe || canManageStore;
 
   const handleSignOut = async () => {
     try {
@@ -144,6 +152,22 @@ const ProfilePage = () => {
     toast({ title: t.success, description: t.subscriptionRefreshed });
   };
 
+  const handleRestorePurchases = async () => {
+    if (!session?.access_token) return;
+    setRestoreLoading(true);
+    try {
+      const result = await restoreStorePurchases(session.access_token);
+      await checkSubscription();
+      if (result.ok) {
+        toast({ title: t.success, description: "Käufe wiederhergestellt." });
+      } else if (result.message) {
+        toast({ title: t.error, description: result.message, variant: "destructive" });
+      }
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
+
   const handleManageSubscription = async () => {
     if (!session) {
       toast({ title: t.error, variant: "destructive" });
@@ -151,6 +175,10 @@ const ProfilePage = () => {
     }
     setPortalLoading(true);
     try {
+      if (canManageStore) {
+        await openStoreSubscriptionManagement();
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("customer-portal", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
@@ -292,6 +320,22 @@ const ProfilePage = () => {
                 label={t.manageSubscription}
                 description={portalLoading ? t.settingsOpeningPortal : undefined}
                 onClick={() => void handleManageSubscription()}
+              />
+            )}
+            {usesStoreBilling() && (
+              <SettingsRow
+                icon={RefreshCw}
+                label={t.restorePurchases}
+                description={restoreLoading ? t.loading : undefined}
+                onClick={() => void handleRestorePurchases()}
+              />
+            )}
+            {isAppleSignInAvailable() &&
+              !user?.identities?.some((id) => id.provider === "apple") && (
+              <SettingsRow
+                icon={Apple}
+                label={t.linkAppleAccount}
+                onClick={() => void linkAppleAccount()}
               />
             )}
           </SettingsGroup>

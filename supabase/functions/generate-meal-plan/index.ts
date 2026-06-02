@@ -1027,6 +1027,64 @@ export function detectDietViolations(norm: MealNorm, present: Set<string>, prefs
   return [...new Set(hit)];
 }
 
+// ----- porkBan.ts -----
+/** Weekly plans must never include pork or typical pork products. */
+export const PORK_TERMS = [
+  "schwein",
+  "schweine",
+  "schweinefleisch",
+  "schweinehack",
+  "schweinehackfleisch",
+  "schweinesteak",
+  "schweinekotelett",
+  "schweinebauch",
+  "schweinebraten",
+  "schweinerippchen",
+  "schweinemedaillons",
+  "schweine medaillons",
+  "schweineschnitzel",
+  "schweinshaxe",
+  "schweinewurst",
+  "pork",
+  "bacon",
+  "speck",
+  "schinken",
+  "pancetta",
+  "prosciutto",
+  "guanciale",
+  "ham",
+  "pepperoni",
+  "salami",
+] as const;
+
+export function normContainsPork(norm: MealNorm): boolean {
+  return PORK_TERMS.some((term) => termMatches(norm, term));
+}
+
+export function mealContainsPork(meal: MealLike): boolean {
+  return normContainsPork(getMealNorm(meal));
+}
+
+export function buildNoPorkConstraintBlock(lang: Lang): string {
+  if (lang === "de") {
+    return [
+      "KEIN SCHWEIN (Pflicht): Kein Schweinefleisch und keine Schweineprodukte.",
+      "Verboten u. a.: Schwein, Schweinehack, Schweinesteak, Speck, Schinken, Bacon, Pancetta, Prosciutto, Pork.",
+      "Stattdessen: Rind, Hähnchen, Pute, Fisch — oder vegetarisch/vegan je nach Ernährung.",
+    ].join("\n");
+  }
+  if (lang === "fr") {
+    return [
+      "PAS DE PORC (obligatoire): aucune viande de porc ni produits du porc (bacon, jambon, lard, prosciutto, etc.).",
+      "Utiliser bœuf, poulet, dinde, poisson — ou végétarien selon le régime.",
+    ].join("\n");
+  }
+  return [
+    "NO PORK (mandatory): no pork meat or pork products (bacon, ham, prosciutto, pancetta, pork chops, etc.).",
+    "Use beef, chicken, turkey, fish — or vegetarian options as appropriate.",
+  ].join("\n");
+}
+
 // ----- macros.ts -----
 export function macroKcal(p: number, c: number, f: number) {
   return p * 4 + c * 4 + f * 9;
@@ -1395,9 +1453,12 @@ export function evaluateMeal(meal: MealLike, ctx: SafetyContext): MealSafetyReas
   for (const term of ctx.customTerms) {
     if (termMatches(norm, term)) hit.push(`other:${term}`);
   }
+  const diet = detectDietViolations(norm, present, ctx.prefs);
+  if (mealContainsPork(meal)) diet.push("no-pork");
+
   return {
     allergy: [...new Set(hit)],
-    diet: detectDietViolations(norm, present, ctx.prefs),
+    diet: [...new Set(diet)],
   };
 }
 
@@ -1657,9 +1718,11 @@ export function fallbackPlan(params: {
       }
     }
     synthCounter += 1;
-    const label = params.isRegeneration
-      ? `${dayTag} ${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${synthCounter}`
-      : `${list[0] ?? "Bowl"} · ${dayTag} ${synthCounter}`;
+    const pool = safePools[slot];
+    const base = pool.length ? pool[(synthCounter - 1) % pool.length]! : (slot === "m" ? "Gemüsepfanne" : slot === "b" ? "Haferflocken mit Beeren" : "Obst Mix");
+    const label = params.isRegeneration && pool.length > 1
+      ? `${base} (${dayTag})`
+      : base;
     used.add(label.toLowerCase());
     return label;
   };
@@ -1784,9 +1847,10 @@ function buildCompactSystemPrompt(params: {
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
-    `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3" or "Meal 2".`,
+    `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
     `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
+    buildNoPorkConstraintBlock(params.lang),
     params.dietBlock,
     params.bannedBlock,
     params.constraints ? `Constraints:\n${params.constraints.slice(0, 1200)}` : "",
@@ -1879,9 +1943,15 @@ async function callOpenAIOnce(params: {
       ? day.meals.slice(0, params.mealsPerDay).map(normalizeMealStructure)
       : [];
     while (meals.length < params.mealsPerDay) {
+      const slot = mealSlot(meals.length, params.mealsPerDay);
+      const padName = params.lang === "de"
+        ? (slot === "b" ? "Haferflocken mit Beeren" : slot === "m" ? "Hähnchen mit Reis" : "Obst mit Joghurt")
+        : params.lang === "fr"
+          ? (slot === "b" ? "Porridge baies" : slot === "m" ? "Poulet riz" : "Fruit yaourt")
+          : (slot === "b" ? "Oatmeal berries" : slot === "m" ? "Chicken and rice" : "Fruit yogurt");
       meals.push(
         normalizeMealStructure({
-          name: `${L.meal} ${meals.length + 1}`,
+          name: padName,
           type: L.meal,
           protein: 0,
           carbs: 0,
@@ -1935,9 +2005,13 @@ export async function generateAIDraft(input: PlanInput): Promise<AiDraftResult> 
 // ----- shopping.ts -----
 export function fridgeHas(name: string, fridge: string[]) {
   const n = normKey(name);
+  if (!n) return false;
   return fridge.some((f) => {
     const k = normKey(f);
-    return k && (n.includes(k) || k.includes(n));
+    if (!k) return false;
+    if (n === k) return true;
+    if (n.length >= 3 && k.length >= 3 && (n.includes(k) || k.includes(n))) return true;
+    return false;
   });
 }
 
@@ -2273,6 +2347,13 @@ export async function buildPlan(
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
   });
+  plan = sanitizePlaceholderMeals(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+    varietySeed: `${input.varietySeed ?? ""}-post-distinct`,
+  });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
@@ -2414,7 +2495,8 @@ export function ensureDistinctMealsAcrossWeek(
         }
       }
     }
-    const fallback = `${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${used.size + 1}`;
+    const idx = used.size % Math.max(list.length, 1);
+    const fallback = list.length ? list[idx]! : (slot === "m" ? "Gemüsepfanne mit Reis" : slot === "b" ? "Haferflocken mit Beeren" : "Obst mit Joghurt");
     used.add(titleKey(fallback));
     return fallback;
   };
@@ -2508,15 +2590,15 @@ const DE: Record<string, PoolSet> = {
   },
   keto: {
     b: [
-      "Rührei Avocado", "Speck Eier", "Käse Omelett", "Griechischer Joghurt Nüsse", "Chia Kokos",
-      "Salami Eier", "Smoked Salmon Frühstück",
+      "Rührei Avocado", "Putenaufschnitt Eier", "Käse Omelett", "Griechischer Joghurt Nüsse", "Chia Kokos",
+      "Räucherlachs Eier", "Smoked Salmon Frühstück",
     ],
     m: [
       "Lachs mit Brokkoli", "Hähnchensalat", "Rindersteak mit Blumenkohl", "Pute mit Zucchini",
-      "Thunfischsalat", "Hackfleisch mit Kohl", "Hähnchen mit Salat", "Schweinesteak mit Pilzen",
+      "Thunfischsalat", "Hackfleisch mit Kohl", "Hähnchen mit Salat", "Rindersteak mit Pilzen",
       "Zucchini-Auflauf", "Omelett mit Salat", "Frikadellen mit Gemüse",
     ],
-    s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Pepperoni Snack"],
+    s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Mandeln Snack"],
   },
   "low-carb": {
     b: ["Rührei Spinat", "Skyr Nüsse", "Omelett Gemüse", "Hüttenkäse Beeren", "Avocado Ei"],
@@ -2530,7 +2612,7 @@ const DE: Record<string, PoolSet> = {
     b: ["Eier Süßkartoffel", "Obst Nüsse", "Rührei Champignons", "Smoothie ohne Milch"],
     m: [
       "Hähnchen Ofengemüse", "Lachs Spargel", "Rind Stir Fry", "Pute Süßkartoffel", "Hack Zucchini",
-      "Ente Rotkohl", "Schweine Medaillons", "Lamm Karotten", "Fisch Kräuter",
+      "Ente Rotkohl", "Puten Medaillons", "Lamm Karotten", "Fisch Kräuter",
     ],
     s: ["Mandeln", "Beeren", "Rind Biltong Style", "Karotten Hummus ohne Kichererbsen"],
   },
@@ -2539,7 +2621,7 @@ const DE: Record<string, PoolSet> = {
 const EN: Record<string, PoolSet> = {
   balanced: {
     b: ["Oatmeal berries", "Greek yogurt fruit", "Scrambled eggs toast", "Yogurt banana", "Cottage cheese toast", "Avocado toast", "Granola apple"],
-    m: ["Chicken rice pan", "Salmon potatoes", "Turkey veggie bowl", "Pasta tomato", "Beef stir fry", "Tuna salad", "Lentil curry", "Chicken wrap", "Beef tacos", "Shrimp pasta", "Pork chops veg", "Lamb stew"],
+    m: ["Chicken rice pan", "Salmon potatoes", "Turkey veggie bowl", "Pasta tomato", "Beef stir fry", "Tuna salad", "Lentil curry", "Chicken wrap", "Beef tacos", "Shrimp pasta", "Turkey chops veg", "Lamb stew"],
     s: ["Apple nuts", "Cottage cheese", "Sandwich", "Fruit yogurt", "Hummus veggies", "Cheese cubes"],
   },
   vegan: {
@@ -2554,7 +2636,7 @@ const EN: Record<string, PoolSet> = {
   },
   keto: {
     b: ["Eggs avocado", "Bacon eggs", "Cheese omelette", "Greek yogurt nuts", "Chia coconut"],
-    m: ["Salmon broccoli", "Chicken caesar no croutons", "Steak cauliflower", "Turkey zucchini", "Tuna olive salad", "Beef cabbage", "Shrimp garlic", "Pork tenderloin mushrooms", "Cobb salad", "Zucchini lasagna keto"],
+    m: ["Salmon broccoli", "Chicken caesar no croutons", "Steak cauliflower", "Turkey zucchini", "Tuna olive salad", "Beef cabbage", "Shrimp garlic", "Turkey tenderloin mushrooms", "Cobb salad", "Zucchini lasagna keto"],
     s: ["Cheese cubes", "Nut mix", "Cucumber dip", "Olives"],
   },
   "low-carb": {
@@ -2564,7 +2646,7 @@ const EN: Record<string, PoolSet> = {
   },
   paleo: {
     b: ["Eggs sweet potato", "Fruit nuts", "Mushroom scramble"],
-    m: ["Chicken roast veg", "Salmon asparagus", "Beef stir fry", "Turkey sweet potato", "Pork zucchini", "Duck cabbage", "Fish herbs"],
+    m: ["Chicken roast veg", "Salmon asparagus", "Beef stir fry", "Turkey sweet potato", "Turkey zucchini pan", "Duck cabbage", "Fish herbs"],
     s: ["Almonds", "Berries", "Carrot sticks"],
   },
 };
@@ -2707,6 +2789,8 @@ export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): stri
       "STIL: Normale deutsche & internationale Hausmannskost — einfache Gerichte, die jeder kennt.",
       "BEISPIELE (gut): Reis mit Hackfleisch, Spaghetti Bolognese, Hähnchen mit Kartoffeln, Nudeln mit Tomatensoße, Kartoffelsuppe, Omelett mit Brot, Putenschnitzel mit Salat.",
       "VERMEIDEN: Exotische Küche, Fine Dining, seltene Zutaten (Ente, Lamm, Garnelen als Standard), englische Marketing-Namen (Bowl, Tacos, Tikka, Risotto-Safran) — kurze verständliche Namen auf Deutsch.",
+      "KEIN SCHWEIN: Kein Schweinefleisch, Speck, Schinken, Bacon oder andere Schweineprodukte.",
+      "NAMEN: Jede Mahlzeit braucht einen echten Gerichtnamen — niemals „Hauptgericht 1“, „Mahlzeit 2“ o. ä.",
       `VARIATION: ${total} verschiedene Gerichtnamen in der Woche.`,
       "MAKROS: Pro Mahlzeit unterschiedliche realistische Größe (Snack ~150–350 kcal, Hauptmahlzeit ~450–750 kcal) — Tagesziel trotzdem exakt einhalten.",
     ].join("\n");
@@ -2898,15 +2982,19 @@ const BAD_INSTRUCTION =
 const DAY_IN_NAME =
   /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/i;
 
-/** AI / padding junk like "Friday meal 3", "Mahlzeit 2", "Meal 1". */
+const SLOT_LABEL =
+  /^(frühstück|hauptgericht|snack|breakfast|lunch|dinner|vorspeise|beilage|meal|mahlzeit|gericht|repas)\s*#?\d+$/i;
+
+/** AI / padding junk like "Friday meal 3", "Mahlzeit 2", "Hauptgericht 1". */
 export function isPlaceholderMealName(name: string): boolean {
   const n = String(name || "").trim();
   if (!n || n.length < 4) return true;
   const lower = n.toLowerCase();
-  if (/^(meal|mahlzeit|gericht|repas|breakfast|lunch|dinner|snack)\s*#?\d+$/i.test(lower)) {
+  if (SLOT_LABEL.test(lower)) return true;
+  if (/\b(frühstück|hauptgericht|snack|breakfast|lunch|dinner|meal|mahlzeit|gericht|repas)\s*#?\d+\b/i.test(lower)) {
     return true;
   }
-  if (DAY_IN_NAME.test(lower) && /\b(meal|mahlzeit|repas|breakfast|lunch|dinner|snack)\b/i.test(lower)) {
+  if (DAY_IN_NAME.test(lower) && /\b(meal|mahlzeit|repas|frühstück|hauptgericht|snack|breakfast|lunch|dinner|gericht)\b/i.test(lower)) {
     return true;
   }
   if (/^gericht\s*\d+$/i.test(lower)) return true;
@@ -3064,6 +3152,7 @@ Deno.serve(async (req) => {
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed.trim() : "";
     const constraints = [
       buildConstraints(allergies, prefs, goals, other, lang),
+      buildNoPorkConstraintBlock(lang),
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "",
     ]
       .filter(Boolean)

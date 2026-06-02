@@ -1,6 +1,6 @@
 # Fridgie Native App Setup (iOS & Android)
 
-Diese Anleitung erklärt, wie du die native iOS/Android App mit Capacitor baust und Google Fit / Apple Health integrierst.
+Diese Anleitung erklärt, wie du die native iOS/Android App mit Capacitor baust. Premium-Abos laufen über **App Store / Google Play** (RevenueCat), nicht über Stripe in der nativen App.
 
 ## Voraussetzungen
 
@@ -42,93 +42,25 @@ npx cap add android
 npx cap sync
 ```
 
-## Schritt 3: Apple Health Setup (iOS)
+## Schritt 3: In-App-Abos (App Store & Play Store)
 
-### 3.1 HealthKit Capability aktivieren
+Native Builds verwenden **RevenueCat** (`@revenuecat/purchases-capacitor`). Stripe Payment Links gelten nur für die Web-App.
 
-1. Öffne das iOS-Projekt in Xcode:
-   ```bash
-   npx cap open ios
-   ```
+1. RevenueCat-Projekt anlegen und iOS/Android-Apps verknüpfen.
+2. Abo-Produkte in App Store Connect und Google Play Console erstellen.
+3. Entitlement `premium` und Offering mit monthly/yearly in RevenueCat konfigurieren.
+4. `.env` mit `VITE_REVENUECAT_API_KEY_IOS` / `ANDROID` füllen.
+5. Supabase Edge Functions `sync-store-subscription` und `revenuecat-webhook` deployen.
 
-2. Wähle das Projekt im Navigator → Target "App"
-
-3. Gehe zu "Signing & Capabilities" → "+" → "HealthKit"
-
-4. Aktiviere:
-   - ✅ Clinical Health Records (optional)
-   - ✅ Background Delivery
-
-### 3.2 Info.plist konfigurieren
-
-Füge folgende Keys in `ios/App/App/Info.plist` hinzu:
-
-```xml
-<key>NSHealthShareUsageDescription</key>
-<string>Fridgie benötigt Zugriff auf deine Gesundheitsdaten, um Gewicht, Schritte und verbrannte Kalorien zu synchronisieren.</string>
-<key>NSHealthUpdateUsageDescription</key>
-<string>Fridgie möchte dein Gewicht in Apple Health speichern, um deine Fortschritte zu tracken.</string>
-```
-
-### 3.3 HealthKit Plugin (bereits im Projekt)
-
-Plugins: `@perfood/capacitor-healthkit` (iOS), `@devmaxime/capacitor-health-connect` (Android).
-
-Nach `npx cap add ios` / `npx cap add android`:
+Ausführliche Schritte: **[docs/STORE_BILLING_SETUP.md](docs/STORE_BILLING_SETUP.md)**
 
 ```bash
-npm run health:native
-npm run cap:sync
+# Nach .env-Anpassung
+npm run build
+npx cap sync
 ```
 
-`health:native` trägt Info.plist- und AndroidManifest-Einträge automatisch ein. In Xcode noch **HealthKit** unter Signing & Capabilities aktivieren.
-
-## Schritt 4: Google Fit Setup (Android)
-
-### 4.1 Health Connect / Google Fit
-
-Ab Android 14 verwendet Android "Health Connect" anstelle von Google Fit.
-
-1. Öffne `android/app/src/main/AndroidManifest.xml`
-
-2. Füge Berechtigungen hinzu:
-
-```xml
-<!-- Health Connect permissions -->
-<uses-permission android:name="android.permission.health.READ_WEIGHT" />
-<uses-permission android:name="android.permission.health.WRITE_WEIGHT" />
-<uses-permission android:name="android.permission.health.READ_STEPS" />
-<uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
-
-<!-- Activity Recognition for steps -->
-<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-```
-
-3. Füge Intent-Filter für Health Connect hinzu:
-
-```xml
-<intent-filter>
-    <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-</intent-filter>
-
-<queries>
-    <package android:name="com.google.android.apps.healthdata" />
-</queries>
-```
-
-### 4.2 Google Fit API aktivieren (für ältere Android-Versionen)
-
-1. Gehe zur [Google Cloud Console](https://console.cloud.google.com/)
-2. Erstelle ein neues Projekt oder wähle ein bestehendes
-3. Aktiviere die "Fitness API"
-4. Erstelle OAuth 2.0 Credentials
-5. Füge SHA-1 Fingerprint hinzu:
-   ```bash
-   cd android
-   ./gradlew signingReport
-   ```
-
-## Schritt 5: Push Notifications (optional)
+## Schritt 4: Push Notifications (optional)
 
 ### iOS
 
@@ -151,7 +83,7 @@ Ab Android 14 verwendet Android "Health Connect" anstelle von Google Fit.
    apply plugin: 'com.google.gms.google-services'
    ```
 
-## Schritt 6: App bauen und testen
+## Schritt 5: App bauen und testen
 
 ### iOS Simulator:
 ```bash
@@ -172,7 +104,7 @@ npx cap run ios --target=DEVICE_ID
 npx cap run android --target=DEVICE_ID
 ```
 
-## Schritt 7: Production Build
+## Schritt 6: Production Build
 
 ### iOS (App Store):
 
@@ -202,13 +134,10 @@ cd android
 
 ## Troubleshooting
 
-### HealthKit zeigt keine Daten
-- Prüfe ob Berechtigungen in den Einstellungen erteilt wurden
-- HealthKit funktioniert nicht im iOS Simulator - nutze ein echtes Gerät
-
-### Google Fit Verbindung schlägt fehl
-- Prüfe SHA-1 Fingerprint in Google Cloud Console
-- Stelle sicher, dass Google Fit auf dem Gerät installiert ist
+### Store-Kauf schlägt fehl
+- RevenueCat Public Keys in `.env` gesetzt?
+- Offering `current` mit monthly/yearly Packages in RevenueCat?
+- Sandbox-Tester (iOS) / License Tester (Android) verwenden
 
 ### Build-Fehler nach Update
 ```bash

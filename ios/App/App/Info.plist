@@ -51,6 +51,12 @@
 	<string>Frigy nutzt die Kamera, um Zutaten in deinem Kühlschrank und deiner Speisekammer zu erkennen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Frigy kann Fotos aus deiner Galerie analysieren, um Zutaten zu erkennen.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Frigy sendet optionale Erinnerungen für Mahlzeiten, Wasser und deine Ziele.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

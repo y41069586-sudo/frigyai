@@ -21,6 +21,7 @@ import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
 import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBootstrap";
+import { StoreBillingBootstrap } from "@/components/StoreBillingBootstrap";
 import { BadgeUnlockCelebration } from "@/components/BadgeUnlockCelebration";
 import MealPlansPage from "./pages/MealPlansPage";
 // Lazy load all pages for better performance
@@ -130,6 +131,7 @@ const App = () => {
                   <MealPlanProvider>
                     <AppDeepLinkListener />
                     <ReferralAttributionBootstrap />
+              <StoreBillingBootstrap />
                     <NotificationBootstrap />
                     <BadgeUnlockCelebration />
                     <AppContent />

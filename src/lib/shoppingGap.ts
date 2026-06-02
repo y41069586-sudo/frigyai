@@ -3,6 +3,8 @@
  * Namen werden normalisiert und per Teilstring gematcht (DE/EN grob).
  */
 
+import { canonicalizeIngredientLabel } from "@/lib/ingredientLabels";
+
 export function normalizeIngredientKey(name: string): string {
   return name
     .toLowerCase()
@@ -22,27 +24,56 @@ function tokenize(name: string): string[] {
         .replace(/(en|er|e|n|s)$/i, "")
         .trim(),
     )
-    .filter((t) => t.length >= 2);
+    .filter((t) => t.length >= 3);
+}
+
+export function ingredientMatchKey(name: string): string {
+  return normalizeIngredientKey(canonicalizeIngredientLabel(name));
 }
 
 /** Prüft ob eine Rezeptzutat durch den Kühlschrank abgedeckt ist */
 export function fridgeCoversIngredient(ingredientName: string, fridgeIngredients: string[]): boolean {
-  const n = normalizeIngredientKey(ingredientName);
+  const n = ingredientMatchKey(ingredientName);
   if (!n) return false;
 
   for (const raw of fridgeIngredients) {
-    const f = normalizeIngredientKey(raw);
+    const f = ingredientMatchKey(raw);
     if (!f) continue;
     if (n === f) return true;
-    if (n.includes(f) || f.includes(n)) return true;
+    if (n.length >= 3 && f.length >= 3 && (n.includes(f) || f.includes(n))) return true;
 
     const ftoks = tokenize(raw);
     const itoks = tokenize(ingredientName);
     for (const t of ftoks) {
-      if (t.length >= 2 && (n.includes(t) || itoks.includes(t))) return true;
+      if (t.length >= 3 && (n.includes(t) || itoks.includes(t))) return true;
     }
   }
   return false;
+}
+
+/** Plan-Zutaten in „vorhanden“ (im Kühlschrank) vs. „fehlend“ — jeweils exclusiv. */
+export function splitIngredientsByFridgeCoverage(
+  mealPlan: DayPlanLike[],
+  fridgeIngredients: string[],
+): { present: string[]; missing: GapListItem[] } {
+  const all = buildGapShoppingList(mealPlan, []);
+  const missing = buildGapShoppingList(mealPlan, fridgeIngredients);
+  const missingKeys = new Set(missing.map((m) => ingredientMatchKey(m.name)));
+
+  const present: string[] = [];
+  const seenPresent = new Set<string>();
+
+  for (const item of all) {
+    const key = ingredientMatchKey(item.name);
+    if (missingKeys.has(key)) continue;
+    const label = canonicalizeIngredientLabel(item.name);
+    const labelKey = ingredientMatchKey(label);
+    if (seenPresent.has(labelKey)) continue;
+    seenPresent.add(labelKey);
+    present.push(label);
+  }
+
+  return { present, missing };
 }
 
 export interface GapListItem {

@@ -4,15 +4,15 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
-import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
-import { openExternalUrl } from "@/lib/openExternalUrl";
-import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
+import { startPremiumCheckout } from "@/lib/purchaseCheckout";
+import { useToast } from "@/hooks/use-toast";
 
 const PremiumPricingPage = () => {
   const { language } = useLanguage();
-  const { session, subscriptionStatus, user } = useAuth();
+  const { session, subscriptionStatus, user, checkSubscription } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   const isPreview = searchParams.get("preview") === "1" || searchParams.get("preview") === "true";
 
   useEffect(() => {
@@ -27,9 +27,24 @@ const PremiumPricingPage = () => {
       navigate("/?onboardingStep=save-progress", { replace: true });
       return;
     }
-    markStripeCheckoutPending();
-    await syncAffiliateAttributionToServer(session.access_token, { source: "premium_pricing" });
-    await openExternalUrl(buildStripePaymentUrl(plan, user?.email, { userId: user?.id }));
+    const result = await startPremiumCheckout(plan, {
+      userId: user?.id,
+      email: user?.email,
+      accessToken: session.access_token,
+      attributionSource: "premium_pricing",
+    });
+    if (result.ok && result.channel === "store") {
+      await checkSubscription();
+      navigate("/", { replace: true });
+      return;
+    }
+    if (!result.ok && !result.cancelled && result.message) {
+      toast({
+        title: "Fehler",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (

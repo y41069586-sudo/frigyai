@@ -10,6 +10,9 @@ import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
 import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
 import { resolvePremiumAccessAfterSignIn } from '@/lib/resolvePremiumAccessAfterSignIn';
+import { Capacitor } from '@capacitor/core';
+import { completeOAuthFromUrl, isOAuthCallbackUrl } from '@/lib/authOAuth';
+import { isAppleSignInAvailable } from '@/lib/appleSignIn';
 
 const AuthPage = () => {
   const { t, language } = useLanguage();
@@ -18,8 +21,10 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signIn, signUp, signInWithGoogle, user, loading, checkSubscription } = useAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithApple, user, loading, checkSubscription } = useAuth();
+  const showAppleSignIn = isAppleSignInAvailable() || Capacitor.getPlatform() === "web";
   const navigate = useNavigate();
   const redirectStartedRef = useRef(false);
 
@@ -89,6 +94,18 @@ const AuthPage = () => {
     if (!user || loading) return;
     void finishAuthRedirect();
   }, [user, loading, finishAuthRedirect]);
+
+  // Web OAuth return (Google / Apple browser flow)
+  useEffect(() => {
+    const url = window.location.href;
+    if (!isOAuthCallbackUrl(url)) return;
+    void completeOAuthFromUrl(url).then((ok) => {
+      if (ok) {
+        window.history.replaceState({}, "", window.location.pathname);
+        void finishAuthRedirect();
+      }
+    });
+  }, [finishAuthRedirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,6 +270,32 @@ const AuthPage = () => {
               </div>
             </div>
 
+            {showAppleSignIn && (
+              <Button
+                type="button"
+                className="w-full h-12 sm:h-14 text-base touch-target flex items-center justify-center gap-3 bg-black text-white hover:bg-black/90"
+                onClick={async () => {
+                  setIsAppleLoading(true);
+                  setError(null);
+                  const { error: appleError } = await signInWithApple();
+                  if (appleError) {
+                    const msg =
+                      appleError instanceof Error ? appleError.message : "Apple-Anmeldung fehlgeschlagen";
+                    setError(msg);
+                  } else if (await waitForAuthSession(3500)) {
+                    await finishAuthRedirect();
+                  }
+                  setIsAppleLoading(false);
+                }}
+                disabled={isAppleLoading || isGoogleLoading}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M17.05 20.28c-.98.95-2.05 1.88-3.51 1.9-1.48.02-1.95-.87-3.63-.87-1.68 0-2.2.85-3.6.89-1.44.04-2.53-1.47-3.48-2.42C2.32 17.7 1.07 12.45 3.11 9.11c1.02-1.66 2.85-2.71 4.84-2.74 1.51-.03 2.93 1.01 3.63 1.01.7 0 2.41-1.25 4.07-1.07.69.03 2.63.28 3.87 2.1-3.37 1.83-2.81 6.58.53 8.07-.67 1.64-1.43 3.27-2.24 4.9zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                </svg>
+                {isAppleLoading ? t.loading : (t.signInWithApple ?? "Mit Apple anmelden")}
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="outline"
@@ -262,7 +305,7 @@ const AuthPage = () => {
                 await signInWithGoogle();
                 setIsGoogleLoading(false);
               }}
-              disabled={isGoogleLoading}
+              disabled={isGoogleLoading || isAppleLoading}
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path

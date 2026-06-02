@@ -99,6 +99,13 @@ export async function buildPlan(
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
   });
+  plan = sanitizePlaceholderMeals(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+    varietySeed: `${input.varietySeed ?? ""}-post-distinct`,
+  });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;

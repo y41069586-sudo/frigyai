@@ -36,6 +36,7 @@ export type HealthDashboardProps = {
   /** Premium: Schnellfrage unter „Heute eintragen“, öffnet den KI-Chat */
   aiChatEnabled?: boolean;
   onAiChatPromptSubmit?: (message: string) => void;
+  targetsReady?: boolean;
 };
 
 export function HealthDashboard({
@@ -53,6 +54,7 @@ export function HealthDashboard({
   onWaterGlassesChange,
   aiChatEnabled = false,
   onAiChatPromptSubmit,
+  targetsReady = true,
 }: HealthDashboardProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -108,6 +110,7 @@ export function HealthDashboard({
               onAddMeal={(slot) => notifyOpenLogMeal(slot)}
               onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
               onOpenTracker={() => navigate("/?editMacros=1")}
+              targetsReady={targetsReady}
             />
           }
           weight={<DashboardWeightWidget embedded targetWeight={undefined} />}

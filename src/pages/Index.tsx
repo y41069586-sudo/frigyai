@@ -5,7 +5,8 @@ import { PremiumSuccessDialog } from "@/components/PremiumSuccessDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { getStoredLanguage, useLanguage } from "@/contexts/LanguageContext";
+import { readStoredTrackerTargets } from "@/lib/trackerTargets";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
@@ -112,6 +113,11 @@ function readTodayFoodSnapshot(timeLocale: string, defaultMealName: string) {
   }
 }
 
+function getInitialTodayMacroTotals() {
+  const snap = readTodayFoodSnapshot(getAppLocale(getStoredLanguage()), "Mahlzeit");
+  return snap?.totals ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
+}
+
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, checkSubscription, isPremium } = useAuth();
   const onboardingExitInFlightRef = useRef(false);
@@ -159,10 +165,11 @@ const Index = () => {
     () => Array.from(new Set(todayMeals.map((meal) => meal.mealType).filter(Boolean))) as MealFocusKey[],
     [todayMeals],
   );
-  const [caloriesEaten, setCaloriesEaten] = useState(0);
-  const [proteinEaten, setProteinEaten] = useState(0);
-  const [carbsEaten, setCarbsEaten] = useState(0);
-  const [fatEaten, setFatEaten] = useState(0);
+  const initialMacros = getInitialTodayMacroTotals();
+  const [caloriesEaten, setCaloriesEaten] = useState(initialMacros.calories);
+  const [proteinEaten, setProteinEaten] = useState(initialMacros.protein);
+  const [carbsEaten, setCarbsEaten] = useState(initialMacros.carbs);
+  const [fatEaten, setFatEaten] = useState(initialMacros.fat);
   const [foodGoal, setFoodGoal] = useState<UserGoal>(() => {
     const s = localStorage.getItem("userFoodGoal") as UserGoal | null;
     if (s === "lose" || s === "gain" || s === "maintain") return s;
@@ -333,7 +340,7 @@ const Index = () => {
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
-      if (data) {
+      if (data && !readTodayFoodSnapshot(timeLocale, t.defaultMealName)) {
         setCaloriesEaten(data.calories);
         setProteinEaten(data.protein);
         setCarbsEaten(data.carbs);
@@ -362,7 +369,7 @@ const Index = () => {
           .eq('date', today)
           .maybeSingle();
 
-        if (data) {
+        if (data && !readTodayFoodSnapshot(timeLocale, t.defaultMealName)) {
           setCaloriesEaten(data.calories || 0);
           setProteinEaten(data.protein || 0);
           setCarbsEaten(data.carbs || 0);
@@ -379,7 +386,7 @@ const Index = () => {
     return () => {
       window.removeEventListener('foodEntryAdded', handleFoodEntryChanged);
     };
-  }, [user]);
+  }, [user, timeLocale, t.defaultMealName]);
   
   // Handle reset onboarding from URL parameter (for testing or "Erneut starten" in profile)
   useEffect(() => {
@@ -648,13 +655,16 @@ const Index = () => {
       setOnboardingComplete(false);
       return;
     }
-    navigate("/auth", { replace: true });
+    navigate("/landing", { replace: true });
   }, [loading, showOnboarding, user, onboardingResumeStep, navigate, dbOnboardingComplete]);
 
-  const targetCalories = trackerSettings?.dailyCalories || 2000;
-  const targetProtein = trackerSettings?.dailyProtein || 150;
-  const targetCarbs = trackerSettings?.dailyCarbs || 200;
-  const targetFat = trackerSettings?.dailyFat || 65;
+  const storedTargets = readStoredTrackerTargets();
+  const targetCalories = trackerSettings?.dailyCalories || storedTargets?.dailyCalories || 2000;
+  const targetProtein = trackerSettings?.dailyProtein || storedTargets?.dailyProtein || 150;
+  const targetCarbs = trackerSettings?.dailyCarbs || storedTargets?.dailyCarbs || 200;
+  const targetFat = trackerSettings?.dailyFat || storedTargets?.dailyFat || 65;
+  const targetsReady =
+    !trackerLoading && (trackerSettings?.dailyCalories ?? storedTargets?.dailyCalories ?? 0) > 0;
   
   
   // Wait for auth before showing anything
@@ -764,9 +774,10 @@ const Index = () => {
               proteinEaten={proteinEaten}
               targetProtein={targetProtein}
               carbsEaten={carbsEaten}
-              targetCarbs={trackerSettings?.dailyCarbs ?? 200}
+              targetCarbs={targetCarbs}
               fatEaten={fatEaten}
-              targetFat={trackerSettings?.dailyFat ?? 65}
+              targetFat={targetFat}
+              targetsReady={targetsReady}
               loggedMealTypes={loggedMealTypes}
               waterGlasses={waterGlasses}
               waterGoalMl={waterGoalMl}

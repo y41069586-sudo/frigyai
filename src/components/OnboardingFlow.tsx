@@ -66,9 +66,7 @@ import {
   resolveAuthErrorMessage,
   waitForAuthSession,
 } from "@/lib/authErrors";
-import { buildStripePaymentUrl, markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
-import { openExternalUrl } from "@/lib/openExternalUrl";
-import { syncAffiliateAttributionToServer } from "@/lib/affiliateSync";
+import { startPremiumCheckout } from "@/lib/purchaseCheckout";
 import { supabase } from "@/integrations/supabase/client";
 import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
@@ -647,17 +645,23 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const handlePaywallCheckout = async (plan: PaywallBillingPlan) => {
     lightTap();
-    localStorage.setItem("selectedPlan", plan);
-    markStripeCheckoutPending();
-    const token = session?.access_token;
-    if (token) {
-      await syncAffiliateAttributionToServer(token, { source: "paywall" });
+    const result = await startPremiumCheckout(plan, {
+      userId: user?.id,
+      email: user?.email ?? authEmail,
+      accessToken: session?.access_token,
+      attributionSource: "paywall",
+    });
+    if (!result.ok && !result.cancelled && result.message) {
+      toast({
+        title: t.error,
+        description: result.message,
+        variant: "destructive",
+      });
     }
-    await openExternalUrl(
-      buildStripePaymentUrl(plan, user?.email ?? authEmail, {
-        userId: user?.id,
-      }),
-    );
+    if (result.ok && result.channel === "store") {
+      await checkSubscription();
+      finishOnboardingExit();
+    }
   };
 
   const goAfterSignup = () => {
@@ -2463,32 +2467,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     </Button>
                   )}
                 </motion.div>
-                
-                <div className="pt-4">
-                  <p className="text-[10px] text-muted-foreground/40 mb-3">{t.onboardingOptionalHealthSync}</p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "apple" ? null : "apple" })}
-                      className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                        userData.healthSync === "apple" ? "border-red-400 bg-red-50 dark:bg-red-900/20" : "border-border bg-card"
-                      }`}
-                    >
-                      <Apple className="w-5 h-5 text-red-500" />
-                      <span className="text-sm">Apple Health</span>
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setUserData({ ...userData, healthSync: userData.healthSync === "google" ? null : "google" })}
-                      className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                        userData.healthSync === "google" ? "border-green-400 bg-green-50 dark:bg-green-900/20" : "border-border bg-card"
-                      }`}
-                    >
-                      <Smartphone className="w-5 h-5 text-green-500" />
-                      <span className="text-sm">Google Fit</span>
-                    </motion.button>
-                  </div>
-                </div>
 
                 {/* Skip button for users who don't want to grant permission now */}
                 <Button 

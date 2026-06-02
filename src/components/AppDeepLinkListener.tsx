@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { resolveDeepLink } from "@/lib/appDeepLink";
+import { completeOAuthFromUrl, isOAuthCallbackUrl } from "@/lib/authOAuth";
 import { captureReferralAttribution, applyDeferredReferralOnFirstOpen } from "@/lib/referralAttribution";
 import { markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
 import { ChottuLinkNative } from "@/lib/chottuLinkNative";
@@ -52,6 +53,15 @@ export function AppDeepLinkListener() {
           recent.delete(entryUrl);
         }
       }
+    }
+
+    if (isOAuthCallbackUrl(url)) {
+      void completeOAuthFromUrl(url).then((ok) => {
+        if (ok) {
+          navigate("/premium-pricing", { replace: true });
+        }
+      });
+      return;
     }
 
     const { path, referralRef } = resolveDeepLink(url);

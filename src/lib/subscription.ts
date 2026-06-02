@@ -21,9 +21,19 @@ export function isOneTimePremiumProductId(productId: string | null | undefined):
   return productId === "premium_one_time";
 }
 
+export function isStoreSubscriptionProductId(productId: string | null | undefined): boolean {
+  if (!productId) return false;
+  return productId.startsWith("rc_") || productId.startsWith("store_");
+}
+
 export function canManageStripeSubscription(status: SubscriptionStatusLike | null | undefined): boolean {
   if (!isSubscriptionActive(status)) return false;
   if (isPromoPremiumProductId(status?.product_id)) return false;
   if (isOneTimePremiumProductId(status?.product_id)) return false;
+  if (isStoreSubscriptionProductId(status?.product_id)) return false;
   return Boolean(status?.subscription_end);
+}
+
+export function canManageStoreSubscription(status: SubscriptionStatusLike | null | undefined): boolean {
+  return isSubscriptionActive(status) && isStoreSubscriptionProductId(status?.product_id);
 }

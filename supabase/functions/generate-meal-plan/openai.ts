@@ -18,6 +18,8 @@ import {
   buildSimpleFoodStyleBlock,
 } from "./dietPrompts.ts";
 import { formatPriorDishesForPrompt } from "./variety.ts";
+import { buildNoPorkConstraintBlock } from "./porkBan.ts";
+import { mealSlot } from "./meals.ts";
 
 const coerceNumber = z.union([z.number(), z.string()]).transform((v) => {
   const n = Number(v);
@@ -126,9 +128,10 @@ function buildCompactSystemPrompt(params: {
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
-    `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3" or "Meal 2".`,
+    `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
     `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
+    buildNoPorkConstraintBlock(params.lang),
     params.dietBlock,
     params.bannedBlock,
     params.constraints ? `Constraints:\n${params.constraints.slice(0, 1200)}` : "",
@@ -221,9 +224,15 @@ async function callOpenAIOnce(params: {
       ? day.meals.slice(0, params.mealsPerDay).map(normalizeMealStructure)
       : [];
     while (meals.length < params.mealsPerDay) {
+      const slot = mealSlot(meals.length, params.mealsPerDay);
+      const padName = params.lang === "de"
+        ? (slot === "b" ? "Haferflocken mit Beeren" : slot === "m" ? "Hähnchen mit Reis" : "Obst mit Joghurt")
+        : params.lang === "fr"
+          ? (slot === "b" ? "Porridge baies" : slot === "m" ? "Poulet riz" : "Fruit yaourt")
+          : (slot === "b" ? "Oatmeal berries" : slot === "m" ? "Chicken and rice" : "Fruit yogurt");
       meals.push(
         normalizeMealStructure({
-          name: `${L.meal} ${meals.length + 1}`,
+          name: padName,
           type: L.meal,
           protein: 0,
           carbs: 0,

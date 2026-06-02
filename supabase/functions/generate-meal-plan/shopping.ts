@@ -3,9 +3,13 @@ import type { MealPlan, ScanMeta, ShoppingItem } from "./types.ts";
 
 export function fridgeHas(name: string, fridge: string[]) {
   const n = normKey(name);
+  if (!n) return false;
   return fridge.some((f) => {
     const k = normKey(f);
-    return k && (n.includes(k) || k.includes(n));
+    if (!k) return false;
+    if (n === k) return true;
+    if (n.length >= 3 && k.length >= 3 && (n.includes(k) || k.includes(n))) return true;
+    return false;
   });
 }
 

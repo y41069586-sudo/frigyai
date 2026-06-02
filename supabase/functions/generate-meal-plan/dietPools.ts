@@ -45,15 +45,15 @@ const DE: Record<string, PoolSet> = {
   },
   keto: {
     b: [
-      "Rührei Avocado", "Speck Eier", "Käse Omelett", "Griechischer Joghurt Nüsse", "Chia Kokos",
-      "Salami Eier", "Smoked Salmon Frühstück",
+      "Rührei Avocado", "Putenaufschnitt Eier", "Käse Omelett", "Griechischer Joghurt Nüsse", "Chia Kokos",
+      "Räucherlachs Eier", "Smoked Salmon Frühstück",
     ],
     m: [
       "Lachs mit Brokkoli", "Hähnchensalat", "Rindersteak mit Blumenkohl", "Pute mit Zucchini",
-      "Thunfischsalat", "Hackfleisch mit Kohl", "Hähnchen mit Salat", "Schweinesteak mit Pilzen",
+      "Thunfischsalat", "Hackfleisch mit Kohl", "Hähnchen mit Salat", "Rindersteak mit Pilzen",
       "Zucchini-Auflauf", "Omelett mit Salat", "Frikadellen mit Gemüse",
     ],
-    s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Pepperoni Snack"],
+    s: ["Käsewürfel", "Nuss Mix", "Gurke Dip", "Oliven", "Mandeln Snack"],
   },
   "low-carb": {
     b: ["Rührei Spinat", "Skyr Nüsse", "Omelett Gemüse", "Hüttenkäse Beeren", "Avocado Ei"],
@@ -67,7 +67,7 @@ const DE: Record<string, PoolSet> = {
     b: ["Eier Süßkartoffel", "Obst Nüsse", "Rührei Champignons", "Smoothie ohne Milch"],
     m: [
       "Hähnchen Ofengemüse", "Lachs Spargel", "Rind Stir Fry", "Pute Süßkartoffel", "Hack Zucchini",
-      "Ente Rotkohl", "Schweine Medaillons", "Lamm Karotten", "Fisch Kräuter",
+      "Ente Rotkohl", "Puten Medaillons", "Lamm Karotten", "Fisch Kräuter",
     ],
     s: ["Mandeln", "Beeren", "Rind Biltong Style", "Karotten Hummus ohne Kichererbsen"],
   },
@@ -76,7 +76,7 @@ const DE: Record<string, PoolSet> = {
 const EN: Record<string, PoolSet> = {
   balanced: {
     b: ["Oatmeal berries", "Greek yogurt fruit", "Scrambled eggs toast", "Yogurt banana", "Cottage cheese toast", "Avocado toast", "Granola apple"],
-    m: ["Chicken rice pan", "Salmon potatoes", "Turkey veggie bowl", "Pasta tomato", "Beef stir fry", "Tuna salad", "Lentil curry", "Chicken wrap", "Beef tacos", "Shrimp pasta", "Pork chops veg", "Lamb stew"],
+    m: ["Chicken rice pan", "Salmon potatoes", "Turkey veggie bowl", "Pasta tomato", "Beef stir fry", "Tuna salad", "Lentil curry", "Chicken wrap", "Beef tacos", "Shrimp pasta", "Turkey chops veg", "Lamb stew"],
     s: ["Apple nuts", "Cottage cheese", "Sandwich", "Fruit yogurt", "Hummus veggies", "Cheese cubes"],
   },
   vegan: {
@@ -91,7 +91,7 @@ const EN: Record<string, PoolSet> = {
   },
   keto: {
     b: ["Eggs avocado", "Bacon eggs", "Cheese omelette", "Greek yogurt nuts", "Chia coconut"],
-    m: ["Salmon broccoli", "Chicken caesar no croutons", "Steak cauliflower", "Turkey zucchini", "Tuna olive salad", "Beef cabbage", "Shrimp garlic", "Pork tenderloin mushrooms", "Cobb salad", "Zucchini lasagna keto"],
+    m: ["Salmon broccoli", "Chicken caesar no croutons", "Steak cauliflower", "Turkey zucchini", "Tuna olive salad", "Beef cabbage", "Shrimp garlic", "Turkey tenderloin mushrooms", "Cobb salad", "Zucchini lasagna keto"],
     s: ["Cheese cubes", "Nut mix", "Cucumber dip", "Olives"],
   },
   "low-carb": {
@@ -101,7 +101,7 @@ const EN: Record<string, PoolSet> = {
   },
   paleo: {
     b: ["Eggs sweet potato", "Fruit nuts", "Mushroom scramble"],
-    m: ["Chicken roast veg", "Salmon asparagus", "Beef stir fry", "Turkey sweet potato", "Pork zucchini", "Duck cabbage", "Fish herbs"],
+    m: ["Chicken roast veg", "Salmon asparagus", "Beef stir fry", "Turkey sweet potato", "Turkey zucchini pan", "Duck cabbage", "Fish herbs"],
     s: ["Almonds", "Berries", "Carrot sticks"],
   },
 };

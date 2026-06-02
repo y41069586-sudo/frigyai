@@ -12,7 +12,7 @@ import { SHOPPING_CHECKED_NAMES_KEY } from "@/lib/shoppingSync";
 import { FrigyIngredientScanFlow } from "@/components/scan/FrigyIngredientScanFlow";
 import { fileToCompressedBase64 } from "@/lib/compressImage";
 import { canonicalizeIngredientLabel, dedupeIngredientLabels } from "@/lib/ingredientLabels";
-import { fridgeCoversIngredient } from "@/lib/shoppingGap";
+import { splitIngredientsByFridgeCoverage, type DayPlanLike } from "@/lib/shoppingGap";
 
 interface ScanShoppingItem {
   name: string;
@@ -85,55 +85,11 @@ const ScanPage = () => {
 
   const { getCached, setCached } = useAICache();
 
-  const normalizeIngredientName = (name: string) =>
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9äöüß\s]/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const readShoppingSource = (): ScanShoppingItem[] => {
-    try {
-      const rawList = localStorage.getItem("weeklyShoppingList");
-      if (rawList) {
-        const parsed = JSON.parse(rawList) as ScanShoppingItem[];
-        if (Array.isArray(parsed)) {
-          return parsed
-            .filter((item) => item?.name)
-            .map((item) => ({
-              name: item.name,
-              amount: item.amount || "—",
-              price: typeof item.price === "number" ? item.price : 0,
-            }));
-        }
-      }
-    } catch {
-      /* fall through */
-    }
-
+  const readMealPlanFromStorage = (): DayPlanLike[] => {
     try {
       const rawPlan = localStorage.getItem("weeklyMealPlan");
       const plan = rawPlan ? JSON.parse(rawPlan) : [];
-      if (!Array.isArray(plan)) return [];
-
-      const map = new Map<string, ScanShoppingItem>();
-      plan.forEach((day: { meals?: { ingredients?: ScanShoppingItem[] }[] }) => {
-        day.meals?.forEach((meal) => {
-          meal.ingredients?.forEach((ingredient) => {
-            if (!ingredient?.name) return;
-            const key = normalizeIngredientName(ingredient.name);
-            if (!key || map.has(key)) return;
-            map.set(key, {
-              name: ingredient.name,
-              amount: ingredient.amount || "—",
-              price: typeof ingredient.price === "number" ? ingredient.price : 0,
-            });
-          });
-        });
-      });
-      return Array.from(map.values());
+      return Array.isArray(plan) ? (plan as DayPlanLike[]) : [];
     } catch {
       return [];
     }
@@ -142,17 +98,16 @@ const ScanPage = () => {
   const applyScannedIngredientsToShoppingList = (nextIngredients: string[]) => {
     localStorage.setItem("lastFridgeIngredientList", JSON.stringify(nextIngredients));
 
-    const source = readShoppingSource();
-    if (source.length === 0) {
+    const plan = readMealPlanFromStorage();
+    if (plan.length === 0) {
+      setIngredients(dedupeIngredientLabels(nextIngredients));
       setMissingIngredients([]);
       notifyFrigyStorageUpdated();
       return;
     }
 
-    const missing = source.filter(
-      (item) => !fridgeCoversIngredient(item.name, nextIngredients),
-    );
-
+    const { present, missing } = splitIngredientsByFridgeCoverage(plan, nextIngredients);
+    setIngredients(present);
     setMissingIngredients(missing);
     localStorage.setItem("weeklyShoppingList", JSON.stringify(missing));
     localStorage.removeItem(SHOPPING_CHECKED_NAMES_KEY);

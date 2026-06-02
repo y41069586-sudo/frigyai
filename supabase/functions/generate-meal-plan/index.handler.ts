@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed.trim() : "";
     const constraints = [
       buildConstraints(allergies, prefs, goals, other, lang),
+      buildNoPorkConstraintBlock(lang),
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "",
     ]
       .filter(Boolean)

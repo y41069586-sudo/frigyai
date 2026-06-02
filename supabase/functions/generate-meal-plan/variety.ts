@@ -128,7 +128,8 @@ export function ensureDistinctMealsAcrossWeek(
         }
       }
     }
-    const fallback = `${slot === "b" ? "Frühstück" : slot === "m" ? "Hauptgericht" : "Snack"} ${used.size + 1}`;
+    const idx = used.size % Math.max(list.length, 1);
+    const fallback = list.length ? list[idx]! : (slot === "m" ? "Gemüsepfanne mit Reis" : slot === "b" ? "Haferflocken mit Beeren" : "Obst mit Joghurt");
     used.add(titleKey(fallback));
     return fallback;
   };

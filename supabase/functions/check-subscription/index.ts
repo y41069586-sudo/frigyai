@@ -19,6 +19,36 @@ function isPromoProductId(productId: string | null | undefined): boolean {
   return productId.startsWith("referral_") || productId === "influencer_promo";
 }
 
+function isStoreProductId(productId: string | null | undefined): boolean {
+  if (!productId) return false;
+  return productId.startsWith("rc_") || productId.startsWith("store_");
+}
+
+async function loadActiveStoreFromCache(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("subscription_cache")
+    .select("subscribed, product_id, subscription_end, is_trial")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data?.subscribed || !isStoreProductId(data.product_id)) {
+    return null;
+  }
+  if (data.subscription_end && new Date(data.subscription_end) <= new Date()) {
+    return null;
+  }
+
+  return {
+    subscribed: true,
+    product_id: data.product_id,
+    subscription_end: data.subscription_end,
+    is_trial: data.is_trial || false,
+  };
+}
+
 function promoStillValid(subscriptionEnd: string | null): boolean {
   if (!subscriptionEnd) return true;
   return new Date(subscriptionEnd) > new Date();
@@ -117,6 +147,15 @@ serve(async (req) => {
     if (activePromo) {
       logStep("Active referral/influencer promo from cache", activePromo);
       return new Response(JSON.stringify(activePromo), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const activeStore = await loadActiveStoreFromCache(supabaseClient, user.id);
+    if (activeStore) {
+      logStep("Active App Store / Play subscription from cache", activeStore);
+      return new Response(JSON.stringify(activeStore), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });

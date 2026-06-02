@@ -12,15 +12,19 @@ const BAD_INSTRUCTION =
 const DAY_IN_NAME =
   /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/i;
 
-/** AI / padding junk like "Friday meal 3", "Mahlzeit 2", "Meal 1". */
+const SLOT_LABEL =
+  /^(frühstück|hauptgericht|snack|breakfast|lunch|dinner|vorspeise|beilage|meal|mahlzeit|gericht|repas)\s*#?\d+$/i;
+
+/** AI / padding junk like "Friday meal 3", "Mahlzeit 2", "Hauptgericht 1". */
 export function isPlaceholderMealName(name: string): boolean {
   const n = String(name || "").trim();
   if (!n || n.length < 4) return true;
   const lower = n.toLowerCase();
-  if (/^(meal|mahlzeit|gericht|repas|breakfast|lunch|dinner|snack)\s*#?\d+$/i.test(lower)) {
+  if (SLOT_LABEL.test(lower)) return true;
+  if (/\b(frühstück|hauptgericht|snack|breakfast|lunch|dinner|meal|mahlzeit|gericht|repas)\s*#?\d+\b/i.test(lower)) {
     return true;
   }
-  if (DAY_IN_NAME.test(lower) && /\b(meal|mahlzeit|repas|breakfast|lunch|dinner|snack)\b/i.test(lower)) {
+  if (DAY_IN_NAME.test(lower) && /\b(meal|mahlzeit|repas|frühstück|hauptgericht|snack|breakfast|lunch|dinner|gericht)\b/i.test(lower)) {
     return true;
   }
   if (/^gericht\s*\d+$/i.test(lower)) return true;
