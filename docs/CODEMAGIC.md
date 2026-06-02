@@ -21,20 +21,28 @@ Der **Android-Workflow wurde entfernt**. In Codemagic startest du nur noch:
 
 Ohne Signing schlägt der iOS-Build fehl. **Du brauchst kein Mac** — Codemagic erzeugt das Zertifikat über die **App Store Connect API**.
 
-### App settings — Environment variables (ohne Variable Group)
+### App settings — Variable Group `appstore_credentials` (Pflicht)
 
-**Wichtig:** Der Workflow braucht **keine** Variable Group mehr. Fehler  
-`unknown variable group(s): appstore_credentials` → alte YAML; nach `git pull` neu bauen.
+Der Workflow lädt die Apple-API-Keys **nur** aus der Group **`appstore_credentials`**.
 
-**Codemagic → App frigyai → Settings → Environment variables** → **Add variable** (drei Mal):
+| Fehler | Bedeutung |
+|--------|-----------|
+| `unknown variable group(s): appstore_credentials` | Group in Codemagic **noch nicht angelegt** (Name exakt so) |
+| `Verify App Store Connect API env` exit 1 | Group fehlt **oder** eine der 3 Variablen fehlt in der Group |
+
+**Codemagic → App frigyai → Settings → Environment variables:**
+
+1. **Add variable** → Name: `APP_STORE_CONNECT_PRIVATE_KEY`
+2. Value: komplette `.p8`-Datei (mit `-----BEGIN PRIVATE KEY-----` … `-----END PRIVATE KEY-----`)
+3. **Secret** aktivieren
+4. **Group name:** `appstore_credentials` → **Create group** (beim ersten Mal)
+5. Speichern, dann **zwei weitere Variablen** in **derselben** Group:
 
 | Variable name | Value | Secret? |
 |---------------|-------|---------|
 | `APP_STORE_CONNECT_KEY_IDENTIFIER` | `BFQ5G69F89` | nein |
-| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID aus App Store Connect (UUID) | nein |
-| `APP_STORE_CONNECT_PRIVATE_KEY` | **Kompletter Inhalt** der `.p8`-Datei | **ja** |
-
-Optional: dieselben drei Variablen in einer Group `appstore_credentials` — nur nötig, wenn du Groups in der YAML wieder einträgst.
+| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID (UUID) von App Store Connect | nein |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | `.p8` Inhalt | **ja** |
 
 **`.p8` einfügen (Windows):**
 
@@ -49,7 +57,7 @@ Optional: dieselben drei Variablen in einer Group `appstore_credentials` — nur
 
 Issuer ID: [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API** → oben **Issuer ID**.
 
-Der Workflow liest diese Variablen aus den **Application Environment variables** und holt beim Build Zertifikat + Profil automatisch.
+Die Group muss **`appstore_credentials`** heißen (wie in `codemagic.yaml`). Beim Build werden Zertifikat + Profil automatisch geholt.
 
 **Generate certificate** in der UI brauchst du dann **nicht** — der Build-Schritt `Fetch code signing files` reicht.
 

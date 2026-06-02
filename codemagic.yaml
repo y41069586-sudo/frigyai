@@ -8,11 +8,13 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
 
-    # Apple API + Vite: Codemagic → App frigyai → Environment variables (no group required).
-    # See docs/CODEMAGIC.md
+    # Apple API: Codemagic → frigyai → Environment variables → group "appstore_credentials"
+    # (all 3 APP_STORE_CONNECT_* vars must be in this group). See docs/CODEMAGIC.md
     environment:
       xcode: latest
       node: 20
+      groups:
+        - appstore_credentials
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
@@ -35,12 +37,22 @@ workflows:
           [ -z "${APP_STORE_CONNECT_ISSUER_ID:-}" ] && missing="$missing APP_STORE_CONNECT_ISSUER_ID"
           [ -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ] && missing="$missing APP_STORE_CONNECT_PRIVATE_KEY"
           if [ -n "$missing" ]; then
-            echo "ERROR: Missing Codemagic environment variables:$missing"
-            echo "Add them in: Codemagic → frigyai → Settings → Environment variables"
+            echo "ERROR: Missing environment variables:$missing"
+            echo ""
+            echo "Fix in Codemagic (exact names, same group):"
+            echo "  1. frigyai → Settings → Environment variables"
+            echo "  2. Create group: appstore_credentials"
+            echo "  3. Add all three variables IN that group (PRIVATE_KEY = Secret):"
+            echo "     - APP_STORE_CONNECT_KEY_IDENTIFIER = BFQ5G69F89"
+            echo "     - APP_STORE_CONNECT_ISSUER_ID = (UUID from App Store Connect)"
+            echo "     - APP_STORE_CONNECT_PRIVATE_KEY = full .p8 file contents"
+            echo ""
+            echo "If you see 'unknown variable group appstore_credentials', the group name must match exactly."
             echo "See docs/CODEMAGIC.md"
             exit 1
           fi
-          echo "App Store Connect API variables present."
+          key_len=$(printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | wc -c | tr -d ' ')
+          echo "App Store Connect API OK (key_id set, issuer set, private_key ${key_len} chars)."
 
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
