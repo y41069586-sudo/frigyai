@@ -8,25 +8,40 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
 
-    # App settings → Environment variables → group "appstore_credentials"
-    # (see docs/CODEMAGIC.md — works when Team integrations UI is not available)
+    # Apple API + Vite: Codemagic → App frigyai → Environment variables (no group required).
+    # See docs/CODEMAGIC.md
     environment:
       xcode: latest
       node: 20
-      groups:
-        - appstore_credentials
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
         BUNDLE_ID: com.frigyapp.app
-        # Pflicht in Codemagic → Environment variables (oder Variable groups):
+        # Pflicht unter Environment variables (Application settings):
+        # APP_STORE_CONNECT_KEY_IDENTIFIER
+        # APP_STORE_CONNECT_ISSUER_ID
+        # APP_STORE_CONNECT_PRIVATE_KEY  (Secret)
         # VITE_SUPABASE_URL
         # VITE_SUPABASE_PUBLISHABLE_KEY
         # VITE_REVENUECAT_API_KEY_IOS
         # VITE_REVENUECAT_ENTITLEMENT_ID=premium
-        # Optional: VITE_CHOTTULINK_API_KEY, VITE_APP_WEB_HOST, VITE_PRIVACY_POLICY_URL
 
     scripts:
+      - name: Verify App Store Connect API env
+        script: |
+          set -e
+          missing=""
+          [ -z "${APP_STORE_CONNECT_KEY_IDENTIFIER:-}" ] && missing="$missing APP_STORE_CONNECT_KEY_IDENTIFIER"
+          [ -z "${APP_STORE_CONNECT_ISSUER_ID:-}" ] && missing="$missing APP_STORE_CONNECT_ISSUER_ID"
+          [ -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ] && missing="$missing APP_STORE_CONNECT_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "ERROR: Missing Codemagic environment variables:$missing"
+            echo "Add them in: Codemagic → frigyai → Settings → Environment variables"
+            echo "See docs/CODEMAGIC.md"
+            exit 1
+          fi
+          echo "App Store Connect API variables present."
+
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
 
