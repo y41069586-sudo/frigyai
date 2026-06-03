@@ -28,7 +28,7 @@ Der Workflow lädt die Apple-API-Keys **nur** aus der Group **`appstore_credenti
 | Fehler | Bedeutung |
 |--------|-----------|
 | `unknown variable group(s): appstore_credentials` | Group in Codemagic **noch nicht angelegt** (Name exakt so) |
-| `Verify App Store Connect API env` exit 1 | Group fehlt **oder** eine der 3 Variablen fehlt in der Group |
+| `Verify build environment` exit 1 | Apple-Keys und/oder Supabase-Variablen fehlen (siehe `codemagic.env.example`) |
 
 **Codemagic → App frigyai → Settings → Environment variables:**
 
@@ -108,24 +108,21 @@ Unter [App Store Connect → Apps](https://appstoreconnect.apple.com) muss eine 
 
 ## 3. Environment Variables (Pflicht für die App)
 
-**Codemagic → Application → Environment variables**
+Vollständige Liste: **`codemagic.env.example`** im Repo-Root.
 
-| Variable | Beispiel / Hinweis |
-|----------|-------------------|
-| `VITE_SUPABASE_URL` | `https://xxx.supabase.co` |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key |
-| `VITE_REVENUECAT_API_KEY_IOS` | `appl_…` aus RevenueCat |
-| `VITE_REVENUECAT_ENTITLEMENT_ID` | `premium` |
-| `VITE_APPLE_BUNDLE_ID` | `com.frigyapp.app` |
-| `VITE_APPLE_CLIENT_ID` | `com.frigyapp.app` |
-| `VITE_APPLE_REDIRECT_URI` | `https://app.frigy.app/auth/callback` |
-| `VITE_PRIVACY_POLICY_URL` | `https://app.frigy.app/legal/datenschutz` |
-| `VITE_CHOTTULINK_API_KEY` | optional |
-| `VITE_APP_WEB_HOST` | `app.frigy.app` |
+**Codemagic → frigyai → Environment variables**
 
-Diese Werte werden beim Schritt **`npm run build`** in die Web-Assets eingebaut.
+| Variable | Pflicht? | Wo? |
+|----------|----------|-----|
+| `VITE_SUPABASE_URL` | **ja** | Application (ohne Group) **oder** Group `appstore_credentials` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | **ja** | wie oben |
+| `VITE_REVENUECAT_API_KEY_IOS` | empfohlen | wie oben |
+| `VITE_REVENUECAT_ENTITLEMENT_ID` | nein (Default `premium` in yaml) | optional |
+| `VITE_APPLE_*`, `VITE_PRIVACY_POLICY_URL` | nein (Defaults in yaml) | optional |
 
-Markiere Secrets als **Secure** in Codemagic.
+Der Schritt **`Verify build environment`** (`scripts/codemagic-verify-env.sh`) bricht ab, wenn Supabase-Variablen fehlen.
+
+Diese Werte werden bei **`npm run build`** in die Web-Assets eingebaut. Supabase-Keys **nicht** als Secret markieren (Vite braucht sie beim Build).
 
 ---
 
@@ -186,12 +183,15 @@ Dann committen und in Codemagic neu bauen.
 
 | Fehler | Lösung |
 |--------|--------|
-| No signing certificate | Code signing in Codemagic Team settings |
+| `unknown variable group appstore_credentials` | Group in Codemagic anlegen (Abschnitt 2) |
+| `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` setzen |
+| `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
+| No signing certificate | API-Key + App in ASC mit `com.frigyapp.app` |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed | `npm run build` lokal fixen; Node 20 |
 | Leere App / kein Login | `VITE_SUPABASE_*` in Codemagic setzen |
 | RevenueCat / IAP fehlt | `VITE_REVENUECAT_API_KEY_IOS` setzen |
-| Scheme not found | Scheme **App** muss in Xcode „Shared“ sein |
+| Scheme not found | Scheme **App** unter `ios/App/App.xcodeproj` |
 
 ---
 
