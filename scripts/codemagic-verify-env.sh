@@ -34,7 +34,7 @@ if [ -n "$MISSING" ]; then
   echo "Leave Group EMPTY (Application variables) OR use any group linked to this app."
   echo ""
   echo "Required:"
-  echo "  APP_STORE_CONNECT_KEY_IDENTIFIER = BFQ5G69F89"
+  echo "  APP_STORE_CONNECT_KEY_IDENTIFIER = P5FA563XP2 (or your Key ID from AuthKey_*.p8 filename)"
   echo "  APP_STORE_CONNECT_ISSUER_ID = UUID from App Store Connect"
   echo "  APP_STORE_CONNECT_PRIVATE_KEY = full .p8 (mark Secret)"
   echo "  VITE_SUPABASE_URL"

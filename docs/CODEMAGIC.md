@@ -32,7 +32,7 @@ Beim Anlegen: **Group-Feld leer lassen** (Application variables).
 | Variable name | Value | Secret? |
 |---------------|-------|---------|
 | `APP_STORE_CONNECT_PRIVATE_KEY` | komplette `.p8`-Datei | **ja** |
-| `APP_STORE_CONNECT_KEY_IDENTIFIER` | `BFQ5G69F89` | nein |
+| `APP_STORE_CONNECT_KEY_IDENTIFIER` | `P5FA563XP2` (aus Dateiname `AuthKey_P5FA563XP2.p8`) | nein |
 | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID (UUID) von App Store Connect | nein |
 
 | Fehler | Bedeutung |
