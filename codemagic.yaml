@@ -17,9 +17,9 @@ workflows:
       # Reference names must match Code signing identities exactly (avoids wrong profile e.g. "Doaa Attia").
       ios_signing:
         provisioning_profiles:
-          - frigy_appstore
+          - Frigy
         certificates:
-          - frigy_distribution
+          - Frigy
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App

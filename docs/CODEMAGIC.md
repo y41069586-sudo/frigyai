@@ -57,13 +57,11 @@ Der Fehler **`Cannot save Signing Certificates without certificate private key`*
 
 **Einmalig in Codemagic (Team settings → Code signing identities):**
 
-1. **iOS certificates** → **Generate certificate** → Typ **Apple Distribution** → deinen App-Store-Connect-API-Key wählen → Reference name z. B. `frigy_distribution`
-2. **`.p12` sofort downloaden** und unter **Upload certificate** mit dem angezeigten Passwort **hochladen** (Codemagic braucht die Datei inkl. Private Key)
-3. **iOS provisioning profiles** → altes Profil **„Doaa Attia“ löschen** (hat keine Associated Domains)
-4. **Apple Developer** → Identifier `com.frigyapp.app` → **Associated Domains** (+ Push, Sign in with Apple) aktivieren → Save
-5. **Fetch profiles** → **App Store** → `com.frigyapp.app` → Reference name **exakt** `frigy_appstore` → **Download selected** (grüner Haken bei Certificate)
+1. **iOS certificates** → **Apple Distribution** → Reference name **`Frigy`** → `.p12` downloaden und **hochladen**
+2. **iOS provisioning profiles** → altes Profil **„Doaa Attia“ löschen** → **Fetch profiles** → App Store → `com.frigyapp.app` → Reference name **`Frigy`**
+3. **Apple Developer** → `com.frigyapp.app` → **Associated Domains**, Push, Sign in with Apple aktivieren → Save
 
-`codemagic.yaml` nutzt nur diese Reference names — nicht automatisch „Doaa Attia“.
+`codemagic.yaml` nutzt Reference name **`Frigy`** für Zertifikat und Profil.
 
 ### Schritt 1 — App Store Connect API Key (Referenz)
 
@@ -192,7 +190,7 @@ Dann committen und in Codemagic neu bauen.
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
 | No signing certificate | Zertifikat + App-Store-Profil in Code signing identities; App in ASC mit `com.frigyapp.app` |
 | Archive failed (exit 65) | App-Store-Profil muss **Push**, **Sign in with Apple**, **Associated Domains** haben; `App.entitlements` → `aps-environment: production`; Profil nach Capability-Änderung neu **Fetch** |
-| `doesn't include the Associated Domains capability` | App ID: Associated Domains an → Profil **„Doaa Attia“ löschen** → neu fetchen als Reference `frigy_appstore` (siehe oben) |
+| `doesn't include the Associated Domains capability` | App ID: Associated Domains an → Profil **„Doaa Attia“ löschen** → neu fetchen als Reference **`Frigy`** (siehe oben) |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
 | `Failed to show build settings` / exit 74 | SPM-Pfade in `Package.swift` (keine `\`); Schritt „Resolve Swift packages“ im Log prüfen |
