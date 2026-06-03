@@ -57,6 +57,7 @@ import { HealthGoalsSelectStep } from "./onboarding/components/HealthGoalsSelect
 import { DietStyleSelectStep } from "./onboarding/components/DietStyleSelectStep";
 import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep";
 import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
+import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
@@ -421,7 +422,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
-  const { user, signUp, signIn, isPremium, checkSubscription } = useAuth();
+  const { user, session, signUp, signIn, isPremium, checkSubscription } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -474,6 +475,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const [authPassword, setAuthPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const authSubmitLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
   // Scan feedback state (moved to top level to avoid hooks in switch)
@@ -601,16 +603,27 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   }, [currentStep]);
 
+  useEffect(() => {
+    if (
+      initialStepOverride &&
+      onboardingSteps.includes(initialStepOverride) &&
+      initialStepOverride !== currentStep
+    ) {
+      setCurrentStep(initialStepOverride);
+    }
+  }, [initialStepOverride, currentStep]);
+
   const finishOnboardingExit = useCallback(() => {
     saveOnboardingData(userData, { markOnboardingComplete: true });
     onComplete();
   }, [onComplete, userData]);
 
-  const canAccessDashboard = useCallback(async (): Promise<boolean> => {
+  const canAccessDashboard = useCallback(async (sessionReady = false): Promise<boolean> => {
     if (isPremium) return true;
     return resolvePremiumAccessAfterSignIn({
       userId: user?.id,
       checkSubscription,
+      sessionReady,
     });
   }, [isPremium, checkSubscription, user?.id]);
 
@@ -620,8 +633,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   }, []);
 
-  const tryFinishOnboardingWithAccess = useCallback(async () => {
-    if (await canAccessDashboard()) {
+  const tryFinishOnboardingWithAccess = useCallback(async (sessionReady = false) => {
+    if (await canAccessDashboard(sessionReady)) {
       finishOnboardingExit();
       return;
     }
@@ -664,10 +677,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   };
 
-  const goAfterSignup = () => {
+  const goAfterSignup = useCallback(async (sessionReady = false) => {
     saveOnboardingAfterSignup(userData);
-    void tryFinishOnboardingWithAccess();
-  };
+    await tryFinishOnboardingWithAccess(sessionReady);
+  }, [tryFinishOnboardingWithAccess, userData]);
 
   const goNext = () => {
     // Check if user can proceed from current step before allowing navigation
@@ -1537,6 +1550,16 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       case "weekly-plan-preview":
         return (
           <WeeklyPlanPreviewStep
+            userData={userData}
+            setUserData={setUserData}
+            onBack={currentIndex > 0 ? goBack : undefined}
+            onNext={goNext}
+          />
+        );
+
+      case "scan-fridge":
+        return (
+          <FridgeScanStep
             userData={userData}
             setUserData={setUserData}
             onBack={currentIndex > 0 ? goBack : undefined}
@@ -3408,6 +3431,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
       case "save-progress": {
         const handleAuth = async () => {
+          if (authSubmitLockRef.current || isAuthLoading) return;
+
           // Validate email and password
           if (!authEmail || !authPassword) {
             toast({
@@ -3439,15 +3464,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             return;
           }
 
+          authSubmitLockRef.current = true;
           setIsAuthLoading(true);
           try {
             if (authMode === "signup") {
               const { error } = await signUp(authEmail, authPassword, { silent: true });
 
               const ensureSessionAfterSignup = async (): Promise<boolean> => {
-                if (await waitForAuthSession(3200)) return true;
-                await signIn(authEmail, authPassword, { silent: true });
-                return waitForAuthSession(2000);
+                if (await waitForAuthSession(1200)) return true;
+                const { session } = await signIn(authEmail, authPassword, { silent: true });
+                if (session) return true;
+                return waitForAuthSession(1200);
               };
 
               if (error) {
@@ -3464,7 +3491,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 }
 
                 if (isEmailRateLimited(error) && (await ensureSessionAfterSignup())) {
-                  goAfterSignup();
+                  await goAfterSignup(true);
                   return;
                 }
 
@@ -3494,9 +3521,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 return;
               }
 
-              goAfterSignup();
+              await goAfterSignup(true);
             } else {
-              const { error } = await signIn(authEmail, authPassword);
+              const { error, session } = await signIn(authEmail, authPassword, { silent: true });
               if (error) {
                 const resolved = resolveAuthErrorMessage(error, language, "login");
                 toast({
@@ -3508,7 +3535,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 });
                 return;
               }
-              if (!(await waitForAuthSession(3500))) {
+              if (!session && !(await waitForAuthSession(1200))) {
                 toast({
                   title: t.onboardingLoginFailed,
                   description: t.onboardingPleaseLoginToProceed,
@@ -3516,10 +3543,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 });
                 return;
               }
-              goAfterSignup();
+              await goAfterSignup(true);
             }
           } finally {
             setIsAuthLoading(false);
+            authSubmitLockRef.current = false;
           }
         };
         
@@ -4066,7 +4094,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </div>
             </motion.div>
           )}
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

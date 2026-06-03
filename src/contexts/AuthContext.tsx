@@ -42,7 +42,7 @@ interface AuthContextType {
     email: string,
     password: string,
     options?: { silent?: boolean },
-  ) => Promise<{ error: unknown }>;
+  ) => Promise<{ error: unknown; session: Session | null }>;
   signInWithGoogle: () => Promise<{ error: unknown }>;
   signInWithApple: () => Promise<{ error: unknown }>;
   linkAppleAccount: () => Promise<{ error: unknown }>;
@@ -429,10 +429,19 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     options?: { silent?: boolean },
   ) => {
     const silent = options?.silent === true;
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    if (!error && data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+      setLoading(false);
+      if (data.session.user && data.session.access_token) {
+        loadSubscriptionFast(data.session.user.id, data.session.access_token);
+      }
+    }
 
     if (error && !silent && !isEmailNotConfirmed(error)) {
       toast({
@@ -442,7 +451,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    return { error };
+    return { error, session: data.session ?? null };
   };
 
   const signInWithGoogle = async () => {

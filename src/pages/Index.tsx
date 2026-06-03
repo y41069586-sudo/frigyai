@@ -433,6 +433,11 @@ const Index = () => {
         return;
       }
 
+      // Keep active onboarding session when auth state updates mid-flow
+      if (showOnboarding && !(hasCompletedOnboarding || dbOnboardingComplete)) {
+        return;
+      }
+
       const skip = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
       setShowOnboarding(!skip);
       setOnboardingComplete(skip);
@@ -445,6 +450,7 @@ const Index = () => {
     hasCompletedOnboarding,
     onboardingResumeStep,
     location.state,
+    showOnboarding,
   ]);
   
   // Skip onboarding only if coming from subscription success
@@ -572,7 +578,7 @@ const Index = () => {
         if (!hasAccess) {
           setShowOnboarding(true);
           setOnboardingComplete(false);
-          window.history.replaceState(window.history.state, "", "/?onboardingStep=paywall");
+          setSearchParams({ onboardingStep: "paywall" }, { replace: true });
           return;
         }
 
@@ -593,7 +599,7 @@ const Index = () => {
       setOnboardingComplete(true);
 
       if (!user) {
-        window.history.replaceState(window.history.state, "", "/?onboardingStep=save-progress");
+        setSearchParams({ onboardingStep: "save-progress" }, { replace: true });
         setShowOnboarding(true);
         setOnboardingComplete(false);
       }
@@ -659,12 +665,12 @@ const Index = () => {
   }, [loading, showOnboarding, user, onboardingResumeStep, navigate, dbOnboardingComplete]);
 
   const storedTargets = readStoredTrackerTargets();
-  const targetCalories = trackerSettings?.dailyCalories || storedTargets?.dailyCalories || 2000;
-  const targetProtein = trackerSettings?.dailyProtein || storedTargets?.dailyProtein || 150;
-  const targetCarbs = trackerSettings?.dailyCarbs || storedTargets?.dailyCarbs || 200;
-  const targetFat = trackerSettings?.dailyFat || storedTargets?.dailyFat || 65;
+  const targetCalories = trackerSettings?.dailyCalories || storedTargets?.dailyCalories || 0;
+  const targetProtein = trackerSettings?.dailyProtein || storedTargets?.dailyProtein || 0;
+  const targetCarbs = trackerSettings?.dailyCarbs || storedTargets?.dailyCarbs || 0;
+  const targetFat = trackerSettings?.dailyFat || storedTargets?.dailyFat || 0;
   const targetsReady =
-    !trackerLoading && (trackerSettings?.dailyCalories ?? storedTargets?.dailyCalories ?? 0) > 0;
+    (trackerSettings?.dailyCalories ?? storedTargets?.dailyCalories ?? 0) > 0;
   
   
   // Wait for auth before showing anything

@@ -39,13 +39,19 @@ export async function resolvePremiumAccessAfterSignIn(options: {
   userId?: string | null;
   checkSubscription: () => Promise<SubscriptionStatusLike | null>;
   skipReferralCheck?: boolean;
+  /** Caller already has a session (e.g. right after sign-in) — skip long session polling. */
+  sessionReady?: boolean;
 }): Promise<boolean> {
   if (!options.skipReferralCheck && consumeReferralSkipPaywall()) {
     return true;
   }
 
-  if (!(await waitForAuthSession(4500))) {
-    return false;
+  const existingSession = (await supabase.auth.getSession()).data.session;
+  if (!existingSession) {
+    const waitMs = options.sessionReady ? 1200 : 4500;
+    if (!(await waitForAuthSession(waitMs))) {
+      return false;
+    }
   }
 
   let userId = options.userId ?? undefined;
@@ -61,7 +67,7 @@ export async function resolvePremiumAccessAfterSignIn(options: {
     }
   }
 
-  const retryDelaysMs = [0, 300, 500, 800, 1100, 1500];
+  const retryDelaysMs = options.sessionReady ? [0, 200, 400] : [0, 300, 500, 800, 1100, 1500];
   for (const delayMs of retryDelaysMs) {
     if (delayMs > 0) {
       await new Promise((resolve) => window.setTimeout(resolve, delayMs));

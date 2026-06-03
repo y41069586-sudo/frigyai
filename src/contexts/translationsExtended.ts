@@ -282,6 +282,7 @@ export interface ExtendedTranslations {
   onboardingBirthdateTitle: string;
   onboardingBirthdateFormat: string;
   onboardingBirthdateError: string;
+  onboardingBirthdateTooYoung: string;
   onboardingUnitMetric: string;
   onboardingUnitImperial: string;
   onboardingHeightHelperMetric: string;
@@ -768,6 +769,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingBirthdateTitle: "Wann bist du geboren?",
     onboardingBirthdateFormat: "Format: TT.MM.JJJJ",
     onboardingBirthdateError: "Bitte gib ein gültiges Geburtsdatum ein.",
+    onboardingBirthdateTooYoung: "Du bist leider noch zu jung.",
     onboardingUnitMetric: "Metrisch",
     onboardingUnitImperial: "Imperial",
     onboardingHeightHelperMetric: "Zum Beispiel 170",
@@ -1266,6 +1268,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingBirthdateTitle: "When were you born?",
     onboardingBirthdateFormat: "Format: DD.MM.YYYY",
     onboardingBirthdateError: "Enter a valid birth date.",
+    onboardingBirthdateTooYoung: "You're too young.",
     onboardingUnitMetric: "Metric",
     onboardingUnitImperial: "Imperial",
     onboardingHeightHelperMetric: "For example 170",
@@ -1767,6 +1770,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingBirthdateTitle: "Quand es-tu né(e) ?",
     onboardingBirthdateFormat: "Format : JJ.MM.AAAA",
     onboardingBirthdateError: "Entre une date de naissance valide.",
+    onboardingBirthdateTooYoung: "Tu es trop jeune.",
     onboardingUnitMetric: "Métrique",
     onboardingUnitImperial: "Imperial",
     onboardingHeightHelperMetric: "Par exemple 170",

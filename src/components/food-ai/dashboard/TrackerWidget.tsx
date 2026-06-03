@@ -57,20 +57,26 @@ export function TrackerWidget({
   ];
   const roundedTargetCalories = Math.round(targetCalories);
   const roundedCaloriesEaten = Math.round(caloriesEaten);
-  const rawCalorieDelta = roundedTargetCalories - roundedCaloriesEaten;
-  const caloriesOver = rawCalorieDelta < -1 ? Math.abs(rawCalorieDelta) : 0;
-  const caloriesRemaining = rawCalorieDelta > 1 ? rawCalorieDelta : 0;
+  const rawCalorieDelta = targetsReady ? roundedTargetCalories - roundedCaloriesEaten : 0;
+  const caloriesOver = targetsReady && rawCalorieDelta < -1 ? Math.abs(rawCalorieDelta) : 0;
+  const caloriesRemaining = targetsReady && rawCalorieDelta > 1 ? rawCalorieDelta : 0;
   const isOverGoal = targetsReady && caloriesOver > 0;
   const calPct =
     targetsReady && targetCalories > 0
       ? Math.min(100, (caloriesEaten / targetCalories) * 100)
       : 0;
-  const proteinText = `${Math.round(proteinEaten)} / ${Math.round(targetProtein)}g`;
-  const carbsText = `${Math.round(carbsEaten)} / ${Math.round(targetCarbs)}g`;
-  const fatText = `${Math.round(fatEaten)} / ${Math.round(targetFat)}g`;
-  const proteinPct = targetProtein > 0 ? Math.min(100, (proteinEaten / targetProtein) * 100) : 0;
-  const carbsPct = targetCarbs > 0 ? Math.min(100, (carbsEaten / targetCarbs) * 100) : 0;
-  const fatPct = targetFat > 0 ? Math.min(100, (fatEaten / targetFat) * 100) : 0;
+  const proteinText = targetsReady
+    ? `${Math.round(proteinEaten)} / ${Math.round(targetProtein)}g`
+    : `${Math.round(proteinEaten)} g`;
+  const carbsText = targetsReady
+    ? `${Math.round(carbsEaten)} / ${Math.round(targetCarbs)}g`
+    : `${Math.round(carbsEaten)} g`;
+  const fatText = targetsReady
+    ? `${Math.round(fatEaten)} / ${Math.round(targetFat)}g`
+    : `${Math.round(fatEaten)} g`;
+  const proteinPct = targetsReady && targetProtein > 0 ? Math.min(100, (proteinEaten / targetProtein) * 100) : 0;
+  const carbsPct = targetsReady && targetCarbs > 0 ? Math.min(100, (carbsEaten / targetCarbs) * 100) : 0;
+  const fatPct = targetsReady && targetFat > 0 ? Math.min(100, (fatEaten / targetFat) * 100) : 0;
   const openTrackerTap = useScrollFriendlyTap(() => onOpenTracker?.());
 
   return (
@@ -92,10 +98,19 @@ export function TrackerWidget({
                 isOverGoal ? "text-rose-600" : "text-foreground",
               )}
             >
-              {(isOverGoal ? caloriesOver : caloriesRemaining).toLocaleString(locale)} kcal
+              {targetsReady
+                ? `${(isOverGoal ? caloriesOver : caloriesRemaining).toLocaleString(locale)} kcal`
+                : `${roundedCaloriesEaten.toLocaleString(locale)} kcal`}
             </button>
             <p className={cn("text-[13px] font-medium", isOverGoal ? "text-rose-500" : "text-muted-foreground")}>
-              {isOverGoal ? t.dashboardTrackerOverGoal : t.dashboardTrackerRemaining} {t.shoppingListOfCount} {roundedTargetCalories.toLocaleString(locale)} kcal
+              {targetsReady ? (
+                <>
+                  {isOverGoal ? t.dashboardTrackerOverGoal : t.dashboardTrackerRemaining}{" "}
+                  {t.shoppingListOfCount} {roundedTargetCalories.toLocaleString(locale)} kcal
+                </>
+              ) : (
+                t.eaten
+              )}
             </p>
           </div>
 

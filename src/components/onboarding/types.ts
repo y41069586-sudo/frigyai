@@ -166,6 +166,7 @@ export const onboardingSteps: OnboardingStep[] = [
   "dietary-preferences",
   "allergies",
   "weekly-plan-preview",
+  "scan-fridge",
   "shopping-list",
   "notification-prefs",
   "data-consent",

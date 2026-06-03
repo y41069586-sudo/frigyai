@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Camera, ChevronLeft } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
@@ -12,23 +12,14 @@ type Props = {
   setUserData: Dispatch<SetStateAction<UserData>>;
   onBack?: () => void;
   onNext?: () => void;
-  /** Öffnet die Zutaten-Live-Kamera (/scan) */
-  onStartScan?: () => void;
 };
 
 const PALETTE = {
   primary: "#75FBB2",
   primaryDark: "#39D47F",
-  primaryDeep: "#2EB56D",
   bg: "#FBFFFD",
-  accent: "#DCFEEF",
-  border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
-  fridgeBody: "#FBFEFC",
-  fridgeBorder: "#D8E8E0",
-  shelfLine: "#E2EFE7",
-  innerBg: "#F4FBF7",
 };
 
 type Lng = "de" | "en" | "fr";
@@ -42,7 +33,6 @@ function CameraIcon() {
       className="relative flex items-center justify-center"
       style={{ width: 200, height: 200 }}
     >
-      {/* Soft floor glow */}
       <div
         className="pointer-events-none absolute"
         style={{
@@ -58,7 +48,6 @@ function CameraIcon() {
         }}
       />
 
-      {/* Soft pulsing halo */}
       <motion.div
         className="pointer-events-none absolute rounded-full"
         style={{
@@ -71,7 +60,6 @@ function CameraIcon() {
         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Camera icon container */}
       <motion.div
         animate={{ y: [0, -4, 0] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
@@ -79,8 +67,7 @@ function CameraIcon() {
         style={{
           width: 140,
           height: 140,
-          background:
-            "linear-gradient(135deg, #FBFFFD 0%, #75FBB2 100%)",
+          background: "linear-gradient(135deg, #FBFFFD 0%, #75FBB2 100%)",
           color: "#fff",
           boxShadow:
             "0 24px 50px -16px rgba(74, 232, 150,0.55), 0 6px 14px -4px rgba(74, 232, 150,0.30), inset 0 1px 2px rgba(255,255,255,0.6)",
@@ -95,57 +82,49 @@ function CameraIcon() {
 export function FridgeScanStep({
   onBack,
   onNext,
-  onStartScan,
 }: Props) {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const lng: Lng = (["de", "en", "fr"] as const).includes(language as never)
     ? (language as Lng)
     : "de";
 
   const L = {
     de: {
-      titleBefore: "Scanne deinen ",
-      titleHighlight: "Kühlschrank",
+      titleBefore: "Erkenne deine ",
+      titleHighlight: "Zutaten",
       subtitle:
-        "Entdecke sofort, welche Zutaten du bereits hast und was dir für deinen Plan noch fehlt.",
-      cta: "Kamera öffnen",
-      skip: "Später scannen",
+        "Scanne später deinen Kühlschrank — Frigy erkennt, was du hast und was für deinen Plan noch fehlt.",
       back: "Zurück",
     },
     en: {
-      titleBefore: "Scan your ",
-      titleHighlight: "fridge",
+      titleBefore: "Detect your ",
+      titleHighlight: "ingredients",
       subtitle:
-        "Instantly see which ingredients you already have and what's missing for your plan.",
-      cta: "Open camera",
-      skip: "Scan later",
+        "Scan your fridge later — Frigy detects what you have and what's still missing for your plan.",
       back: "Back",
     },
     fr: {
-      titleBefore: "Scanne ton ",
-      titleHighlight: "frigo",
+      titleBefore: "Reconnais tes ",
+      titleHighlight: "ingrédients",
       subtitle:
-        "Découvre tout de suite ce que tu as déjà et ce qu'il te manque pour ton plan.",
-      cta: "Ouvrir la camera",
-      skip: "Scanner plus tard",
+        "Scanne ton frigo plus tard — Frigy détecte ce que tu as et ce qu'il te manque pour ton plan.",
       back: "Retour",
     },
   } as const;
-  const t = L[lng];
+  const copy = L[lng];
 
   return (
     <div
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
-      {/* Top bar */}
       <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label={t.back}
+            aria-label={copy.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
               backgroundColor: "#FBFFFD",
@@ -158,15 +137,15 @@ export function FridgeScanStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-</div>
+      </div>
 
       <OnboardingMascotQuestion>
         <h1
           className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.titleBefore}
-          <MintTextHighlight>{t.titleHighlight}</MintTextHighlight>
+          {copy.titleBefore}
+          <MintTextHighlight>{copy.titleHighlight}</MintTextHighlight>
         </h1>
       </OnboardingMascotQuestion>
 
@@ -177,27 +156,13 @@ export function FridgeScanStep({
         className="mt-1 px-5 text-[15px] leading-relaxed"
         style={{ color: PALETTE.subtext }}
       >
-        {t.subtitle}
+        {copy.subtitle}
       </motion.p>
 
-      {/* Hero: camera icon — tap opens live scan */}
       <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
-        {onStartScan ? (
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.97 }}
-            onClick={onStartScan}
-            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#75FBB2]/60"
-            aria-label={t.cta}
-          >
-            <CameraIcon />
-          </motion.button>
-        ) : (
-          <CameraIcon />
-        )}
+        <CameraIcon />
       </div>
 
-      {/* Continue */}
       <div
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
@@ -206,7 +171,7 @@ export function FridgeScanStep({
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
-          onClick={onStartScan ?? onNext}
+          onClick={onNext}
           className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
@@ -214,20 +179,9 @@ export function FridgeScanStep({
               "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
-          <Camera className="size-5" strokeWidth={2.2} />
-          {t.cta}
+          {t.next}
+          <ChevronRight className="size-5" strokeWidth={2.5} />
         </motion.button>
-        {onStartScan && onNext ? (
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={onNext}
-            className="mt-3 flex h-11 w-full items-center justify-center rounded-[14px] text-[14px] font-medium transition-colors"
-            style={{ color: PALETTE.subtext }}
-          >
-            {t.skip}
-          </motion.button>
-        ) : null}
       </div>
     </div>
   );

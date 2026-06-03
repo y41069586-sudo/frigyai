@@ -20,7 +20,7 @@ const PALETTE = {
 const daysInMonth = (month: number, year: number) =>
   new Date(year, month, 0).getDate();
 
-const MIN_AGE = 13;
+const YOUNGEST_BIRTH_YEAR = 2017;
 const MAX_AGE = 100;
 
 const formatBirthdateValue = (birthdate: { day: number; month: number; year: number }) =>
@@ -51,9 +51,15 @@ const calculateAgeFromBirthdate = (day: number, month: number, year: number) => 
   return age;
 };
 
-const parseBirthdateInput = (value: string) => {
+type BirthdateParseResult =
+  | { status: "invalid" }
+  | { status: "too_young" }
+  | { status: "valid"; day: number; month: number; year: number; age: number };
+
+const parseBirthdateInput = (value: string): BirthdateParseResult | null => {
+  if (!value) return null;
   if (!/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
-    return null;
+    return { status: "invalid" };
   }
 
   const [dayString, monthString, yearString] = value.split(".");
@@ -62,32 +68,35 @@ const parseBirthdateInput = (value: string) => {
   const year = Number(yearString);
 
   if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) {
-    return null;
+    return { status: "invalid" };
+  }
+
+  if (year > YOUNGEST_BIRTH_YEAR) {
+    return { status: "too_young" };
   }
 
   const today = new Date();
-  const maxYear = today.getFullYear() - MIN_AGE;
   const minYear = today.getFullYear() - MAX_AGE;
 
-  if (year < minYear || year > maxYear) {
-    return null;
+  if (year < minYear) {
+    return { status: "invalid" };
   }
 
   if (month < 1 || month > 12) {
-    return null;
+    return { status: "invalid" };
   }
 
   const maxDay = daysInMonth(month, year);
   if (day < 1 || day > maxDay) {
-    return null;
+    return { status: "invalid" };
   }
 
   const age = calculateAgeFromBirthdate(day, month, year);
-  if (age < MIN_AGE || age > MAX_AGE) {
-    return null;
+  if (age > MAX_AGE) {
+    return { status: "invalid" };
   }
 
-  return { day, month, year, age };
+  return { status: "valid", day, month, year, age };
 };
 
 type Props = {
@@ -120,16 +129,31 @@ export function BirthdateSelectStep({
   const placeholder = "16.05.2002";
   const helperText = t.onboardingBirthdateFormat;
   const errorText = t.onboardingBirthdateError;
+  const tooYoungText = t.onboardingBirthdateTooYoung;
 
   const parsedBirthdate = parseBirthdateInput(birthdateInput);
-  const canProceed = Boolean(parsedBirthdate);
+  const canProceed = parsedBirthdate?.status === "valid";
+  const showTooYoung = parsedBirthdate?.status === "too_young";
+  const showInvalid =
+    birthdateInput.length > 0 &&
+    parsedBirthdate !== null &&
+    parsedBirthdate.status === "invalid";
 
   const handleBirthdateChange = (raw: string) => {
     const nextValue = sanitizeBirthdateInput(raw);
     setBirthdateInput(nextValue);
 
     const parsed = parseBirthdateInput(nextValue);
-    if (!parsed) return;
+    if (!parsed || parsed.status !== "valid") {
+      if (userData.birthdateConfirmed) {
+        setUserData({
+          ...userData,
+          birthdate: null,
+          birthdateConfirmed: false,
+        });
+      }
+      return;
+    }
 
     setUserData({
       ...userData,
@@ -200,9 +224,15 @@ export function BirthdateSelectStep({
 
           <p
             className="mt-3 text-center text-[12px] font-medium"
-            style={{ color: birthdateInput.length > 0 && !canProceed ? "#DC2626" : PALETTE.textMuted }}
+            style={{
+              color: showTooYoung || showInvalid ? "#DC2626" : PALETTE.textMuted,
+            }}
           >
-            {birthdateInput.length > 0 && !canProceed ? errorText : helperText}
+            {showTooYoung
+              ? tooYoungText
+              : showInvalid
+                ? errorText
+                : helperText}
           </p>
         </div>
       </div>
