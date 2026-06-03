@@ -45,7 +45,13 @@ workflows:
         script: |
           set -e
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
-          sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" android/app/build.gradle
+          GRADLE_FILE="android/app/build.gradle"
+          # macOS (BSD sed) needs -i ''; GNU sed (Linux) uses -i alone
+          if [ "$(uname -s)" = "Darwin" ]; then
+            sed -i '' "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" "$GRADLE_FILE"
+          else
+            sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" "$GRADLE_FILE"
+          fi
           echo "Android versionCode=${BUILD_NUM}"
 
       - name: Build AAB + APK (release)
