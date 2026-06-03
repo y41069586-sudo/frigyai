@@ -1,4 +1,42 @@
+import { MEAL_PLAN_BUILD_DEADLINE_MS } from "./constants.ts";
+import { buildPlan } from "./buildPlan.ts";
+import { generateFallbackDraft } from "./drafts.ts";
+import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
+import { finishPlan } from "./meals.ts";
 import { parsePriorMealsFromBody } from "./variety.ts";
+import type { BuildPlanResult, PlanInput } from "./types.ts";
+
+function templateBuildResult(input: PlanInput): BuildPlanResult {
+  const banned = new Set(input.banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
+  let plan = generateFallbackDraft(input, banned);
+  plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ??
+    guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+  plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
+  return { plan, usedAi: false, repairAttempts: 0 };
+}
+
+/** Ensures a response before Supabase Edge ~60s wall-clock. */
+async function buildPlanWithinDeadline(input: PlanInput): Promise<BuildPlanResult> {
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      buildPlan(input).then((r) => {
+        settled = true;
+        return r;
+      }),
+      new Promise<BuildPlanResult>((resolve) => {
+        timer = setTimeout(() => {
+          if (settled) return;
+          console.warn(`[MEAL-PLAN] ${MEAL_PLAN_BUILD_DEADLINE_MS}ms deadline — template fallback`);
+          resolve(templateBuildResult(input));
+        }, MEAL_PLAN_BUILD_DEADLINE_MS);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -94,7 +132,7 @@ Deno.serve(async (req) => {
     let repairAttempts = 0;
 
     try {
-      const built = await buildPlan(planInput);
+      const built = await buildPlanWithinDeadline(planInput);
       plan = built.plan;
       usedAi = built.usedAi;
       repairAttempts = built.repairAttempts;

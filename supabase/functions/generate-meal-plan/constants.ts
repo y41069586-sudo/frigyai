@@ -64,8 +64,9 @@ export function getOpenAIMealPlanModel(): string {
 }
 
 /** Max output tokens — lower keeps responses fast enough for Edge Function limits. */
-export const OPENAI_PLAN_MAX_TOKENS = 8192;
+export const OPENAI_PLAN_MAX_TOKENS = 5000;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
-/** Abort OpenAI fetch before Supabase Edge wall-clock timeout; triggers template fallback. */
-/** Stay under Supabase Edge wall-clock (~60s) including build/repair after OpenAI. */
-export const OPENAI_FETCH_TIMEOUT_MS = 42_000;
+/** Abort OpenAI fetch before Supabase Edge wall-clock (~60s); leaves room for repair/sync. */
+export const OPENAI_FETCH_TIMEOUT_MS = 30_000;
+/** Hard cap for buildPlan + premium check (ms). */
+export const MEAL_PLAN_BUILD_DEADLINE_MS = 48_000;

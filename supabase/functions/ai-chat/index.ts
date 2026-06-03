@@ -355,7 +355,7 @@ Nutze die verfügbaren Tools um echte Aktionen auszuführen wenn der Nutzer daru
     let response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
+      body: JSON.stringify({ model: 'gpt-4o', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
     });
 
     if (!response.ok) {
@@ -377,7 +377,7 @@ Nutze die verfügbaren Tools um echte Aktionen auszuführen wenn der Nutzer daru
       response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
+        body: JSON.stringify({ model: 'gpt-4o', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
       });
 
       if (!response.ok) throw new Error(`AI error: ${response.status}`);

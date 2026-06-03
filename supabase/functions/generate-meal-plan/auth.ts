@@ -111,11 +111,15 @@ export async function isPremium(
   }
 
   try {
+    const checkCtrl = new AbortController();
+    const checkTimer = setTimeout(() => checkCtrl.abort(), 4000);
     const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/check-subscription`, {
       method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
       body: "{}",
+      signal: checkCtrl.signal,
     });
+    clearTimeout(checkTimer);
     const text = await r.text();
     let parsed: SubscriptionCacheRow & { error?: string } = {};
     try {

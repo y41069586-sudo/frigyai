@@ -14,7 +14,7 @@ export const defaultBuildPlanDeps: BuildPlanDeps = {
   generateAIDraft,
 };
 
-const MAX_REPAIR_ROUNDS = 2;
+const MAX_REPAIR_ROUNDS = 1;
 
 function alignPlanIngredientsToTitles(
   plan: MealPlan,
@@ -98,13 +98,6 @@ export async function buildPlan(
     lang: input.lang,
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
-  });
-  plan = sanitizePlaceholderMeals(plan, {
-    mealsPerDay: input.mealsPerDay,
-    lang: input.lang,
-    prefs: input.prefs,
-    safetyCtx: input.safetyCtx,
-    varietySeed: `${input.varietySeed ?? ""}-post-distinct`,
   });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);

@@ -1,9 +1,8 @@
 # Codemagic — iOS Build (Frigy)
 
-Der **Android-Workflow wurde entfernt**. In Codemagic startest du nur noch:
-
 | Workflow | Zweck |
 |----------|--------|
+| **Android Build** | Play Store (`.aab`) |
 | **iOS Build** | App Store / TestFlight (`.ipa`) |
 | **iOS Build (Ad Hoc)** | Direkt auf registrierte Test-iPhones (optional) |
 
@@ -138,6 +137,14 @@ Diese Werte werden bei **`npm run build`** in die Web-Assets eingebaut. Supabase
 2. Workflow: **iOS Build**
 3. Warten (~15–25 Min. auf Mac-Runner)
 4. **Artifacts** → `.ipa` herunterladen
+
+### Android (AAB)
+
+1. Workflow **Android Build** starten
+2. **Artifacts** → `app-release.aab` herunterladen → [Google Play Console](https://play.google.com/console)
+3. **Signing:** In Codemagic Team → Code signing → Android Keystore (`CM_KEYSTORE_PATH`, `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS`, `CM_KEY_PASSWORD`) — sonst Debug-Signatur (nur intern testen)
+
+Optional: `VITE_REVENUECAT_API_KEY_ANDROID=goog_…` in Group `frigy`.
 
 ### TestFlight
 

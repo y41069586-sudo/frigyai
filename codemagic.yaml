@@ -1,6 +1,69 @@
-# Frigy — iOS Build (Capacitor). Setup: docs/CODEMAGIC.md + codemagic.env.example
+# Frigy — iOS + Android (Capacitor). Setup: docs/CODEMAGIC.md + codemagic.env.example
 
 workflows:
+  android-build:
+    name: Android Build
+
+    max_build_duration: 90
+    instance_type: linux_x2
+
+    environment:
+      node: 22
+      groups:
+        - frigy
+      vars:
+        NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+        PACKAGE_NAME: com.frigyapp.app
+        VITE_REVENUECAT_ENTITLEMENT_ID: premium
+        VITE_APPLE_BUNDLE_ID: com.frigyapp.app
+        VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
+        VITE_APP_WEB_HOST: app.frigy.app
+
+    scripts:
+      - name: Verify build environment
+        script: bash scripts/codemagic-verify-env.sh
+
+      - name: Install dependencies
+        script: |
+          set -e
+          npm ci --legacy-peer-deps
+
+      - name: Build web app (Vite → dist/)
+        script: |
+          set -e
+          npm run build
+          test -d dist || (echo "ERROR: dist/ missing after vite build" && exit 1)
+
+      - name: Sync Capacitor Android
+        script: |
+          set -e
+          npx cap sync android
+          test -d android/app/src/main/assets/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
+
+      - name: Set Android version code
+        script: |
+          set -e
+          BUILD_NUM="${CM_BUILD_NUMBER:-1}"
+          sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" android/app/build.gradle
+          echo "Android versionCode=${BUILD_NUM}"
+
+      - name: Build AAB (release)
+        script: |
+          set -e
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+          test -f app/build/outputs/bundle/release/app-release.aab || (echo "ERROR: AAB not found" && exit 1)
+
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/apk/release/*.apk
+
+    publishing:
+      scripts:
+        - name: Build info
+          script: echo "AAB ready — download from Artifacts."
+
   ios-build:
     name: iOS Build
 

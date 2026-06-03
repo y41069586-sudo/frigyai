@@ -65,9 +65,15 @@ else
 fi
 
 if [ -z "${VITE_REVENUECAT_API_KEY_IOS:-}" ]; then
-  echo "WARNING: VITE_REVENUECAT_API_KEY_IOS not set — IAP will not work in this build."
+  echo "WARNING: VITE_REVENUECAT_API_KEY_IOS not set — iOS IAP will not work in this build."
 else
   echo "VITE_REVENUECAT_API_KEY_IOS present."
+fi
+
+if [ -z "${VITE_REVENUECAT_API_KEY_ANDROID:-}" ]; then
+  echo "WARNING: VITE_REVENUECAT_API_KEY_ANDROID not set — Android IAP will not work in this build."
+else
+  echo "VITE_REVENUECAT_API_KEY_ANDROID present."
 fi
 
 echo "Codemagic env OK (Supabase + signing prerequisites)."
