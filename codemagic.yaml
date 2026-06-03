@@ -9,7 +9,7 @@ workflows:
 
     environment:
       xcode: latest
-      node: 20
+      node: 22
       # Secrets live in Codemagic variable group "frigy" (name must match UI exactly).
       # Alternative: leave Group empty on each variable and remove the groups: block below.
       groups:
@@ -97,7 +97,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       xcode: latest
-      node: 20
+      node: 22
       groups:
         - frigy
       ios_signing:

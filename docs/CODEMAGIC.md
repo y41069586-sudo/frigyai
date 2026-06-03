@@ -181,7 +181,7 @@ Dann committen und in Codemagic neu bauen.
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
 | No signing certificate | API-Key + App in ASC mit `com.frigyapp.app` |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
-| `cap sync ios` failed | `npm run build` lokal fixen; Node 20 |
+| `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
 | Leere App / kein Login | `VITE_SUPABASE_*` in Codemagic setzen |
 | RevenueCat / IAP fehlt | `VITE_REVENUECAT_API_KEY_IOS` setzen |
 | Scheme not found | Scheme **App** unter `ios/App/App.xcodeproj` |
