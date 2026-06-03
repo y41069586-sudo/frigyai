@@ -51,9 +51,17 @@ Beim Anlegen: **Group-Feld leer lassen** (Application variables). Dann `groups:`
 
 Issuer ID: [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API** → oben **Issuer ID**.
 
-Beim Build werden Zertifikat + Profil automatisch geholt (`Fetch code signing files`).
+### Code Signing in Codemagic (Pflicht vor dem ersten erfolgreichen IPA-Build)
 
-**Generate certificate** in der UI brauchst du dann **nicht** — der Build-Schritt `Fetch code signing files` reicht.
+Der Fehler **`Cannot save Signing Certificates without certificate private key`** kommt von `fetch-signing-files --create` ohne **`CERTIFICATE_PRIVATE_KEY`**. Der Workflow nutzt stattdessen **`ios_signing`** (Zertifikat + Profil aus der Codemagic-UI).
+
+**Einmalig in Codemagic (Team settings → Code signing identities):**
+
+1. **iOS certificates** → **Generate certificate** → Typ **Apple Distribution** → deinen App-Store-Connect-API-Key wählen → Reference name z. B. `frigy_distribution`
+2. **`.p12` sofort downloaden** und unter **Upload certificate** mit dem angezeigten Passwort **hochladen** (Codemagic braucht die Datei inkl. Private Key)
+3. **iOS provisioning profiles** → **Fetch profiles** → **App Store** → `com.frigyapp.app` → Reference name z. B. `frigy_appstore` → **Download selected**
+
+Dann neu bauen. `codemagic.yaml` holt passende Dateien über `ios_signing` (`distribution_type: app_store`).
 
 ### Schritt 1 — App Store Connect API Key (Referenz)
 
@@ -177,9 +185,10 @@ Dann committen und in Codemagic neu bauen.
 
 | Fehler | Lösung |
 |--------|--------|
-| `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` als Application variables |
+| `Cannot save Signing Certificates without certificate private key` | Distribution-Zertifikat in Team → Code signing identities **generieren + .p12 hochladen** (siehe oben); nicht nur API-`.p8` |
+| `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` in Group `frigy` |
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
-| No signing certificate | API-Key + App in ASC mit `com.frigyapp.app` |
+| No signing certificate | Zertifikat + App-Store-Profil in Code signing identities; App in ASC mit `com.frigyapp.app` |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
 | Leere App / kein Login | `VITE_SUPABASE_*` in Codemagic setzen |

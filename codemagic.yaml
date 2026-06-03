@@ -14,6 +14,10 @@ workflows:
       # Alternative: leave Group empty on each variable and remove the groups: block below.
       groups:
         - frigy
+      # Upload or generate Distribution cert + App Store profile in Team → Code signing identities first.
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.frigyapp.app
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
@@ -49,16 +53,6 @@ workflows:
           if ! grep -q "RevenuecatPurchasesCapacitor\|purchases-capacitor" ios/App/CapApp-SPM/Package.swift; then
             echo "WARNING: RevenueCat not in CapApp-SPM — IAP may fail on device."
           fi
-
-      - name: Fetch code signing files from Apple
-        script: |
-          set -e
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-
-      - name: Add certificates to keychain
-        script: |
-          set -e
-          keychain add-certificates
 
       - name: Set up code signing
         script: |
