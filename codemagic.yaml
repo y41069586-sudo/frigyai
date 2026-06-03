@@ -47,13 +47,14 @@ workflows:
           sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" android/app/build.gradle
           echo "Android versionCode=${BUILD_NUM}"
 
-      - name: Build AAB (release)
+      - name: Build AAB + APK (release)
         script: |
           set -e
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon
+          ./gradlew bundleRelease assembleRelease --no-daemon
           test -f app/build/outputs/bundle/release/app-release.aab || (echo "ERROR: AAB not found" && exit 1)
+          test -f app/build/outputs/apk/release/app-release.apk || (echo "ERROR: APK not found" && exit 1)
 
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab

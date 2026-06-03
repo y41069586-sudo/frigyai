@@ -235,10 +235,6 @@ export function getOpenAIMealPlanModel(): string {
 /** Max output tokens — lower keeps responses fast enough for Edge Function limits. */
 export const OPENAI_PLAN_MAX_TOKENS = 5000;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
-/** Abort OpenAI fetch before Supabase Edge wall-clock (~60s); leaves room for repair/sync. */
-export const OPENAI_FETCH_TIMEOUT_MS = 30_000;
-/** Hard cap for buildPlan + premium check (ms). */
-export const MEAL_PLAN_BUILD_DEADLINE_MS = 48_000;
 
 // ----- http.ts -----
 export const corsHeaders = {
@@ -1896,37 +1892,23 @@ async function callOpenAIOnce(params: {
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), OPENAI_FETCH_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: getOpenAIMealPlanModel(),
-        temperature: regen ? 0.5 : 0.28,
-        max_tokens: OPENAI_PLAN_MAX_TOKENS,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
-          },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new Error("OpenAI timeout — using template fallback");
-    }
-    throw e;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: getOpenAIMealPlanModel(),
+      temperature: regen ? 0.5 : 0.28,
+      max_tokens: OPENAI_PLAN_MAX_TOKENS,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
+        },
+        { role: "user", content: user },
+      ],
+    }),
+  });
 
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
@@ -2171,15 +2153,11 @@ export async function isPremium(
   }
 
   try {
-    const checkCtrl = new AbortController();
-    const checkTimer = setTimeout(() => checkCtrl.abort(), 4000);
     const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/check-subscription`, {
       method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
       body: "{}",
-      signal: checkCtrl.signal,
     });
-    clearTimeout(checkTimer);
     const text = await r.text();
     let parsed: SubscriptionCacheRow & { error?: string } = {};
     try {
@@ -3186,38 +3164,6 @@ export function sanitizePlaceholderMeals(
 }
 
 // ===== HTTP handler =====
-function templateBuildResult(input: PlanInput): BuildPlanResult {
-  const banned = new Set(input.banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
-  let plan = generateFallbackDraft(input, banned);
-  plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ??
-    guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
-  plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
-  return { plan, usedAi: false, repairAttempts: 0 };
-}
-
-/** Ensures a response before Supabase Edge ~60s wall-clock. */
-async function buildPlanWithinDeadline(input: PlanInput): Promise<BuildPlanResult> {
-  let settled = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      buildPlan(input).then((r) => {
-        settled = true;
-        return r;
-      }),
-      new Promise<BuildPlanResult>((resolve) => {
-        timer = setTimeout(() => {
-          if (settled) return;
-          console.warn(`[MEAL-PLAN] ${MEAL_PLAN_BUILD_DEADLINE_MS}ms deadline — template fallback`);
-          resolve(templateBuildResult(input));
-        }, MEAL_PLAN_BUILD_DEADLINE_MS);
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -3312,7 +3258,7 @@ Deno.serve(async (req) => {
     let repairAttempts = 0;
 
     try {
-      const built = await buildPlanWithinDeadline(planInput);
+      const built = await buildPlan(planInput);
       plan = built.plan;
       usedAi = built.usedAi;
       repairAttempts = built.repairAttempts;

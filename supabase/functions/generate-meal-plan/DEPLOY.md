@@ -13,7 +13,7 @@ deno run --allow-read --allow-write scripts/inline-index.ts
 
 Then copy **`index.ts`** into the Supabase Dashboard editor and deploy.
 
-**Wochenplan-Fix (Timeouts):** Nach Änderungen an `constants.ts` / `buildPlan.ts` / `index.handler.ts` immer `inline-index` ausführen und neu deployen — sonst läuft auf Supabase noch alter Code.
+Nach Änderungen an Modulen immer `inline-index` ausführen und neu deployen — sonst läuft auf Supabase noch alter Code.
 
 ## Source layout
 

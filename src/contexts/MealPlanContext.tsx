@@ -144,8 +144,6 @@ function summarizeExistingMeals(plan: DayPlan[] | null): Array<{
     .slice(0, 56);
 }
 
-const MEAL_PLAN_INVOKE_TIMEOUT_MS = 120_000;
-
 function getPassiveGenerationProgress(elapsedSeconds: number, stage: GenerationStage): number {
   switch (stage) {
     case 'preparing':
@@ -578,37 +576,31 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const previousMealNames = previousMealsForRegen.map((m) => m.name);
 
         setGenerationStageWithFloor('requesting', 14);
-        const invokePromise = Promise.race([
-          supabase.functions.invoke('generate-meal-plan', {
-            headers: session?.access_token
-              ? { Authorization: `Bearer ${session.access_token}` }
-              : undefined,
-            body: {
-              preferences: '',
-              dailyCalories: macroTargets.dailyCalories,
-              dailyProtein: macroTargets.dailyProtein,
-              dailyCarbs: macroTargets.dailyCarbs,
-              dailyFat: macroTargets.dailyFat,
-              mealsPerDay: settings.mealsPerDay || 5,
-              allergies: diet.allergies,
-              allergiesOther: diet.allergiesOther,
-              dietaryPreferences: diet.dietaryPreferences,
-              healthGoals: diet.healthGoals,
-              constraintPrompt,
-              fridgeIngredients: options?.fridgeIngredients ?? [],
-              language: getStoredLanguage(),
-              isRegeneration,
-              varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              previousMealNames,
-              previousMeals: previousMealsForRegen,
-            },
-          }),
-          new Promise<never>((_, reject) => {
-            window.setTimeout(() => reject(new Error('meal_plan_timeout')), MEAL_PLAN_INVOKE_TIMEOUT_MS);
-          }),
-        ]);
         setGenerationStageWithFloor('waiting_ai', 18);
-        const { data, error } = await invokePromise;
+        const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+          body: {
+            preferences: '',
+            dailyCalories: macroTargets.dailyCalories,
+            dailyProtein: macroTargets.dailyProtein,
+            dailyCarbs: macroTargets.dailyCarbs,
+            dailyFat: macroTargets.dailyFat,
+            mealsPerDay: settings.mealsPerDay || 5,
+            allergies: diet.allergies,
+            allergiesOther: diet.allergiesOther,
+            dietaryPreferences: diet.dietaryPreferences,
+            healthGoals: diet.healthGoals,
+            constraintPrompt,
+            fridgeIngredients: options?.fridgeIngredients ?? [],
+            language: getStoredLanguage(),
+            isRegeneration,
+            varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            previousMealNames,
+            previousMeals: previousMealsForRegen,
+          },
+        });
 
         if (error) {
           console.error('[MEAL-PLAN-CLIENT] Edge Function error:', error);
@@ -829,17 +821,6 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast({
           title: ui.genericErrorTitle,
           description: getPublicErrorMessage(message, ui.genericErrorDesc),
-          variant: 'destructive',
-        });
-      } else if (message.includes('meal_plan_timeout') || message.includes('timeout')) {
-        toast({
-          title: ui.connectionErrorTitle,
-          description:
-            getStoredLanguage() === 'en'
-              ? 'Meal plan generation took too long. Please try again — a template plan may still work if the server is busy.'
-              : getStoredLanguage() === 'fr'
-                ? 'La génération a pris trop de temps. Réessaie — un plan modèle peut être utilisé si le serveur est occupé.'
-                : 'Die Wochenplan-Erstellung hat zu lange gedauert. Bitte erneut versuchen.',
           variant: 'destructive',
         });
       } else if (message.includes('calorie') || message.includes('Kalorie')) {

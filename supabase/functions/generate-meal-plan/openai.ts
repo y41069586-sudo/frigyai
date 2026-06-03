@@ -4,7 +4,6 @@ import {
   getOpenAIKey,
   getOpenAIMealPlanModel,
   LANG,
-  OPENAI_FETCH_TIMEOUT_MS,
   OPENAI_MAX_INGREDIENTS_PER_MEAL,
   OPENAI_PLAN_MAX_TOKENS,
 } from "./constants.ts";
@@ -175,37 +174,23 @@ async function callOpenAIOnce(params: {
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), OPENAI_FETCH_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: getOpenAIMealPlanModel(),
-        temperature: regen ? 0.5 : 0.28,
-        max_tokens: OPENAI_PLAN_MAX_TOKENS,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
-          },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      throw new Error("OpenAI timeout — using template fallback");
-    }
-    throw e;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: getOpenAIMealPlanModel(),
+      temperature: regen ? 0.5 : 0.28,
+      max_tokens: OPENAI_PLAN_MAX_TOKENS,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
+        },
+        { role: "user", content: user },
+      ],
+    }),
+  });
 
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
 

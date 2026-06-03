@@ -2,7 +2,7 @@
 
 | Workflow | Zweck |
 |----------|--------|
-| **Android Build** | Play Store (`.aab`) |
+| **Android Build** | Play Store (`.aab`) + Test-APK (`.apk`) |
 | **iOS Build** | App Store / TestFlight (`.ipa`) |
 | **iOS Build (Ad Hoc)** | Direkt auf registrierte Test-iPhones (optional) |
 
@@ -228,4 +228,7 @@ In Xcode: Product → Run auf Simulator oder Gerät.
 
 ## Android
 
-Android-Builds laufen **nicht mehr** über Codemagic. Play Store später separat (neuer Workflow oder lokal Gradle).
+Workflow **Android Build** in `codemagic.yaml`: Vite → `cap sync android` → Gradle `bundleRelease` + `assembleRelease`.
+
+- **Artifacts:** `app-release.aab` (Play Store), `app-release.apk` (direkt installieren / intern testen)
+- **Signing:** Codemagic Team → Code signing → Android Keystore — sonst Debug-Signatur (APK nur zum Testen)
