@@ -10,10 +10,10 @@ workflows:
     environment:
       xcode: latest
       node: 20
-      # Secrets live in a Codemagic variable group — name must match exactly (rename group in UI to "frigyai").
-      # Alternative: leave Group empty on each variable (Application vars) and remove the groups: block below.
+      # Secrets live in Codemagic variable group "frigy" (name must match UI exactly).
+      # Alternative: leave Group empty on each variable and remove the groups: block below.
       groups:
-        - frigyai
+        - frigy
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
@@ -99,7 +99,7 @@ workflows:
       xcode: latest
       node: 20
       groups:
-        - frigyai
+        - frigy
       ios_signing:
         distribution_type: ad_hoc
         bundle_identifier: com.frigyapp.app
