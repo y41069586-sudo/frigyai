@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ImagePlus, Check, Camera, RefreshCw } from "lucide-react";
+import { X, ImagePlus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useIngredientCamera } from "@/hooks/useIngredientCamera";
 import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
+import { FrigyLiveCameraCapture } from "./FrigyLiveCameraCapture";
 
 export type PendingPhoto = {
   id: string;
@@ -65,8 +65,6 @@ export function FrigyIngredientScanFlow({
   labels = {},
 }: FrigyIngredientScanFlowProps) {
   const { t } = useLanguage();
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const captureLockRef = useRef(false);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [analysisPreviewUrl, setAnalysisPreviewUrl] = useState<string | null>(null);
 
@@ -78,20 +76,6 @@ export function FrigyIngredientScanFlow({
     : captureMode || !hasResults
       ? "capture"
       : "results";
-
-  const {
-    setVideoRef,
-    status: cameraStatus,
-    previewReady,
-    errorMessage: cameraError,
-    capturePhoto,
-    retry: retryCamera,
-    isLive,
-  } = useIngredientCamera({ active: phase === "capture" });
-
-  const showCameraHint =
-    !previewReady &&
-    (cameraStatus === "error" || cameraStatus === "denied" || cameraStatus === "fallback");
 
   const L = {
     analyzingTitle: labels.analyzingTitle ?? t.ingredientScanAnalyzingTitle,
@@ -108,12 +92,6 @@ export function FrigyIngredientScanFlow({
   const ui = {
     close: t.close,
     allPresent: t.scanAllIngredientsPresent,
-    openDevApp: t.scanCameraDevHintOpen,
-    localhostJoin: t.scanCameraDevHintLocalhost,
-    orGallery: t.scanCameraDevHintOrGallery,
-    retry: t.tryAgain,
-    gallery: t.gallery,
-    capture: t.scanCapturePhoto,
     captureSr: t.scanCaptureSr,
   };
 
@@ -167,13 +145,6 @@ export function FrigyIngredientScanFlow({
     onConfirmAnalyze(files);
   };
 
-  const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (!files.length || analyzing) return;
-    addFiles(files);
-  };
-
   const removePhoto = (id: string) => {
     setPendingPhotos((prev) => {
       const item = prev.find((p) => p.id === id);
@@ -192,27 +163,8 @@ export function FrigyIngredientScanFlow({
     syncQueue([]);
   };
 
-  const handleShutterPress = async () => {
-    if (captureLockRef.current || analyzing || cameraStatus === "starting") return;
-
-    captureLockRef.current = true;
-    try {
-      if (!isLive) return;
-
-      const file = await capturePhoto();
-      if (!file) return;
-
-      addFiles([file]);
-    } finally {
-      captureLockRef.current = false;
-    }
-  };
-
   const handleConfirm = () => {
-    if (pendingPhotos.length === 0) {
-      void handleShutterPress();
-      return;
-    }
+    if (pendingPhotos.length === 0) return;
     beginAnalyze(pendingPhotos);
   };
 
@@ -330,128 +282,56 @@ export function FrigyIngredientScanFlow({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white safe-area-inset">
-      <style>{`
-        .frigy-scan-video::-webkit-media-controls,
-        .frigy-scan-video::-webkit-media-controls-panel,
-        .frigy-scan-video::-webkit-media-controls-play-button,
-        .frigy-scan-video::-webkit-media-controls-start-playback-button,
-        .frigy-scan-video::-webkit-media-controls-overlay-play-button,
-        .frigy-scan-video::-webkit-media-controls-overlay-enclosure,
-        .frigy-scan-video::-internal-media-controls-overlay-cast-button {
-          display: none !important;
-          opacity: 0 !important;
-          -webkit-appearance: none !important;
-        }
-      `}</style>
-      <video
-        ref={setVideoRef}
-        className={cn(
-          "frigy-scan-video pointer-events-none absolute inset-0 z-0 h-full w-full object-cover transition-opacity duration-150",
-          previewReady ? "opacity-100" : "opacity-0",
-        )}
-        autoPlay
-        muted
-        playsInline
-        controls={false}
-        disablePictureInPicture
-        disableRemotePlayback
-        controlsList="nodownload nofullscreen noplaybackrate"
-      />
-
-      {showCameraHint && (
-        <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center pointer-events-none">
-          <div className="max-w-sm rounded-2xl bg-black/55 px-5 py-4 backdrop-blur-md border border-white/10 pointer-events-auto">
-            <Camera className="mx-auto mb-3 h-8 w-8 text-[#75FBB2]" />
-            <p className="text-sm font-medium text-white/90">{cameraError}</p>
-            <p className="mt-2 text-xs text-white/55">
-              {ui.openDevApp}<span className="text-[#75FBB2]">npm run dev</span>{ui.localhostJoin}
-              <span className="text-[#75FBB2]">http://localhost:8080</span>{ui.orGallery}
-            </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => void retryCamera()}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                {ui.retry}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="rounded-full bg-[#75FBB2] text-[#0a1f14]"
-                onClick={() => galleryInputRef.current?.click()}
-              >
-                {ui.gallery}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div
-        className="pointer-events-none absolute inset-0 z-[2]"
-        style={{
-          background:
-            "radial-gradient(ellipse 75% 65% at 50% 42%, transparent 0%, transparent 42%, rgba(0,0,0,0.45) 100%)",
-        }}
-      />
-      <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
-
-      <header className="relative z-10 flex shrink-0 items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm"
-          aria-label={ui.close}
-        >
-          <X className="h-5 w-5" />
-        </button>
-        {pendingPhotos.length > 0 ? (
+    <FrigyLiveCameraCapture
+      active={phase === "capture"}
+      onClose={onClose}
+      onPhotoFile={(file) => addFiles([file])}
+      onPhotoFiles={addFiles}
+      galleryMultiple
+      shutterDisabled={analyzing}
+      shutterAriaLabel={ui.captureSr}
+      headerEnd={
+        pendingPhotos.length > 0 ? (
           <span className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-[#75FBB2] backdrop-blur-sm">
             {formatTranslation(t.scanPhotosQueued, { count: pendingPhotos.length })}
           </span>
         ) : (
           <span className="w-10" />
-        )}
-      </header>
-
-      <div className="relative z-10 mx-4 flex flex-1 min-h-0 items-center justify-center pointer-events-none">
-        <div
-          className="rounded-full border-[3px] border-[#75FBB2] bg-transparent"
-          style={{ width: "min(72vw, 280px)", height: "min(72vw, 280px)" }}
-        />
-      </div>
-
-      <AnimatePresence>
-        {pendingPhotos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute left-0 right-0 top-[max(3.5rem,env(safe-area-inset-top)+2.25rem)] z-10 px-4 pt-2"
-          >
-            <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
-              {pendingPhotos.map((photo) => (
-                <div key={photo.id} className="relative shrink-0 pt-1 pr-1">
-                  <img
-                    src={photo.previewUrl}
-                    alt=""
-                    className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(photo.id)}
-                    className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-white shadow-sm"
-                    aria-label={ui.close}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="relative z-20 mt-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom)+0.5rem)] pt-4">
-        {pendingPhotos.length > 0 && (
+        )
+      }
+      overlayTop={
+        pendingPhotos.length > 0 ? (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute left-0 right-0 top-[max(3.5rem,env(safe-area-inset-top)+2.25rem)] z-10 px-4 pt-2"
+            >
+              <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+                {pendingPhotos.map((photo) => (
+                  <div key={photo.id} className="relative shrink-0 pt-1 pr-1">
+                    <img
+                      src={photo.previewUrl}
+                      alt=""
+                      className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(photo.id)}
+                      className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-white shadow-sm"
+                      aria-label={ui.close}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        ) : null
+      }
+      beforeShutter={
+        pendingPhotos.length > 0 ? (
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 8 }}
@@ -467,42 +347,8 @@ export function FrigyIngredientScanFlow({
           >
             {L.finishScan} ({pendingPhotos.length})
           </motion.button>
-        )}
-
-        <div className="relative flex items-end justify-center">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.94 }}
-            onClick={() => void handleShutterPress()}
-            className={cn(
-              "relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white shadow-[0_8px_32px_rgba(110,240,168,0.45)]",
-              "ring-[3px] ring-[#75FBB2] ring-offset-4 ring-offset-black/80",
-            )}
-            aria-label={ui.capture}
-          >
-            <span className="sr-only">{ui.captureSr}</span>
-          </motion.button>
-
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.95 }}
-            onClick={() => galleryInputRef.current?.click()}
-            className="absolute right-0 bottom-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 backdrop-blur-md ring-1 ring-white/20"
-            aria-label={ui.gallery}
-          >
-            <ImagePlus className="h-6 w-6 text-[#75FBB2]" />
-          </motion.button>
-        </div>
-      </div>
-
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleGallery}
-      />
-    </div>
+        ) : null
+      }
+    />
   );
 }

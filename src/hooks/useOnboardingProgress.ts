@@ -10,7 +10,6 @@ interface OnboardingProgress {
   selected_cooking?: string | null;
   selected_challenge?: string | null;
   health_sync_choice?: string | null;
-  community_joined?: boolean;
 }
 
 export const useOnboardingProgress = () => {
@@ -45,7 +44,6 @@ export const useOnboardingProgress = () => {
           selected_cooking: data.selected_cooking,
           selected_challenge: data.selected_challenge,
           health_sync_choice: data.health_sync_choice,
-          community_joined: data.community_joined,
         });
         
         // Also sync to localStorage for backwards compatibility

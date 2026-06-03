@@ -54,7 +54,6 @@ export type OnboardingStep =
   | "save-progress"
   | "paywall"
   | "premium-hint"
-  | "community"
   | "celebration"
   | "done";
 

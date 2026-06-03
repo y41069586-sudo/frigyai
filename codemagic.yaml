@@ -54,6 +54,10 @@ workflows:
           test -d ios/App/App/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
           # cap sync on Windows can write backslashes — SPM on macOS needs forward slashes
           sed -i '' 's|\\|/|g' ios/App/CapApp-SPM/Package.swift
+          if grep -q '\\\\' ios/App/CapApp-SPM/Package.swift; then
+            echo "ERROR: Package.swift still contains backslashes — SPM will fail on macOS."
+            exit 1
+          fi
           if ! grep -q "RevenuecatPurchasesCapacitor\|purchases-capacitor" ios/App/CapApp-SPM/Package.swift; then
             echo "WARNING: RevenueCat not in CapApp-SPM — IAP may fail on device."
           fi
@@ -110,9 +114,14 @@ workflows:
             --archive-flags="-destination 'generic/platform=iOS'" \
             --disable-xcpretty
 
+      - name: Verify IPA artifact
+        script: bash scripts/codemagic-locate-ipa.sh
+
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log
 
     publishing:
       scripts:

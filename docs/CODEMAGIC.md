@@ -190,7 +190,8 @@ Dann committen und in Codemagic neu bauen.
 | Fehler | Lösung |
 |--------|--------|
 | `Cannot save Signing Certificates without certificate private key` | Distribution-Zertifikat in Team → Code signing identities **generieren + .p12 hochladen** (siehe oben); nicht nur API-`.p8` |
-| `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` in Group `frigy` |
+| `Verify build environment` exit 1 | Mindestens `VITE_SUPABASE_*` in Group **`frigy`**; `APP_STORE_CONNECT_*` nur nötig bei Auto-Signing |
+| Nur ZIP / `app.log`, keine `.ipa` | Build **rot** — fehlgeschlagener Schritt im Log (Signing, SPM, Archive). Grün + `.ipa` nur wenn **Verify IPA artifact** durchläuft |
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
 | No signing certificate | Zertifikat + App-Store-Profil in Code signing identities; App in ASC mit `com.frigyapp.app` |
 | Archive failed (exit 65) | App-Store-Profil muss **Push**, **Sign in with Apple**, **Associated Domains** haben; `App.entitlements` → `aps-environment: production`; Profil nach Capability-Änderung neu **Fetch** |

@@ -20,6 +20,8 @@ const CANONICAL_RULES: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\b(salat|kopfsalat|rucola|rucola)\b/i, label: "Salat" },
   { pattern: /\b(möhren?|karotten?|mohren)\b/i, label: "Möhren" },
   { pattern: /\b(pilze|champignons?)\b/i, label: "Champignons" },
+  { pattern: /\b(wasserflasche|trinkwasser|mineralwasser|stilles\s*wasser|wasser|water|sprudel)\b/i, label: "Wasser" },
+  { pattern: /\b(saft|orangensaft|apfelsaft)\b/i, label: "Saft" },
 ];
 
 export function canonicalizeIngredientLabel(raw: string): string {

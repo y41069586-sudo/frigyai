@@ -18,52 +18,50 @@ require_var() {
   fi
 }
 
+has_asc_key() {
+  [ -n "${APP_STORE_CONNECT_KEY_IDENTIFIER:-}" ] && \
+  [ -n "${APP_STORE_CONNECT_ISSUER_ID:-}" ] && \
+  [ -n "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ]
+}
+
 normalize_p8_key
 
 MISSING=""
-require_var APP_STORE_CONNECT_KEY_IDENTIFIER
-require_var APP_STORE_CONNECT_ISSUER_ID
-require_var APP_STORE_CONNECT_PRIVATE_KEY
 require_var VITE_SUPABASE_URL
 require_var VITE_SUPABASE_PUBLISHABLE_KEY
 
 if [ -n "$MISSING" ]; then
-  echo "ERROR: Missing Codemagic environment variables:$MISSING"
+  echo "ERROR: Missing required Codemagic environment variables:$MISSING"
   echo ""
   echo "Names visible in this build (values hidden):"
   env | grep -E '^(APP_STORE_CONNECT|VITE_)' | sed 's/=.*//' | sort -u || true
   if [ -z "$(env | grep -E '^(APP_STORE_CONNECT|VITE_)' || true)" ]; then
     echo "  (none) — variables exist in UI but are NOT injected into the workflow."
-    echo "  Fix A: Codemagic → frigyai → Settings → Environment variables → Group column EMPTY."
-    echo "  Fix B: If all vars share a Group name, add under environment.groups in codemagic.yaml:"
-    echo "         groups:"
-    echo "           - your_group_name"
+    echo "  Fix: Codemagic → frigyai → Environment variables → Group must be exactly: frigy"
+    echo "       (or remove groups: from codemagic.yaml and leave Group empty on each var)"
   fi
   echo ""
-  echo "Codemagic → frigyai → Settings → Environment variables → Add variable"
-  echo "Leave Group EMPTY (Application variables) OR use any group linked in codemagic.yaml."
-  echo ""
-  echo "Required:"
-  echo "  APP_STORE_CONNECT_KEY_IDENTIFIER = P5FA563XP2 (or your Key ID from AuthKey_*.p8 filename)"
-  echo "  APP_STORE_CONNECT_ISSUER_ID = UUID from App Store Connect"
-  echo "  APP_STORE_CONNECT_PRIVATE_KEY = full .p8 (mark Secret)"
+  echo "Required for every iOS build:"
   echo "  VITE_SUPABASE_URL"
   echo "  VITE_SUPABASE_PUBLISHABLE_KEY"
-  echo "  VITE_REVENUECAT_API_KEY_IOS (recommended)"
   echo ""
   echo "See codemagic.env.example and docs/CODEMAGIC.md"
   exit 1
 fi
 
-if ! printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | grep -q "BEGIN PRIVATE KEY"; then
-  echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY must include -----BEGIN PRIVATE KEY-----"
-  exit 1
-fi
-
-key_len=$(printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | wc -c | tr -d ' ')
-if [ "$key_len" -lt 200 ]; then
-  echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY looks too short (${key_len} chars)."
-  exit 1
+if has_asc_key; then
+  if ! printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | grep -q "BEGIN PRIVATE KEY"; then
+    echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY must include -----BEGIN PRIVATE KEY-----"
+    exit 1
+  fi
+  key_len=$(printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | wc -c | tr -d ' ')
+  if [ "$key_len" -lt 200 ]; then
+    echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY looks too short (${key_len} chars)."
+    exit 1
+  fi
+  echo "APP_STORE_CONNECT API key present (${key_len} chars)."
+else
+  echo "NOTE: APP_STORE_CONNECT_* not set — OK if signing uses Team → Code signing identities (Frigy + frigy_distribution)."
 fi
 
 if [ -z "${VITE_REVENUECAT_API_KEY_IOS:-}" ]; then
@@ -72,4 +70,4 @@ else
   echo "VITE_REVENUECAT_API_KEY_IOS present."
 fi
 
-echo "Codemagic env OK (Apple API + Supabase; private_key ${key_len} chars)."
+echo "Codemagic env OK (Supabase + signing prerequisites)."

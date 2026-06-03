@@ -14,6 +14,64 @@ const corsHeaders = {
 
 const MAX_BASE64_SIZE = 6_700_000;
 const FOOD_NOT_FOUND = "Essen nicht gefunden";
+
+const ZERO_CALORIE_NAME_RX =
+  /\b(wasserflasche|trinkwasser|mineralwasser|stilles\s*wasser|wasser|water|sprudel|sodawasser|tee\b|kräutertee|grüner\s*tee|schwarzer\s*tee|kaffee\s*schwarz|espresso\s*pur|diet\s*cola|zero\s*cola|light\s*cola|cola\s*zero)\b/i;
+
+function isZeroCalorieFoodName(name: string): boolean {
+  return ZERO_CALORIE_NAME_RX.test(name.trim());
+}
+
+function zeroCalorieFoodResult(name: string): Record<string, unknown> {
+  const label = name.trim() || "Wasser";
+  const displayName =
+    /\b(wasser|water|mineralwasser|trinkwasser|sprudel)\b/i.test(label) ? "Wasser" : label;
+  return {
+    found: true,
+    name: displayName,
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    portion: "1 Glas",
+    source: "ai",
+  };
+}
+
+function lookupZeroCalorieByText(query: string): OffFoodResult | null {
+  const q = offNormalizeQuery(query);
+  if (!q) return null;
+  if (
+    q === "wasser" ||
+    q === "water" ||
+    q.includes("mineralwasser") ||
+    q.includes("stilles wasser") ||
+    q === "sprudel" ||
+    q === "sodawasser"
+  ) {
+    return {
+      name: "Wasser",
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      portion: "1 Glas",
+      source: "open_food_facts",
+    };
+  }
+  if (isZeroCalorieFoodName(q)) {
+    return {
+      name: q.charAt(0).toUpperCase() + q.slice(1),
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      portion: "1 Portion",
+      source: "open_food_facts",
+    };
+  }
+  return null;
+}
 const AI_MACRO_KCAL_TOLERANCE = 50;
 /** Single visible plate/bowl — clamp instead of rejecting large meals */
 const MAX_AI_CALORIES = 2800;
@@ -235,10 +293,14 @@ function normalizeAiFoodEstimate(parsed: Record<string, unknown>) {
   const name = String(parsed.name || "").trim();
   if (!name) return null;
 
+  const statedCalories = Math.max(0, Math.round(Number(parsed.calories) || 0));
+  if (statedCalories === 0 && isZeroCalorieFoodName(name)) {
+    return zeroCalorieFoodResult(name);
+  }
+
   let protein = clampMacroGrams(Number(parsed.protein) || 0, MAX_AI_PROTEIN);
   let carbs = clampMacroGrams(Number(parsed.carbs) || 0, MAX_AI_CARBS);
   let fat = clampMacroGrams(Number(parsed.fat) || 0, MAX_AI_FAT);
-  const statedCalories = Math.max(0, Math.round(Number(parsed.calories) || 0));
   let derivedCalories = Math.max(0, Math.round(macroCalories(protein, carbs, fat)));
 
   if (protein + carbs + fat <= 0) {
@@ -247,6 +309,8 @@ function normalizeAiFoodEstimate(parsed: Record<string, unknown>) {
       carbs = Math.round(statedCalories * 0.45 / 4);
       fat = Math.round(statedCalories * 0.30 / 9);
       derivedCalories = Math.round(macroCalories(protein, carbs, fat));
+    } else if (isZeroCalorieFoodName(name)) {
+      return zeroCalorieFoodResult(name);
     } else {
       return null;
     }
@@ -288,8 +352,11 @@ async function analyzeWithOpenAI(
 ): Promise<Record<string, unknown> | null> {
   const systemPrompt = `Du bist Ernährungs-Assistent für ein Foto-Tagebuch. Antworte NUR mit JSON, kein anderer Text.
 
-Wenn auf dem Bild erkennbar ESSEN oder ein GETRÄNK ist (auch einfache Dinge: Brot, Obst, Joghurt, Müsli, Pizza, Nudeln, Reis, Salat, Suppe, Sandwich, Kaffee mit Milch, Smoothie, Snacks):
+Wenn auf dem Bild erkennbar ESSEN oder ein GETRÄNK ist (auch einfache Dinge: Brot, Obst, Joghurt, Müsli, Pizza, Nudeln, Reis, Salat, Suppe, Sandwich, Kaffee mit Milch, Smoothie, Snacks, Wasserflasche, Glas Wasser, Mineralwasser, Sprudel, Tee, schwarzer Kaffee):
 {"found":true,"name":"Deutscher Name mit Menge","calories":123,"protein":10,"carbs":20,"fat":5,"portion":"z.B. 1 Teller"}
+
+Nur für reines Wasser / Mineralwasser / ungesüßten Tee / schwarzen Kaffee (ohne Zucker/Milch) — calories und alle Makros = 0.
+Für normales Essen (Brot, Fleisch, Obst, Pizza, …) IMMER realistische calories > 0 und passende Makros — nie alles 0.
 
 NUR wenn das Bild KEIN Essen zeigt (leerer Teller, nur Besteck, Person, Landschaft, Verpackung ohne sichtbares Essen):
 {"found":false}
@@ -459,8 +526,13 @@ serve(async (req) => {
       ? uploadFoodPhoto(supabaseAdmin, user.id, imageBase64)
       : Promise.resolve(null);
 
-    // 1) Text search: Open Food Facts first (verified database)
+    // 1) Text search: zero-cal drinks, then Open Food Facts
     if (food?.trim() && !imageBase64) {
+      const zeroCal = lookupZeroCalorieByText(food.trim());
+      if (zeroCal) {
+        console.log("[ANALYZE-FOOD] zero-cal hit:", zeroCal.name);
+        return successResponse(zeroCal);
+      }
       console.log("[ANALYZE-FOOD] OFF search:", food.trim());
       const offMatch = await searchOpenFoodFacts(food.trim());
       if (offMatch) {

@@ -29,6 +29,8 @@ const CANONICAL_RULES: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\b(salat|kopfsalat|rucola)\b/i, label: "Salat" },
   { pattern: /\b(möhren?|karotten?|mohren)\b/i, label: "Möhren" },
   { pattern: /\b(pilze|champignons?)\b/i, label: "Champignons" },
+  { pattern: /\b(wasserflasche|trinkwasser|mineralwasser|stilles\s*wasser|wasser|water|sprudel)\b/i, label: "Wasser" },
+  { pattern: /\b(saft|orangensaft|apfelsaft)\b/i, label: "Saft" },
 ];
 
 function canonicalizeIngredientLabel(raw: string): string {
@@ -159,7 +161,7 @@ Antwort NUR als JSON:
 
 Regeln:
 - Liste JEDES sichtbare Lebensmittel auf Deutsch (Grundform: "Eier", "Milch", "Tomaten")
-- Auch einzelne Eier, Eierkartons, Packungen, Dosen, Tupperware, Obst in Schalen, Flaschen, Gewürze, Saucen
+- Auch einzelne Eier, Eierkartons, Packungen, Dosen, Tupperware, Obst in Schalen, Flaschen (Wasser, Mineralwasser, Sprudel, Saft, Milch), Gewürze, Saucen
 - Auch wenn teilweise verdeckt, unscharf oder im Hintergrund — trotzdem auflisten
 - Scanne das gesamte Bild systematisch: oben, mitte, unten, links, rechts
 - Lieber zu viel listen als etwas Wichtiges weglassen

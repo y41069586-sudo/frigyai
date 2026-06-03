@@ -3768,50 +3768,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         );
       }
 
-      case "community": {
-        const recipes = [
-          { user: "Lisa M.", name: "Avocado Toast 🥑", likes: 234 },
-          { user: "Tom K.", name: "Protein Bowl 💪", likes: 189 },
-          { user: "Sarah", name: "Green Smoothie 🥬", likes: 156 },
-        ];
-        return (
-          <StepCard step="community">
-            <div className="flex flex-col items-center text-center px-6 w-full">
-              <h1 className="text-2xl font-bold mb-1">Cook with others</h1>
-              <p className="text-muted-foreground/40 text-xs mb-6">Discover recipes from the community</p>
-              
-              <div className="w-full max-w-sm space-y-3">
-                {recipes.map((recipe, i) => (
-                  <motion.div
-                    key={recipe.name}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.3 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-sm font-medium block">{recipe.name}</span>
-                      <span className="text-[10px] text-muted-foreground/40">by {recipe.user}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground/60">
-                      <Heart className="w-4 h-4" />
-                      <span className="text-xs">{recipe.likes}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              
-              <Button onClick={goNext} variant="outline" className="w-full max-w-xs h-12 rounded-xl mt-6">
-                Explore later
-              </Button>
-            </div>
-          </StepCard>
-        );
-      }
-
       case "celebration":
         return (
           <div className="fixed inset-0 bg-background flex flex-col items-center justify-center overflow-hidden">
@@ -4110,7 +4066,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </div>
             </motion.div>
           )}
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "community", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

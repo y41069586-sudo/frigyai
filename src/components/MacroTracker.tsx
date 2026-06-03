@@ -23,6 +23,7 @@ import { FrigyFoodScanFlow, type FoodScanPhase } from '@/components/scan/FrigyFo
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
+import { isZeroCalorieFoodName } from '@/lib/zeroCalorieFood';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getAppLocale } from '@/lib/mealPlanLanguage';
 import { WheelPicker } from './WheelPicker';
@@ -39,52 +40,10 @@ import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { FRIGY_OPEN_LOG_MEAL, notifyOverlayOpen } from '@/lib/overlayEvents';
 import { getMinCaloriesForAge } from '@/components/onboarding/utils';
 import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
+import { dataUrlToBase64Payload, fileToCompressedBase64 } from '@/lib/compressImage';
+import { checkImageQuality } from '@/utils/imageQualityCheck';
 
 const ANALYZE_FOOD_TIMEOUT_MS = 45_000;
-
-async function fileToCompressedBase64(file: File, maxEdge = 1536): Promise<string | null> {
-  const blobUrl = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("image_load_failed"));
-      el.src = blobUrl;
-    });
-    const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight, 1));
-    const width = Math.max(1, Math.round(img.naturalWidth * scale));
-    const height = Math.max(1, Math.round(img.naturalHeight * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, width, height);
-    const dataUrl = await new Promise<string | null>((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(null);
-            return;
-          }
-          const reader = new FileReader();
-          reader.onloadend = () =>
-            resolve(typeof reader.result === "string" ? reader.result : null);
-          reader.onerror = () => resolve(null);
-          reader.readAsDataURL(blob);
-        },
-        "image/jpeg",
-        0.88,
-      );
-    });
-    if (!dataUrl) return null;
-    return dataUrl.split(",")[1] || null;
-  } catch {
-    return null;
-  } finally {
-    URL.revokeObjectURL(blobUrl);
-  }
-}
 
 async function invokeAnalyzeFood(body: { food?: string; imageBase64?: string }) {
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -605,7 +564,9 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         );
       }
 
-      if (!data.name || typeof data.calories !== "number" || data.calories <= 0) {
+      const calories = typeof data.calories === "number" ? data.calories : -1;
+      const allowZeroCal = calories === 0 && isZeroCalorieFoodName(data.name);
+      if (!data.name || calories < 0 || (calories <= 0 && !allowZeroCal)) {
         throw new Error(t.foodNotFound);
       }
 
@@ -791,15 +752,25 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     setAnalyzingImage(URL.createObjectURL(file));
 
     void (async () => {
-      const base64 = await fileToCompressedBase64(file);
-      if (!base64) {
+      const dataUrl = await fileToCompressedBase64(file);
+      if (!dataUrl) {
         setIsAnalyzing(false);
         setFoodScanError(t.foodPhotoReadError);
         setFoodScanPhase('error');
         return;
       }
-      setAnalyzingImage(`data:image/jpeg;base64,${base64}`);
-      await analyzeFood("", base64, mealPromptKey);
+
+      const qualityCheck = await checkImageQuality(dataUrl);
+      if (!qualityCheck.isGoodQuality) {
+        setIsAnalyzing(false);
+        setFoodScanError(qualityCheck.suggestion || qualityCheck.message);
+        setFoodScanPhase('error');
+        return;
+      }
+
+      const base64 = dataUrlToBase64Payload(dataUrl);
+      setAnalyzingImage(dataUrl.startsWith('data:') ? dataUrl : `data:image/jpeg;base64,${base64}`);
+      await analyzeFood('', base64, mealPromptKey);
     })();
   };
 

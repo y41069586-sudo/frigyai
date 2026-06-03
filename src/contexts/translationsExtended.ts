@@ -4,24 +4,7 @@ import type { Language } from "./LanguageContext";
 export interface ExtendedTranslations {
   toastPleaseLogin: string;
   toastCopiedToClipboard: string;
-  frigyCommunityShareTitle: string;
-
-  communityPageTitle: string;
-  communityPageSubtitle: string;
-  communityShareRecipe: string;
-  communityStatMembers: string;
-  communityStatRecipes: string;
-  communityStatSuccess: string;
-  communityTabRecipes: string;
-  communityTabPosts: string;
-  communityLoadingRecipes: string;
-  communityEmptyRecipesTitle: string;
-  communityEmptyRecipesDesc: string;
-  communityEmptyPostsTitle: string;
-  communityEmptyPostsDesc: string;
-  communityFirstRecipeBtn: string;
   landingTestimonialAuthor: string;
-  communityMoreIngredients: string;
   timeAgoMinutes: string;
   timeAgoHours: string;
   timeAgoDays: string;
@@ -54,8 +37,6 @@ export interface ExtendedTranslations {
   landingFeatureWeightDesc: string;
   landingFeatureWaterTitle: string;
   landingFeatureWaterDesc: string;
-  landingFeatureCommunityTitle: string;
-  landingFeatureCommunityDesc: string;
   landingFeatureHealthTitle: string;
   landingFeatureHealthDesc: string;
   landingTestimonial1: string;
@@ -105,7 +86,6 @@ export interface ExtendedTranslations {
   settingsSubscriptionGroup: string;
   settingsOpeningPortal: string;
   settingsAccountGroup: string;
-  settingsCommunity: string;
   settingsRestartOnboarding: string;
   deleteAccountConfirmTitle: string;
   deleteAccountConfirmDesc: string;
@@ -160,14 +140,6 @@ export interface ExtendedTranslations {
   adminPremiumGrantFailed: string;
   adminGranting: string;
 
-  shareRecipeTitle: string;
-  recipeTitlePlaceholder: string;
-  recipeDescPlaceholder: string;
-  toastLoginRequired: string;
-  toastTitleRequired: string;
-  toastRecipeShared: string;
-  toastRecipeShareFailed: string;
-
   healthSyncTitle: string;
   healthSyncWeightPlaceholder: string;
 
@@ -181,8 +153,6 @@ export interface ExtendedTranslations {
   onboardingGetStarted: string;
   onboardingFirstWeeklyPlanTitle: string;
   onboardingFirstWeeklyPlanDesc: string;
-  onboardingCommunityStepTitle: string;
-  onboardingCommunityStepDesc: string;
   ariaBack: string;
 
   toastCameraPermission: string;
@@ -495,24 +465,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
   de: {
     toastPleaseLogin: "Bitte einloggen",
     toastCopiedToClipboard: "In Zwischenablage kopiert!",
-    frigyCommunityShareTitle: "Frigy Community",
-
-    communityPageTitle: "Community",
-    communityPageSubtitle: "Rezepte, Ideen & Motivation",
-    communityShareRecipe: "Rezept teilen",
-    communityStatMembers: "Mitglieder",
-    communityStatRecipes: "Rezepte",
-    communityStatSuccess: "Erfolgsrate",
-    communityTabRecipes: "Rezepte",
-    communityTabPosts: "Beiträge",
-    communityLoadingRecipes: "Rezepte werden geladen...",
-    communityEmptyRecipesTitle: "Noch keine Rezepte",
-    communityEmptyRecipesDesc: "Sei der Erste, der ein Rezept teilt!",
-    communityEmptyPostsTitle: "Noch keine Beiträge",
-    communityEmptyPostsDesc: "Teile dein erstes Rezept — Beiträge erscheinen hier, sobald die Community wächst.",
     landingTestimonialAuthor: "Frigy-Nutzer",
-    communityFirstRecipeBtn: "Erstes Rezept teilen",
-    communityMoreIngredients: "mehr",
     timeAgoMinutes: "vor {n} Min.",
     timeAgoHours: "vor {n} Std.",
     timeAgoDays: "vor {n} Tagen",
@@ -549,20 +502,18 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     landingFeatureWeightDesc: "Personalisierte Pläne für nachhaltiges Abnehmen.",
     landingFeatureWaterTitle: "Wasser-Tracker",
     landingFeatureWaterDesc: "Bleib hydratisiert mit täglichen Erinnerungen.",
-    landingFeatureCommunityTitle: "Community",
-    landingFeatureCommunityDesc: "Teile Rezepte und verbinde dich mit anderen.",
     landingFeatureHealthTitle: "Wöchentliche Meal Plans",
     landingFeatureHealthDesc: "KI-generierte Wochenpläne passend zu deinen Zielen und Zutaten.",
     landingTestimonial1: "Endlich eine App, die versteht was ich im Kühlschrank habe!",
     landingTestimonial2: "Die Wochenpläne passen gut zu meinen Makros und sparen Zeit beim Einkaufen.",
-    landingTestimonial3: "Die Community ist super motivierend!",
+    landingTestimonial3: "Die App ist übersichtlich und motiviert mich täglich.",
     landingPremiumFeature1: "Unbegrenzte Scans",
     landingPremiumFeature2: "KI-Chatbot",
     landingPremiumFeature3: "Wöchentliche Meal Plans",
     landingPremiumFeature4: "Einkaufslisten",
     landingPremiumFeature5: "Makro-Tracking",
     landingPremiumFeature6: "Wasser-Tracker",
-    landingPremiumFeature7: "Community-Zugang",
+    landingPremiumFeature7: "Fortschritt & Abzeichen",
     landingPremiumFeature8: "Personalisierte Ernährungsziele",
 
     manualIngredientsTitle: "Zutaten",
@@ -1062,7 +1013,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     landingPremiumFeature4: "Shopping lists",
     landingPremiumFeature5: "Macro tracking",
     landingPremiumFeature6: "Water tracker",
-    landingPremiumFeature7: "Community access",
+    landingPremiumFeature7: "Progress & badges",
     landingPremiumFeature8: "Personalized nutrition goals",
 
     manualIngredientsTitle: "Enter",
@@ -1563,7 +1514,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     landingPremiumFeature4: "Listes de courses",
     landingPremiumFeature5: "Suivi des macros",
     landingPremiumFeature6: "Suivi d'eau",
-    landingPremiumFeature7: "Accès communauté",
+    landingPremiumFeature7: "Progrès & badges",
     landingPremiumFeature8: "Objectifs nutrition personnalisés",
 
     manualIngredientsTitle: "Saisir les",

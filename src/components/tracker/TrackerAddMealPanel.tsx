@@ -459,49 +459,11 @@ export function TrackerAddMealPanel({
     if (recipesFetchStarted.current) return;
     recipesFetchStarted.current = true;
 
-    let cancelled = false;
-    (async () => {
-      setLoadingRecipes(true);
-      try {
-        const { data, error } = await supabase
-          .from("community_recipes")
-          .select("id, title, calories, protein, carbs, fat, ingredients, instructions, prep_time")
-          .order("likes_count", { ascending: false })
-          .limit(24);
-
-        if (error) throw error;
-
-        const mapped: TrackerRecipeExample[] = (data ?? []).map((r) => ({
-          id: r.id,
-          title: r.title,
-          calories: Math.round(r.calories ?? 0),
-          protein: Math.round(r.protein ?? 0),
-          carbs: Math.round(r.carbs ?? 0),
-          fat: Math.round(r.fat ?? 0),
-          ingredients: Array.isArray((r as any).ingredients) ? (r as any).ingredients : undefined,
-          instructions: Array.isArray((r as any).instructions) ? (r as any).instructions : undefined,
-          prepTime: Math.round((r as any).prep_time ?? 0) || undefined,
-        }));
-
-        const list = mergeUniqueRecipes(mapped, mealPlanFallbackRecipes(), BUILTIN_EXAMPLE_RECIPES);
-        if (!cancelled) {
-          cachedExampleRecipes = list;
-          setRecipes(list);
-        }
-      } catch {
-        const list = mergeUniqueRecipes(mealPlanFallbackRecipes(), BUILTIN_EXAMPLE_RECIPES);
-        if (!cancelled) {
-          cachedExampleRecipes = list;
-          setRecipes(list);
-        }
-      } finally {
-        if (!cancelled) setLoadingRecipes(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    setLoadingRecipes(true);
+    const list = mergeUniqueRecipes(mealPlanFallbackRecipes(), BUILTIN_EXAMPLE_RECIPES);
+    cachedExampleRecipes = list;
+    setRecipes(list);
+    setLoadingRecipes(false);
   }, []);
 
   useEffect(() => {
@@ -514,8 +476,7 @@ export function TrackerAddMealPanel({
   const handleModeSelect = (next: InputMode) => {
     setMode(next);
     if (next === "camera") {
-      const canUseLiveCamera = window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia);
-      if (onOpenLiveCamera && canUseLiveCamera) {
+      if (onOpenLiveCamera) {
         onOpenLiveCamera();
       } else {
         cameraInputRef.current?.click();
