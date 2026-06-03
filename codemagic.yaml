@@ -71,7 +71,25 @@ workflows:
           xcode-project use-profiles \
             --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             --export-options-plist "$HOME/export_options.plist" \
-            --archive-method app-store
+            --archive-method app-store \
+            --code-signing-setup-verbose-logging
+
+      - name: Verify signing profile
+        script: |
+          set -e
+          echo "=== Code signing settings ==="
+          xcodebuild -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" -scheme "$XCODE_SCHEME" -showBuildSettings 2>/dev/null \
+            | grep -E 'PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' || true
+          if xcodebuild -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" -scheme "$XCODE_SCHEME" -showBuildSettings 2>/dev/null \
+            | grep -q 'Doaa Attia'; then
+            echo ""
+            echo "ERROR: Xcode still uses provisioning profile 'Doaa Attia'."
+            echo "The Codemagic reference 'Frigy' points to an OLD profile file."
+            echo "Fix: Codemagic → delete profile Frigy → Apple Developer → revoke old profiles"
+            echo "     → Fetch NEW App Store profile (with Associated Domains + frigy_distribution cert)"
+            echo "     → Reference name Frigy again → rebuild."
+            exit 1
+          fi
 
       - name: Set iOS build number
         script: |

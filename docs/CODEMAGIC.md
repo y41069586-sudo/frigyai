@@ -57,11 +57,15 @@ Der Fehler **`Cannot save Signing Certificates without certificate private key`*
 
 **Einmalig in Codemagic (Team settings → Code signing identities):**
 
-1. **iOS certificates** → Reference name **`frigy_distribution`** → `.p12` hochladen
-2. **iOS provisioning profiles** → Reference name muss **exakt** so heißen wie in der Codemagic-Liste (bei dir: **`Frigy`**)
-3. **Apple Developer** → `com.frigyapp.app` → **Associated Domains**, Push, Sign in with Apple aktivieren → Save
+1. **iOS certificates** → Reference **`frigy_distribution`** (`.p12` hochgeladen)
+2. **Apple Developer** → Identifiers → `com.frigyapp.app` → **Associated Domains**, Push, Sign in with Apple → **Save**
+3. **Apple Developer** → **Profiles** → alle alten Profile für `com.frigyapp.app` **löschen** (inkl. „Doaa Attia“)
+4. **Neues Profil** anlegen: **App Store** / Distribution → App `com.frigyapp.app` → Zertifikat **`frigy_distribution`** wählen
+5. **Codemagic** → Profil **`Frigy` löschen** → **Fetch profiles** → App Store → `com.frigyapp.app` → Reference **`Frigy`** → Download (grüner Haken am Zertifikat)
 
-`codemagic.yaml`: Profil **`Frigy`**, Zertifikat **`frigy_distribution`** (Namen aus Code signing identities übernehmen).
+**Wichtig:** Reference name `Frigy` ≠ neues Profil. Wenn der Build noch „Doaa Attia“ zeigt, ist die **Datei** alt — Schritte 3–5 wiederholen.
+
+`codemagic.yaml`: Profil **`Frigy`**, Zertifikat **`frigy_distribution`**.
 
 ### Schritt 1 — App Store Connect API Key (Referenz)
 
