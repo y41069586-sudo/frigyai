@@ -11,6 +11,7 @@ workflows:
     environment:
       xcode: latest
       node: 22
+      java: 21
       groups:
         - frigy
       vars:
@@ -57,6 +58,7 @@ workflows:
       - name: Build AAB + APK (release)
         script: |
           set -e
+          java -version
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease assembleRelease --no-daemon
