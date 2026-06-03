@@ -14,10 +14,12 @@ workflows:
       # Alternative: leave Group empty on each variable and remove the groups: block below.
       groups:
         - frigy
-      # Upload or generate Distribution cert + App Store profile in Team → Code signing identities first.
+      # Reference names must match Code signing identities exactly (avoids wrong profile e.g. "Doaa Attia").
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.frigyapp.app
+        provisioning_profiles:
+          - frigy_appstore
+        certificates:
+          - frigy_distribution
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App

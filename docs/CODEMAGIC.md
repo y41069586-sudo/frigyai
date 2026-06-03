@@ -59,9 +59,11 @@ Der Fehler **`Cannot save Signing Certificates without certificate private key`*
 
 1. **iOS certificates** → **Generate certificate** → Typ **Apple Distribution** → deinen App-Store-Connect-API-Key wählen → Reference name z. B. `frigy_distribution`
 2. **`.p12` sofort downloaden** und unter **Upload certificate** mit dem angezeigten Passwort **hochladen** (Codemagic braucht die Datei inkl. Private Key)
-3. **iOS provisioning profiles** → **Fetch profiles** → **App Store** → `com.frigyapp.app` → Reference name z. B. `frigy_appstore` → **Download selected**
+3. **iOS provisioning profiles** → altes Profil **„Doaa Attia“ löschen** (hat keine Associated Domains)
+4. **Apple Developer** → Identifier `com.frigyapp.app` → **Associated Domains** (+ Push, Sign in with Apple) aktivieren → Save
+5. **Fetch profiles** → **App Store** → `com.frigyapp.app` → Reference name **exakt** `frigy_appstore` → **Download selected** (grüner Haken bei Certificate)
 
-Dann neu bauen. `codemagic.yaml` holt passende Dateien über `ios_signing` (`distribution_type: app_store`).
+`codemagic.yaml` nutzt nur diese Reference names — nicht automatisch „Doaa Attia“.
 
 ### Schritt 1 — App Store Connect API Key (Referenz)
 
@@ -190,7 +192,7 @@ Dann committen und in Codemagic neu bauen.
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
 | No signing certificate | Zertifikat + App-Store-Profil in Code signing identities; App in ASC mit `com.frigyapp.app` |
 | Archive failed (exit 65) | App-Store-Profil muss **Push**, **Sign in with Apple**, **Associated Domains** haben; `App.entitlements` → `aps-environment: production`; Profil nach Capability-Änderung neu **Fetch** |
-| `doesn't include the Associated Domains capability` | App ID `com.frigyapp.app` → Associated Domains aktivieren → in Codemagic App-Store-Profil **neu fetchen** (altes Profil „Doaa Attia“ ohne Domains ersetzen) |
+| `doesn't include the Associated Domains capability` | App ID: Associated Domains an → Profil **„Doaa Attia“ löschen** → neu fetchen als Reference `frigy_appstore` (siehe oben) |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
 | `Failed to show build settings` / exit 74 | SPM-Pfade in `Package.swift` (keine `\`); Schritt „Resolve Swift packages“ im Log prüfen |
