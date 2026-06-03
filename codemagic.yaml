@@ -10,7 +10,10 @@ workflows:
     environment:
       xcode: latest
       node: 20
-      # No variable groups — add all secrets as Application env vars in Codemagic UI.
+      # Secrets live in a Codemagic variable group — name must match exactly (rename group in UI to "frigyai").
+      # Alternative: leave Group empty on each variable (Application vars) and remove the groups: block below.
+      groups:
+        - frigyai
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
@@ -95,6 +98,8 @@ workflows:
     environment:
       xcode: latest
       node: 20
+      groups:
+        - frigyai
       ios_signing:
         distribution_type: ad_hoc
         bundle_identifier: com.frigyapp.app

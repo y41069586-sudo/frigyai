@@ -21,13 +21,23 @@ Der **Android-Workflow wurde entfernt**. In Codemagic startest du nur noch:
 
 Ohne Signing schlägt der iOS-Build fehl. Codemagic holt Zertifikat + Profil über die **App Store Connect API**.
 
-### Environment variables (ohne Variable Group)
+### Environment variables (Group `frigyai` oder ohne Group)
 
-**Keine Group nötig** — das vermeidet `unknown variable group(s): appstore_credentials`.
+Im Build-Log siehst du nur `VITE_APPLE_*` aus `codemagic.yaml`, aber **keine** `VITE_SUPABASE_*` / `APP_STORE_CONNECT_*`?
+→ Deine Variablen stecken in einer **Group**, die nicht in `codemagic.yaml` steht.
+
+**Fix 1 — Group verknüpfen (wenn Variablen schon in einer Group sind):**
+
+1. Codemagic → **frigyai** → **Environment variables** → Spalte **Group** notieren
+2. Group **umbenennen** auf exakt **`frigyai`** (oder in `codemagic.yaml` unter `groups:` deinen Namen eintragen)
+3. Alle 6 Pflicht-Variablen müssen in **dieser** Group liegen
+4. Neu bauen (Repo hat `groups: - frigyai`)
+
+**Fix 2 — ohne Group:**
 
 **Codemagic → frigyai → Settings → Environment variables → Add variable**
 
-Beim Anlegen: **Group-Feld leer lassen** (Application variables).
+Beim Anlegen: **Group-Feld leer lassen** (Application variables). Dann `groups:` in `codemagic.yaml` entfernen.
 
 | Variable name | Value | Secret? |
 |---------------|-------|---------|
