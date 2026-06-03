@@ -30,8 +30,18 @@ require_var VITE_SUPABASE_PUBLISHABLE_KEY
 if [ -n "$MISSING" ]; then
   echo "ERROR: Missing Codemagic environment variables:$MISSING"
   echo ""
+  echo "Names visible in this build (values hidden):"
+  env | grep -E '^(APP_STORE_CONNECT|VITE_)' | sed 's/=.*//' | sort -u || true
+  if [ -z "$(env | grep -E '^(APP_STORE_CONNECT|VITE_)' || true)" ]; then
+    echo "  (none) — variables exist in UI but are NOT injected into the workflow."
+    echo "  Fix A: Codemagic → frigyai → Settings → Environment variables → Group column EMPTY."
+    echo "  Fix B: If all vars share a Group name, add under environment.groups in codemagic.yaml:"
+    echo "         groups:"
+    echo "           - your_group_name"
+  fi
+  echo ""
   echo "Codemagic → frigyai → Settings → Environment variables → Add variable"
-  echo "Leave Group EMPTY (Application variables) OR use any group linked to this app."
+  echo "Leave Group EMPTY (Application variables) OR use any group linked in codemagic.yaml."
   echo ""
   echo "Required:"
   echo "  APP_STORE_CONNECT_KEY_IDENTIFIER = P5FA563XP2 (or your Key ID from AuthKey_*.p8 filename)"
