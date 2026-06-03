@@ -57,11 +57,11 @@ Der Fehler **`Cannot save Signing Certificates without certificate private key`*
 
 **Einmalig in Codemagic (Team settings → Code signing identities):**
 
-1. **iOS certificates** → **Apple Distribution** → Reference name **`Frigy`** → `.p12` downloaden und **hochladen**
-2. **iOS provisioning profiles** → altes Profil **„Doaa Attia“ löschen** → **Fetch profiles** → App Store → `com.frigyapp.app` → Reference name **`Frigy`**
+1. **iOS certificates** → Reference name **`frigy_distribution`** → `.p12` hochladen
+2. **iOS provisioning profiles** → Reference name **`Frigy`** (App Store, `com.frigyapp.app`)
 3. **Apple Developer** → `com.frigyapp.app` → **Associated Domains**, Push, Sign in with Apple aktivieren → Save
 
-`codemagic.yaml` nutzt Reference name **`Frigy`** für Zertifikat und Profil.
+`codemagic.yaml`: Profil **`Frigy`**, Zertifikat **`frigy_distribution`**.
 
 ### Schritt 1 — App Store Connect API Key (Referenz)
 
