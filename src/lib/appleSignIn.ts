@@ -31,18 +31,16 @@ export async function signInWithApple(): Promise<{ error: unknown | null }> {
   }
 
   try {
-    const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
+    const { AppleSignIn, SignInScope } = await import("@capawesome/capacitor-apple-sign-in");
     const nonce = generateNonce();
 
-    const result = await SignInWithApple.authorize({
-      clientId: import.meta.env.VITE_APPLE_CLIENT_ID?.trim() || BUNDLE_ID,
-      redirectURI: APPLE_REDIRECT_URI,
-      scopes: "email name",
-      state: nonce,
+    const result = await AppleSignIn.signIn({
+      scopes: [SignInScope.Email, SignInScope.FullName],
       nonce,
+      state: nonce,
     });
 
-    const identityToken = result.response?.identityToken;
+    const identityToken = result.idToken;
     if (!identityToken) {
       return { error: new Error("Apple identity token missing") };
     }
