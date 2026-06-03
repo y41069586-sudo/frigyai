@@ -218,6 +218,11 @@ All colors MUST be HSL.
     touch-action: pan-y;
   }
 
+  /* Tracker ↔ weight carousel: allow horizontal swipe without vertical scroll lock. */
+  .dashboard-scroll-main .dashboard-carousel-scroll {
+    touch-action: pan-x pinch-zoom;
+  }
+
   /* Better scrolling on mobile */
   .scroll-smooth-touch {
     -webkit-overflow-scrolling: touch;

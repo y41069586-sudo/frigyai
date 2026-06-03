@@ -547,22 +547,16 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       try {
         if (usesStoreBilling() && session.access_token) {
-          await syncStoreSubscriptionToServer(session.access_token);
-        }
-        const refreshedStatus = await checkSubscription();
-        const serverPremiumOk = isSubscriptionActive(refreshedStatus);
-        if (!serverPremiumOk && !isSubscriptionActive(subscriptionStatus)) {
-          toast({
-            title: ui.premiumRequired,
-            description:
-              getStoredLanguage() === 'en'
-                ? 'Premium could not be verified. Open Profile → refresh subscription, then try again.'
-                : getStoredLanguage() === 'fr'
-                  ? 'Premium non vérifié. Ouvre Profil → actualise l’abonnement, puis réessaie.'
-                  : 'Premium konnte nicht bestätigt werden. Profil → Abo aktualisieren, dann erneut versuchen.',
-            variant: 'destructive',
-          });
-          return false;
+          try {
+            await Promise.race([
+              syncStoreSubscriptionToServer(session.access_token),
+              new Promise<void>((_, reject) =>
+                setTimeout(() => reject(new Error('store sync timeout')), 5000),
+              ),
+            ]);
+          } catch (syncErr) {
+            console.warn('[MEAL-PLAN-CLIENT] store subscription sync skipped:', syncErr);
+          }
         }
 
         const diet = readUserMealPlanProfile();

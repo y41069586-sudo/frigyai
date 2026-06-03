@@ -32,7 +32,7 @@ import { dirname, join } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { fromFileUrl } from "https://deno.land/std@0.224.0/path/from_file_url.ts";
 
 const root = dirname(dirname(fromFileUrl(import.meta.url)));
-const outPath = join(root, "index.ts");
+const outPath = join(root, "dashboard-bundle.ts");
 
 function stripImports(source: string): string {
   return source.replace(
@@ -47,9 +47,8 @@ function processModule(name: string): string {
   return `// ----- ${name} -----\n${src.trim()}\n`;
 }
 
-const header = `// generate-meal-plan — single file for Supabase Dashboard deploy.
-// Regenerate: node scripts/inline-index.mjs  (or: deno run --allow-read --allow-write scripts/inline-index.ts)
-// Edit auth.ts, macros.ts, … then run the script; paste/deploy only this index.ts.
+const header = `// generate-meal-plan — EINE Datei fürs Supabase Dashboard (Copy & Paste).
+// Entwickler: npm run meal-plan:bundle  |  Nutzer: diese Datei komplett ins Dashboard einfügen.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://esm.sh/zod@3.24.1";

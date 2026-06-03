@@ -134,3 +134,23 @@ export function localizeWeekdayLabel(
 
   return value || DAY_LABELS[language][0];
 }
+
+const DAY_NAME_PATTERN =
+  "montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|monday|tuesday|wednesday|thursday|friday|saturday|sunday|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche";
+
+/** Strip weekday tags AI/fallback sometimes append, e.g. "Hähnchen Reis (Dienstag)". */
+export function cleanMealDisplayName(name: string | null | undefined): string {
+  let n = String(name || "").trim();
+  if (!n) return "";
+
+  const dayRe = new RegExp(DAY_NAME_PATTERN, "iu");
+  n = n.replace(new RegExp(`\\s*[\\(\\[]\\s*(${DAY_NAME_PATTERN})\\s*[\\)\\]]\\s*$`, "iu"), "");
+  n = n.replace(new RegExp(`^\\s*(${DAY_NAME_PATTERN})\\s*[\\:\\-–—|]\\s*`, "iu"), "");
+  n = n.replace(new RegExp(`\\s+[\\(\\[]\\s*(${DAY_NAME_PATTERN})\\s*[\\)\\]]\\s*$`, "iu"), "");
+
+  if (dayRe.test(n) && /\b(meal|mahlzeit|gericht|repas|frühstück|hauptgericht|snack)\b/i.test(n)) {
+    return "";
+  }
+
+  return n.trim() || String(name || "").trim();
+}

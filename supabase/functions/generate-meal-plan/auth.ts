@@ -56,6 +56,10 @@ function isStoreProductId(productId: string | null | undefined): boolean {
   return productId.startsWith("rc_") || productId.startsWith("store_");
 }
 
+function isOneTimeProductId(productId: string | null | undefined): boolean {
+  return productId === "premium_one_time";
+}
+
 function promoStillValid(subscriptionEnd: string | null | undefined): boolean {
   if (!subscriptionEnd) return true;
   return new Date(subscriptionEnd) > new Date();
@@ -66,6 +70,10 @@ function premiumFromCacheRow(row: SubscriptionCacheRow | null | undefined): bool
 
   if (isPromoProductId(row.product_id)) {
     return promoStillValid(row.subscription_end);
+  }
+
+  if (isOneTimeProductId(row.product_id)) {
+    return true;
   }
 
   if (isStoreProductId(row.product_id)) {
@@ -131,15 +139,23 @@ export async function isPremium(
 
     if (!r.ok) {
       console.warn("[MEAL-PLAN] check-subscription HTTP", r.status, parsed.error ?? "");
-    }
-
-    cache = await loadSubscriptionCache(supabase, userId);
-    if (premiumFromCacheRow(cache)) {
-      console.log("[MEAL-PLAN] premium: cache after refresh", { product_id: cache?.product_id });
-      return true;
+      cache = await loadSubscriptionCache(supabase, userId);
+      if (premiumFromCacheRow(cache)) {
+        console.log("[MEAL-PLAN] premium: cache after check-subscription error", {
+          product_id: cache?.product_id,
+        });
+        return true;
+      }
+    } else {
+      cache = await loadSubscriptionCache(supabase, userId);
+      if (premiumFromCacheRow(cache)) {
+        console.log("[MEAL-PLAN] premium: cache after refresh", { product_id: cache?.product_id });
+        return true;
+      }
     }
   } catch (e) {
     console.warn("[MEAL-PLAN] check-subscription failed:", e instanceof Error ? e.message : e);
+    cache = await loadSubscriptionCache(supabase, userId);
     if (premiumFromCacheRow(cache)) return true;
   }
 

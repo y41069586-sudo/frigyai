@@ -96,6 +96,7 @@ export function HealthDashboard({
           tracker={
             <TrackerWidget
               delay={0.02}
+              section="summary"
               caloriesEaten={caloriesEaten}
               targetCalories={targetCalories}
               proteinEaten={proteinEaten}
@@ -114,6 +115,22 @@ export function HealthDashboard({
             />
           }
           weight={<DashboardWeightWidget embedded targetWeight={undefined} />}
+        />
+
+        <TrackerWidget
+          delay={0.06}
+          section="quick-log"
+          caloriesEaten={caloriesEaten}
+          targetCalories={targetCalories}
+          proteinEaten={proteinEaten}
+          targetProtein={targetProtein}
+          carbsEaten={carbsEaten}
+          targetCarbs={targetCarbs}
+          fatEaten={fatEaten}
+          targetFat={targetFat}
+          loggedMealTypes={loggedMealTypes}
+          onAddMeal={(slot) => notifyOpenLogMeal(slot)}
+          targetsReady={targetsReady}
         />
 
         <WeeklyPlanWidget

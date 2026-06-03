@@ -27,18 +27,18 @@ export function TrackerWidgetCarousel({ tracker, weight, className }: TrackerWid
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative w-full min-w-0", className)}>
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="dashboard-touch-scroll flex snap-x snap-mandatory overflow-x-auto overflow-y-visible overscroll-x-contain scrollbar-none"
-        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y pinch-zoom" }}
+        className="dashboard-carousel-scroll flex snap-x snap-mandatory overflow-x-auto overflow-y-visible overscroll-x-contain scrollbar-none"
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x pinch-zoom" }}
       >
-        <div className="dashboard-touch-scroll w-full shrink-0 snap-center snap-always">{tracker}</div>
-        <div className="dashboard-touch-scroll w-full shrink-0 snap-center snap-always">{weight}</div>
+        <div className="w-full min-w-0 shrink-0 snap-center snap-always">{tracker}</div>
+        <div className="w-full min-w-0 shrink-0 snap-center snap-always">{weight}</div>
       </div>
 
-      <div className="mt-3 flex justify-center gap-1.5">
+      <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
         {[0, 1].map((i) => (
           <button
             key={i}

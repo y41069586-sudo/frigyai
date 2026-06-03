@@ -58,11 +58,14 @@ export const RECONCILE_RATIO_MIN = 0.85;
 export const RECONCILE_RATIO_MAX = 1.15;
 export const MACRO_CAPS = { protein: 350, carbs: 600, fat: 250 };
 
-/** Default: gpt-4o (override via Edge secret OPENAI_MEAL_PLAN_MODEL). */
+/** Default: gpt-4o-mini (fast enough for Edge ~60s limit). Override via OPENAI_MEAL_PLAN_MODEL. */
 export function getOpenAIMealPlanModel(): string {
-  return Deno.env.get("OPENAI_MEAL_PLAN_MODEL")?.trim() || "gpt-4o";
+  return Deno.env.get("OPENAI_MEAL_PLAN_MODEL")?.trim() || "gpt-4o-mini";
 }
 
+/** OpenAI fetch cap — on timeout we fall back to a template plan instead of hitting Supabase 504. */
+export const OPENAI_FETCH_TIMEOUT_MS = 42_000;
+
 /** Max output tokens — lower keeps responses fast enough for Edge Function limits. */
-export const OPENAI_PLAN_MAX_TOKENS = 5000;
+export const OPENAI_PLAN_MAX_TOKENS = 4500;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;

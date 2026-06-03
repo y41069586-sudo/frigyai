@@ -22,7 +22,7 @@ import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
 import { resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { localizeMealTypeLabel, localizeWeekdayLabel } from '@/lib/mealI18n';
+import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
 import {
   tabPanelExit,
   tabPanelFrom,
@@ -64,7 +64,7 @@ interface DayPlan {
 
 const normalizeMeal = (meal: Partial<Meal> | null | undefined, fallbackType: string, defaultMealName: string): Meal => ({
   type: typeof meal?.type === 'string' ? meal.type : fallbackType,
-  name: typeof meal?.name === 'string' ? meal.name : defaultMealName,
+  name: typeof meal?.name === 'string' ? cleanMealDisplayName(meal.name) || meal.name : defaultMealName,
   calories: Number(meal?.calories) || 0,
   protein: Number(meal?.protein) || 0,
   carbs: Number(meal?.carbs) || 0,
@@ -530,6 +530,7 @@ const MealPlansPage = () => {
               className="relative"
             >
                 <div className="mb-4 sm:mb-6">
+                  {mealPlan.length > 0 && (
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <div className="grid w-full min-w-0 grid-cols-[minmax(72px,auto)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
                       <ExportMealPlan mealPlan={mealPlan} pdfOnly />
@@ -563,6 +564,7 @@ const MealPlansPage = () => {
                       </Button>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">

@@ -29,6 +29,8 @@ type TrackerWidgetProps = {
   onToggleExpand?: () => void;
   /** false while tracker goals still load — suppresses brief “over goal” flash */
   targetsReady?: boolean;
+  /** summary = calories/macros only; quick-log = meal slot buttons; all = both */
+  section?: "all" | "summary" | "quick-log";
 };
 
 export function TrackerWidget({
@@ -46,6 +48,7 @@ export function TrackerWidget({
   loggedMealTypes = [],
   showQuickLog = true,
   targetsReady = true,
+  section = "all",
 }: TrackerWidgetProps) {
   const { t, language } = useLanguage();
   const locale = getAppLocale(language);
@@ -78,14 +81,17 @@ export function TrackerWidget({
   const carbsPct = targetsReady && targetCarbs > 0 ? Math.min(100, (carbsEaten / targetCarbs) * 100) : 0;
   const fatPct = targetsReady && targetFat > 0 ? Math.min(100, (fatEaten / targetFat) * 100) : 0;
   const openTrackerTap = useScrollFriendlyTap(() => onOpenTracker?.());
+  const showSummary = section === "all" || section === "summary";
+  const showSlots = (section === "all" || section === "quick-log") && showQuickLog;
 
   return (
-    <div className="dashboard-touch-scroll space-y-6">
+    <div className={cn("space-y-6", section !== "quick-log" && "w-full min-w-0")}>
+      {showSummary && (
       <WidgetCard
         delay={delay}
         variant="glass"
         interactive={false}
-        className="-mx-1 w-[calc(100%+0.5rem)] rounded-[2rem] border border-slate-200/70 bg-white/92 p-5 shadow-[0_16px_34px_-26px_rgba(15,23,42,0.12)] sm:mx-0 sm:w-full sm:bg-white/88 sm:p-6 sm:shadow-[0_20px_44px_-30px_rgba(15,23,42,0.14)]"
+        className="w-full min-w-0 rounded-[2rem] border border-slate-200/70 bg-white/92 p-5 shadow-[0_16px_34px_-26px_rgba(74,232,150,0.22),0_8px_24px_-22px_rgba(15,23,42,0.10)] sm:bg-white/88 sm:p-6 sm:shadow-[0_20px_44px_-28px_rgba(74,232,150,0.28),0_10px_28px_-24px_rgba(15,23,42,0.12)]"
       >
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
@@ -138,8 +144,9 @@ export function TrackerWidget({
           </div>
         </div>
       </WidgetCard>
+      )}
 
-      {showQuickLog && (
+      {showSlots && (
       <section className="space-y-3">
         <div className="flex items-end justify-between">
           <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">{t.today}</h2>
@@ -236,7 +243,7 @@ function InlineStat({
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl"
         style={{
-          background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(100,116,139,0.34) 0deg)`,
+          background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(148,163,184,0.22) 0deg)`,
         }}
       />
       <div className="pointer-events-none absolute inset-[3px] rounded-[0.82rem] border border-transparent bg-[#f9fbf9]/96 sm:border-slate-200/65" />
@@ -244,8 +251,8 @@ function InlineStat({
         <span className={cn("mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full", colorClass)}>
           <Icon className="h-3.5 w-3.5" />
         </span>
-        <p className="text-[11px] font-medium text-slate-500">{label}</p>
-        <p className="mt-1 text-[10px] font-semibold leading-none tabular-nums text-slate-700">{value}</p>
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p className="mt-1 text-[10px] font-semibold leading-none tabular-nums text-slate-600">{value}</p>
       </div>
     </div>
   );

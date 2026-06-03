@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, Camera, ChevronLeft, Plus, Search, Trash2, X } from "lucide-react";
+import { Barcode, Camera, ChefHat, Clock, Lightbulb, Plus, Search, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brandColors";
 import {
@@ -25,6 +25,15 @@ import {
   fullScreenTo,
   fullScreenTransition,
 } from "@/lib/motionPresets";
+import {
+  getDetailedInstructions,
+  groupStepsByPhase,
+  parseAllCookingSteps,
+  phaseBadgeClass,
+  phaseLabel,
+  sumStepMinutes,
+  type MealForInstructions,
+} from "@/lib/cookingInstructions";
 
 export type TrackerRecipeExample = {
   id: string;
@@ -126,6 +135,105 @@ function DetailMacro({
       </p>
       <p className="mt-1 text-[9px] font-semibold text-zinc-500">{label}</p>
     </div>
+  );
+}
+
+function parseIngredientString(raw: string): { name: string; amount: string } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^([\d.,]+\s*(?:g|kg|ml|l|EL|TL|Stück|St\.?|Portion|Port\.?)?)\s+(.+)$/i);
+  if (match) return { amount: match[1].trim(), name: match[2].trim() };
+  return { amount: "—", name: trimmed };
+}
+
+function recipeToMealForInstructions(recipe: TrackerRecipeExample): MealForInstructions {
+  return {
+    name: recipe.title,
+    prepTime: recipe.prepTime ?? 20,
+    ingredients: (recipe.ingredients ?? []).map(parseIngredientString),
+    instructions: recipe.instructions ?? [],
+  };
+}
+
+function RecipePreparationSection({
+  recipe,
+  copy,
+}: {
+  recipe: TrackerRecipeExample;
+  copy: {
+    preparation: string;
+    cookingHint: string;
+    steps: string;
+    totalTime: string;
+    totalDuration: string;
+    timedSteps: string;
+  };
+}) {
+  const meal = recipeToMealForInstructions(recipe);
+  const detailedInstructions = getDetailedInstructions(meal);
+  const parsedSteps = parseAllCookingSteps(detailedInstructions);
+  const phaseGroups = groupStepsByPhase(parsedSteps);
+  const timedMinutes = sumStepMinutes(parsedSteps);
+  const prepTime = meal.prepTime;
+
+  return (
+    <section className="mt-4 rounded-2xl border border-slate-200/85 bg-white/72 p-4">
+      {(prepTime > 0 || timedMinutes > 0) && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2.5 text-sm">
+          <Clock className="h-4 w-4 shrink-0 text-primary" />
+          <span className="font-medium text-foreground">
+            {copy.totalTime} {prepTime} {copy.totalDuration}
+          </span>
+          {timedMinutes > 0 && (
+            <span className="text-xs text-muted-foreground">· {timedMinutes} {copy.timedSteps}</span>
+          )}
+        </div>
+      )}
+
+      <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+        <ChefHat className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p className="text-xs leading-relaxed text-muted-foreground">{copy.cookingHint}</p>
+      </div>
+
+      <h3 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">
+        {copy.preparation} ({parsedSteps.length} {copy.steps})
+      </h3>
+
+      <div className="space-y-5">
+        {phaseGroups.map(({ phase, steps }) => (
+          <div key={phase}>
+            <p
+              className={`mb-2 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${phaseBadgeClass[phase]}`}
+            >
+              {phaseLabel[phase]}
+            </p>
+            <ol className="space-y-3">
+              {steps.map((step) => (
+                <li key={step.index} className="rounded-2xl border border-slate-200/70 bg-muted/25 p-3.5">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+                      {step.index + 1}
+                    </span>
+                    {step.minutes != null && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-foreground ring-1 ring-slate-200/80">
+                        <Clock className="h-3 w-3 text-primary" />
+                        {step.minutes} min
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed text-foreground">{step.text}</p>
+                  {step.tip && (
+                    <p className="mt-2.5 flex gap-2 rounded-xl bg-amber-50/90 px-2.5 py-2 text-xs leading-relaxed text-amber-900">
+                      <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{step.tip}</span>
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -356,6 +464,11 @@ export function TrackerAddMealPanel({
         mealLabel: "Repas",
         ingredients: "Ingredients",
         preparation: "Preparation",
+        cookingHint: "Cuisine pas a pas — temps, phase et gestes precis dans chaque etape.",
+        steps: "etapes",
+        totalTime: "env.",
+        totalDuration: "min au total",
+        timedSteps: "min dans les etapes",
         preparationFallback: [
           "Prepare les ingredients et les portions.",
           "Cuisine le tout frais et assaisonne selon ton gout.",
@@ -386,6 +499,11 @@ export function TrackerAddMealPanel({
           mealLabel: "Meal",
           ingredients: "Ingredients",
           preparation: "Preparation",
+          cookingHint: "Cook it step by step — each step includes time, phase, and exact actions.",
+          steps: "steps",
+          totalTime: "approx.",
+          totalDuration: "min total time",
+          timedSteps: "min in steps",
           preparationFallback: [
             "Prepare the ingredients and portion sizes.",
             "Cook everything fresh and season to taste.",
@@ -415,6 +533,11 @@ export function TrackerAddMealPanel({
           mealLabel: "Mahlzeit",
           ingredients: "Zutaten",
           preparation: "Zubereitung",
+          cookingHint: "Schritt fuer Schritt nachkochen — Zeit, Phase und genaue Handgriffe in jedem Schritt.",
+          steps: "Schritte",
+          totalTime: "ca.",
+          totalDuration: "Min Gesamtzeit",
+          timedSteps: "Min in den Schritten",
           preparationFallback: [
             "Zutaten vorbereiten und passend portionieren.",
             "Alles frisch zubereiten und nach Geschmack würzen.",
@@ -521,43 +644,37 @@ export function TrackerAddMealPanel({
         onChange={handleCameraInputChange}
       />
       <div
-        className="flex shrink-0 items-center px-3 pb-2"
+        className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2"
         style={{
           paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.25rem)",
-          minHeight: showMealTitle ? undefined : "3.25rem",
+          minHeight: "3.25rem",
         }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={copy.back}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors"
-          style={{
-            backgroundColor: PALETTE.chip,
-            borderColor: PALETTE.border,
-            color: PALETTE.primaryDark,
-          }}
-        >
-          <ChevronLeft className="size-5" />
-        </button>
         {showMealTitle ? (
-          <h1 className="flex-1 text-center text-[17px] font-semibold tracking-tight">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-tight">{title}</h1>
         ) : (
           <div className="flex-1" aria-hidden />
         )}
-        <button
-          type="button"
-          onClick={() => setLoggedListOpen(true)}
-          className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-xl border px-2 text-[15px] font-bold tabular-nums transition-transform active:scale-95"
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderColor: PALETTE.border,
-            color: PALETTE.primaryDark,
-          }}
-          aria-label={copy.todayMealsAria(mealCount)}
-        >
-          {mealCount}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {mealCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setLoggedListOpen(true)}
+              className="text-[14px] font-bold tabular-nums text-primary transition-opacity active:opacity-70"
+              aria-label={copy.todayMealsAria(mealCount)}
+            >
+              {mealCount}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={copy.close}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors active:bg-black/5"
+          >
+            <X className="size-5" strokeWidth={2.25} />
+          </button>
+        </div>
       </div>
 
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -701,16 +818,26 @@ export function TrackerAddMealPanel({
                   boxShadow: "0 -18px 48px -18px rgba(15,40,30,0.28)",
                 }}
               >
-                <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-zinc-300" />
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: PALETTE.textMuted }}>
-                    {copy.mealLabel}
-                  </p>
-                  <h2 className="mt-1 text-[24px] font-black leading-tight tracking-[-0.04em]">
-                    {selectedRecipe.title}
-                  </h2>
-
-                  <div className="mt-4 grid grid-cols-4 gap-2">
+                <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: PALETTE.textMuted }}>
+                      {copy.mealLabel}
+                    </p>
+                    <h2 className="mt-1 text-[22px] font-black leading-tight tracking-[-0.04em]">
+                      {selectedRecipe.title}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecipe(null)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors active:bg-black/5"
+                    aria-label={copy.detailsClose}
+                  >
+                    <X className="size-5" strokeWidth={2.25} />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+                  <div className="mt-2 grid grid-cols-4 gap-2">
                     <DetailMacro label={copy.kcal} value={selectedRecipe.calories} tint="#F97316" />
                     <DetailMacro label={copy.protein} value={selectedRecipe.protein} unit="g" tint="#E11D48" />
                     <DetailMacro label={copy.carbs} value={selectedRecipe.carbs} unit="g" tint="#D97706" />
@@ -730,32 +857,10 @@ export function TrackerAddMealPanel({
                     </section>
                   ) : null}
 
-                  <section className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3">
-                    <h3 className="mb-2 text-[16px] font-bold">{copy.preparation}</h3>
-                    <ol className="space-y-2">
-                      {(selectedRecipe.instructions?.length
-                        ? selectedRecipe.instructions
-                        : copy.preparationFallback
-                      ).map((step, idx) => (
-                        <li key={`${step}-${idx}`} className="flex gap-2 rounded-xl bg-white px-3 py-2 text-sm">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#DCF5EA] text-xs font-bold" style={{ color: PALETTE.primaryDark }}>
-                            {idx + 1}
-                          </span>
-                          <span>{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </section>
+                  <RecipePreparationSection recipe={selectedRecipe} copy={copy} />
                 </div>
 
-                <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-zinc-200 px-4 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRecipe(null)}
-                    className="flex h-12 items-center justify-center rounded-2xl border border-zinc-200 text-sm font-bold"
-                  >
-                    {copy.backButton}
-                  </button>
+                <div className="shrink-0 border-t border-zinc-200 px-4 pt-3">
                   <button
                     type="button"
                     disabled={isAnalyzing}
@@ -763,7 +868,7 @@ export function TrackerAddMealPanel({
                       onAddRecipe(selectedRecipe);
                       setSelectedRecipe(null);
                     }}
-                    className="flex h-12 items-center justify-center rounded-2xl text-sm font-bold text-white disabled:opacity-50"
+                    className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold text-white disabled:opacity-50"
                     style={{ backgroundColor: PALETTE.primary }}
                   >
                     {copy.add}
@@ -801,11 +906,10 @@ export function TrackerAddMealPanel({
                   <button
                     type="button"
                     onClick={() => setLoggedListOpen(false)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full"
-                    style={{ backgroundColor: PALETTE.chip, color: PALETTE.primaryDark }}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors active:bg-black/5"
                     aria-label={copy.close}
                   >
-                    <X className="size-4" />
+                    <X className="size-5" strokeWidth={2.25} />
                   </button>
                 </motion.div>
                 <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2">

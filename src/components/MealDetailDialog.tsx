@@ -22,7 +22,7 @@ import {
   viewportPanelTransition,
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
-import { localizeMealTypeLabel } from "@/lib/mealI18n";
+import { localizeMealTypeLabel, cleanMealDisplayName } from "@/lib/mealI18n";
 
 interface Ingredient {
   name: string;
@@ -225,7 +225,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
               !isMobile && "gpu-smooth",
               isMobile
-                ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(0.75rem,env(safe-area-inset-bottom,0px)+0.5rem)] rounded-[1.75rem] border border-primary/15"
+                ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5.75rem,env(safe-area-inset-bottom,0px)+4.75rem)] rounded-[1.75rem] border border-primary/15"
                 : "left-1/2 top-1/2 max-h-[88vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-primary/20",
             )}
           >
@@ -242,7 +242,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                     id="meal-detail-title"
                     className="pr-2 text-[22px] font-black leading-tight tracking-[-0.04em] text-foreground sm:text-[24px]"
                   >
-                    {activeMeal.name}
+                    {cleanMealDisplayName(activeMeal.name) || activeMeal.name}
                   </h2>
                 </div>
                 <Button

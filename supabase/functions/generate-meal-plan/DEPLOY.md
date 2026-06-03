@@ -1,25 +1,39 @@
-# generate-meal-plan deploy (Supabase Dashboard)
+# generate-meal-plan deploy
 
-**Mit `OPENAI_API_KEY`:** Der Wochenplan kommt von OpenAI (auch bei „Neu generieren“). Die festen Listen in `dietPools.ts` / `fallbacks.ts` sind nur **Notfall ohne API-Key** oder wenn die KI nach allen Versuchen scheitert.
+Die Function liegt in vielen kleinen `.ts`-Dateien. **Du musst kein Node ausführen**, wenn du aus dem Repo kopierst.
 
-The Dashboard only accepts **one file**: paste/deploy `index.ts` only.
+## Option A — Supabase Dashboard (nur Copy & Paste)
 
-## After editing modules (`auth.ts`, `macros.ts`, …)
+1. Öffne im Repo: **`supabase/functions/generate-meal-plan/dashboard-bundle.ts`**
+2. Alles markieren (Strg+A) und kopieren
+3. Supabase Dashboard → **Edge Functions** → `generate-meal-plan` → Code einfügen → **Deploy**
+
+Das ist **eine einzige Datei** — kein `node`, kein `index.handler.ts`, keine Module.
+
+Nach dem Deploy: OPTIONS auf die Function sollte **200** mit `ok` zurückgeben (nicht 503).
+
+## Option B — Supabase CLI (ein Befehl, alle Module)
+
+Im Projektroot (einmal `supabase login`):
 
 ```bash
-cd supabase/functions/generate-meal-plan
-deno run --allow-read --allow-write scripts/inline-index.ts
+npm run supabase:deploy:meal-plan
 ```
 
-Then copy **`index.ts`** into the Supabase Dashboard editor and deploy.
+Dabei wird `index.ts` + alle Module hochgeladen — kein Bundle nötig.
 
-Nach Änderungen an Modulen immer `inline-index` ausführen und neu deployen — sonst läuft auf Supabase noch alter Code.
+## Für Entwickler (nach Änderungen an auth.ts, openai.ts, …)
 
-## Source layout
+```bash
+npm run meal-plan:bundle
+```
 
-| File | Role |
-|------|------|
-| `index.ts` | **Deployed** — generated monolith |
-| `index.handler.ts` | HTTP handler (merged by script) |
-| `auth.ts`, `macros.ts`, … | Edit these, then regenerate |
-| `scripts/inline-index.ts` | Build script |
+Aktualisiert `dashboard-bundle.ts` für Option A. Dann committen, damit du im Dashboard immer die aktuelle Version kopieren kannst.
+
+## Secrets auf Supabase (Edge Function)
+
+| Secret | Pflicht |
+|--------|---------|
+| `OPENAI_API_KEY` | Ja (sonst Template-Plan) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Automatisch |
+| `OPENAI_MEAL_PLAN_MODEL` | Optional (Standard: `gpt-4o-mini`) |

@@ -88,7 +88,7 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
       }}
       aria-label={`${t.weeklyPlan}: ${mealName}`}
       className={cn(
-        "dashboard-touch-scroll group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] border border-slate-200/75 p-5 text-left",
+        "group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] border border-slate-200/75 p-5 text-left",
         "bg-gradient-to-br from-white via-white to-primary/[0.06]",
         "shadow-[0_18px_44px_-32px_rgba(74,232,150,0.32)]",
         "transition-[box-shadow,transform] duration-300",

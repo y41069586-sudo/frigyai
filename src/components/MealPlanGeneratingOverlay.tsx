@@ -163,7 +163,7 @@ export const MealPlanGeneratingOverlay = ({
         initial={{ scale: 0, y: 100 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0, y: 100 }}
-        className="fixed bottom-24 right-4 z-50"
+        className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] right-4 z-[110]"
       >
         <div className="relative">
           <motion.div

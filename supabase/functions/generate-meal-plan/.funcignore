@@ -1,3 +1,7 @@
 **/*_test.ts
 tsconfig.json
 deno.lock
+dashboard-bundle.ts
+index.handler.ts
+scripts/
+DEPLOY.md

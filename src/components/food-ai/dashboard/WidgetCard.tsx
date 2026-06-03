@@ -17,7 +17,7 @@ export type WidgetCardProps = {
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
   glass:
-    "border border-slate-200/70 bg-white/84 shadow-[0_10px_24px_-20px_rgba(15,40,30,0.12)] sm:bg-white/62 sm:backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.06]",
+    "border border-slate-200/70 bg-white/84 shadow-[0_12px_28px_-22px_rgba(74,232,150,0.18),0_8px_20px_-18px_rgba(15,40,30,0.10)] sm:bg-white/62 sm:backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.06]",
   soft:
     "border border-slate-200/70 bg-card/96 shadow-[0_8px_20px_-18px_rgba(0,0,0,0.12)] sm:bg-card/82 sm:backdrop-blur-md",
   gradient:

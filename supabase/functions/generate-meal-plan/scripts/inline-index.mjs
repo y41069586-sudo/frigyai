@@ -31,7 +31,7 @@ const MODULES = [
 ];
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outPath = join(root, "index.ts");
+const outPath = join(root, "dashboard-bundle.ts");
 
 function stripImports(source) {
   return source.replace(
@@ -40,9 +40,8 @@ function stripImports(source) {
   );
 }
 
-const header = `// generate-meal-plan — single file for Supabase Dashboard deploy.
-// Regenerate: node scripts/inline-index.mjs
-// Edit modules then run; paste/deploy only this index.ts.
+const header = `// generate-meal-plan — EINE Datei fürs Supabase Dashboard (Copy & Paste).
+// Entwickler: npm run meal-plan:bundle  |  Nutzer: diese Datei komplett ins Dashboard einfügen.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://esm.sh/zod@3.24.1";

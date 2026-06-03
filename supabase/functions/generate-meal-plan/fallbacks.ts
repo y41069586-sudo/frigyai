@@ -79,8 +79,8 @@ export function fallbackPlan(params: {
   const poolIndex = { b: 0, m: 0, s: 0 };
   let synthCounter = 0;
 
-  const pickUniqueTitle = (pool: string[], slot: "b" | "m" | "s", dayTag: string): string => {
-    const list = pool.length ? pool : safePools[slot];
+  const pickUniqueTitle = (titlePool: string[], slot: "b" | "m" | "s", _dayTag: string): string => {
+    const list = titlePool.length ? titlePool : safePools[slot];
     for (let round = 0; round < list.length + 2; round++) {
       for (let o = 0; o < list.length; o++) {
         const idx = (poolIndex[slot] + o) % list.length;
@@ -94,11 +94,9 @@ export function fallbackPlan(params: {
       }
     }
     synthCounter += 1;
-    const pool = safePools[slot];
-    const base = pool.length ? pool[(synthCounter - 1) % pool.length]! : (slot === "m" ? "Gemüsepfanne" : slot === "b" ? "Haferflocken mit Beeren" : "Obst Mix");
-    const label = params.isRegeneration && pool.length > 1
-      ? `${base} (${dayTag})`
-      : base;
+    const slotPool = safePools[slot];
+    const base = slotPool.length ? slotPool[(synthCounter - 1) % slotPool.length]! : (slot === "m" ? "Gemüsepfanne" : slot === "b" ? "Haferflocken mit Beeren" : "Obst Mix");
+    const label = base;
     used.add(label.toLowerCase());
     return label;
   };
