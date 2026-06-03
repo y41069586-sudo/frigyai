@@ -4,10 +4,12 @@ workflows:
   android-build:
     name: Android Build
 
-    max_build_duration: 90
-    instance_type: linux_x2
+    max_build_duration: 120
+    # mac_mini_m2: 500 free min/month on personal accounts. linux_x2 needs billing enabled.
+    instance_type: mac_mini_m2
 
     environment:
+      xcode: latest
       node: 22
       groups:
         - frigy

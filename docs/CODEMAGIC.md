@@ -138,13 +138,15 @@ Diese Werte werden bei **`npm run build`** in die Web-Assets eingebaut. Supabase
 3. Warten (~15–25 Min. auf Mac-Runner)
 4. **Artifacts** → `.ipa` herunterladen
 
-### Android (AAB)
+### Android (AAB + APK)
 
 1. Workflow **Android Build** starten
-2. **Artifacts** → `app-release.aab` herunterladen → [Google Play Console](https://play.google.com/console)
-3. **Signing:** In Codemagic Team → Code signing → Android Keystore (`CM_KEYSTORE_PATH`, `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS`, `CM_KEY_PASSWORD`) — sonst Debug-Signatur (nur intern testen)
+2. **Artifacts** → `app-release.aab` (Play Store) und `app-release.apk` (Test)
+3. **Signing:** Android Keystore in Codemagic — sonst Debug-Signatur (APK nur zum Testen)
 
 Optional: `VITE_REVENUECAT_API_KEY_ANDROID=goog_…` in Group `frigy`.
+
+**Billing:** Der Build nutzt `mac_mini_m2` (wie früher iOS) — 500 Free-Minuten/Monat auf dem **Personal Account**. `linux_x2` braucht aktiviertes Billing („nicht im Plan verfügbar“).
 
 ### TestFlight
 
@@ -228,7 +230,7 @@ In Xcode: Product → Run auf Simulator oder Gerät.
 
 ## Android
 
-Workflow **Android Build** in `codemagic.yaml`: Vite → `cap sync android` → Gradle `bundleRelease` + `assembleRelease`.
+Workflow **Android Build** in `codemagic.yaml`: Vite → `cap sync android` → Gradle `bundleRelease` + `assembleRelease` auf **mac_mini_m2** (nicht `linux_x2`, außer Billing ist aktiv).
 
 - **Artifacts:** `app-release.aab` (Play Store), `app-release.apk` (direkt installieren / intern testen)
 - **Signing:** Codemagic Team → Code signing → Android Keystore — sonst Debug-Signatur (APK nur zum Testen)
