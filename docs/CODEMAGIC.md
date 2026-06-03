@@ -19,45 +19,30 @@ Der **Android-Workflow wurde entfernt**. In Codemagic startest du nur noch:
 
 ## 2. Apple Code Signing (Pflicht)
 
-Ohne Signing schlägt der iOS-Build fehl. **Du brauchst kein Mac** — Codemagic erzeugt das Zertifikat über die **App Store Connect API**.
+Ohne Signing schlägt der iOS-Build fehl. Codemagic holt Zertifikat + Profil über die **App Store Connect API**.
 
-### App settings — Variable Group `appstore_credentials` (Pflicht)
+### Environment variables (ohne Variable Group)
 
-Der Workflow lädt die Apple-API-Keys **nur** aus der Group **`appstore_credentials`**.
+**Keine Group nötig** — das vermeidet `unknown variable group(s): appstore_credentials`.
 
-| Fehler | Bedeutung |
-|--------|-----------|
-| `unknown variable group(s): appstore_credentials` | Group in Codemagic **noch nicht angelegt** (Name exakt so) |
-| `Verify build environment` exit 1 | Apple-Keys und/oder Supabase-Variablen fehlen (siehe `codemagic.env.example`) |
+**Codemagic → frigyai → Settings → Environment variables → Add variable**
 
-**Codemagic → App frigyai → Settings → Environment variables:**
-
-1. **Add variable** → Name: `APP_STORE_CONNECT_PRIVATE_KEY`
-2. Value: komplette `.p8`-Datei (mit `-----BEGIN PRIVATE KEY-----` … `-----END PRIVATE KEY-----`)
-3. **Secret** aktivieren
-4. **Group name:** `appstore_credentials` → **Create group** (beim ersten Mal)
-5. Speichern, dann **zwei weitere Variablen** in **derselben** Group:
+Beim Anlegen: **Group-Feld leer lassen** (Application variables).
 
 | Variable name | Value | Secret? |
 |---------------|-------|---------|
+| `APP_STORE_CONNECT_PRIVATE_KEY` | komplette `.p8`-Datei | **ja** |
 | `APP_STORE_CONNECT_KEY_IDENTIFIER` | `BFQ5G69F89` | nein |
 | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID (UUID) von App Store Connect | nein |
-| `APP_STORE_CONNECT_PRIVATE_KEY` | `.p8` Inhalt | **ja** |
 
-**`.p8` einfügen (Windows):**
-
-1. `AuthKey_BFQ5G69F89.p8` mit **Notepad** öffnen  
-2. Alles markieren und kopieren — inkl. Zeilen:
-   ```
-   -----BEGIN PRIVATE KEY-----
-   ...
-   -----END PRIVATE KEY-----
-   ```
-3. In Codemagic bei **Value** einfügen (kein Base64, kein JSON)
+| Fehler | Bedeutung |
+|--------|-----------|
+| `Verify build environment` exit 1 | Eine oder mehrere Variablen fehlen (siehe `codemagic.env.example`) |
+| `private_key looks too short` | `.p8` nicht vollständig eingefügt |
 
 Issuer ID: [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API** → oben **Issuer ID**.
 
-Die Group muss **`appstore_credentials`** heißen (wie in `codemagic.yaml`). Beim Build werden Zertifikat + Profil automatisch geholt.
+Beim Build werden Zertifikat + Profil automatisch geholt (`Fetch code signing files`).
 
 **Generate certificate** in der UI brauchst du dann **nicht** — der Build-Schritt `Fetch code signing files` reicht.
 
@@ -112,11 +97,11 @@ Vollständige Liste: **`codemagic.env.example`** im Repo-Root.
 
 **Codemagic → frigyai → Environment variables**
 
-| Variable | Pflicht? | Wo? |
-|----------|----------|-----|
-| `VITE_SUPABASE_URL` | **ja** | Application (ohne Group) **oder** Group `appstore_credentials` |
+| Variable | Pflicht? | Hinweis |
+|----------|----------|---------|
+| `VITE_SUPABASE_URL` | **ja** | Application variable, kein Secret nötig für Vite |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | **ja** | wie oben |
-| `VITE_REVENUECAT_API_KEY_IOS` | empfohlen | wie oben |
+| `VITE_REVENUECAT_API_KEY_IOS` | empfohlen | `appl_…` aus RevenueCat |
 | `VITE_REVENUECAT_ENTITLEMENT_ID` | nein (Default `premium` in yaml) | optional |
 | `VITE_APPLE_*`, `VITE_PRIVACY_POLICY_URL` | nein (Defaults in yaml) | optional |
 
@@ -183,8 +168,7 @@ Dann committen und in Codemagic neu bauen.
 
 | Fehler | Lösung |
 |--------|--------|
-| `unknown variable group appstore_credentials` | Group in Codemagic anlegen (Abschnitt 2) |
-| `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` setzen |
+| `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` als Application variables |
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
 | No signing certificate | API-Key + App in ASC mit `com.frigyapp.app` |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |

@@ -2,6 +2,14 @@
 # Codemagic preflight — fails fast with clear messages. See docs/CODEMAGIC.md
 set -euo pipefail
 
+normalize_p8_key() {
+  if [ -n "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ] && ! printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | grep -q "BEGIN PRIVATE KEY"; then
+    export APP_STORE_CONNECT_PRIVATE_KEY
+    APP_STORE_CONNECT_PRIVATE_KEY="$(printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | sed 's/\\n/\n/g')"
+    export APP_STORE_CONNECT_PRIVATE_KEY
+  fi
+}
+
 require_var() {
   local name="$1"
   local value="${!name:-}"
@@ -9,6 +17,8 @@ require_var() {
     MISSING="${MISSING} ${name}"
   fi
 }
+
+normalize_p8_key
 
 MISSING=""
 require_var APP_STORE_CONNECT_KEY_IDENTIFIER
@@ -20,25 +30,29 @@ require_var VITE_SUPABASE_PUBLISHABLE_KEY
 if [ -n "$MISSING" ]; then
   echo "ERROR: Missing Codemagic environment variables:$MISSING"
   echo ""
-  echo "Apple signing (group must be named exactly: appstore_credentials):"
-  echo "  APP_STORE_CONNECT_KEY_IDENTIFIER"
-  echo "  APP_STORE_CONNECT_ISSUER_ID"
-  echo "  APP_STORE_CONNECT_PRIVATE_KEY  (Secret, full .p8 contents)"
+  echo "Codemagic → frigyai → Settings → Environment variables → Add variable"
+  echo "Leave Group EMPTY (Application variables) OR use any group linked to this app."
   echo ""
-  echo "App build (add in same group OR as Application variables without group):"
+  echo "Required:"
+  echo "  APP_STORE_CONNECT_KEY_IDENTIFIER = BFQ5G69F89"
+  echo "  APP_STORE_CONNECT_ISSUER_ID = UUID from App Store Connect"
+  echo "  APP_STORE_CONNECT_PRIVATE_KEY = full .p8 (mark Secret)"
   echo "  VITE_SUPABASE_URL"
   echo "  VITE_SUPABASE_PUBLISHABLE_KEY"
-  echo "  VITE_REVENUECAT_API_KEY_IOS  (recommended)"
+  echo "  VITE_REVENUECAT_API_KEY_IOS (recommended)"
   echo ""
-  echo "Codemagic → frigyai → Settings → Environment variables"
-  echo "docs/CODEMAGIC.md"
+  echo "See codemagic.env.example and docs/CODEMAGIC.md"
+  exit 1
+fi
+
+if ! printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | grep -q "BEGIN PRIVATE KEY"; then
+  echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY must include -----BEGIN PRIVATE KEY-----"
   exit 1
 fi
 
 key_len=$(printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | wc -c | tr -d ' ')
 if [ "$key_len" -lt 200 ]; then
   echo "ERROR: APP_STORE_CONNECT_PRIVATE_KEY looks too short (${key_len} chars)."
-  echo "Paste the entire .p8 file including BEGIN/END lines."
   exit 1
 fi
 

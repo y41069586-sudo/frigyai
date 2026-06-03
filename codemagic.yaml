@@ -10,15 +10,12 @@ workflows:
     environment:
       xcode: latest
       node: 20
-      # Apple API keys — must live in Codemagic group "appstore_credentials"
-      groups:
-        - appstore_credentials
+      # No variable groups — add all secrets as Application env vars in Codemagic UI.
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: App
         BUNDLE_ID: com.frigyapp.app
         XCODE_PROJECT: ios/App/App.xcodeproj
-        # Defaults (override in Codemagic if needed)
         VITE_REVENUECAT_ENTITLEMENT_ID: premium
         VITE_APPLE_BUNDLE_ID: com.frigyapp.app
         VITE_APPLE_CLIENT_ID: com.frigyapp.app
@@ -46,6 +43,9 @@ workflows:
           set -e
           npx cap sync ios
           test -d ios/App/App/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
+          if ! grep -q "RevenuecatPurchasesCapacitor\|purchases-capacitor" ios/App/CapApp-SPM/Package.swift; then
+            echo "WARNING: RevenueCat not in CapApp-SPM — IAP may fail on device."
+          fi
 
       - name: Fetch code signing files from Apple
         script: |
@@ -86,8 +86,7 @@ workflows:
     publishing:
       scripts:
         - name: Build info
-          script: |
-            echo "iOS IPA → Artifacts. TestFlight: docs/CODEMAGIC.md"
+          script: echo "IPA ready — download from Artifacts."
 
   ios-build-adhoc:
     name: iOS Build (Ad Hoc)
