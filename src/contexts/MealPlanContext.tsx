@@ -13,6 +13,7 @@ import {
 import { isSubscriptionActive } from '@/lib/subscription';
 import { usesStoreBilling } from '@/lib/billingPlatform';
 import { syncStoreSubscriptionToServer } from '@/lib/storeBilling';
+import { resolveMealPlanGenerationTargets } from '@/lib/mealPlanGenerationTargets';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import {
   buildConstraintPrompt,
@@ -231,7 +232,7 @@ export const useMealPlanGeneration = () => {
 
 export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const { session, isPremium, checkSubscription } = useAuth();
+  const { session, isPremium, subscriptionStatus, checkSubscription } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -530,12 +531,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return false;
     }
 
-    const macroTargets = harmonizeDailyTargets({
-      dailyCalories: settings.dailyCalories,
-      dailyProtein: settings.dailyProtein,
-      dailyCarbs: settings.dailyCarbs,
-      dailyFat: settings.dailyFat,
-    });
+    const macroTargets = resolveMealPlanGenerationTargets(settings);
     const previousMealsForRegen = summarizeExistingMeals(mealPlan);
     const isRegeneration = previousMealsForRegen.length > 0;
 
@@ -555,7 +551,21 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (usesStoreBilling() && session.access_token) {
           await syncStoreSubscriptionToServer(session.access_token);
         }
-        await checkSubscription();
+        const refreshedStatus = await checkSubscription();
+        const serverPremiumOk = isSubscriptionActive(refreshedStatus);
+        if (!serverPremiumOk && !isSubscriptionActive(subscriptionStatus)) {
+          toast({
+            title: ui.premiumRequired,
+            description:
+              getStoredLanguage() === 'en'
+                ? 'Premium could not be verified. Open Profile → refresh subscription, then try again.'
+                : getStoredLanguage() === 'fr'
+                  ? 'Premium non vérifié. Ouvre Profil → actualise l’abonnement, puis réessaie.'
+                  : 'Premium konnte nicht bestätigt werden. Profil → Abo aktualisieren, dann erneut versuchen.',
+            variant: 'destructive',
+          });
+          return false;
+        }
 
         const diet = readUserMealPlanProfile();
         const constraintPrompt = buildConstraintPrompt(
@@ -629,8 +639,13 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 dailyFat: Number(appliedFromServer.dailyFat) || macroTargets.dailyFat,
               })
             : macroTargets;
-          // Server already ran syncPlan — re-sync on client often threw and blocked save
-          const newPlan = normalizeMealPlanMacros(rawPlan) as DayPlan[];
+          let newPlan: DayPlan[];
+          try {
+            newPlan = normalizeMealPlanMacros(rawPlan) as DayPlan[];
+          } catch (normalizeErr) {
+            console.warn('[MEAL-PLAN-CLIENT] normalizeMealPlanMacros failed, using server plan:', normalizeErr);
+            newPlan = rawPlan;
+          }
           const newShoppingList = (data as any).shoppingList || [];
           const targetWarning = (data as any)?.targetWarning as
             | { type?: string; message?: string; appliedKcal?: number }
@@ -845,7 +860,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount, isPremium, checkSubscription, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally]);
+  }, [session, refreshGenerationCount, isPremium, subscriptionStatus, checkSubscription, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally]);
 
   useEffect(() => {
     const syncPlanLanguage = async (nextLanguage: Language) => {

@@ -67,4 +67,5 @@ export function getOpenAIMealPlanModel(): string {
 export const OPENAI_PLAN_MAX_TOKENS = 8192;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
 /** Abort OpenAI fetch before Supabase Edge wall-clock timeout; triggers template fallback. */
-export const OPENAI_FETCH_TIMEOUT_MS = 50_000;
+/** Stay under Supabase Edge wall-clock (~60s) including build/repair after OpenAI. */
+export const OPENAI_FETCH_TIMEOUT_MS = 42_000;

@@ -236,7 +236,8 @@ export function getOpenAIMealPlanModel(): string {
 export const OPENAI_PLAN_MAX_TOKENS = 8192;
 export const OPENAI_MAX_INGREDIENTS_PER_MEAL = 6;
 /** Abort OpenAI fetch before Supabase Edge wall-clock timeout; triggers template fallback. */
-export const OPENAI_FETCH_TIMEOUT_MS = 50_000;
+/** Stay under Supabase Edge wall-clock (~60s) including build/repair after OpenAI. */
+export const OPENAI_FETCH_TIMEOUT_MS = 42_000;
 
 // ----- http.ts -----
 export const corsHeaders = {
@@ -2070,7 +2071,11 @@ export type SupabaseClient = {
     select: (columns: string) => {
       eq: (column: string, value: string) => {
         maybeSingle: () => Promise<{
-          data: { subscribed?: boolean; subscription_end?: string | null } | null;
+          data: {
+            subscribed?: boolean;
+            subscription_end?: string | null;
+            product_id?: string | null;
+          } | null;
         }>;
       };
     };
@@ -2079,6 +2084,12 @@ export type SupabaseClient = {
     fn: string,
     args: Record<string, unknown>,
   ) => Promise<{ error: { message: string } | null }>;
+};
+
+type SubscriptionCacheRow = {
+  subscribed?: boolean;
+  subscription_end?: string | null;
+  product_id?: string | null;
 };
 
 export async function trackMealPlanUsage(supabase: SupabaseClient, userId: string) {
@@ -2094,13 +2105,47 @@ export async function trackMealPlanUsage(supabase: SupabaseClient, userId: strin
   }
 }
 
-function isActiveSubscription(row: {
-  subscribed?: boolean;
-  subscription_end?: string | null;
-} | null | undefined): boolean {
+function isPromoProductId(productId: string | null | undefined): boolean {
+  if (!productId) return false;
+  return productId.startsWith("referral_") || productId === "influencer_promo";
+}
+
+function isStoreProductId(productId: string | null | undefined): boolean {
+  if (!productId) return false;
+  return productId.startsWith("rc_") || productId.startsWith("store_");
+}
+
+function promoStillValid(subscriptionEnd: string | null | undefined): boolean {
+  if (!subscriptionEnd) return true;
+  return new Date(subscriptionEnd) > new Date();
+}
+
+function premiumFromCacheRow(row: SubscriptionCacheRow | null | undefined): boolean {
   if (!row?.subscribed) return false;
+
+  if (isPromoProductId(row.product_id)) {
+    return promoStillValid(row.subscription_end);
+  }
+
+  if (isStoreProductId(row.product_id)) {
+    if (row.subscription_end && new Date(row.subscription_end) <= new Date()) return false;
+    return true;
+  }
+
   if (!row.subscription_end) return true;
   return new Date(row.subscription_end) > new Date();
+}
+
+async function loadSubscriptionCache(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<SubscriptionCacheRow | null> {
+  const { data } = await supabase
+    .from("subscription_cache")
+    .select("subscribed, subscription_end, product_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data ?? null;
 }
 
 export async function isPremium(
@@ -2109,35 +2154,56 @@ export async function isPremium(
   email: string | null,
   auth: string,
 ) {
-  const { data } = await supabase
-    .from("subscription_cache")
-    .select("subscribed, subscription_end")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (isActiveSubscription(data)) return true;
+  let cache = await loadSubscriptionCache(supabase, userId);
+  if (premiumFromCacheRow(cache)) {
+    console.log("[MEAL-PLAN] premium: cache hit", { product_id: cache?.product_id });
+    return true;
+  }
 
   const bypass = (Deno.env.get("PREMIUM_BYPASS_EMAILS") || "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  if (email && bypass.includes(email.toLowerCase())) return true;
+  if (email && bypass.includes(email.toLowerCase())) {
+    console.log("[MEAL-PLAN] premium: bypass email");
+    return true;
+  }
 
   try {
     const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/check-subscription`, {
       method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
+      body: "{}",
     });
-    if (!r.ok) {
-      console.warn("[MEAL-PLAN] check-subscription HTTP", r.status);
-      return isActiveSubscription(data);
+    const text = await r.text();
+    let parsed: SubscriptionCacheRow & { error?: string } = {};
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch {
+      console.warn("[MEAL-PLAN] check-subscription non-JSON", text.slice(0, 120));
     }
-    const j = await r.json();
-    return isActiveSubscription(j);
+
+    if (parsed.subscribed === true && premiumFromCacheRow(parsed)) {
+      console.log("[MEAL-PLAN] premium: check-subscription active");
+      return true;
+    }
+
+    if (!r.ok) {
+      console.warn("[MEAL-PLAN] check-subscription HTTP", r.status, parsed.error ?? "");
+    }
+
+    cache = await loadSubscriptionCache(supabase, userId);
+    if (premiumFromCacheRow(cache)) {
+      console.log("[MEAL-PLAN] premium: cache after refresh", { product_id: cache?.product_id });
+      return true;
+    }
   } catch (e) {
     console.warn("[MEAL-PLAN] check-subscription failed:", e instanceof Error ? e.message : e);
-    return isActiveSubscription(data);
+    if (premiumFromCacheRow(cache)) return true;
   }
+
+  console.warn("[MEAL-PLAN] premium: denied", { userId, email: email ?? null });
+  return false;
 }
 
 /** Local Monday YYYY-MM-DD — matches src/lib/localDate.ts getLocalWeekStartISO */
@@ -3147,7 +3213,10 @@ Deno.serve(async (req) => {
     const userId = authUser.id;
 
     if (!(await isPremium(supabase, userId, authUser.email ?? null, auth))) {
-      return json({ error: "premium_required", message: "Premium required." }, 403);
+      return json({
+        error: "premium_required",
+        message: "Premium erforderlich. Bitte Abo prüfen oder App neu starten.",
+      }, 403);
     }
 
     let body: Record<string, unknown>;
@@ -3182,15 +3251,8 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
-    const hasOpenAiKey = Boolean(getOpenAIKey());
-    console.log("[MEAL-PLAN] request", {
-      hasOpenAiKey,
-      isRegeneration: isRegeneration || priorDishes.length > 0,
-      mealsPerDay,
-      priorDishes: priorDishes.length,
-    });
-
-    const { plan, usedAi, repairAttempts } = await buildPlan({
+    const safetyCtx = createSafetyContext(allergies, prefs, other);
+    const planInput = {
       mealsPerDay,
       targets,
       prefs,
@@ -3201,11 +3263,47 @@ Deno.serve(async (req) => {
       fridge,
       banned,
       constraints,
-      safetyCtx: createSafetyContext(allergies, prefs, other),
+      safetyCtx,
       isRegeneration: isRegeneration || priorDishes.length > 0,
       varietySeed,
       priorDishes,
+    };
+
+    const hasOpenAiKey = Boolean(getOpenAIKey());
+    console.log("[MEAL-PLAN] request", {
+      hasOpenAiKey,
+      isRegeneration: planInput.isRegeneration,
+      mealsPerDay,
+      priorDishes: priorDishes.length,
     });
+
+    let plan: MealPlan;
+    let usedAi = false;
+    let repairAttempts = 0;
+
+    try {
+      const built = await buildPlan(planInput);
+      plan = built.plan;
+      usedAi = built.usedAi;
+      repairAttempts = built.repairAttempts;
+    } catch (buildErr) {
+      const msg = buildErr instanceof Error ? buildErr.message : String(buildErr);
+      console.error("[MEAL-PLAN] buildPlan failed — safe fallback:", msg);
+      plan = guaranteedSafeMinimalPlan({ mealsPerDay, lang });
+      plan = finishPlan(plan, targets, mealsPerDay, lang) ?? plan;
+      usedAi = false;
+      repairAttempts = 0;
+    }
+
+    if (!Array.isArray(plan) || plan.length < 7) {
+      console.warn("[MEAL-PLAN] plan too short — rebuilding fallback");
+      const bannedSet = new Set(banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
+      const fallback = generateFallbackDraft(planInput, bannedSet);
+      plan = finishPlan(fallback, targets, mealsPerDay, lang) ??
+        guaranteedSafeMinimalPlan({ mealsPerDay, lang });
+      plan = finishPlan(plan, targets, mealsPerDay, lang) ?? plan;
+      usedAi = false;
+    }
 
     const list = shoppingList(plan, fridge);
     const meta = scanMeta(plan, fridge, list);

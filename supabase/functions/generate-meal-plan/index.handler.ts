@@ -25,7 +25,10 @@ Deno.serve(async (req) => {
     const userId = authUser.id;
 
     if (!(await isPremium(supabase, userId, authUser.email ?? null, auth))) {
-      return json({ error: "premium_required", message: "Premium required." }, 403);
+      return json({
+        error: "premium_required",
+        message: "Premium erforderlich. Bitte Abo prüfen oder App neu starten.",
+      }, 403);
     }
 
     let body: Record<string, unknown>;
@@ -60,15 +63,8 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
-    const hasOpenAiKey = Boolean(getOpenAIKey());
-    console.log("[MEAL-PLAN] request", {
-      hasOpenAiKey,
-      isRegeneration: isRegeneration || priorDishes.length > 0,
-      mealsPerDay,
-      priorDishes: priorDishes.length,
-    });
-
-    const { plan, usedAi, repairAttempts } = await buildPlan({
+    const safetyCtx = createSafetyContext(allergies, prefs, other);
+    const planInput = {
       mealsPerDay,
       targets,
       prefs,
@@ -79,11 +75,47 @@ Deno.serve(async (req) => {
       fridge,
       banned,
       constraints,
-      safetyCtx: createSafetyContext(allergies, prefs, other),
+      safetyCtx,
       isRegeneration: isRegeneration || priorDishes.length > 0,
       varietySeed,
       priorDishes,
+    };
+
+    const hasOpenAiKey = Boolean(getOpenAIKey());
+    console.log("[MEAL-PLAN] request", {
+      hasOpenAiKey,
+      isRegeneration: planInput.isRegeneration,
+      mealsPerDay,
+      priorDishes: priorDishes.length,
     });
+
+    let plan: MealPlan;
+    let usedAi = false;
+    let repairAttempts = 0;
+
+    try {
+      const built = await buildPlan(planInput);
+      plan = built.plan;
+      usedAi = built.usedAi;
+      repairAttempts = built.repairAttempts;
+    } catch (buildErr) {
+      const msg = buildErr instanceof Error ? buildErr.message : String(buildErr);
+      console.error("[MEAL-PLAN] buildPlan failed — safe fallback:", msg);
+      plan = guaranteedSafeMinimalPlan({ mealsPerDay, lang });
+      plan = finishPlan(plan, targets, mealsPerDay, lang) ?? plan;
+      usedAi = false;
+      repairAttempts = 0;
+    }
+
+    if (!Array.isArray(plan) || plan.length < 7) {
+      console.warn("[MEAL-PLAN] plan too short — rebuilding fallback");
+      const bannedSet = new Set(banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
+      const fallback = generateFallbackDraft(planInput, bannedSet);
+      plan = finishPlan(fallback, targets, mealsPerDay, lang) ??
+        guaranteedSafeMinimalPlan({ mealsPerDay, lang });
+      plan = finishPlan(plan, targets, mealsPerDay, lang) ?? plan;
+      usedAi = false;
+    }
 
     const list = shoppingList(plan, fridge);
     const meta = scanMeta(plan, fridge, list);
