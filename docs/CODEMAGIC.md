@@ -192,6 +192,7 @@ Dann committen und in Codemagic neu bauen.
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
 | `Failed to show build settings` / exit 74 | SPM-Pfade in `Package.swift` (keine `\`); Schritt „Resolve Swift packages“ im Log prüfen |
+| `chottulink-ios-sdk` incompatible tools version 6.1 | `codemagic.yaml` nutzt `xcode: 26.4`; `CapApp-SPM/Package.swift` → `swift-tools-version: 6.1` |
 | Leere App / kein Login | `VITE_SUPABASE_*` in Codemagic setzen |
 | RevenueCat / IAP fehlt | `VITE_REVENUECAT_API_KEY_IOS` setzen |
 | Scheme not found | Scheme **App** unter `ios/App/App.xcodeproj` |
