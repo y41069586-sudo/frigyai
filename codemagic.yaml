@@ -66,7 +66,10 @@ workflows:
       - name: Set up code signing
         script: |
           set -e
-          xcode-project use-profiles --project "$CM_BUILD_DIR/ios/App/App.xcodeproj"
+          xcode-project use-profiles \
+            --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-method app-store
 
       - name: Set iOS build number
         script: |
@@ -82,7 +85,9 @@ workflows:
           xcode-project build-ipa \
             --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
-            --archive-flags="-destination 'generic/platform=iOS'"
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --disable-xcpretty
 
     artifacts:
       - ios/App/build/ios/ipa/*.ipa

@@ -189,6 +189,7 @@ Dann committen und in Codemagic neu bauen.
 | `Verify build environment` exit 1 | Alle Variablen aus `codemagic.env.example` in Group `frigy` |
 | `private_key looks too short` | Komplette `.p8` in `APP_STORE_CONNECT_PRIVATE_KEY` |
 | No signing certificate | Zertifikat + App-Store-Profil in Code signing identities; App in ASC mit `com.frigyapp.app` |
+| Archive failed (exit 65) | App-Store-Profil muss **Push**, **Sign in with Apple**, **Associated Domains** haben; `App.entitlements` → `aps-environment: production`; Profil nach Capability-Änderung neu **Fetch** |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
 | `Failed to show build settings` / exit 74 | SPM-Pfade in `Package.swift` (keine `\`); Schritt „Resolve Swift packages“ im Log prüfen |
