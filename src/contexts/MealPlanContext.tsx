@@ -11,6 +11,8 @@ import {
   type DailyMacroTargets,
 } from '@/lib/mealPlanMacros';
 import { isSubscriptionActive } from '@/lib/subscription';
+import { usesStoreBilling } from '@/lib/billingPlatform';
+import { syncStoreSubscriptionToServer } from '@/lib/storeBilling';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import {
   buildConstraintPrompt,
@@ -550,6 +552,11 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     try {
       try {
+        if (usesStoreBilling() && session.access_token) {
+          await syncStoreSubscriptionToServer(session.access_token);
+        }
+        await checkSubscription();
+
         const diet = readUserMealPlanProfile();
         const constraintPrompt = buildConstraintPrompt(
           diet.allergies,
@@ -761,10 +768,11 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const message = error instanceof Error ? error.message : String(error);
       console.error('[MEAL-PLAN-CLIENT] Error in generateMealPlan catch block:', message);
 
+      const lowerMsg = message.toLowerCase();
       if (
         message.includes('plan_limit_exceeded') ||
         message.includes('premium_required') ||
-        message.includes('Premium required')
+        lowerMsg.includes('premium required')
       ) {
         await refreshGenerationCount();
         toast({
@@ -795,12 +803,17 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         message.includes('502') ||
         message.includes('504') ||
         message.includes('non-2xx') ||
-        message.includes('FunctionsHttpError') ||
-        message.includes('meal_plan_generation_failed')
+        message.includes('FunctionsHttpError')
       ) {
         toast({
           title: ui.connectionErrorTitle,
           description: ui.connectionErrorDesc,
+          variant: 'destructive',
+        });
+      } else if (message.includes('meal_plan_generation_failed') || message.includes('config_error')) {
+        toast({
+          title: ui.genericErrorTitle,
+          description: getPublicErrorMessage(message, ui.genericErrorDesc),
           variant: 'destructive',
         });
       } else if (message.includes('meal_plan_timeout') || message.includes('timeout')) {

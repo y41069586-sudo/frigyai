@@ -72,9 +72,9 @@ const LegalPage = () => {
   );
 };
 
-const IMPRESSUM_ANBIETER = "Yousef Mohamed";
+const IMPRESSUM_ANBIETER = "Doaa Attia";
 const IMPRESSUM_ANSCHRIFT_ZEILEN = ["Wilhelm-Diess-Weg 3a", "94081 Fürstenzell", "Deutschland"];
-const IMPRESSUM_EMAIL = "mail@frigy.app";
+const IMPRESSUM_EMAIL = "frigy.team@gmail.com";
 
 const ImpressumContent = () => (
   <div className="max-w-none space-y-6 sm:space-y-8">

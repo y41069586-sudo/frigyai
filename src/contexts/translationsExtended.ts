@@ -17,7 +17,10 @@ export interface ExtendedTranslations {
   communityLoadingRecipes: string;
   communityEmptyRecipesTitle: string;
   communityEmptyRecipesDesc: string;
+  communityEmptyPostsTitle: string;
+  communityEmptyPostsDesc: string;
   communityFirstRecipeBtn: string;
+  landingTestimonialAuthor: string;
   communityMoreIngredients: string;
   timeAgoMinutes: string;
   timeAgoHours: string;
@@ -505,6 +508,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     communityLoadingRecipes: "Rezepte werden geladen...",
     communityEmptyRecipesTitle: "Noch keine Rezepte",
     communityEmptyRecipesDesc: "Sei der Erste, der ein Rezept teilt!",
+    communityEmptyPostsTitle: "Noch keine Beiträge",
+    communityEmptyPostsDesc: "Teile dein erstes Rezept — Beiträge erscheinen hier, sobald die Community wächst.",
+    landingTestimonialAuthor: "Frigy-Nutzer",
     communityFirstRecipeBtn: "Erstes Rezept teilen",
     communityMoreIngredients: "mehr",
     timeAgoMinutes: "vor {n} Min.",
@@ -548,7 +554,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     landingFeatureHealthTitle: "Wöchentliche Meal Plans",
     landingFeatureHealthDesc: "KI-generierte Wochenpläne passend zu deinen Zielen und Zutaten.",
     landingTestimonial1: "Endlich eine App, die versteht was ich im Kühlschrank habe!",
-    landingTestimonial2: "12kg in 3 Monaten abgenommen. Die Meal Plans sind perfekt.",
+    landingTestimonial2: "Die Wochenpläne passen gut zu meinen Makros und sparen Zeit beim Einkaufen.",
     landingTestimonial3: "Die Community ist super motivierend!",
     landingPremiumFeature1: "Unbegrenzte Scans",
     landingPremiumFeature2: "KI-Chatbot",
@@ -1005,6 +1011,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     communityLoadingRecipes: "Loading recipes...",
     communityEmptyRecipesTitle: "No recipes yet",
     communityEmptyRecipesDesc: "Be the first to share a recipe!",
+    communityEmptyPostsTitle: "No posts yet",
+    communityEmptyPostsDesc: "Share your first recipe — posts will show up here as the community grows.",
+    landingTestimonialAuthor: "Frigy user",
     communityFirstRecipeBtn: "Share first recipe",
     communityMoreIngredients: "more",
     timeAgoMinutes: "{n} min ago",
@@ -1045,7 +1054,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     landingFeatureHealthTitle: "Weekly meal plans",
     landingFeatureHealthDesc: "AI-generated weekly plans tailored to your goals and ingredients.",
     landingTestimonial1: "Finally an app that understands what's in my fridge!",
-    landingTestimonial2: "Lost 12 kg in 3 months. The meal plans are perfect.",
+    landingTestimonial2: "Weekly plans match my macros and save time on grocery shopping.",
     landingTestimonial3: "The community is super motivating!",
     landingPremiumFeature1: "Unlimited scans",
     landingPremiumFeature2: "AI chatbot",
@@ -1500,6 +1509,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     communityLoadingRecipes: "Chargement des recettes...",
     communityEmptyRecipesTitle: "Pas encore de recettes",
     communityEmptyRecipesDesc: "Sois le premier à partager une recette !",
+    communityEmptyPostsTitle: "Pas encore de publications",
+    communityEmptyPostsDesc: "Partage ta première recette — les publications apparaîtront ici au fil de la communauté.",
+    landingTestimonialAuthor: "Utilisateur Frigy",
     communityFirstRecipeBtn: "Partager la première recette",
     communityMoreIngredients: "de plus",
     timeAgoMinutes: "il y a {n} min",
@@ -1543,7 +1555,7 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     landingFeatureHealthTitle: "Plans repas hebdo",
     landingFeatureHealthDesc: "Plans hebdomadaires IA adaptés à tes objectifs et ingrédients.",
     landingTestimonial1: "Enfin une app qui comprend ce qu'il y a dans mon frigo !",
-    landingTestimonial2: "12 kg en 3 mois. Les plans de repas sont parfaits.",
+    landingTestimonial2: "Les plans hebdomadaires correspondent à mes macros et font gagner du temps aux courses.",
     landingTestimonial3: "La communauté est super motivante !",
     landingPremiumFeature1: "Scans illimités",
     landingPremiumFeature2: "Chatbot IA",

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Heart, MessageCircle, Share2, Plus, ArrowLeft, 
-  Flame, Users, TrendingUp, Star, Clock, ChefHat, Loader2
+  Flame, Star, Clock, ChefHat, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -161,41 +161,6 @@ export const CommunityPage = () => {
     }
   };
 
-  // Load demo posts
-  useEffect(() => {
-    const demoPosts: Post[] = [
-      {
-        id: '1',
-        author: { name: 'Sarah M.' },
-        content: 'Heute mein neues Lieblingsrezept entdeckt! 🥗 Hähnchen-Avocado-Salat mit nur 350 kcal. Perfekt für den Sommer!',
-        recipe: { name: 'Hähnchen-Avocado-Salat', calories: 350 },
-        likes: 24,
-        comments: 5,
-        isLiked: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 30)
-      },
-      {
-        id: '2',
-        author: { name: 'Thomas K.' },
-        content: '5kg in 4 Wochen geschafft! 💪 Die Meal Plans sind einfach genial. Danke Frigy!',
-        likes: 45,
-        comments: 12,
-        isLiked: true,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2)
-      },
-      {
-        id: '3',
-        author: { name: 'Lisa W.' },
-        content: 'Hat jemand gute Low-Carb Rezepte für unter 400 kcal? Suche neue Inspiration! 🤔',
-        likes: 8,
-        comments: 15,
-        isLiked: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5)
-      },
-    ];
-    setPosts(demoPosts);
-  }, []);
-
   const handleLike = (postId: string) => {
     setPosts(posts.map(post => {
       if (post.id === postId) {
@@ -258,25 +223,13 @@ export const CommunityPage = () => {
         </div>
       </div>
 
-      {/* Stats Bar */}
+      {/* Stats — only real recipe count (no fake member/success metrics) */}
       <div className="max-w-2xl mx-auto px-5 py-5">
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
-            <Users className="h-5 w-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">1.2k</p>
-            <p className="text-xs text-muted-foreground">{t.communityStatMembers}</p>
-          </Card>
-          <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
-            <ChefHat className="h-5 w-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">{communityRecipes.length}</p>
-            <p className="text-xs text-muted-foreground">{t.communityStatRecipes}</p>
-          </Card>
-          <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-3 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
-            <TrendingUp className="h-5 w-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">89%</p>
-            <p className="text-xs text-muted-foreground">{t.communityStatSuccess}</p>
-          </Card>
-        </div>
+        <Card className="rounded-3xl border-slate-200/85 bg-white/78 p-4 text-center shadow-[0_14px_36px_-28px_rgba(15,23,42,0.32)]">
+          <ChefHat className="h-6 w-6 mx-auto text-primary mb-2" />
+          <p className="text-2xl font-bold">{communityRecipes.length}</p>
+          <p className="text-sm text-muted-foreground">{t.communityStatRecipes}</p>
+        </Card>
       </div>
 
       {/* Tabs */}
@@ -375,10 +328,12 @@ export const CommunityPage = () => {
                             <span>{recipe.prep_time} min</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 text-yellow-500" />
-                          <span>4.5</span>
-                        </div>
+                        {recipe.rating_count > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 text-yellow-500" />
+                            <span>{recipe.average_rating.toFixed(1)}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Ingredients Preview */}
@@ -407,6 +362,17 @@ export const CommunityPage = () => {
 
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-4">
+            {posts.length === 0 ? (
+              <div className="text-center py-12">
+                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">{t.communityEmptyPostsTitle}</h3>
+                <p className="text-muted-foreground text-sm mb-4">{t.communityEmptyPostsDesc}</p>
+                <Button onClick={() => setUploadDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t.communityFirstRecipeBtn}
+                </Button>
+              </div>
+            ) : (
             <AnimatePresence>
               {posts.map((post, index) => (
                 <motion.div
@@ -470,6 +436,7 @@ export const CommunityPage = () => {
                 </motion.div>
               ))}
             </AnimatePresence>
+            )}
           </TabsContent>
         </Tabs>
       </div>

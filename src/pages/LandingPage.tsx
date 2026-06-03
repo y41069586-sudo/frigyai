@@ -37,9 +37,9 @@ export const LandingPage = () => {
 
   const testimonials = useMemo(
     () => [
-      { name: "Sarah M.", text: t.landingTestimonial1, rating: 5 },
-      { name: "Thomas K.", text: t.landingTestimonial2, rating: 5 },
-      { name: "Lisa W.", text: t.landingTestimonial3, rating: 5 },
+      { name: t.landingTestimonialAuthor, text: t.landingTestimonial1, rating: 5 },
+      { name: t.landingTestimonialAuthor, text: t.landingTestimonial2, rating: 5 },
+      { name: t.landingTestimonialAuthor, text: t.landingTestimonial3, rating: 5 },
     ],
     [t],
   );

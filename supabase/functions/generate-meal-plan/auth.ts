@@ -36,25 +36,49 @@ export async function trackMealPlanUsage(supabase: SupabaseClient, userId: strin
   }
 }
 
+function isActiveSubscription(row: {
+  subscribed?: boolean;
+  subscription_end?: string | null;
+} | null | undefined): boolean {
+  if (!row?.subscribed) return false;
+  if (!row.subscription_end) return true;
+  return new Date(row.subscription_end) > new Date();
+}
+
 export async function isPremium(
   supabase: SupabaseClient,
   userId: string,
   email: string | null,
   auth: string,
 ) {
-  const { data } = await supabase.from("subscription_cache").select("subscribed, subscription_end").eq("user_id", userId).maybeSingle();
-  if (data?.subscribed && (!data.subscription_end || new Date(data.subscription_end) > new Date())) return true;
-  const bypass = (Deno.env.get("PREMIUM_BYPASS_EMAILS") || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  const { data } = await supabase
+    .from("subscription_cache")
+    .select("subscribed, subscription_end")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (isActiveSubscription(data)) return true;
+
+  const bypass = (Deno.env.get("PREMIUM_BYPASS_EMAILS") || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   if (email && bypass.includes(email.toLowerCase())) return true;
+
   try {
     const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/check-subscription`, {
+      method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
     });
-    if (!r.ok) return false;
+    if (!r.ok) {
+      console.warn("[MEAL-PLAN] check-subscription HTTP", r.status);
+      return isActiveSubscription(data);
+    }
     const j = await r.json();
-    return j?.subscribed === true && (!j.subscription_end || new Date(j.subscription_end) > new Date());
-  } catch {
-    return false;
+    return isActiveSubscription(j);
+  } catch (e) {
+    console.warn("[MEAL-PLAN] check-subscription failed:", e instanceof Error ? e.message : e);
+    return isActiveSubscription(data);
   }
 }
 

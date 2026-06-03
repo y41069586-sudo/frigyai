@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Fridgie</string>
-    <string name="title_activity_main">Fridgie</string>
+    <string name="app_name">Frigy</string>
+    <string name="title_activity_main">Frigy</string>
     <string name="package_name">com.frigyapp.app</string>
     <string name="custom_url_scheme">com.frigyapp.app</string>
 </resources>
