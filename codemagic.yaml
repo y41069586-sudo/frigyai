@@ -8,7 +8,7 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
-      xcode: latest
+      xcode: 16
       node: 22
       # Secrets live in Codemagic variable group "frigy" (name must match UI exactly).
       # Alternative: leave Group empty on each variable and remove the groups: block below.
@@ -50,19 +50,28 @@ workflows:
           set -e
           npx cap sync ios
           test -d ios/App/App/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
+          # cap sync on Windows can write backslashes — SPM on macOS needs forward slashes
+          sed -i '' 's|\\|/|g' ios/App/CapApp-SPM/Package.swift
           if ! grep -q "RevenuecatPurchasesCapacitor\|purchases-capacitor" ios/App/CapApp-SPM/Package.swift; then
             echo "WARNING: RevenueCat not in CapApp-SPM — IAP may fail on device."
           fi
 
+      - name: Resolve Swift packages
+        script: |
+          set -e
+          xcodebuild -resolvePackageDependencies \
+            -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
+            -scheme "$XCODE_SCHEME"
+
       - name: Set up code signing
         script: |
           set -e
-          xcode-project use-profiles --project "$XCODE_PROJECT"
+          xcode-project use-profiles --project "$CM_BUILD_DIR/ios/App/App.xcodeproj"
 
       - name: Set iOS build number
         script: |
           set -e
-          cd ios/App
+          cd "$CM_BUILD_DIR/ios/App"
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
           agvtool new-version -all "$BUILD_NUM"
           echo "iOS CFBundleVersion=$BUILD_NUM"
@@ -70,9 +79,8 @@ workflows:
       - name: Build IPA
         script: |
           set -e
-          cd ios/App
           xcode-project build-ipa \
-            --project "App.xcodeproj" \
+            --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
             --archive-flags="-destination 'generic/platform=iOS'"
 
@@ -90,7 +98,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
-      xcode: latest
+      xcode: 16
       node: 22
       groups:
         - frigy

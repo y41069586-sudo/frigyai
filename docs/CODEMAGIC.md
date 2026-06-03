@@ -191,6 +191,7 @@ Dann committen und in Codemagic neu bauen.
 | No signing certificate | Zertifikat + App-Store-Profil in Code signing identities; App in ASC mit `com.frigyapp.app` |
 | Provisioning profile doesn't match | Bundle ID `com.frigyapp.app` überall gleich |
 | `cap sync ios` failed / Node >=22 | `codemagic.yaml` nutzt Node 22; lokal ebenfalls Node 22 LTS |
+| `Failed to show build settings` / exit 74 | SPM-Pfade in `Package.swift` (keine `\`); Schritt „Resolve Swift packages“ im Log prüfen |
 | Leere App / kein Login | `VITE_SUPABASE_*` in Codemagic setzen |
 | RevenueCat / IAP fehlt | `VITE_REVENUECAT_API_KEY_IOS` setzen |
 | Scheme not found | Scheme **App** unter `ios/App/App.xcodeproj` |
