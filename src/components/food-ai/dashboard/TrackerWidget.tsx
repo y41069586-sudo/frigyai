@@ -85,7 +85,7 @@ export function TrackerWidget({
   const showSlots = (section === "all" || section === "quick-log") && showQuickLog;
 
   return (
-    <div className={cn("space-y-6", section !== "quick-log" && "w-full min-w-0")}>
+    <div className={cn("dashboard-touch-scroll space-y-6", section !== "quick-log" && "w-full min-w-0")}>
       {showSummary && (
       <WidgetCard
         delay={delay}

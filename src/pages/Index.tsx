@@ -551,9 +551,15 @@ const Index = () => {
     onboardingExitInFlightRef.current = true;
 
     try {
+      let activeUser = user;
+      if (!activeUser) {
+        const { data } = await supabase.auth.getSession();
+        activeUser = data.session?.user ?? null;
+      }
+
       const completedLocally = readOnboardingCompleteLocal();
 
-      if (user && (completedLocally || dbOnboardingComplete || hasReferralSkipPaywallPending())) {
+      if (activeUser && (completedLocally || dbOnboardingComplete || hasReferralSkipPaywallPending())) {
         setShowOnboarding(false);
         setOnboardingComplete(true);
         setLocalOnboardingComplete(true);
@@ -568,12 +574,13 @@ const Index = () => {
         return;
       }
 
-      if (user && !hasReferralSkipPaywallPending()) {
+      if (activeUser && !hasReferralSkipPaywallPending()) {
         const hasAccess =
           isPremium ||
           (await resolvePremiumAccessAfterSignIn({
-            userId: user.id,
+            userId: activeUser.id,
             checkSubscription,
+            sessionReady: true,
           }));
         if (!hasAccess) {
           setShowOnboarding(true);
@@ -598,7 +605,7 @@ const Index = () => {
       setShowOnboarding(false);
       setOnboardingComplete(true);
 
-      if (!user) {
+      if (!activeUser) {
         setSearchParams({ onboardingStep: "save-progress" }, { replace: true });
         setShowOnboarding(true);
         setOnboardingComplete(false);

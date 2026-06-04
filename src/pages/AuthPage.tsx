@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import type { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
 import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
 import { resolvePremiumAccessAfterSignIn } from '@/lib/resolvePremiumAccessAfterSignIn';
+import { supabase } from '@/integrations/supabase/client';
 import { Capacitor } from '@capacitor/core';
 import { completeOAuthFromUrl, isOAuthCallbackUrl } from '@/lib/authOAuth';
 import { isAppleSignInAvailable } from '@/lib/appleSignIn';
@@ -28,14 +30,25 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const redirectStartedRef = useRef(false);
 
-  const finishAuthRedirect = useCallback(async () => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const fromParam = searchParams.get('from');
+  const isFromOnboarding = fromParam === 'onboarding';
+  const isFromPremiumPricing = fromParam === 'premium-pricing';
+
+  const finishAuthRedirect = useCallback(async (signedInSession?: Session | null) => {
     if (redirectStartedRef.current) return;
     redirectStartedRef.current = true;
 
+    const sessionUserId =
+      signedInSession?.user?.id ??
+      (await supabase.auth.getSession()).data.session?.user?.id ??
+      user?.id;
+
     if (isFromOnboarding || isFromPremiumPricing) {
       const hasPremium = await resolvePremiumAccessAfterSignIn({
-        userId: user?.id,
+        userId: sessionUserId,
         checkSubscription,
+        sessionReady: true,
       });
       if (hasPremium) {
         localStorage.setItem('onboardingComplete', 'true');
@@ -54,12 +67,6 @@ const AuthPage = () => {
       navigate('/');
     }
   }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, navigate, user?.id]);
-
-  // Check where user is coming from
-  const searchParams = new URLSearchParams(window.location.search);
-  const fromParam = searchParams.get('from');
-  const isFromOnboarding = fromParam === 'onboarding';
-  const isFromPremiumPricing = fromParam === 'premium-pricing';
 
   const handleBack = () => {
     if (isFromOnboarding) {
@@ -85,10 +92,6 @@ const AuthPage = () => {
     return () => window.removeEventListener('popstate', handleBrowserBack);
   }, [isFromOnboarding, navigate]);
 
-  const redirectAfterOnboardingAuth = useCallback(async () => {
-    await finishAuthRedirect();
-  }, [finishAuthRedirect]);
-
   // Redirect if already logged in
   useEffect(() => {
     if (!user || loading) return;
@@ -109,35 +112,25 @@ const AuthPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    redirectStartedRef.current = false;
     setIsSubmitting(true);
     setError(null);
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error, session } = await signIn(email, password);
         if (error) {
           const resolved = resolveAuthErrorMessage(error, language, 'login');
           setError(resolved?.message ?? error.message ?? t.authLoginFailed);
           if (resolved?.switchToLogin) setIsLogin(true);
         } else {
-          const hasSession = await waitForAuthSession(3500);
-          if (!hasSession) {
+          const activeSession = session ?? (await supabase.auth.getSession()).data.session;
+          if (!activeSession && !(await waitForAuthSession(3500))) {
             setError(t.authSignInIncomplete);
             return;
           }
 
-          if (isFromOnboarding || isFromPremiumPricing) {
-            await redirectAfterOnboardingAuth();
-            return;
-          }
-
-          const redirectPath = localStorage.getItem('redirectAfterAuth');
-          if (redirectPath) {
-            localStorage.removeItem('redirectAfterAuth');
-            navigate(redirectPath);
-          } else {
-            navigate('/');
-          }
+          await finishAuthRedirect(activeSession);
         }
       } else {
         const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;

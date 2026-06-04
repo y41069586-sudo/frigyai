@@ -620,8 +620,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const canAccessDashboard = useCallback(async (sessionReady = false): Promise<boolean> => {
     if (isPremium) return true;
+    let userId = user?.id;
+    if (!userId) {
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user?.id;
+    }
     return resolvePremiumAccessAfterSignIn({
-      userId: user?.id,
+      userId,
       checkSubscription,
       sessionReady,
     });

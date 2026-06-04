@@ -218,9 +218,9 @@ All colors MUST be HSL.
     touch-action: pan-y;
   }
 
-  /* Tracker ↔ weight carousel: allow horizontal swipe without vertical scroll lock. */
+  /* Tracker ↔ weight carousel: vertical scroll passes to dashboard; horizontal swipe stays on carousel. */
   .dashboard-scroll-main .dashboard-carousel-scroll {
-    touch-action: pan-x pinch-zoom;
+    touch-action: pan-y pinch-zoom;
   }
 
   /* Better scrolling on mobile */

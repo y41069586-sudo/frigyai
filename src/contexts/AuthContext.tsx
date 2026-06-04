@@ -188,12 +188,17 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   };
 
   const checkSubscription = async (): Promise<SubscriptionStatus | null> => {
-    if (!session) return null;
+    let accessToken = session?.access_token;
+    if (!accessToken) {
+      const { data } = await supabase.auth.getSession();
+      accessToken = data.session?.access_token;
+    }
+    if (!accessToken) return null;
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       });
 
