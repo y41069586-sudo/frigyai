@@ -10,10 +10,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
 import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
-import { resolvePremiumAccessAfterSignIn } from '@/lib/resolvePremiumAccessAfterSignIn';
 import { supabase } from '@/integrations/supabase/client';
 import { Capacitor } from '@capacitor/core';
-import { completeOAuthFromUrl, isOAuthCallbackUrl } from '@/lib/authOAuth';
+import { isOAuthCallbackUrl, POST_AUTH_PAYWALL_ROUTE } from '@/lib/authOAuth';
+import { clearOAuthPending, getOAuthPending } from '@/lib/oauthPending';
+import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from '@/lib/postAuthRedirect';
+import { persistOnboardingSignupFromStorage } from '@/components/onboarding/utils';
 import { isAppleSignInAvailable } from '@/lib/appleSignIn';
 
 const AuthPage = () => {
@@ -25,7 +27,9 @@ const AuthPage = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signIn, signUp, signInWithGoogle, signInWithApple, user, loading, checkSubscription } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [authStuck, setAuthStuck] = useState(false);
+  const { signIn, signUp, signInWithGoogle, signInWithApple, signOut, user, loading, checkSubscription } = useAuth();
   const showAppleSignIn = isAppleSignInAvailable() || Capacitor.getPlatform() === "web";
   const navigate = useNavigate();
   const redirectStartedRef = useRef(false);
@@ -34,39 +38,50 @@ const AuthPage = () => {
   const fromParam = searchParams.get('from');
   const isFromOnboarding = fromParam === 'onboarding';
   const isFromPremiumPricing = fromParam === 'premium-pricing';
+  const hasOAuthCallback = isOAuthCallbackUrl(window.location.href);
 
   const finishAuthRedirect = useCallback(async (signedInSession?: Session | null) => {
-    if (redirectStartedRef.current) return;
-    redirectStartedRef.current = true;
-
-    const sessionUserId =
-      signedInSession?.user?.id ??
-      (await supabase.auth.getSession()).data.session?.user?.id ??
-      user?.id;
-
-    if (isFromOnboarding || isFromPremiumPricing) {
-      const hasPremium = await resolvePremiumAccessAfterSignIn({
-        userId: sessionUserId,
-        checkSubscription,
-        sessionReady: true,
-      });
-      if (hasPremium) {
-        localStorage.setItem('onboardingComplete', 'true');
-        navigate('/', { replace: true });
-        return;
-      }
-      navigate('/?onboardingStep=paywall', { replace: true });
+    if (redirectStartedRef.current || wasPostAuthRedirectRecentlyHandled()) {
       return;
     }
+    redirectStartedRef.current = true;
+    setIsRedirecting(true);
 
-    const redirectPath = localStorage.getItem('redirectAfterAuth');
-    if (redirectPath) {
-      localStorage.removeItem('redirectAfterAuth');
-      navigate(redirectPath);
-    } else {
-      navigate('/');
+    try {
+      const sessionUserId =
+        signedInSession?.user?.id ??
+        (await supabase.auth.getSession()).data.session?.user?.id ??
+        user?.id;
+
+      const nextParam = searchParams.get('next');
+      const redirectPath = localStorage.getItem('redirectAfterAuth');
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterAuth');
+      }
+
+      await redirectAfterSignIn({
+        userId: sessionUserId,
+        checkSubscription,
+        navigate,
+        fromOnboarding: isFromOnboarding,
+        explicitPath:
+          nextParam && nextParam.startsWith('/')
+            ? nextParam
+            : redirectPath && redirectPath.startsWith('/')
+              ? redirectPath
+              : isFromPremiumPricing
+                ? POST_AUTH_PAYWALL_ROUTE
+                : null,
+      });
+    } catch (redirectError) {
+      console.error('[Auth] redirectAfterSignIn failed:', redirectError);
+      redirectStartedRef.current = false;
+      setError(t.authLoginFailed);
+      navigate(POST_AUTH_PAYWALL_ROUTE, { replace: true });
+    } finally {
+      setIsRedirecting(false);
     }
-  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, navigate, user?.id]);
+  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, navigate, searchParams, t.authLoginFailed, user?.id]);
 
   const handleBack = () => {
     if (isFromOnboarding) {
@@ -92,23 +107,25 @@ const AuthPage = () => {
     return () => window.removeEventListener('popstate', handleBrowserBack);
   }, [isFromOnboarding, navigate]);
 
-  // Redirect if already logged in
+  // Already signed in → paywall or dashboard (never show login form again).
   useEffect(() => {
-    if (!user || loading) return;
+    if (loading || !user) return;
+    // OAuth ?code= is completed by AuthOAuthCallbackBootstrap — do not race or strip the URL here.
+    if (hasOAuthCallback) return;
+    if (getOAuthPending()) return;
+    if (wasPostAuthRedirectRecentlyHandled()) return;
+    if (redirectStartedRef.current) return;
     void finishAuthRedirect();
-  }, [user, loading, finishAuthRedirect]);
+  }, [user, loading, finishAuthRedirect, hasOAuthCallback]);
 
-  // Web OAuth return (Google / Apple browser flow)
   useEffect(() => {
-    const url = window.location.href;
-    if (!isOAuthCallbackUrl(url)) return;
-    void completeOAuthFromUrl(url).then((ok) => {
-      if (ok) {
-        window.history.replaceState({}, "", window.location.pathname);
-        void finishAuthRedirect();
-      }
-    });
-  }, [finishAuthRedirect]);
+    if (!user || loading || isRedirecting) {
+      setAuthStuck(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setAuthStuck(true), 6000);
+    return () => window.clearTimeout(timer);
+  }, [user, loading, isRedirecting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,9 +171,13 @@ const AuthPage = () => {
         } else if (!(await waitForAuthSession(3000))) {
           setError(t.authSignInIncomplete);
         } else if (shouldGoToPricing) {
-          navigate('/?onboardingStep=paywall', { replace: true });
+          if (isFromOnboarding) {
+            persistOnboardingSignupFromStorage();
+          }
+          redirectStartedRef.current = false;
+          await finishAuthRedirect();
         } else {
-          navigate('/premium-pricing', { replace: true });
+          navigate(POST_AUTH_PAYWALL_ROUTE, { replace: true });
         }
       }
     } finally {
@@ -164,13 +185,64 @@ const AuthPage = () => {
     }
   };
 
-  // Show loading while checking auth state
-  if (loading) {
+  useEffect(() => {
+    if (searchParams.get('oauth_error') !== '1') return;
+    setError(t.authLoginFailed);
+    window.history.replaceState({}, '', '/auth');
+  }, [searchParams, t.authLoginFailed]);
+
+  const showAuthLoader =
+    loading ||
+    isRedirecting ||
+    hasOAuthCallback ||
+    getOAuthPending() != null ||
+    (user && !authStuck && !wasPostAuthRedirectRecentlyHandled());
+
+  if (showAuthLoader) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary px-6">
         <div className="text-center">
           <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
           <p className="text-muted-foreground">{t.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user && authStuck) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary px-6">
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
+          <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl" />
+          <p className="text-sm text-muted-foreground mb-4">
+            Anmeldung hängt. Bitte Session zurücksetzen und erneut versuchen.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                redirectStartedRef.current = false;
+                setAuthStuck(false);
+                void finishAuthRedirect();
+              }}
+            >
+              Weiter
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                redirectStartedRef.current = false;
+                setAuthStuck(false);
+                clearOAuthPending();
+                await signOut();
+                setAuthStuck(false);
+                window.location.replace('/auth');
+              }}
+            >
+              Abmelden & neu starten
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -295,6 +367,11 @@ const AuthPage = () => {
               className="w-full h-12 sm:h-14 text-base touch-target flex items-center justify-center gap-3 bg-background/50 hover:bg-background/80"
               onClick={async () => {
                 setIsGoogleLoading(true);
+                setError(null);
+                redirectStartedRef.current = false;
+                if (user) {
+                  await signOut();
+                }
                 await signInWithGoogle();
                 setIsGoogleLoading(false);
               }}

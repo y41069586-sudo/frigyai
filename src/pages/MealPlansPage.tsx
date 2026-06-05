@@ -16,6 +16,7 @@ import { ReminderSettings } from '@/components/ReminderSettings';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { toast } from '@/hooks/use-toast';
 import { BottomNavigation } from '@/components/BottomNavigation';
+import { AiDisclaimer } from '@/components/AiDisclaimer';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
@@ -87,13 +88,13 @@ const normalizeMealPlan = (value: unknown, defaultMealName: string): DayPlan[] =
     }));
 };
 
-const normalizeShoppingList = (value: unknown): Ingredient[] => {
+const normalizeShoppingList = (value: unknown, defaultName: string): Ingredient[] => {
   if (!Array.isArray(value)) return [];
 
   return value
     .filter((item): item is Partial<Ingredient> => Boolean(item) && typeof item === 'object')
     .map((item) => ({
-      name: typeof item.name === 'string' && item.name.trim() ? item.name : t.ingredientDefaultName,
+      name: typeof item.name === 'string' && item.name.trim() ? item.name : defaultName,
       amount: typeof item.amount === 'string' && item.amount.trim() ? item.amount : '—',
       price: Number(item.price) || 0,
     }));
@@ -131,7 +132,7 @@ const MealPlansPage = () => {
     return normalizeMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName);
   });
   const [shoppingList, setShoppingList] = useState<Ingredient[]>(() => {
-    return normalizeShoppingList(readJsonArray('weeklyShoppingList'));
+    return normalizeShoppingList(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName);
   });
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -242,11 +243,11 @@ const MealPlansPage = () => {
     }
 
     if (globalShoppingList && globalShoppingList.length > 0) {
-      setShoppingList(normalizeShoppingList(globalShoppingList));
+      setShoppingList(normalizeShoppingList(globalShoppingList, t.ingredientDefaultName));
     } else {
-      setShoppingList(normalizeShoppingList(readJsonArray('weeklyShoppingList')));
+      setShoppingList(normalizeShoppingList(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName));
     }
-  }, [globalMealPlan, globalShoppingList, t.defaultMealName]);
+  }, [globalMealPlan, globalShoppingList, t.defaultMealName, t.ingredientDefaultName]);
 
   // Auto-generate meal plan on login was removed: plans are persisted and should never regenerate automatically.
 
@@ -587,6 +588,7 @@ const MealPlansPage = () => {
                       </Button>
                     </Card>
                   )}
+                  {mealPlan.length > 0 && <AiDisclaimer className="px-1" />}
                   {mealPlan.map((day, dayIndex) => {
                     const isFocusedDay =
                       searchParams.get('day') !== null

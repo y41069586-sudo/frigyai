@@ -23,6 +23,7 @@ import {
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
 import { localizeMealTypeLabel, cleanMealDisplayName } from "@/lib/mealI18n";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 interface Ingredient {
   name: string;
@@ -279,6 +280,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               </div>
 
               <section className="mb-5 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
+                <AiDisclaimer className="mb-3" />
                 <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">{ui.ingredients}</h4>
                 <ul className="space-y-2">
                   {activeMeal.ingredients.map((ing, idx) => (

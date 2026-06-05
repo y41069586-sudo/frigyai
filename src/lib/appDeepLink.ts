@@ -5,10 +5,9 @@ import { extractRefFromSearch } from "@/lib/referralAttribution";
 export const FRIGY_APP_SCHEME = "frigy";
 
 /**
- * Stripe Payment Link → „Nach dem Bezahlen“ (native App).
- * Alternative Web: https://DEINE-DOMAIN/?subscription=success
+ * Deep link after successful subscription checkout (native App).
  */
-export const STRIPE_APP_DEEP_LINK_SUCCESS = `${FRIGY_APP_SCHEME}://callback?subscription=success`;
+export const SUBSCRIPTION_SUCCESS_DEEP_LINK = `${FRIGY_APP_SCHEME}://callback?subscription=success`;
 
 export type DeepLinkResolution = {
   path: string | null;

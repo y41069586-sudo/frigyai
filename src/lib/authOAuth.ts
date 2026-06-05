@@ -1,17 +1,78 @@
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { FRIGY_APP_SCHEME } from "@/lib/appDeepLink";
+import { DEV_SERVER_PORT, LOCAL_OAUTH_REDIRECT } from "@/lib/devServerPort";
+import { isRetriableOAuthExchangeError } from "@/lib/oauthCallbackRecovery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import {
+  setOAuthPending,
+} from "@/lib/oauthPending";
 
 export type OAuthProvider = "google" | "apple";
 
-/** Redirect URL registered in Supabase Auth → URL Configuration. */
+/**
+ * Where Supabase sends the user AFTER OAuth (with ?code=…).
+ * Register this exact URL in Supabase → Authentication → Redirect URLs.
+ *
+ * Do NOT use `${SUPABASE_URL}/auth/v1/callback` here — that URL is only for
+ * Google/Apple → Supabase (configured in Google Cloud, not in app code).
+ */
+function isLocalWebHost(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname.endsWith(".local")
+  );
+}
+
+function isPrivateLanHost(hostname: string): boolean {
+  return (
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hostname)
+  );
+}
+
+/** After sign-in without premium — standalone paywall (not onboarding step 1). */
+export const POST_AUTH_PAYWALL_ROUTE = "/premium-pricing";
+
+function shouldForceLocalOAuthRedirect(): boolean {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === "undefined") return false;
+  const { hostname, port } = window.location;
+  return port === String(DEV_SERVER_PORT) && (isLocalWebHost(hostname) || isPrivateLanHost(hostname));
+}
+
 export function getOAuthRedirectUrl(): string {
   if (Capacitor.isNativePlatform()) {
     return `${FRIGY_APP_SCHEME}://callback`;
   }
+
+  // Local dev — never LAN IP (Supabase rejects → Site URL app.frigy.app).
+  if (shouldForceLocalOAuthRedirect()) {
+    const explicit = import.meta.env.VITE_OAUTH_REDIRECT_URL?.trim();
+    return (explicit || LOCAL_OAUTH_REDIRECT).replace(/\/$/, "");
+  }
+
+  if (typeof window !== "undefined") {
+    const { hostname, origin } = window.location;
+    if (isLocalWebHost(hostname)) {
+      return `${origin}/auth`;
+    }
+  }
+
+  const explicit = import.meta.env.VITE_OAUTH_REDIRECT_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/auth`;
+  if (origin) {
+    return `${origin}/auth`;
+  }
+
+  return "https://app.frigy.app/auth";
 }
 
 function parseAuthParams(url: string): { code: string | null; accessToken: string | null; refreshToken: string | null } {
@@ -37,13 +98,29 @@ export async function completeOAuthFromUrl(url: string): Promise<boolean> {
   const { code, accessToken, refreshToken } = parseAuthParams(url);
   if (!code && !accessToken) return false;
 
+  const retryDelaysMs = Capacitor.isNativePlatform()
+    ? [0, 400, 900, 1800, 3200, 5000]
+    : [0, 200, 500];
+
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      console.warn("[AuthOAuth] exchangeCodeForSession failed:", error.message);
-      return false;
+    let lastError = "";
+    for (const delayMs of retryDelaysMs) {
+      if (delayMs > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+      }
+
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) return true;
+
+      lastError = error.message;
+      if (!isRetriableOAuthExchangeError(error.message)) {
+        console.warn("[AuthOAuth] exchangeCodeForSession failed:", error.message);
+        return false;
+      }
     }
-    return true;
+
+    console.warn("[AuthOAuth] exchangeCodeForSession failed after retries:", lastError);
+    return false;
   }
 
   if (accessToken && refreshToken) {
@@ -61,6 +138,27 @@ export async function completeOAuthFromUrl(url: string): Promise<boolean> {
   return false;
 }
 
+function getSupabaseAuthBase(): string {
+  const base = import.meta.env.VITE_SUPABASE_URL?.trim().replace(/\/$/, "");
+  if (!base) throw new Error("VITE_SUPABASE_URL fehlt");
+  return base;
+}
+
+/** Direct authorize URL (same as Supabase server expects for Google). */
+export function buildProviderAuthorizeUrl(
+  provider: OAuthProvider,
+  redirectTo: string,
+): string {
+  const params = new URLSearchParams({
+    provider,
+    redirect_to: redirectTo,
+  });
+  if (provider === "google") {
+    params.set("prompt", "select_account");
+  }
+  return `${getSupabaseAuthBase()}/auth/v1/authorize?${params.toString()}`;
+}
+
 export function isOAuthCallbackUrl(url: string): boolean {
   if (!url) return false;
   const lower = url.toLowerCase();
@@ -70,30 +168,115 @@ export function isOAuthCallbackUrl(url: string): boolean {
   return lower.includes("code=") || lower.includes("access_token=");
 }
 
+/** Supabase OAuth error redirect (?error=… or #error=…). */
+export function isOAuthErrorUrl(url: string): boolean {
+  if (!url?.trim()) return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.searchParams.has("error")) return true;
+    const hash = parsed.hash.startsWith("#") ? parsed.hash.slice(1) : parsed.hash;
+    return new URLSearchParams(hash).has("error");
+  } catch {
+    return url.toLowerCase().includes("error=");
+  }
+}
+
+function buildAuthRedirectTo(options?: {
+  redirectPath?: string;
+  authQuery?: Record<string, string>;
+}): string {
+  const base = getOAuthRedirectUrl().split("?")[0];
+  const params = new URLSearchParams();
+  if (options?.authQuery) {
+    for (const [key, value] of Object.entries(options.authQuery)) {
+      if (value) params.set(key, value);
+    }
+  }
+  if (options?.redirectPath) {
+    params.set("next", options.redirectPath);
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : getOAuthRedirectUrl();
+}
+
 export async function signInWithOAuthProvider(
   provider: OAuthProvider,
-  options?: { redirectPath?: string },
+  options?: { redirectPath?: string; authQuery?: Record<string, string> },
 ): Promise<{ error: unknown | null }> {
   if (!supabase) {
     return { error: new Error("Supabase not configured") };
   }
 
-  const redirectTo = options?.redirectPath
-    ? `${getOAuthRedirectUrl().split("?")[0]}?next=${encodeURIComponent(options.redirectPath)}`
-    : getOAuthRedirectUrl();
+  const redirectTo = buildAuthRedirectTo(options);
+
+  setOAuthPending(options?.authQuery?.from === "onboarding");
+
+  const isWeb = !Capacitor.isNativePlatform();
+
+  if (import.meta.env.DEV) {
+    console.info("[AuthOAuth] redirectTo:", redirectTo);
+    if (
+      typeof window !== "undefined" &&
+      !isLocalWebHost(window.location.hostname) &&
+      window.location.hostname !== "localhost"
+    ) {
+      console.warn(
+        "[AuthOAuth] Du bist nicht auf localhost (z. B. 192.168.x.x). " +
+          "OAuth nutzt trotzdem",
+        redirectTo,
+        "— in Supabase muss diese URL unter Redirect URLs stehen.",
+      );
+    }
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo,
-      skipBrowserRedirect: Capacitor.isNativePlatform(),
+      skipBrowserRedirect: true,
+      // Force Google account picker (avoids silent re-login with cached session during local testing).
+      ...(provider === "google" && isWeb ? { queryParams: { prompt: "select_account" } } : {}),
     },
   });
 
   if (error) return { error };
 
-  if (Capacitor.isNativePlatform() && data?.url) {
-    await openExternalUrl(data.url);
+  let authorizeUrl = data?.url?.trim() || "";
+
+  if (shouldForceLocalOAuthRedirect()) {
+    const expectedRedirect = redirectTo.split("?")[0];
+    const broken =
+      !authorizeUrl ||
+      authorizeUrl.includes("app.frigy.app") ||
+      !authorizeUrl.includes("redirect_to=");
+    if (broken) {
+      authorizeUrl = buildProviderAuthorizeUrl(provider, expectedRedirect);
+      console.warn("[AuthOAuth] SDK-URL unbrauchbar — nutze direkte Supabase-Authorize-URL:", authorizeUrl);
+    }
+  }
+
+  if (!authorizeUrl) {
+    return {
+      error: new Error(
+        "Keine OAuth-URL von Supabase. Prüfe Google-Provider im Dashboard und starte npm run dev neu.",
+      ),
+    };
+  }
+
+  if (shouldForceLocalOAuthRedirect() && authorizeUrl.includes("app.frigy.app")) {
+    return {
+      error: new Error(
+        `OAuth würde auf app.frigy.app gehen statt Google. Browser-Cache leeren (F12 → Application → Clear site data) und nur ${LOCAL_OAUTH_REDIRECT} nutzen.`,
+      ),
+    };
+  }
+
+  console.info("[AuthOAuth] opening:", authorizeUrl);
+
+  if (Capacitor.isNativePlatform()) {
+    await openExternalUrl(authorizeUrl);
+  } else {
+    window.location.assign(authorizeUrl);
   }
 
   return { error: null };

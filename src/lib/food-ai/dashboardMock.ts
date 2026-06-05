@@ -152,7 +152,8 @@ export function getWeekPlanPreviewFromStorage(language: "de" | "en" | "fr" = "de
   }
 
   if (plan.length === 0) {
-    return getWeekPlanPreviewForDashboard(language);
+    const weekLabel = language === "en" ? "This week" : language === "fr" ? "Cette semaine" : "Diese Woche";
+    return { weekLabel, days: [] };
   }
 
   const now = new Date();

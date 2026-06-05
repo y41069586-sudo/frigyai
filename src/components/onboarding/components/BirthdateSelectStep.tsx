@@ -20,7 +20,7 @@ const PALETTE = {
 const daysInMonth = (month: number, year: number) =>
   new Date(year, month, 0).getDate();
 
-const YOUNGEST_BIRTH_YEAR = 2017;
+const MIN_AGE = 9;
 const MAX_AGE = 100;
 
 const formatBirthdateValue = (birthdate: { day: number; month: number; year: number }) =>
@@ -71,7 +71,7 @@ const parseBirthdateInput = (value: string): BirthdateParseResult | null => {
     return { status: "invalid" };
   }
 
-  if (year > YOUNGEST_BIRTH_YEAR) {
+  if (year > new Date().getFullYear() - MIN_AGE) {
     return { status: "too_young" };
   }
 
@@ -92,6 +92,9 @@ const parseBirthdateInput = (value: string): BirthdateParseResult | null => {
   }
 
   const age = calculateAgeFromBirthdate(day, month, year);
+  if (age < MIN_AGE) {
+    return { status: "too_young" };
+  }
   if (age > MAX_AGE) {
     return { status: "invalid" };
   }
@@ -242,7 +245,7 @@ export function BirthdateSelectStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
-        <OnboardingDataNotice variant="mint" className="mb-3" />
+        <OnboardingDataNotice variant="mint" className="mb-3" notice="minAge" />
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}

@@ -70,6 +70,50 @@ function pickPackage(
   return current.monthly ?? current.availablePackages.find((p) => /month/i.test(p.identifier)) ?? null;
 }
 
+export type StorePlanPrice = {
+  priceString: string;
+  pricePerMonthString?: string | null;
+  hasIntroOffer: boolean;
+};
+
+export type StoreOfferingPrices = {
+  monthly: StorePlanPrice | null;
+  yearly: StorePlanPrice | null;
+};
+
+function mapPackagePrice(
+  pkg: ReturnType<typeof pickPackage>,
+): StorePlanPrice | null {
+  if (!pkg?.product) return null;
+  const product = pkg.product as {
+    priceString: string;
+    pricePerMonthString?: string | null;
+    introPrice?: unknown | null;
+  };
+  return {
+    priceString: product.priceString,
+    pricePerMonthString: product.pricePerMonthString ?? null,
+    hasIntroOffer: Boolean(product.introPrice),
+  };
+}
+
+/** Live App Store / Play prices from RevenueCat offerings (not hardcoded). */
+export async function fetchStoreOfferingPrices(): Promise<StoreOfferingPrices | null> {
+  if (!isStoreBillingConfigured()) return null;
+
+  try {
+    const { Purchases } = await import("@revenuecat/purchases-capacitor");
+    const offerings = await Purchases.getOfferings();
+    return {
+      monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
+      yearly: mapPackagePrice(pickPackage(offerings, "yearly")),
+    };
+  } catch (e) {
+    console.warn("[StoreBilling] fetchStoreOfferingPrices failed:", e);
+    return null;
+  }
+}
+
 export type StorePurchaseResult =
   | { ok: true }
   | { ok: false; cancelled?: boolean; message?: string };

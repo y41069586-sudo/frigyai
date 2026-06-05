@@ -26,14 +26,6 @@ export function isStoreSubscriptionProductId(productId: string | null | undefine
   return productId.startsWith("rc_") || productId.startsWith("store_");
 }
 
-export function canManageStripeSubscription(status: SubscriptionStatusLike | null | undefined): boolean {
-  if (!isSubscriptionActive(status)) return false;
-  if (isPromoPremiumProductId(status?.product_id)) return false;
-  if (isOneTimePremiumProductId(status?.product_id)) return false;
-  if (isStoreSubscriptionProductId(status?.product_id)) return false;
-  return Boolean(status?.subscription_end);
-}
-
 export function canManageStoreSubscription(status: SubscriptionStatusLike | null | undefined): boolean {
   return isSubscriptionActive(status) && isStoreSubscriptionProductId(status?.product_id);
 }

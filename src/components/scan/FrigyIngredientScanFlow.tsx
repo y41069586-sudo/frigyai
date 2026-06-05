@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
 import { FrigyLiveCameraCapture } from "./FrigyLiveCameraCapture";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 export type PendingPhoto = {
   id: string;
@@ -260,6 +261,7 @@ export function FrigyIngredientScanFlow({
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 border-t border-border/60 bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+          <AiDisclaimer className="mx-auto mb-3 max-w-lg text-center" compact />
           <div className="mx-auto grid max-w-lg grid-cols-2 gap-2.5">
             <Button
               variant="outline"

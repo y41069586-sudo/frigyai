@@ -5,15 +5,19 @@ type OnboardingDataNoticeProps = {
   className?: string;
   /** Mint steps use darker green-gray subtext */
   variant?: "default" | "mint";
+  notice?: "privacy" | "minAge";
 };
 
 export function OnboardingDataNotice({
   className,
   variant = "default",
+  notice = "privacy",
 }: OnboardingDataNoticeProps) {
   const { t } = useLanguage();
 
   const textColor = variant === "mint" ? "#7C9388" : undefined;
+  const message =
+    notice === "minAge" ? t.onboardingMinAgeNotice : t.onboardingDataDeletedAfterPlan;
 
   return (
     <p
@@ -35,7 +39,7 @@ export function OnboardingDataNotice({
       >
         !
       </span>
-      <span>{t.onboardingDataDeletedAfterPlan}</span>
+      <span>{message}</span>
     </p>
   );
 }

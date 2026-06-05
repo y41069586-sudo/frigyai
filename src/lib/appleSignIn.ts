@@ -21,13 +21,15 @@ export function isAppleSignInAvailable(): boolean {
  * Native Sign in with Apple (iOS) → Supabase `signInWithIdToken`.
  * Falls back to OAuth in browser on other platforms.
  */
-export async function signInWithApple(): Promise<{ error: unknown | null }> {
+export async function signInWithApple(options?: {
+  authQuery?: Record<string, string>;
+}): Promise<{ error: unknown | null }> {
   if (!supabase) {
     return { error: new Error("Supabase not configured") };
   }
 
   if (!isAppleSignInAvailable()) {
-    return signInWithOAuthProvider("apple");
+    return signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
   }
 
   try {
@@ -62,7 +64,7 @@ export async function signInWithApple(): Promise<{ error: unknown | null }> {
       return { error: null };
     }
     console.warn("[AppleSignIn] native failed, trying OAuth:", e);
-    return signInWithOAuthProvider("apple");
+    return signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
   }
 }
 

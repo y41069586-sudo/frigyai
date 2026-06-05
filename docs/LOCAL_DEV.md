@@ -20,7 +20,7 @@ npm run dev
 ## Wenn der Bildschirm schwarz/leer ist
 
 - **Dev-Server läuft?** Terminal muss `VITE … ready` zeigen.
-- **Richtiger Port:** Standard ist **5173** (nicht 8080), außer du startest `npm run dev:8080`.
+- **Richtiger Port:** `npm run dev` nutzt **4137** (`http://localhost:4137`).
 - **Hard Reload:** `Strg + Shift + R` auf `http://localhost:5173`
 - **`.env`:** Datei `.env` mit `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` (siehe `.env.example`).
 

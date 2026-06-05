@@ -50,11 +50,11 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Frigy nutzt die Kamera, um Zutaten in deinem Kühlschrank und deiner Speisekammer zu erkennen.</string>
+	<string>Frigy uses the camera to recognize ingredients in your fridge and pantry.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Frigy kann Fotos aus deiner Galerie analysieren, um Zutaten zu erkennen.</string>
+	<string>Frigy can analyze photos from your gallery to recognize ingredients.</string>
 	<key>NSUserNotificationsUsageDescription</key>
-	<string>Frigy sendet optionale Erinnerungen für Mahlzeiten, Wasser und deine Ziele.</string>
+	<string>Frigy sends optional reminders for meals, water, and your goals.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

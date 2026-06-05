@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { waitForAuthSession } from "@/lib/authErrors";
 import { consumeReferralSkipPaywall } from "@/lib/referralCode";
+import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 import { isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
 async function loadSubscriptionFromDbCache(
@@ -53,6 +54,9 @@ export async function resolvePremiumAccessAfterSignIn(options: {
       return false;
     }
   }
+
+  const session = (await supabase.auth.getSession()).data.session;
+  await syncStoreSubscriptionIfNeeded(session?.access_token);
 
   let userId = options.userId ?? undefined;
   if (!userId) {

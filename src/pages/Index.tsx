@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Settings, Bot, Crown } from "lucide-react";
 import { PremiumSuccessDialog } from "@/components/PremiumSuccessDialog";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { getStoredLanguage, useLanguage } from "@/contexts/LanguageContext";
@@ -30,7 +30,6 @@ import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openExternalUrl } from "@/lib/openExternalUrl";
 import { useGamification } from "@/hooks/useGamification";
 import {
   WATER_GLASSES_CHANGED,
@@ -43,12 +42,12 @@ import {
   FRIGY_STORAGE_UPDATED,
   POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY,
 } from "@/lib/frigyStorageSync";
-import { STRIPE_CHECKOUT_PENDING_KEY } from "@/lib/stripePaymentLinks";
+import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
 import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
 import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
-import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
+import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
 
 function readOnboardingCompleteLocal(): boolean {
   return localStorage.getItem("onboardingComplete") === "true";
@@ -409,7 +408,9 @@ const Index = () => {
   const hasCompletedOnboarding = localOnboardingComplete;
   // Skip only when onboarding was actually completed (local or DB), not merely because user is logged in
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() =>
+    ONBOARDING_TEST_MODE ? false : !readOnboardingCompleteLocal(),
+  );
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
@@ -461,31 +462,10 @@ const Index = () => {
     }
   }, [isFromSubscription]);
   
-  // Nach Stripe-Rückkehr (URL oder Tab-Wechsel): Premium-Status aktualisieren
-  useEffect(() => {
-    if (!user) return;
-
-    const refresh = () => {
-      void checkSubscription();
-    };
-
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      if (localStorage.getItem(STRIPE_CHECKOUT_PENDING_KEY)) {
-        localStorage.removeItem(STRIPE_CHECKOUT_PENDING_KEY);
-        refresh();
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [user, checkSubscription]);
-
-  // Nach Stripe-Rückkehr (?subscription=success): Premium aktivieren + Erfolg anzeigen
+  // Nach Store-Rückkehr (?subscription=success): Premium aktivieren + Erfolg anzeigen
   useEffect(() => {
     if (searchParams.get("subscription") !== "success" || !user || !session) return;
 
-    localStorage.removeItem(STRIPE_CHECKOUT_PENDING_KEY);
     let cancelled = false;
 
     const activatePremium = async () => {
@@ -575,31 +555,33 @@ const Index = () => {
       }
 
       if (activeUser && !hasReferralSkipPaywallPending()) {
-        const hasAccess =
-          isPremium ||
-          (await resolvePremiumAccessAfterSignIn({
-            userId: activeUser.id,
-            checkSubscription,
-            sessionReady: true,
-          }));
-        if (!hasAccess) {
+        const route = await resolvePostAuthDestination({
+          userId: activeUser.id,
+          checkSubscription,
+          fromOnboarding: true,
+          sessionWaitMs: 4500,
+        });
+
+        if (route.phase === "dashboard") {
+          localStorage.setItem("onboardingComplete", "true");
+          setLocalOnboardingComplete(true);
+          setShowOnboarding(false);
+          setOnboardingComplete(true);
+          await saveProgress({ onboarding_complete: true });
+          const next = new URLSearchParams(searchParams);
+          if (next.has("onboardingStep")) {
+            next.delete("onboardingStep");
+            setSearchParams(next, { replace: true });
+          }
+          return;
+        }
+
+        if (route.phase === "onboarding_paywall" || route.phase === "standalone_paywall") {
           setShowOnboarding(true);
           setOnboardingComplete(false);
           setSearchParams({ onboardingStep: "paywall" }, { replace: true });
           return;
         }
-
-        localStorage.setItem("onboardingComplete", "true");
-        setLocalOnboardingComplete(true);
-        setShowOnboarding(false);
-        setOnboardingComplete(true);
-        await saveProgress({ onboarding_complete: true });
-        const next = new URLSearchParams(searchParams);
-        if (next.has("onboardingStep")) {
-          next.delete("onboardingStep");
-          setSearchParams(next, { replace: true });
-        }
-        return;
       }
 
       setShowOnboarding(false);
@@ -615,7 +597,6 @@ const Index = () => {
     }
   }, [
     user,
-    isPremium,
     dbOnboardingComplete,
     checkSubscription,
     saveProgress,
@@ -631,14 +612,8 @@ const Index = () => {
     setPortalLoading(true);
     toast({ title: t.loading });
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        await openExternalUrl(data.url);
-      }
-    } catch (error: any) {
+      await openStoreSubscriptionManagement();
+    } catch (error: unknown) {
       toast({
         title: t.error,
         description: getPublicErrorMessage(error, 'Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut.'),
@@ -666,10 +641,8 @@ const Index = () => {
     if (!completedLocally && !dbOnboardingComplete) {
       setShowOnboarding(true);
       setOnboardingComplete(false);
-      return;
     }
-    navigate("/landing", { replace: true });
-  }, [loading, showOnboarding, user, onboardingResumeStep, navigate, dbOnboardingComplete]);
+  }, [loading, showOnboarding, user, onboardingResumeStep, dbOnboardingComplete]);
 
   const storedTargets = readStoredTrackerTargets();
   const targetCalories = trackerSettings?.dailyCalories || storedTargets?.dailyCalories || 0;
@@ -720,9 +693,14 @@ const Index = () => {
     return <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />;
   }
 
-  // Not logged in: show loader until onboarding opens or redirect to /auth completes.
+  // Not logged in: onboarding or redirect to auth (no blank loader loop).
   if (!user) {
-    return <PageLoader />;
+    if (hasCompletedOnboarding || dbOnboardingComplete) {
+      return <Navigate to="/auth" replace />;
+    }
+    return (
+      <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />
+    );
   }
 
   return (

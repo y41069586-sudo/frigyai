@@ -51,4 +51,23 @@ try {
   supabase = null as any;
 }
 
+/** Supabase localStorage session key — derived from project ref, not hardcoded. */
+export function getSupabaseAuthStorageKey(): string | null {
+  const url = SUPABASE_URL?.trim();
+  if (!url) return null;
+  try {
+    const ref = new URL(url).hostname.split(".")[0];
+    return ref ? `sb-${ref}-auth-token` : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSupabaseAuthStorage(): void {
+  const key = getSupabaseAuthStorageKey();
+  if (key) {
+    localStorage.removeItem(key);
+  }
+}
+
 export { supabase };

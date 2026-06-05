@@ -1,18 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
+import { restoreStorePurchases } from "@/lib/storeBilling";
+import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { useToast } from "@/hooks/use-toast";
 
 const PremiumPricingPage = () => {
-  const { language } = useLanguage();
-  const { session, subscriptionStatus, user, checkSubscription } = useAuth();
+  const { language, t } = useLanguage();
+  const { session, subscriptionStatus, user, checkSubscription, signOut } = useAuth();
+  const { prices: storePrices } = useStoreOfferingPrices(user?.id);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const isPreview = searchParams.get("preview") === "1" || searchParams.get("preview") === "true";
 
   useEffect(() => {
@@ -22,28 +28,76 @@ const PremiumPricingPage = () => {
   }, [subscriptionStatus, navigate, isPreview]);
 
   const handleCheckout = async (plan: PaywallBillingPlan) => {
+    if (checkoutLoading) return;
     if (!session) {
       localStorage.setItem("selectedPlan", plan);
       navigate("/?onboardingStep=save-progress", { replace: true });
       return;
     }
-    const result = await startPremiumCheckout(plan, {
-      userId: user?.id,
-      email: user?.email,
-      accessToken: session.access_token,
-      attributionSource: "premium_pricing",
-    });
-    if (result.ok && result.channel === "store") {
-      await checkSubscription();
-      navigate("/", { replace: true });
-      return;
+
+    setCheckoutLoading(true);
+    try {
+      const result = await startPremiumCheckout(plan, {
+        userId: user?.id,
+        email: user?.email,
+        accessToken: session.access_token,
+        attributionSource: "premium_pricing",
+      });
+      if (result.ok && result.channel === "store") {
+        const active = await waitForPremiumAfterPurchase(
+          checkSubscription,
+          session.access_token,
+        );
+        if (active) {
+          localStorage.setItem("onboardingComplete", "true");
+          navigate("/", { replace: true });
+        }
+        return;
+      }
+      if (!result.ok && !result.cancelled && result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setCheckoutLoading(false);
     }
-    if (!result.ok && !result.cancelled && result.message) {
+  };
+
+  const handleRestore = async () => {
+    if (restoreLoading) return;
+    if (!session?.access_token) {
       toast({
-        title: "Fehler",
-        description: result.message,
+        title: t.error,
+        description: t.onboardingPleaseLoginToProceed,
         variant: "destructive",
       });
+      return;
+    }
+    setRestoreLoading(true);
+    try {
+      const result = await restoreStorePurchases(session.access_token);
+      const active = await waitForPremiumAfterPurchase(
+        checkSubscription,
+        session.access_token,
+        4,
+      );
+      if (result.ok || active) {
+        localStorage.setItem("onboardingComplete", "true");
+        navigate("/", { replace: true });
+        return;
+      }
+      if (result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
@@ -57,6 +111,14 @@ const PremiumPricingPage = () => {
         language={language}
         onBack={() => navigate(-1)}
         onCheckout={handleCheckout}
+        onRestorePurchases={handleRestore}
+        onSignOut={async () => {
+          await signOut();
+          navigate("/auth", { replace: true });
+        }}
+        isCheckoutLoading={checkoutLoading}
+        isRestoreLoading={restoreLoading}
+        storePrices={storePrices}
       />
     </motion.div>
   );

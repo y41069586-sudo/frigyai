@@ -20,7 +20,9 @@ import { lazyWithReload } from "@/lib/lazyWithReload";
 import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
+import { AuthFlowBootstrap, AuthFlowOverlay, AuthFlowRouter } from "@/components/AuthFlowBootstrap";
 import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBootstrap";
+import { AuthOAuthCallbackBootstrap } from "@/components/AuthOAuthCallbackBootstrap";
 import { StoreBillingBootstrap } from "@/components/StoreBillingBootstrap";
 import { BadgeUnlockCelebration } from "@/components/BadgeUnlockCelebration";
 import MealPlansPage from "./pages/MealPlansPage";
@@ -32,7 +34,7 @@ const RecipesPage = lazyWithReload(() => import("./pages/RecipesPage"));
 const RecipeDetailPage = lazyWithReload(() => import("./pages/RecipeDetailPage"));
 const FavoritesPage = lazyWithReload(() => import("./pages/FavoritesPage"));
 const NotFound = lazyWithReload(() => import("./pages/NotFound"));
-const AuthPage = lazyWithReload(() => import("./pages/AuthPage"));
+import AuthPage from "./pages/AuthPage";
 const PremiumPage = lazyWithReload(() => import("./pages/PremiumPage"));
 const ProfilePage = lazyWithReload(() => import("./pages/ProfilePage"));
 const ResetPasswordPage = lazyWithReload(() => import("./pages/ResetPasswordPage"));
@@ -40,7 +42,6 @@ const UpdatePasswordPage = lazyWithReload(() => import("./pages/UpdatePasswordPa
 const EmailConfirmationPage = lazyWithReload(() => import("./pages/EmailConfirmationPage"));
 const PlanSelectionPage = lazyWithReload(() => import("./pages/PlanSelectionPage"));
 const PremiumPricingPage = lazyWithReload(() => import("./pages/PremiumPricingPage"));
-const LandingPage = lazyWithReload(() => import("./pages/LandingPage"));
 const AdminPage = lazyWithReload(() => import("./pages/AdminPage"));
 const LegalPage = lazyWithReload(() => import("./pages/LegalPage"));
 const FoodEntryDetailPage = lazyWithReload(() => import("./pages/FoodEntryDetailPage"));
@@ -85,7 +86,6 @@ const AppContent = () => {
               <Routes location={location}>
                 <Route path="/" element={<Index />} />
                 <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
-                <Route path="/landing" element={<LandingPage />} />
                 <Route path="/signup" element={<SignupDeepLinkPage />} />
                 <Route path="/invite" element={<SignupDeepLinkPage />} />
                 <Route path="/scan" element={<ScanPage />} />
@@ -130,8 +130,12 @@ const App = () => {
                 <AuthProvider>
                   <MealPlanProvider>
                     <AppDeepLinkListener />
+                    <AuthFlowBootstrap />
+                    <AuthFlowRouter />
+                    <AuthFlowOverlay />
                     <ReferralAttributionBootstrap />
-              <StoreBillingBootstrap />
+                    <AuthOAuthCallbackBootstrap />
+                    <StoreBillingBootstrap />
                     <NotificationBootstrap />
                     <BadgeUnlockCelebration />
                     <AppContent />

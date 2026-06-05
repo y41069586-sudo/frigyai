@@ -129,7 +129,7 @@ export function FrigyLiveCameraCapture({
               {t.cameraOpenDevHint}
               <span className="text-[#75FBB2]">npm run dev</span>
               {t.cameraLocalhostHint}
-              <span className="text-[#75FBB2]">http://localhost:8080</span>
+              <span className="text-[#75FBB2]">http://localhost:4137</span>
               {t.cameraGalleryHint}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">

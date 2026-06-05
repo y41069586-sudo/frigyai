@@ -94,6 +94,25 @@ serve(async (req) => {
     if (!rcRes.ok) {
       const text = await rcRes.text();
       console.error("[sync-store-subscription] RevenueCat error:", rcRes.status, text);
+
+      const { data: cached } = await supabase
+        .from("subscription_cache")
+        .select("subscribed, product_id, subscription_end, is_trial")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (cached?.subscribed) {
+        const fallback = {
+          subscribed: true,
+          product_id: cached.product_id,
+          subscription_end: cached.subscription_end,
+          is_trial: cached.is_trial || false,
+        };
+        return new Response(JSON.stringify(fallback), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({ error: "revenuecat_fetch_failed" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

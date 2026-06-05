@@ -1,21 +1,30 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronLeft, Lock, Bell, Crown } from "lucide-react";
-import { Language } from "@/contexts/LanguageContext";
+import { Check, ChevronLeft, Lock, Bell, Crown, Loader2 } from "lucide-react";
+import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
+import { usesStoreBilling } from "@/lib/billingPlatform";
+import type { StoreOfferingPrices } from "@/lib/storeBilling";
+import {
+  getMarketingMonthlyPrice,
+  getMarketingYearlyPrice,
+  resolveMonthlyDisplayPrice,
+  resolveYearlyDisplayPrice,
+} from "@/lib/subscriptionPricing";
 
 export type PaywallBillingPlan = "monthly" | "yearly";
-
-export const STRIPE_PAYMENT_LINKS: Record<PaywallBillingPlan, string> = {
-  monthly: "https://buy.stripe.com/fZu7sLeuccbJ5K2dLx87K08",
-  yearly: "https://buy.stripe.com/28EaEXeucejR6O60YL87K07",
-};
 
 type OnboardingPaywallStepProps = {
   language: Language;
   onBack: () => void;
-  onCheckout: (plan: PaywallBillingPlan) => void;
+  onCheckout: (plan: PaywallBillingPlan) => void | Promise<void>;
+  onRestorePurchases?: () => void | Promise<void>;
+  onSignOut?: () => void | Promise<void>;
+  isCheckoutLoading?: boolean;
+  isRestoreLoading?: boolean;
+  storePrices?: StoreOfferingPrices | null;
 };
 
 const copy = {
@@ -48,6 +57,13 @@ const copy = {
     footerMonthly: "Nur €9,99 pro Monat",
     footerTrial: "3 Tage kostenlos, danach €9,99/Monat",
     footerYearly: "Jährlich – €36,95 pro Jahr",
+    subscriptionName: "Frigy Premium",
+    planLengthMonthly: "Monatsabo (1 Monat)",
+    planLengthYearly: "Jahresabo (1 Jahr)",
+    autoRenewStore:
+      "Das Abo verlängert sich automatisch, bis du es mindestens 24 Stunden vor Periodenende in den Einstellungen deines App-Store- oder Google-Play-Kontos kündigst. Die Zahlung wird bei Bestätigung über dein Store-Konto abgebucht.",
+    terms: "Nutzungsbedingungen",
+    privacy: "Datenschutz",
   },
   en: {
     unlockTitle: "Unlock Frigy to reach your goals faster",
@@ -78,6 +94,13 @@ const copy = {
     footerMonthly: "Just €9.99 per month",
     footerTrial: "3 days free, then €9.99/mo",
     footerYearly: "Yearly – €36.95 per year",
+    subscriptionName: "Frigy Premium",
+    planLengthMonthly: "Monthly subscription (1 month)",
+    planLengthYearly: "Yearly subscription (1 year)",
+    autoRenewStore:
+      "Subscription automatically renews unless cancelled at least 24 hours before the end of the current period in your App Store or Google Play account settings. Payment is charged to your store account at confirmation.",
+    terms: "Terms of Service",
+    privacy: "Privacy Policy",
   },
   fr: {
     unlockTitle: "Débloque Frigy pour atteindre tes objectifs plus vite",
@@ -108,6 +131,13 @@ const copy = {
     footerMonthly: "Seulement 9,99 €/mois",
     footerTrial: "3 jours gratuits, puis 9,99 €/mois",
     footerYearly: "Annuel – 36,95 € par an",
+    subscriptionName: "Frigy Premium",
+    planLengthMonthly: "Abonnement mensuel (1 mois)",
+    planLengthYearly: "Abonnement annuel (1 an)",
+    autoRenewStore:
+      "L'abonnement se renouvelle automatiquement sauf annulation au moins 24 h avant la fin de la période dans les réglages App Store ou Google Play. Le paiement est débité sur ton compte store à la confirmation.",
+    terms: "Conditions d'utilisation",
+    privacy: "Confidentialité",
   },
 };
 
@@ -139,11 +169,43 @@ export function OnboardingPaywallStep({
   language,
   onBack,
   onCheckout,
+  onRestorePurchases,
+  onSignOut,
+  isCheckoutLoading = false,
+  isRestoreLoading = false,
+  storePrices = null,
 }: OnboardingPaywallStepProps) {
+  const { t: globalT } = useLanguage();
+  const navigate = useNavigate();
   const [plan, setPlan] = useState<PaywallBillingPlan>("monthly");
   const t = copy[language];
   const billingDate = useMemo(() => formatBillingDate(language), [language]);
   const isMonthly = plan === "monthly";
+  const showStoreRestore = usesStoreBilling() && Boolean(onRestorePurchases);
+  const isStoreBilling = usesStoreBilling();
+
+  const monthlyPrice = resolveMonthlyDisplayPrice(language, storePrices?.monthly?.priceString);
+  const yearlyPrice = resolveYearlyDisplayPrice(language, storePrices?.yearly?.priceString);
+  const monthlyHasTrial = storePrices?.monthly?.hasIntroOffer ?? true;
+
+  const autoRenewText = t.autoRenewStore;
+  const selectedPlanLabel = isMonthly ? t.planLengthMonthly : t.planLengthYearly;
+  const selectedPrice = isMonthly ? monthlyPrice : yearlyPrice;
+
+  const footerText = useMemo(() => {
+    if (isMonthly) {
+      if (storePrices?.monthly) {
+        return monthlyHasTrial
+          ? `${t.noPaymentNow} · ${monthlyPrice}`
+          : `${monthlyPrice} ${t.monthlySuffix.trim()}`;
+      }
+      return monthlyHasTrial ? t.footerTrial : t.footerMonthly;
+    }
+    if (storePrices?.yearly) {
+      return `${t.yearly} · ${yearlyPrice}`;
+    }
+    return t.footerYearly;
+  }, [isMonthly, storePrices, monthlyHasTrial, monthlyPrice, yearlyPrice, t]);
 
   const features = [
     { title: t.feature1Title, desc: t.feature1Desc },
@@ -284,23 +346,25 @@ export function OnboardingPaywallStep({
           <button
             type="button"
             onClick={() => setPlan("monthly")}
-            className="relative min-h-[88px] rounded-2xl border-2 bg-white px-3 pb-3 pt-5 text-left transition-all touch-manipulation"
+            className={`relative min-h-[88px] rounded-2xl border-2 bg-white px-3 pb-3 text-left transition-all touch-manipulation ${monthlyHasTrial ? "pt-5" : "pt-4"}`}
             style={{
               borderColor: plan === "monthly" ? ONBOARDING_PALETTE.primaryDark : ONBOARDING_PALETTE.cardBorderIdle,
               boxShadow: plan === "monthly" ? ONBOARDING_PALETTE.shadowCard : "none",
             }}
           >
-            <span
-              className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-              style={{ backgroundColor: ONBOARDING_PALETTE.primaryDeep }}
-            >
-              {t.trialBadge}
-            </span>
+            {monthlyHasTrial && (
+              <span
+                className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                style={{ backgroundColor: ONBOARDING_PALETTE.primaryDeep }}
+              >
+                {t.trialBadge}
+              </span>
+            )}
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.monthly}</p>
                 <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
-                  {t.monthlyPrice}
+                  {getMarketingMonthlyPrice(language)}
                   <span className="text-[12px] font-medium text-[#6B7280]">{t.monthlySuffix}</span>
                 </p>
               </div>
@@ -320,7 +384,7 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.yearly}</p>
-                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">{t.yearlyPrice}</p>
+                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">{yearlyPrice}</p>
               </div>
               <PlanRadio selected={plan === "yearly"} />
             </div>
@@ -334,19 +398,81 @@ export function OnboardingPaywallStep({
 
           <motion.button
             type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onCheckout(plan)}
-            className="mt-4 min-h-[52px] w-full rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation"
+            whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
+            disabled={isCheckoutLoading || isRestoreLoading}
+            onClick={() => void onCheckout(plan)}
+            className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation disabled:opacity-70"
             style={{
               background: `linear-gradient(135deg, ${ONBOARDING_PALETTE.primary}, ${ONBOARDING_PALETTE.primaryDark})`,
               boxShadow: ONBOARDING_PALETTE.shadowButton,
             }}
           >
-            {isMonthly ? t.ctaTrial : t.ctaUnlock}
+            {isCheckoutLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                {globalT.loading}
+              </>
+            ) : (
+              (isMonthly ? t.ctaTrial : t.ctaUnlock)
+            )}
           </motion.button>
 
+          {showStoreRestore && (
+            <button
+              type="button"
+              disabled={isCheckoutLoading || isRestoreLoading}
+              onClick={() => void onRestorePurchases?.()}
+              className="mt-3 w-full py-2.5 text-center text-[14px] font-semibold text-[#374151] underline underline-offset-2 transition-colors hover:text-[#0a0a0a] disabled:opacity-60"
+            >
+              {isRestoreLoading ? globalT.loading : globalT.restorePurchases}
+            </button>
+          )}
+
+          {onSignOut && (
+            <button
+              type="button"
+              disabled={isCheckoutLoading || isRestoreLoading}
+              onClick={() => void onSignOut()}
+              className="mt-2 w-full py-2 text-center text-[12px] font-medium text-[#9CA3AF] transition-colors hover:text-[#6B7280] disabled:opacity-60"
+            >
+              {globalT.paywallSignOut}
+            </button>
+          )}
+
+          <p className="mt-4 text-center text-[12px] font-medium leading-snug text-[#6B7280]">
+            {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice}
+            {isMonthly && monthlyHasTrial ? ` · ${t.trialBadge}` : ""}
+          </p>
+
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-[#9CA3AF]">
+            {autoRenewText}
+          </p>
+
+          <nav
+            className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-medium"
+            aria-label={t.terms}
+          >
+            <button
+              type="button"
+              onClick={() => navigate("/legal/agb")}
+              className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
+            >
+              {t.terms}
+            </button>
+            <span className="text-[#D1D5DB]" aria-hidden>
+              ·
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate("/legal/datenschutz")}
+              className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
+            >
+              {t.privacy}
+            </button>
+          </nav>
+
           <p className="mt-3 text-center text-[13px] leading-snug text-[#9CA3AF]">
-            {isMonthly ? t.footerTrial : plan === "yearly" ? t.footerYearly : t.footerMonthly}
+            {footerText}
           </p>
         </div>
       </div>

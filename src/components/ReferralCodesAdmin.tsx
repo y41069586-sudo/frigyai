@@ -181,7 +181,7 @@ export function ReferralCodesAdmin() {
           <Euro className="h-3.5 w-3.5" />
           Umsatz gesamt: {formatEur(totals.revenue_cents)} · Provision: {formatEur(totals.commission_cents)}
         </p>
-        <p className="text-muted-foreground">{totals.payments} Stripe-Zahlungen zugeordnet</p>
+        <p className="text-muted-foreground">{totals.payments} Store-Zahlungen zugeordnet</p>
       </div>
 
       <form onSubmit={(e) => void handleCreate(e)} className="space-y-3">

@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { resolveDeepLink } from "@/lib/appDeepLink";
-import { completeOAuthFromUrl, isOAuthCallbackUrl } from "@/lib/authOAuth";
+import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
+import { handleOAuthCallbackUrl, scheduleStashedOAuthRetry } from "@/lib/completeOAuthSignIn";
+import { stashOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
+import { useAuth } from "@/contexts/AuthContext";
 import { captureReferralAttribution, applyDeferredReferralOnFirstOpen } from "@/lib/referralAttribution";
-import { markStripeCheckoutPending } from "@/lib/stripePaymentLinks";
 import { ChottuLinkNative } from "@/lib/chottuLinkNative";
 
 function shouldForwardToChottuSdk(url: string): boolean {
@@ -36,46 +38,48 @@ function shouldForwardToChottuSdk(url: string): boolean {
  */
 export function AppDeepLinkListener() {
   const navigate = useNavigate();
+  const { checkSubscription, loading } = useAuth();
   const recentlyHandledUrlsRef = useRef<Map<string, number>>(new Map());
 
-  const handleUrl = useCallback((url: string) => {
-    if (!url?.trim()) return;
+  const handleUrl = useCallback(
+    (url: string) => {
+      if (!url?.trim()) return;
 
-    const now = Date.now();
-    const recent = recentlyHandledUrlsRef.current;
-    const lastHandledAt = recent.get(url) ?? 0;
-    if (now - lastHandledAt < 1500) return;
+      const now = Date.now();
+      const recent = recentlyHandledUrlsRef.current;
+      const lastHandledAt = recent.get(url) ?? 0;
+      if (now - lastHandledAt < 1500) return;
 
-    recent.set(url, now);
-    if (recent.size > 20) {
-      for (const [entryUrl, timestamp] of recent.entries()) {
-        if (now - timestamp > 10_000) {
-          recent.delete(entryUrl);
+      recent.set(url, now);
+      if (recent.size > 20) {
+        for (const [entryUrl, timestamp] of recent.entries()) {
+          if (now - timestamp > 10_000) {
+            recent.delete(entryUrl);
+          }
         }
       }
-    }
 
-    if (isOAuthCallbackUrl(url)) {
-      void completeOAuthFromUrl(url).then((ok) => {
-        if (ok) {
-          navigate("/premium-pricing", { replace: true });
+      if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
+        if (loading && Capacitor.isNativePlatform()) {
+          stashOAuthCallbackUrl(url);
+          scheduleStashedOAuthRetry({ checkSubscription, navigate });
+          return;
         }
-      });
-      return;
-    }
 
-    const { path, referralRef } = resolveDeepLink(url);
-    if (referralRef) {
-      captureReferralAttribution(referralRef);
-    }
-    if (!path) return;
+        void handleOAuthCallbackUrl({ url, checkSubscription, navigate });
+        return;
+      }
 
-    if (path.includes("subscription=success")) {
-      markStripeCheckoutPending();
-    }
+      const { path, referralRef } = resolveDeepLink(url);
+      if (referralRef) {
+        captureReferralAttribution(referralRef);
+      }
+      if (!path) return;
 
-    navigate(path, { replace: true });
-  }, [navigate]);
+      navigate(path, { replace: true });
+    },
+    [checkSubscription, loading, navigate],
+  );
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;

@@ -227,8 +227,8 @@ const DatenschutzContent = () => (
           <p className="text-sm sm:text-base mt-1">Für die Analyse von Lebensmitteln und Rezeptgenerierung. Datenschutzrichtlinie: openai.com/privacy</p>
         </div>
         <div>
-          <h4 className="font-medium text-foreground text-sm sm:text-base">Stripe (Zahlungsabwicklung)</h4>
-          <p className="text-sm sm:text-base mt-1">Für Premium-Abonnements. Datenschutzrichtlinie: stripe.com/privacy</p>
+          <h4 className="font-medium text-foreground text-sm sm:text-base">Apple App Store / Google Play (In-App-Käufe)</h4>
+          <p className="text-sm sm:text-base mt-1">Für Premium-Abonnements über RevenueCat. Datenschutz: Apple/Google Store-Richtlinien.</p>
         </div>
       </div>
     </section>
@@ -304,7 +304,7 @@ const AGBContent = () => (
     <section>
       <h2 className="text-base sm:text-lg font-semibold text-foreground">§ 5 Zahlungsbedingungen</h2>
       <div className="text-muted-foreground space-y-2 mt-3">
-        <p className="text-sm sm:text-base">(1) Die Zahlung erfolgt über die App Stores (Apple/Google) oder Stripe.</p>
+        <p className="text-sm sm:text-base">(1) Die Zahlung erfolgt über die App Stores (Apple/Google).</p>
         <p className="text-sm sm:text-base">(2) Abonnements verlängern sich automatisch, sofern nicht gekündigt.</p>
         <p className="text-sm sm:text-base">(3) Kündigung ist jederzeit zum Ende der Laufzeit möglich.</p>
       </div>

@@ -68,9 +68,11 @@ Nach erfolgreichem Store-Kauf ruft die App `sync-store-subscription` auf und sch
 ## 6. Store-Review Checkliste
 
 - Keine externen Zahlungslinks (Stripe) in der **nativen** App für digitale Inhalte.
+- Paywall zeigt **Abonnementname, Laufzeit, Preis**, Auto-Renewal-Text sowie Links zu **AGB** und **Datenschutz**.
 - „Abonnement verwalten“ / „Käufe wiederherstellen“ für Store-Abos anbieten.
 - Privacy Policy & Terms in App und Store-Listing verlinken.
 - Sandbox-Tester in App Store Connect / Play Console anlegen vor dem Review.
+- RevenueCat API Keys in Codemagic (Build bricht ohne Keys ab).
 
 ## 7. Testen
 

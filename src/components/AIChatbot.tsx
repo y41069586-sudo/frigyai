@@ -17,6 +17,7 @@ import {
   viewportPanelTransition,
 } from '@/lib/motionPresets';
 import { cn } from '@/lib/utils';
+import { AiDisclaimer } from '@/components/AiDisclaimer';
 
 interface Message {
   id: string;
@@ -89,8 +90,8 @@ export const AIChatbot = ({
     if (processedResponse.includes('[ACTION:TOGGLE_DARK_MODE:ON]')) {
       setTheme('dark');
       toast({
-        title: "🌙 Dark Mode aktiviert",
-        description: "Deine App ist jetzt im dunklen Modus",
+        title: t.chatDarkModeOnTitle,
+        description: t.chatDarkModeOnDesc,
       });
       processedResponse = processedResponse.replace('[ACTION:TOGGLE_DARK_MODE:ON]', '').trim();
     }
@@ -98,8 +99,8 @@ export const AIChatbot = ({
     if (processedResponse.includes('[ACTION:TOGGLE_DARK_MODE:OFF]')) {
       setTheme('light');
       toast({
-        title: "☀️ Light Mode aktiviert",
-        description: "Deine App ist jetzt im hellen Modus",
+        title: t.chatDarkModeOffTitle,
+        description: t.chatDarkModeOffDesc,
       });
       processedResponse = processedResponse.replace('[ACTION:TOGGLE_DARK_MODE:OFF]', '').trim();
     }
@@ -109,8 +110,8 @@ export const AIChatbot = ({
       if (onRegenerateMealPlan) {
         onRegenerateMealPlan();
         toast({
-          title: "📋 Neuer Wochenplan",
-          description: "Dein Wochenplan wird generiert",
+          title: t.chatRegeneratePlanTitle,
+          description: t.chatRegeneratePlanDesc,
         });
       }
       processedResponse = processedResponse.replace('[ACTION:REGENERATE_MEAL_PLAN]', '').trim();
@@ -150,7 +151,7 @@ export const AIChatbot = ({
       if (error) throw error;
 
       const aiResponse = data?.message || data?.response || "";
-      if (!aiResponse) throw new Error("Leere Antwort");
+      if (!aiResponse) throw new Error(t.couldNotProcess);
 
       const processedResponse = processActions(aiResponse);
 
@@ -215,7 +216,7 @@ export const AIChatbot = ({
           <>
             <motion.button
               type="button"
-              aria-label="KI-Chat schließen"
+              aria-label={t.closeAiChatAria}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -337,6 +338,7 @@ export const AIChatbot = ({
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
+                <AiDisclaimer className="mt-2 text-center" compact />
               </div>
             </Card>
           </motion.div>

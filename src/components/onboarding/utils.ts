@@ -168,3 +168,15 @@ export const saveOnboardingData = (
 export const saveOnboardingAfterSignup = (userData: UserData) => {
   saveOnboardingData(userData, { markOnboardingComplete: false });
 };
+
+/** After OAuth return to /auth?from=onboarding — sync profile from in-progress onboarding. */
+export function persistOnboardingSignupFromStorage(): void {
+  const raw = localStorage.getItem("onboardingUserData");
+  if (!raw) return;
+  try {
+    const userData = JSON.parse(raw) as UserData;
+    saveOnboardingAfterSignup(userData);
+  } catch {
+    console.warn("[onboarding] could not restore onboardingUserData after OAuth");
+  }
+}

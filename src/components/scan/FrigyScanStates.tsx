@@ -3,6 +3,7 @@ import { Check, Flame, X } from "lucide-react";
 import { useEffect } from "react";
 import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 import { confettiBurst } from "@/lib/mobileEffects";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 type FrigyScanAnalyzingStageProps = {
   previewUrl?: string | null;
@@ -308,7 +309,8 @@ export function FrigyScanSuccessStage({
             </div>
           </div>
         </motion.div>
-        <div className="mt-8 flex w-full max-w-[360px] flex-col gap-2.5">
+        <AiDisclaimer className="mt-4 w-full max-w-[360px] text-center" compact />
+        <div className="mt-4 flex w-full max-w-[360px] flex-col gap-2.5">
           {onScanAnother ? (
             <motion.button
               type="button"

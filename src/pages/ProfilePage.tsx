@@ -35,10 +35,8 @@ import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
-import { canManageStripeSubscription, canManageStoreSubscription } from "@/lib/subscription";
-import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
+import { canManageStoreSubscription } from "@/lib/subscription";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openExternalUrl } from "@/lib/openExternalUrl";
 import { openStoreSubscriptionManagement, restoreStorePurchases } from "@/lib/storeBilling";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import { isAppleSignInAvailable } from "@/lib/appleSignIn";
@@ -130,9 +128,7 @@ const ProfilePage = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const canManageStripe = canManageStripeSubscription(subscriptionStatus);
-  const canManageStore = canManageStoreSubscription(subscriptionStatus);
-  const canManageSubscription = canManageStripe || canManageStore;
+  const canManageSubscription = canManageStoreSubscription(subscriptionStatus);
 
   const handleSignOut = async () => {
     try {
@@ -159,7 +155,7 @@ const ProfilePage = () => {
       const result = await restoreStorePurchases(session.access_token);
       await checkSubscription();
       if (result.ok) {
-        toast({ title: t.success, description: "Käufe wiederhergestellt." });
+        toast({ title: t.success, description: t.purchasesRestoredMsg });
       } else if (result.message) {
         toast({ title: t.error, description: result.message, variant: "destructive" });
       }
@@ -175,19 +171,7 @@ const ProfilePage = () => {
     }
     setPortalLoading(true);
     try {
-      if (canManageStore) {
-        await openStoreSubscriptionManagement();
-        return;
-      }
-      const { data, error } = await supabase.functions.invoke("customer-portal", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (error) {
-        throw new Error(await getEdgeFunctionErrorMessage(error, data));
-      }
-      if (data?.url) {
-        await openExternalUrl(data.url);
-      }
+      await openStoreSubscriptionManagement();
     } catch (error: unknown) {
       toast({
         title: t.error,
@@ -203,7 +187,7 @@ const ProfilePage = () => {
     if (!user || !session) {
       toast({
         title: t.error,
-        description: "Benutzer nicht authentifiziert",
+        description: t.userNotAuthenticated,
         variant: "destructive",
       });
       return;
@@ -217,8 +201,8 @@ const ProfilePage = () => {
       if (functionError) throw functionError;
 
       toast({
-        title: "Konto gelöscht",
-        description: "Dein Konto wurde erfolgreich gelöscht",
+        title: t.accountDeletedTitle,
+        description: t.accountDeletedDesc,
       });
 
       localStorage.clear();

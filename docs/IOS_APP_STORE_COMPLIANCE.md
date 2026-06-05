@@ -43,16 +43,55 @@ Optional path alias `https://app.frigy.app/apple/s2s` → reverse-proxy to the s
 
 ## Review checklist
 
-- [ ] Sign in with Apple visible when Google is offered (Auth screen)
-- [ ] Restore Purchases on Profile (native builds)
-- [ ] No Stripe payment links in native app for digital premium
+- [x] Sign in with Apple visible when Google is offered (Auth screen)
+- [x] Restore Purchases on Paywall + Profile (native builds)
+- [x] No Stripe payment links in native app for digital premium
+- [x] Privacy Policy + Terms links on subscription paywall (Guideline 3.1.2)
+- [x] Auto-renewal disclosure on paywall (store + web copy)
 - [ ] Privacy Policy URL in App Store Connect matches `VITE_PRIVACY_POLICY_URL`
-- [ ] Account deletion in Profile works
-- [ ] App launches without login (Landing / Onboarding)
-- [ ] No HealthKit capability
-- [ ] Sandbox subscription test on real device
-- [ ] App Store prices: monthly **€9,99** (3-day free trial), yearly **€36,95** — match paywall copy
-- [ ] No Apple Health / Google Fit claims in UI (feature removed)
+- [ ] Account deletion in Profile works (deploy `delete-user` Edge Function)
+- [x] App launches without login (Onboarding first)
+- [x] No HealthKit capability
+- [ ] Sandbox subscription test on real device before submit
+- [ ] App Store prices: monthly **€9,99** (3-day free trial), yearly **€36,95** — match paywall + ASC
+- [x] No Apple Health / Google Fit claims in UI
+- [x] Minimum age 9+ enforced in onboarding birthdate step
+- [x] AI / medical / allergen disclaimers on scan, chat, meal plan, meal detail
+- [x] Paywall sign-out for reviewers on wrong account
+- [x] No mock dashboard meals when plan is empty
+- [x] Native builds: Stripe checkout/portal paths gated (store billing only)
+- [x] Android: removed SCHEDULE_EXACT_ALARM permission
+- [x] iOS permission strings in English for App Review
+- [ ] RevenueCat keys in Codemagic (`VITE_REVENUECAT_API_KEY_IOS` / `ANDROID`) — build fails without them
+- [ ] In-App Purchase capability enabled in Xcode
+
+## App Review Information (copy into App Store Connect)
+
+Paste into **App Review Information → Notes** (English):
+
+```
+Frigy is a nutrition & meal-planning app. Premium is required after onboarding.
+
+How to test subscriptions (Sandbox):
+1. Complete onboarding (you may skip camera/notifications).
+2. Sign up with email or Sign in with Apple.
+3. On the paywall, tap "Start my 3-day free trial" (monthly) or choose yearly.
+4. Sign in with a Sandbox Apple ID when prompted.
+5. After purchase, the app opens the dashboard automatically.
+6. To restore: tap "Restore Purchases" on the paywall or Profile → Restore Purchases.
+
+Demo account (optional, if you prefer email login):
+Email: [YOUR_REVIEW_EMAIL]
+Password: [YOUR_REVIEW_PASSWORD]
+(Pre-subscribe this account in Sandbox, or use Restore Purchases after Sandbox IAP.)
+
+Legal links in app: Paywall footer → Terms of Service / Privacy Policy.
+Account deletion: Profile → Delete Account.
+
+No medical advice — informational nutrition tracking only.
+```
+
+For **Google Play → App content → App access**, provide the same steps and a test account if login is required.
 
 ## StoreKit 2
 

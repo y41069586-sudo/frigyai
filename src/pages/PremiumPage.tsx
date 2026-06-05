@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Sparkles, Check, Calendar, ShoppingCart, BarChart, XCircle, Settings, Droplets, TrendingDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { NavLink } from '@/components/NavLink';
@@ -12,14 +11,13 @@ import { WaterTracker } from '@/components/WaterTracker';
 import { ProgressTracker } from '@/components/ProgressTracker';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import frigLogo from '@/assets/frigy-mascot.png';
-import { canManageStripeSubscription, canManageStoreSubscription } from '@/lib/subscription';
-import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
+import { canManageStoreSubscription } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
-import { openExternalUrl } from '@/lib/openExternalUrl';
 import { startPremiumCheckout } from '@/lib/purchaseCheckout';
 import type { PaywallBillingPlan } from '@/components/onboarding/components/OnboardingPaywallStep';
 import { openStoreSubscriptionManagement } from '@/lib/storeBilling';
-import { usesStoreBilling } from '@/lib/billingPlatform';
+import { waitForPremiumAfterPurchase } from '@/lib/subscriptionRefresh';
+import { SubscriptionLegalLinks } from '@/components/SubscriptionLegalLinks';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -32,15 +30,12 @@ const PremiumPage = () => {
   const [autoCheckoutTriggered, setAutoCheckoutTriggered] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
-  const canManageStripe = canManageStripeSubscription(subscriptionStatus);
-  const canManageStore = canManageStoreSubscription(subscriptionStatus);
-  const canManageSubscription = canManageStripe || canManageStore;
+  const canManageSubscription = canManageStoreSubscription(subscriptionStatus);
   
-  // Check if we're returning from Stripe payment
-  const isReturningFromStripe = searchParams.get('subscription') === 'success';
+  const isReturningFromSubscription = searchParams.get('subscription') === 'success';
   
   const [isAutoCheckout, setIsAutoCheckout] = useState(() => {
-    if (isReturningFromStripe) {
+    if (isReturningFromSubscription) {
       localStorage.removeItem('startCheckoutAfterAuth');
       return false;
     }
@@ -72,8 +67,11 @@ const PremiumPage = () => {
       });
 
       if (result.ok && result.channel === 'store') {
-        const status = await checkSubscription();
-        if (status?.subscribed) {
+        const active = await waitForPremiumAfterPurchase(
+          checkSubscription,
+          session.access_token,
+        );
+        if (active) {
           setShowSuccessDialog(true);
         }
       } else if (!result.ok && !result.cancelled && result.message) {
@@ -102,9 +100,9 @@ const PremiumPage = () => {
     }
   }, [user, navigate]);
 
-  // Handle returning from Stripe with success
+  // Handle returning from store checkout deep link
   useEffect(() => {
-    if (!isReturningFromStripe || !session) return;
+    if (!isReturningFromSubscription || !session) return;
 
     let cancelled = false;
     setIsActivating(true);
@@ -140,7 +138,7 @@ const PremiumPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isReturningFromStripe, session, checkSubscription, setSearchParams, toast, language]);
+  }, [isReturningFromSubscription, session, checkSubscription, setSearchParams, toast, language]);
 
   // Auto-trigger checkout if coming from onboarding
   useEffect(() => {
@@ -152,7 +150,7 @@ const PremiumPage = () => {
     }
   }, [session, autoCheckoutTriggered, subscriptionStatus]);
 
-  // Show activating screen when returning from Stripe
+  // Show activating screen when returning from checkout
   if (isActivating) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-primary safe-area-inset">
@@ -179,7 +177,7 @@ const PremiumPage = () => {
           className="text-center"
         >
           <img src={frigLogo} alt="Frigy" className="h-16 w-16 mx-auto mb-4 rounded-xl animate-pulse" />
-          <h2 className="text-xl font-bold mb-2">{usesStoreBilling() ? t.premiumActivating : t.redirectingToStripe}</h2>
+          <h2 className="text-xl font-bold mb-2">{t.premiumActivating}</h2>
           <p className="text-muted-foreground">{t.pleaseWait}</p>
         </motion.div>
       </div>
@@ -202,26 +200,7 @@ const PremiumPage = () => {
 
     setLoading(true);
     try {
-      if (canManageStore) {
-        await openStoreSubscriptionManagement();
-        return;
-      }
-      toast({ title: t.loadingStripePortal, description: t.pleaseWait });
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) {
-        throw new Error(await getEdgeFunctionErrorMessage(error, data));
-      }
-
-      if (data?.url) {
-        await openExternalUrl(data.url);
-      } else {
-        throw new Error(t.noPortalUrl);
-      }
+      await openStoreSubscriptionManagement();
     } catch (error: unknown) {
       toast({
         title: t.error,
@@ -268,13 +247,13 @@ const PremiumPage = () => {
           {/* Premium Button in Header */}
           {!isPremium && (
             <Button
-              onClick={handleSubscribe}
+              onClick={() => navigate('/premium-pricing')}
               disabled={loading}
               size="sm"
               className="h-8 px-3 text-xs font-semibold flex-shrink-0"
             >
               <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              {loading ? '...' : 'Premium'}
+              {loading ? '...' : t.premiumLabel2}
             </Button>
           )}
         </div>
@@ -324,7 +303,7 @@ const PremiumPage = () => {
                         className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 text-xs"
                       >
                         <XCircle className="mr-1.5 h-3.5 w-3.5" />
-                        Kündigen
+                        {t.cancelSubscription}
                       </Button>
                     </div>
                   )}
@@ -399,7 +378,7 @@ const PremiumPage = () => {
                         size="sm"
                       >
                         <Droplets className="mr-1.5 h-3.5 w-3.5" />
-                        Wasser
+                        {t.waterTracker}
                       </Button>
                       <Button
                         onClick={() => setActiveSection('weight')}
@@ -408,7 +387,7 @@ const PremiumPage = () => {
                         size="sm"
                       >
                         <TrendingDown className="mr-1.5 h-3.5 w-3.5" />
-                        Gewicht
+                        {t.weightProgressFeature}
                       </Button>
                     </div>
                   </div>
@@ -452,7 +431,7 @@ const PremiumPage = () => {
                   <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">
-                  Frigy Premium
+                  {t.premiumLabel2}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   {t.premiumCheckoutHint}
@@ -489,6 +468,7 @@ const PremiumPage = () => {
               <p className="text-xs text-center text-muted-foreground mt-3">
                 {t.premiumTrialHint}
               </p>
+              <SubscriptionLegalLinks className="mt-3" />
             </div>
           )}
         </motion.div>

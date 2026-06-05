@@ -12,8 +12,8 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     host: true,
-    port: 8080,
-    strictPort: false,
+    port: 4137,
+    strictPort: true,
     open: false,
     // Prevent browser / proxy from caching HTML & hashed chunks during dev — avoids
     // "Failed to fetch dynamically imported module" after HMR or server restarts.

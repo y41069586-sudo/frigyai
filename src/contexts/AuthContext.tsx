@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, clearSupabaseAuthStorage } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { redeemPendingReferralCode } from '@/lib/referralCode';
 import { syncAffiliateAttributionToServer } from '@/lib/affiliateSync';
@@ -18,6 +18,7 @@ import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { signInWithOAuthProvider } from '@/lib/authOAuth';
 import { linkAppleIdentity, signInWithApple as nativeAppleSignIn } from '@/lib/appleSignIn';
+import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -43,8 +44,13 @@ interface AuthContextType {
     password: string,
     options?: { silent?: boolean },
   ) => Promise<{ error: unknown; session: Session | null }>;
-  signInWithGoogle: () => Promise<{ error: unknown }>;
-  signInWithApple: () => Promise<{ error: unknown }>;
+  signInWithGoogle: (options?: {
+    redirectPath?: string;
+    authQuery?: Record<string, string>;
+  }) => Promise<{ error: unknown }>;
+  signInWithApple: (options?: {
+    authQuery?: Record<string, string>;
+  }) => Promise<{ error: unknown }>;
   linkAppleAccount: () => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   checkSubscription: () => Promise<SubscriptionStatus | null>;
@@ -83,7 +89,7 @@ const setCachedSubscription = (data: SubscriptionStatus | null) => {
   }
 };
 
-// Fast DB cache load (much faster than Stripe API)
+// Fast DB cache load (much faster than edge function round-trip)
 const loadFromDbCache = async (userId: string): Promise<SubscriptionStatus | null> => {
   try {
     const { data, error } = await supabase
@@ -156,7 +162,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     setCachedSubscription(data);
   };
 
-  // Fast load from DB, then background refresh from Stripe
+  // Fast load from DB cache, then refresh from RevenueCat / subscription_cache
   const loadSubscriptionFast = async (userId: string, accessToken: string) => {
     applyDeferredReferralOnFirstOpen();
     await syncAffiliateAttributionToServer(accessToken, { source: "auth" });
@@ -175,15 +181,17 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       updateSubscriptionStatus(dbCache);
     }
     
-    // Step 2: Background refresh from Stripe (don't await)
-    supabase.functions.invoke('check-subscription', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then(({ data, error }) => {
-      if (!error && data) {
-        updateSubscriptionStatus(data);
-      }
-    }).catch((err) => {
-      console.warn('[Auth] Background subscription refresh failed:', err);
+    // Step 2: Sync store billing + refresh subscription status
+    void syncStoreSubscriptionIfNeeded(accessToken).finally(() => {
+      supabase.functions.invoke('check-subscription', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then(({ data, error }) => {
+        if (!error && data) {
+          updateSubscriptionStatus(data);
+        }
+      }).catch((err) => {
+        console.warn('[Auth] Background subscription refresh failed:', err);
+      });
     });
   };
 
@@ -194,6 +202,8 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       accessToken = data.session?.access_token;
     }
     if (!accessToken) return null;
+
+    await syncStoreSubscriptionIfNeeded(accessToken);
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription', {
@@ -247,7 +257,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Load subscription fast: DB cache first, then Stripe in background
+        // Load subscription: DB cache first, then RevenueCat refresh
         if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           loadSubscriptionFast(currentSession.user.id, currentSession.access_token);
         } else if (!currentSession) {
@@ -266,8 +276,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
         setSession(null);
         setUser(null);
         updateSubscriptionStatus(null);
-        // Clear potentially stale auth token
-        localStorage.removeItem('sb-zbvrhyyjlnmeqtjbvtwt-auth-token');
+        clearSupabaseAuthStorage();
         setLoading(false);
         return;
       }
@@ -276,7 +285,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       setUser(initialSession?.user ?? null);
       setLoading(false);
 
-      // Load subscription fast: DB cache first, then Stripe in background
+      // Load subscription: DB cache first, then RevenueCat refresh
       if (initialSession?.user) {
         loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
       }
@@ -286,27 +295,28 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    // Re-check subscription when window regains focus (e.g., returning from Stripe)
+    // Re-check subscription when app returns to foreground (e.g. after Store purchase)
     const handleVisibilityChange = () => {
       const currentSession = sessionRef.current;
       if (document.visibilityState === 'visible' && currentSession?.user) {
-        // First refresh the session to ensure it's valid
         supabase.auth.refreshSession().then(({ data: { session: refreshedSession }, error }) => {
           if (error || !refreshedSession) {
             console.log('[Auth] Session refresh failed on visibility change');
             return;
           }
 
-          supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${refreshedSession.access_token}`,
-            },
-          }).then(({ data, error }) => {
-            if (!error && mounted) {
-              updateSubscriptionStatus(data);
-            }
-          }).catch((err) => {
-            console.warn('[Auth] Subscription check on visibility change failed:', err);
+          void syncStoreSubscriptionIfNeeded(refreshedSession.access_token).finally(() => {
+            supabase.functions.invoke('check-subscription', {
+              headers: {
+                Authorization: `Bearer ${refreshedSession.access_token}`,
+              },
+            }).then(({ data, error }) => {
+              if (!error && mounted) {
+                updateSubscriptionStatus(data);
+              }
+            }).catch((err) => {
+              console.warn('[Auth] Subscription check on visibility change failed:', err);
+            });
           });
         }).catch((err) => {
           console.warn('[Auth] Session refresh on visibility change failed:', err);
@@ -459,10 +469,11 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     return { error, session: data.session ?? null };
   };
 
-  const signInWithGoogle = async () => {
-    const { error } = await signInWithOAuthProvider('google', {
-      redirectPath: '/premium-pricing',
-    });
+  const signInWithGoogle = async (options?: {
+    redirectPath?: string;
+    authQuery?: Record<string, string>;
+  }) => {
+    const { error } = await signInWithOAuthProvider("google", options);
 
     if (error) {
       toast({
@@ -475,8 +486,8 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const signInWithApple = async () => {
-    const { error } = await nativeAppleSignIn();
+  const signInWithApple = async (options?: { authQuery?: Record<string, string> }) => {
+    const { error } = await nativeAppleSignIn(options);
 
     if (error) {
       toast({
@@ -515,7 +526,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     }
     
     // Clear any cached auth data from localStorage
-    localStorage.removeItem('sb-zbvrhyyjlnmeqtjbvtwt-auth-token');
+    clearSupabaseAuthStorage();
     
     toast({
       title: "Erfolgreich abgemeldet",

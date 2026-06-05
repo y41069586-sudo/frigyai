@@ -21,7 +21,8 @@ export function lazyWithReload<T extends { default: ComponentType<unknown> }>(
       return module;
     } catch (error) {
       if (isChunkLoadError(error) && attemptRuntimeRecovery(RELOAD_KEY)) {
-        return new Promise<T>(() => {});
+        // Page reload in progress — avoid hanging Suspense forever on a never-resolving promise.
+        throw error;
       }
 
       throw error;
