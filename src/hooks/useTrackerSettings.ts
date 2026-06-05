@@ -21,12 +21,70 @@ export interface TrackerSettings {
 
 const LOCAL_STORAGE_KEY = 'userProfile';
 
+type TrackerCacheEntry = {
+  userId: string;
+  settings: TrackerSettings | null;
+  isConfigured: boolean;
+};
+
+let trackerMemoryCache: TrackerCacheEntry | null = null;
+let trackerLoadInflight: Promise<void> | null = null;
+let trackerLoadInflightUserId: string | null = null;
+
+function readLocalTrackerSettings(): TrackerSettings | null {
+  try {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as TrackerSettings;
+  } catch {
+    return null;
+  }
+}
+
+function getInitialTrackerState(userId: string | undefined): {
+  settings: TrackerSettings | null;
+  isConfigured: boolean;
+  loading: boolean;
+} {
+  if (userId && trackerMemoryCache?.userId === userId) {
+    return {
+      settings: trackerMemoryCache.settings,
+      isConfigured: trackerMemoryCache.isConfigured,
+      loading: false,
+    };
+  }
+
+  const local = readLocalTrackerSettings();
+  if (local) {
+    return {
+      settings: local,
+      isConfigured: local.dailyCalories > 0,
+      loading: false,
+    };
+  }
+
+  return {
+    settings: null,
+    isConfigured: false,
+    loading: Boolean(userId),
+  };
+}
+
+function writeTrackerMemoryCache(
+  userId: string,
+  settings: TrackerSettings | null,
+  isConfigured: boolean,
+) {
+  trackerMemoryCache = { userId, settings, isConfigured };
+}
+
 export const useTrackerSettings = () => {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<TrackerSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isConfigured, setIsConfigured] = useState(false);
-  const hasLoadedOnceRef = useRef(false);
+  const initial = getInitialTrackerState(user?.id);
+  const [settings, setSettings] = useState<TrackerSettings | null>(initial.settings);
+  const [loading, setLoading] = useState(initial.loading);
+  const [isConfigured, setIsConfigured] = useState(initial.isConfigured);
+  const hasLoadedOnceRef = useRef(!initial.loading);
 
   // Parse database row to settings
   const parseDbSettings = (data: any): TrackerSettings => ({
@@ -84,6 +142,9 @@ export const useTrackerSettings = () => {
         const parsed = JSON.parse(stored);
         setSettings(parsed);
         setIsConfigured(parsed.dailyCalories > 0);
+        if (user) {
+          writeTrackerMemoryCache(user.id, parsed, parsed.dailyCalories > 0);
+        }
 
         if (user && parsed.dailyCalories > 0) {
           await saveToDatabase(parsed);
@@ -105,6 +166,7 @@ export const useTrackerSettings = () => {
       setLoading(true);
     }
 
+    const run = async () => {
     try {
       if (user) {
         const { data, error } = await supabase
@@ -155,6 +217,9 @@ export const useTrackerSettings = () => {
           setSettings(merged);
           setIsConfigured(merged.dailyCalories > 0);
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+          if (user) {
+            writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
+          }
           return;
         }
       }
@@ -177,6 +242,26 @@ export const useTrackerSettings = () => {
       hasLoadedOnceRef.current = true;
       setLoading(false);
     }
+    };
+
+    if (user && trackerLoadInflight && trackerLoadInflightUserId === user.id) {
+      await trackerLoadInflight;
+      return;
+    }
+
+    if (user) {
+      trackerLoadInflightUserId = user.id;
+      trackerLoadInflight = run().finally(() => {
+        if (trackerLoadInflightUserId === user.id) {
+          trackerLoadInflight = null;
+          trackerLoadInflightUserId = null;
+        }
+      });
+      await trackerLoadInflight;
+      return;
+    }
+
+    await run();
   }, [user]);
 
   // Save settings
@@ -185,6 +270,9 @@ export const useTrackerSettings = () => {
     setIsConfigured(newSettings.dailyCalories > 0);
 
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newSettings));
+    if (user) {
+      writeTrackerMemoryCache(user.id, newSettings, newSettings.dailyCalories > 0);
+    }
 
     if (user) {
       await saveToDatabase(newSettings);
@@ -197,6 +285,9 @@ export const useTrackerSettings = () => {
     setIsConfigured(false);
     hasLoadedOnceRef.current = false;
     localStorage.removeItem(LOCAL_STORAGE_KEY);
+    if (user) {
+      trackerMemoryCache = null;
+    }
 
     if (user) {
       await supabase
@@ -207,9 +298,12 @@ export const useTrackerSettings = () => {
   }, [user]);
 
   useEffect(() => {
-    hasLoadedOnceRef.current = false;
-    void loadSettings(false);
-  }, [loadSettings]);
+    const hasWarmCache =
+      Boolean(user?.id && trackerMemoryCache?.userId === user.id) ||
+      Boolean(readLocalTrackerSettings());
+    hasLoadedOnceRef.current = hasWarmCache;
+    void loadSettings(!hasWarmCache);
+  }, [loadSettings, user?.id]);
 
   useEffect(() => {
     if (!user) return;

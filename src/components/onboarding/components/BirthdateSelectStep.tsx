@@ -6,6 +6,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { UserData } from "../types";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MIN_ONBOARDING_AGE } from "../utils";
 
 const PALETTE = {
   primary: "#75FBB2",
@@ -20,7 +21,6 @@ const PALETTE = {
 const daysInMonth = (month: number, year: number) =>
   new Date(year, month, 0).getDate();
 
-const MIN_AGE = 9;
 const MAX_AGE = 100;
 
 const formatBirthdateValue = (birthdate: { day: number; month: number; year: number }) =>
@@ -71,7 +71,7 @@ const parseBirthdateInput = (value: string): BirthdateParseResult | null => {
     return { status: "invalid" };
   }
 
-  if (year > new Date().getFullYear() - MIN_AGE) {
+  if (year > new Date().getFullYear() - MIN_ONBOARDING_AGE) {
     return { status: "too_young" };
   }
 
@@ -92,7 +92,7 @@ const parseBirthdateInput = (value: string): BirthdateParseResult | null => {
   }
 
   const age = calculateAgeFromBirthdate(day, month, year);
-  if (age < MIN_AGE) {
+  if (age < MIN_ONBOARDING_AGE) {
     return { status: "too_young" };
   }
   if (age > MAX_AGE) {

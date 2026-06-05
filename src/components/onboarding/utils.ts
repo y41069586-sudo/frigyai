@@ -4,6 +4,9 @@ import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { saveReminderConfigFromOnboarding, syncRemindersFromStorage } from "@/lib/notifications";
 import { clearPendingReferralCode, REFERRAL_SKIP_PAYWALL_KEY } from "@/lib/referralCode";
 
+/** Minimum age to use Frigy (Google Play / App Store: 13+). */
+export const MIN_ONBOARDING_AGE = 13;
+
 /** Minimum daily calories when losing weight (aligned with MacroTracker). */
 export function getMinCaloriesForAge(age: number): number {
   return age < 25 ? 1500 : age < 40 ? 1400 : 1300;

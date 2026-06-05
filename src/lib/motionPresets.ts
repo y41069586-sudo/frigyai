@@ -91,7 +91,7 @@ export function getPageTransition(isMobile: boolean, mainNav: boolean) {
       initial: { opacity: 1 },
       animate: { opacity: 1 },
       exit: { opacity: 1 },
-      transition: { duration: isMobile ? 0.12 : 0.2, ease: MOTION_EASE },
+      transition: { duration: 0 },
     };
   }
   // Never start routes at opacity 0 — on some mobile browsers the fade-in never runs (blank white screen).

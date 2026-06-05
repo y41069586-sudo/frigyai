@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,13 @@ import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
 import frigyMascot from '@/assets/frigy-mascot.png';
-import { ShoppingList } from '@/components/ShoppingList';
+const ShoppingList = lazy(() =>
+  import('@/components/ShoppingList').then((m) => ({ default: m.ShoppingList })),
+);
+const ReminderSettings = lazy(() =>
+  import('@/components/ReminderSettings').then((m) => ({ default: m.ReminderSettings })),
+);
 import { ExportMealPlan } from '@/components/ExportMealPlan';
-import { ReminderSettings } from '@/components/ReminderSettings';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { toast } from '@/hooks/use-toast';
 import { BottomNavigation } from '@/components/BottomNavigation';
@@ -29,6 +33,10 @@ import {
   tabPanelFrom,
   tabPanelTransition,
 } from '@/lib/motionPresets';
+
+const TabPanelFallback = () => (
+  <div className="min-h-[40vh] animate-pulse rounded-2xl bg-muted/25" aria-hidden />
+);
 interface UserProfile {
   age: number;
   weight: number;
@@ -230,12 +238,6 @@ const MealPlansPage = () => {
 
   // Sync meal plan and shopping list from global context or localStorage
   useEffect(() => {
-    console.log('[MEALPLANS] Syncing meal plan from context:', {
-      globalMealPlanExists: !!globalMealPlan,
-      globalMealPlanLength: globalMealPlan?.length,
-      globalShoppingListLength: globalShoppingList?.length,
-    });
-
     if (globalMealPlan && globalMealPlan.length > 0) {
       setMealPlan(normalizeMealPlan(globalMealPlan, t.defaultMealName));
     } else {
@@ -442,27 +444,7 @@ const MealPlansPage = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <>
-        <div className="min-h-screen bg-[#F2FFF8] safe-area-inset flex flex-col">
-          <nav className="sticky top-0 z-[60] bg-background/95 border-b border-primary/20 safe-top">
-            <motion.div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3">
-              <motion.div className="h-9 w-24 rounded-lg bg-muted/60 animate-pulse" />
-              <motion.div className="h-9 w-16 rounded-full bg-muted/60 animate-pulse" />
-            </motion.div>
-          </nav>
-          <motion.div className="flex flex-1 flex-col items-center justify-center gap-3 pb-bottom-nav">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">{t.loading}</p>
-          </motion.div>
-          <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
-        </div>
-      </>
-    );
-  }
-
-  if (!user) {
+  if (!loading && !user) {
     return (
       <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
         <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
@@ -517,7 +499,9 @@ const MealPlansPage = () => {
                 <h2 className="mb-1 text-2xl font-bold text-foreground">{t.reminderSettings}</h2>
                 <p className="text-sm text-muted-foreground">{t.reminderSettings}</p>
               </div>
-              <ReminderSettings />
+              <Suspense fallback={<TabPanelFallback />}>
+                <ReminderSettings />
+              </Suspense>
             </motion.div>
           )}
 
@@ -664,7 +648,9 @@ const MealPlansPage = () => {
                     </p>
                   </Card>
                 )}
-                <ShoppingList mealPlan={mealPlan} />
+                <Suspense fallback={<TabPanelFallback />}>
+                  <ShoppingList mealPlan={mealPlan} />
+                </Suspense>
             </motion.div>
           )}
           </AnimatePresence>

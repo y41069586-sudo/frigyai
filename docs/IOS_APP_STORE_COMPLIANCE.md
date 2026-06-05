@@ -55,7 +55,7 @@ Optional path alias `https://app.frigy.app/apple/s2s` → reverse-proxy to the s
 - [ ] Sandbox subscription test on real device before submit
 - [ ] App Store prices: monthly **€9,99** (3-day free trial), yearly **€36,95** — match paywall + ASC
 - [x] No Apple Health / Google Fit claims in UI
-- [x] Minimum age 9+ enforced in onboarding birthdate step
+- [x] Minimum age 13+ enforced in onboarding birthdate step
 - [x] AI / medical / allergen disclaimers on scan, chat, meal plan, meal detail
 - [x] Paywall sign-out for reviewers on wrong account
 - [x] No mock dashboard meals when plan is empty
