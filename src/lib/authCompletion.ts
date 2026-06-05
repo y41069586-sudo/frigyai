@@ -13,6 +13,7 @@ import { clearOAuthPending, resolveFromOnboarding } from "@/lib/oauthPending";
 import {
   ensureAuthSessionForRouting,
   resolvePostAuthDestination,
+  type PostAuthIntent,
   type PostAuthPhase,
 } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
@@ -54,6 +55,7 @@ export type RunAuthCompletionInput = {
   oauthUrl?: string;
   onOAuthExchangeSuccess?: () => void;
   allowOAuthDefer?: boolean;
+  authIntent?: PostAuthIntent;
 };
 
 const WATCHDOG_MS = 12_000;
@@ -254,6 +256,7 @@ async function resolveSuccessRoute(options: {
   fromOnboarding?: boolean;
   explicitPath?: string | null;
   userId?: string | null;
+  authIntent?: PostAuthIntent;
 }): Promise<AuthResult> {
   setResult({ status: "pending", phase: "premium" });
 
@@ -263,6 +266,7 @@ async function resolveSuccessRoute(options: {
     fromOnboarding: options.fromOnboarding,
     explicitPath: options.explicitPath,
     sessionWaitMs: 6000,
+    authIntent: options.authIntent,
   });
 
   if (route.phase === "no_session") {
@@ -290,6 +294,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     oauthUrl,
     onOAuthExchangeSuccess,
     allowOAuthDefer = true,
+    authIntent: authIntentOpt,
   } = input;
 
   if (oauthUrl) {
@@ -332,11 +337,15 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
       return failResult("Session nach OAuth nicht verfügbar.");
     }
 
+    const authIntent: PostAuthIntent =
+      authIntentOpt ?? (fromOnboarding ? "signup" : "login");
+
     return resolveSuccessRoute({
       checkSubscription,
       fromOnboarding,
       explicitPath,
       userId: sessionAfterOAuth.userId,
+      authIntent,
     });
   }
 
@@ -355,6 +364,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     fromOnboarding: fromOnboardingOpt,
     explicitPath,
     userId: sessionResult.userId,
+    authIntent: authIntentOpt ?? (fromOnboardingOpt ? "signup" : "login"),
   });
 }
 

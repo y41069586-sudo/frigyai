@@ -658,6 +658,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       userId: user?.id,
       checkSubscription,
       fromOnboarding: true,
+      authIntent: authMode === "login" ? "login" : "signup",
       sessionWaitMs: sessionReady ? 3500 : 4500,
     });
 
@@ -671,7 +672,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
 
     goToPaywall();
-  }, [checkSubscription, finishOnboardingExit, goToPaywall, user?.id]);
+  }, [authMode, checkSubscription, finishOnboardingExit, goToPaywall, user?.id]);
 
   useEffect(() => {
     if (currentStep !== "paywall" || !user) return;

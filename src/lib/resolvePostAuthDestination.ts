@@ -1,10 +1,13 @@
 import { persistOnboardingSignupFromStorage } from "@/components/onboarding/utils";
 import { waitForAuthSession } from "@/lib/authErrors";
 import { POST_AUTH_PAYWALL_ROUTE } from "@/lib/authOAuth";
+import { isReturningAppUser } from "@/lib/isReturningAppUser";
 import { buildPremiumPricingRoute, hasEverHadPremium } from "@/lib/trialEligibility";
 import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
+
+export type PostAuthIntent = "login" | "signup" | "auto";
 
 /** Single routing outcome after auth — one decision, one destination. */
 export type PostAuthPhase =
@@ -70,6 +73,8 @@ export async function resolvePostAuthDestination(options: {
   explicitPath?: string | null;
   skipReferralCheck?: boolean;
   sessionWaitMs?: number;
+  /** login = existing account flow; signup = new account; auto = OAuth without onboarding flag */
+  authIntent?: PostAuthIntent;
 }): Promise<PostAuthRoute> {
   const sessionResult = await ensureAuthSessionForRouting({
     userId: options.userId,
@@ -86,6 +91,12 @@ export async function resolvePostAuthDestination(options: {
     persistOnboardingSignupFromStorage();
   }
 
+  const authIntent = options.authIntent ?? "auto";
+
+  if (await isReturningAppUser(userId)) {
+    return { phase: "dashboard", path: "/", userId };
+  }
+
   const hasPremium = await resolvePremiumAccessAfterSignIn({
     userId,
     checkSubscription: options.checkSubscription,
@@ -97,7 +108,15 @@ export async function resolvePostAuthDestination(options: {
     return { phase: "dashboard", path: "/", userId };
   }
 
-  if (options.fromOnboarding) {
+  if (authIntent === "login") {
+    return {
+      phase: "onboarding_paywall",
+      path: "/?onboardingStep=save-progress",
+      userId,
+    };
+  }
+
+  if (options.fromOnboarding || authIntent === "signup") {
     return {
       phase: "onboarding_paywall",
       path: "/?onboardingStep=paywall",

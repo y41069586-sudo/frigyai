@@ -10,6 +10,7 @@ import {
   type AuthResult,
   type RunAuthCompletionInput,
 } from "@/lib/authCompletion";
+import type { PostAuthIntent } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 
 const NAV_DEDUPE_MS = 1500;
@@ -132,6 +133,7 @@ export async function redirectAfterSignIn(options: {
   navigate: NavigateFunction;
   fromOnboarding?: boolean;
   explicitPath?: string | null;
+  authIntent?: PostAuthIntent;
 }): Promise<AuthResult> {
   return runAuthCompletion({
     userId: options.userId,
@@ -139,6 +141,7 @@ export async function redirectAfterSignIn(options: {
     navigate: options.navigate,
     fromOnboarding: options.fromOnboarding,
     explicitPath: options.explicitPath,
+    authIntent: options.authIntent,
   });
 }
 

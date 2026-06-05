@@ -14,7 +14,7 @@ const MESSAGES: Record<
     alreadyRegistered: "Mit dieser E-Mail bist du schon registriert. Bitte melde dich an.",
     emailNotConfirmed:
       "Du musst deine E-Mail nicht bestätigen. Melde dich einfach mit E-Mail und Passwort an.",
-    invalidCredentials: "E-Mail oder Passwort ist falsch.",
+    invalidCredentials: "E-Mail oder Passwort ist falsch. Noch kein Konto? Tippe unten auf Registrieren.",
     emailRateLimit:
       "Zu viele Versuche in kurzer Zeit. Warte ein paar Minuten oder melde dich an, falls du schon ein Konto hast.",
   },
@@ -22,7 +22,7 @@ const MESSAGES: Record<
     alreadyRegistered: "You already registered with this email. Please sign in.",
     emailNotConfirmed:
       "You don't need to confirm your email. Just sign in with your email and password.",
-    invalidCredentials: "Incorrect email or password.",
+    invalidCredentials: "Incorrect email or password. No account yet? Tap Register below.",
     emailRateLimit:
       "Too many attempts in a short time. Wait a few minutes or sign in if you already have an account.",
   },
@@ -30,7 +30,7 @@ const MESSAGES: Record<
     alreadyRegistered: "Tu es déjà inscrit avec cet e-mail. Connecte-toi.",
     emailNotConfirmed:
       "Tu n'as pas besoin de confirmer ton e-mail. Connecte-toi avec ton e-mail et ton mot de passe.",
-    invalidCredentials: "E-mail ou mot de passe incorrect.",
+    invalidCredentials: "E-mail ou mot de passe incorrect. Pas encore de compte ? Appuie sur S'inscrire.",
     emailRateLimit:
       "Trop de tentatives en peu de temps. Attends quelques minutes ou connecte-toi si tu as déjà un compte.",
   },
@@ -110,7 +110,7 @@ export function resolveAuthErrorMessage(
   }
 
   if (mode === "login" && msg.includes("invalid login credentials")) {
-    return { message: t.invalidCredentials, variant: "error" };
+    return { message: t.invalidCredentials, switchToLogin: false, variant: "error" };
   }
 
   return { message: error.message, variant: "error" };

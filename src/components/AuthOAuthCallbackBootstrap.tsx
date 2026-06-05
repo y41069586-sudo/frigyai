@@ -53,13 +53,13 @@ export function AuthOAuthCallbackBootstrap() {
 
     handledRef.current = true;
     clearOAuthPending();
-    const fromOnboarding = pending === "onboarding";
 
     void redirectAfterSignIn({
       userId: user.id,
       checkSubscription,
       navigate,
-      fromOnboarding,
+      fromOnboarding: pending === "onboarding",
+      authIntent: pending === "onboarding" ? "signup" : "login",
     });
   }, [loading, user, location.pathname, location.search, navigate, checkSubscription]);
 

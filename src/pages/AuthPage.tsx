@@ -64,6 +64,7 @@ const AuthPage = () => {
         checkSubscription,
         navigate,
         fromOnboarding: isFromOnboarding,
+        authIntent: isLogin ? "login" : "signup",
         explicitPath:
           nextParam && nextParam.startsWith('/')
             ? nextParam
@@ -77,11 +78,11 @@ const AuthPage = () => {
       console.error('[Auth] redirectAfterSignIn failed:', redirectError);
       redirectStartedRef.current = false;
       setError(t.authLoginFailed);
-      navigate(POST_AUTH_PAYWALL_ROUTE, { replace: true });
+      navigate('/', { replace: true });
     } finally {
       setIsRedirecting(false);
     }
-  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, navigate, searchParams, t.authLoginFailed, user?.id]);
+  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, isLogin, navigate, searchParams, t.authLoginFailed, user?.id]);
 
   const handleBack = () => {
     if (isFromOnboarding) {
@@ -175,9 +176,10 @@ const AuthPage = () => {
             persistOnboardingSignupFromStorage();
           }
           redirectStartedRef.current = false;
-          await finishAuthRedirect();
+          await finishAuthRedirect(activeSession);
         } else {
-          navigate(POST_AUTH_PAYWALL_ROUTE, { replace: true });
+          redirectStartedRef.current = false;
+          await finishAuthRedirect(activeSession);
         }
       }
     } finally {
@@ -342,7 +344,9 @@ const AuthPage = () => {
                 onClick={async () => {
                   setIsAppleLoading(true);
                   setError(null);
-                  const { error: appleError } = await signInWithApple();
+                  const { error: appleError } = await signInWithApple({
+                    authQuery: isFromOnboarding ? { from: "onboarding" } : { from: "login" },
+                  });
                   if (appleError) {
                     const msg =
                       appleError instanceof Error ? appleError.message : "Apple-Anmeldung fehlgeschlagen";
@@ -369,10 +373,12 @@ const AuthPage = () => {
                 setIsGoogleLoading(true);
                 setError(null);
                 redirectStartedRef.current = false;
-                if (user) {
-                  await signOut();
+                const { error: googleError } = await signInWithGoogle({
+                  authQuery: isFromOnboarding ? { from: "onboarding" } : { from: "login" },
+                });
+                if (googleError) {
+                  setError(t.authLoginFailed);
                 }
-                await signInWithGoogle();
                 setIsGoogleLoading(false);
               }}
               disabled={isGoogleLoading || isAppleLoading}

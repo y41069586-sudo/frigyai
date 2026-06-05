@@ -266,9 +266,9 @@ export function OnboardingPaywallStep({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="mx-auto w-full max-w-md pb-6 pt-2"
+            className="mx-auto w-full max-w-md pb-28 pt-1"
           >
-            <h1 className="mb-7 text-center text-[1.35rem] font-bold leading-[1.3] tracking-tight min-[390px]:text-[1.5rem]">
+            <h1 className="mb-5 text-center text-lg font-bold leading-snug tracking-tight min-[390px]:text-xl">
               {showMonthlyTrialUi ? t.trialTitle : t.unlockTitle}
             </h1>
 
@@ -337,12 +337,12 @@ export function OnboardingPaywallStep({
             )}
           </motion.div>
         </AnimatePresence>
-        <div className="h-8" aria-hidden />
+        <div className="h-4" aria-hidden />
       </motion.div>
 
-      <div className="relative z-20 shrink-0 border-t border-[#E5E7EB] bg-white px-4 pt-5 shadow-[0_-16px_48px_-12px_rgba(0,0,0,0.12)] pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
+      <div className="relative z-20 shrink-0 border-t border-[#E5E7EB] bg-white px-4 pt-4 shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.1)] pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
         <div
-          className="pointer-events-none absolute -top-10 left-0 right-0 h-10 bg-gradient-to-b from-transparent to-white"
+          className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-white"
           aria-hidden
         />
         <div className="mx-auto w-full max-w-md">
