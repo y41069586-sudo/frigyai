@@ -26,6 +26,24 @@ has_asc_key() {
 
 normalize_p8_key
 
+# Require RevenueCat keys per workflow (not both on every build).
+WORKFLOW="${CM_WORKFLOW_NAME:-}"
+REQUIRE_IOS_REVENUECAT=0
+REQUIRE_ANDROID_REVENUECAT=0
+case "$WORKFLOW" in
+  *ios*|*iOS*) REQUIRE_IOS_REVENUECAT=1 ;;
+  *android*|*Android*)
+    REQUIRE_IOS_REVENUECAT=0
+    REQUIRE_ANDROID_REVENUECAT=0
+    ;;
+  *)
+    # Unknown workflow — require both unless explicitly relaxed
+    REQUIRE_IOS_REVENUECAT=1
+    REQUIRE_ANDROID_REVENUECAT=1
+    ;;
+esac
+echo "Workflow: ${WORKFLOW:-unknown} (iOS RC required=${REQUIRE_IOS_REVENUECAT}, Android RC required=${REQUIRE_ANDROID_REVENUECAT})"
+
 MISSING=""
 require_var VITE_SUPABASE_URL
 require_var VITE_SUPABASE_PUBLISHABLE_KEY
@@ -65,17 +83,23 @@ else
 fi
 
 if [ -z "${VITE_REVENUECAT_API_KEY_IOS:-}" ]; then
-  echo "ERROR: VITE_REVENUECAT_API_KEY_IOS not set — iOS IAP will fail App Store review."
-  echo "Add appl_… key from RevenueCat to Codemagic group 'frigy' (see docs/STORE_BILLING_SETUP.md)."
-  exit 1
+  if [ "$REQUIRE_IOS_REVENUECAT" = "1" ]; then
+    echo "ERROR: VITE_REVENUECAT_API_KEY_IOS not set — iOS IAP will fail App Store review."
+    echo "Add appl_… key from RevenueCat to Codemagic group 'frigy' (see docs/STORE_BILLING_SETUP.md)."
+    exit 1
+  fi
+  echo "WARNING: VITE_REVENUECAT_API_KEY_IOS not set — skipped for this workflow."
 else
   echo "VITE_REVENUECAT_API_KEY_IOS present."
 fi
 
 if [ -z "${VITE_REVENUECAT_API_KEY_ANDROID:-}" ]; then
-  echo "ERROR: VITE_REVENUECAT_API_KEY_ANDROID not set — Android IAP will fail Play review."
-  echo "Add goog_… key from RevenueCat to Codemagic group 'frigy' (see docs/STORE_BILLING_SETUP.md)."
-  exit 1
+  if [ "$REQUIRE_ANDROID_REVENUECAT" = "1" ]; then
+    echo "ERROR: VITE_REVENUECAT_API_KEY_ANDROID not set — Android IAP will fail Play review."
+    echo "Add goog_… key from RevenueCat to Codemagic group 'frigy' (see docs/STORE_BILLING_SETUP.md)."
+    exit 1
+  fi
+  echo "WARNING: VITE_REVENUECAT_API_KEY_ANDROID not set — build continues; Play IAP disabled until key is added."
 else
   echo "VITE_REVENUECAT_API_KEY_ANDROID present."
 fi
