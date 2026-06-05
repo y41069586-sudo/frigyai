@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronLeft, Lock, Bell, Crown, Loader2 } from "lucide-react";
+import { Check, Lock, Bell, Crown, Loader2 } from "lucide-react";
 import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
@@ -18,7 +18,7 @@ export type PaywallBillingPlan = "monthly" | "yearly";
 
 type OnboardingPaywallStepProps = {
   language: Language;
-  onBack: () => void;
+  onBack?: () => void;
   onCheckout: (plan: PaywallBillingPlan) => void | Promise<void>;
   onRestorePurchases?: () => void | Promise<void>;
   onSignOut?: () => void | Promise<void>;
@@ -169,7 +169,6 @@ function PlanRadio({ selected }: { selected: boolean }) {
 
 export function OnboardingPaywallStep({
   language,
-  onBack,
   onCheckout,
   onRestorePurchases,
   onSignOut,
@@ -241,24 +240,7 @@ export function OnboardingPaywallStep({
       animate={{ opacity: 1 }}
       className="flex min-h-0 flex-1 flex-col bg-white text-[#0a0a0a]"
     >
-      {/* Top nav */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="z-30 flex shrink-0 items-center justify-between px-4 pb-1 pt-[max(0.75rem,env(safe-area-inset-top))]"
-      >
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Zurück"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-[#9CA3AF] transition-colors hover:bg-black/5"
-        >
-          <ChevronLeft className="h-5 w-5" strokeWidth={2} />
-        </button>
-        <div className="h-9 w-9 shrink-0" aria-hidden />
-      </motion.div>
-
-      <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
+      <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={showMonthlyTrialUi ? "trial" : "unlock"}
