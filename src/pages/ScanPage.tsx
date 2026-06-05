@@ -10,6 +10,7 @@ import { validateImageFileSize, VALIDATION_RULES } from "@/utils/validation";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { SHOPPING_CHECKED_NAMES_KEY } from "@/lib/shoppingSync";
 import { FrigyIngredientScanFlow } from "@/components/scan/FrigyIngredientScanFlow";
+import { usePremiumGate } from "@/contexts/PremiumGateContext";
 import { fileToCompressedBase64 } from "@/lib/compressImage";
 import { canonicalizeIngredientLabel, dedupeIngredientLabels } from "@/lib/ingredientLabels";
 import { splitIngredientsByFridgeCoverage, type DayPlanLike } from "@/lib/shoppingGap";
@@ -66,6 +67,7 @@ async function invokeAnalyzeIngredientsWithTimeout(body: {
 const ScanPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { ensurePremium } = usePremiumGate();
   const scanNav = (location.state ?? {}) as ScanNavState;
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -117,6 +119,8 @@ const ScanPage = () => {
 
   const analyzePhotoQueue = async (explicitFiles?: File[]) => {
     if (analyzeLockRef.current) return;
+
+    if (!isOnboardingScan && !(await ensurePremium())) return;
 
     const files = explicitFiles?.length ? explicitFiles : [...photoQueueRef.current];
     photoQueueRef.current = [];
@@ -216,11 +220,7 @@ const ScanPage = () => {
             if (error) throw error;
 
             if (data?.error === "scan_limit_exceeded" || data?.error === "premium_required") {
-              toast({
-                title: t.error,
-                description: data?.message || t.premiumRequired || t.couldNotAnalyze,
-                variant: "destructive",
-              });
+              await ensurePremium();
               break;
             }
 

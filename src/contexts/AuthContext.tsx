@@ -19,6 +19,7 @@ import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { signInWithOAuthProvider } from '@/lib/authOAuth';
 import { linkAppleIdentity, signInWithApple as nativeAppleSignIn } from '@/lib/appleSignIn';
 import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
+import { markEverPremium } from '@/lib/trialEligibility';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -158,6 +159,12 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   const updateSubscriptionStatus = (data: SubscriptionStatus | null) => {
+    if (
+      data &&
+      (data.subscribed || data.is_trial || data.product_id || data.subscription_end)
+    ) {
+      markEverPremium();
+    }
     setSubscriptionStatus(data);
     setCachedSubscription(data);
   };

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { usePremiumGate } from './PremiumGateContext';
 import { toast } from '@/hooks/use-toast';
 import { removeMealPlanShoppingSource, setMealPlanShoppingSource } from '@/lib/mealPlanSource';
 import { FRIGY_STORAGE_UPDATED, WEEKLY_PLAN_AI_GENERATED_KEY, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
@@ -231,6 +232,7 @@ export const useMealPlanGeneration = () => {
 export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { session, isPremium, subscriptionStatus, checkSubscription } = useAuth();
+  const { ensurePremium } = usePremiumGate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -521,11 +523,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       hasPremium = isSubscriptionActive(status);
     }
     if (!hasPremium) {
-      toast({
-        title: ui.premiumRequired,
-        description: ui.premiumRequiredDesc,
-        variant: 'destructive',
-      });
+      await ensurePremium();
       return false;
     }
 
@@ -776,11 +774,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         lowerMsg.includes('premium required')
       ) {
         await refreshGenerationCount();
-        toast({
-          title: ui.premiumRequired,
-          description: ui.premiumRequiredDesc,
-          variant: 'destructive',
-        });
+        await ensurePremium();
       } else if (message.includes('OPENAI_API_KEY')) {
         toast({
           title: ui.genericErrorTitle,
@@ -835,7 +829,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount, isPremium, subscriptionStatus, checkSubscription, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally]);
+  }, [session, refreshGenerationCount, isPremium, subscriptionStatus, checkSubscription, ensurePremium, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally]);
 
   useEffect(() => {
     const syncPlanLanguage = async (nextLanguage: Language) => {

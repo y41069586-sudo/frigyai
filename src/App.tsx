@@ -21,6 +21,7 @@ import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
 import { AuthFlowBootstrap, AuthFlowOverlay, AuthFlowRouter } from "@/components/AuthFlowBootstrap";
+import { PremiumGateProvider } from "@/contexts/PremiumGateContext";
 import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBootstrap";
 import { AuthOAuthCallbackBootstrap } from "@/components/AuthOAuthCallbackBootstrap";
 import { StoreBillingBootstrap } from "@/components/StoreBillingBootstrap";
@@ -128,7 +129,8 @@ const App = () => {
               <Sonner />
               <BrowserRouter>
                 <AuthProvider>
-                  <MealPlanProvider>
+                  <PremiumGateProvider>
+                    <MealPlanProvider>
                     <AppDeepLinkListener />
                     <AuthFlowBootstrap />
                     <AuthFlowRouter />
@@ -139,7 +141,8 @@ const App = () => {
                     <NotificationBootstrap />
                     <BadgeUnlockCelebration />
                     <AppContent />
-                  </MealPlanProvider>
+                    </MealPlanProvider>
+                  </PremiumGateProvider>
                 </AuthProvider>
               </BrowserRouter>
             </TooltipProvider>

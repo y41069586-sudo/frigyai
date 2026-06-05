@@ -1,6 +1,7 @@
 import { persistOnboardingSignupFromStorage } from "@/components/onboarding/utils";
 import { waitForAuthSession } from "@/lib/authErrors";
 import { POST_AUTH_PAYWALL_ROUTE } from "@/lib/authOAuth";
+import { buildPremiumPricingRoute, hasEverHadPremium } from "@/lib/trialEligibility";
 import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,7 +107,9 @@ export async function resolvePostAuthDestination(options: {
 
   return {
     phase: "standalone_paywall",
-    path: resolvePaywallPath(options.explicitPath),
+    path: hasEverHadPremium()
+      ? buildPremiumPricingRoute({ trialEligible: false })
+      : resolvePaywallPath(options.explicitPath),
     userId,
   };
 }

@@ -76,6 +76,7 @@ import {
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
 import { restoreStorePurchases } from "@/lib/storeBilling";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { supabase } from "@/integrations/supabase/client";
 import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
@@ -721,6 +722,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           session.access_token,
         );
         if (active) {
+          markEverPremium();
           finishOnboardingExit();
         }
       }
@@ -748,6 +750,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         4,
       );
       if (result.ok || active) {
+        markEverPremium();
         finishOnboardingExit();
         return;
       }
@@ -3899,6 +3902,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             isCheckoutLoading={paywallCheckoutLoading}
             isRestoreLoading={paywallRestoreLoading}
             storePrices={storePrices}
+            trialEligible={resolveTrialEligibleFromLocal()}
           />
         );
 

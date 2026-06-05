@@ -9,6 +9,11 @@ import { restoreStorePurchases } from "@/lib/storeBilling";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { useToast } from "@/hooks/use-toast";
+import {
+  isRenewPaywallSearch,
+  markEverPremium,
+  resolveTrialEligibleFromLocal,
+} from "@/lib/trialEligibility";
 
 const PremiumPricingPage = () => {
   const { language, t } = useLanguage();
@@ -20,6 +25,10 @@ const PremiumPricingPage = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const isPreview = searchParams.get("preview") === "1" || searchParams.get("preview") === "true";
+  const trialEligible =
+    !isPreview &&
+    !isRenewPaywallSearch(searchParams.toString()) &&
+    resolveTrialEligibleFromLocal();
 
   useEffect(() => {
     if (subscriptionStatus?.subscribed && !isPreview) {
@@ -49,6 +58,7 @@ const PremiumPricingPage = () => {
           session.access_token,
         );
         if (active) {
+          markEverPremium();
           localStorage.setItem("onboardingComplete", "true");
           navigate("/", { replace: true });
         }
@@ -85,6 +95,7 @@ const PremiumPricingPage = () => {
         4,
       );
       if (result.ok || active) {
+        markEverPremium();
         localStorage.setItem("onboardingComplete", "true");
         navigate("/", { replace: true });
         return;
@@ -119,6 +130,7 @@ const PremiumPricingPage = () => {
         isCheckoutLoading={checkoutLoading}
         isRestoreLoading={restoreLoading}
         storePrices={storePrices}
+        trialEligible={trialEligible}
       />
     </motion.div>
   );

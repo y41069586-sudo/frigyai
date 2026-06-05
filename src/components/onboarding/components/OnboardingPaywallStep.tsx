@@ -25,6 +25,8 @@ type OnboardingPaywallStepProps = {
   isCheckoutLoading?: boolean;
   isRestoreLoading?: boolean;
   storePrices?: StoreOfferingPrices | null;
+  /** False after trial or any prior subscription — hides trial timeline & intro offer UI. */
+  trialEligible?: boolean;
 };
 
 const copy = {
@@ -174,6 +176,7 @@ export function OnboardingPaywallStep({
   isCheckoutLoading = false,
   isRestoreLoading = false,
   storePrices = null,
+  trialEligible = true,
 }: OnboardingPaywallStepProps) {
   const { t: globalT } = useLanguage();
   const navigate = useNavigate();
@@ -186,7 +189,8 @@ export function OnboardingPaywallStep({
 
   const monthlyPrice = resolveMonthlyDisplayPrice(language, storePrices?.monthly?.priceString);
   const yearlyPrice = resolveYearlyDisplayPrice(language, storePrices?.yearly?.priceString);
-  const monthlyHasTrial = storePrices?.monthly?.hasIntroOffer ?? true;
+  const storeMonthlyHasIntro = storePrices?.monthly?.hasIntroOffer ?? true;
+  const showMonthlyTrialUi = trialEligible && storeMonthlyHasIntro;
 
   const autoRenewText = t.autoRenewStore;
   const selectedPlanLabel = isMonthly ? t.planLengthMonthly : t.planLengthYearly;
@@ -195,17 +199,17 @@ export function OnboardingPaywallStep({
   const footerText = useMemo(() => {
     if (isMonthly) {
       if (storePrices?.monthly) {
-        return monthlyHasTrial
+        return showMonthlyTrialUi
           ? `${t.noPaymentNow} · ${monthlyPrice}`
           : `${monthlyPrice} ${t.monthlySuffix.trim()}`;
       }
-      return monthlyHasTrial ? t.footerTrial : t.footerMonthly;
+      return showMonthlyTrialUi ? t.footerTrial : t.footerMonthly;
     }
     if (storePrices?.yearly) {
       return `${t.yearly} · ${yearlyPrice}`;
     }
     return t.footerYearly;
-  }, [isMonthly, storePrices, monthlyHasTrial, monthlyPrice, yearlyPrice, t]);
+  }, [isMonthly, storePrices, showMonthlyTrialUi, monthlyPrice, yearlyPrice, t]);
 
   const features = [
     { title: t.feature1Title, desc: t.feature1Desc },
@@ -257,7 +261,7 @@ export function OnboardingPaywallStep({
       <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
         <AnimatePresence mode="wait">
           <motion.div
-            key={isMonthly ? "trial" : "unlock"}
+            key={showMonthlyTrialUi ? "trial" : "unlock"}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -265,10 +269,10 @@ export function OnboardingPaywallStep({
             className="mx-auto w-full max-w-md pb-6 pt-2"
           >
             <h1 className="mb-7 text-center text-[1.35rem] font-bold leading-[1.3] tracking-tight min-[390px]:text-[1.5rem]">
-              {isMonthly ? t.trialTitle : t.unlockTitle}
+              {showMonthlyTrialUi ? t.trialTitle : t.unlockTitle}
             </h1>
 
-            {isMonthly ? (
+            {showMonthlyTrialUi ? (
               <div className="space-y-1">
                 {trialSteps.map((step, i) => {
                   const Icon = step.icon;
@@ -346,13 +350,13 @@ export function OnboardingPaywallStep({
           <button
             type="button"
             onClick={() => setPlan("monthly")}
-            className={`relative min-h-[88px] rounded-2xl border-2 bg-white px-3 pb-3 text-left transition-all touch-manipulation ${monthlyHasTrial ? "pt-5" : "pt-4"}`}
+            className={`relative min-h-[88px] rounded-2xl border-2 bg-white px-3 pb-3 text-left transition-all touch-manipulation ${showMonthlyTrialUi ? "pt-5" : "pt-4"}`}
             style={{
               borderColor: plan === "monthly" ? ONBOARDING_PALETTE.primaryDark : ONBOARDING_PALETTE.cardBorderIdle,
               boxShadow: plan === "monthly" ? ONBOARDING_PALETTE.shadowCard : "none",
             }}
           >
-            {monthlyHasTrial && (
+            {showMonthlyTrialUi && (
               <span
                 className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
                 style={{ backgroundColor: ONBOARDING_PALETTE.primaryDeep }}
@@ -393,7 +397,7 @@ export function OnboardingPaywallStep({
 
           <p className="mt-5 flex items-center justify-center gap-2 text-center text-[15px] text-[#374151]">
             <Check className="h-5 w-5 shrink-0" style={{ color: ONBOARDING_PALETTE.primaryDeep }} strokeWidth={2.5} />
-            {isMonthly ? t.noPaymentNow : t.noCommitment}
+            {showMonthlyTrialUi ? t.noPaymentNow : t.noCommitment}
           </p>
 
           <motion.button
@@ -413,7 +417,7 @@ export function OnboardingPaywallStep({
                 {globalT.loading}
               </>
             ) : (
-              (isMonthly ? t.ctaTrial : t.ctaUnlock)
+              (showMonthlyTrialUi ? t.ctaTrial : t.ctaUnlock)
             )}
           </motion.button>
 
@@ -441,7 +445,7 @@ export function OnboardingPaywallStep({
 
           <p className="mt-4 text-center text-[12px] font-medium leading-snug text-[#6B7280]">
             {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice}
-            {isMonthly && monthlyHasTrial ? ` · ${t.trialBadge}` : ""}
+            {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
           </p>
 
           <p className="mt-2 text-center text-[11px] leading-relaxed text-[#9CA3AF]">

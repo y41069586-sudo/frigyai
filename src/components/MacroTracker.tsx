@@ -15,6 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremiumGate } from '@/contexts/PremiumGateContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
@@ -116,6 +117,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const { t, language } = useLanguage();
   const timeLocale = getAppLocale(language);
   const { user } = useAuth();
+  const { ensurePremium } = usePremiumGate();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
@@ -517,6 +519,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   }, [syncMacrosToDatabase]);
 
   const analyzeFood = async (food: string, imageBase64?: string, mealType: MealFocusKey | null = mealPromptKey) => {
+    if (!(await ensurePremium())) return;
+
     setIsAnalyzing(true);
     setFoodScanError(null);
     let scanFlowSettled = false;
@@ -684,10 +688,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const openFoodCamera = () => {
-    setLogMealPanelOpen(false);
-    resetFoodScanToCapture();
-    setShowFoodCamera(true);
-    notifyOverlayOpen(true);
+    void (async () => {
+      if (!(await ensurePremium())) return;
+      setLogMealPanelOpen(false);
+      resetFoodScanToCapture();
+      setShowFoodCamera(true);
+      notifyOverlayOpen(true);
+    })();
   };
 
   const scanAnotherFoodFromCamera = () => {
@@ -775,9 +782,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const handleBarcodeClick = () => {
-    setLogMealPanelOpen(false);
-    setShowBarcodeScanner(true);
-    notifyOverlayOpen(true);
+    void (async () => {
+      if (!(await ensurePremium())) return;
+      setLogMealPanelOpen(false);
+      setShowBarcodeScanner(true);
+      notifyOverlayOpen(true);
+    })();
   };
 
   const addRecipeToTracker = async (recipe: TrackerRecipeExample) => {
