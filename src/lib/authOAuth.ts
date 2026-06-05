@@ -160,12 +160,9 @@ export function buildProviderAuthorizeUrl(
 }
 
 export function isOAuthCallbackUrl(url: string): boolean {
-  if (!url) return false;
-  const lower = url.toLowerCase();
-  if (!lower.includes("callback") && !lower.includes("access_token") && !lower.includes("code=")) {
-    return false;
-  }
-  return lower.includes("code=") || lower.includes("access_token=");
+  if (!url?.trim()) return false;
+  const { code, accessToken } = parseAuthParams(url);
+  return Boolean(code || accessToken);
 }
 
 /** Supabase OAuth error redirect (?error=… or #error=…). */
@@ -185,18 +182,10 @@ function buildAuthRedirectTo(options?: {
   redirectPath?: string;
   authQuery?: Record<string, string>;
 }): string {
-  const base = getOAuthRedirectUrl().split("?")[0];
-  const params = new URLSearchParams();
-  if (options?.authQuery) {
-    for (const [key, value] of Object.entries(options.authQuery)) {
-      if (value) params.set(key, value);
-    }
-  }
-  if (options?.redirectPath) {
-    params.set("next", options.redirectPath);
-  }
-  const qs = params.toString();
-  return qs ? `${base}?${qs}` : getOAuthRedirectUrl();
+  // Supabase allow-list matches the redirect URL exactly — no query params (use oauthPending / localStorage instead).
+  void options?.redirectPath;
+  void options?.authQuery;
+  return getOAuthRedirectUrl().split("?")[0];
 }
 
 export async function signInWithOAuthProvider(
@@ -243,15 +232,16 @@ export async function signInWithOAuthProvider(
 
   let authorizeUrl = data?.url?.trim() || "";
 
-  if (shouldForceLocalOAuthRedirect()) {
-    const expectedRedirect = redirectTo.split("?")[0];
-    const broken =
-      !authorizeUrl ||
-      authorizeUrl.includes("app.frigy.app") ||
-      !authorizeUrl.includes("redirect_to=");
-    if (broken) {
-      authorizeUrl = buildProviderAuthorizeUrl(provider, expectedRedirect);
-      console.warn("[AuthOAuth] SDK-URL unbrauchbar — nutze direkte Supabase-Authorize-URL:", authorizeUrl);
+  const expectedRedirect = redirectTo.split("?")[0];
+  const redirectBroken =
+    !authorizeUrl ||
+    !authorizeUrl.includes("redirect_to=") ||
+    !authorizeUrl.includes(encodeURIComponent(expectedRedirect));
+
+  if (redirectBroken) {
+    authorizeUrl = buildProviderAuthorizeUrl(provider, expectedRedirect);
+    if (import.meta.env.DEV) {
+      console.warn("[AuthOAuth] SDK-URL ohne passendes redirect_to — nutze direkte Authorize-URL:", authorizeUrl);
     }
   }
 
@@ -263,7 +253,7 @@ export async function signInWithOAuthProvider(
     };
   }
 
-  if (shouldForceLocalOAuthRedirect() && authorizeUrl.includes("app.frigy.app")) {
+  if (shouldForceLocalOAuthRedirect() && authorizeUrl.includes("app.frigy.app") && !expectedRedirect.includes("app.frigy.app")) {
     return {
       error: new Error(
         `OAuth würde auf app.frigy.app gehen statt Google. Browser-Cache leeren (F12 → Application → Clear site data) und nur ${LOCAL_OAUTH_REDIRECT} nutzen.`,

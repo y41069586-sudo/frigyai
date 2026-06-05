@@ -1,10 +1,10 @@
 /** Tracks in-flight OAuth (web sessionStorage + native localStorage). */
 export const OAUTH_PENDING_KEY = "frigy_oauth_pending";
 
-export type OAuthPendingFlag = "onboarding" | "1";
+export type OAuthPendingFlag = "onboarding" | "login";
 
 export function setOAuthPending(fromOnboarding: boolean): void {
-  const flag: OAuthPendingFlag = fromOnboarding ? "onboarding" : "1";
+  const flag: OAuthPendingFlag = fromOnboarding ? "onboarding" : "login";
   try {
     sessionStorage.setItem(OAUTH_PENDING_KEY, flag);
   } catch {
@@ -20,13 +20,17 @@ export function setOAuthPending(fromOnboarding: boolean): void {
 export function getOAuthPending(): OAuthPendingFlag | null {
   try {
     const fromSession = sessionStorage.getItem(OAUTH_PENDING_KEY);
-    if (fromSession === "onboarding" || fromSession === "1") return fromSession;
+    if (fromSession === "onboarding" || fromSession === "login" || fromSession === "1") {
+      return fromSession === "1" ? "login" : (fromSession as OAuthPendingFlag);
+    }
   } catch {
     // ignore
   }
   try {
     const fromLocal = localStorage.getItem(OAUTH_PENDING_KEY);
-    if (fromLocal === "onboarding" || fromLocal === "1") return fromLocal;
+    if (fromLocal === "onboarding" || fromLocal === "login" || fromLocal === "1") {
+      return fromLocal === "1" ? "login" : (fromLocal as OAuthPendingFlag);
+    }
   } catch {
     // ignore
   }
