@@ -499,7 +499,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   // Scan feedback state (moved to top level to avoid hooks in switch)
   const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
   const [selectedFeedbackReason, setSelectedFeedbackReason] = useState<string | null>(null);
-  const [macroPreviewCtaVisible, setMacroPreviewCtaVisible] = useState(false);
 
   const [macroEditOpen, setMacroEditOpen] = useState(false);
   const [macroEditFocus, setMacroEditFocus] = useState<FocusMacro>(null);
@@ -541,25 +540,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
   }, [currentStep]);
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || currentStep !== "macro-preview" || macroEditOpen) {
-      setMacroPreviewCtaVisible(false);
-      return;
-    }
-
-    const updateVisibility = () => {
-      setMacroPreviewCtaVisible(container.scrollTop > 56);
-    };
-
-    updateVisibility();
-    container.addEventListener("scroll", updateVisibility, { passive: true });
-
-    return () => {
-      container.removeEventListener("scroll", updateVisibility);
-    };
-  }, [currentStep, macroEditOpen]);
 
   useEffect(() => {
     if (currentStep !== "macro-preview") return;
@@ -4282,11 +4262,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               className="sticky bottom-0 z-20 w-full max-w-md shrink-0 px-4 pb-6 pt-4"
               initial={false}
               animate={{
-                opacity: macroPreviewCtaVisible && !macroEditOpen ? 1 : 0,
-                y: macroPreviewCtaVisible && !macroEditOpen ? 0 : 18,
+                opacity: macroEditOpen ? 0 : 1,
+                y: macroEditOpen ? 18 : 0,
               }}
               transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
-              style={{ pointerEvents: macroPreviewCtaVisible && !macroEditOpen ? "auto" : "none" }}
+              style={{ pointerEvents: macroEditOpen ? "none" : "auto" }}
             >
               <div className="rounded-[28px] bg-[linear-gradient(180deg,rgba(255,255,255,0),#FFFFFF_24%,#FFFFFF_100%)] px-1 pt-6">
                 <Button

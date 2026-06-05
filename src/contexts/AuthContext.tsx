@@ -20,6 +20,9 @@ import { signInWithOAuthProvider } from '@/lib/authOAuth';
 import { linkAppleIdentity, signInWithApple as nativeAppleSignIn } from '@/lib/appleSignIn';
 import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
 import { markEverPremium } from '@/lib/trialEligibility';
+import { markKnownAccountEmail } from '@/lib/knownAccountEmail';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -231,6 +234,30 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
 
   // Use ref to track session for visibility change handler (avoids dependency issues)
   const sessionRef = useRef<Session | null>(null);
+
+  const applySession = (nextSession: Session | null) => {
+    if (nextSession?.user?.email) {
+      markKnownAccountEmail(nextSession.user.email);
+    }
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+  };
+
+  const refreshSessionFromStorage = async (): Promise<Session | null> => {
+    const { data: { session: current } } = await supabase.auth.getSession();
+    if (current?.user) {
+      applySession(current);
+      return current;
+    }
+
+    const { data: { session: refreshed }, error } = await supabase.auth.refreshSession();
+    if (!error && refreshed?.session?.user) {
+      applySession(refreshed.session);
+      return refreshed.session;
+    }
+
+    return null;
+  };
   
   useEffect(() => {
     sessionRef.current = session;
@@ -253,8 +280,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
         
         console.log('[Auth] State change:', event);
         
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        applySession(currentSession);
         setLoading(false);
         
         // Handle session errors - sign out if session is invalid
@@ -273,71 +299,61 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Initial session check
-    supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
+    // Initial session check — try refresh before clearing stored auth
+    void refreshSessionFromStorage().then((initialSession) => {
       if (!mounted) return;
+      setLoading(false);
 
-      // If there's a session error or invalid session, clear everything
-      if (error) {
-        console.log('[Auth] Session error:', error.message);
-        setSession(null);
-        setUser(null);
-        updateSubscriptionStatus(null);
-        clearSupabaseAuthStorage();
-        setLoading(false);
+      if (initialSession?.user) {
+        loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
         return;
       }
 
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      setLoading(false);
-
-      // Load subscription: DB cache first, then RevenueCat refresh
-      if (initialSession?.user) {
-        loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
-      }
+      supabase.auth.getSession().then(({ error }) => {
+        if (!mounted || !error) return;
+        console.log('[Auth] Session unavailable after refresh attempt:', error.message);
+        applySession(null);
+        updateSubscriptionStatus(null);
+      });
     }).catch((err) => {
       if (!mounted) return;
       console.error('[Auth] Failed to check initial session:', err);
       setLoading(false);
     });
 
-    // Re-check subscription when app returns to foreground (e.g. after Store purchase)
-    const handleVisibilityChange = () => {
-      const currentSession = sessionRef.current;
-      if (document.visibilityState === 'visible' && currentSession?.user) {
-        supabase.auth.refreshSession().then(({ data: { session: refreshedSession }, error }) => {
-          if (error || !refreshedSession) {
-            console.log('[Auth] Session refresh failed on visibility change');
-            return;
-          }
+    const resumeSessionCheck = () => {
+      void refreshSessionFromStorage().then((activeSession) => {
+        if (!mounted || !activeSession?.user) return;
+        loadSubscriptionFast(activeSession.user.id, activeSession.access_token);
+      });
+    };
 
-          void syncStoreSubscriptionIfNeeded(refreshedSession.access_token).finally(() => {
-            supabase.functions.invoke('check-subscription', {
-              headers: {
-                Authorization: `Bearer ${refreshedSession.access_token}`,
-              },
-            }).then(({ data, error }) => {
-              if (!error && mounted) {
-                updateSubscriptionStatus(data);
-              }
-            }).catch((err) => {
-              console.warn('[Auth] Subscription check on visibility change failed:', err);
-            });
-          });
-        }).catch((err) => {
-          console.warn('[Auth] Session refresh on visibility change failed:', err);
-        });
+    // Re-check session when app returns to foreground (web + native)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        resumeSessionCheck();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    let removeAppStateListener: (() => void) | undefined;
+    if (Capacitor.isNativePlatform()) {
+      void App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) resumeSessionCheck();
+      }).then((handle) => {
+        removeAppStateListener = () => {
+          void handle.remove();
+        };
+      });
+    }
 
     return () => {
       mounted = false;
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      removeAppStateListener?.();
     };
   }, []);
 
@@ -348,6 +364,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   ) => {
     const silent = options?.silent === true;
     const normalizedEmail = email.trim().toLowerCase();
+    markKnownAccountEmail(normalizedEmail);
 
     const signInAfterSignup = async () => {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -451,14 +468,14 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     options?: { silent?: boolean },
   ) => {
     const silent = options?.silent === true;
+    markKnownAccountEmail(email);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (!error && data.session) {
-      setSession(data.session);
-      setUser(data.session.user);
+      applySession(data.session);
       setLoading(false);
       if (data.session.user && data.session.access_token) {
         loadSubscriptionFast(data.session.user.id, data.session.access_token);

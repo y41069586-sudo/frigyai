@@ -86,6 +86,9 @@ export async function resolvePostAuthDestination(options: {
   }
 
   const userId = sessionResult.userId;
+  const session = (await supabase.auth.getSession()).data.session;
+  const email = session?.user?.email ?? null;
+  const authUser = session?.user ?? null;
 
   if (options.fromOnboarding) {
     persistOnboardingSignupFromStorage();
@@ -93,7 +96,7 @@ export async function resolvePostAuthDestination(options: {
 
   const authIntent = options.authIntent ?? "auto";
 
-  if (await isReturningAppUser(userId)) {
+  if (await isReturningAppUser(userId, email, authUser)) {
     return { phase: "dashboard", path: "/", userId };
   }
 
@@ -109,11 +112,7 @@ export async function resolvePostAuthDestination(options: {
   }
 
   if (authIntent === "login") {
-    return {
-      phase: "onboarding_paywall",
-      path: "/?onboardingStep=save-progress",
-      userId,
-    };
+    return { phase: "dashboard", path: "/", userId };
   }
 
   if (options.fromOnboarding || authIntent === "signup") {

@@ -1,12 +1,22 @@
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { isEstablishedAuthUser } from "@/lib/isEstablishedAuthUser";
+import { isKnownAccountEmail } from "@/lib/knownAccountEmail";
 import { hasEverHadPremium } from "@/lib/trialEligibility";
 
 /**
  * True when this account has used Frigy before (onboarding, subscription, or local completion).
  * Used to send logins to the dashboard instead of the signup paywall.
  */
-export async function isReturningAppUser(userId: string): Promise<boolean> {
+export async function isReturningAppUser(
+  userId: string,
+  email?: string | null,
+  user?: User | null,
+): Promise<boolean> {
   if (!userId) return false;
+
+  if (email && isKnownAccountEmail(email)) return true;
+  if (user && isEstablishedAuthUser(user)) return true;
 
   try {
     if (localStorage.getItem("onboardingComplete") === "true") return true;
@@ -33,6 +43,17 @@ export async function isReturningAppUser(userId: string): Promise<boolean> {
       .maybeSingle();
 
     if (sub?.product_id) return true;
+
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (normalizedEmail) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (profile?.id) return true;
+    }
   } catch {
     // ignore — fall through
   }
