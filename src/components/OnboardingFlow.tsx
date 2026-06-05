@@ -834,11 +834,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
     if (currentStep === "macro-preview") {
       setAuthMode("signup");
-      if (user) {
-        void tryFinishOnboardingWithAccess();
-      } else {
-        setCurrentStep("save-progress");
-      }
+      saveOnboardingData(userData, { markOnboardingComplete: false });
+      setCurrentStep("save-progress");
       return;
     }
 
