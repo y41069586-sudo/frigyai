@@ -1,6 +1,7 @@
 import { persistOnboardingSignupFromStorage } from "@/components/onboarding/utils";
 import { waitForAuthSession } from "@/lib/authErrors";
 import { POST_AUTH_PAYWALL_ROUTE } from "@/lib/authOAuth";
+import { isEstablishedAuthUser } from "@/lib/isEstablishedAuthUser";
 import { isReturningAppUser } from "@/lib/isReturningAppUser";
 import { buildPremiumPricingRoute, hasEverHadPremium } from "@/lib/trialEligibility";
 import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
@@ -63,8 +64,11 @@ function resolvePaywallPath(explicitPath?: string | null): string {
 }
 
 /**
- * Deterministic post-auth routing:
- * session → premium (complete) → exactly one destination.
+ * Post-auth routing:
+ * - Known / returning account → dashboard
+ * - Referral promo / premium → dashboard
+ * - Email login (existing account) → dashboard
+ * - New signup (email, Google, Apple) → paywall
  */
 export async function resolvePostAuthDestination(options: {
   userId?: string | null;
@@ -73,8 +77,9 @@ export async function resolvePostAuthDestination(options: {
   explicitPath?: string | null;
   skipReferralCheck?: boolean;
   sessionWaitMs?: number;
-  /** login = existing account flow; signup = new account; auto = OAuth without onboarding flag */
   authIntent?: PostAuthIntent;
+  /** Email/password login from /auth — account already exists */
+  emailPasswordLogin?: boolean;
 }): Promise<PostAuthRoute> {
   const sessionResult = await ensureAuthSessionForRouting({
     userId: options.userId,
@@ -100,6 +105,10 @@ export async function resolvePostAuthDestination(options: {
     return { phase: "dashboard", path: "/", userId };
   }
 
+  if (authUser && isEstablishedAuthUser(authUser)) {
+    return { phase: "dashboard", path: "/", userId };
+  }
+
   const hasPremium = await resolvePremiumAccessAfterSignIn({
     userId,
     checkSubscription: options.checkSubscription,
@@ -111,7 +120,7 @@ export async function resolvePostAuthDestination(options: {
     return { phase: "dashboard", path: "/", userId };
   }
 
-  if (authIntent === "login") {
+  if (options.emailPasswordLogin && authIntent === "login") {
     return { phase: "dashboard", path: "/", userId };
   }
 

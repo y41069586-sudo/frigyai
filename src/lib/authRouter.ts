@@ -156,6 +156,7 @@ export async function redirectAfterSignIn(options: {
   fromOnboarding?: boolean;
   explicitPath?: string | null;
   authIntent?: PostAuthIntent;
+  emailPasswordLogin?: boolean;
 }): Promise<AuthResult> {
   return runAuthCompletion({
     userId: options.userId,
@@ -164,6 +165,7 @@ export async function redirectAfterSignIn(options: {
     fromOnboarding: options.fromOnboarding,
     explicitPath: options.explicitPath,
     authIntent: options.authIntent,
+    emailPasswordLogin: options.emailPasswordLogin,
   });
 }
 

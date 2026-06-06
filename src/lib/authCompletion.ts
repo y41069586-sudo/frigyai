@@ -9,7 +9,11 @@ import {
   peekStashedOAuthCallbackUrl,
   stashOAuthCallbackUrl,
 } from "@/lib/oauthCallbackRecovery";
-import { clearOAuthPending, resolveFromOnboarding } from "@/lib/oauthPending";
+import {
+  clearOAuthPending,
+  resolveFromOnboarding,
+  resolveOAuthAuthIntent,
+} from "@/lib/oauthPending";
 import {
   ensureAuthSessionForRouting,
   resolvePostAuthDestination,
@@ -56,6 +60,8 @@ export type RunAuthCompletionInput = {
   onOAuthExchangeSuccess?: () => void;
   allowOAuthDefer?: boolean;
   authIntent?: PostAuthIntent;
+  /** Set for email/password sign-in from /auth (existing account). */
+  emailPasswordLogin?: boolean;
 };
 
 const WATCHDOG_MS = 12_000;
@@ -273,6 +279,7 @@ async function resolveSuccessRoute(options: {
   explicitPath?: string | null;
   userId?: string | null;
   authIntent?: PostAuthIntent;
+  emailPasswordLogin?: boolean;
 }): Promise<AuthResult> {
   setResult({ status: "pending", phase: "premium" });
 
@@ -283,6 +290,7 @@ async function resolveSuccessRoute(options: {
     explicitPath: options.explicitPath,
     sessionWaitMs: 6000,
     authIntent: options.authIntent,
+    emailPasswordLogin: options.emailPasswordLogin,
   });
 
   if (route.phase === "no_session") {
@@ -311,6 +319,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     onOAuthExchangeSuccess,
     allowOAuthDefer = true,
     authIntent: authIntentOpt,
+    emailPasswordLogin,
   } = input;
 
   if (oauthUrl) {
@@ -354,7 +363,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     }
 
     const authIntent: PostAuthIntent =
-      authIntentOpt ?? (fromOnboarding ? "signup" : "login");
+      authIntentOpt ?? resolveOAuthAuthIntent(oauthUrl);
 
     return resolveSuccessRoute({
       checkSubscription,
@@ -381,6 +390,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     explicitPath,
     userId: sessionResult.userId,
     authIntent: authIntentOpt ?? (fromOnboardingOpt ? "signup" : "login"),
+    emailPasswordLogin,
   });
 }
 

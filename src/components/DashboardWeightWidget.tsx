@@ -235,12 +235,12 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       onClick={embedded ? undefined : handleCardClick}
       className={`dashboard-touch-scroll relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`${embedded ? '' : 'min-h-[23rem]'} p-4 bg-gradient-to-br from-white via-emerald-50/55 to-white backdrop-blur-lg border border-transparent shadow-[0_18px_44px_-34px_rgba(16,185,129,0.22)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
+      <Card className={`${embedded ? '' : 'min-h-[23rem]'} p-4 bg-gradient-to-br from-white via-[#F2FFF8]/90 to-white backdrop-blur-lg border border-[#75FBB2]/25 shadow-[0_18px_44px_-28px_rgba(117,251,178,0.55),0_0_32px_-12px_rgba(57,212,127,0.35)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
         <div className="mb-4 flex items-center gap-2">
-          <div className="p-2 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
-            <Scale className="h-4 w-4 text-emerald-500" />
+          <div className="p-2 rounded-full bg-gradient-to-br from-[#D4FFE8] to-[#75FBB2]/40 shadow-[0_0_18px_rgba(117,251,178,0.45)]">
+            <Scale className="h-4 w-4 text-[#39D47F]" />
           </div>
-          <h3 className="font-semibold text-xs">{copy.title}</h3>
+          <h3 className="font-semibold text-xs text-[#39D47F]">{copy.title}</h3>
         </div>
 
         {/* Top Section: Current Weight + Goal + Change */}
@@ -250,9 +250,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
             <div className="flex gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{copy.current}</p>
-                <p className="text-3xl font-bold text-emerald-600">{currentWeight}<span className="text-sm">kg</span></p>
+                <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-[#75FBB2] to-[#39D47F] drop-shadow-[0_0_16px_rgba(117,251,178,0.35)]">{currentWeight}<span className="text-sm">kg</span></p>
               </div>
-              <div className="border-l border-emerald-300/50" />
+              <div className="border-l border-[#75FBB2]/40" />
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{copy.goal}</p>
                 <p className="text-2xl font-bold text-muted-foreground">{goal}<span className="text-xs">kg</span></p>
@@ -270,9 +270,9 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, type: 'spring' }}
             >
-              <div className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`}>
+              <div className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-[#39D47F]'}`}>
                 <div>
-                  <ArrowUp className={`h-4 w-4 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`} />
+                  <ArrowUp className={`h-4 w-4 ${isBelowInitial ? 'text-red-500' : 'text-[#39D47F]'}`} />
                 </div>
                 <span className="font-semibold text-sm">
                   {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg
@@ -300,8 +300,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
                 >
                   <defs>
                     <linearGradient id="dashWeightGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#75FBB2" stopOpacity={0.55} />
+                      <stop offset="100%" stopColor="#39D47F" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -320,7 +320,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
                   <Area
                     type="natural"
                     dataKey="weight"
-                    stroke="#10b981"
+                    stroke="#39D47F"
                     strokeWidth={2}
                     fill="url(#dashWeightGradient)"
                     dot={false}
@@ -337,13 +337,13 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
           <div className="mb-5">
             <div className="flex justify-between mb-2">
               <span className="text-xs text-muted-foreground">{copy.goalProgress}</span>
-              <span className="text-xs font-semibold text-emerald-600">
+              <span className="text-xs font-semibold text-[#39D47F]">
                 {Math.abs(goal - currentWeight).toFixed(1)}kg {copy.remaining}
               </span>
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                className="h-full bg-gradient-to-r from-[#75FBB2] to-[#39D47F] shadow-[0_0_12px_rgba(117,251,178,0.45)]"
                 initial={embedded ? false : { width: 0 }}
                 animate={{ width: `${Math.min(Math.abs(progressToGoal), 100)}%` }}
                 transition={{ duration: 0.8 }}
@@ -379,7 +379,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
                   handleAddWeight();
                 }}
                 disabled={!inputWeight}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 text-white"
+                className="flex-1 bg-gradient-to-r from-[#75FBB2] to-[#39D47F] hover:from-[#39D47F] hover:to-[#2EBF6E] text-white shadow-[0_0_16px_rgba(117,251,178,0.35)]"
                 size="sm"
               >
                 {copy.save}
@@ -404,7 +404,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
               e.stopPropagation();
               setIsAdding(true);
             }}
-            className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+            className="w-full gap-2 bg-gradient-to-r from-[#75FBB2] to-[#39D47F] hover:from-[#39D47F] hover:to-[#2EBF6E] text-white shadow-[0_0_16px_rgba(117,251,178,0.35)]"
             size="sm"
           >
             <Plus className="h-4 w-4" />

@@ -645,12 +645,13 @@ const Index = () => {
   }, [loading, showOnboarding, user, onboardingResumeStep, dbOnboardingComplete]);
 
   const storedTargets = readStoredTrackerTargets();
-  const targetCalories = trackerSettings?.dailyCalories || storedTargets?.dailyCalories || 0;
-  const targetProtein = trackerSettings?.dailyProtein || storedTargets?.dailyProtein || 0;
-  const targetCarbs = trackerSettings?.dailyCarbs || storedTargets?.dailyCarbs || 0;
-  const targetFat = trackerSettings?.dailyFat || storedTargets?.dailyFat || 0;
+  const resolvedTargets = trackerSettings ?? storedTargets;
+  const targetCalories = resolvedTargets?.dailyCalories ?? 0;
+  const targetProtein = resolvedTargets?.dailyProtein ?? 0;
+  const targetCarbs = resolvedTargets?.dailyCarbs ?? 0;
+  const targetFat = resolvedTargets?.dailyFat ?? 0;
   const targetsReady =
-    (trackerSettings?.dailyCalories ?? storedTargets?.dailyCalories ?? 0) > 0;
+    !trackerLoading && (resolvedTargets?.dailyCalories ?? 0) > 0;
   
   
   // Wait for auth before showing anything

@@ -308,11 +308,14 @@ export const useTrackerSettings = () => {
   useEffect(() => {
     if (!user) return;
 
-    const intervalId = setInterval(() => {
-      void loadSettings(true);
-    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadSettings(true);
+      }
+    };
 
-    return () => clearInterval(intervalId);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [user, loadSettings]);
 
   return {

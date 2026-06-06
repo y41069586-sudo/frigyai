@@ -1,25 +1,33 @@
 /** Tracks in-flight OAuth (web sessionStorage + native localStorage). */
 export const OAUTH_PENDING_KEY = "frigy_oauth_pending";
 
-export type OAuthPendingFlag = "onboarding" | "login";
+export type OAuthPendingFlag = "onboarding" | "login" | "signup";
 
-/** Only onboarding OAuth needs a persisted pending flag (native deep-link fallback). */
+export function setOAuthPendingFromAuthQuery(authQuery?: Record<string, string>): void {
+  let flag: OAuthPendingFlag = "signup";
+  if (authQuery?.from === "onboarding") {
+    flag = "onboarding";
+  } else if (authQuery?.from === "login") {
+    flag = "login";
+  }
+
+  try {
+    sessionStorage.setItem(OAUTH_PENDING_KEY, flag);
+  } catch {
+    // ignore
+  }
+  try {
+    localStorage.setItem(OAUTH_PENDING_KEY, flag);
+  } catch {
+    // ignore
+  }
+}
+
+/** @deprecated use setOAuthPendingFromAuthQuery */
 export function setOAuthPending(fromOnboarding: boolean): void {
-  if (!fromOnboarding) {
-    clearOAuthPending();
-    return;
-  }
-
-  try {
-    sessionStorage.setItem(OAUTH_PENDING_KEY, "onboarding");
-  } catch {
-    // ignore
-  }
-  try {
-    localStorage.setItem(OAUTH_PENDING_KEY, "onboarding");
-  } catch {
-    // ignore
-  }
+  setOAuthPendingFromAuthQuery(
+    fromOnboarding ? { from: "onboarding" } : { from: "signup" },
+  );
 }
 
 /** Drop leftover flags when OAuth was cancelled or the app cold-started mid-flow. */
@@ -37,8 +45,7 @@ export function clearStaleOAuthPendingIfIdle(): void {
   const pending = getOAuthPending();
   if (!pending) return;
 
-  // Login pending without callback strands AuthPage on the loading screen.
-  if (pending === "login") {
+  if (pending === "login" || pending === "signup") {
     clearOAuthPending();
   }
 }
@@ -46,7 +53,12 @@ export function clearStaleOAuthPendingIfIdle(): void {
 export function getOAuthPending(): OAuthPendingFlag | null {
   try {
     const fromSession = sessionStorage.getItem(OAUTH_PENDING_KEY);
-    if (fromSession === "onboarding" || fromSession === "login" || fromSession === "1") {
+    if (
+      fromSession === "onboarding" ||
+      fromSession === "login" ||
+      fromSession === "signup" ||
+      fromSession === "1"
+    ) {
       return fromSession === "1" ? "login" : (fromSession as OAuthPendingFlag);
     }
   } catch {
@@ -54,7 +66,12 @@ export function getOAuthPending(): OAuthPendingFlag | null {
   }
   try {
     const fromLocal = localStorage.getItem(OAUTH_PENDING_KEY);
-    if (fromLocal === "onboarding" || fromLocal === "login" || fromLocal === "1") {
+    if (
+      fromLocal === "onboarding" ||
+      fromLocal === "login" ||
+      fromLocal === "signup" ||
+      fromLocal === "1"
+    ) {
       return fromLocal === "1" ? "login" : (fromLocal as OAuthPendingFlag);
     }
   } catch {
@@ -86,4 +103,12 @@ export function resolveFromOnboarding(url?: string): boolean {
     }
   }
   return getOAuthPending() === "onboarding";
+}
+
+export function resolveOAuthAuthIntent(url?: string): "login" | "signup" {
+  if (resolveFromOnboarding(url)) return "signup";
+  const pending = getOAuthPending();
+  if (pending === "login") return "login";
+  if (pending === "signup") return "signup";
+  return "signup";
 }

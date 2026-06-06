@@ -66,6 +66,7 @@ const AuthPage = () => {
         navigate,
         fromOnboarding: isFromOnboarding,
         authIntent: isLogin ? "login" : "signup",
+        emailPasswordLogin: isLogin,
         explicitPath:
           nextParam && nextParam.startsWith('/')
             ? nextParam
@@ -356,7 +357,9 @@ const AuthPage = () => {
                   setIsAppleLoading(true);
                   setError(null);
                   const { error: appleError } = await signInWithApple({
-                    authQuery: isFromOnboarding ? { from: "onboarding" } : { from: "login" },
+                    authQuery: isFromOnboarding
+                      ? { from: "onboarding" }
+                      : { from: isLogin ? "login" : "signup" },
                   });
                   if (appleError) {
                     const msg =
@@ -385,7 +388,9 @@ const AuthPage = () => {
                 setError(null);
                 redirectStartedRef.current = false;
                 const { error: googleError } = await signInWithGoogle({
-                  authQuery: isFromOnboarding ? { from: "onboarding" } : { from: "login" },
+                  authQuery: isFromOnboarding
+                    ? { from: "onboarding" }
+                    : { from: isLogin ? "login" : "signup" },
                 });
                 if (googleError) {
                   setError(t.authLoginFailed);

@@ -4,9 +4,7 @@ import { FRIGY_APP_SCHEME } from "@/lib/appDeepLink";
 import { DEV_SERVER_PORT, LOCAL_OAUTH_REDIRECT } from "@/lib/devServerPort";
 import { isRetriableOAuthExchangeError } from "@/lib/oauthCallbackRecovery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import {
-  setOAuthPending,
-} from "@/lib/oauthPending";
+import { setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 
 export type OAuthProvider = "google" | "apple";
 
@@ -198,7 +196,7 @@ export async function signInWithOAuthProvider(
 
   const redirectTo = buildAuthRedirectTo(options);
 
-  setOAuthPending(options?.authQuery?.from === "onboarding");
+  setOAuthPendingFromAuthQuery(options?.authQuery);
 
   const isWeb = !Capacitor.isNativePlatform();
 
