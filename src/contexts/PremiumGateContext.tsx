@@ -55,18 +55,19 @@ const PremiumGateContext = createContext<PremiumGateContextValue | undefined>(un
 
 export function PremiumGateProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const { isPremium, checkSubscription } = useAuth();
+  const { isPremium, subscriptionStatus, checkSubscription } = useAuth();
   const [open, setOpen] = useState(false);
   const lang = getStoredLanguage();
   const t = copy[lang] ?? copy.de;
 
   const ensurePremium = useCallback(async (): Promise<boolean> => {
     if (isPremium) return true;
+    if (isSubscriptionActive(subscriptionStatus)) return true;
     const status = await checkSubscription();
     if (isSubscriptionActive(status)) return true;
     setOpen(true);
     return false;
-  }, [isPremium, checkSubscription]);
+  }, [isPremium, subscriptionStatus, checkSubscription]);
 
   const goToPaywall = useCallback(() => {
     setOpen(false);

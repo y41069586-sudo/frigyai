@@ -45,7 +45,7 @@ Optional path alias `https://app.frigy.app/apple/s2s` → reverse-proxy to the s
 
 - [x] Sign in with Apple visible when Google is offered (Auth screen)
 - [x] Restore Purchases on Paywall + Profile (native builds)
-- [x] No Stripe payment links in native app for digital premium
+- [x] No external payment links in native app for digital premium
 - [x] Privacy Policy + Terms links on subscription paywall (Guideline 3.1.2)
 - [x] Auto-renewal disclosure on paywall (store + web copy)
 - [ ] Privacy Policy URL in App Store Connect matches `VITE_PRIVACY_POLICY_URL`
@@ -59,7 +59,7 @@ Optional path alias `https://app.frigy.app/apple/s2s` → reverse-proxy to the s
 - [x] AI / medical / allergen disclaimers on scan, chat, meal plan, meal detail
 - [x] Paywall sign-out for reviewers on wrong account
 - [x] No mock dashboard meals when plan is empty
-- [x] Native builds: Stripe checkout/portal paths gated (store billing only)
+- [x] Native builds use store billing only (RevenueCat)
 - [x] Android: removed SCHEDULE_EXACT_ALARM permission
 - [x] iOS permission strings in English for App Review
 - [ ] RevenueCat keys in Codemagic (`VITE_REVENUECAT_API_KEY_IOS` / `ANDROID`) — build fails without them

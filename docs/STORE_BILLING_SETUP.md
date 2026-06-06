@@ -1,6 +1,6 @@
 # App Store & Google Play Abos (RevenueCat)
 
-Die **native iOS/Android-App** nutzt **In-App-Käufe** über [RevenueCat](https://www.revenuecat.com/). Die **Web-App** bleibt bei **Stripe Payment Links**.
+Die **native iOS/Android-App** nutzt **In-App-Käufe** über [RevenueCat](https://www.revenuecat.com/). Premium läuft ausschließlich über App Store / Google Play (kein Stripe).
 
 ## 1. App Store Connect (iOS)
 
@@ -61,13 +61,13 @@ supabase functions deploy revenuecat-webhook --no-verify-jwt
 | Plattform | Checkout | Abo verwalten |
 |-----------|----------|----------------|
 | iOS/Android (Capacitor) | Store-Kauf via RevenueCat SDK | App Store / Play Store Einstellungen |
-| Web (Browser) | Stripe Payment Links | Stripe Customer Portal |
+| Web (Browser) | Paywall / Referral (kein Stripe) | App Store / Play Store (native) oder Profil |
 
 Nach erfolgreichem Store-Kauf ruft die App `sync-store-subscription` auf und schreibt den Status in `subscription_cache`. `check-subscription` erkennt Store-Abos (`product_id` mit Präfix `rc_`).
 
 ## 6. Store-Review Checkliste
 
-- Keine externen Zahlungslinks (Stripe) in der **nativen** App für digitale Inhalte.
+- Keine externen Zahlungslinks in der **nativen** App für digitale Inhalte.
 - Paywall zeigt **Abonnementname, Laufzeit, Preis**, Auto-Renewal-Text sowie Links zu **AGB** und **Datenschutz**.
 - „Abonnement verwalten“ / „Käufe wiederherstellen“ für Store-Abos anbieten.
 - Privacy Policy & Terms in App und Store-Listing verlinken.

@@ -8,7 +8,7 @@ export type SyncAffiliateResult = {
   error?: string;
 };
 
-/** Persist ChottuLink ?ref= to server (first-touch). Call after login / before Stripe. */
+/** Persist ChottuLink ?ref= to server (first-touch). Call after login. */
 export async function syncAffiliateAttributionToServer(
   accessToken: string,
   options?: { deferred?: boolean; source?: string },

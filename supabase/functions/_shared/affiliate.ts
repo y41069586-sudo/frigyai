@@ -87,10 +87,6 @@ export function parseClientReferenceId(ref: string | null | undefined): {
   return {};
 }
 
-export function buildStripeClientReferenceId(userId: string, slug: string): string {
-  return `frigy_${userId}_${normalizeSlug(slug)}`;
-}
-
 export function calcCommissionCents(amountCents: number, ratePercent: number): number {
   if (amountCents <= 0 || ratePercent <= 0) return 0;
   return Math.round((amountCents * ratePercent) / 100);

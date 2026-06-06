@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Frigy Play Store Banners (1024×500)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --primary: #75fbb2;
+      --primary-dark: #39d47f;
+      --primary-light: #f2fff8;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --border: #bcfddc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 32px 24px 64px;
+    }
+
+    .page-head {
+      max-width: 1024px;
+      margin: 0 auto 28px;
+    }
+
+    .page-head h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+    .page-head p { color: #94a3b8; line-height: 1.5; max-width: 720px; }
+
+    .banner-wrap {
+      max-width: 1024px;
+      margin: 0 auto 36px;
+    }
+
+    .banner-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .banner-toolbar h2 { font-size: 0.95rem; font-weight: 700; color: #cbd5e1; }
+
+    .download-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font: 600 13px/1 Inter, sans-serif;
+      color: #082013;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      box-shadow: 0 8px 24px rgba(57, 212, 127, 0.35);
+    }
+
+    .download-btn:hover { filter: brightness(1.05); }
+
+    /* Exact Play Store feature graphic size */
+    .banner {
+      width: 1024px;
+      height: 500px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #f2fff8 0%, #ffffff 42%, #dcfeef 100%);
+    }
+
+    .banner::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 12% 20%, rgba(117, 251, 178, 0.35), transparent 42%),
+        radial-gradient(circle at 88% 78%, rgba(57, 212, 127, 0.22), transparent 38%);
+      pointer-events: none;
+    }
+
+    .copy {
+      position: absolute;
+      left: 36px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      max-width: 290px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+    }
+
+    .brand span {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .copy h3 {
+      font-size: 34px;
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .copy p {
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .phones {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 640px;
+      height: 430px;
+      z-index: 2;
+    }
+
+    .connector {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .phone {
+      position: absolute;
+      width: 214px;
+      height: 420px;
+      padding: 7px;
+      border-radius: 30px;
+      background: linear-gradient(160deg, #2a2a2a, #0a0a0a);
+      box-shadow:
+        0 30px 60px -20px rgba(15, 23, 42, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    }
+
+    .phone-a { left: 20px; top: 8px; transform: rotate(-7deg); }
+    .phone-b { left: 250px; top: 0; transform: rotate(4deg); z-index: 3; }
+    .phone-c { left: 480px; top: 14px; transform: rotate(8deg); z-index: 4; }
+
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 18px;
+      background: #0a0a0a;
+      border-radius: 0 0 14px 14px;
+      z-index: 5;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      background: var(--primary-light);
+      position: relative;
+    }
+
+    .status {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px 10px;
+      background: rgba(242, 255, 248, 0.95);
+      border-bottom: 1px solid rgba(188, 253, 220, 0.8);
+    }
+
+    .app-header img { width: 22px; height: 22px; border-radius: 7px; }
+    .app-header strong { font-size: 14px; font-weight: 900; letter-spacing: -0.03em; color: var(--text); }
+
+    .screen-body { padding: 10px 12px 12px; }
+
+    .widget {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      border-radius: 22px;
+      padding: 12px;
+      box-shadow: 0 16px 34px -26px rgba(74, 232, 150, 0.22);
+    }
+
+    .label-xs {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(57, 212, 127, 0.85);
+      margin-bottom: 4px;
+    }
+
+    .kcal-big {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .kcal-sub { font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(117, 251, 178, 0.15);
+      margin: 10px 0 6px;
+      overflow: hidden;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    }
+
+    .macros {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .macro {
+      border-radius: 12px;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .macro.p { background: #fff1f2; color: #e11d48; }
+    .macro.c { background: #fffbeb; color: #d97706; }
+    .macro.f { background: #f0f9ff; color: #0284c7; }
+
+    .week-card {
+      margin-top: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(226,232,240,0.85);
+      background: linear-gradient(135deg, #fff, rgba(117,251,178,0.06));
+      padding: 10px;
+    }
+
+    .week-title { font-size: 12px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
+    .week-sub { font-size: 9px; color: rgba(57,212,127,0.85); font-weight: 600; margin-top: 2px; }
+
+    .week-days {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .day-pill {
+      flex: 1;
+      text-align: center;
+      border-radius: 10px;
+      padding: 5px 0;
+      font-size: 8px;
+      font-weight: 700;
+      background: rgba(117,251,178,0.12);
+      color: #64748b;
+    }
+
+    .day-pill.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #082013;
+    }
+
+    .meal-row {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.65);
+      border: 1px solid rgba(188,253,220,0.6);
+    }
+
+    .meal-row .top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .meal-row .name { font-size: 10px; font-weight: 700; color: var(--text); line-height: 1.25; }
+    .meal-row .tags { font-size: 8px; margin-top: 4px; }
+    .meal-row .tags span { margin-right: 6px; }
+    .tag-p { color: #f87171; }
+    .tag-c { color: #fbbf24; }
+    .tag-f { color: #60a5fa; }
+
+    .day-block {
+      border-radius: 16px;
+      border: 1px solid rgba(188,253,220,0.75);
+      background: rgba(255,255,255,0.88);
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .day-block h4 {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+
+    .meal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .meal-tile {
+      background: rgba(248,250,252,0.9);
+      border-radius: 10px;
+      padding: 6px;
+      border: 1px solid rgba(226,232,240,0.8);
+    }
+
+    .btn-mini {
+      margin-top: 6px;
+      width: 100%;
+      border: 1px solid rgba(117,251,178,0.45);
+      background: rgba(117,251,178,0.12);
+      border-radius: 8px;
+      font-size: 7px;
+      font-weight: 700;
+      padding: 4px 0;
+      color: #166534;
+    }
+
+    .scan-preview {
+      margin-top: 8px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(188,253,220,0.8);
+      background: #fff;
+    }
+
+    .scan-photo {
+      height: 88px;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.15)),
+        radial-gradient(circle at 30% 40%, #fde68a, transparent 35%),
+        radial-gradient(circle at 70% 55%, #86efac, transparent 40%),
+        radial-gradient(circle at 50% 70%, #fca5a5, transparent 35%),
+        #fef3c7;
+    }
+
+    .scan-result {
+      padding: 8px 10px 10px;
+    }
+
+    .scan-result strong { font-size: 11px; display: block; margin-bottom: 4px; color: var(--text); }
+    .scan-result span { font-size: 9px; color: var(--muted); font-weight: 600; }
+
+    .bottom-nav {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 46px;
+      background: rgba(255,255,255,0.94);
+      border-top: 1px solid rgba(188,253,220,0.8);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: 4px;
+    }
+
+    .nav-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      background: rgba(117,251,178,0.18);
+    }
+
+    .nav-dot.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      box-shadow: 0 4px 10px rgba(57,212,127,0.35);
+    }
+
+    /* Banner-specific layouts */
+    .banner-1 .phones { width: 680px; }
+    .banner-2 .copy { max-width: 250px; }
+    .banner-2 .phone-a { left: 300px; transform: rotate(-4deg); }
+    .banner-2 .phone-b { left: 520px; transform: rotate(6deg); }
+    .banner-2 .phones { width: 760px; right: 10px; }
+
+    .banner-3 .phone-a { left: 290px; }
+    .banner-3 .phone-b { left: 515px; }
+
+    .banner-4 .copy { max-width: 320px; }
+    .banner-4 .phones { width: 700px; right: 10px; }
+    .banner-4 .phone-a { left: 0; transform: rotate(-9deg) scale(0.92); opacity: 0.92; }
+    .banner-4 .phone-b { left: 210px; transform: rotate(-2deg); z-index: 3; }
+    .banner-4 .phone-c { left: 430px; transform: rotate(5deg); z-index: 4; }
+  </style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>Frigy — Play Store banners (1024 × 500)</h1>
+    <p>
+      UI basiert auf echten Frigy-Farben und Layouts (Mint, Tracker, Wochenplan).
+      Zwei Screens sind visuell verbunden. Klicke <strong>Download PNG</strong> — Datei direkt in die Play Console hochladen.
+    </p>
+  </div>
+
+  <!-- Banner 1: Feature / Weekly Meal Plans -->
+  <div class="banner-wrap">
+    <div class="banner-toolbar">
+      <h2>1 — Feature Graphic: Dashboard → Weekly Plan</h2>
+      <button class="download-btn" type="button" data-target="banner-1">Download PNG</button>
+    </div>
+    <div class="banner banner-1" id="banner-1">
+      <div class="copy">
+        <div class="brand">
+          <img src="./assets/mascot.png" alt="" />
+          <span>Frigy</span>
+        </div>
+        <h3>AI Weekly Meal Plans</h3>
+        <p>Personalized meals, macros & shopping — connected in one flow.</p>
+      </div>
+      <svg class="connector" width="640" height="430" viewBox="0 0 640 430" style="right:28px;top:50%;transform:translateY(-50%);">
+        <path d="M200 210 C260 170, 300 170, 360 200" fill="none" stroke="#75FBB2" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+        <path d="M430 205 C490 175, 520 175, 560 195" fill="none" stroke="#39D47F" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+        <circle cx="200" cy="210" r="5" fill="#39D47F"/>
+        <circle cx="560" cy="195" r="5" fill="#39D47F"/>
+      </svg>
+      <div class="phones">
+        <div class="phone phone-a">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Frigy</strong></div>
+            <div class="screen-body">
+              <div class="widget">
+                <div class="label-xs">Today</div>
+                <div class="kcal-big">842 kcal</div>
+                <div class="kcal-sub">remaining of 1,850 kcal</div>
+                <div class="progress"><span style="width:54%"></span></div>
+                <div class="macros">
+                  <div class="macro p">42/120g P</div>
+                  <div class="macro c">98/210g C</div>
+                  <div class="macro f">28/62g F</div>
+                </div>
+              </div>
+              <div class="week-card">
+                <div class="week-title">Weekly plan</div>
+                <div class="week-sub">Friday · Next: Lunch</div>
+                <div class="week-days">
+                  <div class="day-pill">M</div>
+                  <div class="day-pill">T</div>
+                  <div class="day-pill">W</div>
+                  <div class="day-pill">T</div>
+                  <div class="day-pill active">F</div>
+                  <div class="day-pill">S</div>
+                  <div class="day-pill">S</div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-dot active"></div>
+              <div class="nav-dot"></div>
+              <div class="nav-dot"></div>
+              <div class="nav-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone phone-b">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Meal Plan</strong></div>
+            <div class="screen-body">
+              <div class="day-block">
+                <h4>Friday</h4>
+                <div class="meal-grid">
+                  <div class="meal-tile">
+                    <div class="top"><span>Breakfast</span><span>420</span></div>
+                    <div class="name">Greek yogurt bowl</div>
+                    <div class="tags"><span class="tag-p">28P</span><span class="tag-c">45K</span><span class="tag-f">12F</span></div>
+                    <div class="btn-mini">✓ Eaten</div>
+                  </div>
+                  <div class="meal-tile">
+                    <div class="top"><span>Lunch</span><span>510</span></div>
+                    <div class="name">Chicken rice bowl</div>
+                    <div class="tags"><span class="tag-p">42P</span><span class="tag-c">48K</span><span class="tag-f">14F</span></div>
+                    <div class="btn-mini">✓ Eaten</div>
+                  </div>
+                </div>
+              </div>
+              <div class="meal-row">
+                <div class="top"><span>Dinner</span><span>580 kcal</span></div>
+                <div class="name">Salmon with roasted veggies</div>
+                <div class="tags"><span class="tag-p">38P</span><span class="tag-c">32K</span><span class="tag-f">22F</span></div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-dot"></div>
+              <div class="nav-dot active"></div>
+              <div class="nav-dot"></div>
+              <div class="nav-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner 2: Tracker → Quick log -->
+  <div class="banner-wrap">
+    <div class="banner-toolbar">
+      <h2>2 — Track Calories & Macros</h2>
+      <button class="download-btn" type="button" data-target="banner-2">Download PNG</button>
+    </div>
+    <div class="banner banner-2" id="banner-2">
+      <div class="copy">
+        <div class="brand"><img src="./assets/mascot.png" alt="" /><span>Frigy</span></div>
+        <h3>Track Calories & Macros</h3>
+        <p>See what's left today — protein, carbs & fat at a glance.</p>
+      </div>
+      <svg class="connector" width="760" height="430" viewBox="0 0 760 430" style="right:10px;top:50%;transform:translateY(-50%);">
+        <path d="M520 220 C570 190, 590 190, 640 210" fill="none" stroke="#75FBB2" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <div class="phones">
+        <div class="phone phone-a">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Frigy</strong></div>
+            <div class="screen-body">
+              <div class="widget">
+                <div class="label-xs">Today</div>
+                <div class="kcal-big">1,008 kcal</div>
+                <div class="kcal-sub">remaining of 1,850 kcal</div>
+                <div class="progress"><span style="width:45%"></span></div>
+                <div class="macros">
+                  <div class="macro p">58/120g</div>
+                  <div class="macro c">112/210g</div>
+                  <div class="macro f">31/62g</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px;">
+                <div style="background:#fff;border-radius:12px;padding:6px 2px;text-align:center;font-size:12px;border:1px solid #e2e8f0;">🍳</div>
+                <div style="background:linear-gradient(135deg,#75FBB2,#39D47F);border-radius:12px;padding:6px 2px;text-align:center;font-size:12px;">🥗</div>
+                <div style="background:#fff;border-radius:12px;padding:6px 2px;text-align:center;font-size:12px;border:1px solid #e2e8f0;">🍝</div>
+                <div style="background:#fff;border-radius:12px;padding:6px 2px;text-align:center;font-size:12px;border:1px solid #e2e8f0;">🍎</div>
+              </div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot active"></div><div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+        <div class="phone phone-b">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Log meal</strong></div>
+            <div class="screen-body">
+              <div class="meal-row" style="margin-top:0;">
+                <div class="top"><span>Lunch</span><span>510 kcal</span></div>
+                <div class="name">Chicken rice bowl</div>
+                <div class="tags"><span class="tag-p">42P</span><span class="tag-c">48K</span><span class="tag-f">14F</span></div>
+              </div>
+              <div class="widget" style="margin-top:10px;">
+                <div class="label-xs">Updated</div>
+                <div class="kcal-big" style="font-size:22px;">842 kcal left</div>
+                <div class="progress"><span style="width:54%"></span></div>
+              </div>
+              <div class="week-card">
+                <div class="week-title">Water</div>
+                <div class="week-sub">6 / 10 glasses</div>
+                <div class="progress"><span style="width:60%"></span></div>
+              </div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot active"></div><div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner 3: Food scan -->
+  <div class="banner-wrap">
+    <div class="banner-toolbar">
+      <h2>3 — Scan Food Instantly</h2>
+      <button class="download-btn" type="button" data-target="banner-3">Download PNG</button>
+    </div>
+    <div class="banner banner-3" id="banner-3">
+      <div class="copy">
+        <div class="brand"><img src="./assets/mascot.png" alt="" /><span>Frigy</span></div>
+        <h3>Scan Food Instantly</h3>
+        <p>Photo → calories & macros in seconds. Log with one tap.</p>
+      </div>
+      <svg class="connector" width="760" height="430" viewBox="0 0 760 430" style="right:10px;top:50%;transform:translateY(-50%);">
+        <path d="M510 215 C560 185, 585 185, 635 205" fill="none" stroke="#39D47F" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <div class="phones">
+        <div class="phone phone-a">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Scan</strong></div>
+            <div class="screen-body" style="padding:8px;">
+              <div class="scan-preview">
+                <div class="scan-photo"></div>
+                <div style="padding:8px;font-size:9px;color:#64748b;font-weight:600;text-align:center;">Analyzing plate…</div>
+              </div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot active"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+        <div class="phone phone-b">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Result</strong></div>
+            <div class="screen-body">
+              <div class="scan-preview">
+                <div class="scan-photo" style="height:72px;"></div>
+                <div class="scan-result">
+                  <strong>Grilled chicken plate</strong>
+                  <span>520 kcal · 42P · 38C · 16F</span>
+                </div>
+              </div>
+              <div class="btn-mini" style="font-size:9px;padding:8px 0;background:linear-gradient(135deg,#75FBB2,#39D47F);border:0;color:#082013;">Add to tracker</div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot active"></div><div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner 4: Full flow 3 screens -->
+  <div class="banner-wrap">
+    <div class="banner-toolbar">
+      <h2>4 — Full App Flow (3 connected screens)</h2>
+      <button class="download-btn" type="button" data-target="banner-4">Download PNG</button>
+    </div>
+    <div class="banner banner-4" id="banner-4">
+      <div class="copy">
+        <div class="brand"><img src="./assets/mascot.png" alt="" /><span>Frigy</span></div>
+        <h3>Plan. Track. Eat smarter.</h3>
+        <p>Home → weekly plan → log meals — one connected experience.</p>
+      </div>
+      <svg class="connector" width="700" height="430" viewBox="0 0 700 430" style="right:10px;top:50%;transform:translateY(-50%);">
+        <path d="M175 220 C230 190, 255 190, 310 210" fill="none" stroke="#75FBB2" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M395 210 C450 180, 475 180, 530 200" fill="none" stroke="#39D47F" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <div class="phones">
+        <div class="phone phone-a">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Home</strong></div>
+            <div class="screen-body">
+              <div class="widget">
+                <div class="kcal-big" style="font-size:22px;">842 kcal</div>
+                <div class="progress"><span style="width:54%"></span></div>
+              </div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot active"></div><div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+        <div class="phone phone-b">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Plan</strong></div>
+            <div class="screen-body">
+              <div class="day-block" style="margin:0;">
+                <h4>Today</h4>
+                <div class="meal-tile">
+                  <div class="name">Chicken rice bowl</div>
+                  <div class="tags"><span class="tag-p">42P</span><span class="tag-c">48K</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot"></div><div class="nav-dot active"></div><div class="nav-dot"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+        <div class="phone phone-c">
+          <div class="phone-notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div class="app-header"><img src="./assets/mascot.png" alt="" /><strong>Logged</strong></div>
+            <div class="screen-body">
+              <div class="widget">
+                <div class="label-xs">Added</div>
+                <div class="name" style="font-size:12px;">Lunch logged ✓</div>
+                <div class="progress"><span style="width:62%"></span></div>
+              </div>
+            </div>
+            <div class="bottom-nav"><div class="nav-dot active"></div><div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll(".download-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-target");
+        const node = document.getElementById(id);
+        if (!node || !window.html2canvas) return;
+
+        btn.disabled = true;
+        btn.textContent = "Exporting…";
+
+        try {
+          const canvas = await html2canvas(node, {
+            scale: 2,
+            width: 1024,
+            height: 500,
+            useCORS: true,
+            backgroundColor: null,
+          });
+
+          const link = document.createElement("a");
+          link.download = `${id}-1024x500.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Download PNG";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

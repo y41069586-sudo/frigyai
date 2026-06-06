@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -47,6 +46,11 @@ function isStoreProductId(productId: string | null | undefined): boolean {
 }
 
 function promoStillValid(subscriptionEnd: string | null): boolean {
+  if (!subscriptionEnd) return true;
+  return new Date(subscriptionEnd) > new Date();
+}
+
+function cacheEntryStillValid(subscriptionEnd: string | null): boolean {
   if (!subscriptionEnd) return true;
   return new Date(subscriptionEnd) > new Date();
 }
@@ -133,7 +137,32 @@ async function loadActiveStoreFromCache(
   if (error || !data?.subscribed || !isStoreProductId(data.product_id)) {
     return null;
   }
-  if (data.subscription_end && new Date(data.subscription_end) <= new Date()) {
+  if (!cacheEntryStillValid(data.subscription_end)) {
+    return null;
+  }
+
+  return {
+    subscribed: true,
+    product_id: data.product_id,
+    subscription_end: data.subscription_end,
+    is_trial: data.is_trial || false,
+  };
+}
+
+async function loadAnyActiveFromCache(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<SubscriptionResult | null> {
+  const { data, error } = await supabase
+    .from("subscription_cache")
+    .select("subscribed, product_id, subscription_end, is_trial")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data?.subscribed) {
+    return null;
+  }
+  if (!cacheEntryStillValid(data.subscription_end)) {
     return null;
   }
 
@@ -174,51 +203,6 @@ async function fetchFromRevenueCat(userId: string): Promise<SubscriptionResult |
     logStep("RevenueCat fetch error", { message: e instanceof Error ? e.message : String(e) });
     return null;
   }
-}
-
-async function checkStripeSubscription(
-  stripe: Stripe,
-  email: string,
-): Promise<SubscriptionResult | null> {
-  const customers = await stripe.customers.list({ email, limit: 1 });
-  if (customers.data.length === 0) {
-    return null;
-  }
-
-  const customerId = customers.data[0].id;
-  const [activeSubscriptions, trialingSubscriptions] = await Promise.all([
-    stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 }),
-    stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 1 }),
-  ]);
-
-  const subscription = activeSubscriptions.data[0] || trialingSubscriptions.data[0];
-  if (subscription) {
-    const subscriptionEnd = subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toISOString()
-      : null;
-    const productId = subscription.items.data[0]?.price?.product || null;
-
-    return {
-      subscribed: true,
-      product_id: typeof productId === "string" ? productId : String(productId ?? "stripe_subscription"),
-      subscription_end: subscriptionEnd,
-      is_trial: subscription.status === "trialing",
-    };
-  }
-
-  const paymentIntents = await stripe.paymentIntents.list({ customer: customerId, limit: 10 });
-  const successfulPayment = paymentIntents.data.find((pi: { status: string }) => pi.status === "succeeded");
-
-  if (successfulPayment) {
-    return {
-      subscribed: true,
-      product_id: "premium_one_time",
-      subscription_end: null,
-      is_trial: false,
-    };
-  }
-
-  return null;
 }
 
 const NOT_SUBSCRIBED: SubscriptionResult = {
@@ -292,6 +276,15 @@ serve(async (req) => {
     }
 
     if (rcLive && !rcLive.subscribed) {
+      const cachedActive = await loadAnyActiveFromCache(supabaseClient, user.id);
+      if (cachedActive) {
+        logStep("Keeping active subscription from cache (RC reports inactive)", cachedActive);
+        return new Response(JSON.stringify(cachedActive), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
       logStep("RevenueCat reports no active entitlement");
       await updateCache(supabaseClient, user.id, rcLive);
       return new Response(JSON.stringify(rcLive), {
@@ -300,24 +293,13 @@ serve(async (req) => {
       });
     }
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (stripeKey && user.email) {
-      try {
-        const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
-        const stripeResult = await checkStripeSubscription(stripe, user.email);
-        if (stripeResult?.subscribed) {
-          logStep("Active Stripe subscription", stripeResult);
-          await updateCache(supabaseClient, user.id, stripeResult);
-          return new Response(JSON.stringify(stripeResult), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          });
-        }
-      } catch (stripeError) {
-        logStep("Stripe check skipped/failed", {
-          message: stripeError instanceof Error ? stripeError.message : String(stripeError),
-        });
-      }
+    const cachedActive = await loadAnyActiveFromCache(supabaseClient, user.id);
+    if (cachedActive) {
+      logStep("Active subscription from cache (RC unavailable)", cachedActive);
+      return new Response(JSON.stringify(cachedActive), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     await updateCache(supabaseClient, user.id, NOT_SUBSCRIBED);

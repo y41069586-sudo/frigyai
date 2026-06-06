@@ -524,7 +524,6 @@ export interface Translations extends ExtendedTranslations {
   toastError: string;
   toastSuccess: string;
   notLoggedIn: string;
-  loadingStripePortal: string;
   pleaseWait: string;
   
   // Bottom Navigation
@@ -633,7 +632,6 @@ export interface Translations extends ExtendedTranslations {
   german: string;
   english: string;
   french: string;
-  redirectingToStripe: string;
   noCheckoutUrl: string;
   noPortalUrl: string;
   
@@ -1169,7 +1167,6 @@ const translations: Record<Language, Translations> = {
     toastError: "Ein Fehler ist aufgetreten",
     toastSuccess: "Erfolgreich gespeichert",
     notLoggedIn: "Nicht angemeldet",
-    loadingStripePortal: "Lade Stripe-Portal...",
     pleaseWait: "Bitte warten",
     
     // Bottom Navigation
@@ -1261,7 +1258,6 @@ const translations: Record<Language, Translations> = {
     // Session expired
     sessionExpired: "Sitzung abgelaufen",
     pleaseLoginAgain: "Bitte melde dich erneut an.",
-    redirectingToStripe: "Du wirst jetzt weitergeleitet...",
     noCheckoutUrl: "Keine Checkout-URL erhalten",
     noPortalUrl: "Keine Portal-URL erhalten",
     
@@ -2051,7 +2047,6 @@ const translations: Record<Language, Translations> = {
     toastError: "An error occurred",
     toastSuccess: "Successfully saved",
     notLoggedIn: "Not logged in",
-    loadingStripePortal: "Loading Stripe portal...",
     pleaseWait: "Please wait",
     
     // Bottom Navigation
@@ -2143,7 +2138,6 @@ const translations: Record<Language, Translations> = {
     // Session expired
     sessionExpired: "Session expired",
     pleaseLoginAgain: "Please sign in again.",
-    redirectingToStripe: "Redirecting you now...",
     noCheckoutUrl: "No checkout URL received",
     noPortalUrl: "No portal URL received",
     
@@ -2933,7 +2927,6 @@ const translations: Record<Language, Translations> = {
     toastError: "Une erreur s'est produite",
     toastSuccess: "Enregistré avec succès",
     notLoggedIn: "Non connecté",
-    loadingStripePortal: "Chargement du portail Stripe...",
     pleaseWait: "Veuillez patienter",
     
     // Bottom Navigation
@@ -3025,7 +3018,6 @@ const translations: Record<Language, Translations> = {
     // Session expired
     sessionExpired: "Session expirée",
     pleaseLoginAgain: "Veuillez vous reconnecter.",
-    redirectingToStripe: "Redirection en cours...",
     noCheckoutUrl: "Aucune URL de paiement reçue",
     noPortalUrl: "Aucune URL de portail reçue",
     

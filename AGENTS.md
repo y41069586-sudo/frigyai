@@ -22,6 +22,6 @@ Frigy is a German-language health & nutrition PWA (Progressive Web App) built wi
 - Lint exits non-zero due to pre-existing `@typescript-eslint/no-explicit-any` errors throughout the codebase — this is expected and not a sign of broken setup.
 - The Supabase backend is **cloud-hosted** (`mcabsjuamjgkvfljkfit.supabase.co`). No local Supabase CLI, Docker, or database is required for frontend development.
 - AI features (food scanning, recipe generation, chatbot) require `OPENAI_API_KEY` configured as a Supabase Edge Function secret on the cloud instance. Without it, the basic UI, auth, and tracking features still work.
-- Stripe integration is optional — only needed for premium subscription flows.
+- Premium subscriptions use RevenueCat (App Store / Google Play). Configure `REVENUECAT_SECRET_API_KEY` on Supabase for live subscription checks.
 - Capacitor (native mobile) is optional — the web PWA runs independently.
 - The project has both `package-lock.json` (npm) and `bun.lockb` (bun); use **npm** as the primary package manager.

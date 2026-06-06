@@ -1,6 +1,6 @@
 # Fridgie Native App Setup (iOS & Android)
 
-Diese Anleitung erklärt, wie du die native iOS/Android App mit Capacitor baust. Premium-Abos laufen über **App Store / Google Play** (RevenueCat), nicht über Stripe in der nativen App.
+Diese Anleitung erklärt, wie du die native iOS/Android App mit Capacitor baust. Premium-Abos laufen über **App Store / Google Play** (RevenueCat).
 
 ## Voraussetzungen
 
@@ -44,7 +44,7 @@ npx cap sync
 
 ## Schritt 3: In-App-Abos (App Store & Play Store)
 
-Native Builds verwenden **RevenueCat** (`@revenuecat/purchases-capacitor`). Stripe Payment Links gelten nur für die Web-App.
+Native Builds verwenden **RevenueCat** (`@revenuecat/purchases-capacitor`).
 
 1. RevenueCat-Projekt anlegen und iOS/Android-Apps verknüpfen.
 2. Abo-Produkte in App Store Connect und Google Play Console erstellen.

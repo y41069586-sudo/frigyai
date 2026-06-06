@@ -156,7 +156,6 @@ export interface ExtendedTranslations {
   ariaBack: string;
 
   toastCameraPermission: string;
-  loadingStripePortal: string;
 
   recipeHealthierAlternatives: string;
   recipePrepTimeMin: string;
@@ -653,7 +652,6 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     ariaBack: "Zurück",
 
     toastCameraPermission: "Bitte Kamera in den Geräteeinstellungen erlauben.",
-    loadingStripePortal: "Stripe wird geladen…",
 
     recipeHealthierAlternatives: "Gesündere Alternativen",
     recipePrepTimeMin: "Zubereitung",
@@ -1167,7 +1165,6 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     ariaBack: "Back",
 
     toastCameraPermission: "Please allow camera access in device settings.",
-    loadingStripePortal: "Loading Stripe…",
 
     recipeHealthierAlternatives: "Healthier alternatives",
     recipePrepTimeMin: "Prep time",
@@ -1684,7 +1681,6 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     ariaBack: "Retour",
 
     toastCameraPermission: "Veuillez autoriser la caméra dans les réglages.",
-    loadingStripePortal: "Chargement de Stripe…",
 
     recipeHealthierAlternatives: "Alternatives plus saines",
     recipePrepTimeMin: "Préparation",

@@ -218,14 +218,22 @@ All colors MUST be HSL.
     touch-action: pan-y;
   }
 
-  /* Tracker ↔ weight carousel: horizontal swipe between slides; vertical scroll passes to dashboard. */
+  /* Tracker ↔ weight carousel: horizontal swipe on carousel; vertical scroll passes to dashboard. */
   .dashboard-scroll-main .dashboard-tracker-carousel {
+    touch-action: pan-y;
+    overflow: visible;
+  }
+
+  .dashboard-scroll-main .dashboard-tracker-carousel .dashboard-touch-scroll,
+  .dashboard-scroll-main .dashboard-tracker-carousel .dashboard-touch-scroll button,
+  .dashboard-scroll-main .dashboard-tracker-carousel .dashboard-touch-scroll [role="button"] {
     touch-action: pan-x pan-y;
   }
 
   .dashboard-scroll-main .dashboard-carousel-scroll {
-    touch-action: pan-x pan-y pinch-zoom;
+    touch-action: pan-x;
     overflow-y: hidden;
+    overscroll-behavior-x: contain;
     overscroll-behavior-y: none;
   }
 

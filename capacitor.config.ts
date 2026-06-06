@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.frigyapp.app',
   appName: 'Frigy',
   webDir: 'dist',
-  /** Deep links: frigy://callback (Stripe), frigy://signup?ref= (ChottuLink) */
+  /** Deep links: frigy://callback, frigy://signup?ref= (ChottuLink) */
   // Universal/App Links: VITE_CHOTTULINK_HOST + VITE_APP_WEB_HOST — see docs/CHOTTULINK_SETUP.md
   plugins: {
     PushNotifications: {

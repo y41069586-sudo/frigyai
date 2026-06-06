@@ -35,7 +35,8 @@ import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
-import { canManageStoreSubscription } from "@/lib/subscription";
+import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
+import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { openStoreSubscriptionManagement, restoreStorePurchases } from "@/lib/storeBilling";
 import { usesStoreBilling } from "@/lib/billingPlatform";
@@ -119,7 +120,8 @@ function SettingsRow({
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, session, subscriptionStatus, signOut, checkSubscription, linkAppleAccount } = useAuth();
+  const { user, session, subscriptionStatus, isPremium, signOut, checkSubscription, linkAppleAccount } = useAuth();
+  const premiumActive = isPremium || isSubscriptionActive(subscriptionStatus);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
@@ -267,9 +269,16 @@ const ProfilePage = () => {
                 <Mail className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{user.email}</span>
               </p>
-              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              <span
+                className={cn(
+                  "mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                  premiumActive
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
                 <Crown className="h-3 w-3" />
-                Premium
+                {premiumActive ? t.premiumActive : t.premiumNotActiveYet}
               </span>
             </div>
           </div>
@@ -277,11 +286,18 @@ const ProfilePage = () => {
           <SettingsGroup title={t.settingsSubscriptionGroup}>
             <SettingsRow
               icon={Crown}
-              label={t.premiumActive}
+              label={premiumActive ? t.premiumActive : t.premiumNotActiveYet}
               description={
-                subscriptionStatus?.subscription_end
+                premiumActive && subscriptionStatus?.subscription_end
                   ? `${t.renewsOn}: ${new Date(subscriptionStatus.subscription_end).toLocaleDateString(dateLocale)}`
-                  : undefined
+                  : premiumActive
+                    ? undefined
+                    : t.premiumNotActiveDesc
+              }
+              onClick={
+                premiumActive
+                  ? undefined
+                  : () => navigate(buildPremiumPricingRoute({ trialEligible: resolveTrialEligibleFromLocal() }))
               }
               trailing={
                 <Button

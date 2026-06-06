@@ -134,7 +134,7 @@ import 'package:uni_links/uni_links.dart';
 final initial = await getInitialUri();
 ```
 
-## Stripe (weiterhin)
+## Deep links (Referral / OAuth)
 
 ```
 frigy://callback?subscription=success

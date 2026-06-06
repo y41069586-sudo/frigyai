@@ -13,7 +13,7 @@ import {
   resolveAuthErrorMessage,
 } from '@/lib/authErrors';
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
-import { isSubscriptionActive } from '@/lib/subscription';
+import { isSubscriptionActive, mergeSubscriptionStatus } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { signInWithOAuthProvider } from '@/lib/authOAuth';
@@ -72,7 +72,8 @@ const getCachedSubscription = (): SubscriptionStatus | null => {
       const parsed = JSON.parse(cached);
       // Cache valid for 1 hour
       if (parsed.timestamp && Date.now() - parsed.timestamp < 3600000) {
-        return parsed.data;
+        const data = parsed.data as SubscriptionStatus;
+        return isSubscriptionActive(data) ? data : null;
       }
     }
   } catch (e) {
@@ -157,9 +158,25 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   // Load cached subscription immediately for instant UI
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(getCachedSubscription);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(() => {
+    const cached = getCachedSubscription();
+    return cached && isSubscriptionActive(cached) ? cached : null;
+  });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const subscriptionRef = useRef<SubscriptionStatus | null>(subscriptionStatus);
+
+  useEffect(() => {
+    subscriptionRef.current = subscriptionStatus;
+  }, [subscriptionStatus]);
+
+  const resolveSubscriptionStatus = async (
+    incoming: SubscriptionStatus | null,
+    userId: string,
+  ): Promise<SubscriptionStatus | null> => {
+    const dbCache = await loadFromDbCache(userId);
+    return mergeSubscriptionStatus(incoming, subscriptionRef.current, dbCache);
+  };
 
   const updateSubscriptionStatus = (data: SubscriptionStatus | null) => {
     if (
@@ -195,10 +212,10 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     void syncStoreSubscriptionIfNeeded(accessToken).finally(() => {
       supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${accessToken}` },
-      }).then(({ data, error }) => {
-        if (!error && data) {
-          updateSubscriptionStatus(data);
-        }
+      }).then(async ({ data, error }) => {
+        if (error || !data) return;
+        const merged = await resolveSubscriptionStatus(data as SubscriptionStatus, userId);
+        updateSubscriptionStatus(merged);
       }).catch((err) => {
         console.warn('[Auth] Background subscription refresh failed:', err);
       });
@@ -207,11 +224,13 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
 
   const checkSubscription = async (): Promise<SubscriptionStatus | null> => {
     let accessToken = session?.access_token;
+    let userId = user?.id ?? session?.user?.id;
     if (!accessToken) {
       const { data } = await supabase.auth.getSession();
       accessToken = data.session?.access_token;
+      userId = userId ?? data.session?.user?.id;
     }
-    if (!accessToken) return null;
+    if (!accessToken) return subscriptionRef.current;
 
     await syncStoreSubscriptionIfNeeded(accessToken);
 
@@ -223,11 +242,17 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) throw error;
-      const status = (data ?? null) as SubscriptionStatus | null;
-      updateSubscriptionStatus(status);
-      return status;
+      const incoming = (data ?? null) as SubscriptionStatus | null;
+      const merged = userId
+        ? await resolveSubscriptionStatus(incoming, userId)
+        : mergeSubscriptionStatus(incoming, subscriptionRef.current, null);
+      updateSubscriptionStatus(merged);
+      return merged;
     } catch (error) {
       console.error('Error checking subscription:', error);
+      if (isSubscriptionActive(subscriptionRef.current)) {
+        return subscriptionRef.current;
+      }
       return null;
     }
   };
