@@ -180,6 +180,15 @@ export function isAuthNavigationPending(): boolean {
   );
 }
 
+/** Routes where manual bottom-nav taps should not be overridden by late auth redirects. */
+export const POST_AUTH_MANUAL_NAV_PATHS = new Set([
+  "/",
+  "/meal-plans",
+  "/profile",
+  "/scan",
+  "/badges",
+]);
+
 /** Overlay until pipeline done AND navigation executed (or still pending). */
 export function isAuthFlowOverlayVisible(): boolean {
   const { result, navigation } = snapshot;
@@ -187,6 +196,13 @@ export function isAuthFlowOverlayVisible(): boolean {
   if (navigation.executing) return true;
   if (isAuthNavigationPending()) return true;
   return false;
+}
+
+/** User navigated manually — drop stale post-auth redirect state (keeps in-flight OAuth pending). */
+export function dismissStalledAuthNavigation(): void {
+  const { result, navigation } = getAuthFlowSnapshot();
+  if (result.status === "pending" || navigation.executing) return;
+  resetAuthFlow();
 }
 
 export function publishAuthResult(result: AuthResult): void {

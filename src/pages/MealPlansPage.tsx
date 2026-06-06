@@ -10,9 +10,7 @@ import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
 import frigyMascot from '@/assets/frigy-mascot.png';
-const ShoppingList = lazy(() =>
-  import('@/components/ShoppingList').then((m) => ({ default: m.ShoppingList })),
-);
+import { ShoppingList } from '@/components/ShoppingList';
 const ReminderSettings = lazy(() =>
   import('@/components/ReminderSettings').then((m) => ({ default: m.ReminderSettings })),
 );
@@ -28,6 +26,7 @@ import { resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
+import { dismissStalledAuthNavigation } from '@/lib/authCompletion';
 import {
   tabPanelExit,
   tabPanelFrom,
@@ -124,6 +123,7 @@ const readJsonArray = (key: string): unknown[] => {
 const MealPlansPage = () => {
   const isMobile = useIsMobile();
   const { user, session, loading, checkSubscription } = useAuth();
+  const authed = Boolean(user ?? session?.user);
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -414,10 +414,16 @@ const MealPlansPage = () => {
   };
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (authed) {
+      dismissStalledAuthNavigation();
+    }
+  }, [authed]);
+
+  useEffect(() => {
+    if (!loading && !authed) {
       navigate('/auth', { replace: true });
     }
-  }, [loading, user, navigate]);
+  }, [loading, authed, navigate]);
 
   // Show loading screen while activating subscription
   if (isActivatingSubscription) {
@@ -444,7 +450,18 @@ const MealPlansPage = () => {
     );
   }
 
-  if (!loading && !user) {
+  if (loading && !authed) {
+    return (
+      <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
+        <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </motion.div>
+        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+      </motion.div>
+    );
+  }
+
+  if (!loading && !authed) {
     return (
       <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
         <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
@@ -486,7 +503,7 @@ const MealPlansPage = () => {
 
       <div className="container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
         <motion.div className="min-h-[50vh] space-y-4 sm:space-y-6">
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="sync" initial={false}>
           {activeTab === 'reminders' && (
             <motion.div
               key="reminders"
@@ -648,9 +665,7 @@ const MealPlansPage = () => {
                     </p>
                   </Card>
                 )}
-                <Suspense fallback={<TabPanelFallback />}>
-                  <ShoppingList mealPlan={mealPlan} />
-                </Suspense>
+                <ShoppingList mealPlan={mealPlan} />
             </motion.div>
           )}
           </AnimatePresence>

@@ -14,44 +14,48 @@ export function AuthOAuthCallbackBootstrap() {
   const navigate = useNavigate();
   const location = useLocation();
   const { checkSubscription, user, loading } = useAuth();
-  const handledRef = useRef(false);
+  const oauthCallbackHandledRef = useRef(false);
+  const pendingRedirectStartedRef = useRef(false);
 
   useEffect(() => {
-    if (handledRef.current || loading) return;
+    if (oauthCallbackHandledRef.current || loading) return;
 
     const href = window.location.href;
 
     if (isOAuthErrorUrl(href)) {
-      handledRef.current = true;
+      oauthCallbackHandledRef.current = true;
       clearOAuthPending();
       window.history.replaceState({}, "", "/auth?oauth_error=1");
       return;
     }
 
-    if (isOAuthCallbackUrl(href)) {
-      handledRef.current = true;
+    if (!isOAuthCallbackUrl(href)) return;
 
-      void (async () => {
-        const result = await handleOAuthCallbackUrl({
-          url: href,
-          checkSubscription,
-          navigate,
-          onExchangeSuccess: () => {
-            window.history.replaceState({}, "", "/auth");
-          },
-        });
+    oauthCallbackHandledRef.current = true;
 
-        if (result.status === "error") {
-          handledRef.current = false;
-        }
-      })();
-      return;
-    }
+    void (async () => {
+      const result = await handleOAuthCallbackUrl({
+        url: href,
+        checkSubscription,
+        navigate,
+        onExchangeSuccess: () => {
+          window.history.replaceState({}, "", "/auth");
+        },
+      });
+
+      if (result.status === "error") {
+        oauthCallbackHandledRef.current = false;
+      }
+    })();
+  }, [loading, location.pathname, location.search, navigate, checkSubscription]);
+
+  useEffect(() => {
+    if (loading || pendingRedirectStartedRef.current || !user) return;
 
     const pending = getOAuthPending();
-    if (!pending || !user) return;
+    if (!pending) return;
 
-    handledRef.current = true;
+    pendingRedirectStartedRef.current = true;
     clearOAuthPending();
 
     void redirectAfterSignIn({
@@ -61,7 +65,7 @@ export function AuthOAuthCallbackBootstrap() {
       fromOnboarding: pending === "onboarding",
       authIntent: pending === "onboarding" ? "signup" : "login",
     });
-  }, [loading, user, location.pathname, location.search, navigate, checkSubscription]);
+  }, [loading, user, navigate, checkSubscription]);
 
   return null;
 }

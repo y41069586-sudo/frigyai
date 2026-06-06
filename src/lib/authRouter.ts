@@ -5,7 +5,9 @@ import {
   getAuthFlowSnapshot,
   isAuthCompletionPending,
   isAuthNavigationPending,
+  POST_AUTH_MANUAL_NAV_PATHS,
   publishAuthResult,
+  resetAuthFlow,
   setAuthNavigationState,
   type AuthResult,
   type RunAuthCompletionInput,
@@ -58,6 +60,26 @@ export function executeAuthNavigation(
     if (result.status === "success" && result.routePhase === "dashboard") {
       localStorage.setItem("onboardingComplete", "true");
     }
+
+    const currentPath =
+      typeof window !== "undefined" ? window.location.pathname : null;
+    if (
+      result.status === "success" &&
+      currentPath &&
+      currentPath !== target &&
+      POST_AUTH_MANUAL_NAV_PATHS.has(currentPath)
+    ) {
+      setAuthNavigationState({
+        executing: false,
+        executed: true,
+        failed: false,
+        targetRoute: target,
+        startedAt: null,
+      });
+      window.setTimeout(() => resetAuthFlow(), 0);
+      return true;
+    }
+
     navigateOnce(navigate, target);
     setAuthNavigationState({
       executing: false,

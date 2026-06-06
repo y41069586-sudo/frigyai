@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
+import { dismissStalledAuthNavigation } from "@/lib/authCompletion";
 import { notifyOpenLogMeal, notifyOverlayOpen } from "@/lib/overlayEvents";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
@@ -63,6 +64,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const trackerActive = isHome && searchParams.get("logMeal") === "1";
 
   const go = (id: NavId) => {
+    dismissStalledAuthNavigation();
     if (id === "home") {
       navigate("/");
       return;
@@ -71,6 +73,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   };
 
   const openTracker = () => {
+    dismissStalledAuthNavigation();
     if (isHome) {
       notifyOpenLogMeal(null);
       return;
