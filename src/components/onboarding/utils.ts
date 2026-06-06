@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { saveReminderConfigFromOnboarding, syncRemindersFromStorage } from "@/lib/notifications";
 import { clearPendingReferralCode, REFERRAL_SKIP_PAYWALL_KEY } from "@/lib/referralCode";
+import { invalidateTrackerSettingsCache } from "@/hooks/useTrackerSettings";
 
 /** Minimum age to use Frigy (Google Play / App Store: 13+). */
 export const MIN_ONBOARDING_AGE = 13;
@@ -154,6 +155,7 @@ export const saveOnboardingData = (
     notificationPrefs: userData.notificationPrefs,
   };
   localStorage.setItem("userProfile", JSON.stringify(trackerSettings));
+  invalidateTrackerSettingsCache();
   notifyFrigyStorageUpdated();
   void syncTrackerProfileToCloud(trackerSettings);
 

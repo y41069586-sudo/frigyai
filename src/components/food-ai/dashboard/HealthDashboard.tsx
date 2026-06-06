@@ -8,8 +8,6 @@ import { notifyOpenLogMeal } from "@/lib/overlayEvents";
 import { WidgetContainer } from "./WidgetContainer";
 import { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 import { TrackerWidget } from "./TrackerWidget";
-import { TrackerWidgetCarousel } from "./TrackerWidgetCarousel";
-import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
 import { WaterWidget } from "./WaterWidget";
 import { AiChatPromptWidget } from "./AiChatPromptWidget";
 import type { MealFocusKey } from "@/lib/mealFocus";
@@ -93,29 +91,24 @@ export function HealthDashboard({
     <div className="space-y-8">
       <WidgetContainer>
         <div className="space-y-3">
-          <TrackerWidgetCarousel
-            tracker={
-              <TrackerWidget
-                delay={0.02}
-                section="summary"
-                caloriesEaten={caloriesEaten}
-                targetCalories={targetCalories}
-                proteinEaten={proteinEaten}
-                targetProtein={targetProtein}
-                carbsEaten={carbsEaten}
-                targetCarbs={targetCarbs}
-                fatEaten={fatEaten}
-                targetFat={targetFat}
-                waterMl={currentWaterMl}
-                waterGoalMl={waterGoalMl}
-                loggedMealTypes={loggedMealTypes}
-                onAddMeal={(slot) => notifyOpenLogMeal(slot)}
-                onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
-                onOpenTracker={() => navigate("/?editMacros=1")}
-                targetsReady={targetsReady}
-              />
-            }
-            weight={<DashboardWeightWidget embedded targetWeight={undefined} />}
+          <TrackerWidget
+            delay={0.02}
+            section="summary"
+            caloriesEaten={caloriesEaten}
+            targetCalories={targetCalories}
+            proteinEaten={proteinEaten}
+            targetProtein={targetProtein}
+            carbsEaten={carbsEaten}
+            targetCarbs={targetCarbs}
+            fatEaten={fatEaten}
+            targetFat={targetFat}
+            waterMl={currentWaterMl}
+            waterGoalMl={waterGoalMl}
+            loggedMealTypes={loggedMealTypes}
+            onAddMeal={(slot) => notifyOpenLogMeal(slot)}
+            onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
+            onOpenTracker={() => navigate("/?editMacros=1")}
+            targetsReady={targetsReady}
           />
 
           <TrackerWidget

@@ -749,16 +749,18 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   };
 
   const processCameraFile = (file: File) => {
-    setLogMealPanelOpen(false);
-    setShowFoodCamera(true);
-    notifyOverlayOpen(true);
-    setFoodScanPhase('analyzing');
-    setIsAnalyzing(true);
-    setFoodScanError(null);
-    setFoodScanSuccess(null);
-    setAnalyzingImage(URL.createObjectURL(file));
-
     void (async () => {
+      if (!(await ensurePremium())) return;
+
+      setLogMealPanelOpen(false);
+      setShowFoodCamera(true);
+      notifyOverlayOpen(true);
+      setFoodScanPhase('analyzing');
+      setIsAnalyzing(true);
+      setFoodScanError(null);
+      setFoodScanSuccess(null);
+      setAnalyzingImage(URL.createObjectURL(file));
+
       const dataUrl = await fileToCompressedBase64(file);
       if (!dataUrl) {
         setIsAnalyzing(false);

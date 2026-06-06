@@ -37,11 +37,26 @@ const AuthPage = () => {
 
   const searchParams = new URLSearchParams(window.location.search);
   const fromParam = searchParams.get('from');
+  const isLoginOnly = searchParams.get('mode') === 'login';
   const isFromOnboarding = fromParam === 'onboarding';
   const isFromPremiumPricing = fromParam === 'premium-pricing';
   const hasOAuthCallback = isOAuthCallbackUrl(window.location.href);
+  const oauthFromQuery = isFromOnboarding
+    ? { from: "onboarding" as const }
+    : isLoginOnly || isLogin
+      ? { from: "login" as const }
+      : { from: "signup" as const };
 
-  const finishAuthRedirect = useCallback(async (signedInSession?: Session | null) => {
+  useEffect(() => {
+    if (isLoginOnly) {
+      setIsLogin(true);
+    }
+  }, [isLoginOnly]);
+
+  const finishAuthRedirect = useCallback(async (
+    signedInSession?: Session | null,
+    options?: { emailPasswordLogin?: boolean },
+  ) => {
     if (redirectStartedRef.current || wasPostAuthRedirectRecentlyHandled()) {
       return;
     }
@@ -65,8 +80,8 @@ const AuthPage = () => {
         checkSubscription,
         navigate,
         fromOnboarding: isFromOnboarding,
-        authIntent: isLogin ? "login" : "signup",
-        emailPasswordLogin: isLogin,
+        authIntent: isLoginOnly || isLogin ? "login" : "signup",
+        emailPasswordLogin: options?.emailPasswordLogin ?? false,
         explicitPath:
           nextParam && nextParam.startsWith('/')
             ? nextParam
@@ -84,9 +99,14 @@ const AuthPage = () => {
     } finally {
       setIsRedirecting(false);
     }
-  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, isLogin, navigate, searchParams, t.authLoginFailed, user?.id]);
+  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, isLogin, isLoginOnly, navigate, searchParams, t.authLoginFailed, user?.id]);
 
   const handleBack = () => {
+    if (isLoginOnly) {
+      navigate('/', { replace: true });
+      return;
+    }
+
     if (isFromOnboarding) {
       navigate('/?onboardingStep=save-progress', { replace: true });
       return;
@@ -137,7 +157,7 @@ const AuthPage = () => {
     setError(null);
 
     try {
-      if (isLogin) {
+      if (isLogin || isLoginOnly) {
         const { error, session } = await signIn(email, password);
         if (error) {
           const resolved = resolveAuthErrorMessage(error, language, 'login');
@@ -150,9 +170,9 @@ const AuthPage = () => {
             return;
           }
 
-          await finishAuthRedirect(activeSession);
+          await finishAuthRedirect(activeSession, { emailPasswordLogin: true });
         }
-      } else {
+      } else if (!isLoginOnly) {
         const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;
 
         const { error } = await signUp(email, password, { silent: true });
@@ -173,13 +193,11 @@ const AuthPage = () => {
           }
         } else if (!(await waitForAuthSession(3000))) {
           setError(t.authSignInIncomplete);
-        } else if (shouldGoToPricing) {
-          if (isFromOnboarding) {
+        } else {
+          const activeSession = (await supabase.auth.getSession()).data.session;
+          if (shouldGoToPricing && isFromOnboarding) {
             persistOnboardingSignupFromStorage();
           }
-          redirectStartedRef.current = false;
-          await finishAuthRedirect(activeSession);
-        } else {
           redirectStartedRef.current = false;
           await finishAuthRedirect(activeSession);
         }
@@ -206,11 +224,12 @@ const AuthPage = () => {
     isAuthFlowOverlayVisible() ||
     getOAuthPending() === "onboarding";
 
-  const showAuthLoader =
-    loading ||
-    isRedirecting ||
-    oauthInFlight ||
-    (user && !authStuck && !wasPostAuthRedirectRecentlyHandled());
+  // Logged-in user: AuthFlowOverlay + router handle redirect — don't block on /auth loader.
+  if (user && (oauthInFlight || isRedirecting)) {
+    return null;
+  }
+
+  const showAuthLoader = loading && !user;
 
   if (showAuthLoader) {
     return (
@@ -291,8 +310,13 @@ const AuthPage = () => {
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold text-center mb-3 sm:mb-4">
-              {isLogin ? t.signIn : t.signUp}
+              {t.signIn}
             </h2>
+            {isLoginOnly && (
+              <p className="mb-4 text-center text-sm text-muted-foreground">
+                {t.authSignInOnlyHint}
+              </p>
+            )}
 
             {error && (
               <motion.div
@@ -336,7 +360,7 @@ const AuthPage = () => {
                 size="lg"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? t.loading : (isLogin ? t.signIn : t.signUp)}
+                {isSubmitting ? t.loading : t.signIn}
               </Button>
             </form>
 
@@ -357,9 +381,7 @@ const AuthPage = () => {
                   setIsAppleLoading(true);
                   setError(null);
                   const { error: appleError } = await signInWithApple({
-                    authQuery: isFromOnboarding
-                      ? { from: "onboarding" }
-                      : { from: isLogin ? "login" : "signup" },
+                    authQuery: oauthFromQuery,
                   });
                   if (appleError) {
                     const msg =
@@ -388,9 +410,7 @@ const AuthPage = () => {
                 setError(null);
                 redirectStartedRef.current = false;
                 const { error: googleError } = await signInWithGoogle({
-                  authQuery: isFromOnboarding
-                    ? { from: "onboarding" }
-                    : { from: isLogin ? "login" : "signup" },
+                  authQuery: oauthFromQuery,
                 });
                 if (googleError) {
                   setError(t.authLoginFailed);
@@ -421,13 +441,15 @@ const AuthPage = () => {
             </Button>
 
             <div className="mt-6 text-center space-y-2">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2 block w-full"
-              >
-                {isLogin ? t.noAccount : t.alreadyHaveAccount}
-              </button>
-              {isLogin && (
+              {!isLoginOnly && (
+                <button
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2 block w-full"
+                >
+                  {isLogin ? t.noAccount : t.alreadyHaveAccount}
+                </button>
+              )}
+              {(isLogin || isLoginOnly) && (
                 <button
                   onClick={() => navigate("/reset-password")}
                   className="text-sm text-primary hover:underline transition-colors"

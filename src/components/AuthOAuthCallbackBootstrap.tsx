@@ -39,7 +39,7 @@ export function AuthOAuthCallbackBootstrap() {
         checkSubscription,
         navigate,
         onExchangeSuccess: () => {
-          window.history.replaceState({}, "", "/auth");
+          window.history.replaceState({}, "", "/");
         },
       });
 

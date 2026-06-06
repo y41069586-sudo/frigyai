@@ -15,8 +15,10 @@ import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 interface DashboardWeightWidgetProps {
   onWeightUpdate?: (weight: number) => void;
   targetWeight?: number;
-  /** Im Dashboard-Karussell: keine Scroll-Animation, feste Höhe */
+  /** Im Dashboard-Karussell / Dialog: keine Scroll-Animation, feste Höhe */
   embedded?: boolean;
+  /** Dialog-Modus: Titel kommt vom Dialog-Header */
+  hideTitle?: boolean;
 }
 
 interface WeightEntry {
@@ -25,7 +27,7 @@ interface WeightEntry {
   recorded_at: string;
 }
 
-export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded = false }: DashboardWeightWidgetProps) => {
+export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded = false, hideTitle = false }: DashboardWeightWidgetProps) => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const { settings } = useTrackerSettings();
@@ -236,12 +238,14 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded =
       className={`dashboard-touch-scroll relative ${embedded ? '' : 'cursor-pointer'}`}
     >
       <Card className={`${embedded ? '' : 'min-h-[23rem]'} p-4 bg-gradient-to-br from-white via-[#F2FFF8]/90 to-white backdrop-blur-lg border border-[#75FBB2]/25 shadow-[0_18px_44px_-28px_rgba(117,251,178,0.55),0_0_32px_-12px_rgba(57,212,127,0.35)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
-        <div className="mb-4 flex items-center gap-2">
-          <div className="p-2 rounded-full bg-gradient-to-br from-[#D4FFE8] to-[#75FBB2]/40 shadow-[0_0_18px_rgba(117,251,178,0.45)]">
-            <Scale className="h-4 w-4 text-[#39D47F]" />
+        {!hideTitle && (
+          <div className="mb-4 flex items-center gap-2">
+            <div className="p-2 rounded-full bg-gradient-to-br from-[#D4FFE8] to-[#75FBB2]/40 shadow-[0_0_18px_rgba(117,251,178,0.45)]">
+              <Scale className="h-4 w-4 text-[#39D47F]" />
+            </div>
+            <h3 className="font-semibold text-xs text-[#39D47F]">{copy.title}</h3>
           </div>
-          <h3 className="font-semibold text-xs text-[#39D47F]">{copy.title}</h3>
-        </div>
+        )}
 
         {/* Top Section: Current Weight + Goal + Change */}
         <div className="mb-4 flex items-start justify-between">

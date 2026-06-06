@@ -13,13 +13,14 @@ import {
   resolveAuthErrorMessage,
 } from '@/lib/authErrors';
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
-import { isSubscriptionActive, mergeSubscriptionStatus } from '@/lib/subscription';
+import { isSubscriptionActive, mergeSubscriptionStatus, isPromoPremiumProductId } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { signInWithOAuthProvider } from '@/lib/authOAuth';
 import { linkAppleIdentity, signInWithApple as nativeAppleSignIn } from '@/lib/appleSignIn';
 import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
 import { markEverPremium } from '@/lib/trialEligibility';
+import { applyPendingTrialReminderNative, scheduleTrialEndingReminder } from '@/lib/notifications';
 import { markKnownAccountEmail } from '@/lib/knownAccountEmail';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
@@ -185,6 +186,9 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     ) {
       markEverPremium();
     }
+    if (data?.is_trial && isSubscriptionActive(data)) {
+      void scheduleTrialEndingReminder();
+    }
     setSubscriptionStatus(data);
     setCachedSubscription(data);
   };
@@ -202,23 +206,32 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    // Step 1: Load from DB cache instantly (~50ms)
-    const dbCache = await loadFromDbCache(userId);
+    // Step 1: Load from DB cache instantly (~50ms) — after referral redeem
+    let dbCache = await loadFromDbCache(userId);
     if (dbCache) {
       updateSubscriptionStatus(dbCache);
     }
-    
-    // Step 2: Sync store billing + refresh subscription status
-    void syncStoreSubscriptionIfNeeded(accessToken).finally(() => {
-      supabase.functions.invoke('check-subscription', {
+
+    const hasPromoPremium =
+      Boolean(dbCache?.subscribed) && isPromoPremiumProductId(dbCache?.product_id);
+
+    // Step 2: Store sync only when no active referral/influencer promo (RC sync would wipe promo)
+    const refreshSubscription = async () => {
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${accessToken}` },
-      }).then(async ({ data, error }) => {
-        if (error || !data) return;
-        const merged = await resolveSubscriptionStatus(data as SubscriptionStatus, userId);
-        updateSubscriptionStatus(merged);
-      }).catch((err) => {
-        console.warn('[Auth] Background subscription refresh failed:', err);
       });
+      if (error || !data) return;
+      const merged = await resolveSubscriptionStatus(data as SubscriptionStatus, userId);
+      updateSubscriptionStatus(merged);
+    };
+
+    if (hasPromoPremium) {
+      void refreshSubscription();
+      return;
+    }
+
+    void syncStoreSubscriptionIfNeeded(accessToken).finally(() => {
+      void refreshSubscription();
     });
   };
 
@@ -232,7 +245,13 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     }
     if (!accessToken) return subscriptionRef.current;
 
-    await syncStoreSubscriptionIfNeeded(accessToken);
+    const dbCacheBefore = userId ? await loadFromDbCache(userId) : null;
+    const hasPromoPremium =
+      Boolean(dbCacheBefore?.subscribed) && isPromoPremiumProductId(dbCacheBefore?.product_id);
+
+    if (!hasPromoPremium) {
+      await syncStoreSubscriptionIfNeeded(accessToken);
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription', {

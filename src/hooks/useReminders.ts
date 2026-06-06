@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { getStoredLanguage } from "@/contexts/LanguageContext";
 import {
   buildWaterSchedule,
+  checkWebTrialEndingReminder,
   isNativeApp,
   normalizeReminderConfig,
   reminderNotificationCopy,
@@ -65,6 +66,8 @@ export const useReminders = () => {
 
     const tick = () => {
       if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+      checkWebTrialEndingReminder();
 
       const saved = localStorage.getItem(REMINDER_CONFIG_KEY);
       if (!saved) return;

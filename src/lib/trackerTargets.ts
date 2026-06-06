@@ -1,3 +1,6 @@
+import { calculateMacros } from "@/components/onboarding/utils";
+import type { UserData } from "@/components/onboarding/types";
+
 export type DailyMacroTargets = {
   dailyCalories: number;
   dailyProtein: number;
@@ -5,22 +8,73 @@ export type DailyMacroTargets = {
   dailyFat: number;
 };
 
-/** Synchronous read — avoids 2000 kcal fallback flash before DB settings load. */
+function normalizeMacroTargets(raw: Partial<DailyMacroTargets> | null | undefined): DailyMacroTargets | null {
+  if (!raw) return null;
+  const dailyCalories = Number(raw.dailyCalories) || 0;
+  if (dailyCalories <= 0) return null;
+  return {
+    dailyCalories,
+    dailyProtein: Number(raw.dailyProtein) || 150,
+    dailyCarbs: Number(raw.dailyCarbs) || 200,
+    dailyFat: Number(raw.dailyFat) || 65,
+  };
+}
+
+/** Synchronous read from userProfile localStorage. */
 export function readStoredTrackerTargets(): DailyMacroTargets | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem("userProfile");
     if (!raw) return null;
-    const p = JSON.parse(raw) as Partial<DailyMacroTargets>;
-    const dailyCalories = Number(p.dailyCalories) || 0;
-    if (dailyCalories <= 0) return null;
-    return {
-      dailyCalories,
-      dailyProtein: Number(p.dailyProtein) || 150,
-      dailyCarbs: Number(p.dailyCarbs) || 200,
-      dailyFat: Number(p.dailyFat) || 65,
-    };
+    return normalizeMacroTargets(JSON.parse(raw) as Partial<DailyMacroTargets>);
   } catch {
     return null;
   }
+}
+
+/** Macros from in-progress or completed onboarding (before userProfile sync). */
+export function readOnboardingMacroTargets(): DailyMacroTargets | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("onboardingUserData");
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Partial<UserData>;
+    const fromFields = normalizeMacroTargets(data);
+    if (fromFields) return fromFields;
+    if (data.weight && data.height && data.age) {
+      return normalizeMacroTargets(calculateMacros(data as UserData));
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Dashboard targets: onboarding / local profile win over stale DB cache on first paint.
+ */
+export function resolveDashboardMacroTargets(
+  remote: Partial<DailyMacroTargets> | null | undefined,
+): DailyMacroTargets | null {
+  const local = readStoredTrackerTargets() ?? readOnboardingMacroTargets();
+  const fromRemote = normalizeMacroTargets(remote);
+
+  if (local) return local;
+  return fromRemote;
+}
+
+/** Prefer local macro fields when merging DB + localStorage tracker settings. */
+export function mergeMacroTargetsFromLocal<T extends Partial<DailyMacroTargets>>(
+  base: T,
+  local: Partial<DailyMacroTargets> | null | undefined,
+): T {
+  const normalized = normalizeMacroTargets(local);
+  if (!normalized) return base;
+  return {
+    ...base,
+    dailyCalories: normalized.dailyCalories,
+    dailyProtein: normalized.dailyProtein,
+    dailyCarbs: normalized.dailyCarbs,
+    dailyFat: normalized.dailyFat,
+  };
 }

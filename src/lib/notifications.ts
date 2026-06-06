@@ -25,6 +25,8 @@ const WATER_ID_BASE = 100;
 const MEALS_ID_BASE = 200;
 const WEIGHT_ID = 300;
 const TEST_ID = 9999;
+const TRIAL_REMINDER_ID = 4100;
+const TRIAL_REMINDER_AT_KEY = "frigy_trial_reminder_at";
 
 const MIN_GAP_MS = 90 * 60 * 1000;
 
@@ -150,6 +152,7 @@ export async function requestNotificationPermissionState(
         }
         try {
           await syncRemindersFromStorage();
+          await applyPendingTrialReminderNative();
           if (options.sendTest !== false) {
             setTimeout(() => void sendTestNotification(), 4000);
           }
@@ -261,7 +264,9 @@ async function cancelAllFrigyNotifications(
 ): Promise<void> {
   try {
     const pending = await LocalNotifications.getPending();
-    const ids = (pending.notifications ?? []).map((n) => ({ id: n.id }));
+    const ids = (pending.notifications ?? [])
+      .filter((n) => n.id !== TRIAL_REMINDER_ID)
+      .map((n) => ({ id: n.id }));
     if (ids.length > 0) {
       await LocalNotifications.cancel({ notifications: ids });
     }
@@ -410,4 +415,123 @@ export async function sendTestNotification(): Promise<void> {
     body: "Benachrichtigungen sind aktiv – Erinnerungen kommen verteilt über den Tag.",
     icon: "/pwa-192x192.png",
   });
+}
+
+function trialReminderCopy(language: Language) {
+  if (language === "en") {
+    return {
+      title: "⏰ Your trial ends soon",
+      body: "Your 3-day free trial ends tomorrow. Cancel in subscription settings if you don't want to continue.",
+    };
+  }
+  if (language === "fr") {
+    return {
+      title: "⏰ Ton essai se termine bientôt",
+      body: "Ton essai gratuit de 3 jours se termine demain. Annule dans les réglages d'abonnement si tu ne veux pas continuer.",
+    };
+  }
+  return {
+    title: "⏰ Testphase endet bald",
+    body: "Deine 3-tägige Testphase endet morgen. Kündige in den Abo-Einstellungen, wenn du nicht weitermachen möchtest.",
+  };
+}
+
+function computeTrialReminderAt(from: Date = new Date()): Date {
+  const at = new Date(from);
+  at.setDate(at.getDate() + 2);
+  at.setHours(10, 0, 0, 0);
+  return at;
+}
+
+/** Native: schedule stored trial reminder after notification permission is granted. */
+export async function applyPendingTrialReminderNative(): Promise<void> {
+  if (!isNativeApp()) return;
+  if ((await getNotificationPermission()) !== "granted") return;
+
+  const raw = localStorage.getItem(TRIAL_REMINDER_AT_KEY);
+  if (!raw) return;
+
+  let at: Date;
+  try {
+    at = new Date(raw);
+    if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) return;
+  } catch {
+    return;
+  }
+
+  const copy = trialReminderCopy(getStoredLanguage());
+  const { LocalNotifications } = await import("@capacitor/local-notifications");
+  await ensureAndroidReminderChannel(LocalNotifications);
+  await LocalNotifications.cancel({ notifications: [{ id: TRIAL_REMINDER_ID }] });
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        id: TRIAL_REMINDER_ID,
+        title: copy.title,
+        body: copy.body,
+        schedule: { at },
+        sound: "default",
+        channelId: "frigy_reminders",
+      },
+    ],
+  });
+}
+
+/** Paywall promise: reminder on day 2 of the 3-day monthly trial. */
+export async function scheduleTrialEndingReminder(): Promise<void> {
+  try {
+    let at: Date;
+    const existing = localStorage.getItem(TRIAL_REMINDER_AT_KEY);
+    if (existing) {
+      at = new Date(existing);
+      if (Number.isNaN(at.getTime())) {
+        at = computeTrialReminderAt();
+        localStorage.setItem(TRIAL_REMINDER_AT_KEY, at.toISOString());
+      }
+    } else {
+      at = computeTrialReminderAt();
+      if (at.getTime() <= Date.now()) return;
+      localStorage.setItem(TRIAL_REMINDER_AT_KEY, at.toISOString());
+    }
+
+    if (at.getTime() <= Date.now()) return;
+
+    if (isNativeApp()) {
+      await applyPendingTrialReminderNative();
+    }
+  } catch (error) {
+    console.warn("[notifications] Trial reminder schedule failed:", error);
+  }
+}
+
+/** Web/PWA: fire trial reminder when stored time is reached (app open). */
+export function checkWebTrialEndingReminder(): void {
+  if (isNativeApp()) return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const raw = localStorage.getItem(TRIAL_REMINDER_AT_KEY);
+  if (!raw) return;
+
+  let at: Date;
+  try {
+    at = new Date(raw);
+    if (Number.isNaN(at.getTime())) return;
+  } catch {
+    return;
+  }
+
+  if (Date.now() < at.getTime()) return;
+
+  const copy = trialReminderCopy(getStoredLanguage());
+  try {
+    new Notification(copy.title, {
+      body: copy.body,
+      icon: "/pwa-192x192.png",
+      tag: "frigy-trial-reminder",
+    });
+  } catch {
+    /* ignore */
+  } finally {
+    localStorage.removeItem(TRIAL_REMINDER_AT_KEY);
+  }
 }

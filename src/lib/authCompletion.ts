@@ -198,6 +198,18 @@ export const POST_AUTH_MANUAL_NAV_PATHS = new Set([
 /** Overlay until pipeline done AND navigation executed (or still pending). */
 export function isAuthFlowOverlayVisible(): boolean {
   const { result, navigation } = snapshot;
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  const onManualNav = POST_AUTH_MANUAL_NAV_PATHS.has(path);
+
+  // User opened Wochenplan etc. while subscription routing still runs — don't block the page.
+  if (
+    onManualNav &&
+    result.status === "pending" &&
+    result.phase !== "oauth_exchange"
+  ) {
+    return false;
+  }
+
   if (result.status === "pending") return true;
   if (navigation.executing) return true;
   if (isAuthNavigationPending()) return true;
@@ -207,7 +219,8 @@ export function isAuthFlowOverlayVisible(): boolean {
 /** User navigated manually — drop stale post-auth redirect state (keeps in-flight OAuth pending). */
 export function dismissStalledAuthNavigation(): void {
   const { result, navigation } = getAuthFlowSnapshot();
-  if (result.status === "pending" || navigation.executing) return;
+  if (result.status === "pending" && result.phase === "oauth_exchange") return;
+  if (navigation.executing) return;
   resetAuthFlow();
 }
 
@@ -280,6 +293,7 @@ async function resolveSuccessRoute(options: {
   userId?: string | null;
   authIntent?: PostAuthIntent;
   emailPasswordLogin?: boolean;
+  sessionWaitMs?: number;
 }): Promise<AuthResult> {
   setResult({ status: "pending", phase: "premium" });
 
@@ -288,7 +302,7 @@ async function resolveSuccessRoute(options: {
     checkSubscription: options.checkSubscription,
     fromOnboarding: options.fromOnboarding,
     explicitPath: options.explicitPath,
-    sessionWaitMs: 6000,
+    sessionWaitMs: options.sessionWaitMs ?? 6000,
     authIntent: options.authIntent,
     emailPasswordLogin: options.emailPasswordLogin,
   });
@@ -371,6 +385,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
       explicitPath,
       userId: sessionAfterOAuth.userId,
       authIntent,
+      sessionWaitMs: authIntent === "login" ? 2500 : 6000,
     });
   }
 
@@ -391,6 +406,10 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     userId: sessionResult.userId,
     authIntent: authIntentOpt ?? (fromOnboardingOpt ? "signup" : "login"),
     emailPasswordLogin,
+    sessionWaitMs:
+      authIntentOpt === "login" || (!fromOnboardingOpt && authIntentOpt !== "signup")
+        ? 2500
+        : 6000,
   });
 }
 

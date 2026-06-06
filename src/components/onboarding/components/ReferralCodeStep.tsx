@@ -33,7 +33,7 @@ type StepPhase = "input" | "validating" | "check" | "success";
 
 export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const { language } = useLanguage();
-  const { session } = useAuth();
+  const { session, checkSubscription } = useAuth();
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [phase, setPhase] = useState<StepPhase>("input");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -149,13 +149,14 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
           setFieldError(t.invalid);
           return;
         }
+        void checkSubscription();
       } else {
         validatingRef.current = false;
       }
 
       runSuccessFlow(days, lifetime);
     },
-    [session?.access_token, runSuccessFlow, t.invalid],
+    [session?.access_token, runSuccessFlow, t.invalid, checkSubscription],
   );
 
   useEffect(() => {

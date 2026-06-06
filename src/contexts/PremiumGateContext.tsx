@@ -63,9 +63,20 @@ export function PremiumGateProvider({ children }: { children: ReactNode }) {
   const ensurePremium = useCallback(async (): Promise<boolean> => {
     if (isPremium) return true;
     if (isSubscriptionActive(subscriptionStatus)) return true;
-    const status = await checkSubscription();
-    if (isSubscriptionActive(status)) return true;
+
+    // Show paywall immediately — don't wait for slow network checks (multiple taps).
     setOpen(true);
+
+    try {
+      const status = await checkSubscription();
+      if (isSubscriptionActive(status)) {
+        setOpen(false);
+        return true;
+      }
+    } catch {
+      /* keep dialog open */
+    }
+
     return false;
   }, [isPremium, subscriptionStatus, checkSubscription]);
 

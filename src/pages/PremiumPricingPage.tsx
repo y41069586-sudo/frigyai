@@ -14,6 +14,7 @@ import {
   markEverPremium,
   resolveTrialEligibleFromLocal,
 } from "@/lib/trialEligibility";
+import { scheduleTrialEndingReminder } from "@/lib/notifications";
 
 const PremiumPricingPage = () => {
   const { language, t } = useLanguage();
@@ -59,6 +60,9 @@ const PremiumPricingPage = () => {
         );
         if (active) {
           markEverPremium();
+          if (plan === "monthly" && trialEligible) {
+            void scheduleTrialEndingReminder();
+          }
           localStorage.setItem("onboardingComplete", "true");
           navigate("/", { replace: true });
         }

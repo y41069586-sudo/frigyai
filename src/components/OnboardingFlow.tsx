@@ -77,6 +77,7 @@ import { startPremiumCheckout } from "@/lib/purchaseCheckout";
 import { restoreStorePurchases } from "@/lib/storeBilling";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
+import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { supabase } from "@/integrations/supabase/client";
 import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
@@ -250,6 +251,7 @@ const SplashLanguageSwitcher = () => {
 
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FFFFFF] text-neutral-950">
@@ -322,6 +324,13 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               <span className="relative">{t.onboardingGetStarted}</span>
               <ArrowRight className="relative h-5 w-5 stroke-[2.6]" />
             </motion.button>
+            <button
+              type="button"
+              onClick={() => navigate("/auth?mode=login")}
+              className="mx-auto mt-3 block text-[13px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
+            >
+              {t.onboardingAlreadyHaveAccount}
+            </button>
           </div>
         </motion.div>
       </div>
@@ -704,6 +713,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         );
         if (active) {
           markEverPremium();
+          if (plan === "monthly" && resolveTrialEligibleFromLocal()) {
+            void scheduleTrialEndingReminder();
+          }
           finishOnboardingExit();
         }
       }

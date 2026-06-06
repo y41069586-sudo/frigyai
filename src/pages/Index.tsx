@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Settings, Bot, Crown } from "lucide-react";
+import { Settings, Bot, Crown, Scale } from "lucide-react";
 import { PremiumSuccessDialog } from "@/components/PremiumSuccessDialog";
 import { useLocation, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { getStoredLanguage, useLanguage } from "@/contexts/LanguageContext";
-import { readStoredTrackerTargets } from "@/lib/trackerTargets";
+import { resolveDashboardMacroTargets } from "@/lib/trackerTargets";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
@@ -15,6 +15,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { HealthDashboard } from "@/components/food-ai";
+import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
 import { MacroTracker } from "@/components/MacroTracker";
 import type { UserGoal } from "@/lib/food-ai/types";
 import { Button } from "@/components/ui/button";
@@ -134,6 +135,7 @@ const Index = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [showPostPayCoach, setShowPostPayCoach] = useState(false);
+  const [showWeightDialog, setShowWeightDialog] = useState(false);
   const [chatBootstrapMessage, setChatBootstrapMessage] = useState<string | null>(null);
   const landedFromSubscriptionSuccessRef = useRef(false);
 
@@ -644,14 +646,15 @@ const Index = () => {
     }
   }, [loading, showOnboarding, user, onboardingResumeStep, dbOnboardingComplete]);
 
-  const storedTargets = readStoredTrackerTargets();
-  const resolvedTargets = trackerSettings ?? storedTargets;
-  const targetCalories = resolvedTargets?.dailyCalories ?? 0;
-  const targetProtein = resolvedTargets?.dailyProtein ?? 0;
-  const targetCarbs = resolvedTargets?.dailyCarbs ?? 0;
-  const targetFat = resolvedTargets?.dailyFat ?? 0;
-  const targetsReady =
-    !trackerLoading && (resolvedTargets?.dailyCalories ?? 0) > 0;
+  const macroTargets = useMemo(
+    () => resolveDashboardMacroTargets(trackerSettings),
+    [trackerSettings],
+  );
+  const targetCalories = macroTargets?.dailyCalories ?? 0;
+  const targetProtein = macroTargets?.dailyProtein ?? 0;
+  const targetCarbs = macroTargets?.dailyCarbs ?? 0;
+  const targetFat = macroTargets?.dailyFat ?? 0;
+  const targetsReady = targetCalories > 0;
   
   
   // Wait for auth before showing anything
@@ -725,6 +728,17 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-2 flex-shrink-0">
+              <motion.button
+                type="button"
+                onClick={() => setShowWeightDialog(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]"
+                whileTap={{ scale: 0.95 }}
+                aria-label={t.weightProgress}
+                title={t.weightProgress}
+              >
+                <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
+              </motion.button>
+
               {currentStreak > 0 && (
                 <motion.button
                   type="button"
@@ -843,6 +857,21 @@ const Index = () => {
           void checkSubscription();
         }}
       />
+
+      <Dialog open={showWeightDialog} onOpenChange={setShowWeightDialog}>
+        <DialogContent stackLevel="high" className="max-h-[88dvh] max-w-sm gap-0 overflow-y-auto p-0 sm:rounded-2xl">
+          <DialogHeader className="px-5 pb-2 pt-5">
+            <DialogTitle>{t.weightProgress}</DialogTitle>
+          </DialogHeader>
+          <div className="px-3 pb-5" onClick={(e) => e.stopPropagation()}>
+            <DashboardWeightWidget
+              embedded
+              hideTitle
+              targetWeight={trackerSettings?.targetWeight}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

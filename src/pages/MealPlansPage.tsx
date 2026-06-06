@@ -414,6 +414,10 @@ const MealPlansPage = () => {
   };
 
   useEffect(() => {
+    dismissStalledAuthNavigation();
+  }, []);
+
+  useEffect(() => {
     if (authed) {
       dismissStalledAuthNavigation();
     }
@@ -450,7 +454,9 @@ const MealPlansPage = () => {
     );
   }
 
-  if (loading && !authed) {
+  const canShowPlanWhileAuthLoading = authed || mealPlan.length > 0 || shoppingList.length > 0;
+
+  if (loading && !canShowPlanWhileAuthLoading) {
     return (
       <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
         <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">

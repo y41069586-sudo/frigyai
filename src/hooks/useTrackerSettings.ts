@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { mergeMacroTargetsFromLocal, readOnboardingMacroTargets, readStoredTrackerTargets } from '@/lib/trackerTargets';
 
 export interface TrackerSettings {
   age: number;
@@ -31,6 +32,13 @@ let trackerMemoryCache: TrackerCacheEntry | null = null;
 let trackerLoadInflight: Promise<void> | null = null;
 let trackerLoadInflightUserId: string | null = null;
 
+/** Call after onboarding saves userProfile so dashboard does not flash stale DB macros. */
+export function invalidateTrackerSettingsCache(): void {
+  trackerMemoryCache = null;
+  trackerLoadInflight = null;
+  trackerLoadInflightUserId = null;
+}
+
 function readLocalTrackerSettings(): TrackerSettings | null {
   try {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -46,19 +54,19 @@ function getInitialTrackerState(userId: string | undefined): {
   isConfigured: boolean;
   loading: boolean;
 } {
-  if (userId && trackerMemoryCache?.userId === userId) {
+  const local = readLocalTrackerSettings();
+  if (local?.dailyCalories > 0) {
     return {
-      settings: trackerMemoryCache.settings,
-      isConfigured: trackerMemoryCache.isConfigured,
-      loading: false,
+      settings: local,
+      isConfigured: true,
+      loading: Boolean(userId),
     };
   }
 
-  const local = readLocalTrackerSettings();
-  if (local) {
+  if (userId && trackerMemoryCache?.userId === userId && trackerMemoryCache.settings) {
     return {
-      settings: local,
-      isConfigured: local.dailyCalories > 0,
+      settings: trackerMemoryCache.settings,
+      isConfigured: trackerMemoryCache.isConfigured,
       loading: false,
     };
   }
@@ -180,11 +188,16 @@ export const useTrackerSettings = () => {
           let merged = dbSettings as TrackerSettings & Record<string, unknown>;
           try {
             const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (stored) {
-              const parsed = JSON.parse(stored);
+            const parsed = stored ? JSON.parse(stored) : null;
+            const localMacros =
+              readStoredTrackerTargets() ??
+              readOnboardingMacroTargets() ??
+              (parsed ? mergeMacroTargetsFromLocal({}, parsed) : null);
+
+            if (parsed) {
               merged = {
-                ...parsed,
                 ...dbSettings,
+                ...parsed,
                 dietaryPreferences: dbSettings.dietaryPreferences?.length
                   ? dbSettings.dietaryPreferences
                   : parsed.dietaryPreferences,
@@ -195,6 +208,9 @@ export const useTrackerSettings = () => {
                 allergiesOther: dbSettings.allergiesOther || parsed.allergiesOther || '',
               };
             }
+
+            merged = mergeMacroTargetsFromLocal(merged, localMacros);
+
             const onboardingRaw = localStorage.getItem('onboardingUserData');
             if (onboardingRaw) {
               const onboarding = JSON.parse(onboardingRaw);
@@ -214,11 +230,20 @@ export const useTrackerSettings = () => {
           } catch {
             /* keep dbSettings only */
           }
+
+          const shouldSyncMacrosToDb =
+            user &&
+            merged.dailyCalories > 0 &&
+            merged.dailyCalories !== dbSettings.dailyCalories;
+
           setSettings(merged);
           setIsConfigured(merged.dailyCalories > 0);
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
           if (user) {
             writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
+          }
+          if (shouldSyncMacrosToDb) {
+            void saveToDatabase(merged);
           }
           return;
         }

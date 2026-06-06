@@ -151,6 +151,8 @@ export interface ExtendedTranslations {
   onboardingWelcomeHeadline2: string;
   onboardingWelcomeSubline: string;
   onboardingGetStarted: string;
+  onboardingAlreadyHaveAccount: string;
+  authSignInOnlyHint: string;
   onboardingFirstWeeklyPlanTitle: string;
   onboardingFirstWeeklyPlanDesc: string;
   ariaBack: string;
@@ -644,6 +646,8 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingWelcomeHeadline2: "Leb leichter.",
     onboardingWelcomeSubline: "Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.",
     onboardingGetStarted: "Loslegen",
+    onboardingAlreadyHaveAccount: "Bereits ein Konto? Anmelden",
+    authSignInOnlyHint: "Melde dich mit deinem bestehenden Konto an.",
     onboardingFirstWeeklyPlanTitle: "Erstelle deinen ersten Frigy-Wochenplan!",
     onboardingFirstWeeklyPlanDesc:
       "Frigy plant deine Woche passend zu deinen Makrozielen — inklusive Einkaufsliste.",
@@ -1158,6 +1162,8 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingWelcomeHeadline2: "Live lighter.",
     onboardingWelcomeSubline: "Generate weekly plans, scan your fridge and automatically get your shopping list.",
     onboardingGetStarted: "Get started",
+    onboardingAlreadyHaveAccount: "Already have an account? Sign in",
+    authSignInOnlyHint: "Sign in with your existing account.",
     onboardingFirstWeeklyPlanTitle: "Create your first Frigy weekly plan!",
     onboardingFirstWeeklyPlanDesc: "Frigy plans your week to match your macro goals — including a shopping list.",
     onboardingCommunityStepTitle: "Cook with others",
@@ -1674,6 +1680,8 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     onboardingWelcomeHeadline2: "Vis plus léger.",
     onboardingWelcomeSubline: "Génère des plans hebdo, scanne ton frigo et obtiens automatiquement ta liste de courses.",
     onboardingGetStarted: "Commencer",
+    onboardingAlreadyHaveAccount: "Déjà un compte ? Se connecter",
+    authSignInOnlyHint: "Connecte-toi avec ton compte existant.",
     onboardingFirstWeeklyPlanTitle: "Crée ton premier plan hebdo Frigy !",
     onboardingFirstWeeklyPlanDesc: "Frigy planifie ta semaine selon tes macros — avec liste de courses.",
     onboardingCommunityStepTitle: "Cuisiner ensemble",
