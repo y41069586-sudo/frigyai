@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getAuthFlowSnapshot,
+  dismissStalledAuthNavigation,
   isAuthFlowOverlayVisible,
   NAV_EXECUTION_TIMEOUT_MS,
+  POST_AUTH_MANUAL_NAV_PATHS,
   recoverFromStuckAuthNavigation,
   resetAuthFlow,
   subscribeAuthFlow,
@@ -122,9 +124,16 @@ function overlayLabel(snap: AuthFlowSnapshot): string {
 
 /** UI reads snapshot only — overlay until navigation.executed. */
 export function AuthFlowOverlay() {
+  const location = useLocation();
   const [snap, setSnap] = useState<AuthFlowSnapshot>(getAuthFlowSnapshot());
 
   useEffect(() => subscribeAuthFlow(() => setSnap(getAuthFlowSnapshot())), []);
+
+  useEffect(() => {
+    if (POST_AUTH_MANUAL_NAV_PATHS.has(location.pathname)) {
+      dismissStalledAuthNavigation();
+    }
+  }, [location.pathname]);
 
   if (!isAuthFlowOverlayVisible()) {
     return null;

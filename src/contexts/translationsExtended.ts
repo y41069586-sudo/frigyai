@@ -222,6 +222,9 @@ export interface ExtendedTranslations {
   premiumActivatingDesc: string;
   premiumNotActiveYet: string;
   premiumNotActiveDesc: string;
+  settingsPremiumInactiveLabel: string;
+  settingsPremiumInactiveDesc: string;
+  settingsPremiumActivate: string;
   defaultMealName: string;
 
   onboardingStepCounter: string;
@@ -724,6 +727,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     premiumNotActiveYet: "Premium noch nicht aktiv",
     premiumNotActiveDesc:
       "Die Zahlung wurde empfangen, Premium ist aber noch nicht freigeschaltet. Bitte App neu öffnen oder in ein paar Minuten erneut prüfen.",
+    settingsPremiumInactiveLabel: "Premium nicht aktiv",
+    settingsPremiumInactiveDesc: "Schalte Wochenpläne, Kamera-Scan und alle Premium-Funktionen frei.",
+    settingsPremiumActivate: "Premium aktivieren",
     defaultMealName: "Mahlzeit",
 
     onboardingStepCounter: "Schritt {current} von {total}",
@@ -1239,6 +1245,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     premiumNotActiveYet: "Premium not active yet",
     premiumNotActiveDesc:
       "Payment received, but Premium is not active yet. Reopen the app or try again in a few minutes.",
+    settingsPremiumInactiveLabel: "Premium not active",
+    settingsPremiumInactiveDesc: "Unlock weekly plans, camera scan, and all Premium features.",
+    settingsPremiumActivate: "Activate Premium",
     defaultMealName: "Meal",
 
     onboardingStepCounter: "Step {current} of {total}",
@@ -1757,6 +1766,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     premiumNotActiveYet: "Premium pas encore actif",
     premiumNotActiveDesc:
       "Paiement reçu, mais Premium n'est pas encore activé. Rouvre l'app ou réessaie dans quelques minutes.",
+    settingsPremiumInactiveLabel: "Premium inactif",
+    settingsPremiumInactiveDesc: "Débloque les plans hebdo, le scan caméra et toutes les fonctions Premium.",
+    settingsPremiumActivate: "Activer Premium",
     defaultMealName: "Repas",
 
     onboardingStepCounter: "Étape {current} sur {total}",

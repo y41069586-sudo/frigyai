@@ -278,21 +278,32 @@ const ProfilePage = () => {
                 )}
               >
                 <Crown className="h-3 w-3" />
-                {premiumActive ? t.premiumActive : t.premiumNotActiveYet}
+                {premiumActive ? t.premiumActive : t.settingsPremiumInactiveLabel}
               </span>
+              {!premiumActive && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(buildPremiumPricingRoute({ trialEligible: resolveTrialEligibleFromLocal() }))
+                  }
+                  className="mt-2 block text-[13px] font-semibold text-primary hover:underline"
+                >
+                  {t.settingsPremiumActivate}
+                </button>
+              )}
             </div>
           </div>
 
           <SettingsGroup title={t.settingsSubscriptionGroup}>
             <SettingsRow
               icon={Crown}
-              label={premiumActive ? t.premiumActive : t.premiumNotActiveYet}
+              label={premiumActive ? t.premiumActive : t.settingsPremiumInactiveLabel}
               description={
                 premiumActive && subscriptionStatus?.subscription_end
                   ? `${t.renewsOn}: ${new Date(subscriptionStatus.subscription_end).toLocaleDateString(dateLocale)}`
                   : premiumActive
                     ? undefined
-                    : t.premiumNotActiveDesc
+                    : t.settingsPremiumInactiveDesc
               }
               onClick={
                 premiumActive
@@ -300,18 +311,24 @@ const ProfilePage = () => {
                   : () => navigate(buildPremiumPricingRoute({ trialEligible: resolveTrialEligibleFromLocal() }))
               }
               trailing={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleRefreshSubscription();
-                  }}
-                  disabled={refreshing}
-                >
-                  <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-                </Button>
+                premiumActive ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleRefreshSubscription();
+                    }}
+                    disabled={refreshing}
+                  >
+                    <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+                  </Button>
+                ) : (
+                  <span className="shrink-0 text-xs font-semibold text-primary">
+                    {t.settingsPremiumActivate}
+                  </span>
+                )
               }
             />
             {canManageSubscription && (

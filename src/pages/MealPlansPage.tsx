@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Loader2, Calendar, Refrigerator } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Calendar, Refrigerator } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
@@ -122,7 +122,7 @@ const readJsonArray = (key: string): unknown[] => {
 
 const MealPlansPage = () => {
   const isMobile = useIsMobile();
-  const { user, session, loading, checkSubscription } = useAuth();
+  const { user, session, checkSubscription } = useAuth();
   const authed = Boolean(user ?? session?.user);
   const { t, language } = useLanguage();
   const navigate = useNavigate();
@@ -423,12 +423,6 @@ const MealPlansPage = () => {
     }
   }, [authed]);
 
-  useEffect(() => {
-    if (!loading && !authed) {
-      navigate('/auth', { replace: true });
-    }
-  }, [loading, authed, navigate]);
-
   // Show loading screen while activating subscription
   if (isActivatingSubscription) {
     return (
@@ -452,23 +446,6 @@ const MealPlansPage = () => {
         </motion.div>
       </div>
     );
-  }
-
-  const canShowPlanWhileAuthLoading = authed || mealPlan.length > 0 || shoppingList.length > 0;
-
-  if (loading && !canShowPlanWhileAuthLoading) {
-    return (
-      <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
-        <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </motion.div>
-        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
-      </motion.div>
-    );
-  }
-
-  if (!loading && !authed) {
-    return null;
   }
 
   return (

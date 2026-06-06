@@ -201,12 +201,8 @@ export function isAuthFlowOverlayVisible(): boolean {
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   const onManualNav = POST_AUTH_MANUAL_NAV_PATHS.has(path);
 
-  // User opened Wochenplan etc. while subscription routing still runs — don't block the page.
-  if (
-    onManualNav &&
-    result.status === "pending" &&
-    result.phase !== "oauth_exchange"
-  ) {
+  // User opened Wochenplan, Einstellungen, etc. — never block with the global auth loader.
+  if (onManualNav) {
     return false;
   }
 
@@ -218,8 +214,16 @@ export function isAuthFlowOverlayVisible(): boolean {
 
 /** User navigated manually — drop stale post-auth redirect state (keeps in-flight OAuth pending). */
 export function dismissStalledAuthNavigation(): void {
-  const { result, navigation } = getAuthFlowSnapshot();
+  const { result } = getAuthFlowSnapshot();
   if (result.status === "pending" && result.phase === "oauth_exchange") return;
+
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {
+    resetAuthFlow();
+    return;
+  }
+
+  const { navigation } = getAuthFlowSnapshot();
   if (navigation.executing) return;
   resetAuthFlow();
 }
