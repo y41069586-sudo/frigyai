@@ -4,6 +4,21 @@ import { consumeReferralSkipPaywall } from "@/lib/referralCode";
 import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 import { isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
+const AUTH_SUBSCRIPTION_CHECK_MS = 4500;
+
+async function checkSubscriptionForAuthRouting(
+  checkSubscription: () => Promise<SubscriptionStatusLike | null>,
+): Promise<SubscriptionStatusLike | null> {
+  try {
+    return await Promise.race([
+      checkSubscription(),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), AUTH_SUBSCRIPTION_CHECK_MS)),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 async function loadSubscriptionFromDbCache(
   userId: string,
 ): Promise<SubscriptionStatusLike | null> {
@@ -76,7 +91,7 @@ export async function resolvePremiumAccessAfterSignIn(options: {
     if (delayMs > 0) {
       await new Promise((resolve) => window.setTimeout(resolve, delayMs));
     }
-    const status = await options.checkSubscription();
+    const status = await checkSubscriptionForAuthRouting(options.checkSubscription);
     if (isSubscriptionActive(status)) {
       return true;
     }

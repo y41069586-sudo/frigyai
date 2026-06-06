@@ -462,14 +462,7 @@ const MealPlansPage = () => {
   }
 
   if (!loading && !authed) {
-    return (
-      <motion.div className="min-h-screen bg-[#F2FFF8] flex flex-col">
-        <motion.div className="flex flex-1 items-center justify-center pb-bottom-nav">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </motion.div>
-        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
-      </motion.div>
-    );
+    return null;
   }
 
   return (

@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { MotionConfig } from "framer-motion";
 import App from "./App.tsx";
 import "./index.css";
-import { clearOAuthPending, getOAuthPending } from "@/lib/oauthPending";
+import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from "@/lib/oauthPending";
 
 function isLocalDevHost(): boolean {
   if (typeof window === "undefined") return import.meta.env.DEV;
@@ -41,6 +41,7 @@ function clearStaleDevAuthFlags(): void {
 // Never block first paint on SW/cache cleanup — a hung unregister caused blank white screens.
 void clearDevClientCaches();
 clearStaleDevAuthFlags();
+clearStaleOAuthPendingIfIdle();
 
 createRoot(document.getElementById("root")!).render(
   <MotionConfig reducedMotion="user" transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>

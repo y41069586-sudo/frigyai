@@ -3622,7 +3622,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (isAuthLoading || isGoogleAuthLoading || isAppleAuthLoading) return;
           setIsGoogleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
-          if (user) await signOut();
+          if (user) {
+            await supabase.auth.signOut({ scope: "local" });
+          }
           const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
           if (error) {
             toast({
@@ -3641,7 +3643,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (isAuthLoading || isGoogleAuthLoading || isAppleAuthLoading) return;
           setIsAppleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
-          if (user) await signOut();
+          if (user) {
+            await supabase.auth.signOut({ scope: "local" });
+          }
           const { error } = await signInWithApple({ authQuery: { from: "onboarding" } });
           if (error) {
             toast({

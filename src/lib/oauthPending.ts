@@ -3,17 +3,43 @@ export const OAUTH_PENDING_KEY = "frigy_oauth_pending";
 
 export type OAuthPendingFlag = "onboarding" | "login";
 
+/** Only onboarding OAuth needs a persisted pending flag (native deep-link fallback). */
 export function setOAuthPending(fromOnboarding: boolean): void {
-  const flag: OAuthPendingFlag = fromOnboarding ? "onboarding" : "login";
+  if (!fromOnboarding) {
+    clearOAuthPending();
+    return;
+  }
+
   try {
-    sessionStorage.setItem(OAUTH_PENDING_KEY, flag);
+    sessionStorage.setItem(OAUTH_PENDING_KEY, "onboarding");
   } catch {
     // ignore
   }
   try {
-    localStorage.setItem(OAUTH_PENDING_KEY, flag);
+    localStorage.setItem(OAUTH_PENDING_KEY, "onboarding");
   } catch {
     // ignore
+  }
+}
+
+/** Drop leftover flags when OAuth was cancelled or the app cold-started mid-flow. */
+export function clearStaleOAuthPendingIfIdle(): void {
+  if (typeof window === "undefined") return;
+
+  const href = window.location.href;
+  const hasCallback =
+    href.includes("code=") ||
+    href.includes("access_token=") ||
+    href.includes("oauth_error=");
+
+  if (hasCallback) return;
+
+  const pending = getOAuthPending();
+  if (!pending) return;
+
+  // Login pending without callback strands AuthPage on the loading screen.
+  if (pending === "login") {
+    clearOAuthPending();
   }
 }
 

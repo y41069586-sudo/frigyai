@@ -13,7 +13,8 @@ import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
 import { supabase } from '@/integrations/supabase/client';
 import { Capacitor } from '@capacitor/core';
 import { isOAuthCallbackUrl, POST_AUTH_PAYWALL_ROUTE } from '@/lib/authOAuth';
-import { clearOAuthPending, getOAuthPending } from '@/lib/oauthPending';
+import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from '@/lib/oauthPending';
+import { isAuthCompletionPending, isAuthFlowOverlayVisible } from '@/lib/authCompletion';
 import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from '@/lib/postAuthRedirect';
 import { persistOnboardingSignupFromStorage } from '@/components/onboarding/utils';
 import { isAppleSignInAvailable } from '@/lib/appleSignIn';
@@ -190,14 +191,24 @@ const AuthPage = () => {
   useEffect(() => {
     if (searchParams.get('oauth_error') !== '1') return;
     setError(t.authLoginFailed);
+    clearOAuthPending();
     window.history.replaceState({}, '', '/auth');
   }, [searchParams, t.authLoginFailed]);
+
+  useEffect(() => {
+    clearStaleOAuthPendingIfIdle();
+  }, []);
+
+  const oauthInFlight =
+    hasOAuthCallback ||
+    isAuthCompletionPending() ||
+    isAuthFlowOverlayVisible() ||
+    getOAuthPending() === "onboarding";
 
   const showAuthLoader =
     loading ||
     isRedirecting ||
-    hasOAuthCallback ||
-    getOAuthPending() != null ||
+    oauthInFlight ||
     (user && !authStuck && !wasPostAuthRedirectRecentlyHandled());
 
   if (showAuthLoader) {

@@ -53,7 +53,8 @@ export function AuthOAuthCallbackBootstrap() {
     if (loading || pendingRedirectStartedRef.current || !user) return;
 
     const pending = getOAuthPending();
-    if (!pending) return;
+    // Login OAuth is completed by the deep-link / ?code= pipeline — not this fallback.
+    if (pending !== "onboarding") return;
 
     pendingRedirectStartedRef.current = true;
     clearOAuthPending();
@@ -62,8 +63,8 @@ export function AuthOAuthCallbackBootstrap() {
       userId: user.id,
       checkSubscription,
       navigate,
-      fromOnboarding: pending === "onboarding",
-      authIntent: pending === "onboarding" ? "signup" : "login",
+      fromOnboarding: true,
+      authIntent: "signup",
     });
   }, [loading, user, navigate, checkSubscription]);
 

@@ -56,7 +56,7 @@ interface AuthContextType {
     authQuery?: Record<string, string>;
   }) => Promise<{ error: unknown }>;
   linkAppleAccount: () => Promise<{ error: unknown }>;
-  signOut: () => Promise<void>;
+  signOut: (options?: { silent?: boolean }) => Promise<void>;
   checkSubscription: () => Promise<SubscriptionStatus | null>;
 }
 
@@ -561,7 +561,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const signOut = async () => {
+  const signOut = async (options?: { silent?: boolean }) => {
     try {
       // Clear local state first to ensure UI updates
       setSession(null);
@@ -577,9 +577,11 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     // Clear any cached auth data from localStorage
     clearSupabaseAuthStorage();
     
-    toast({
-      title: "Erfolgreich abgemeldet",
-    });
+    if (!options?.silent) {
+      toast({
+        title: "Erfolgreich abgemeldet",
+      });
+    }
   };
 
   const isPremium = isSubscriptionActive(subscriptionStatus);
