@@ -81,7 +81,7 @@ export function PremiumGateProvider({ children }: { children: ReactNode }) {
     <PremiumGateContext.Provider value={value}>
       {children}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm rounded-2xl">
+        <DialogContent stackLevel="high" className="max-w-sm rounded-2xl">
           <DialogHeader className="items-center text-center sm:text-center">
             <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15">
               <Crown className="h-7 w-7 text-primary" strokeWidth={2} />

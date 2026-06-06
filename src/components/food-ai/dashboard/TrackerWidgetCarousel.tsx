@@ -41,7 +41,7 @@ export function TrackerWidgetCarousel({ tracker, weight, className }: TrackerWid
   };
 
   return (
-    <div className={cn("dashboard-touch-scroll relative w-full min-w-0", className)}>
+    <div className={cn("dashboard-tracker-carousel relative w-full min-w-0", className)}>
       <div
         ref={scrollRef}
         onScroll={onScroll}

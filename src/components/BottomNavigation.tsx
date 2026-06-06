@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
-import { FRIGY_OVERLAY_OPEN, notifyOpenLogMeal } from "@/lib/overlayEvents";
+import { notifyOpenLogMeal, notifyOverlayOpen } from "@/lib/overlayEvents";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
@@ -37,26 +37,17 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [mounted, setMounted] = useState(false);
-  const [overlayOpen, setOverlayOpen] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     setMounted(true);
+    notifyOverlayOpen(false);
   }, []);
 
   // Overlay state can get stuck after scan/camera — reset when route changes
   useEffect(() => {
-    setOverlayOpen(false);
+    notifyOverlayOpen(false);
   }, [location.pathname, location.search]);
-
-  useEffect(() => {
-    const onOverlay = (e: Event) => {
-      const open = Boolean((e as CustomEvent<{ open?: boolean }>).detail?.open);
-      setOverlayOpen(open);
-    };
-    window.addEventListener(FRIGY_OVERLAY_OPEN, onOverlay);
-    return () => window.removeEventListener(FRIGY_OVERLAY_OPEN, onOverlay);
-  }, []);
 
   const pathname = location.pathname;
   const tab = searchParams.get("tab") || "meals";
@@ -156,6 +147,6 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     </nav>
   );
 
-  if (!mounted || overlayOpen) return null;
+  if (!mounted) return null;
   return createPortal(bar, document.body);
 };
