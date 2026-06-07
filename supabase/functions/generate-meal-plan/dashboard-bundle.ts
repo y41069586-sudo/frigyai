@@ -1085,6 +1085,254 @@ export function buildNoPorkConstraintBlock(lang: Lang): string {
   ].join("\n");
 }
 
+// ----- ingredientSanitize.ts -----
+const UNIT_ONLY =
+  /^(g|kg|mg|ml|l|cl|dl|el|tl|stück|st\.?|portion|port\.?|kcal|cal|min|mins?|minuten|std\.?|x)$/i;
+
+const AMOUNT_ONLY =
+  /^[\d.,]+\s*(g|kg|mg|ml|l|cl|dl|kcal|cal|%|°c|°f|x)?$/i;
+
+const COMBINED_LINE =
+  /^([\d.,]+\s*(?:g|kg|mg|ml|l|cl|dl|EL|TL|Stück|St\.?|Portion|Port\.?|x)?)\s+(.+)$/i;
+
+export function isInvalidIngredientName(name: string): boolean {
+  const t = name.trim();
+  if (!t) return true;
+  if (/^[\d.,]+$/.test(t)) return true;
+  if (AMOUNT_ONLY.test(t)) return true;
+  if (UNIT_ONLY.test(t)) return true;
+  if (t.length <= 2 && /^[\d.,]/.test(t)) return true;
+  return false;
+}
+
+export function isInvalidIngredientToken(part: string): boolean {
+  return isInvalidIngredientName(part);
+}
+
+function parseCombinedLine(raw: string): { name: string; amount: string } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(COMBINED_LINE);
+  if (match) {
+    return { amount: match[1].trim(), name: match[2].trim() };
+  }
+  return { name: trimmed, amount: "1 Portion" };
+}
+
+export function sanitizeIngredient(raw: {
+  name?: string;
+  amount?: string;
+  price?: number;
+}, slot: "b" | "m" | "s" = "m"): { name: string; amount: string; price: number } | null {
+  let name = String(raw.name ?? "").trim();
+  let amount = String(raw.amount ?? "").trim();
+  if (!name && amount) {
+    name = amount;
+    amount = "";
+  }
+
+  const combined = parseCombinedLine(name);
+  if (combined.name !== name) {
+    name = combined.name;
+    if (!amount || isInvalidIngredientName(amount)) {
+      amount = combined.amount;
+    }
+  }
+
+  if (isInvalidIngredientName(name) && !isInvalidIngredientName(amount)) {
+    name = amount;
+    amount = "";
+  }
+
+  if (isInvalidIngredientName(name)) return null;
+
+  amount = normalizeIngredientAmount(name, amount || "—", slot);
+  const price = resolveIngredientPrice(name, amount, raw.price);
+
+  return { name, amount, price };
+}
+
+// ----- ingredientDefaults.ts -----
+const EUR_PER_KG: Array<{ pattern: RegExp; eurPerKg: number }> = [
+  { pattern: /hähnchen|huhn|pute|chicken|turkey/, eurPerKg: 11.5 },
+  { pattern: /rind|beef|steak/, eurPerKg: 16 },
+  { pattern: /schwein|pork|schnitzel/, eurPerKg: 9 },
+  { pattern: /hack|gehackt/, eurPerKg: 8.5 },
+  { pattern: /lachs|fisch|salmon|fish|thunfisch/, eurPerKg: 18 },
+  { pattern: /tofu|tempeh/, eurPerKg: 7 },
+  { pattern: /ei|eier|egg/, eurPerKg: 3.2 },
+  { pattern: /reis|rice|basmati/, eurPerKg: 2.8 },
+  { pattern: /nudel|pasta|spaghetti|penne/, eurPerKg: 1.9 },
+  { pattern: /kartoffel|potato/, eurPerKg: 1.5 },
+  { pattern: /milch|milk|joghurt|quark/, eurPerKg: 4 },
+  { pattern: /käse|cheese|mozzarella|feta/, eurPerKg: 12 },
+  { pattern: /gemüse|vegetable|salat|spinat|tomate|zwiebel|paprika|banane|apfel/, eurPerKg: 3.2 },
+];
+
+function roundCents(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function eurPerKgForName(name: string): number {
+  const n = name.toLowerCase();
+  for (const row of EUR_PER_KG) {
+    if (row.pattern.test(n)) return row.eurPerKg;
+  }
+  return 4;
+}
+
+export function estimateIngredientPrice(name: string, amount: string): number {
+  const parsed = parseIngredientAmount(amount);
+  const perKg = eurPerKgForName(name);
+  if (!parsed) return roundCents(perKg * 0.12);
+  if (parsed.kind === "mass") return roundCents((parsed.grams / 1000) * perKg);
+  if (parsed.kind === "volume") {
+    const perL = /milch|sahne|kokosmilch/.test(name.toLowerCase()) ? 1.4 : 2.2;
+    return roundCents((parsed.ml / 1000) * perL);
+  }
+  if (parsed.kind === "count") {
+    if (parsed.unit === "el") return roundCents(parsed.count * 0.08);
+    if (parsed.unit === "tl") return roundCents(parsed.count * 0.03);
+    if (/ei|egg/.test(name.toLowerCase())) return roundCents(parsed.count * 0.25);
+    if (parsed.unit === "stück") return roundCents(parsed.count * 0.35);
+    return roundCents(parsed.count * (perKg * 0.12));
+  }
+  return roundCents(perKg * 0.12);
+}
+
+export function resolveIngredientPrice(name: string, amount: string, rawPrice: unknown): number {
+  const price = Number(rawPrice);
+  if (Number.isFinite(price) && price >= 0.15 && price <= 25) return roundCents(price);
+  return estimateIngredientPrice(name, amount);
+}
+
+export function defaultAmountForIngredient(name: string, slot: "b" | "m" | "s" = "m"): string {
+  const n = name.toLowerCase();
+  if (/ei|eier|egg/.test(n)) return slot === "b" ? "2 Stück" : "1 Stück";
+  if (/brot|toast|brötchen/.test(n)) return slot === "b" ? "2 Scheiben" : "1 Scheibe";
+  if (/hähnchen|pute|tofu|lachs|fisch|hack|fleisch|chicken|salmon/.test(n)) {
+    return slot === "m" ? "150g" : slot === "b" ? "80g" : "120g";
+  }
+  if (/reis|nudel|pasta|kartoffel|rice/.test(n)) return slot === "m" ? "150g" : "100g";
+  if (/milch|joghurt|quark|milk/.test(n)) return "200ml";
+  if (/öl|butter|olivenöl|oil/.test(n)) return "1 EL";
+  if (/banane|apfel|tomate|gemüse|salat|spinat|zucchini|möhre|zwiebel|paprika/.test(n)) {
+    return slot === "m" ? "150g" : "100g";
+  }
+  return slot === "m" ? "120g" : "80g";
+}
+
+export function normalizeIngredientAmount(name: string, amount: string, slot: "b" | "m" | "s" = "m"): string {
+  if (isGenericPortionAmount(amount)) {
+    return defaultAmountForIngredient(name, slot);
+  }
+  return amount.trim() || defaultAmountForIngredient(name, slot);
+}
+
+// ----- shoppingAggregate.ts -----
+type ParsedAmount =
+  | { kind: "mass"; grams: number }
+  | { kind: "volume"; ml: number }
+  | { kind: "count"; count: number; unit: string }
+  | { kind: "unknown"; raw: string };
+
+function parseNum(raw: string): number {
+  const n = Number.parseFloat(raw.replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeCountUnit(raw: string): string {
+  const u = raw.toLowerCase().replace(/\./g, "");
+  if (u === "st" || u === "stück" || u === "stk") return "stück";
+  if (u === "port" || u === "portion") return "portion";
+  if (u === "el") return "el";
+  if (u === "tl") return "tl";
+  if (u === "x") return "stück";
+  if (u === "scheibe" || u === "scheiben") return "scheibe";
+  return u;
+}
+
+export function parseIngredientAmount(raw: string): ParsedAmount | null {
+  const t = String(raw ?? "").trim();
+  if (!t || t === "—" || t === "-") return null;
+
+  let m = t.match(/^([\d.,]+)\s*(kg|g|mg)$/i);
+  if (m) {
+    const val = parseNum(m[1]);
+    const unit = m[2].toLowerCase();
+    const grams = unit === "kg" ? val * 1000 : unit === "mg" ? val / 1000 : val;
+    return { kind: "mass", grams };
+  }
+
+  m = t.match(/^([\d.,]+)\s*(l|ml|cl|dl)$/i);
+  if (m) {
+    const val = parseNum(m[1]);
+    const unit = m[2].toLowerCase();
+    const ml = unit === "l" ? val * 1000 : unit === "cl" ? val * 10 : unit === "dl" ? val * 100 : val;
+    return { kind: "volume", ml };
+  }
+
+  m = t.match(/^([\d.,]+)\s*(stück|st\.?|portion|port\.?|el|tl|x|scheiben?|dosen?|packung|bund)$/i);
+  if (m) {
+    return { kind: "count", count: parseNum(m[1]), unit: normalizeCountUnit(m[2]) };
+  }
+
+  if (/^[\d.,]+$/.test(t)) {
+    return { kind: "count", count: parseNum(t), unit: "portion" };
+  }
+
+  return { kind: "unknown", raw: t };
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function formatCount(count: number, unit: string): string {
+  const c = round1(count);
+  if (unit === "stück") return `${c} Stück`;
+  if (unit === "portion") return `${c} ${c === 1 ? "Portion" : "Portionen"}`;
+  if (unit === "el") return `${c} EL`;
+  if (unit === "tl") return `${c} TL`;
+  if (unit === "scheibe") return `${c} ${c === 1 ? "Scheibe" : "Scheiben"}`;
+  return `${c} ${unit}`;
+}
+
+export function aggregateAmountStrings(amounts: string[]): string {
+  let grams = 0;
+  let ml = 0;
+  const counts = new Map<string, number>();
+  const unknown: string[] = [];
+
+  for (const raw of amounts) {
+    const p = parseIngredientAmount(raw);
+    if (!p) continue;
+    if (p.kind === "mass") grams += p.grams;
+    else if (p.kind === "volume") ml += p.ml;
+    else if (p.kind === "count") counts.set(p.unit, (counts.get(p.unit) ?? 0) + p.count);
+    else if (p.kind === "unknown") unknown.push(p.raw);
+  }
+
+  const parts: string[] = [];
+  if (grams > 0) parts.push(grams >= 1000 ? `${round1(grams / 1000)} kg` : `${Math.round(grams)} g`);
+  if (ml > 0) parts.push(ml >= 1000 ? `${round1(ml / 1000)} l` : `${Math.round(ml)} ml`);
+  for (const [unit, count] of counts) {
+    if (count > 0) parts.push(formatCount(count, unit));
+  }
+  for (const u of unknown) {
+    if (!parts.includes(u)) parts.push(u);
+  }
+
+  if (parts.length) return parts.join(" · ");
+
+  const fallback = amounts.map((a) => String(a ?? "").trim()).filter(Boolean);
+  return fallback.length ? [...new Set(fallback)].join(" · ") : "—";
+}
+
+export function isGenericPortionAmount(amount: string): boolean {
+  const t = amount.trim().toLowerCase();
+  return t === "1 portion" || t === "1 port." || t === "portion" || t === "—" || t === "-";
+}
+
 // ----- macros.ts -----
 export function macroKcal(p: number, c: number, f: number) {
   return p * 4 + c * 4 + f * 9;
@@ -1174,13 +1422,9 @@ export function recalcMeal(m: MealLike): Meal {
     prepTime: Math.max(5, Math.round(Number(m.prepTime) || 20)),
     ingredients: Array.isArray(m.ingredients)
       ? m.ingredients
-          .filter((i) => i?.name)
+          .map((i) => sanitizeIngredient(i || {}))
+          .filter((i): i is NonNullable<typeof i> => i !== null)
           .slice(0, 6)
-          .map((i) => ({
-            name: String(i.name).trim(),
-            amount: String(i.amount || "1 Portion").trim(),
-            price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
-          }))
       : [],
     instructions: sanitizeMealInstructions(m.instructions),
     allergenTags: Array.isArray(m.allergenTags)
@@ -1197,13 +1441,9 @@ export function recalcMeal(m: MealLike): Meal {
 export function normalizeMealStructure(m: MealLike): Meal {
   const ingredients = Array.isArray(m?.ingredients)
     ? m.ingredients
-        .filter((i) => i?.name)
+        .map((i) => sanitizeIngredient(i || {}))
+        .filter((i): i is NonNullable<typeof i> => i !== null)
         .slice(0, 6)
-        .map((i) => ({
-          name: String(i.name).trim(),
-          amount: String(i.amount || "1 Portion").trim(),
-          price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
-        }))
     : [];
   const instructions = sanitizeMealInstructions(m?.instructions);
   return {
@@ -1844,6 +2084,8 @@ function buildCompactSystemPrompt(params: {
     `Exactly ${params.mealsPerDay} meals per day. Complete week — no empty days.`,
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
+    `Ingredient amounts MUST be realistic purchase units (e.g. "150g", "200ml", "2 Stück") — never only "1 Portion".`,
+    `Ingredient price = estimated EUR cost for that exact amount in a German supermarket (typically €0.20–€4.50 per line).`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
     `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
@@ -1886,8 +2128,8 @@ async function callOpenAIOnce(params: {
   const user = regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
     : params.lang === "de"
-      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen.`
-      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
+      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -2017,12 +2259,13 @@ export function shoppingList(plan: MealPlan, fridge: string[]): ShoppingItem[] {
   const map = new Map<string, { name: string; amounts: string[]; price: number }>();
   for (const day of plan) {
     for (const meal of day.meals || []) {
-      for (const ing of meal.ingredients || []) {
-        if (!ing?.name || fridgeHas(ing.name, fridge)) continue;
+      for (const raw of meal.ingredients || []) {
+        const ing = sanitizeIngredient(raw || {});
+        if (!ing || fridgeHas(ing.name, fridge)) continue;
         const key = normKey(ing.name);
         const ex = map.get(key);
-        const amount = String(ing.amount || "—");
-        const price = Number(ing.price) || 0;
+        const amount = normalizeIngredientAmount(ing.name, String(ing.amount || "—"), "m");
+        const price = resolveIngredientPrice(ing.name, amount, ing.price);
         if (ex) {
           ex.amounts.push(amount);
           ex.price += price;
@@ -2032,7 +2275,7 @@ export function shoppingList(plan: MealPlan, fridge: string[]): ShoppingItem[] {
   }
   return Array.from(map.values()).map((v) => ({
     name: v.name,
-    amount: [...new Set(v.amounts)].join(" · "),
+    amount: aggregateAmountStrings(v.amounts),
     price: Math.round(v.price * 100) / 100,
   }));
 }
@@ -3012,6 +3255,7 @@ export function parseIngredientNamesFromDishTitle(title: string): string[] {
   for (const part of parts) {
     const f = fold(part);
     if (NOISE_TOKENS.has(f)) continue;
+    if (isInvalidIngredientToken(part)) continue;
     if (picked.some((p) => fold(p) === f)) continue;
     picked.push(part);
   }
@@ -3026,16 +3270,20 @@ export function parseIngredientNamesFromDishTitle(title: string): string[] {
 export function ingredientsFromDishTitle(
   title: string,
   ctx: SafetyContext,
+  slot: "b" | "m" | "s" = "m",
 ): Ingredient[] {
   const names = parseIngredientNamesFromDishTitle(title).filter((n) => !nameUnsafe(n, ctx));
   const safe = names.length ? names : parseIngredientNamesFromDishTitle(title).slice(0, 1);
   const list = safe.length ? safe : ["Gemüse"];
 
-  return list.map((name, i) => ({
-    name,
-    amount: i === 0 ? "1 Portion" : "1 Portion",
-    price: i === 0 ? 2 : Math.round((1.2 + i * 0.1) * 100) / 100,
-  }));
+  return list.map((name) => {
+    const amount = defaultAmountForIngredient(name, slot);
+    return {
+      name,
+      amount,
+      price: resolveIngredientPrice(name, amount, null),
+    };
+  });
 }
 
 export function slotTypeLabel(lang: Lang, slot: "b" | "m" | "s"): string {
@@ -3054,7 +3302,7 @@ export function buildMealFromDishTitle(
   lang: Lang,
   ctx: SafetyContext,
 ): Meal {
-  const ingredients = ingredientsFromDishTitle(name, ctx);
+  const ingredients = ingredientsFromDishTitle(name, ctx, slot);
   const tags = mealAllergenTags({ name, ingredients, allergenTags: [] });
   return normalizeMealStructure({
     type: slotTypeLabel(lang, slot),

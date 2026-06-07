@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -31,6 +31,7 @@ import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
 import {
   parseMealFocus,
+  normalizeMealTypeForSave,
   type MealFocusKey,
 } from '@/lib/mealFocus';
 import {
@@ -531,8 +532,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     syncMacrosToDatabase(entries);
   }, [syncMacrosToDatabase]);
 
-  const analyzeFood = async (food: string, imageBase64?: string, mealType: MealFocusKey | null = mealPromptKey) => {
-    if (!(await ensurePremium())) return;
+  const analyzeFood = async (
+    food: string,
+    imageBase64?: string,
+    mealType: MealFocusKey | null = mealPromptKey,
+  ): Promise<boolean> => {
+    if (!(await ensurePremium())) return false;
+
+    const resolvedMealType = normalizeMealTypeForSave(mealType);
 
     setIsAnalyzing(true);
     setFoodScanError(null);
@@ -547,6 +554,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       }, 280);
       playScanStart();
     }
+    let succeeded = false;
     try {
       const body: { food?: string; imageBase64?: string } = {};
       if (food && food.trim()) body.food = food.trim();
@@ -614,7 +622,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           protein: Math.round(data.protein || 0),
           carbs: Math.round(data.carbs || 0),
           fat: Math.round(data.fat || 0),
-          meal_type: mealType ?? undefined,
+          meal_type: resolvedMealType,
           image_url: data.image_url,
         });
       } catch (dbError: unknown) {
@@ -631,13 +639,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         fat: data.fat,
         time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
         image_url: data.image_url,
-        meal_type: mealType ?? undefined,
+        meal_type: resolvedMealType,
       };
 
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
 
       if (!imageBase64) {
+        closeLogMealPanel();
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
         playClick();
       }
@@ -647,6 +656,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       if (imageBase64) {
         void checkAndAwardBadge('first_scan');
       }
+      succeeded = true;
     } catch (error: any) {
       const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood;
       console.error('Error analyzing food:', errorMsg, error);
@@ -679,10 +689,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       setShowFoodCamera(false);
       setFoodScanPhase('capture');
       notifyOverlayOpen(false);
-    } else if (!scanFlowSettled) {
+    } else if (!scanFlowSettled && !succeeded) {
       setFoodScanError((prev) => prev ?? t.couldNotAnalyzeFood);
       setFoodScanPhase('error');
     }
+
+    return succeeded;
   };
 
   const resetFoodScanToCapture = () => {
@@ -814,7 +826,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           protein: recipe.protein,
           carbs: recipe.carbs,
           fat: recipe.fat,
-          meal_type: mealPromptKey ?? undefined,
+          meal_type: normalizeMealTypeForSave(mealPromptKey),
         });
       } catch {
         savedEntry = null;
@@ -828,9 +840,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         carbs: recipe.carbs,
         fat: recipe.fat,
         time: new Date().toLocaleTimeString(timeLocale, { hour: "2-digit", minute: "2-digit" }),
-        meal_type: mealPromptKey ?? undefined,
+        meal_type: normalizeMealTypeForSave(mealPromptKey),
       };
       saveFoodEntries([...foodEntries, newEntry]);
+      closeLogMealPanel();
       toast({
         title: t.foodAdded,
         description: `${recipe.title} · ${recipe.calories} kcal`,
@@ -858,7 +871,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein: Math.round(food.protein || 0),
         carbs: Math.round(food.carbs || 0),
         fat: Math.round(food.fat || 0),
-        meal_type: mealPromptKey ?? undefined,
+        meal_type: normalizeMealTypeForSave(mealPromptKey),
         image_url: food.image,
       });
     } catch {
@@ -875,7 +888,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       fat: food.fat,
       time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
       image_url: food.image,
-      meal_type: mealPromptKey ?? undefined,
+      meal_type: normalizeMealTypeForSave(mealPromptKey),
     };
     saveFoodEntries([...foodEntries, newEntry]);
     recordActivity();
@@ -898,6 +911,25 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     return { emoji: '🚀', label: t.trackerPaceVeryFast, color: 'text-red-400' };
   };
   const speedInfo = getSpeedInfo();
+
+  const editGoalsCurrent = useMemo(
+    () => ({
+      dailyCalories: profile?.dailyCalories ?? trackerSettings?.dailyCalories ?? 2000,
+      dailyProtein: profile?.dailyProtein ?? trackerSettings?.dailyProtein ?? 150,
+      dailyCarbs: profile?.dailyCarbs ?? trackerSettings?.dailyCarbs ?? 200,
+      dailyFat: profile?.dailyFat ?? trackerSettings?.dailyFat ?? 70,
+    }),
+    [
+      profile?.dailyCalories,
+      profile?.dailyProtein,
+      profile?.dailyCarbs,
+      profile?.dailyFat,
+      trackerSettings?.dailyCalories,
+      trackerSettings?.dailyProtein,
+      trackerSettings?.dailyCarbs,
+      trackerSettings?.dailyFat,
+    ],
+  );
 
   const onboardingSteps = [
     {
@@ -1409,12 +1441,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           setShowEditGoalsDialog(open);
           if (!open) setFocusMacro(null);
         }}
-        currentGoals={{
-          dailyCalories: profile?.dailyCalories ?? trackerSettings?.dailyCalories ?? 2000,
-          dailyProtein: profile?.dailyProtein ?? trackerSettings?.dailyProtein ?? 150,
-          dailyCarbs: profile?.dailyCarbs ?? trackerSettings?.dailyCarbs ?? 200,
-          dailyFat: profile?.dailyFat ?? trackerSettings?.dailyFat ?? 70,
-        }}
+        currentGoals={editGoalsCurrent}
         focusMacro={focusMacro}
         weightKg={trackerSettings?.weight ?? weight}
         onSave={async (goals) => {
@@ -1482,6 +1509,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             onBarcode={handleBarcodeClick}
             onAddRecipe={addRecipeToTracker}
             onDeleteMeal={removeEntry}
+            onEditMeal={(id) => {
+              const entry = foodEntries.find((e) => e.id === id);
+              if (entry) editEntry(entry);
+            }}
             loggedMeals={foodEntries.map((e) => ({
               id: e.id,
               name: e.name,

@@ -22,6 +22,7 @@ import {
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
 import { localizeMealTypeLabel, cleanMealDisplayName, getCookingPhaseLabel } from "@/lib/mealI18n";
+import { normalizeMealTypeForSave } from "@/lib/mealFocus";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 interface Ingredient {
@@ -166,7 +167,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         carbs: Number(activeMeal.carbs) || 0,
         fat: Number(activeMeal.fat) || 0,
         portion: `${prepTime}min`,
-        meal_type: activeMeal.type,
+        meal_type: normalizeMealTypeForSave(activeMeal.type),
       });
 
       if (result) {
@@ -193,7 +194,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     }
   };
 
-  const detailedInstructions = activeMeal ? getDetailedInstructions(activeMeal) : [];
+  const detailedInstructions = activeMeal ? getDetailedInstructions(activeMeal, lng) : [];
   const parsedSteps = activeMeal ? parseAllCookingSteps(detailedInstructions) : [];
   const timedMinutes = sumStepMinutes(parsedSteps);
   const phaseGroups = groupStepsByPhase(parsedSteps);

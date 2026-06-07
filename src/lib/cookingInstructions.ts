@@ -1,3 +1,13 @@
+import {
+  resolveInstructionLang,
+  formatStepTipPrefix,
+  setupStepText,
+  serveStepText,
+  prepHintForIngredient as localizedPrepHint,
+  cookingHintsForMeal as localizedCookingHints,
+  type InstructionLang,
+} from "@/lib/cookingInstructionsI18n";
+
 export type CookingPhase =
   | "Vorbereitung"
   | "Kochen"
@@ -32,12 +42,40 @@ const PHASES: CookingPhase[] = [
 function normalizePhase(raw: string): CookingPhase {
   const lower = raw.toLowerCase();
   if (lower.includes("vorbereit") || lower.includes("prep")) return "Vorbereitung";
-  if (lower.includes("garen") || lower.includes("back") || lower.includes("köchel"))
+  if (
+    lower.includes("garen") ||
+    lower.includes("back") ||
+    lower.includes("köchel") ||
+    lower.includes("simmer") ||
+    lower.includes("bake")
+  )
     return "Garen";
-  if (lower.includes("pause") || lower.includes("ruhen") || lower.includes("ziehen"))
+  if (
+    lower.includes("pause") ||
+    lower.includes("ruhen") ||
+    lower.includes("ziehen") ||
+    lower.includes("rest") ||
+    lower.includes("repos")
+  )
     return "Pause";
-  if (lower.includes("anricht") || lower.includes("servier")) return "Anrichten";
-  if (lower.includes("koch") || lower.includes("brat") || lower.includes("erhitz"))
+  if (
+    lower.includes("anricht") ||
+    lower.includes("servier") ||
+    lower.includes("serve") ||
+    lower.includes("plat") ||
+    lower.includes("dresser")
+  )
+    return "Anrichten";
+  if (
+    lower.includes("koch") ||
+    lower.includes("brat") ||
+    lower.includes("erhitz") ||
+    lower.includes("cook") ||
+    lower.includes("sear") ||
+    lower.includes("saut") ||
+    lower.includes("cuire") ||
+    lower.includes("dorer")
+  )
     return "Kochen";
   return "Sonstiges";
 }
@@ -71,16 +109,16 @@ export function parseCookingStep(raw: string, index: number, total: number): Par
     if (pipe) phase = normalizePhase(pipe[1].trim());
     else {
       const phaseOnly = inside.match(
-        /^(Vorbereitung|Kochen|Garen|Pause|Anrichten)/i,
+        /^(Vorbereitung|Kochen|Garen|Pause|Anrichten|Prep(?:aration)?|Cook(?:ing)?|Simmer|Bake|Rest|Serve)/i,
       );
       if (phaseOnly) phase = normalizePhase(phaseOnly[1]);
     }
   }
 
-  const tipMatch = text.match(/\s*(?:Tipp|Hinweis):\s*(.+)$/i);
+  const tipMatch = text.match(/\s*(?:Tipp|Hinweis|Tip|Conseil|Note):\s*(.+)$/i);
   if (tipMatch) {
     tip = tipMatch[1].trim();
-    text = text.replace(/\s*(?:Tipp|Hinweis):\s*.+$/i, "").trim();
+    text = text.replace(/\s*(?:Tipp|Hinweis|Tip|Conseil|Note):\s*.+$/i, "").trim();
   }
 
   if (!phase) phase = inferPhase(text, index, total);
@@ -102,108 +140,22 @@ export function isInstructionsDetailed(instructions: string[]): boolean {
   return avgLen >= 70 && hasTimes;
 }
 
-function formatStep(minutes: number, phase: CookingPhase, text: string, tip?: string): string {
+function formatStep(
+  minutes: number,
+  phase: CookingPhase,
+  text: string,
+  lang: InstructionLang = "de",
+  tip?: string,
+): string {
   const base = `[${minutes} Min | ${phase}] ${text}`;
-  return tip ? `${base} Tipp: ${tip}` : base;
+  return tip ? `${base} ${formatStepTipPrefix(lang)} ${tip}` : base;
 }
 
-function prepHintForIngredient(name: string, amount: string): string {
-  const n = name.toLowerCase();
-  const qty = amount ? `${amount} ` : "";
-  if (/ei/.test(n))
-    return `${qty}${name} aus dem Kühlschrank holen, auf Zimmertemperatur kommen lassen (ca. 10 Min vorher).`;
-  if (/hähnchen|pute|fleisch|hack|steak|schnitzel|wurst/.test(n))
-    return `${qty}${name}: trocken tupfen, große Sehnen entfernen, in mundgerechte Stücke schneiden.`;
-  if (/kartoffel|möhre|zwiebel|knoblauch|paprika|gurke|salat|tomate/.test(n))
-    return `${qty}${name}: gründlich waschen, schälen falls nötig, in gleichmäßige Stücke schneiden.`;
-  if (/reis|nudel|pasta|spaghetti|hafer|müsli/.test(n))
-    return `${qty}${name} abmessen und bereitstellen.`;
-  if (/milch|sahne|joghurt|quark|käse|butter/.test(n))
-    return `${qty}${name} bereitstellen und bei Bedarf in Stückchen/Würfeln portionieren.`;
-  return `${qty}${name}: abmessen, ggf. waschen oder in passende Stücke schneiden.`;
-}
-
-function cookingHintsForMeal(name: string): string[] {
-  const n = name.toLowerCase();
-  if (/nudel|pasta|spaghetti|penne/.test(n))
-    return [
-      formatStep(
-        2,
-        "Kochen",
-        "Großen Topf mit reichlich Salzwasser zum kräftigen Kochen bringen (ca. 1 Liter Wasser pro 100 g Nudeln).",
-      ),
-      formatStep(
-        8,
-        "Garen",
-        "Nudeln einlegen, nach Packungsangabe al dente kochen (meist 8–11 Min). Gelegentlich umrühren, damit nichts anklebt.",
-        "Eine Minute vor Ende eine Schöpfkelle Kochwasser aufheben – hilft beim Binden der Soße.",
-      ),
-    ];
-  if (/reis/.test(n))
-    return [
-      formatStep(
-        1,
-        "Kochen",
-        "Reis in einem Sieb kalt abspülen, bis das Wasser klarer wird.",
-      ),
-      formatStep(
-        15,
-        "Garen",
-        "Reis mit der doppelten Menge Wasser und einer Prise Salz aufkochen, Hitze reduzieren, zugedeckt 12–15 Min köcheln lassen, bis das Wasser aufgesogen ist.",
-        "Topf nicht öffnen – Dampf entweicht und der Reis wird gummig.",
-      ),
-    ];
-  if (/schnitzel|steak|hähnchen|lachs|fisch|brat|pfanne/.test(n))
-    return [
-      formatStep(
-        2,
-        "Kochen",
-        "Pfanne auf mittlere bis hohe Stufe vorheizen, 1–2 EL Öl oder Butter erhitzen, bis es leicht schäumt.",
-      ),
-      formatStep(
-        6,
-        "Kochen",
-        "Protein von allen Seiten anbraten, nur einmal wenden wenn die Unterseite goldbraun ist. Kerntemperatur/Farbe prüfen (Fisch: matt und flockig; Hähnchen: innen nicht rosa).",
-        "Zu viel in der Pfanne = es dämpft statt zu braten. Lieber in zwei Durchgängen.",
-      ),
-    ];
-  if (/suppe|eintopf|curry|soße|sauce/.test(n))
-    return [
-      formatStep(
-        3,
-        "Kochen",
-        "Topf oder große Pfanne auf mittlere Stufe stellen, aromatische Zutaten (Zwiebel, Knoblauch) in etwas Öl glasig dünsten.",
-      ),
-      formatStep(
-        12,
-        "Garen",
-        "Flüssigkeit und restliche Zutaten zugeben, aufkochen, dann 10–15 Min köcheln lassen, bis alles gar und die Soße leicht eingedickt ist. Regelmäßig umrühren.",
-      ),
-    ];
-  if (/ofen|auflauf|überback|pizza/.test(n))
-    return [
-      formatStep(
-        3,
-        "Garen",
-        "Backofen auf 180–200 °C Ober-/Unterhitze vorheizen.",
-      ),
-      formatStep(
-        20,
-        "Garen",
-        "Form oder Blech in die Mitte des Ofens schieben, bis Oberfläche goldbraun und die Füllung durchgegart ist.",
-        "Ofentür möglichst geschlossen halten – Temperatur fällt sonst stark ab.",
-      ),
-    ];
-  return [
-    formatStep(
-      5,
-      "Kochen",
-      "Alle vorbereiteten Zutaten in passendem Topf oder Pfanne auf mittlerer Stufe unter Rühren garen, bis alles durchgegart und heiß ist.",
-    ),
-  ];
-}
-
-export function buildExpandedInstructions(meal: MealForInstructions): string[] {
+export function buildExpandedInstructions(
+  meal: MealForInstructions,
+  language?: string | null,
+): string[] {
+  const lang = resolveInstructionLang(language);
   const existing = (meal.instructions || []).filter((s) => s.trim().length > 0);
   if (isInstructionsDetailed(existing)) return existing;
 
@@ -213,11 +165,7 @@ export function buildExpandedInstructions(meal: MealForInstructions): string[] {
 
   const setupMin = Math.min(3, Math.max(2, Math.round(prepTime * 0.1)));
   steps.push(
-    formatStep(
-      setupMin,
-      "Vorbereitung",
-      `Arbeitsfläche säubern, Schneidebrett, scharfes Messer, Schüsseln und Küchenwaage bereitlegen. Rezept „${meal.name}“ durchlesen, damit du den Ablauf kennst.`,
-    ),
+    formatStep(setupMin, "Vorbereitung", setupStepText(lang, meal.name), lang),
   );
 
   const prepPerIng = Math.min(
@@ -229,7 +177,8 @@ export function buildExpandedInstructions(meal: MealForInstructions): string[] {
       formatStep(
         prepPerIng,
         "Vorbereitung",
-        prepHintForIngredient(ing.name, ing.amount),
+        localizedPrepHint(lang, ing.name, ing.amount),
+        lang,
       ),
     );
   }
@@ -241,31 +190,33 @@ export function buildExpandedInstructions(meal: MealForInstructions): string[] {
     );
     for (const line of existing) {
       const clean = line.replace(/^\d+\.\s*/, "").trim();
-      steps.push(formatStep(cookBudget, "Kochen", clean));
+      steps.push(formatStep(cookBudget, "Kochen", clean, lang));
     }
   } else {
-    steps.push(...cookingHintsForMeal(meal.name));
+    for (const hint of localizedCookingHints(lang, meal.name)) {
+      steps.push(formatStep(hint.minutes, hint.phase, hint.text, lang, hint.tip));
+    }
   }
 
   const serveMin = Math.max(2, Math.round(prepTime * 0.1));
   steps.push(
-    formatStep(
-      serveMin,
-      "Anrichten",
-      `„${meal.name}“ auf vorgewärmten Tellern anrichten, mit Salz und Pfeffer abschmecken, sofort servieren – am besten noch heiß genießen.`,
-    ),
+    formatStep(serveMin, "Anrichten", serveStepText(lang, meal.name), lang),
   );
 
   return steps;
 }
 
-export function getDetailedInstructions(meal: MealForInstructions): string[] {
+export function getDetailedInstructions(
+  meal: MealForInstructions,
+  language?: string | null,
+): string[] {
+  const lang = resolveInstructionLang(language);
   const existing = (meal.instructions || []).filter((s) => s.trim().length > 0);
   if (existing.length > 0 && isInstructionsDetailed(existing)) return existing;
   if (existing.length > 0 && !isInstructionsDetailed(existing)) {
-    return buildExpandedInstructions(meal);
+    return buildExpandedInstructions(meal, lang);
   }
-  return buildExpandedInstructions(meal);
+  return buildExpandedInstructions(meal, lang);
 }
 
 export function parseAllCookingSteps(instructions: string[]): ParsedCookingStep[] {

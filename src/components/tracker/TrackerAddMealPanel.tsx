@@ -69,6 +69,7 @@ type Props = {
   onBarcode: () => void;
   onAddRecipe: (recipe: TrackerRecipeExample) => void;
   onDeleteMeal?: (id: string) => void;
+  onEditMeal?: (id: string) => void;
   loggedMeals?: TrackerLoggedMeal[];
   isAnalyzing?: boolean;
 };
@@ -172,7 +173,7 @@ function RecipePreparationSection({
   };
 }) {
   const meal = recipeToMealForInstructions(recipe);
-  const detailedInstructions = getDetailedInstructions(meal);
+  const detailedInstructions = getDetailedInstructions(meal, language);
   const parsedSteps = parseAllCookingSteps(detailedInstructions);
   const phaseGroups = groupStepsByPhase(parsedSteps);
   const timedMinutes = sumStepMinutes(parsedSteps);
@@ -439,6 +440,7 @@ export function TrackerAddMealPanel({
   onBarcode,
   onAddRecipe,
   onDeleteMeal,
+  onEditMeal,
   loggedMeals = [],
   isAnalyzing = false,
 }: Props) {
@@ -929,7 +931,15 @@ export function TrackerAddMealPanel({
                         className="mb-2 flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-3 last:mb-0"
                         style={{ boxShadow: GREEN_SHADOW }}
                       >
-                        <div className="min-w-0 flex-1">
+                        <button
+                          type="button"
+                          disabled={!onEditMeal}
+                          onClick={() => onEditMeal?.(meal.id)}
+                          className={cn(
+                            "min-w-0 flex-1 text-left",
+                            onEditMeal && "touch-manipulation active:opacity-80",
+                          )}
+                        >
                           <p className="truncate text-[15px] font-semibold">{meal.name}</p>
                           {meal.time || meal.mealType ? (
                             <p className="text-xs" style={{ color: PALETTE.textMuted }}>
@@ -937,7 +947,7 @@ export function TrackerAddMealPanel({
                               {meal.time}
                             </p>
                           ) : null}
-                        </div>
+                        </button>
                         <span
                           className="shrink-0 text-sm font-semibold tabular-nums"
                           style={{ color: PALETTE.primaryDark }}

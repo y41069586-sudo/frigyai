@@ -127,6 +127,8 @@ function buildCompactSystemPrompt(params: {
     `Exactly ${params.mealsPerDay} meals per day. Complete week — no empty days.`,
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
+    `Ingredient amounts MUST be realistic purchase units (e.g. "150g", "200ml", "2 Stück") — never only "1 Portion".`,
+    `Ingredient price = estimated EUR cost for that exact amount in a German supermarket (typically €0.20–€4.50 per line).`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
     `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
@@ -169,8 +171,8 @@ async function callOpenAIOnce(params: {
   const user = regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
     : params.lang === "de"
-      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen.`
-      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens.`;
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
+      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");

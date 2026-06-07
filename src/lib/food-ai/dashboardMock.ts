@@ -1,5 +1,7 @@
 /** Mock data for Health Dashboard widgets (replace with API / context later) */
 
+import { normalizeShoppingListItems } from "@/lib/shoppingListItems";
+
 export type WeekPlanPreviewDay = {
   dayLabel: string;
   meals: string[];
@@ -208,10 +210,10 @@ export function getShoppingPreviewFromStorage(): ShoppingPreviewItem[] {
     list = [];
   }
 
-  const normalized = list
+  const normalized = normalizeShoppingListItems(list, "Zutat")
     .map((it) => ({
-      name: (it.name ?? "").trim(),
-      amount: (it.amount ?? "").trim(),
+      name: it.name.trim(),
+      amount: it.amount.trim(),
     }))
     .filter((it) => it.name.length > 0);
 

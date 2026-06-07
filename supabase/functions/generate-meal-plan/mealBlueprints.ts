@@ -1,4 +1,10 @@
 import { mealAllergenTags } from "./allergens.ts";
+import {
+  defaultAmountForIngredient,
+  normalizeIngredientAmount,
+  resolveIngredientPrice,
+} from "./ingredientDefaults.ts";
+import { isInvalidIngredientToken } from "./ingredientSanitize.ts";
 import { normalizeMealStructure } from "./macros.ts";
 import { mealDishFingerprint } from "./normalize.ts";
 import { nameUnsafe } from "./validation.ts";
@@ -110,6 +116,7 @@ export function parseIngredientNamesFromDishTitle(title: string): string[] {
   for (const part of parts) {
     const f = fold(part);
     if (NOISE_TOKENS.has(f)) continue;
+    if (isInvalidIngredientToken(part)) continue;
     if (picked.some((p) => fold(p) === f)) continue;
     picked.push(part);
   }
@@ -124,16 +131,20 @@ export function parseIngredientNamesFromDishTitle(title: string): string[] {
 export function ingredientsFromDishTitle(
   title: string,
   ctx: SafetyContext,
+  slot: "b" | "m" | "s" = "m",
 ): Ingredient[] {
   const names = parseIngredientNamesFromDishTitle(title).filter((n) => !nameUnsafe(n, ctx));
   const safe = names.length ? names : parseIngredientNamesFromDishTitle(title).slice(0, 1);
   const list = safe.length ? safe : ["Gemüse"];
 
-  return list.map((name, i) => ({
-    name,
-    amount: i === 0 ? "1 Portion" : "1 Portion",
-    price: i === 0 ? 2 : Math.round((1.2 + i * 0.1) * 100) / 100,
-  }));
+  return list.map((name) => {
+    const amount = defaultAmountForIngredient(name, slot);
+    return {
+      name,
+      amount,
+      price: resolveIngredientPrice(name, amount, null),
+    };
+  });
 }
 
 export function slotTypeLabel(lang: Lang, slot: "b" | "m" | "s"): string {
@@ -152,7 +163,7 @@ export function buildMealFromDishTitle(
   lang: Lang,
   ctx: SafetyContext,
 ): Meal {
-  const ingredients = ingredientsFromDishTitle(name, ctx);
+  const ingredients = ingredientsFromDishTitle(name, ctx, slot);
   const tags = mealAllergenTags({ name, ingredients, allergenTags: [] });
   return normalizeMealStructure({
     type: slotTypeLabel(lang, slot),

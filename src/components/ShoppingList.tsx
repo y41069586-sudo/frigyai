@@ -15,6 +15,12 @@ import {
   writeCheckedShoppingNames,
 } from '@/lib/shoppingSync';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  buildGapShoppingList,
+  readFridgeIngredientsFromStorage,
+} from '@/lib/shoppingGap';
+import { isInvalidShoppingItemName } from '@/lib/shoppingListNormalize';
+import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 
 interface Ingredient {
   name: string;
@@ -48,6 +54,7 @@ function getShoppingCategoryLabel(t: Translations, category: IngredientCategory)
 
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t, language } = useLanguage();
+  const defaultIngredientName = t.ingredientDefaultName ?? 'Zutat';
   const isMobile = useIsMobile();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -103,16 +110,26 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     }));
   };
 
-  // Priorität: gespeicherte Liste (Gap vom Server/Mock) → sonst alle Zutaten aus dem Plan aggregieren
+  // Wochenplan ist Quelle der Wahrheit — Einkaufsliste daraus ableiten (Mengen + Preise aggregiert)
   useEffect(() => {
+    const mapGapToItems = (gap: Array<{ name: string; amount: string; price: number }>): ShoppingItem[] =>
+      gap.map((ing, idx) => ({
+        name: ing.name,
+        amount: ing.amount || '—',
+        price: typeof ing.price === 'number' ? ing.price : 0,
+        id: `stored-${ing.name.toLowerCase()}-${idx}`,
+        purchased: false,
+      }));
+
     const tryStoredList = (): ShoppingItem[] | null => {
       const raw = localStorage.getItem('weeklyShoppingList');
       if (raw === null) return null;
       try {
-        const parsed = JSON.parse(raw) as Array<{ name: string; amount: string; price: number }>;
+        const parsed = JSON.parse(raw) as unknown;
+        const normalized = normalizeShoppingListItems(parsed, defaultIngredientName);
         if (!Array.isArray(parsed)) return null;
-        if (parsed.length === 0) return [];
-        return parsed.map((ing, idx) => ({
+        if (normalized.length === 0) return [];
+        return normalized.map((ing, idx) => ({
           name: ing.name,
           amount: ing.amount || '—',
           price: typeof ing.price === 'number' ? ing.price : 0,
@@ -138,57 +155,52 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       }
     }
 
+    const fridge = readFridgeIngredientsFromStorage();
+
+    if (mealPlan?.length) {
+      const fromPlan = mapGapToItems(buildGapShoppingList(mealPlan, fridge));
+      setItems(applyPurchasedFromCache(fromPlan));
+      return;
+    }
+
     const fromStorage = tryStoredList();
     if (fromStorage !== null) {
       setItems(applyPurchasedFromCache(fromStorage));
       return;
     }
 
-    if (!mealPlan?.length) {
-      setItems([]);
-      return;
-    }
-
-    const ingredientMap = new Map<string, ShoppingItem>();
-
-    mealPlan.forEach((day) => {
-      day.meals?.forEach((meal: any) => {
-        meal.ingredients?.forEach((ing: Ingredient) => {
-          const key = ing.name.toLowerCase();
-          if (ingredientMap.has(key)) {
-            const existing = ingredientMap.get(key)!;
-            existing.price += ing.price;
-          } else {
-            ingredientMap.set(key, {
-              ...ing,
-              id: `${key}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              purchased: false,
-            });
-          }
-        });
-      });
-    });
-
-    const newItems = Array.from(ingredientMap.values());
-    setItems(applyPurchasedFromCache(newItems));
-  }, [mealPlan, isOffline]);
+    setItems([]);
+  }, [mealPlan, isOffline, defaultIngredientName]);
 
   useEffect(() => {
     const onStorage = () => {
-      const raw = localStorage.getItem('weeklyShoppingList');
-      if (raw === null) return;
-      try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed) || parsed.length === 0) return;
-        const withIds: ShoppingItem[] = parsed.map(
-          (ing: { name: string; amount: string; price: number }, idx: number) => ({
+      if (mealPlan?.length) {
+        const fromPlan = buildGapShoppingList(mealPlan, readFridgeIngredientsFromStorage()).map(
+          (ing, idx) => ({
             name: ing.name,
             amount: ing.amount || '—',
-            price: typeof ing.price === 'number' ? ing.price : 0,
+            price: ing.price,
             id: `stored-${ing.name.toLowerCase()}-${idx}`,
             purchased: false,
           }),
         );
+        setItems(applyPurchasedFromCache(fromPlan));
+        return;
+      }
+
+      const raw = localStorage.getItem('weeklyShoppingList');
+      if (raw === null) return;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        const normalized = normalizeShoppingListItems(parsed, defaultIngredientName);
+        if (!Array.isArray(parsed) || normalized.length === 0) return;
+        const withIds: ShoppingItem[] = normalized.map((ing, idx) => ({
+          name: ing.name,
+          amount: ing.amount || '—',
+          price: typeof ing.price === 'number' ? ing.price : 0,
+          id: `stored-${ing.name.toLowerCase()}-${idx}`,
+          purchased: false,
+        }));
         setItems(applyPurchasedFromCache(withIds));
       } catch {
         /* ignore */
@@ -196,7 +208,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     };
     window.addEventListener(FRIGY_STORAGE_UPDATED, onStorage);
     return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, onStorage);
-  }, []);
+  }, [defaultIngredientName, mealPlan]);
 
   // Einkaufsliste im Cache speichern bei jeder Änderung
   const saveToCache = useCallback((itemsToCache: ShoppingItem[]) => {
@@ -502,7 +514,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                           <p className={`font-medium text-sm ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
                             {item.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">{item.amount}</p>
+                          {item.amount && item.amount !== '—' && !isInvalidShoppingItemName(item.amount) && (
+                            <p className="text-xs text-muted-foreground">{item.amount}</p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`font-semibold text-sm ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>

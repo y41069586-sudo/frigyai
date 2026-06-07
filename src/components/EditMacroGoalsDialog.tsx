@@ -70,6 +70,7 @@ export const EditMacroGoalsDialog = ({
   const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
   const [pendingGoals, setPendingGoals] = useState<MacroGoals | null>(null);
   const baselineRef = useRef<MacroGoals>(currentGoals);
+  const wasOpenRef = useRef(false);
 
   const inputRefs = useRef<Partial<Record<MacroField, HTMLInputElement | null>>>({});
 
@@ -86,14 +87,22 @@ export const EditMacroGoalsDialog = ({
 
   useEffect(() => {
     if (!open) {
+      wasOpenRef.current = false;
       setShowRecalcConfirm(false);
       setPendingGoals(null);
-      return;
     }
+  }, [open]);
+
+  // Only hydrate form when the dialog opens — not on every parent re-render.
+  useEffect(() => {
+    if (!open || wasOpenRef.current) return;
+    wasOpenRef.current = true;
     baselineRef.current = { ...currentGoals };
     syncFromGoals(currentGoals);
+  }, [open, currentGoals, syncFromGoals]);
 
-    if (!focusMacro) return;
+  useEffect(() => {
+    if (!open || !focusMacro) return;
 
     const timer = window.setTimeout(() => {
       const input = inputRefs.current[focusMacro];
@@ -107,7 +116,7 @@ export const EditMacroGoalsDialog = ({
     }, 280);
 
     return () => window.clearTimeout(timer);
-  }, [open, currentGoals, focusMacro, syncFromGoals]);
+  }, [open, focusMacro]);
 
   useEffect(() => {
     if (!open) return;

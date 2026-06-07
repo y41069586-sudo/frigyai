@@ -5,6 +5,7 @@ import {
   RECONCILE_RATIO_MIN,
   SLOT_WEIGHTS,
 } from "./constants.ts";
+import { sanitizeIngredient } from "./ingredientSanitize.ts";
 import { sanitizeMealInstructions } from "./planMealSanitize.ts";
 import type {
   DayPlan,
@@ -106,13 +107,9 @@ export function recalcMeal(m: MealLike): Meal {
     prepTime: Math.max(5, Math.round(Number(m.prepTime) || 20)),
     ingredients: Array.isArray(m.ingredients)
       ? m.ingredients
-          .filter((i) => i?.name)
+          .map((i) => sanitizeIngredient(i || {}))
+          .filter((i): i is NonNullable<typeof i> => i !== null)
           .slice(0, 6)
-          .map((i) => ({
-            name: String(i.name).trim(),
-            amount: String(i.amount || "1 Portion").trim(),
-            price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
-          }))
       : [],
     instructions: sanitizeMealInstructions(m.instructions),
     allergenTags: Array.isArray(m.allergenTags)
@@ -129,13 +126,9 @@ export function recalcMeal(m: MealLike): Meal {
 export function normalizeMealStructure(m: MealLike): Meal {
   const ingredients = Array.isArray(m?.ingredients)
     ? m.ingredients
-        .filter((i) => i?.name)
+        .map((i) => sanitizeIngredient(i || {}))
+        .filter((i): i is NonNullable<typeof i> => i !== null)
         .slice(0, 6)
-        .map((i) => ({
-          name: String(i.name).trim(),
-          amount: String(i.amount || "1 Portion").trim(),
-          price: Math.max(0, Math.round((Number(i.price) || 0) * 100) / 100),
-        }))
     : [];
   const instructions = sanitizeMealInstructions(m?.instructions);
   return {

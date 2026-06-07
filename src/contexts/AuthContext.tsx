@@ -22,6 +22,7 @@ import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
 import { markEverPremium } from '@/lib/trialEligibility';
 import { applyPendingTrialReminderNative, scheduleTrialEndingReminder } from '@/lib/notifications';
 import { markKnownAccountEmail } from '@/lib/knownAccountEmail';
+import { resumeAuthSession, setSupabaseAutoRefreshEnabled } from '@/lib/sessionResume';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 
@@ -37,6 +38,8 @@ interface AuthContextType {
   session: Session | null;
   subscriptionStatus: SubscriptionStatus | null;
   loading: boolean;
+  /** True while re-validating session after app resume (prevents login flash). */
+  sessionRestoring: boolean;
   /** True when user has premium access (subscribed or in trial) */
   isPremium: boolean;
   signUp: (
@@ -164,6 +167,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     return cached && isSubscriptionActive(cached) ? cached : null;
   });
   const [loading, setLoading] = useState(true);
+  const [sessionRestoring, setSessionRestoring] = useState(false);
   const { toast } = useToast();
   const subscriptionRef = useRef<SubscriptionStatus | null>(subscriptionStatus);
 
@@ -276,19 +280,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshSessionFromStorage = async (): Promise<Session | null> => {
-    const { data: { session: current } } = await supabase.auth.getSession();
-    if (current?.user) {
-      applySession(current);
-      return current;
-    }
-
-    const { data: { session: refreshed }, error } = await supabase.auth.refreshSession();
-    if (!error && refreshed?.session?.user) {
-      applySession(refreshed.session);
-      return refreshed.session;
-    }
-
-    return null;
+    return resumeAuthSession(3);
   };
   
   useEffect(() => {
@@ -334,19 +326,14 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     // Initial session check — try refresh before clearing stored auth
     void refreshSessionFromStorage().then((initialSession) => {
       if (!mounted) return;
-      setLoading(false);
-
       if (initialSession?.user) {
+        applySession(initialSession);
         loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
-        return;
-      }
-
-      supabase.auth.getSession().then(({ error }) => {
-        if (!mounted || !error) return;
-        console.log('[Auth] Session unavailable after refresh attempt:', error.message);
+      } else {
         applySession(null);
         updateSubscriptionStatus(null);
-      });
+      }
+      setLoading(false);
     }).catch((err) => {
       if (!mounted) return;
       console.error('[Auth] Failed to check initial session:', err);
@@ -354,24 +341,43 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     });
 
     const resumeSessionCheck = () => {
-      void refreshSessionFromStorage().then((activeSession) => {
-        if (!mounted || !activeSession?.user) return;
-        loadSubscriptionFast(activeSession.user.id, activeSession.access_token);
-      });
+      setSessionRestoring(true);
+      void refreshSessionFromStorage()
+        .then((activeSession) => {
+          if (!mounted) return;
+          if (activeSession?.user) {
+            applySession(activeSession);
+            loadSubscriptionFast(activeSession.user.id, activeSession.access_token);
+            return;
+          }
+          if (sessionRef.current?.user) {
+            return;
+          }
+          applySession(null);
+          updateSubscriptionStatus(null);
+        })
+        .finally(() => {
+          if (mounted) setSessionRestoring(false);
+        });
     };
 
     // Re-check session when app returns to foreground (web + native)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        setSupabaseAutoRefreshEnabled(true);
         resumeSessionCheck();
+      } else {
+        setSupabaseAutoRefreshEnabled(false);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    setSupabaseAutoRefreshEnabled(document.visibilityState === 'visible');
 
     let removeAppStateListener: (() => void) | undefined;
     if (Capacitor.isNativePlatform()) {
       void App.addListener('appStateChange', ({ isActive }) => {
+        setSupabaseAutoRefreshEnabled(isActive);
         if (isActive) resumeSessionCheck();
       }).then((handle) => {
         removeAppStateListener = () => {
@@ -600,6 +606,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
         session,
         subscriptionStatus,
         loading,
+        sessionRestoring,
         isPremium,
         signUp,
         signIn,

@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
-import type { MealFocusKey } from "@/lib/mealFocus";
+import { resolveMealFocusKey, type MealFocusKey } from "@/lib/mealFocus";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
 import {
@@ -119,7 +119,7 @@ function getInitialTodayMacroTotals() {
 }
 
 const Index = () => {
-  const { user, session, subscriptionStatus, signOut, loading, checkSubscription, isPremium } = useAuth();
+  const { user, session, subscriptionStatus, signOut, loading, sessionRestoring, checkSubscription, isPremium } = useAuth();
   const onboardingExitInFlightRef = useRef(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -163,7 +163,14 @@ const Index = () => {
   const [waterGoalMl, setWaterGoalMl] = useState(() => goalCupsToMl(readWaterGoalCupsFromStorage()));
   const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number; mealType?: MealFocusKey }[]>([]);
   const loggedMealTypes = useMemo(
-    () => Array.from(new Set(todayMeals.map((meal) => meal.mealType).filter(Boolean))) as MealFocusKey[],
+    () =>
+      Array.from(
+        new Set(
+          todayMeals
+            .map((meal) => resolveMealFocusKey(meal.mealType ?? null))
+            .filter(Boolean),
+        ),
+      ) as MealFocusKey[],
     [todayMeals],
   );
   const initialMacros = getInitialTodayMacroTotals();
@@ -662,7 +669,7 @@ const Index = () => {
   
   
   // Auth bootstrap only when no session yet — keep bottom nav so Wochenplan stays reachable
-  const authBootstrapping = loading && !user && !session;
+  const authBootstrapping = (loading || sessionRestoring) && !user && !session;
   if (authBootstrapping && !isMealPlanGenerationActive()) {
     return (
       <>
@@ -708,7 +715,7 @@ const Index = () => {
   }
 
   // Not logged in: onboarding or redirect to auth (no blank loader loop).
-  if (!user) {
+  if (!user && !sessionRestoring) {
     if (hasCompletedOnboarding || dbOnboardingComplete) {
       return <Navigate to="/auth" replace />;
     }

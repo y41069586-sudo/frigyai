@@ -75,6 +75,7 @@ serve(async (req) => {
               name: meal.name,
               type: meal.type,
               ingredients: meal.ingredients,
+              instructions: meal.instructions,
             }))
           : [],
       })),
@@ -99,7 +100,7 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              `You translate meal plan labels to ${LANG_LABEL[targetLanguage]}. Return JSON only with keys "mealPlan" and "shoppingList". Keep the same array lengths and structure. Translate meal names, meal types, ingredient strings, shopping item names and categories. Do not change numbers, day keys, or add/remove items.`,
+              `You translate meal plan labels to ${LANG_LABEL[targetLanguage]}. Return JSON only with keys "mealPlan" and "shoppingList". Keep the same array lengths and structure. Translate meal names, meal types, ingredient strings, cooking instruction strings (when present), shopping item names and categories. Do not change numbers, day keys, bracket timing metadata like "[5 Min | ...]", or add/remove items.`,
           },
           {
             role: "user",
@@ -141,6 +142,9 @@ serve(async (req) => {
             ingredients: Array.isArray(translatedMeal?.ingredients)
               ? translatedMeal.ingredients
               : meal.ingredients,
+            instructions: Array.isArray(translatedMeal?.instructions)
+              ? translatedMeal.instructions
+              : meal.instructions,
           };
         }),
       };

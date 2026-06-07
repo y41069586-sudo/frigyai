@@ -1,4 +1,7 @@
 import { normKey } from "./normalize.ts";
+import { sanitizeIngredient } from "./ingredientSanitize.ts";
+import { normalizeIngredientAmount, resolveIngredientPrice } from "./ingredientDefaults.ts";
+import { aggregateAmountStrings } from "./shoppingAggregate.ts";
 import type { MealPlan, ScanMeta, ShoppingItem } from "./types.ts";
 
 export function fridgeHas(name: string, fridge: string[]) {
@@ -17,12 +20,13 @@ export function shoppingList(plan: MealPlan, fridge: string[]): ShoppingItem[] {
   const map = new Map<string, { name: string; amounts: string[]; price: number }>();
   for (const day of plan) {
     for (const meal of day.meals || []) {
-      for (const ing of meal.ingredients || []) {
-        if (!ing?.name || fridgeHas(ing.name, fridge)) continue;
+      for (const raw of meal.ingredients || []) {
+        const ing = sanitizeIngredient(raw || {});
+        if (!ing || fridgeHas(ing.name, fridge)) continue;
         const key = normKey(ing.name);
         const ex = map.get(key);
-        const amount = String(ing.amount || "—");
-        const price = Number(ing.price) || 0;
+        const amount = normalizeIngredientAmount(ing.name, String(ing.amount || "—"), "m");
+        const price = resolveIngredientPrice(ing.name, amount, ing.price);
         if (ex) {
           ex.amounts.push(amount);
           ex.price += price;
@@ -32,7 +36,7 @@ export function shoppingList(plan: MealPlan, fridge: string[]): ShoppingItem[] {
   }
   return Array.from(map.values()).map((v) => ({
     name: v.name,
-    amount: [...new Set(v.amounts)].join(" · "),
+    amount: aggregateAmountStrings(v.amounts),
     price: Math.round(v.price * 100) / 100,
   }));
 }

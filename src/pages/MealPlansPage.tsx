@@ -23,6 +23,7 @@ import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, FRIGY_TRACKER_SETTINGS_UPDATED }
 import { hasMealPlanContent, resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
 import { WeeklyPlanEmptyState } from '@/components/meal-plan/WeeklyPlanEmptyState';
 import { cn } from '@/lib/utils';
+import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
 import { dismissStalledAuthNavigation } from '@/lib/authCompletion';
@@ -94,18 +95,6 @@ const normalizeMealPlan = (value: unknown, defaultMealName: string): DayPlan[] =
     }));
 };
 
-const normalizeShoppingList = (value: unknown, defaultName: string): Ingredient[] => {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .filter((item): item is Partial<Ingredient> => Boolean(item) && typeof item === 'object')
-    .map((item) => ({
-      name: typeof item.name === 'string' && item.name.trim() ? item.name : defaultName,
-      amount: typeof item.amount === 'string' && item.amount.trim() ? item.amount : '—',
-      price: Number(item.price) || 0,
-    }));
-};
-
 const readJsonArray = (key: string): unknown[] => {
   const saved = localStorage.getItem(key);
   if (!saved) return [];
@@ -148,7 +137,7 @@ const MealPlansPage = () => {
     return loadNormalizedMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName);
   });
   const [shoppingList, setShoppingList] = useState<Ingredient[]>(() => {
-    return normalizeShoppingList(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName);
+    return normalizeShoppingListItems(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName);
   });
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -255,9 +244,9 @@ const MealPlansPage = () => {
     }
 
     if (globalShoppingList && globalShoppingList.length > 0) {
-      setShoppingList(normalizeShoppingList(globalShoppingList, t.ingredientDefaultName));
+      setShoppingList(normalizeShoppingListItems(globalShoppingList, t.ingredientDefaultName));
     } else {
-      setShoppingList(normalizeShoppingList(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName));
+      setShoppingList(normalizeShoppingListItems(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName));
     }
   }, [globalMealPlan, globalShoppingList, t.defaultMealName, t.ingredientDefaultName]);
 

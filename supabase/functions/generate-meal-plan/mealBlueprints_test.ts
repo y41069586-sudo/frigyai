@@ -17,3 +17,9 @@ Deno.test("built meal ingredients match dish title", () => {
   assertEquals(ingNames.includes("banane"), true);
   assertEquals(ingNames.includes("gemüse"), false);
 });
+
+Deno.test("numeric tokens are not parsed as ingredients from title", () => {
+  const names = parseIngredientNamesFromDishTitle("500 kcal Protein Shake");
+  assertEquals(names.some((n) => /^[\d.,]+$/.test(n)), false);
+  assertEquals(names.some((n) => n.toLowerCase() === "kcal"), false);
+});

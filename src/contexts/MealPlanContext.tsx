@@ -23,6 +23,8 @@ import {
   type UserMealPlanProfile,
 } from '@/lib/mealAllergySafety';
 import { SHOPPING_CHECKED_NAMES_KEY } from '@/lib/shoppingSync';
+import { buildGapShoppingList, readFridgeIngredientsFromStorage } from '@/lib/shoppingGap';
+import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 import { MealPlanGeneratingOverlay } from '@/components/MealPlanGeneratingOverlay';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations, type Language } from './LanguageContext';
@@ -255,11 +257,23 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return null;
   });
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[] | null>(() => {
-    // Initialize from localStorage immediately to prevent flash of empty state
+    const savedPlan = localStorage.getItem('weeklyMealPlan');
+    if (savedPlan) {
+      try {
+        const plan = JSON.parse(savedPlan);
+        if (Array.isArray(plan) && plan.length > 0) {
+          return buildGapShoppingList(plan, readFridgeIngredientsFromStorage()) as ShoppingListItem[];
+        }
+      } catch {
+        /* fall through */
+      }
+    }
     const saved = localStorage.getItem('weeklyShoppingList');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const cleaned = normalizeShoppingListItems(parsed, 'Zutat') as ShoppingListItem[];
+        return cleaned.length > 0 ? cleaned : null;
       } catch (e) {
         console.error('Failed to parse saved shopping list');
         return null;
@@ -276,11 +290,12 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getWeekStart = getLocalWeekStartISO;
 
-  const persistMealPlanLocally = useCallback((plan: DayPlan[], list: ShoppingListItem[], language: Language) => {
+  const persistMealPlanLocally = useCallback((plan: DayPlan[], _list: ShoppingListItem[], language: Language) => {
+    const cleanedList = buildGapShoppingList(plan, readFridgeIngredientsFromStorage()) as ShoppingListItem[];
     setMealPlan(plan);
-    setShoppingList(list);
+    setShoppingList(cleanedList);
     localStorage.setItem('weeklyMealPlan', JSON.stringify(plan));
-    localStorage.setItem('weeklyShoppingList', JSON.stringify(list));
+    localStorage.setItem('weeklyShoppingList', JSON.stringify(cleanedList));
     setMealPlanStoredLanguage(language);
     notifyFrigyStorageUpdated();
   }, []);
@@ -436,8 +451,11 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Prefer DB if available
       if (Array.isArray(dbPlan) && dbPlan.length > 0) {
+        const syncedList = buildGapShoppingList(dbPlan, readFridgeIngredientsFromStorage());
         setMealPlan(dbPlan);
+        setShoppingList(syncedList);
         localStorage.setItem('weeklyMealPlan', JSON.stringify(dbPlan));
+        localStorage.setItem('weeklyShoppingList', JSON.stringify(syncedList));
         if (!getMealPlanStoredLanguage()) {
           setMealPlanStoredLanguage(getStoredLanguage());
         }
@@ -473,19 +491,25 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const load = () => {
       const p = localStorage.getItem('weeklyMealPlan');
-      const s = localStorage.getItem('weeklyShoppingList');
       if (p) {
         try {
           const parsed = JSON.parse(p);
-          if (Array.isArray(parsed) && parsed.length > 0) setMealPlan(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMealPlan(parsed);
+            const syncedList = buildGapShoppingList(parsed, readFridgeIngredientsFromStorage());
+            setShoppingList(syncedList);
+            localStorage.setItem('weeklyShoppingList', JSON.stringify(syncedList));
+            return;
+          }
         } catch {
           /* ignore */
         }
       }
+      const s = localStorage.getItem('weeklyShoppingList');
       if (s) {
         try {
           const parsed = JSON.parse(s);
-          if (Array.isArray(parsed)) setShoppingList(parsed);
+          if (Array.isArray(parsed)) setShoppingList(normalizeShoppingListItems(parsed, 'Zutat') as ShoppingListItem[]);
         } catch {
           /* ignore */
         }
