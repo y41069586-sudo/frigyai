@@ -523,7 +523,7 @@ const RecipesPage = () => {
               </div>
 
               <div className="p-6 border-t border-border/50">
-                <h3 className="font-semibold mb-3">Zubereitung</h3>
+                <h3 className="font-semibold mb-3">{t.recipeInstructionsHeading}</h3>
                 <ol className="space-y-3">
                   {selectedRecipe.instructions.map((step, i) => (
                     <li key={i} className="flex gap-3 text-sm">

@@ -14,6 +14,7 @@ import {
   getLocalizedGenericMealPrompt,
   getLocalizedMealFocusPrompt,
   getLocalizedMealFocusTitle,
+  getCookingPhaseLabel,
 } from "@/lib/mealI18n";
 import {
   bottomSheetExit,
@@ -30,7 +31,6 @@ import {
   groupStepsByPhase,
   parseAllCookingSteps,
   phaseBadgeClass,
-  phaseLabel,
   sumStepMinutes,
   type MealForInstructions,
 } from "@/lib/cookingInstructions";
@@ -157,10 +157,13 @@ function recipeToMealForInstructions(recipe: TrackerRecipeExample): MealForInstr
 function RecipePreparationSection({
   recipe,
   copy,
+  language,
+  preparationLabel,
 }: {
   recipe: TrackerRecipeExample;
+  language: "de" | "en" | "fr";
+  preparationLabel: string;
   copy: {
-    preparation: string;
     cookingHint: string;
     steps: string;
     totalTime: string;
@@ -195,7 +198,7 @@ function RecipePreparationSection({
       </div>
 
       <h3 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">
-        {copy.preparation} ({parsedSteps.length} {copy.steps})
+        {preparationLabel} ({parsedSteps.length} {copy.steps})
       </h3>
 
       <div className="space-y-5">
@@ -204,7 +207,7 @@ function RecipePreparationSection({
             <p
               className={`mb-2 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${phaseBadgeClass[phase]}`}
             >
-              {phaseLabel[phase]}
+              {getCookingPhaseLabel(phase, language)}
             </p>
             <ol className="space-y-3">
               {steps.map((step) => (
@@ -463,7 +466,6 @@ export function TrackerAddMealPanel({
         detailsClose: "Fermer les details",
         mealLabel: "Repas",
         ingredients: "Ingredients",
-        preparation: "Preparation",
         cookingHint: "Cuisine pas a pas — temps, phase et gestes precis dans chaque etape.",
         steps: "etapes",
         totalTime: "env.",
@@ -498,7 +500,6 @@ export function TrackerAddMealPanel({
           detailsClose: "Close details",
           mealLabel: "Meal",
           ingredients: "Ingredients",
-          preparation: "Preparation",
           cookingHint: "Cook it step by step — each step includes time, phase, and exact actions.",
           steps: "steps",
           totalTime: "approx.",
@@ -532,7 +533,6 @@ export function TrackerAddMealPanel({
           detailsClose: "Details schließen",
           mealLabel: "Mahlzeit",
           ingredients: "Zutaten",
-          preparation: "Zubereitung",
           cookingHint: "Schritt fuer Schritt nachkochen — Zeit, Phase und genaue Handgriffe in jedem Schritt.",
           steps: "Schritte",
           totalTime: "ca.",
@@ -857,7 +857,12 @@ export function TrackerAddMealPanel({
                     </section>
                   ) : null}
 
-                  <RecipePreparationSection recipe={selectedRecipe} copy={copy} />
+                  <RecipePreparationSection
+                    recipe={selectedRecipe}
+                    copy={copy}
+                    language={language}
+                    preparationLabel={t.preparation}
+                  />
                 </div>
 
                 <div className="shrink-0 border-t border-zinc-200 px-4 pt-3">

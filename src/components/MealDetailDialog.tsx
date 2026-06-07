@@ -8,7 +8,6 @@ import {
   parseAllCookingSteps,
   sumStepMinutes,
   groupStepsByPhase,
-  phaseLabel,
   phaseBadgeClass,
 } from "@/lib/cookingInstructions";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
@@ -22,7 +21,7 @@ import {
   viewportPanelTransition,
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
-import { localizeMealTypeLabel, cleanMealDisplayName } from "@/lib/mealI18n";
+import { localizeMealTypeLabel, cleanMealDisplayName, getCookingPhaseLabel } from "@/lib/mealI18n";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 interface Ingredient {
@@ -310,7 +309,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                   </p>
                 </div>
                 <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">
-                  {ui.instructions} ({parsedSteps.length} {ui.steps})
+                  {t.preparation} ({parsedSteps.length} {ui.steps})
                 </h4>
                 <div className="space-y-5">
                   {phaseGroups.map(({ phase, steps }) => (
@@ -318,7 +317,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
                       <p
                         className={`mb-2 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${phaseBadgeClass[phase]}`}
                       >
-                        {phaseLabel[phase]}
+                        {getCookingPhaseLabel(phase, lng)}
                       </p>
                       <ol className="space-y-3">
                         {steps.map((step) => (

@@ -149,7 +149,7 @@ const RecipeDetailPage = () => {
               <div className="text-center">
                 <Clock className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{recipe.prepTime} min</div>
-                <div className="text-sm text-muted-foreground">Zubereitung</div>
+                <div className="text-sm text-muted-foreground">{t.recipePrepTimeMin}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">{recipe.protein}g</div>

@@ -1,5 +1,6 @@
 import type { Language, Translations } from "@/contexts/LanguageContext";
 import type { MealFocusKey } from "@/lib/mealFocus";
+import type { CookingPhase } from "@/lib/cookingInstructions";
 
 type MealTranslationSubset = Pick<
   Translations,
@@ -85,6 +86,37 @@ const GENERIC_MEAL_PROMPT: Record<Language, string> = {
   en: "What did you eat?",
   fr: "Qu as-tu mange ?",
 };
+
+const COOKING_PHASE_LABELS: Record<Language, Record<CookingPhase, string>> = {
+  de: {
+    Vorbereitung: "Vorbereitung",
+    Kochen: "Kochen",
+    Garen: "Garen",
+    Pause: "Pause",
+    Anrichten: "Anrichten",
+    Sonstiges: "Schritt",
+  },
+  en: {
+    Vorbereitung: "Preparation",
+    Kochen: "Cooking",
+    Garen: "Simmering",
+    Pause: "Rest",
+    Anrichten: "Plating",
+    Sonstiges: "Step",
+  },
+  fr: {
+    Vorbereitung: "Préparation",
+    Kochen: "Cuisson",
+    Garen: "Mijoter",
+    Pause: "Pause",
+    Anrichten: "Dressage",
+    Sonstiges: "Étape",
+  },
+};
+
+export function getCookingPhaseLabel(phase: CookingPhase, language: Language): string {
+  return COOKING_PHASE_LABELS[language][phase];
+}
 
 export function getLocalizedMealFocusTitle(
   mealFocus: MealFocusKey,
