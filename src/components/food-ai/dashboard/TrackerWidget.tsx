@@ -205,10 +205,10 @@ function MealSlotButton({
       transition={{ delay: delay + 0.08 + index * 0.04, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       {...tap}
       className={cn(
-        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border bg-white/88 px-1.5 py-2 text-center shadow-[0_10px_22px_-16px_rgba(15,23,42,0.14)] transition-[box-shadow,colors] sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
+        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border-0 bg-white px-1.5 py-2 text-center shadow-[0_12px_28px_-14px_rgba(15,23,42,0.18)] transition-[box-shadow,background-color] sm:min-h-[78px] dark:bg-white/[0.96]",
         logged
-          ? "border border-primary/30 bg-primary/12 text-primary"
-          : "text-foreground hover:bg-primary/8 sm:border-neutral-200/75 dark:border-white/10",
+          ? "bg-primary/[0.08] text-primary shadow-[0_12px_28px_-14px_rgba(57,212,127,0.22)]"
+          : "text-foreground hover:bg-white hover:shadow-[0_14px_32px_-14px_rgba(15,23,42,0.22)] active:scale-[0.98]",
       )}
       aria-label={`${addMealLabel} ${slot.label}`}
     >

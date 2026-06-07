@@ -17,7 +17,6 @@ const ReminderSettings = lazy(() =>
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { toast } from '@/hooks/use-toast';
-import { BottomNavigation } from '@/components/BottomNavigation';
 import { AiDisclaimer } from '@/components/AiDisclaimer';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
@@ -148,7 +147,7 @@ const MealPlansPage = () => {
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
   
   // Use centralized tracker settings hook for consistent data
-  const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const { settings: trackerSettings, reloadSettings } = useTrackerSettings();
   const pageCopy = {
     mealAddedTitle: `${t.eaten}! ✓`,
     premiumActivatingTitle: t.mealPlanPremiumActivatingTitle,
@@ -489,7 +488,7 @@ const MealPlansPage = () => {
           {activeTab === 'reminders' && (
             <motion.div
               key="reminders"
-              initial={tabPanelFrom(isMobile)}
+              initial={isMobile ? { opacity: 1 } : tabPanelFrom(isMobile)}
               animate={{ opacity: 1, y: 0 }}
               exit={tabPanelExit(isMobile)}
               transition={tabPanelTransition(isMobile)}
@@ -507,7 +506,7 @@ const MealPlansPage = () => {
           {activeTab === 'meals' && (
             <motion.div
               key="meals"
-              initial={tabPanelFrom(isMobile)}
+              initial={isMobile ? { opacity: 1 } : tabPanelFrom(isMobile)}
               animate={{ opacity: 1, y: 0 }}
               exit={tabPanelExit(isMobile)}
               transition={tabPanelTransition(isMobile)}
@@ -635,7 +634,7 @@ const MealPlansPage = () => {
           {activeTab === 'shopping' && (
             <motion.div
               key="shopping"
-              initial={tabPanelFrom(isMobile)}
+              initial={isMobile ? { opacity: 1 } : tabPanelFrom(isMobile)}
               animate={{ opacity: 1, y: 0 }}
               exit={tabPanelExit(isMobile)}
               transition={tabPanelTransition(isMobile)}
@@ -681,8 +680,6 @@ const MealPlansPage = () => {
         }}
       />
 
-      {/* Bottom Navigation */}
-      <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
     </div>
     </>
   );
