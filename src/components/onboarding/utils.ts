@@ -76,12 +76,25 @@ export const calculateWeeksToGoal = (userData: UserData) => {
   return Math.ceil(weightDiff / userData.weeklyGoal);
 };
 
+async function accountHasSavedTrackerMacros(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("user_tracker_settings")
+    .select("daily_calories")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data?.daily_calories ?? 0) > 0;
+}
+
 async function syncTrackerProfileToCloud(settings: Record<string, unknown>) {
   try {
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session?.user) return;
+
+    if (await accountHasSavedTrackerMacros(session.user.id)) {
+      return;
+    }
 
     await supabase.from("user_tracker_settings").upsert(
       {
@@ -153,10 +166,25 @@ export const saveOnboardingData = (
     cookingTime: userData.cookingTime,
     notificationPrefs: userData.notificationPrefs,
   };
-  localStorage.setItem("userProfile", JSON.stringify(trackerSettings));
-  invalidateTrackerSettingsCache();
-  notifyFrigyStorageUpdated();
-  void syncTrackerProfileToCloud(trackerSettings);
+
+  const writeLocalTrackerProfile = () => {
+    localStorage.setItem("userProfile", JSON.stringify(trackerSettings));
+    invalidateTrackerSettingsCache();
+    notifyFrigyStorageUpdated();
+  };
+
+  writeLocalTrackerProfile();
+
+  void (async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user && (await accountHasSavedTrackerMacros(session.user.id))) {
+      invalidateTrackerSettingsCache();
+      return;
+    }
+    await syncTrackerProfileToCloud(trackerSettings);
+  })();
 
   if (
     userData.notificationPrefs.meals ||

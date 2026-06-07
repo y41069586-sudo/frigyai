@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import { AiDisclaimer } from '@/components/AiDisclaimer';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
-import { resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
+import { hasMealPlanContent, resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
@@ -119,6 +119,15 @@ const readJsonArray = (key: string): unknown[] => {
   }
 };
 
+const loadNormalizedMealPlan = (value: unknown, defaultMealName: string): DayPlan[] => {
+  try {
+    return normalizeMealPlan(value, defaultMealName);
+  } catch (error) {
+    console.warn('[MEAL-PLAN] Ignoring invalid stored plan:', error);
+    return [];
+  }
+};
+
 const MealPlansPage = () => {
   const isMobile = useIsMobile();
   const { user, session, checkSubscription } = useAuth();
@@ -136,7 +145,7 @@ const MealPlansPage = () => {
   } = useMealPlanGeneration();
   
   const [mealPlan, setMealPlan] = useState<DayPlan[]>(() => {
-    return normalizeMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName);
+    return loadNormalizedMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName);
   });
   const [shoppingList, setShoppingList] = useState<Ingredient[]>(() => {
     return normalizeShoppingList(readJsonArray('weeklyShoppingList'), t.ingredientDefaultName);
@@ -148,6 +157,8 @@ const MealPlansPage = () => {
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, reloadSettings } = useTrackerSettings();
+  const hasPlanContent = useMemo(() => hasMealPlanContent(mealPlan), [mealPlan]);
+
   const pageCopy = {
     mealAddedTitle: `${t.eaten}! ✓`,
     premiumActivatingTitle: t.mealPlanPremiumActivatingTitle,
@@ -238,9 +249,9 @@ const MealPlansPage = () => {
   // Sync meal plan and shopping list from global context or localStorage
   useEffect(() => {
     if (globalMealPlan && globalMealPlan.length > 0) {
-      setMealPlan(normalizeMealPlan(globalMealPlan, t.defaultMealName));
+      setMealPlan(loadNormalizedMealPlan(globalMealPlan, t.defaultMealName));
     } else {
-      setMealPlan(normalizeMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName));
+      setMealPlan(loadNormalizedMealPlan(readJsonArray('weeklyMealPlan'), t.defaultMealName));
     }
 
     if (globalShoppingList && globalShoppingList.length > 0) {
@@ -318,7 +329,7 @@ const MealPlansPage = () => {
   }, [activeTab, generateMealPlan, searchParams, setSearchParams]);
 
   useEffect(() => {
-    if (activeTab !== 'meals' || mealPlan.length === 0) return;
+    if (activeTab !== 'meals' || !hasPlanContent) return;
 
     const dayParam = searchParams.get('day');
     const dayIndex =
@@ -343,7 +354,7 @@ const MealPlansPage = () => {
 
     const t = window.setTimeout(scrollToDay, 120);
     return () => window.clearTimeout(t);
-  }, [activeTab, mealPlan, searchParams]);
+  }, [activeTab, mealPlan, searchParams, hasPlanContent]);
 
   const openMealDetail = (meal: Meal) => {
     // Ensure meal has all required fields with safe defaults
@@ -513,7 +524,7 @@ const MealPlansPage = () => {
               className="relative"
             >
                 <div className="mb-4 sm:mb-6">
-                  {mealPlan.length > 0 && (
+                  {hasPlanContent && (
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <div className="grid w-full min-w-0 grid-cols-[minmax(72px,auto)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
                       <ExportMealPlan mealPlan={mealPlan} pdfOnly />
@@ -551,7 +562,7 @@ const MealPlansPage = () => {
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">
-                  {mealPlan.length === 0 && !isGenerating && (
+                  {!hasPlanContent && !isGenerating && (
                     <Card className="border-primary/20 bg-card/90 p-6 text-center sm:p-8">
                       <Calendar className="mx-auto mb-4 h-12 w-12 text-primary" />
                       <h3 className="text-lg font-bold mb-2">
@@ -570,8 +581,8 @@ const MealPlansPage = () => {
                       </Button>
                     </Card>
                   )}
-                  {mealPlan.length > 0 && <AiDisclaimer className="px-1" />}
-                  {mealPlan.map((day, dayIndex) => {
+                  {hasPlanContent && <AiDisclaimer className="px-1" />}
+                  {hasPlanContent && mealPlan.map((day, dayIndex) => {
                     const isFocusedDay =
                       searchParams.get('day') !== null
                         ? Number.parseInt(searchParams.get('day') ?? '', 10) === dayIndex
@@ -639,7 +650,7 @@ const MealPlansPage = () => {
               exit={tabPanelExit(isMobile)}
               transition={tabPanelTransition(isMobile)}
             >
-                {mealPlan.length === 0 && (
+                {!hasPlanContent && (
                   <Card className="mb-4 p-4 bg-amber-500/10 border-amber-500/30">
                     <p className="text-sm text-amber-700">
                       💡 {pageCopy.shoppingHint}

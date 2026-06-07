@@ -54,15 +54,6 @@ function getInitialTrackerState(userId: string | undefined): {
   isConfigured: boolean;
   loading: boolean;
 } {
-  const local = readLocalTrackerSettings();
-  if (local?.dailyCalories > 0) {
-    return {
-      settings: local,
-      isConfigured: true,
-      loading: Boolean(userId),
-    };
-  }
-
   if (userId && trackerMemoryCache?.userId === userId && trackerMemoryCache.settings) {
     return {
       settings: trackerMemoryCache.settings,
@@ -71,10 +62,28 @@ function getInitialTrackerState(userId: string | undefined): {
     };
   }
 
+  // Logged-in users: account DB is source of truth — don't flash onboarding localStorage.
+  if (userId) {
+    return {
+      settings: null,
+      isConfigured: false,
+      loading: true,
+    };
+  }
+
+  const local = readLocalTrackerSettings();
+  if (local?.dailyCalories > 0) {
+    return {
+      settings: local,
+      isConfigured: true,
+      loading: false,
+    };
+  }
+
   return {
     settings: null,
     isConfigured: false,
-    loading: Boolean(userId),
+    loading: false,
   };
 }
 
@@ -144,6 +153,23 @@ export const useTrackerSettings = () => {
   };
 
   const applyLocalStorageFallback = async () => {
+    if (user) {
+      const { data: existing } = await supabase
+        .from('user_tracker_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing && (existing.daily_calories ?? 0) > 0) {
+        const dbSettings = parseDbSettings(existing);
+        setSettings(dbSettings);
+        setIsConfigured(true);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbSettings));
+        writeTrackerMemoryCache(user.id, dbSettings, true);
+        return;
+      }
+    }
+
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (stored) {
       try {
@@ -185,38 +211,48 @@ export const useTrackerSettings = () => {
 
         if (data && !error) {
           const dbSettings = parseDbSettings(data);
+
+          // Existing account targets always win over a repeated onboarding run.
+          if (dbSettings.dailyCalories > 0) {
+            setSettings(dbSettings);
+            setIsConfigured(true);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbSettings));
+            writeTrackerMemoryCache(user.id, dbSettings, true);
+            return;
+          }
+
           let merged = dbSettings as TrackerSettings & Record<string, unknown>;
           try {
             const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
             const parsed = stored ? JSON.parse(stored) : null;
-
-            if (parsed) {
-              merged = {
-                ...dbSettings,
-                ...parsed,
-                dietaryPreferences: dbSettings.dietaryPreferences?.length
-                  ? dbSettings.dietaryPreferences
-                  : parsed.dietaryPreferences,
-                healthGoals: dbSettings.healthGoals?.length
-                  ? dbSettings.healthGoals
-                  : parsed.healthGoals,
-                allergies: dbSettings.allergies?.length ? dbSettings.allergies : parsed.allergies,
-                allergiesOther: dbSettings.allergiesOther || parsed.allergiesOther || '',
-              };
-            }
 
             const localMacros =
               readStoredTrackerTargets() ??
               readOnboardingMacroTargets() ??
               (parsed ? mergeMacroTargetsFromLocal({}, parsed) : null);
 
-            if (dbSettings.dailyCalories > 0) {
-              merged.dailyCalories = dbSettings.dailyCalories;
-              merged.dailyProtein = dbSettings.dailyProtein;
-              merged.dailyCarbs = dbSettings.dailyCarbs;
-              merged.dailyFat = dbSettings.dailyFat;
-            } else if (localMacros) {
+            if (localMacros) {
               merged = mergeMacroTargetsFromLocal(merged, localMacros);
+            }
+
+            if (parsed) {
+              merged = {
+                ...merged,
+                age: merged.age || parsed.age || 0,
+                weight: merged.weight || parsed.weight || 0,
+                targetWeight: merged.targetWeight || parsed.targetWeight || 0,
+                goalMode: merged.goalMode || parsed.goalMode || 'lose',
+                weeklyGoal: merged.weeklyGoal || parsed.weeklyGoal || 0.5,
+                mealsPerDay: merged.mealsPerDay || parsed.mealsPerDay || 5,
+                dietaryPreferences: merged.dietaryPreferences?.length
+                  ? merged.dietaryPreferences
+                  : parsed.dietaryPreferences,
+                healthGoals: merged.healthGoals?.length
+                  ? merged.healthGoals
+                  : parsed.healthGoals,
+                allergies: merged.allergies?.length ? merged.allergies : parsed.allergies,
+                allergiesOther: merged.allergiesOther || parsed.allergiesOther || '',
+              };
             }
 
             const onboardingRaw = localStorage.getItem('onboardingUserData');
@@ -239,17 +275,12 @@ export const useTrackerSettings = () => {
             /* keep dbSettings only */
           }
 
-          const shouldSyncLocalToDb =
-            user &&
-            dbSettings.dailyCalories <= 0 &&
-            merged.dailyCalories > 0;
+          const shouldSyncLocalToDb = merged.dailyCalories > 0;
 
           setSettings(merged);
           setIsConfigured(merged.dailyCalories > 0);
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
-          if (user) {
-            writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
-          }
+          writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
           if (shouldSyncLocalToDb) {
             void saveToDatabase(merged);
           }
@@ -331,9 +362,7 @@ export const useTrackerSettings = () => {
   }, [user]);
 
   useEffect(() => {
-    const hasWarmCache =
-      Boolean(user?.id && trackerMemoryCache?.userId === user.id) ||
-      Boolean(readLocalTrackerSettings());
+    const hasWarmCache = Boolean(user?.id && trackerMemoryCache?.userId === user.id);
     hasLoadedOnceRef.current = hasWarmCache;
     void loadSettings(!hasWarmCache);
   }, [loadSettings, user?.id]);

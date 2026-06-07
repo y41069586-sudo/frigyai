@@ -76,6 +76,17 @@ export function countPlannedMeals(plan: StoredDayPlan[]): number {
   return plan.reduce((sum, day) => sum + (day.meals?.length ?? 0), 0);
 }
 
+/** True when at least one day has a named meal — empty shells in localStorage don't count. */
+export function hasMealPlanContent(plan: StoredDayPlan[] | null | undefined): boolean {
+  if (!Array.isArray(plan) || plan.length === 0) return false;
+  return plan.some((day) =>
+    (day.meals ?? []).some((meal) => {
+      const name = String(meal?.name ?? "").trim();
+      return name.length > 0 && name !== "—" && name !== "-";
+    }),
+  );
+}
+
 export function countDaysWithMeals(plan: StoredDayPlan[]): number {
   return plan.filter((d) => (d.meals?.length ?? 0) > 0).length;
 }

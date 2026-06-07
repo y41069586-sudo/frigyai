@@ -647,8 +647,11 @@ const Index = () => {
   }, [loading, showOnboarding, user, onboardingResumeStep, dbOnboardingComplete]);
 
   const macroTargets = useMemo(
-    () => resolveDashboardMacroTargets(trackerSettings, { preferLocal: trackerLoading }),
-    [trackerSettings, trackerLoading],
+    () =>
+      resolveDashboardMacroTargets(trackerSettings, {
+        preferLocal: trackerLoading && !user && !session,
+      }),
+    [trackerSettings, trackerLoading, user, session],
   );
   const targetCalories = macroTargets?.dailyCalories ?? 0;
   const targetProtein = macroTargets?.dailyProtein ?? 0;

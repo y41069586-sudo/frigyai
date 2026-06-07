@@ -140,17 +140,25 @@ const DAY_NAME_PATTERN =
 
 /** Strip weekday tags AI/fallback sometimes append, e.g. "Hähnchen Reis (Dienstag)". */
 export function cleanMealDisplayName(name: string | null | undefined): string {
-  let n = String(name || "").trim();
-  if (!n) return "";
+  const original = String(name || "").trim();
+  if (!original) return "";
 
-  const dayRe = new RegExp(DAY_NAME_PATTERN, "iu");
-  n = n.replace(new RegExp(`\\s*[\\(\\[]\\s*(${DAY_NAME_PATTERN})\\s*[\\)\\]]\\s*$`, "iu"), "");
-  n = n.replace(new RegExp(`^\\s*(${DAY_NAME_PATTERN})\\s*[\\:\\-–—|]\\s*`, "iu"), "");
-  n = n.replace(new RegExp(`\\s+[\\(\\[]\\s*(${DAY_NAME_PATTERN})\\s*[\\)\\]]\\s*$`, "iu"), "");
+  try {
+    let n = original;
+    const dayRe = new RegExp(DAY_NAME_PATTERN, "i");
+    const dayInParens = new RegExp(`\\s*[(\\[]\\s*(${DAY_NAME_PATTERN})\\s*[)\\]]\\s*$`, "i");
+    const dayWithSeparator = new RegExp(`^\\s*(${DAY_NAME_PATTERN})\\s*[:|–—-]\\s*`, "i");
 
-  if (dayRe.test(n) && /\b(meal|mahlzeit|gericht|repas|frühstück|hauptgericht|snack)\b/i.test(n)) {
-    return "";
+    n = n.replace(dayInParens, "");
+    n = n.replace(dayWithSeparator, "");
+    n = n.replace(dayInParens, "");
+
+    if (dayRe.test(n) && /\b(meal|mahlzeit|gericht|repas|frühstück|hauptgericht|snack)\b/i.test(n)) {
+      return "";
+    }
+
+    return n.trim() || original;
+  } catch {
+    return original;
   }
-
-  return n.trim() || String(name || "").trim();
 }
