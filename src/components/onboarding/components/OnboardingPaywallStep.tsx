@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Lock, Bell, Crown, Loader2 } from "lucide-react";
+import { Check, ChevronUp, Lock, Bell, Crown, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
@@ -66,6 +67,8 @@ const copy = {
       "Das Abo verlängert sich automatisch, bis du es mindestens 24 Stunden vor Periodenende in den Einstellungen deines App-Store- oder Google-Play-Kontos kündigst. Die Zahlung wird bei Bestätigung über dein Store-Konto abgebucht.",
     terms: "Nutzungsbedingungen",
     privacy: "Datenschutz",
+    legalToggleShow: "Auto-Verlängerung anzeigen",
+    legalToggleHide: "Auto-Verlängerung ausblenden",
   },
   en: {
     unlockTitle: "Unlock Frigy to reach your goals faster",
@@ -103,6 +106,8 @@ const copy = {
       "Subscription automatically renews unless cancelled at least 24 hours before the end of the current period in your App Store or Google Play account settings. Payment is charged to your store account at confirmation.",
     terms: "Terms of Service",
     privacy: "Privacy Policy",
+    legalToggleShow: "Show auto-renewal details",
+    legalToggleHide: "Hide auto-renewal details",
   },
   fr: {
     unlockTitle: "Débloque Frigy pour atteindre tes objectifs plus vite",
@@ -140,6 +145,8 @@ const copy = {
       "L'abonnement se renouvelle automatiquement sauf annulation au moins 24 h avant la fin de la période dans les réglages App Store ou Google Play. Le paiement est débité sur ton compte store à la confirmation.",
     terms: "Conditions d'utilisation",
     privacy: "Confidentialité",
+    legalToggleShow: "Afficher le renouvellement automatique",
+    legalToggleHide: "Masquer le renouvellement automatique",
   },
 };
 
@@ -180,6 +187,7 @@ export function OnboardingPaywallStep({
   const { t: globalT } = useLanguage();
   const navigate = useNavigate();
   const [plan, setPlan] = useState<PaywallBillingPlan>("monthly");
+  const [autoRenewExpanded, setAutoRenewExpanded] = useState(false);
   const t = copy[language];
   const billingDate = useMemo(() => formatBillingDate(language), [language]);
   const isMonthly = plan === "monthly";
@@ -430,9 +438,36 @@ export function OnboardingPaywallStep({
             {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
           </p>
 
-          <p className="mt-2 text-center text-[11px] leading-relaxed text-[#9CA3AF]">
-            {autoRenewText}
-          </p>
+          <button
+            type="button"
+            onClick={() => setAutoRenewExpanded((open) => !open)}
+            aria-expanded={autoRenewExpanded}
+            aria-label={autoRenewExpanded ? t.legalToggleHide : t.legalToggleShow}
+            className="mt-1 flex w-full items-center justify-center py-1 text-[#9CA3AF] transition-colors hover:text-[#6B7280] touch-manipulation"
+          >
+            <ChevronUp
+              className={cn(
+                "h-5 w-5 shrink-0 transition-transform duration-200",
+                autoRenewExpanded && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {autoRenewExpanded && (
+              <motion.p
+                key="paywall-auto-renew"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden text-center text-[11px] leading-relaxed text-[#9CA3AF]"
+              >
+                {autoRenewText}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           <nav
             className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-medium"

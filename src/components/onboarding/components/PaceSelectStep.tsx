@@ -232,6 +232,10 @@ function MintSlider({
   );
 }
 
+function isMaintainWeightGoal(userData: UserData): boolean {
+  return userData.goalMode === "maintain" || userData.goal === "maintain";
+}
+
 export function PaceSelectStep({
   userData,
   setUserData,
@@ -239,6 +243,17 @@ export function PaceSelectStep({
   onNext,
 }: Props) {
   const { language } = useLanguage();
+  const skippedMaintainRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMaintainWeightGoal(userData) || skippedMaintainRef.current) return;
+    skippedMaintainRef.current = true;
+    onNext?.();
+  }, [userData.goalMode, userData.goal, onNext]);
+
+  if (isMaintainWeightGoal(userData)) {
+    return null;
+  }
 
   const isMetric = userData.weightUnit === "metric";
   const isGain = userData.goalMode === "gain";

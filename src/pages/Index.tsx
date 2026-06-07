@@ -649,7 +649,8 @@ const Index = () => {
   const macroTargets = useMemo(
     () =>
       resolveDashboardMacroTargets(trackerSettings, {
-        preferLocal: trackerLoading && !user && !session,
+        preferLocal: trackerLoading && !(trackerSettings?.dailyCalories ?? 0),
+        storedProfileOnly: Boolean(user || session),
       }),
     [trackerSettings, trackerLoading, user, session],
   );

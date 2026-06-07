@@ -307,23 +307,23 @@ export function FrigyIngredientScanFlow({
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="absolute left-0 right-0 top-[max(3.5rem,env(safe-area-inset-top)+2.25rem)] z-10 px-4 pt-2"
+              className="pointer-events-auto absolute left-0 right-0 top-[max(3.5rem,env(safe-area-inset-top)+2.25rem)] z-10 px-4 pt-2"
             >
-              <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+              <div className="flex gap-3 overflow-x-auto overflow-y-visible pb-2 pl-0.5 pt-1.5 [-webkit-overflow-scrolling:touch]">
                 {pendingPhotos.map((photo) => (
-                  <div key={photo.id} className="relative shrink-0 pt-1 pr-1">
+                  <div key={photo.id} className="relative size-16 shrink-0">
                     <img
                       src={photo.previewUrl}
                       alt=""
-                      className="h-14 w-14 rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
+                      className="size-full rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
                     />
                     <button
                       type="button"
                       onClick={() => removePhoto(photo.id)}
-                      className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-white shadow-sm"
+                      className="absolute -right-1.5 -top-1.5 z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-black/90 text-white shadow-md ring-2 ring-white/20"
                       aria-label={ui.close}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="size-3.5" strokeWidth={2.5} />
                     </button>
                   </div>
                 ))}

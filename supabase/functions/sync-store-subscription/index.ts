@@ -9,6 +9,8 @@ const corsHeaders = {
 };
 
 const ENTITLEMENT_ID = Deno.env.get("REVENUECAT_ENTITLEMENT_ID")?.trim() || "premium";
+/** SQL/admin grants — must not be overwritten when RevenueCat has no purchase. */
+const ADMIN_GRANT_PRODUCT_ID = "store_admin_grant";
 
 type RcSubscriber = {
   subscriber?: {
@@ -54,6 +56,35 @@ function isStoreProductId(productId: string | null | undefined): boolean {
 function cacheEntryStillValid(subscriptionEnd: string | null | undefined): boolean {
   if (!subscriptionEnd) return true;
   return new Date(subscriptionEnd) > new Date();
+}
+
+type CachedSubscription = {
+  subscribed?: boolean;
+  product_id?: string | null;
+  subscription_end?: string | null;
+  is_trial?: boolean | null;
+};
+
+function isValidAdminGrant(row: CachedSubscription | null | undefined): boolean {
+  return Boolean(
+    row?.subscribed &&
+      row.product_id === ADMIN_GRANT_PRODUCT_ID &&
+      cacheEntryStillValid(row.subscription_end ?? null),
+  );
+}
+
+function toSubscriptionResult(row: CachedSubscription): {
+  subscribed: boolean;
+  product_id: string | null;
+  subscription_end: string | null;
+  is_trial: boolean;
+} {
+  return {
+    subscribed: true,
+    product_id: row.product_id ?? null,
+    subscription_end: row.subscription_end ?? null,
+    is_trial: row.is_trial || false,
+  };
 }
 
 serve(async (req) => {
@@ -134,8 +165,26 @@ serve(async (req) => {
       });
     }
 
+    const { data: existing } = await supabase
+      .from("subscription_cache")
+      .select("subscribed, product_id, subscription_end, is_trial")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     const rcJson = (await rcRes.json()) as RcSubscriber;
     const cache = mapRcToCache(rcJson);
+
+    // RevenueCat "no entitlement" must not wipe SQL/admin premium grants.
+    if (!cache.subscribed && isValidAdminGrant(existing)) {
+      const preserved = toSubscriptionResult(existing!);
+      console.log("[sync-store-subscription] Keeping admin grant (RC inactive)", {
+        userId,
+        until: preserved.subscription_end,
+      });
+      return new Response(JSON.stringify(preserved), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     await supabase.from("subscription_cache").upsert(
       {

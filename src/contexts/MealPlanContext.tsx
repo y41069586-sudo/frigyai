@@ -538,15 +538,18 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       try {
         if (usesStoreBilling() && session.access_token) {
-          try {
-            await Promise.race([
-              syncStoreSubscriptionToServer(session.access_token),
-              new Promise<void>((_, reject) =>
-                setTimeout(() => reject(new Error('store sync timeout')), 5000),
-              ),
-            ]);
-          } catch (syncErr) {
-            console.warn('[MEAL-PLAN-CLIENT] store subscription sync skipped:', syncErr);
+          const skipRcSync = subscriptionStatus?.product_id === "store_admin_grant";
+          if (!skipRcSync) {
+            try {
+              await Promise.race([
+                syncStoreSubscriptionToServer(session.access_token),
+                new Promise<void>((_, reject) =>
+                  setTimeout(() => reject(new Error('store sync timeout')), 5000),
+                ),
+              ]);
+            } catch (syncErr) {
+              console.warn('[MEAL-PLAN-CLIENT] store subscription sync skipped:', syncErr);
+            }
           }
         }
 

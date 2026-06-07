@@ -130,9 +130,9 @@ export function AuthFlowOverlay() {
   useEffect(() => subscribeAuthFlow(() => setSnap(getAuthFlowSnapshot())), []);
 
   useEffect(() => {
-    if (POST_AUTH_MANUAL_NAV_PATHS.has(location.pathname)) {
-      dismissStalledAuthNavigation();
-    }
+    if (!POST_AUTH_MANUAL_NAV_PATHS.has(location.pathname)) return;
+    if (isAuthFlowOverlayVisible()) return;
+    dismissStalledAuthNavigation();
   }, [location.pathname]);
 
   if (!isAuthFlowOverlayVisible()) {

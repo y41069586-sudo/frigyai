@@ -840,7 +840,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
 
     // For maintain goal we do not ask weekly weight-change pace.
-    if (onboardingSteps[nextIndex] === "speed-select" && userData.goalMode === "maintain") {
+    if (
+      onboardingSteps[nextIndex] === "speed-select" &&
+      (userData.goalMode === "maintain" || userData.goal === "maintain")
+    ) {
       nextIndex++;
     }
 
@@ -862,7 +865,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     lightTap(); // Haptic feedback on navigation
     let prevIndex = currentIndex - 1;
 
-    if (onboardingSteps[prevIndex] === "speed-select" && userData.goalMode === "maintain") {
+    if (
+      onboardingSteps[prevIndex] === "speed-select" &&
+      (userData.goalMode === "maintain" || userData.goal === "maintain")
+    ) {
       prevIndex--;
     }
     
@@ -4324,6 +4330,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         }}
         currentGoals={macroGoalsForEdit}
         focusMacro={macroEditFocus}
+        weightKg={userData.weight}
         onSave={(goals) => {
           setUserData((prev) => ({
             ...prev,

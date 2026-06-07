@@ -65,6 +65,7 @@ export function executeAuthNavigation(
       typeof window !== "undefined" ? window.location.pathname : null;
     if (
       result.status === "success" &&
+      result.routePhase === "dashboard" &&
       currentPath &&
       currentPath !== target &&
       POST_AUTH_MANUAL_NAV_PATHS.has(currentPath)

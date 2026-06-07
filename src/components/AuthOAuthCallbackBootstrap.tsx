@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl } from "@/lib/completeOAuthSignIn";
 import { clearOAuthPending, getOAuthPending } from "@/lib/oauthPending";
+import { publishAuthResult } from "@/lib/authCompletion";
 import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
 
 /**
@@ -18,7 +19,7 @@ export function AuthOAuthCallbackBootstrap() {
   const pendingRedirectStartedRef = useRef(false);
 
   useEffect(() => {
-    if (oauthCallbackHandledRef.current || loading) return;
+    if (oauthCallbackHandledRef.current) return;
 
     const href = window.location.href;
 
@@ -32,6 +33,7 @@ export function AuthOAuthCallbackBootstrap() {
     if (!isOAuthCallbackUrl(href)) return;
 
     oauthCallbackHandledRef.current = true;
+    publishAuthResult({ status: "pending", phase: "oauth_exchange" });
 
     void (async () => {
       const result = await handleOAuthCallbackUrl({
@@ -47,7 +49,7 @@ export function AuthOAuthCallbackBootstrap() {
         oauthCallbackHandledRef.current = false;
       }
     })();
-  }, [loading, location.pathname, location.search, navigate, checkSubscription]);
+  }, [location.pathname, location.search, navigate, checkSubscription]);
 
   useEffect(() => {
     if (loading || pendingRedirectStartedRef.current || !user) return;

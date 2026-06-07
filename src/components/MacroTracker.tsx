@@ -38,7 +38,7 @@ import {
   type TrackerRecipeExample,
 } from '@/components/tracker/TrackerAddMealPanel';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
-import { FRIGY_OPEN_LOG_MEAL, notifyOverlayOpen } from '@/lib/overlayEvents';
+import { FRIGY_OPEN_LOG_MEAL, FRIGY_EDIT_TRACKER_GOALS, notifyOverlayOpen } from '@/lib/overlayEvents';
 import { getMinCaloriesForAge } from '@/components/onboarding/utils';
 import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 import { dataUrlToBase64Payload, fileToCompressedBase64 } from '@/lib/compressImage';
@@ -225,6 +225,20 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     );
   }, [setSearchParams]);
 
+  const openEditGoalsDialog = useCallback((focus: FocusMacro = "calories") => {
+    setFocusMacro(focus);
+    setShowEditGoalsDialog(true);
+  }, []);
+
+  useEffect(() => {
+    const onEditGoals = (event: Event) => {
+      const focus = (event as CustomEvent<{ focus?: FocusMacro }>).detail?.focus ?? "calories";
+      openEditGoalsDialog(focus);
+    };
+    window.addEventListener(FRIGY_EDIT_TRACKER_GOALS, onEditGoals);
+    return () => window.removeEventListener(FRIGY_EDIT_TRACKER_GOALS, onEditGoals);
+  }, [openEditGoalsDialog]);
+
   const logMealParam = searchParams.get("logMeal");
   const mealFocusParam = searchParams.get("mealFocus");
   const editMacrosParam = searchParams.get("editMacros");
@@ -237,8 +251,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     if (step !== "tracker") return;
 
     if (editMacros) {
-      setFocusMacro("calories");
-      setShowEditGoalsDialog(true);
+      openEditGoalsDialog("calories");
       setSearchParams(
         (prev) => {
           const p = new URLSearchParams(prev);
@@ -265,7 +278,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       },
       { replace: true },
     );
-  }, [step, logMealParam, mealFocusParam, editMacrosParam, setSearchParams, openLogMealPanel]);
+  }, [step, logMealParam, mealFocusParam, editMacrosParam, setSearchParams, openLogMealPanel, openEditGoalsDialog]);
 
   useEffect(() => {
     const onOpenLogMeal = (event: Event) => {
@@ -1303,10 +1316,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
   ];
 
-  if (settingsLoading && !logMealPanelOpen && !profile && logMealParam !== "1") {
-    return null;
-  }
-
   if (step === 'onboarding') {
     const currentStepData = onboardingSteps[onboardingStep];
     const Icon = currentStepData.icon;
@@ -1401,48 +1410,63 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           if (!open) setFocusMacro(null);
         }}
         currentGoals={{
-          dailyCalories: profile?.dailyCalories || 2000,
-          dailyProtein: profile?.dailyProtein || 150,
-          dailyCarbs: profile?.dailyCarbs || 200,
-          dailyFat: profile?.dailyFat || 70,
+          dailyCalories: profile?.dailyCalories ?? trackerSettings?.dailyCalories ?? 2000,
+          dailyProtein: profile?.dailyProtein ?? trackerSettings?.dailyProtein ?? 150,
+          dailyCarbs: profile?.dailyCarbs ?? trackerSettings?.dailyCarbs ?? 200,
+          dailyFat: profile?.dailyFat ?? trackerSettings?.dailyFat ?? 70,
         }}
         focusMacro={focusMacro}
+        weightKg={trackerSettings?.weight ?? weight}
         onSave={async (goals) => {
-          // Update profile state
+          const previous = profile ?? {
+            age: trackerSettings?.age ?? age,
+            weight: trackerSettings?.weight ?? weight,
+            targetWeight: trackerSettings?.targetWeight ?? targetWeight,
+            dailyCalories: trackerSettings?.dailyCalories ?? goals.dailyCalories,
+            dailyProtein: trackerSettings?.dailyProtein ?? goals.dailyProtein,
+            dailyCarbs: trackerSettings?.dailyCarbs ?? goals.dailyCarbs,
+            dailyFat: trackerSettings?.dailyFat ?? goals.dailyFat,
+            mealsPerDay: trackerSettings?.mealsPerDay ?? mealsPerDay,
+          };
+
+          const mealPlanNeedsRefresh =
+            previous.dailyCalories !== goals.dailyCalories ||
+            previous.dailyProtein !== goals.dailyProtein ||
+            previous.dailyCarbs !== goals.dailyCarbs ||
+            previous.dailyFat !== goals.dailyFat;
+
           const newProfile = {
-            ...profile!,
+            ...previous,
             dailyCalories: goals.dailyCalories,
             dailyProtein: goals.dailyProtein,
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
           };
-          const mealPlanNeedsRefresh =
-            profile && (
-              profile.dailyCalories !== goals.dailyCalories ||
-              profile.dailyProtein !== goals.dailyProtein ||
-              profile.dailyCarbs !== goals.dailyCarbs ||
-              profile.dailyFat !== goals.dailyFat
-            );
 
           setProfile(newProfile);
 
-          // Save to database
           await saveTrackerSettings({
-            age: age,
-            weight: weight,
-            targetWeight: targetWeight,
-            goalMode: goalMode,
-            weeklyGoal: weeklyLossRate,
+            age: trackerSettings?.age ?? age,
+            weight: trackerSettings?.weight ?? weight,
+            targetWeight: trackerSettings?.targetWeight ?? targetWeight,
+            goalMode: trackerSettings?.goalMode ?? goalMode,
+            weeklyGoal: trackerSettings?.weeklyGoal ?? weeklyLossRate,
             dailyCalories: goals.dailyCalories,
             dailyProtein: goals.dailyProtein,
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
-            mealsPerDay: mealsPerDay,
+            mealsPerDay: trackerSettings?.mealsPerDay ?? mealsPerDay,
+            dietaryPreferences: trackerSettings?.dietaryPreferences,
+            healthGoals: trackerSettings?.healthGoals,
+            allergies: trackerSettings?.allergies,
+            allergiesOther: trackerSettings?.allergiesOther,
           });
 
           if (mealPlanNeedsRefresh) {
             showMealPlanRefreshToast();
           }
+
+          onSetupComplete?.();
         }}
       />
 

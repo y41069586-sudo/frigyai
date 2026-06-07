@@ -56,6 +56,8 @@ export function readOnboardingMacroTargets(): DailyMacroTargets | null {
  */
 export type ResolveDashboardMacroTargetsOptions = {
   preferLocal?: boolean;
+  /** Skip onboardingUserData — use only synced userProfile while loading. */
+  storedProfileOnly?: boolean;
 };
 
 export function resolveDashboardMacroTargets(
@@ -63,7 +65,9 @@ export function resolveDashboardMacroTargets(
   options?: ResolveDashboardMacroTargetsOptions,
 ): DailyMacroTargets | null {
   const fromRemote = normalizeMacroTargets(remote);
-  const local = readStoredTrackerTargets() ?? readOnboardingMacroTargets();
+  const local = options?.storedProfileOnly
+    ? readStoredTrackerTargets()
+    : readStoredTrackerTargets() ?? readOnboardingMacroTargets();
 
   if (options?.preferLocal && local) {
     return local;

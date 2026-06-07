@@ -133,7 +133,27 @@ export function MainGoalSelectStep({
                 scale: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
               }}
               whileTap={{ scale: isSelected ? 1.0 : 0.985 }}
-              onClick={() => setUserData({ ...userData, goalMode: opt.id })}
+              onClick={() => {
+                if (opt.id === "maintain") {
+                  const totalKg = userData.weight + (userData.weightDecimal ?? 0) / 10;
+                  const kgWhole = Math.floor(totalKg);
+                  const kgDecimal = Math.max(
+                    0,
+                    Math.min(9, Math.round((totalKg - kgWhole) * 10)),
+                  );
+                  setUserData({
+                    ...userData,
+                    goal: "maintain",
+                    goalMode: "maintain",
+                    targetWeight: kgWhole,
+                    targetWeightDecimal: kgDecimal,
+                    targetWeightConfirmed: true,
+                    weeklyGoal: 0,
+                  });
+                  return;
+                }
+                setUserData({ ...userData, goal: opt.id, goalMode: opt.id as GoalId });
+              }}
               className="relative flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-all duration-200"
               style={{
                 backgroundColor: isSelected ? PALETTE.selectedBg : "#FFFFFF",

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Beef, Check, Droplet, Plus, Wheat } from "lucide-react";
+import { Beef, Check, Droplet, Pencil, Plus, Wheat } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
@@ -95,7 +95,19 @@ export function TrackerWidget({
       >
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary/75">{t.today}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary/75">{t.today}</p>
+              {onOpenTracker && (
+                <button
+                  type="button"
+                  {...openTrackerTap}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/15 active:scale-95"
+                  aria-label={t.changeGoal}
+                >
+                  <Pencil className="h-4 w-4" strokeWidth={2.2} />
+                </button>
+              )}
+            </div>
             <button
               type="button"
               {...openTrackerTap}

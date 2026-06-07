@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealPlanGeneration } from '@/contexts/MealPlanContext';
-import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Calendar, Refrigerator } from 'lucide-react';
+import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, User, Crown, Refrigerator } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
@@ -20,8 +20,9 @@ import { toast } from '@/hooks/use-toast';
 import { AiDisclaimer } from '@/components/AiDisclaimer';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
-import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY } from '@/lib/frigyStorageSync';
+import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, FRIGY_TRACKER_SETTINGS_UPDATED } from '@/lib/frigyStorageSync';
 import { hasMealPlanContent, resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
+import { WeeklyPlanEmptyState } from '@/components/meal-plan/WeeklyPlanEmptyState';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
@@ -428,6 +429,14 @@ const MealPlansPage = () => {
   }, []);
 
   useEffect(() => {
+    const onTrackerUpdated = () => {
+      void reloadSettings();
+    };
+    window.addEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerUpdated);
+    return () => window.removeEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerUpdated);
+  }, [reloadSettings]);
+
+  useEffect(() => {
     if (isGenerating) return;
     dismissStalledAuthNavigation();
   }, [isGenerating]);
@@ -563,23 +572,15 @@ const MealPlansPage = () => {
 
                 <div className="space-y-3 sm:space-y-4">
                   {!hasPlanContent && !isGenerating && (
-                    <Card className="border-primary/20 bg-card/90 p-6 text-center sm:p-8">
-                      <Calendar className="mx-auto mb-4 h-12 w-12 text-primary" />
-                      <h3 className="text-lg font-bold mb-2">
-                        {t.onboardingFirstWeeklyPlanTitle}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
-                        {t.onboardingFirstWeeklyPlanDesc}
-                      </p>
-                      <Button
-                        type="button"
-                        className="rounded-2xl bg-primary"
-                        onClick={() => void generateMealPlan()}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        {t.createWeeklyPlan}
-                      </Button>
-                    </Card>
+                    <WeeklyPlanEmptyState
+                      dailyCalories={trackerSettings?.dailyCalories}
+                      dailyProtein={trackerSettings?.dailyProtein}
+                      dailyCarbs={trackerSettings?.dailyCarbs}
+                      dailyFat={trackerSettings?.dailyFat}
+                      mealsPerDay={trackerSettings?.mealsPerDay}
+                      isGenerating={isGenerating}
+                      onCreatePlan={() => void generateMealPlan()}
+                    />
                   )}
                   {hasPlanContent && <AiDisclaimer className="px-1" />}
                   {hasPlanContent && mealPlan.map((day, dayIndex) => {

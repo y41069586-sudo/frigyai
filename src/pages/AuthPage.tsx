@@ -222,11 +222,20 @@ const AuthPage = () => {
     hasOAuthCallback ||
     isAuthCompletionPending() ||
     isAuthFlowOverlayVisible() ||
-    getOAuthPending() === "onboarding";
+    getOAuthPending() ||
+    isGoogleLoading ||
+    isAppleLoading;
 
-  // Logged-in user: AuthFlowOverlay + router handle redirect — don't block on /auth loader.
-  if (user && (oauthInFlight || isRedirecting)) {
-    return null;
+  // OAuth return / post-auth: only loader — never flash the login form.
+  if (oauthInFlight || isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary px-6">
+        <div className="text-center">
+          <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
+          <p className="text-muted-foreground">{t.loading}</p>
+        </div>
+      </div>
+    );
   }
 
   const showAuthLoader = loading && !user;

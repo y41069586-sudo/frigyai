@@ -44,9 +44,11 @@ export const calculateMacros = (userData: UserData) => {
 
   const tdee = bmr * (activityMultipliers[activityLevel || "medium"] || 1.55);
   const dailyCalorieChange = weeklyGoal * 1100;
-  
+
   let dailyCalories: number;
-  if (goalMode === "lose") {
+  if (goalMode === "maintain") {
+    dailyCalories = tdee;
+  } else if (goalMode === "lose") {
     dailyCalories = tdee - dailyCalorieChange;
   } else {
     dailyCalories = tdee + dailyCalorieChange;
@@ -66,6 +68,10 @@ export const calculateMacros = (userData: UserData) => {
 };
 
 export const calculateWeeksToGoal = (userData: UserData) => {
+  if (userData.goalMode === "maintain") {
+    return 0;
+  }
+
   const weightDiff = Math.abs(userData.targetWeight - userData.weight);
 
   if (!userData.weeklyGoal || userData.weeklyGoal <= 0) {

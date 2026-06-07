@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Flame, Dumbbell, Wheat, Droplets, Save, X } from 'lucide-react';
-import { useLanguage, formatTranslation } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
+import {
+  calculateMacrosForWeightAndCalories,
+  macroGoalsEqual,
+} from '@/lib/macroGoals';
 
 interface MacroGoals {
   dailyCalories: number;
@@ -23,6 +27,8 @@ interface EditMacroGoalsDialogProps {
   currentGoals: MacroGoals;
   onSave: (goals: MacroGoals) => void;
   focusMacro?: FocusMacro;
+  /** Used when calories change and user opts into auto P/C/F calculation. */
+  weightKg?: number;
 }
 
 type MacroField = 'calories' | 'protein' | 'carbs' | 'fat';
@@ -48,6 +54,7 @@ export const EditMacroGoalsDialog = ({
   currentGoals,
   onSave,
   focusMacro = null,
+  weightKg = 70,
 }: EditMacroGoalsDialogProps) => {
   const { t } = useLanguage();
   const [calories, setCalories] = useState(currentGoals.dailyCalories);
@@ -59,6 +66,10 @@ export const EditMacroGoalsDialog = ({
   const [proteinText, setProteinText] = useState(formatDigits(currentGoals.dailyProtein));
   const [carbsText, setCarbsText] = useState(formatDigits(currentGoals.dailyCarbs));
   const [fatText, setFatText] = useState(formatDigits(currentGoals.dailyFat));
+
+  const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
+  const [pendingGoals, setPendingGoals] = useState<MacroGoals | null>(null);
+  const baselineRef = useRef<MacroGoals>(currentGoals);
 
   const inputRefs = useRef<Partial<Record<MacroField, HTMLInputElement | null>>>({});
 
@@ -74,7 +85,12 @@ export const EditMacroGoalsDialog = ({
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setShowRecalcConfirm(false);
+      setPendingGoals(null);
+      return;
+    }
+    baselineRef.current = { ...currentGoals };
     syncFromGoals(currentGoals);
 
     if (!focusMacro) return;
@@ -102,42 +118,25 @@ export const EditMacroGoalsDialog = ({
     };
   }, [open]);
 
-  const handleAutoCalculateCarbs = () => {
-    const proteinCals = protein * 4;
-    const fatCals = fat * 9;
-    const carbCals = Math.max(0, calories - proteinCals - fatCals);
-    const newCarbs = Math.round(carbCals / 4);
+  const readGoalsFromInputs = (): MacroGoals => ({
+    dailyCalories: Math.round(parseDigits(caloriesText) || calories),
+    dailyProtein: Math.round(parseDigits(proteinText) || protein),
+    dailyCarbs: Math.round(parseDigits(carbsText) || carbs),
+    dailyFat: Math.round(parseDigits(fatText) || fat),
+  });
 
-    setCarbs(newCarbs);
-    setCarbsText(formatDigits(newCarbs));
-
-    toast({
-      title: t.macroEditCarbsCalculated,
-      description: formatTranslation(t.macroEditCarbsCalculatedDesc, {
-        carbs: newCarbs,
-        calories,
-      }),
-    });
-  };
-
-  const handleSave = () => {
-    const resolvedCalories = parseDigits(caloriesText) || calories;
-    const resolvedProtein = parseDigits(proteinText) || protein;
-    const resolvedCarbs = parseDigits(carbsText) || carbs;
-    const resolvedFat = parseDigits(fatText) || fat;
-
-    if (resolvedCalories < 800 || resolvedCalories > 10000) {
+  const validateGoals = (goals: MacroGoals): boolean => {
+    if (goals.dailyCalories < 800 || goals.dailyCalories > 10000) {
       toast({
         title: t.macroEditInvalidValue,
         description: t.macroEditCaloriesRange,
         variant: 'destructive',
       });
-      return;
+      return false;
     }
 
-    const proteinCalories = resolvedProtein * 4;
-    const fatCalories = resolvedFat * 9;
-    const remainingForCarbs = resolvedCalories - proteinCalories - fatCalories;
+    const remainingForCarbs =
+      goals.dailyCalories - goals.dailyProtein * 4 - goals.dailyFat * 9;
 
     if (remainingForCarbs < 0) {
       toast({
@@ -145,24 +144,58 @@ export const EditMacroGoalsDialog = ({
         description: t.macroEditMacroMismatchDesc,
         variant: 'destructive',
       });
-      return;
+      return false;
     }
 
-    const adjustedCarbs = Math.max(0, Math.round(remainingForCarbs / 4));
+    return true;
+  };
 
-    onSave({
-      dailyCalories: Math.round(resolvedCalories),
-      dailyProtein: Math.round(resolvedProtein),
-      dailyCarbs: adjustedCarbs,
-      dailyFat: Math.round(resolvedFat),
-    });
-
+  const commitSave = (goals: MacroGoals) => {
+    onSave(goals);
     toast({
       title: t.macroEditGoalsSaved,
       description: t.macroEditGoalsSavedDesc,
     });
-
+    setShowRecalcConfirm(false);
+    setPendingGoals(null);
     onOpenChange(false);
+  };
+
+  const handleRecalcChoice = (recalculate: boolean) => {
+    if (!pendingGoals) return;
+
+    if (recalculate) {
+      const calculated = calculateMacrosForWeightAndCalories(
+        pendingGoals.dailyCalories,
+        weightKg,
+      );
+      commitSave(calculated);
+      return;
+    }
+
+    if (!validateGoals(pendingGoals)) return;
+    commitSave(pendingGoals);
+  };
+
+  const handleSave = () => {
+    const goals = readGoalsFromInputs();
+
+    if (macroGoalsEqual(goals, baselineRef.current)) {
+      onOpenChange(false);
+      return;
+    }
+
+    if (!validateGoals(goals)) return;
+
+    const caloriesChanged = goals.dailyCalories !== baselineRef.current.dailyCalories;
+
+    if (caloriesChanged) {
+      setPendingGoals(goals);
+      setShowRecalcConfirm(true);
+      return;
+    }
+
+    commitSave(goals);
   };
 
   const fieldBindings: Record<
@@ -305,19 +338,52 @@ export const EditMacroGoalsDialog = ({
           <Button variant="outline" className="h-11 flex-1 touch-manipulation" onClick={() => onOpenChange(false)}>
             {t.cancel}
           </Button>
-          <Button
-            variant="secondary"
-            className="h-11 flex-1 touch-manipulation text-xs sm:text-sm"
-            onClick={handleAutoCalculateCarbs}
-          >
-            {t.macroEditAutoCarbs}
-          </Button>
-          <Button className="h-11 flex-1 touch-manipulation" onClick={handleSave}>
+          <Button className="h-11 flex-1 touch-manipulation sm:flex-[1.4]" onClick={handleSave}>
             <Save className="mr-2 h-4 w-4" />
             {t.save}
           </Button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showRecalcConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10 flex items-end justify-center bg-black/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:items-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5 shadow-xl"
+            >
+              <h3 className="text-lg font-bold">{t.macroEditRecalcConfirmTitle}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {t.macroEditRecalcConfirmDesc}
+              </p>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 flex-1 rounded-xl"
+                  onClick={() => handleRecalcChoice(false)}
+                >
+                  {t.macroEditRecalcNo}
+                </Button>
+                <Button
+                  type="button"
+                  className="h-11 flex-1 rounded-xl"
+                  onClick={() => handleRecalcChoice(true)}
+                >
+                  {t.macroEditRecalcYes}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>,
     document.body,
   );

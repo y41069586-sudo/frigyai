@@ -4,7 +4,7 @@ import { useFrigyStorageSnapshot } from "@/hooks/useFrigyStorageSnapshot";
 import { getWeekPlanPreviewFromStorage } from "@/lib/food-ai/dashboardMock";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { mealPlansUrlForToday } from "@/lib/food-ai/weeklyPlanWidgetData";
-import { notifyOpenLogMeal } from "@/lib/overlayEvents";
+import { notifyOpenLogMeal, notifyEditTrackerGoals } from "@/lib/overlayEvents";
 import { WidgetContainer } from "./WidgetContainer";
 import { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 import { TrackerWidget } from "./TrackerWidget";
@@ -107,7 +107,7 @@ export function HealthDashboard({
             loggedMealTypes={loggedMealTypes}
             onAddMeal={(slot) => notifyOpenLogMeal(slot)}
             onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
-            onOpenTracker={() => navigate("/?editMacros=1")}
+            onOpenTracker={() => notifyEditTrackerGoals("calories")}
             targetsReady={targetsReady}
           />
 

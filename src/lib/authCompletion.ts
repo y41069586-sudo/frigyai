@@ -203,17 +203,17 @@ export function isAuthFlowOverlayVisible(): boolean {
   }
 
   const { result, navigation } = snapshot;
-  const path = typeof window !== "undefined" ? window.location.pathname : "";
-  const onManualNav = POST_AUTH_MANUAL_NAV_PATHS.has(path);
 
-  // User opened Wochenplan, Einstellungen, etc. — never block with the global auth loader.
-  if (onManualNav) {
-    return false;
-  }
-
+  // Active OAuth / post-auth — always show loader (including after replaceState to `/`).
   if (result.status === "pending") return true;
   if (navigation.executing) return true;
   if (isAuthNavigationPending()) return true;
+
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {
+    return false;
+  }
+
   return false;
 }
 
@@ -376,8 +376,12 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     clearOAuthPending();
     onOAuthExchangeSuccess?.();
 
+    const authIntent: PostAuthIntent =
+      authIntentOpt ?? resolveOAuthAuthIntent(oauthUrl);
+
     setResult({ status: "pending", phase: "session" });
-    const sessionAfterOAuth = await ensureAuthSessionForRouting({ maxWaitMs: 6000 });
+    const oauthSessionWaitMs = authIntent === "login" ? 2000 : 3500;
+    const sessionAfterOAuth = await ensureAuthSessionForRouting({ maxWaitMs: oauthSessionWaitMs });
     if (!sessionAfterOAuth.ok) {
       if (allowOAuthDefer && Capacitor.isNativePlatform()) {
         stashOAuthCallbackUrl(oauthUrl);
@@ -387,16 +391,13 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
       return failResult("Session nach OAuth nicht verfügbar.");
     }
 
-    const authIntent: PostAuthIntent =
-      authIntentOpt ?? resolveOAuthAuthIntent(oauthUrl);
-
     return resolveSuccessRoute({
       checkSubscription,
       fromOnboarding,
       explicitPath,
       userId: sessionAfterOAuth.userId,
       authIntent,
-      sessionWaitMs: authIntent === "login" ? 2500 : 6000,
+      sessionWaitMs: 800,
     });
   }
 

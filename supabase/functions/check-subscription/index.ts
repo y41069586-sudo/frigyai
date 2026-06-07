@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 const ENTITLEMENT_ID = Deno.env.get("REVENUECAT_ENTITLEMENT_ID")?.trim() || "premium";
+const ADMIN_GRANT_PRODUCT_ID = "store_admin_grant";
 
 const logStep = (step: string, details?: unknown) => {
   const suffix = details ? " - " + JSON.stringify(details) : "";
@@ -77,6 +78,14 @@ async function updateCache(
   userId: string,
   data: SubscriptionResult,
 ) {
+  if (!data.subscribed) {
+    const adminGrant = await loadActiveStoreFromCache(supabase, userId);
+    if (adminGrant?.product_id === ADMIN_GRANT_PRODUCT_ID) {
+      logStep("Skipping cache downgrade — admin grant still active", adminGrant);
+      return;
+    }
+  }
+
   try {
     await supabase.from("subscription_cache").upsert(
       {
@@ -220,6 +229,15 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id });
 
+    const activeStore = await loadActiveStoreFromCache(supabaseClient, user.id);
+    if (activeStore?.product_id === ADMIN_GRANT_PRODUCT_ID) {
+      logStep("Active admin grant from cache", activeStore);
+      return new Response(JSON.stringify(activeStore), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const rcLive = await fetchFromRevenueCat(user.id);
     if (rcLive?.subscribed) {
       logStep("Active subscription from RevenueCat", rcLive);
@@ -230,10 +248,10 @@ serve(async (req) => {
       });
     }
 
-    const activeStore = await loadActiveStoreFromCache(supabaseClient, user.id);
-    if (activeStore) {
-      logStep("Active App Store / Play subscription from cache", activeStore);
-      return new Response(JSON.stringify(activeStore), {
+    const activeStoreFromCache = await loadActiveStoreFromCache(supabaseClient, user.id);
+    if (activeStoreFromCache) {
+      logStep("Active App Store / Play subscription from cache", activeStoreFromCache);
+      return new Response(JSON.stringify(activeStoreFromCache), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });

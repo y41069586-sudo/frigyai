@@ -252,6 +252,21 @@ export interface ExtendedTranslations {
   macroEditGoalsSavedDesc: string;
   macroEditAutoCarbs: string;
   macroEditCaloriesLabel: string;
+  macroEditRecalcConfirmTitle: string;
+  macroEditRecalcConfirmDesc: string;
+  macroEditRecalcYes: string;
+  macroEditRecalcNo: string;
+  weeklyPlanEmptyBadge: string;
+  weeklyPlanEmptyHeroTitle: string;
+  weeklyPlanEmptyHeroSubtitle: string;
+  weeklyPlanEmptyTargetLabel: string;
+  weeklyPlanEmptyMealsHint: string;
+  weeklyPlanEmptyFeature1Title: string;
+  weeklyPlanEmptyFeature1Desc: string;
+  weeklyPlanEmptyFeature2Title: string;
+  weeklyPlanEmptyFeature2Desc: string;
+  weeklyPlanEmptyFeature3Title: string;
+  weeklyPlanEmptyFeature3Desc: string;
   profileDeleting: string;
   profileDeleteBtn: string;
 
@@ -757,6 +772,23 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     macroEditGoalsSavedDesc: "Deine neuen Makroziele wurden übernommen.",
     macroEditAutoCarbs: "Auto-KH",
     macroEditCaloriesLabel: "Kalorien",
+    macroEditRecalcConfirmTitle: "Protein, Carbs & Fett anpassen?",
+    macroEditRecalcConfirmDesc:
+      "Du hast die Kalorien geändert. Soll Frigy Protein, Kohlenhydrate und Fett passend zu deinem Gewicht und den neuen Kalorien berechnen?",
+    macroEditRecalcYes: "Ja, berechnen",
+    macroEditRecalcNo: "Nein, behalten",
+    weeklyPlanEmptyBadge: "Dein Wochenplan",
+    weeklyPlanEmptyHeroTitle: "7 Tage Essen — auf dich zugeschnitten",
+    weeklyPlanEmptyHeroSubtitle:
+      "Frigy plant Frühstück bis Abendessen passend zu deinen Makros, inklusive Einkaufsliste.",
+    weeklyPlanEmptyTargetLabel: "Basierend auf deinem Tracker",
+    weeklyPlanEmptyMealsHint: "Etwa {count} Mahlzeiten pro Tag",
+    weeklyPlanEmptyFeature1Title: "Rezepte passend zu deinen Kalorien",
+    weeklyPlanEmptyFeature1Desc: "Jeder Tag summiert sich auf dein Tagesziel — ohne Rätselraten.",
+    weeklyPlanEmptyFeature2Title: "Einkaufsliste inklusive",
+    weeklyPlanEmptyFeature2Desc: "Alle Zutaten für die Woche — übersichtlich sortiert.",
+    weeklyPlanEmptyFeature3Title: "Allergien & Ernährung beachtet",
+    weeklyPlanEmptyFeature3Desc: "Deine Vorgaben aus dem Profil fließen in den Plan ein.",
     profileDeleting: "Wird gelöscht…",
     profileDeleteBtn: "Löschen",
 
@@ -1275,6 +1307,23 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     macroEditGoalsSavedDesc: "Your new macro goals have been applied.",
     macroEditAutoCarbs: "Auto carbs",
     macroEditCaloriesLabel: "Calories",
+    macroEditRecalcConfirmTitle: "Adjust protein, carbs & fat?",
+    macroEditRecalcConfirmDesc:
+      "You changed calories. Should Frigy calculate protein, carbs and fat to match your weight and the new calorie target?",
+    macroEditRecalcYes: "Yes, calculate",
+    macroEditRecalcNo: "No, keep mine",
+    weeklyPlanEmptyBadge: "Your weekly plan",
+    weeklyPlanEmptyHeroTitle: "7 days of meals — built for you",
+    weeklyPlanEmptyHeroSubtitle:
+      "Frigy plans breakfast through dinner to match your macros, plus a shopping list.",
+    weeklyPlanEmptyTargetLabel: "Based on your tracker",
+    weeklyPlanEmptyMealsHint: "About {count} meals per day",
+    weeklyPlanEmptyFeature1Title: "Recipes that hit your calories",
+    weeklyPlanEmptyFeature1Desc: "Each day adds up to your target — no guesswork.",
+    weeklyPlanEmptyFeature2Title: "Shopping list included",
+    weeklyPlanEmptyFeature2Desc: "All ingredients for the week — neatly organized.",
+    weeklyPlanEmptyFeature3Title: "Allergies & diet respected",
+    weeklyPlanEmptyFeature3Desc: "Your profile preferences are built into the plan.",
     profileDeleting: "Deleting…",
     profileDeleteBtn: "Delete",
 
@@ -1796,6 +1845,23 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     macroEditGoalsSavedDesc: "Tes nouveaux objectifs macro ont été appliqués.",
     macroEditAutoCarbs: "Auto glucides",
     macroEditCaloriesLabel: "Calories",
+    macroEditRecalcConfirmTitle: "Ajuster protéines, glucides et lipides ?",
+    macroEditRecalcConfirmDesc:
+      "Tu as modifié les calories. Frigy doit-il calculer protéines, glucides et lipides selon ton poids et la nouvelle cible ?",
+    macroEditRecalcYes: "Oui, calculer",
+    macroEditRecalcNo: "Non, garder",
+    weeklyPlanEmptyBadge: "Ton plan hebdo",
+    weeklyPlanEmptyHeroTitle: "7 jours de repas — faits pour toi",
+    weeklyPlanEmptyHeroSubtitle:
+      "Frigy planifie tes repas selon tes macros, avec liste de courses.",
+    weeklyPlanEmptyTargetLabel: "Selon ton tracker",
+    weeklyPlanEmptyMealsHint: "Environ {count} repas par jour",
+    weeklyPlanEmptyFeature1Title: "Recettes adaptées à tes calories",
+    weeklyPlanEmptyFeature1Desc: "Chaque jour atteint ton objectif — sans deviner.",
+    weeklyPlanEmptyFeature2Title: "Liste de courses incluse",
+    weeklyPlanEmptyFeature2Desc: "Tous les ingrédients de la semaine — bien organisés.",
+    weeklyPlanEmptyFeature3Title: "Allergies & régime respectés",
+    weeklyPlanEmptyFeature3Desc: "Tes préférences du profil sont intégrées au plan.",
     profileDeleting: "Suppression…",
     profileDeleteBtn: "Supprimer",
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { mergeMacroTargetsFromLocal, readOnboardingMacroTargets, readStoredTrackerTargets } from '@/lib/trackerTargets';
+import { notifyTrackerSettingsUpdated } from '@/lib/frigyStorageSync';
 
 export interface TrackerSettings {
   age: number;
@@ -21,6 +22,13 @@ export interface TrackerSettings {
 }
 
 const LOCAL_STORAGE_KEY = 'userProfile';
+const PERSISTED_USER_CACHE_KEY = 'frigy_tracker_settings_cache';
+
+type PersistedTrackerCache = {
+  userId: string;
+  settings: TrackerSettings;
+  updatedAt: number;
+};
 
 type TrackerCacheEntry = {
   userId: string;
@@ -39,6 +47,41 @@ export function invalidateTrackerSettingsCache(): void {
   trackerLoadInflightUserId = null;
 }
 
+function readPersistedTrackerCache(userId: string | undefined): TrackerSettings | null {
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(PERSISTED_USER_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedTrackerCache;
+    if (parsed.userId !== userId || !parsed.settings?.dailyCalories) return null;
+    return parsed.settings;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedTrackerCache(userId: string, settings: TrackerSettings): void {
+  if (!settings.dailyCalories) return;
+  try {
+    const payload: PersistedTrackerCache = {
+      userId,
+      settings,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(PERSISTED_USER_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearPersistedTrackerCache(): void {
+  try {
+    localStorage.removeItem(PERSISTED_USER_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function readLocalTrackerSettings(): TrackerSettings | null {
   try {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -47,6 +90,30 @@ function readLocalTrackerSettings(): TrackerSettings | null {
   } catch {
     return null;
   }
+}
+
+function mergeTrackerSettings(
+  base: TrackerSettings | null | undefined,
+  patch: Partial<TrackerSettings>,
+): TrackerSettings {
+  const local = readLocalTrackerSettings();
+  const seed = base ?? local;
+  return {
+    age: patch.age ?? seed?.age ?? 0,
+    weight: patch.weight ?? seed?.weight ?? 0,
+    targetWeight: patch.targetWeight ?? seed?.targetWeight ?? 0,
+    goalMode: patch.goalMode ?? seed?.goalMode ?? 'lose',
+    weeklyGoal: patch.weeklyGoal ?? seed?.weeklyGoal ?? 0.5,
+    dailyCalories: patch.dailyCalories ?? seed?.dailyCalories ?? 0,
+    dailyProtein: patch.dailyProtein ?? seed?.dailyProtein ?? 0,
+    dailyCarbs: patch.dailyCarbs ?? seed?.dailyCarbs ?? 0,
+    dailyFat: patch.dailyFat ?? seed?.dailyFat ?? 0,
+    mealsPerDay: patch.mealsPerDay ?? seed?.mealsPerDay ?? 5,
+    dietaryPreferences: patch.dietaryPreferences ?? seed?.dietaryPreferences ?? [],
+    healthGoals: patch.healthGoals ?? seed?.healthGoals ?? [],
+    allergies: patch.allergies ?? seed?.allergies ?? [],
+    allergiesOther: patch.allergiesOther ?? seed?.allergiesOther ?? '',
+  };
 }
 
 function getInitialTrackerState(userId: string | undefined): {
@@ -62,8 +129,25 @@ function getInitialTrackerState(userId: string | undefined): {
     };
   }
 
-  // Logged-in users: account DB is source of truth — don't flash onboarding localStorage.
   if (userId) {
+    const persisted = readPersistedTrackerCache(userId);
+    if (persisted) {
+      return {
+        settings: persisted,
+        isConfigured: true,
+        loading: false,
+      };
+    }
+
+    const local = readLocalTrackerSettings();
+    if (local?.dailyCalories > 0) {
+      return {
+        settings: local,
+        isConfigured: true,
+        loading: false,
+      };
+    }
+
     return {
       settings: null,
       isConfigured: false,
@@ -93,6 +177,9 @@ function writeTrackerMemoryCache(
   isConfigured: boolean,
 ) {
   trackerMemoryCache = { userId, settings, isConfigured };
+  if (settings && isConfigured) {
+    writePersistedTrackerCache(userId, settings);
+  }
 }
 
 export const useTrackerSettings = () => {
@@ -328,19 +415,23 @@ export const useTrackerSettings = () => {
     await run();
   }, [user]);
 
-  // Save settings
-  const saveSettings = useCallback(async (newSettings: TrackerSettings) => {
-    setSettings(newSettings);
-    setIsConfigured(newSettings.dailyCalories > 0);
+  // Save settings (merges with existing DB/local values — never wipe diet/allergies on macro edit)
+  const saveSettings = useCallback(async (patch: Partial<TrackerSettings> & Pick<TrackerSettings, 'dailyCalories' | 'dailyProtein' | 'dailyCarbs' | 'dailyFat'>) => {
+    let merged: TrackerSettings | null = null;
+    setSettings((prev) => {
+      merged = mergeTrackerSettings(prev, patch);
+      setIsConfigured(merged.dailyCalories > 0);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+      if (user) {
+        writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
+      }
+      return merged;
+    });
 
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newSettings));
-    if (user) {
-      writeTrackerMemoryCache(user.id, newSettings, newSettings.dailyCalories > 0);
+    if (user && merged) {
+      await saveToDatabase(merged);
     }
-
-    if (user) {
-      await saveToDatabase(newSettings);
-    }
+    notifyTrackerSettingsUpdated();
   }, [user]);
 
   // Reset settings
@@ -349,6 +440,7 @@ export const useTrackerSettings = () => {
     setIsConfigured(false);
     hasLoadedOnceRef.current = false;
     localStorage.removeItem(LOCAL_STORAGE_KEY);
+    clearPersistedTrackerCache();
     if (user) {
       trackerMemoryCache = null;
     }
@@ -362,7 +454,12 @@ export const useTrackerSettings = () => {
   }, [user]);
 
   useEffect(() => {
-    const hasWarmCache = Boolean(user?.id && trackerMemoryCache?.userId === user.id);
+    const hasWarmCache = Boolean(
+      user?.id &&
+        (trackerMemoryCache?.userId === user.id ||
+          readPersistedTrackerCache(user.id) ||
+          readLocalTrackerSettings()?.dailyCalories),
+    );
     hasLoadedOnceRef.current = hasWarmCache;
     void loadSettings(!hasWarmCache);
   }, [loadSettings, user?.id]);
