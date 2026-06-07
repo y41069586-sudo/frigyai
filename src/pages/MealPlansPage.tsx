@@ -414,6 +414,10 @@ const MealPlansPage = () => {
   };
 
   useEffect(() => {
+    dismissStalledAuthNavigation();
+  }, []);
+
+  useEffect(() => {
     if (isGenerating) return;
     dismissStalledAuthNavigation();
   }, [isGenerating]);

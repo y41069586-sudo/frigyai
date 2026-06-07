@@ -93,7 +93,7 @@ export function GoalPreviewStep({
     de: {
       maintain: "BEREIT, DEIN GEWICHT ZU HALTEN — EIN ERREICHBARES ZIEL!",
       subtitle:
-        "Die Veränderungen nach der Anwendung von Frigy sind deutlich und dauerhaft.",
+        "Illustrativer Vergleich aus deinen Angaben — nur motivierend, keine medizinische Prognose.",
       yourWeight: "Ihr Gewicht",
       withFrigy: "Mit Frigy",
       withoutFrigy: "Ohne Frigy",
@@ -111,7 +111,7 @@ export function GoalPreviewStep({
     fr: {
       maintain: "PRÊT À MAINTENIR TON POIDS — UN OBJECTIF ATTEIGNABLE !",
       subtitle:
-        "Les changements après l’utilisation de Frigy sont nets et durables.",
+        "Comparaison illustrative à partir de tes données — motivation uniquement, pas une prévision médicale.",
       yourWeight: "Ton poids",
       withFrigy: "Avec Frigy",
       withoutFrigy: "Sans Frigy",

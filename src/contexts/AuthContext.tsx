@@ -13,7 +13,7 @@ import {
   resolveAuthErrorMessage,
 } from '@/lib/authErrors';
 import { registerUserWithoutEmailConfirm } from '@/lib/registerUser';
-import { isSubscriptionActive, mergeSubscriptionStatus, isPromoPremiumProductId } from '@/lib/subscription';
+import { isSubscriptionActive, mergeSubscriptionStatus } from '@/lib/subscription';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { signInWithOAuthProvider } from '@/lib/authOAuth';
@@ -201,21 +201,17 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     const referral = await redeemPendingReferralCode(accessToken);
     if (referral.success && referral.message && !referral.already_redeemed) {
       toast({
-        title: "Empfehlungscode aktiviert",
+        title: "Partner-Code gespeichert",
         description: referral.message,
       });
     }
 
-    // Step 1: Load from DB cache instantly (~50ms) — after referral redeem
+    // Step 1: Load from DB cache instantly (~50ms) — after referral attribution
     let dbCache = await loadFromDbCache(userId);
     if (dbCache) {
       updateSubscriptionStatus(dbCache);
     }
 
-    const hasPromoPremium =
-      Boolean(dbCache?.subscribed) && isPromoPremiumProductId(dbCache?.product_id);
-
-    // Step 2: Store sync only when no active referral/influencer promo (RC sync would wipe promo)
     const refreshSubscription = async () => {
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -224,11 +220,6 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       const merged = await resolveSubscriptionStatus(data as SubscriptionStatus, userId);
       updateSubscriptionStatus(merged);
     };
-
-    if (hasPromoPremium) {
-      void refreshSubscription();
-      return;
-    }
 
     void syncStoreSubscriptionIfNeeded(accessToken).finally(() => {
       void refreshSubscription();
@@ -245,13 +236,10 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     }
     if (!accessToken) return subscriptionRef.current;
 
-    const dbCacheBefore = userId ? await loadFromDbCache(userId) : null;
-    const hasPromoPremium =
-      Boolean(dbCacheBefore?.subscribed) && isPromoPremiumProductId(dbCacheBefore?.product_id);
-
-    if (!hasPromoPremium) {
-      await syncStoreSubscriptionIfNeeded(accessToken);
-    }
+    await Promise.race([
+      syncStoreSubscriptionIfNeeded(accessToken),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 4000)),
+    ]);
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription', {

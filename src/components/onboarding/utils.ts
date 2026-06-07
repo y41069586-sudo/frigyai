@@ -2,7 +2,7 @@ import { UserData } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
 import { saveReminderConfigFromOnboarding, syncRemindersFromStorage } from "@/lib/notifications";
-import { clearPendingReferralCode, REFERRAL_SKIP_PAYWALL_KEY } from "@/lib/referralCode";
+import { clearPendingReferralCode } from "@/lib/referralCode";
 import { invalidateTrackerSettingsCache } from "@/hooks/useTrackerSettings";
 
 /** Minimum age to use Frigy (Google Play / App Store: 13+). */
@@ -26,7 +26,6 @@ export function clearOnboardingForLogout() {
   localStorage.removeItem("mealPlanGenerationCount");
   localStorage.removeItem("scanFeedback");
   clearPendingReferralCode();
-  localStorage.removeItem(REFERRAL_SKIP_PAYWALL_KEY);
 }
 
 // Macro calculation using Mifflin-St Jeor BMR formula

@@ -69,7 +69,7 @@ function premiumFromCacheRow(row: SubscriptionCacheRow | null | undefined): bool
   if (!row?.subscribed) return false;
 
   if (isPromoProductId(row.product_id)) {
-    return promoStillValid(row.subscription_end);
+    return false;
   }
 
   if (isOneTimeProductId(row.product_id)) {

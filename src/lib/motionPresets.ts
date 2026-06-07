@@ -13,8 +13,23 @@ export function entryTo(isMobile: boolean): TargetAndTransition {
 
 export function entryTransition(isMobile: boolean, delay = 0, duration = 0.32): Transition {
   return {
-    duration: isMobile ? 0.18 : duration,
+    duration: isMobile ? 0.22 : duration,
     delay: isMobile ? Math.min(delay, 0.06) : delay,
+    ease: MOTION_EASE,
+  };
+}
+
+/** Dashboard cards — fade in once when scrolled into view */
+export const dashboardScrollViewport = {
+  once: true,
+  amount: 0.14,
+  margin: "0px 0px -48px 0px",
+} as const;
+
+export function dashboardScrollTransition(isMobile: boolean, delay = 0): Transition {
+  return {
+    duration: isMobile ? 0.38 : 0.45,
+    delay: isMobile ? Math.min(delay, 0.08) : delay,
     ease: MOTION_EASE,
   };
 }

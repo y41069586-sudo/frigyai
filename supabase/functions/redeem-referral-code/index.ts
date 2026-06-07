@@ -79,7 +79,7 @@ serve(async (req) => {
 
     const { data: promo, error: promoError } = await supabase
       .from("referral_codes")
-      .select("id, code, influencer_name, duration_days, max_redemptions, redemption_count, active, valid_until")
+      .select("id, code, slug, influencer_name, duration_days, max_redemptions, redemption_count, active, valid_until")
       .eq("code", code)
       .maybeSingle();
 
@@ -114,31 +114,6 @@ serve(async (req) => {
       });
     }
 
-    const isLifetime = promo.duration_days === 0;
-    let subscriptionEndIso: string | null = null;
-    if (!isLifetime) {
-      const subscriptionEnd = new Date();
-      subscriptionEnd.setDate(subscriptionEnd.getDate() + Math.max(1, promo.duration_days));
-      subscriptionEndIso = subscriptionEnd.toISOString();
-    }
-
-    const { error: cacheError } = await supabase.from("subscription_cache").upsert(
-      {
-        user_id: userId,
-        subscribed: true,
-        product_id: "referral_" + promo.code,
-        subscription_end: subscriptionEndIso,
-        is_trial: false,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
-
-    if (cacheError) {
-      logStep("Cache error", cacheError);
-      throw new Error("Premium konnte nicht aktiviert werden");
-    }
-
     const { error: redeemError } = await supabase.from("referral_redemptions").insert({
       user_id: userId,
       referral_code_id: promo.id,
@@ -155,19 +130,36 @@ serve(async (req) => {
       .update({ redemption_count: (promo.redemption_count ?? 0) + 1 })
       .eq("id", promo.id);
 
-    logStep("Success", { userId, code, until: subscriptionEndIso, lifetime: isLifetime });
+    const slug = promo.slug?.trim() || promo.code.toLowerCase();
+    const { data: existingAttr } = await supabase
+      .from("affiliate_attributions")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    const message = isLifetime
-      ? "Kostenloser Premium-Zugang — lebenslang"
-      : "Kostenloser Zugang bis " + new Date(subscriptionEndIso!).toLocaleDateString("de-DE");
+    if (!existingAttr) {
+      await supabase.from("affiliate_attributions").insert({
+        user_id: userId,
+        referral_code_id: promo.id,
+        affiliate_slug: slug,
+        source: "referral_code",
+      });
+    }
+
+    logStep("Success (attribution only)", { userId, code, slug });
+
+    const partnerLabel = promo.influencer_name ? ` (${promo.influencer_name})` : "";
+    const message =
+      "Partner-Code gespeichert" +
+      partnerLabel +
+      ". Premium ist über das Abo im App Store verfügbar.";
 
     return new Response(
       JSON.stringify({
         success: true,
+        attribution_only: true,
         code: promo.code,
         influencer_name: promo.influencer_name,
-        subscription_end: subscriptionEndIso,
-        is_lifetime: isLifetime,
         message,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },

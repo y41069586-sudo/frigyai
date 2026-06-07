@@ -45,11 +45,6 @@ function isStoreProductId(productId: string | null | undefined): boolean {
   return productId.startsWith("rc_") || productId.startsWith("store_");
 }
 
-function promoStillValid(subscriptionEnd: string | null): boolean {
-  if (!subscriptionEnd) return true;
-  return new Date(subscriptionEnd) > new Date();
-}
-
 function cacheEntryStillValid(subscriptionEnd: string | null): boolean {
   if (!subscriptionEnd) return true;
   return new Date(subscriptionEnd) > new Date();
@@ -99,7 +94,7 @@ async function updateCache(
   }
 }
 
-async function loadPromoFromCache(
+async function loadAnyActiveFromCache(
   supabase: ReturnType<typeof createClient>,
   userId: string,
 ): Promise<SubscriptionResult | null> {
@@ -109,10 +104,13 @@ async function loadPromoFromCache(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error || !data?.subscribed || !isPromoProductId(data.product_id)) {
+  if (error || !data?.subscribed) {
     return null;
   }
-  if (!promoStillValid(data.subscription_end)) {
+  if (isPromoProductId(data.product_id)) {
+    return null;
+  }
+  if (!cacheEntryStillValid(data.subscription_end)) {
     return null;
   }
 
@@ -135,31 +133,6 @@ async function loadActiveStoreFromCache(
     .maybeSingle();
 
   if (error || !data?.subscribed || !isStoreProductId(data.product_id)) {
-    return null;
-  }
-  if (!cacheEntryStillValid(data.subscription_end)) {
-    return null;
-  }
-
-  return {
-    subscribed: true,
-    product_id: data.product_id,
-    subscription_end: data.subscription_end,
-    is_trial: data.is_trial || false,
-  };
-}
-
-async function loadAnyActiveFromCache(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-): Promise<SubscriptionResult | null> {
-  const { data, error } = await supabase
-    .from("subscription_cache")
-    .select("subscribed, product_id, subscription_end, is_trial")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error || !data?.subscribed) {
     return null;
   }
   if (!cacheEntryStillValid(data.subscription_end)) {
@@ -246,15 +219,6 @@ serve(async (req) => {
 
     const user = userData.user;
     logStep("User authenticated", { userId: user.id });
-
-    const activePromo = await loadPromoFromCache(supabaseClient, user.id);
-    if (activePromo) {
-      logStep("Active referral/influencer promo from cache", activePromo);
-      return new Response(JSON.stringify(activePromo), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
 
     const rcLive = await fetchFromRevenueCat(user.id);
     if (rcLive?.subscribed) {

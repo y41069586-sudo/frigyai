@@ -603,10 +603,16 @@ const terms: Record<Language, LegalDocument> = {
         ],
       },
       {
-        title: "§ 4 Kostenlose & Premium-Funktionen",
+        title: "§ 4 Premium-Funktionen",
         blocks: [
-          { kind: "p", text: "(1) Die Grundfunktionen der App sind kostenlos nutzbar (mit Einschränkungen)." },
-          { kind: "p", text: "(2) Premium-Funktionen sind über ein kostenpflichtiges Abonnement verfügbar." },
+          {
+            kind: "p",
+            text: "(1) Nach Abschluss des Onboardings ist für die Nutzung der App-Funktionen (z. B. Tracker, Wochenplan, KI-Scan) ein kostenpflichtiges Premium-Abonnement erforderlich.",
+          },
+          {
+            kind: "p",
+            text: "(2) Beim monatlichen Abonnement kann ein kostenloser Testzeitraum von 3 Tagen angeboten werden; danach erfolgt die Abrechnung über den App Store, sofern nicht gekündigt.",
+          },
           { kind: "p", text: "(3) Die aktuellen Preise und Leistungen sind in der App einsehbar." },
         ],
       },
@@ -727,10 +733,16 @@ const terms: Record<Language, LegalDocument> = {
         ],
       },
       {
-        title: "§ 4 Free & Premium features",
+        title: "§ 4 Premium features",
         blocks: [
-          { kind: "p", text: "(1) Basic app features are free to use (with limitations)." },
-          { kind: "p", text: "(2) Premium features are available via a paid subscription." },
+          {
+            kind: "p",
+            text: "(1) After onboarding, a paid Premium subscription is required to use app features (e.g. tracker, meal plan, AI scan).",
+          },
+          {
+            kind: "p",
+            text: "(2) The monthly plan may include a 3-day free trial; billing via the app store follows unless cancelled before the trial ends.",
+          },
           { kind: "p", text: "(3) Current prices and features are shown in the app." },
         ],
       },
@@ -851,10 +863,16 @@ const terms: Record<Language, LegalDocument> = {
         ],
       },
       {
-        title: "§ 4 Fonctions gratuites et Premium",
+        title: "§ 4 Fonctions Premium",
         blocks: [
-          { kind: "p", text: "(1) Les fonctions de base sont gratuites (avec limitations)." },
-          { kind: "p", text: "(2) Les fonctions Premium sont disponibles via un abonnement payant." },
+          {
+            kind: "p",
+            text: "(1) Après l'onboarding, un abonnement Premium payant est requis pour utiliser les fonctions de l'app (suivi, plan hebdo, scan IA, etc.).",
+          },
+          {
+            kind: "p",
+            text: "(2) L'abonnement mensuel peut inclure un essai gratuit de 3 jours ; la facturation via le store suit sauf résiliation avant la fin de l'essai.",
+          },
           { kind: "p", text: "(3) Les prix et prestations actuels sont visibles dans l'app." },
         ],
       },

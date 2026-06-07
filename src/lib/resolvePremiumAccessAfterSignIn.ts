@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { waitForAuthSession } from "@/lib/authErrors";
-import { consumeReferralSkipPaywall, hasReferralSkipPaywallPending, redeemPendingReferralCode } from "@/lib/referralCode";
+import { redeemPendingReferralCode } from "@/lib/referralCode";
 import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 import { isPromoPremiumProductId, isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
@@ -37,7 +37,7 @@ async function loadSubscriptionFromDbCache(
       subscription_end: data.subscription_end,
     };
 
-    if (!isSubscriptionActive(status)) {
+    if (!isSubscriptionActive(status) || isPromoPremiumProductId(status.product_id)) {
       return { ...status, subscribed: false };
     }
 
@@ -69,19 +69,8 @@ export async function resolvePremiumAccessAfterSignIn(options: {
   const session = (await supabase.auth.getSession()).data.session;
   let userId = options.userId ?? session?.user?.id;
 
-  if (!options.skipReferralCheck && hasReferralSkipPaywallPending()) {
-    if (session?.access_token) {
-      await redeemPendingReferralCode(session.access_token);
-      await options.checkSubscription();
-    }
-    consumeReferralSkipPaywall();
-    if (userId) {
-      const dbCache = await loadSubscriptionFromDbCache(userId);
-      if (isSubscriptionActive(dbCache)) {
-        return true;
-      }
-    }
-    return true;
+  if (!options.skipReferralCheck && session?.access_token) {
+    await redeemPendingReferralCode(session.access_token);
   }
 
   await syncStoreSubscriptionIfNeeded(session?.access_token);
@@ -93,9 +82,6 @@ export async function resolvePremiumAccessAfterSignIn(options: {
   if (userId) {
     const dbCache = await loadSubscriptionFromDbCache(userId);
     if (isSubscriptionActive(dbCache)) {
-      return true;
-    }
-    if (isPromoPremiumProductId(dbCache?.product_id) && dbCache?.subscribed) {
       return true;
     }
   }

@@ -91,7 +91,7 @@ export function TrackerWidget({
         delay={delay}
         variant="glass"
         interactive={false}
-        className="w-full min-w-0 rounded-[2rem] border border-slate-200/70 bg-white/92 p-5 shadow-[0_16px_34px_-26px_rgba(74,232,150,0.22),0_8px_24px_-22px_rgba(15,23,42,0.10)] sm:bg-white/88 sm:p-6 sm:shadow-[0_20px_44px_-28px_rgba(74,232,150,0.28),0_10px_28px_-24px_rgba(15,23,42,0.12)]"
+        className="w-full min-w-0 rounded-[2rem] p-5 sm:p-6"
       >
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
@@ -147,7 +147,13 @@ export function TrackerWidget({
       )}
 
       {showSlots && (
-      <section className="space-y-3">
+      <motion.section
+        className="space-y-3"
+        initial={{ opacity: 0, y: 18 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.12, margin: "0px 0px -40px 0px" }}
+        transition={{ duration: 0.4, delay: delay + 0.04, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="flex items-end justify-between">
           <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">{t.today}</h2>
           <span className="text-[12px] font-medium text-muted-foreground">{t.dashboardQuickLog}</span>
@@ -168,7 +174,7 @@ export function TrackerWidget({
             );
           })}
         </div>
-      </section>
+      </motion.section>
       )}
     </div>
   );
@@ -193,12 +199,13 @@ function MealSlotButton({
   return (
     <motion.button
       type="button"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: delay + 0.08 + index * 0.03, duration: 0.28 }}
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ delay: delay + 0.08 + index * 0.04, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       {...tap}
       className={cn(
-        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border border-transparent bg-white/88 px-1.5 py-2 text-center shadow-[0_8px_18px_-18px_rgba(15,23,42,0.14)] transition-colors sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
+        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border bg-white/88 px-1.5 py-2 text-center shadow-[0_10px_22px_-16px_rgba(15,23,42,0.14)] transition-[box-shadow,colors] sm:min-h-[78px] sm:bg-white/72 sm:backdrop-blur-xl",
         logged
           ? "border border-primary/30 bg-primary/12 text-primary"
           : "text-foreground hover:bg-primary/8 sm:border-neutral-200/75 dark:border-white/10",

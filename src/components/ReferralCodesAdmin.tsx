@@ -11,8 +11,6 @@ import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionError";
 import { buildSignupDeepLink, buildSignupWebUrl } from "@/lib/chottuLinkConfig";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 
-const LIFETIME_DAYS = 0;
-
 type ReferralCodeRow = {
   id: string;
   code: string;
@@ -28,10 +26,6 @@ type ReferralCodeRow = {
   active: boolean;
 };
 
-function formatDuration(days: number): string {
-  return days === LIFETIME_DAYS ? "Lebenslang" : days + "d";
-}
-
 function formatEur(cents: number): string {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(cents / 100);
 }
@@ -46,7 +40,6 @@ export function ReferralCodesAdmin() {
   const [newSlug, setNewSlug] = useState("");
   const [influencerName, setInfluencerName] = useState("");
   const [commissionRate, setCommissionRate] = useState("20");
-  const [durationDays, setDurationDays] = useState(30);
   const [maxRedemptions, setMaxRedemptions] = useState("");
 
   const invoke = useCallback(
@@ -135,8 +128,7 @@ export function ReferralCodesAdmin() {
         slug: newSlug.trim() || null,
         influencer_name: influencerName.trim() || null,
         commission_rate_percent: Number(commissionRate) || 20,
-        duration_days: durationDays,
-        lifetime: durationDays === LIFETIME_DAYS,
+        duration_days: 0,
         max_redemptions: maxRedemptions ? Number(maxRedemptions) : null,
       });
       toast({ title: "Partner erstellt", description: normalized });
@@ -182,6 +174,9 @@ export function ReferralCodesAdmin() {
           Umsatz gesamt: {formatEur(totals.revenue_cents)} · Provision: {formatEur(totals.commission_cents)}
         </p>
         <p className="text-muted-foreground">{totals.payments} Store-Zahlungen zugeordnet</p>
+        <p className="text-muted-foreground">
+          Codes dienen nur der Partner-Zuordnung — Premium läuft über App Store / Google Play.
+        </p>
       </div>
 
       <form onSubmit={(e) => void handleCreate(e)} className="space-y-3">
@@ -242,29 +237,6 @@ export function ReferralCodesAdmin() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-1.5">
-          {(
-            [
-              { days: 30, label: "30d" },
-              { days: 90, label: "90d" },
-              { days: 365, label: "1J" },
-              { days: LIFETIME_DAYS, label: "∞", title: "Lebenslang" },
-            ] as const
-          ).map(({ days, label, title }) => (
-            <Button
-              key={days}
-              type="button"
-              variant={durationDays === days ? "default" : "outline"}
-              size="sm"
-              title={title}
-              className="h-8 min-w-0 px-0 text-[11px] font-semibold"
-              onClick={() => setDurationDays(days)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-
         <div className="space-y-1.5">
           <Label htmlFor="ref-max" className="text-xs">
             Max. Einlösungen (leer = unbegrenzt)
@@ -307,7 +279,7 @@ export function ReferralCodesAdmin() {
                   ) : null}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {row.influencer_name || "—"} · {row.commission_rate_percent}% · {formatDuration(row.duration_days)}
+                  {row.influencer_name || "—"} · {row.commission_rate_percent}% · {row.redemption_count} Einlösungen
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Umsatz {formatEur(Number(row.total_revenue_cents ?? 0))} · Provision{" "}

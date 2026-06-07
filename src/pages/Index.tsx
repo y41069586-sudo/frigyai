@@ -45,7 +45,6 @@ import {
   POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY,
 } from "@/lib/frigyStorageSync";
 import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
-import { hasReferralSkipPaywallPending } from "@/lib/referralCode";
 import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
@@ -542,7 +541,7 @@ const Index = () => {
 
       const completedLocally = readOnboardingCompleteLocal();
 
-      if (activeUser && (completedLocally || dbOnboardingComplete || hasReferralSkipPaywallPending())) {
+      if (activeUser && (completedLocally || dbOnboardingComplete)) {
         setShowOnboarding(false);
         setOnboardingComplete(true);
         setLocalOnboardingComplete(true);
@@ -557,7 +556,7 @@ const Index = () => {
         return;
       }
 
-      if (activeUser && !hasReferralSkipPaywallPending()) {
+      if (activeUser) {
         const route = await resolvePostAuthDestination({
           userId: activeUser.id,
           checkSubscription,
@@ -658,9 +657,15 @@ const Index = () => {
   const targetsReady = targetCalories > 0;
   
   
-  // Wait for auth before showing anything (never cover active Wochenplan generation)
-  if (loading && !isMealPlanGenerationActive()) {
-    return <PageLoader />;
+  // Auth bootstrap only when no session yet — keep bottom nav so Wochenplan stays reachable
+  const authBootstrapping = loading && !user && !session;
+  if (authBootstrapping && !isMealPlanGenerationActive()) {
+    return (
+      <>
+        <PageLoader />
+        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+      </>
+    );
   }
 
   if (isActivatingPremium) {

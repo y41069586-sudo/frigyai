@@ -3,6 +3,8 @@ import { Droplet } from "lucide-react";
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { dashboardScrollTransition, dashboardScrollViewport } from "@/lib/motionPresets";
+import { dashboardWaterShadow } from "./dashboardCardStyles";
 
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 
@@ -38,13 +40,15 @@ export const WaterWidget = memo(function WaterWidget({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={dashboardScrollViewport}
+      transition={dashboardScrollTransition(false, delay)}
       {...(onToggleExpand ? { onClick: onToggleExpand } : {})}
       className={cn(
         "dashboard-touch-scroll relative min-h-[185px] min-w-0 w-full overflow-hidden rounded-[1.85rem]",
-        "border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
+        "border border-sky-200/85 bg-gradient-to-br from-sky-50 via-white to-sky-100/70",
+        dashboardWaterShadow,
         className,
       )}
     >

@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Crown } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   savePendingReferralCode,
   redeemReferralCode,
   validateReferralCode,
-  isReferralLifetime,
-  markReferralSkipPaywall,
 } from "@/lib/referralCode";
 import { getStoredInfluencerRef } from "@/lib/referralAttribution";
 
@@ -37,8 +35,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [phase, setPhase] = useState<StepPhase>("input");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [durationDays, setDurationDays] = useState(30);
-  const [isLifetime, setIsLifetime] = useState(false);
+  const [partnerName, setPartnerName] = useState<string | null>(null);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const validatingRef = useRef(false);
 
@@ -65,39 +62,33 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const L = {
     de: {
       title: "EIN FREUND LÄDT DICH EIN",
-      hint: "Der Code wird nach der Anmeldung automatisch aktiviert.",
+      hint: "Der Code ordnet dich einem Partner zu. Premium schaltest du danach über das Abo frei.",
       label: "Empfehlungscode",
       invalid: "Ungültig",
-      successTitle: "Premium freigeschaltet!",
-      successBody: "Du hast Premium kostenlos freigeschaltet.",
-      successDays: (d: number) => `${d} Tage kostenloser Vollzugang`,
-      successLifetime: "Lebenslang kostenloser Premium-Zugang",
+      successTitle: "Code erkannt!",
+      successBody: "Dein Partner wurde gespeichert. Als Nächstes wählst du dein Premium-Abo.",
       skip: "Nicht jetzt",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
       title: "A FRIEND INVITED YOU",
-      hint: "The code is applied automatically after you sign in.",
+      hint: "The code links you to a partner. Unlock Premium with a subscription next.",
       label: "Referral code",
       invalid: "Invalid",
-      successTitle: "Premium unlocked!",
-      successBody: "You've unlocked Premium for free.",
-      successDays: (d: number) => `${d} days of free full access`,
-      successLifetime: "Lifetime free Premium access",
+      successTitle: "Code recognized!",
+      successBody: "Your partner was saved. Next, choose your Premium subscription.",
       skip: "Not now",
       next: "Next",
       back: "Back",
     },
     fr: {
       title: "UN AMI T'INVITE",
-      hint: "Le code est activé automatiquement après connexion.",
+      hint: "Le code te rattache à un partenaire. Premium s'active ensuite via l'abonnement.",
       label: "Code de parrainage",
       invalid: "Invalide",
-      successTitle: "Premium débloqué !",
-      successBody: "Tu as débloqué Premium gratuitement.",
-      successDays: (d: number) => `${d} jours d'accès complet gratuit`,
-      successLifetime: "Accès Premium gratuit à vie",
+      successTitle: "Code reconnu !",
+      successBody: "Ton partenaire est enregistré. Ensuite, choisis ton abonnement Premium.",
       skip: "Pas maintenant",
       next: "Suivant",
       back: "Retour",
@@ -109,9 +100,8 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const codeValue = code.join("").trim().toUpperCase();
 
   const runSuccessFlow = useCallback(
-    (days: number, lifetime: boolean) => {
-      setDurationDays(days);
-      setIsLifetime(lifetime);
+    (name: string | null | undefined) => {
+      setPartnerName(name?.trim() || null);
       setFieldError(null);
       setPhase("check");
       window.setTimeout(() => setPhase("success"), 700);
@@ -137,9 +127,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       }
 
       savePendingReferralCode(value);
-      markReferralSkipPaywall();
-      const days = result.duration_days ?? 30;
-      const lifetime = isReferralLifetime(result.duration_days, result.is_lifetime);
+      const partner = result.influencer_name;
 
       if (session?.access_token) {
         const redeem = await redeemReferralCode(session.access_token, value);
@@ -154,7 +142,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
         validatingRef.current = false;
       }
 
-      runSuccessFlow(days, lifetime);
+      runSuccessFlow(partner);
     },
     [session?.access_token, runSuccessFlow, t.invalid, checkSubscription],
   );
@@ -264,8 +252,8 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
             >
               <div className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold"
                 style={{ backgroundColor: "rgba(110, 240, 168, 0.15)", color: PALETTE.primaryDark }}>
-                <Crown className="h-4 w-4" />
-                Premium
+                <Check className="h-4 w-4" />
+                Partner
               </div>
               <h2 className="text-[28px] font-black uppercase leading-tight tracking-[-0.04em]" style={{ color: PALETTE.text }}>
                 {t.successTitle}
@@ -273,9 +261,11 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
               <p className="mt-3 max-w-[300px] text-[17px] font-medium leading-snug" style={{ color: PALETTE.muted }}>
                 {t.successBody}
               </p>
-              <p className="mt-2 text-[15px] font-semibold" style={{ color: PALETTE.primaryDark }}>
-                {isLifetime ? t.successLifetime : t.successDays(durationDays)}
-              </p>
+              {partnerName ? (
+                <p className="mt-2 text-[15px] font-semibold" style={{ color: PALETTE.primaryDark }}>
+                  {partnerName}
+                </p>
+              ) : null}
             </motion.div>
           </motion.div>
         )}

@@ -21,18 +21,25 @@ export function mergeSubscriptionStatus<T extends SubscriptionStatusLike>(
   previous: T | null | undefined,
   dbCache: T | null | undefined,
 ): T | null {
-  if (incoming && isSubscriptionActive(incoming)) {
-    return incoming;
-  }
-  if (dbCache && isSubscriptionActive(dbCache)) {
-    return dbCache;
-  }
-  if (previous && isSubscriptionActive(previous)) {
-    return previous;
-  }
-  return incoming ?? previous ?? dbCache ?? null;
+  const active = (status: T | null | undefined): T | null => {
+    if (status && isSubscriptionActive(status) && !isPromoPremiumProductId(status.product_id)) {
+      return status;
+    }
+    return null;
+  };
+
+  return (
+    active(incoming) ??
+    active(dbCache) ??
+    active(previous) ??
+    incoming ??
+    previous ??
+    dbCache ??
+    null
+  );
 }
 
+/** Legacy server-side promo grants — no longer treated as premium (App Store compliance). */
 export function isPromoPremiumProductId(productId: string | null | undefined): boolean {
   if (!productId) return false;
   return productId.startsWith("referral_") || productId === "influencer_promo";

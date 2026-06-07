@@ -73,66 +73,18 @@ serve(async (req) => {
       });
     }
 
-    logStep("Granting premium", { email, duration_days, reason });
+    logStep("Grant premium blocked (store compliance)", { email, duration_days, reason });
 
-    const { data: userByEmail, error: userError } = await supabaseClient.auth.admin.getUserByEmail(
-      email.trim(),
-    );
-
-    if (userError) {
-      logStep("Error looking up user", { error: userError.message });
-      throw new Error("Fehler beim Suchen des Nutzers");
-    }
-
-    const targetUser = userByEmail?.user;
-
-    if (!targetUser) {
-      return new Response(JSON.stringify({ error: "Nutzer mit dieser E-Mail nicht gefunden" }), {
+    return new Response(
+      JSON.stringify({
+        error:
+          "Manuelle Premium-Vergabe ist deaktiviert (App Store / Google Play). Nutze Apple Offer Codes oder Google Play Promo Codes.",
+      }),
+      {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
-      });
-    }
-
-    logStep("Found user", { userId: targetUser.id, email: targetUser.email });
-
-    // Calculate subscription end date
-    const subscriptionEnd = new Date();
-    subscriptionEnd.setDate(subscriptionEnd.getDate() + duration_days);
-
-    // Insert or update subscription_cache
-    const { error: insertError } = await supabaseClient
-      .from('subscription_cache')
-      .upsert({
-        user_id: targetUser.id,
-        subscribed: true,
-        product_id: 'influencer_promo',
-        subscription_end: subscriptionEnd.toISOString(),
-        is_trial: false,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-
-    if (insertError) {
-      logStep("Error inserting subscription", { error: insertError.message });
-      throw new Error("Fehler beim Gewähren von Premium");
-    }
-
-    logStep("Premium granted successfully", { 
-      userId: targetUser.id, 
-      email: targetUser.email,
-      until: subscriptionEnd.toISOString(),
-      reason 
-    });
-
-    return new Response(JSON.stringify({ 
-      success: true,
-      message: `Premium wurde gewährt bis ${subscriptionEnd.toLocaleDateString('de-DE')}`,
-      user_email: targetUser.email,
-      subscription_end: subscriptionEnd.toISOString()
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
+        status: 403,
+      },
+    );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });

@@ -1,7 +1,4 @@
-import { Suspense, useMemo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { getPageTransition } from "@/lib/motionPresets";
+import { Suspense, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 // Force rebuild to clear Vite cache
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -17,7 +14,6 @@ import { PageLoader } from "@/components/PageLoader";
 import { SupabaseErrorBoundary } from "@/components/SupabaseErrorBoundary";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithReload } from "@/lib/lazyWithReload";
-import { isMainNavRoute } from "@/lib/routeTransitions";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
 import { AuthFlowBootstrap, AuthFlowOverlay, AuthFlowRouter } from "@/components/AuthFlowBootstrap";
@@ -27,7 +23,7 @@ import { AuthOAuthCallbackBootstrap } from "@/components/AuthOAuthCallbackBootst
 import { StoreBillingBootstrap } from "@/components/StoreBillingBootstrap";
 import { BadgeUnlockCelebration } from "@/components/BadgeUnlockCelebration";
 import MealPlansPage from "./pages/MealPlansPage";
-// Lazy load all pages for better performance
+// Lazy load secondary pages — main nav (/meal-plans) stays eager so navigation never hangs on Suspense
 const Index = lazyWithReload(() => import("./pages/Index"));
 const ScanPage = lazyWithReload(() => import("./pages/ScanPage"));
 const ManualPage = lazyWithReload(() => import("./pages/ManualPage"));
@@ -61,58 +57,45 @@ const queryClient = new QueryClient({
   },
 });
 
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
 
 const AppContent = () => {
   const location = useLocation();
-  const isMobile = useIsMobile();
-  const pageTransition = useMemo(
-    () => getPageTransition(isMobile, isMainNavRoute(location.pathname)),
-    [isMobile, location.pathname],
-  );
+  const routeResetKey = `${location.pathname}${location.search}`;
 
   return (
     <>
       <OfflineIndicator />
-      <RouteErrorBoundary resetKey={location.pathname}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={pageTransition.initial}
-            animate={pageTransition.animate}
-            exit={pageTransition.exit}
-            transition={pageTransition.transition}
-            className="min-h-screen bg-background"
-          >
-            <Suspense fallback={<PageLoader />}>
-              <Routes location={location}>
-                <Route path="/" element={<Index />} />
-                <Route path="/onboarding-preview" element={<OnboardingPreviewPage />} />
-                <Route path="/signup" element={<SignupDeepLinkPage />} />
-                <Route path="/invite" element={<SignupDeepLinkPage />} />
-                <Route path="/scan" element={<ScanPage />} />
-                <Route path="/manual" element={<ManualPage />} />
-                <Route path="/recipes" element={<RecipesPage />} />
-                <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-                <Route path="/favorites" element={<FavoritesPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/premium" element={<PremiumPage />} />
-                <Route path="/meal-plans" element={<MealPlansPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/badges" element={<BadgesPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/update-password" element={<UpdatePasswordPage />} />
-                <Route path="/email-confirmation" element={<EmailConfirmationPage />} />
-                <Route path="/plan-selection" element={<PlanSelectionPage />} />
-                <Route path="/premium-pricing" element={<PremiumPricingPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/legal/:type" element={<LegalPage />} />
-                <Route path="/food-entry/:id" element={<FoodEntryDetailPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </motion.div>
-        </AnimatePresence>
+      <RouteErrorBoundary resetKey={routeResetKey}>
+        <div className="min-h-screen bg-background">
+          <Routes location={location}>
+            <Route path="/" element={<LazyRoute><Index /></LazyRoute>} />
+            <Route path="/meal-plans" element={<MealPlansPage />} />
+            <Route path="/onboarding-preview" element={<LazyRoute><OnboardingPreviewPage /></LazyRoute>} />
+            <Route path="/signup" element={<LazyRoute><SignupDeepLinkPage /></LazyRoute>} />
+            <Route path="/invite" element={<LazyRoute><SignupDeepLinkPage /></LazyRoute>} />
+            <Route path="/scan" element={<LazyRoute><ScanPage /></LazyRoute>} />
+            <Route path="/manual" element={<LazyRoute><ManualPage /></LazyRoute>} />
+            <Route path="/recipes" element={<LazyRoute><RecipesPage /></LazyRoute>} />
+            <Route path="/recipe/:id" element={<LazyRoute><RecipeDetailPage /></LazyRoute>} />
+            <Route path="/favorites" element={<LazyRoute><FavoritesPage /></LazyRoute>} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/premium" element={<LazyRoute><PremiumPage /></LazyRoute>} />
+            <Route path="/profile" element={<LazyRoute><ProfilePage /></LazyRoute>} />
+            <Route path="/badges" element={<LazyRoute><BadgesPage /></LazyRoute>} />
+            <Route path="/reset-password" element={<LazyRoute><ResetPasswordPage /></LazyRoute>} />
+            <Route path="/update-password" element={<LazyRoute><UpdatePasswordPage /></LazyRoute>} />
+            <Route path="/email-confirmation" element={<LazyRoute><EmailConfirmationPage /></LazyRoute>} />
+            <Route path="/plan-selection" element={<LazyRoute><PlanSelectionPage /></LazyRoute>} />
+            <Route path="/premium-pricing" element={<LazyRoute><PremiumPricingPage /></LazyRoute>} />
+            <Route path="/admin" element={<LazyRoute><AdminPage /></LazyRoute>} />
+            <Route path="/legal/:type" element={<LazyRoute><LegalPage /></LazyRoute>} />
+            <Route path="/food-entry/:id" element={<LazyRoute><FoodEntryDetailPage /></LazyRoute>} />
+            <Route path="*" element={<LazyRoute><NotFound /></LazyRoute>} />
+          </Routes>
+        </div>
       </RouteErrorBoundary>
     </>
   );

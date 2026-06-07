@@ -15,6 +15,12 @@ import {
   type NextMealInfo,
 } from "@/lib/food-ai/weeklyPlanWidgetData";
 import { cn } from "@/lib/utils";
+import { dashboardScrollTransition, dashboardScrollViewport } from "@/lib/motionPresets";
+import {
+  dashboardCardBorder,
+  dashboardCardShadow,
+  dashboardCardShadowHover,
+} from "./dashboardCardStyles";
 
 type WeeklyPlanWidgetProps = {
   preview: WeekPlanPreviewData;
@@ -76,9 +82,10 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
     <motion.div
       role="button"
       tabIndex={0}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.34, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={dashboardScrollViewport}
+      transition={dashboardScrollTransition(false, delay)}
       {...openPlanTap}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -88,13 +95,14 @@ export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanW
       }}
       aria-label={`${t.weeklyPlan}: ${mealName}`}
       className={cn(
-        "group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] border border-slate-200/75 p-5 text-left",
+        "group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] p-5 text-left",
+        dashboardCardBorder,
         "bg-gradient-to-br from-white via-white to-primary/[0.06]",
-        "shadow-[0_18px_44px_-32px_rgba(74,232,150,0.32)]",
+        dashboardCardShadow,
+        dashboardCardShadowHover,
         "transition-[box-shadow,transform] duration-300",
-        "hover:shadow-[0_22px_50px_-28px_rgba(74,232,150,0.4)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2",
-        "dark:border-white/10 dark:from-white/[0.07] dark:to-primary/[0.08]",
+        "dark:from-white/[0.07] dark:to-primary/[0.08]",
       )}
     >
       <div

@@ -46,39 +46,14 @@ function mapRcToCache(data: RcSubscriber) {
   };
 }
 
-function isPromoProductId(productId: string | null | undefined): boolean {
+function isStoreProductId(productId: string | null | undefined): boolean {
   if (!productId) return false;
-  return productId.startsWith("referral_") || productId === "influencer_promo";
+  return productId.startsWith("rc_") || productId.startsWith("store_");
 }
 
-function promoStillValid(subscriptionEnd: string | null): boolean {
+function cacheEntryStillValid(subscriptionEnd: string | null | undefined): boolean {
   if (!subscriptionEnd) return true;
   return new Date(subscriptionEnd) > new Date();
-}
-
-async function loadActivePromoFromCache(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-) {
-  const { data, error } = await supabase
-    .from("subscription_cache")
-    .select("subscribed, product_id, subscription_end, is_trial")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error || !data?.subscribed || !isPromoProductId(data.product_id)) {
-    return null;
-  }
-  if (!promoStillValid(data.subscription_end)) {
-    return null;
-  }
-
-  return {
-    subscribed: true,
-    product_id: data.product_id,
-    subscription_end: data.subscription_end,
-    is_trial: data.is_trial || false,
-  };
 }
 
 serve(async (req) => {
@@ -120,14 +95,6 @@ serve(async (req) => {
 
     const userId = userData.user.id;
 
-    const activePromo = await loadActivePromoFromCache(supabase, userId);
-    if (activePromo) {
-      console.log("[sync-store-subscription] Keeping active referral/influencer promo", activePromo);
-      return new Response(JSON.stringify(activePromo), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const rcRes = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
       headers: {
         Authorization: `Bearer ${rcSecret}`,
@@ -145,7 +112,11 @@ serve(async (req) => {
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (cached?.subscribed) {
+      if (
+        cached?.subscribed &&
+        isStoreProductId(cached.product_id) &&
+        cacheEntryStillValid(cached.subscription_end)
+      ) {
         const fallback = {
           subscribed: true,
           product_id: cached.product_id,
@@ -165,16 +136,6 @@ serve(async (req) => {
 
     const rcJson = (await rcRes.json()) as RcSubscriber;
     const cache = mapRcToCache(rcJson);
-
-    if (!cache.subscribed) {
-      const cachedActive = await loadActivePromoFromCache(supabase, userId);
-      if (cachedActive) {
-        console.log("[sync-store-subscription] RC inactive — keeping promo from cache", cachedActive);
-        return new Response(JSON.stringify(cachedActive), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
 
     await supabase.from("subscription_cache").upsert(
       {
