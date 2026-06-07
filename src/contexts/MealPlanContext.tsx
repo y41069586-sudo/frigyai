@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { usePremiumGate } from './PremiumGateContext';
@@ -34,6 +34,7 @@ import {
   type LanguageChangedDetail,
 } from '@/lib/mealPlanLanguage';
 import { translateMealPlanContent } from '@/lib/translateMealPlan';
+import { setMealPlanGenerationActive } from '@/lib/mealPlanGenerationLock';
 
 type GenerationStage =
   | 'preparing'
@@ -231,6 +232,7 @@ export const useMealPlanGeneration = () => {
 
 export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { session, isPremium, subscriptionStatus, checkSubscription } = useAuth();
   const { ensurePremium } = usePremiumGate();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -382,24 +384,14 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if (!isGenerating) {
       leftMealPlansWhileGeneratingRef.current = false;
-      return;
-    }
-
-    const searchParams = new URLSearchParams(location.search);
-    const activeMealPlanTab = searchParams.get('tab') || 'meals';
-    const isMealPlanMainView = location.pathname === '/meal-plans' && activeMealPlanTab === 'meals';
-
-    if (!isMealPlanMainView) {
-      leftMealPlansWhileGeneratingRef.current = true;
-      setIsMinimized(true);
-      return;
-    }
-
-    if (leftMealPlansWhileGeneratingRef.current) {
       setIsMinimized(false);
-      leftMealPlansWhileGeneratingRef.current = false;
+      return;
     }
-  }, [isGenerating, location.pathname, location.search]);
+
+    // Keep full-screen overlay during generation — never minimize mid-run.
+    setIsMinimized(false);
+    leftMealPlansWhileGeneratingRef.current = false;
+  }, [isGenerating]);
 
   // Load persisted meal plan from backend on login (and migrate any existing local plan)
   useEffect(() => {
@@ -533,6 +525,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setIsGenerating(true);
     setIsMinimized(false);
+    setMealPlanGenerationActive(true);
     setGenerationProgress(0);
     progressTargetRef.current = 0;
     stageElapsedSecondsRef.current = 0;
@@ -752,6 +745,12 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   : targetWarning?.message || ui.targetAdjustedDesc,
             });
           }
+
+          const tab = new URLSearchParams(location.search).get('tab') || 'meals';
+          if (location.pathname !== '/meal-plans' || tab !== 'meals') {
+            navigate('/meal-plans?tab=meals', { replace: true });
+          }
+
           return true;
         } else {
           throw new Error('Leerer Wochenplan erhalten');
@@ -826,10 +825,11 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       return false;
     } finally {
+      setMealPlanGenerationActive(false);
       setIsGenerating(false);
       setIsMinimized(false);
     }
-  }, [session, refreshGenerationCount, isPremium, subscriptionStatus, checkSubscription, ensurePremium, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally]);
+  }, [session, refreshGenerationCount, isPremium, subscriptionStatus, checkSubscription, ensurePremium, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     const syncPlanLanguage = async (nextLanguage: Language) => {
@@ -928,7 +928,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         progressPercent={generationProgress}
         stageKey={generationStage}
         isMinimized={isMinimized}
-        onMinimize={() => setIsMinimized(true)}
+        locked={isGenerating}
+        stayOnTabMessage={getTranslations(getStoredLanguage()).firstWeeklyPlanStayOnTab}
       />
     </MealPlanContext.Provider>
   );

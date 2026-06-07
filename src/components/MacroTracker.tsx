@@ -659,17 +659,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         window.clearInterval(progressInterval);
       }
       setIsAnalyzing(false);
-      if (!imageBase64) {
-        setAnalyzingImage(null);
-        setShowFoodCamera(false);
-        setFoodScanPhase('capture');
-        notifyOverlayOpen(false);
-        return;
-      }
-      if (!scanFlowSettled) {
-        setFoodScanError((prev) => prev ?? t.couldNotAnalyzeFood);
-        setFoodScanPhase('error');
-      }
+    }
+
+    if (!imageBase64) {
+      setAnalyzingImage(null);
+      setShowFoodCamera(false);
+      setFoodScanPhase('capture');
+      notifyOverlayOpen(false);
+    } else if (!scanFlowSettled) {
+      setFoodScanError((prev) => prev ?? t.couldNotAnalyzeFood);
+      setFoodScanPhase('error');
     }
   };
 

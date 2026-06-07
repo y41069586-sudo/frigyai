@@ -189,10 +189,6 @@ export const useTrackerSettings = () => {
           try {
             const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
             const parsed = stored ? JSON.parse(stored) : null;
-            const localMacros =
-              readStoredTrackerTargets() ??
-              readOnboardingMacroTargets() ??
-              (parsed ? mergeMacroTargetsFromLocal({}, parsed) : null);
 
             if (parsed) {
               merged = {
@@ -209,7 +205,19 @@ export const useTrackerSettings = () => {
               };
             }
 
-            merged = mergeMacroTargetsFromLocal(merged, localMacros);
+            const localMacros =
+              readStoredTrackerTargets() ??
+              readOnboardingMacroTargets() ??
+              (parsed ? mergeMacroTargetsFromLocal({}, parsed) : null);
+
+            if (dbSettings.dailyCalories > 0) {
+              merged.dailyCalories = dbSettings.dailyCalories;
+              merged.dailyProtein = dbSettings.dailyProtein;
+              merged.dailyCarbs = dbSettings.dailyCarbs;
+              merged.dailyFat = dbSettings.dailyFat;
+            } else if (localMacros) {
+              merged = mergeMacroTargetsFromLocal(merged, localMacros);
+            }
 
             const onboardingRaw = localStorage.getItem('onboardingUserData');
             if (onboardingRaw) {
@@ -231,10 +239,10 @@ export const useTrackerSettings = () => {
             /* keep dbSettings only */
           }
 
-          const shouldSyncMacrosToDb =
+          const shouldSyncLocalToDb =
             user &&
-            merged.dailyCalories > 0 &&
-            merged.dailyCalories !== dbSettings.dailyCalories;
+            dbSettings.dailyCalories <= 0 &&
+            merged.dailyCalories > 0;
 
           setSettings(merged);
           setIsConfigured(merged.dailyCalories > 0);
@@ -242,7 +250,7 @@ export const useTrackerSettings = () => {
           if (user) {
             writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
           }
-          if (shouldSyncMacrosToDb) {
+          if (shouldSyncLocalToDb) {
             void saveToDatabase(merged);
           }
           return;

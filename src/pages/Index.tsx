@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { getStoredLanguage, useLanguage } from "@/contexts/LanguageContext";
 import { resolveDashboardMacroTargets } from "@/lib/trackerTargets";
+import { isMealPlanGenerationActive } from "@/lib/mealPlanGenerationLock";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
@@ -327,7 +328,7 @@ const Index = () => {
       clearInterval(interval);
       if (frameId != null) window.cancelAnimationFrame(frameId);
     };
-  }, []);
+  }, [timeLocale, t.defaultMealName, user?.id]);
   
   // Fallback: if local today cache is missing, hydrate macros from DB.
   useEffect(() => {
@@ -647,8 +648,8 @@ const Index = () => {
   }, [loading, showOnboarding, user, onboardingResumeStep, dbOnboardingComplete]);
 
   const macroTargets = useMemo(
-    () => resolveDashboardMacroTargets(trackerSettings),
-    [trackerSettings],
+    () => resolveDashboardMacroTargets(trackerSettings, { preferLocal: trackerLoading }),
+    [trackerSettings, trackerLoading],
   );
   const targetCalories = macroTargets?.dailyCalories ?? 0;
   const targetProtein = macroTargets?.dailyProtein ?? 0;
@@ -657,8 +658,8 @@ const Index = () => {
   const targetsReady = targetCalories > 0;
   
   
-  // Wait for auth before showing anything
-  if (loading) {
+  // Wait for auth before showing anything (never cover active Wochenplan generation)
+  if (loading && !isMealPlanGenerationActive()) {
     return <PageLoader />;
   }
 

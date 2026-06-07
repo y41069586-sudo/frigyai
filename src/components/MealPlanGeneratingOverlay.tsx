@@ -198,7 +198,7 @@ export const MealPlanGeneratingOverlay = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+          className="fixed inset-0 z-[260] flex items-center justify-center overflow-hidden"
           style={{ pointerEvents: showOverlay ? "auto" : "none" }}
           onClick={handleBackgroundTap}
         >

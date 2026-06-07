@@ -21,6 +21,7 @@ import {
   type PostAuthPhase,
 } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
+import { isMealPlanGenerationActive } from "@/lib/mealPlanGenerationLock";
 
 /** Pipeline phases while work is in progress. */
 export type AuthPendingPhase = "oauth_exchange" | "session" | "premium";
@@ -197,6 +198,10 @@ export const POST_AUTH_MANUAL_NAV_PATHS = new Set([
 
 /** Overlay until pipeline done AND navigation executed (or still pending). */
 export function isAuthFlowOverlayVisible(): boolean {
+  if (isMealPlanGenerationActive()) {
+    return false;
+  }
+
   const { result, navigation } = snapshot;
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   const onManualNav = POST_AUTH_MANUAL_NAV_PATHS.has(path);
@@ -214,6 +219,8 @@ export function isAuthFlowOverlayVisible(): boolean {
 
 /** User navigated manually — drop stale post-auth redirect state (keeps in-flight OAuth pending). */
 export function dismissStalledAuthNavigation(): void {
+  if (isMealPlanGenerationActive()) return;
+
   const { result } = getAuthFlowSnapshot();
   if (result.status === "pending" && result.phase === "oauth_exchange") return;
 

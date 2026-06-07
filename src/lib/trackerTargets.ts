@@ -51,16 +51,27 @@ export function readOnboardingMacroTargets(): DailyMacroTargets | null {
 }
 
 /**
- * Dashboard targets: onboarding / local profile win over stale DB cache on first paint.
+ * Dashboard targets: while tracker settings load, prefer onboarding/local (no 0-flash).
+ * After load, DB/hook values win so profile edits and multi-device sync stay correct.
  */
+export type ResolveDashboardMacroTargetsOptions = {
+  preferLocal?: boolean;
+};
+
 export function resolveDashboardMacroTargets(
   remote: Partial<DailyMacroTargets> | null | undefined,
+  options?: ResolveDashboardMacroTargetsOptions,
 ): DailyMacroTargets | null {
-  const local = readStoredTrackerTargets() ?? readOnboardingMacroTargets();
   const fromRemote = normalizeMacroTargets(remote);
+  const local = readStoredTrackerTargets() ?? readOnboardingMacroTargets();
 
+  if (options?.preferLocal && local) {
+    return local;
+  }
+
+  if (fromRemote) return fromRemote;
   if (local) return local;
-  return fromRemote;
+  return null;
 }
 
 /** Prefer local macro fields when merging DB + localStorage tracker settings. */

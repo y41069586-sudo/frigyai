@@ -73,7 +73,7 @@ const AppContent = () => {
   return (
     <>
       <OfflineIndicator />
-      <RouteErrorBoundary resetKey={`${location.pathname}${location.search}`}>
+      <RouteErrorBoundary resetKey={location.pathname}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}

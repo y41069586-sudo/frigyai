@@ -1,7 +1,12 @@
 import { motion } from "framer-motion";
 import frigLogo from "@/assets/frigy-mascot.png";
+import { isMealPlanGenerationActive } from "@/lib/mealPlanGenerationLock";
 
 export const PageLoader = () => {
+  if (isMealPlanGenerationActive()) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <motion.div

@@ -414,14 +414,16 @@ const MealPlansPage = () => {
   };
 
   useEffect(() => {
+    if (isGenerating) return;
     dismissStalledAuthNavigation();
-  }, []);
+  }, [isGenerating]);
 
   useEffect(() => {
+    if (isGenerating) return;
     if (authed) {
       dismissStalledAuthNavigation();
     }
-  }, [authed]);
+  }, [authed, isGenerating]);
 
   // Show loading screen while activating subscription
   if (isActivatingSubscription) {
