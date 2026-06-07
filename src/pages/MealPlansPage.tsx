@@ -9,7 +9,6 @@ import { ArrowLeft, Sparkles, ShoppingCart, Flame, TrendingDown, Check, Bell, Us
 import { NavLink } from '@/components/NavLink';
 import { Card } from '@/components/ui/card';
 import { MealDetailDialog } from '@/components/MealDetailDialog';
-import frigyMascot from '@/assets/frigy-mascot.png';
 import { ShoppingList } from '@/components/ShoppingList';
 const ReminderSettings = lazy(() =>
   import('@/components/ReminderSettings').then((m) => ({ default: m.ReminderSettings })),
@@ -488,14 +487,9 @@ const MealPlansPage = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <NavLink to="/">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="rounded-xl bg-primary/10 p-0.5">
-                  <img src={frigyMascot} alt="Frigy" className="h-6 w-6 rounded-lg sm:h-7 sm:w-7" />
-                </span>
-                <h1 className="text-[18px] font-black tracking-[-0.04em] text-foreground sm:text-xl">
-                  Frigy
-                </h1>
-              </div>
+              <h1 className="text-[18px] font-black tracking-[-0.04em] text-foreground sm:text-xl">
+                Frigy
+              </h1>
             </NavLink>
           </div>
           <div className="flex shrink-0 items-center gap-1.5" />

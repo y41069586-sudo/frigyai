@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
-import { Sparkles, ShoppingCart, ShieldCheck, UtensilsCrossed } from "lucide-react";
+import { Sparkles, ShoppingCart, ShieldCheck, UtensilsCrossed, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import frigyMascot from "@/assets/frigy-mascot.png";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type WeeklyPlanEmptyStateProps = {
@@ -55,8 +54,8 @@ export function WeeklyPlanEmptyState({
       <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-emerald-200/30 blur-3xl" />
 
       <div className="relative flex flex-col items-center text-center">
-        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-[1.35rem] bg-white shadow-[0_16px_40px_-20px_rgba(57,212,127,0.45)] ring-1 ring-primary/10">
-          <img src={frigyMascot} alt="Frigy" className="h-14 w-14 rounded-xl" />
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-primary/10 text-primary ring-1 ring-primary/15">
+          <CalendarDays className="h-8 w-8" strokeWidth={2} />
         </div>
 
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary/80">
