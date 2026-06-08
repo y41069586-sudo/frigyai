@@ -19,7 +19,9 @@ import {
   buildGapShoppingList,
   readFridgeIngredientsFromStorage,
 } from '@/lib/shoppingGap';
-import { isInvalidShoppingItemName } from '@/lib/shoppingListNormalize';
+import {
+  formatShoppingListAmount,
+} from '@/lib/shoppingListNormalize';
 import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 
 interface Ingredient {
@@ -113,13 +115,15 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   // Wochenplan ist Quelle der Wahrheit — Einkaufsliste daraus ableiten (Mengen + Preise aggregiert)
   useEffect(() => {
     const mapGapToItems = (gap: Array<{ name: string; amount: string; price: number }>): ShoppingItem[] =>
-      gap.map((ing, idx) => ({
-        name: ing.name,
-        amount: ing.amount || '—',
-        price: typeof ing.price === 'number' ? ing.price : 0,
-        id: `stored-${ing.name.toLowerCase()}-${idx}`,
-        purchased: false,
-      }));
+      gap
+        .filter((ing) => ing.name.trim().length > 0)
+        .map((ing, idx) => ({
+          name: ing.name,
+          amount: formatShoppingListAmount(ing.name, ing.amount),
+          price: typeof ing.price === 'number' ? ing.price : 0,
+          id: `stored-${ing.name.toLowerCase()}-${idx}`,
+          purchased: false,
+        }));
 
     const tryStoredList = (): ShoppingItem[] | null => {
       const raw = localStorage.getItem('weeklyShoppingList');
@@ -131,7 +135,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         if (normalized.length === 0) return [];
         return normalized.map((ing, idx) => ({
           name: ing.name,
-          amount: ing.amount || '—',
+          amount: formatShoppingListAmount(ing.name, ing.amount),
           price: typeof ing.price === 'number' ? ing.price : 0,
           id: `stored-${ing.name.toLowerCase()}-${idx}`,
           purchased: false,
@@ -146,8 +150,17 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       const cached = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
       if (cached) {
         try {
-          const parsedItems = JSON.parse(cached);
-          setItems(parsedItems);
+          const parsedItems = JSON.parse(cached) as unknown;
+          const normalized = normalizeShoppingListItems(parsedItems, defaultIngredientName);
+          setItems(applyPurchasedFromCache(
+            normalized.map((ing, idx) => ({
+              name: ing.name,
+              amount: formatShoppingListAmount(ing.name, ing.amount),
+              price: ing.price,
+              id: `offline-${ing.name.toLowerCase()}-${idx}`,
+              purchased: false,
+            })),
+          ));
           return;
         } catch (e) {
           console.error('[SHOPPING] Failed to load cache:', e);
@@ -514,9 +527,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                           <p className={`font-medium text-sm ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
                             {item.name}
                           </p>
-                          {item.amount && item.amount !== '—' && !isInvalidShoppingItemName(item.amount) && (
-                            <p className="text-xs text-muted-foreground">{item.amount}</p>
-                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {formatShoppingListAmount(item.name, item.amount)}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`font-semibold text-sm ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>

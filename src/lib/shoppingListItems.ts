@@ -5,6 +5,7 @@ import {
 } from "@/lib/ingredientPricing";
 import type { ShoppingListEntry } from "@/lib/shoppingListNormalize";
 import {
+  formatShoppingListAmount,
   isInvalidShoppingItemName,
   parseCombinedIngredientLine,
 } from "@/lib/shoppingListNormalize";
@@ -67,6 +68,8 @@ export function normalizeShoppingEntry(
 
   if (isGenericPortionAmount(amount)) {
     amount = defaultAmountForIngredient(name);
+  } else if (amount !== "—" && /^[\d.,]+$/.test(amount.trim())) {
+    amount = formatShoppingListAmount(name, amount);
   }
 
   return {
@@ -104,7 +107,7 @@ export function normalizeShoppingListItems(
 
   return Array.from(map.values()).map((v) => ({
     name: v.name,
-    amount: aggregateAmountStrings(v.amounts),
+    amount: formatShoppingListAmount(v.name, aggregateAmountStrings(v.amounts)),
     price: Math.round(v.price * 100) / 100,
   }));
 }

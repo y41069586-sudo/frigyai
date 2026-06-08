@@ -16,12 +16,20 @@ const ReminderSettings = lazy(() =>
 import { ExportMealPlan } from '@/components/ExportMealPlan';
 import { useFoodEntries } from '@/hooks/useFoodEntries';
 import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { AiDisclaimer } from '@/components/AiDisclaimer';
 import { PremiumSuccessDialog } from '@/components/PremiumSuccessDialog';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY, FRIGY_TRACKER_SETTINGS_UPDATED } from '@/lib/frigyStorageSync';
 import { hasMealPlanContent, resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
 import { WeeklyPlanEmptyState } from '@/components/meal-plan/WeeklyPlanEmptyState';
+import { MealPlanPreferencesWizard } from '@/components/meal-plan/MealPlanPreferencesWizard';
+import {
+  shouldShowMealPlanPreferencesWizard,
+  readMealPlanPreferences,
+  saveMealPlanPreferences,
+  type MealPlanPreferences,
+} from '@/lib/mealPlanPreferences';
 import { cn } from '@/lib/utils';
 import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -142,7 +150,10 @@ const MealPlansPage = () => {
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showPrefsWizard, setShowPrefsWizard] = useState(false);
+  const [prefsWizardFinishLabel, setPrefsWizardFinishLabel] = useState<string | undefined>(undefined);
   const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
+  const generateAfterPrefsRef = useRef(false);
   
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, reloadSettings } = useTrackerSettings();
@@ -263,14 +274,7 @@ const MealPlansPage = () => {
     reloadSettings();
   };
 
-  const generateMealPlan = useCallback(async () => {
-    if (!session) {
-      toast({ title: t.notLoggedIn, variant: 'destructive' });
-      navigate('/auth');
-      return;
-    }
-
-    // Use tracker settings from database/hook (single source of truth)
+  const runGenerateMealPlan = useCallback(async () => {
     const dailyCalories = trackerSettings?.dailyCalories || 1800;
     const dailyProtein = trackerSettings?.dailyProtein || Math.round(dailyCalories * 0.3 / 4);
     const dailyCarbs = trackerSettings?.dailyCarbs || Math.round(dailyCalories * 0.4 / 4);
@@ -279,7 +283,6 @@ const MealPlansPage = () => {
 
     console.log('[MEAL-PLAN] Using global context for generation:', { dailyCalories, dailyProtein, dailyCarbs, dailyFat, mealsPerDay });
 
-    // Use global context for background generation
     await globalGenerateMealPlan({
       dailyCalories,
       dailyProtein,
@@ -287,13 +290,53 @@ const MealPlansPage = () => {
       dailyFat,
       mealsPerDay,
     });
+  }, [trackerSettings, globalGenerateMealPlan]);
+
+  const generateMealPlan = useCallback(async () => {
+    if (!session) {
+      toast({ title: t.notLoggedIn, variant: 'destructive' });
+      navigate('/auth');
+      return;
+    }
+
+    if (shouldShowMealPlanPreferencesWizard()) {
+      generateAfterPrefsRef.current = true;
+      setPrefsWizardFinishLabel(undefined);
+      setShowPrefsWizard(true);
+      return;
+    }
+
+    await runGenerateMealPlan();
   }, [
-    trackerSettings,
     session,
     navigate,
-    globalGenerateMealPlan,
+    runGenerateMealPlan,
     t,
   ]);
+
+  const handleMealPlanPrefsComplete = useCallback((prefs: MealPlanPreferences) => {
+    saveMealPlanPreferences(prefs);
+    if (generateAfterPrefsRef.current) {
+      generateAfterPrefsRef.current = false;
+      void runGenerateMealPlan();
+      return;
+    }
+    toast({
+      title: t.mealPlanPrefSaved,
+      description: t.mealPlanPrefSavedDesc,
+      action: hasPlanContent ? (
+        <ToastAction altText={t.mealPlanPrefRegenerateNow} onClick={() => void runGenerateMealPlan()}>
+          {t.mealPlanPrefRegenerateNow}
+        </ToastAction>
+      ) : undefined,
+    });
+  }, [runGenerateMealPlan, t, hasPlanContent]);
+
+  const openPlanPreferencesEditor = useCallback(() => {
+    generateAfterPrefsRef.current = false;
+    setPrefsWizardFinishLabel(t.mealPlanPrefSaveBtn);
+    setShowPrefsWizard(true);
+  }, [t.mealPlanPrefSaveBtn]);
 
   useEffect(() => {
     const shouldRegenerate = activeTab === 'meals' && searchParams.get('regenerate') === '1';
@@ -518,8 +561,19 @@ const MealPlansPage = () => {
                 <div className="mb-4 sm:mb-6">
                   {hasPlanContent && (
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
-                    <div className="grid w-full min-w-0 grid-cols-[minmax(72px,auto)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                    <div className="grid w-full min-w-0 grid-cols-[minmax(72px,auto)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
                       <ExportMealPlan mealPlan={mealPlan} pdfOnly />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-11 min-w-0 rounded-2xl border-primary/25 bg-white px-2 text-[10px] font-semibold min-[390px]:px-3 min-[390px]:text-xs sm:h-10 sm:text-sm"
+                        onClick={openPlanPreferencesEditor}
+                        disabled={isGenerating}
+                      >
+                        <Sparkles className="mr-1.5 h-4 w-4 shrink-0 min-[390px]:mr-2" />
+                        <span className="truncate">{t.mealPlanPrefEditBtn}</span>
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"
@@ -662,6 +716,14 @@ const MealPlansPage = () => {
       />
 
       {/* Premium Success Dialog */}
+      <MealPlanPreferencesWizard
+        open={showPrefsWizard}
+        onOpenChange={setShowPrefsWizard}
+        onComplete={handleMealPlanPrefsComplete}
+        initialPrefs={readMealPlanPreferences()}
+        finishLabel={prefsWizardFinishLabel}
+      />
+
       <PremiumSuccessDialog
         open={showSuccessDialog}
         onClose={() => {

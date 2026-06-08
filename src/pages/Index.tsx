@@ -49,6 +49,16 @@ import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
+import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
+import { YesterdayCalorieAdjustDialog } from "@/components/YesterdayCalorieAdjustDialog";
+import {
+  dismissYesterdayAdjustPrompt,
+  fetchYesterdayCalorieBalance,
+  isYesterdayAdjustPromptDismissed,
+  type YesterdayCalorieBalance,
+} from "@/lib/yesterdayCalorieBalance";
+import { hasMealPlanContent, readWeeklyPlanFromStorage } from "@/lib/food-ai/weeklyPlanWidgetData";
+import type { DailyMacroTargets } from "@/lib/mealPlanMacros";
 
 function readOnboardingCompleteLocal(): boolean {
   return localStorage.getItem("onboardingComplete") === "true";
@@ -130,6 +140,7 @@ const Index = () => {
   const { t, language } = useLanguage();
   const timeLocale = getAppLocale(language);
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const { regenerateTodayForBalance } = useMealPlanGeneration();
   const { streak, recordActivity, checkAndAwardBadge } = useGamification();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
   const [portalLoading, setPortalLoading] = useState(false);
@@ -178,6 +189,10 @@ const Index = () => {
   const [proteinEaten, setProteinEaten] = useState(initialMacros.protein);
   const [carbsEaten, setCarbsEaten] = useState(initialMacros.carbs);
   const [fatEaten, setFatEaten] = useState(initialMacros.fat);
+  const [yesterdayBalance, setYesterdayBalance] = useState<YesterdayCalorieBalance | null>(null);
+  const [showYesterdayAdjust, setShowYesterdayAdjust] = useState(false);
+  const [isAdjustingYesterday, setIsAdjustingYesterday] = useState(false);
+  const yesterdayPromptCheckedRef = useRef(false);
   const [foodGoal, setFoodGoal] = useState<UserGoal>(() => {
     const s = localStorage.getItem("userFoodGoal") as UserGoal | null;
     if (s === "lose" || s === "gain" || s === "maintain") return s;
@@ -666,6 +681,37 @@ const Index = () => {
   const targetCarbs = macroTargets?.dailyCarbs ?? 0;
   const targetFat = macroTargets?.dailyFat ?? 0;
   const targetsReady = targetCalories > 0;
+
+  useEffect(() => {
+    if (!user?.id || !targetCalories || yesterdayPromptCheckedRef.current || trackerLoading) return;
+    if (!hasMealPlanContent(readWeeklyPlanFromStorage())) return;
+
+    yesterdayPromptCheckedRef.current = true;
+
+    void (async () => {
+      const balance = await fetchYesterdayCalorieBalance(user.id, targetCalories);
+      if (!balance || isYesterdayAdjustPromptDismissed(balance.date)) return;
+      setYesterdayBalance(balance);
+      setShowYesterdayAdjust(true);
+    })();
+  }, [user?.id, targetCalories, trackerLoading]);
+
+  const handleYesterdayAdjustConfirm = useCallback(async (adjustedTargets: DailyMacroTargets) => {
+    if (!yesterdayBalance) return;
+    setIsAdjustingYesterday(true);
+    dismissYesterdayAdjustPrompt(yesterdayBalance.date);
+    const ok = await regenerateTodayForBalance(adjustedTargets);
+    setIsAdjustingYesterday(false);
+    setShowYesterdayAdjust(false);
+    if (ok) {
+      toast({ title: t.yesterdayCalorieAdjustSuccess });
+    }
+  }, [yesterdayBalance, regenerateTodayForBalance, t.yesterdayCalorieAdjustSuccess]);
+
+  const handleYesterdayAdjustDismiss = useCallback(() => {
+    if (yesterdayBalance) dismissYesterdayAdjustPrompt(yesterdayBalance.date);
+    setShowYesterdayAdjust(false);
+  }, [yesterdayBalance]);
   
   
   // Auth bootstrap only when no session yet — keep bottom nav so Wochenplan stays reachable
@@ -873,6 +919,21 @@ const Index = () => {
           setShowPremiumSuccess(false);
           void checkSubscription();
         }}
+      />
+
+      <YesterdayCalorieAdjustDialog
+        open={showYesterdayAdjust}
+        onOpenChange={setShowYesterdayAdjust}
+        balance={yesterdayBalance}
+        baseTargets={{
+          dailyCalories: targetCalories,
+          dailyProtein: targetProtein,
+          dailyCarbs: targetCarbs,
+          dailyFat: targetFat,
+        }}
+        onConfirm={handleYesterdayAdjustConfirm}
+        onDismiss={handleYesterdayAdjustDismiss}
+        isAdjusting={isAdjustingYesterday}
       />
 
       <Dialog open={showWeightDialog} onOpenChange={setShowWeightDialog}>

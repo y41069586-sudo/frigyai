@@ -15,6 +15,8 @@ import { isSubscriptionActive } from '@/lib/subscription';
 import { usesStoreBilling } from '@/lib/billingPlatform';
 import { syncStoreSubscriptionToServer } from '@/lib/storeBilling';
 import { resolveMealPlanGenerationTargets } from '@/lib/mealPlanGenerationTargets';
+import { readMealPlanPreferences } from '@/lib/mealPlanPreferences';
+import { hasMealPlanContent, resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import {
   buildConstraintPrompt,
@@ -218,6 +220,8 @@ interface MealPlanContextType {
     },
     options?: { fridgeIngredients?: string[] },
   ) => Promise<boolean>;
+  /** Regenerate only today's day with adjusted calorie/macro targets. */
+  regenerateTodayForBalance: (adjustedTargets: DailyMacroTargets) => Promise<boolean>;
   setMinimized: (minimized: boolean) => void;
   clearMealPlan: () => void;
 }
@@ -578,6 +582,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
 
         const diet = readUserMealPlanProfile();
+        const mealPlanPreferences = readMealPlanPreferences();
         const constraintPrompt = buildConstraintPrompt(
           diet.allergies,
           diet.dietaryPreferences,
@@ -611,6 +616,13 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             varietySeed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             previousMealNames,
             previousMeals: previousMealsForRegen,
+            mealPlanPreferences: {
+              cuisines: mealPlanPreferences.cuisines,
+              maxPrepTime: mealPlanPreferences.maxPrepTime,
+              cookFrequency: mealPlanPreferences.cookFrequency,
+              budget: mealPlanPreferences.budget,
+              variety: mealPlanPreferences.variety,
+            },
           },
         });
 
@@ -858,6 +870,148 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [session, refreshGenerationCount, isPremium, subscriptionStatus, checkSubscription, ensurePremium, updateGenerationProgressTarget, mealPlan, persistMealPlanLocally, location.pathname, location.search, navigate]);
 
+  const regenerateTodayForBalance = useCallback(async (adjustedTargets: DailyMacroTargets): Promise<boolean> => {
+    const tr = getTranslations(getStoredLanguage());
+    if (!session) {
+      toast({ title: tr.notLoggedIn, variant: 'destructive' });
+      return false;
+    }
+
+    let currentPlan = mealPlan;
+    if (!currentPlan?.length) {
+      try {
+        const raw = localStorage.getItem('weeklyMealPlan');
+        currentPlan = raw ? (JSON.parse(raw) as DayPlan[]) : null;
+      } catch {
+        currentPlan = null;
+      }
+    }
+
+    if (!hasMealPlanContent(currentPlan)) {
+      toast({
+        title: tr.error || 'Fehler',
+        description: tr.onboardingFirstWeeklyPlanDesc,
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    let hasPremium = isPremium;
+    if (!hasPremium) {
+      const status = await checkSubscription();
+      hasPremium = isSubscriptionActive(status);
+    }
+    if (!hasPremium) {
+      await ensurePremium();
+      return false;
+    }
+
+    const dayIndex = resolveTodayMealPlanDayIndex(currentPlan!);
+    const dayName = currentPlan![dayIndex]?.day ?? '';
+    const diet = readUserMealPlanProfile();
+    const mealPlanPreferences = readMealPlanPreferences();
+    const constraintPrompt = buildConstraintPrompt(
+      diet.allergies,
+      diet.dietaryPreferences,
+      diet.allergiesOther,
+      diet.healthGoals,
+      getStoredLanguage(),
+    );
+    const todayMeals = currentPlan![dayIndex]?.meals ?? [];
+    const previousMealsForRegen = todayMeals.map((m) => ({ name: m.name, ingredients: m.ingredients ?? [] }));
+    const previousMealNames = todayMeals.map((m) => m.name);
+
+    const storedProfile = localStorage.getItem('userProfile');
+    let mealsPerDay = 5;
+    try {
+      if (storedProfile) mealsPerDay = JSON.parse(storedProfile).mealsPerDay || 5;
+    } catch {
+      /* ignore */
+    }
+
+    setIsGenerating(true);
+    setMealPlanGenerationActive(true);
+    setGenerationStage('preparing');
+    setGenerationProgress(20);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meal-plan', {
+        headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        body: {
+          preferences: '',
+          dailyCalories: adjustedTargets.dailyCalories,
+          dailyProtein: adjustedTargets.dailyProtein,
+          dailyCarbs: adjustedTargets.dailyCarbs,
+          dailyFat: adjustedTargets.dailyFat,
+          mealsPerDay,
+          allergies: diet.allergies,
+          allergiesOther: diet.allergiesOther,
+          dietaryPreferences: diet.dietaryPreferences,
+          healthGoals: diet.healthGoals,
+          constraintPrompt,
+          fridgeIngredients: readFridgeIngredientsFromStorage(),
+          language: getStoredLanguage(),
+          isRegeneration: true,
+          varietySeed: `${Date.now()}-balance`,
+          previousMealNames,
+          previousMeals: previousMealsForRegen,
+          singleDayIndex: dayIndex,
+          singleDayName: dayName,
+          mealPlanPreferences: {
+            cuisines: mealPlanPreferences.cuisines,
+            maxPrepTime: mealPlanPreferences.maxPrepTime,
+            cookFrequency: mealPlanPreferences.cookFrequency,
+            budget: mealPlanPreferences.budget,
+            variety: mealPlanPreferences.variety,
+          },
+        },
+      });
+
+      if (error) {
+        throw new Error(await getEdgeFunctionErrorMessage(error, data as { error?: string; message?: string } | null));
+      }
+
+      const payload = data as {
+        error?: string;
+        message?: string;
+        singleDay?: DayPlan;
+        dayIndex?: number;
+      } | null;
+
+      if (payload?.error || !payload?.singleDay) {
+        throw new Error(payload?.message || payload?.error || 'single_day_failed');
+      }
+
+      const merged = [...currentPlan!];
+      const replaceIndex = typeof payload.dayIndex === 'number' ? payload.dayIndex : dayIndex;
+      merged[replaceIndex] = payload.singleDay;
+
+      let normalized: DayPlan[];
+      try {
+        normalized = normalizeMealPlanMacros(merged) as DayPlan[];
+      } catch {
+        normalized = merged;
+      }
+
+      const syncedList = buildGapShoppingList(normalized, readFridgeIngredientsFromStorage()) as ShoppingListItem[];
+      persistMealPlanLocally(normalized, syncedList, getStoredLanguage());
+      setGenerationProgress(100);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[MEAL-PLAN] regenerateTodayForBalance failed:', message);
+      toast({
+        title: tr.error || 'Fehler',
+        description: getPublicErrorMessage(message, tr.yesterdayCalorieAdjustFailed),
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setMealPlanGenerationActive(false);
+      setIsGenerating(false);
+    }
+  }, [session, isPremium, checkSubscription, ensurePremium, mealPlan, persistMealPlanLocally]);
+
   useEffect(() => {
     const syncPlanLanguage = async (nextLanguage: Language) => {
       const rawPlan = localStorage.getItem('weeklyMealPlan');
@@ -945,6 +1099,7 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       generationCount,
       refreshGenerationCount,
       generateMealPlan,
+      regenerateTodayForBalance,
       setMinimized,
       clearMealPlan,
     }}>

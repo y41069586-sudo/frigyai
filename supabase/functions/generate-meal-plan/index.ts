@@ -1,8 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { isPremium, requireAuthUser, trackMealPlanUsage, type SupabaseClient } from "./auth.ts";
 import { buildPlan } from "./buildPlan.ts";
+import { buildSingleDay } from "./buildSingleDay.ts";
 import { buildConstraints, resolveLang } from "./constraints.ts";
-import { getOpenAIKey } from "./constants.ts";
+import { getOpenAIKey, LANG } from "./constants.ts";
 import { generateFallbackDraft } from "./drafts.ts";
 import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
 import { corsHeaders, json } from "./http.ts";
@@ -14,6 +15,7 @@ import { scanMeta, shoppingList } from "./shopping.ts";
 import type { MealPlan } from "./types.ts";
 import { createSafetyContext } from "./validation.ts";
 import { parsePriorMealsFromBody } from "./variety.ts";
+import { buildMealPlanPrefsPromptBlock, parseMealPlanPrefsFromBody } from "./mealPlanPrefs.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -70,9 +72,18 @@ Deno.serve(async (req) => {
     const priorDishes = parsePriorMealsFromBody(body.previousMeals, banned);
     const isRegeneration = body.isRegeneration === true || body.isRegeneration === "true";
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed.trim() : "";
+    const mealPlanPrefs = parseMealPlanPrefsFromBody(body);
+    const prefsPrompt = mealPlanPrefs ? buildMealPlanPrefsPromptBlock(mealPlanPrefs, lang) : "";
+    const singleDayIndexRaw = body.singleDayIndex;
+    const singleDayIndex = typeof singleDayIndexRaw === "number" && Number.isFinite(singleDayIndexRaw)
+      ? Math.min(6, Math.max(0, Math.round(singleDayIndexRaw)))
+      : typeof singleDayIndexRaw === "string" && singleDayIndexRaw.trim() !== ""
+        ? Math.min(6, Math.max(0, parseInt(singleDayIndexRaw, 10)))
+        : null;
     const constraints = [
       buildConstraints(allergies, prefs, goals, other, lang),
       buildNoPorkConstraintBlock(lang),
+      prefsPrompt,
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "",
     ]
       .filter(Boolean)
@@ -94,6 +105,7 @@ Deno.serve(async (req) => {
       isRegeneration: isRegeneration || priorDishes.length > 0,
       varietySeed,
       priorDishes,
+      mealPlanPrefs: mealPlanPrefs ?? undefined,
     };
 
     const hasOpenAiKey = Boolean(getOpenAIKey());
@@ -102,7 +114,37 @@ Deno.serve(async (req) => {
       isRegeneration: planInput.isRegeneration,
       mealsPerDay,
       priorDishes: priorDishes.length,
+      singleDayIndex,
     });
+
+    if (singleDayIndex !== null && !Number.isNaN(singleDayIndex)) {
+      const dayName = typeof body.singleDayName === "string" && body.singleDayName.trim()
+        ? body.singleDayName.trim()
+        : LANG[lang].days[singleDayIndex] ?? `Day ${singleDayIndex + 1}`;
+
+      let usedAi = false;
+      let dayPlan;
+      try {
+        const built = await buildSingleDay(planInput, singleDayIndex, dayName);
+        dayPlan = built.day;
+        usedAi = built.usedAi;
+      } catch (buildErr) {
+        const msg = buildErr instanceof Error ? buildErr.message : String(buildErr);
+        console.error("[MEAL-PLAN] buildSingleDay failed:", msg);
+        return json({ error: "single_day_failed", message: msg }, 500);
+      }
+
+      await trackMealPlanUsage(supabase, userId);
+
+      return json({
+        singleDay: dayPlan,
+        dayIndex: singleDayIndex,
+        appliedTargets: targets,
+        macroAuthority,
+        generatedWithAi: usedAi,
+        ...(targetWarning ? { targetWarning } : {}),
+      }, 200);
+    }
 
     let plan: MealPlan;
     let usedAi = false;

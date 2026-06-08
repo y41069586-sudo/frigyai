@@ -11,6 +11,7 @@ import {
 import { normalizeMealStructure } from "./macros.ts";
 import { auditPlan } from "./validation.ts";
 import type { AiDraftResult, Lang, MacroTargets, MealPlan, PlanInput, PriorDishSnapshot } from "./types.ts";
+import type { MealPlanPrefsInput } from "./mealPlanPrefs.ts";
 import {
   buildDietMandatoryBlock,
   buildRegenerationUserPrompt,
@@ -18,6 +19,7 @@ import {
   buildSimpleFoodStyleBlock,
 } from "./dietPrompts.ts";
 import { formatPriorDishesForPrompt } from "./variety.ts";
+import { buildMealPlanPrefsPromptBlock } from "./mealPlanPrefs.ts";
 import { buildNoPorkConstraintBlock } from "./porkBan.ts";
 import { mealSlot } from "./meals.ts";
 
@@ -56,7 +58,7 @@ const aiDaySchema = z.object({
 });
 
 const aiPlanSchema = z.object({
-  mealPlan: z.array(aiDaySchema).length(7),
+  mealPlan: z.array(aiDaySchema).min(1).max(7),
 });
 
 type AiDayPlan = z.infer<typeof aiDaySchema>;
@@ -89,13 +91,13 @@ function coerceOpenAiJsonValue(content: unknown): unknown {
   }
 }
 
-export function parseOpenAiMealPlanContent(content: unknown): AiDayPlan[] {
+export function parseOpenAiMealPlanContent(content: unknown, expectedDays = 7): AiDayPlan[] {
   const raw = coerceOpenAiJsonValue(content);
   const parsed = aiPlanSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`Schema validation failed: ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
   }
-  return parsed.data.mealPlan;
+  return parsed.data.mealPlan.slice(0, expectedDays);
 }
 
 function formatVarietyBlock(
@@ -150,6 +152,8 @@ async function callOpenAIOnce(params: {
   priorDishes?: PriorDishSnapshot[];
   dietBlock?: string;
   prefs: string[];
+  mealPlanPrefs?: MealPlanPrefsInput;
+  singleDay?: { name: string; index: number };
 }): Promise<MealPlan> {
   const L = LANG[params.lang];
   const prior = params.priorDishes ?? [];
@@ -157,28 +161,53 @@ async function callOpenAIOnce(params: {
 
   const bannedBlock = formatVarietyBlock(prior, params.banned, regen, params.mealsPerDay);
   const dietBlock = params.dietBlock ?? buildDietMandatoryBlock(params.lang, params.prefs);
+  const prefsBlock = params.mealPlanPrefs
+    ? buildMealPlanPrefsPromptBlock(params.mealPlanPrefs, params.lang)
+    : "";
 
   const system = buildCompactSystemPrompt({
     lang: params.lang,
     mealsPerDay: params.mealsPerDay,
     targets: params.targets,
-    dietBlock,
+    dietBlock: [dietBlock, prefsBlock].filter(Boolean).join("\n"),
     bannedBlock,
     constraints: params.constraints,
     maxIngredients: OPENAI_MAX_INGREDIENTS_PER_MEAL,
   });
 
-  const user = regen
+  const varietyHint = params.mealPlanPrefs?.variety === "varied"
+    ? (params.lang === "de"
+      ? " Jede Mahlzeit muss ein NEUES, unterschiedliches Gericht sein — keine Wiederholungen in der Woche."
+      : params.lang === "fr"
+        ? " Chaque repas doit être un plat NOUVEAU et différent — pas de répétitions dans la semaine."
+        : " Every meal must be a NEW, distinct dish — no repeats within the week.")
+    : "";
+
+  const singleDay = params.singleDay;
+  const dayCount = singleDay ? 1 : 7;
+
+  const user = singleDay
+    ? (params.lang === "de"
+      ? `Erstelle NUR den Tag "${singleDay.name}" mit ${params.mealsPerDay} Mahlzeiten. Tagesziel exakt ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal).${varietyHint} Realistische Zutatenmengen und EUR-Preise.`
+      : params.lang === "fr"
+        ? `Crée UNIQUEMENT le jour "${singleDay.name}" avec ${params.mealsPerDay} repas. Objectif exact ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal).${varietyHint}`
+        : `Create ONLY the day "${singleDay.name}" with ${params.mealsPerDay} meals. Exact daily target ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal).${varietyHint}`)
+    : regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
     : params.lang === "de"
-      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
-      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte.${varietyHint} Normale Hausmannskost passend zu den Küchen-Vorgaben — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
+      : params.lang === "fr"
+        ? `Crée un plan 7 jours (${params.mealsPerDay} repas/jour). Plats différents chaque jour.${varietyHint} Cuisine maison selon les cuisines choisies. Varie les macros par repas. Tag allergènes. Quantités réalistes et prix EUR.`
+        : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day.${varietyHint} Everyday home cooking matching chosen cuisines. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), OPENAI_FETCH_TIMEOUT_MS);
+
+  const baseTemp = regen ? 0.55 : 0.38;
+  const temperature = params.mealPlanPrefs?.variety === "varied" ? Math.min(0.62, baseTemp + 0.12) : baseTemp;
 
   let res: Response;
   try {
@@ -188,13 +217,13 @@ async function callOpenAIOnce(params: {
       headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: getOpenAIMealPlanModel(),
-        temperature: regen ? 0.5 : 0.28,
+        temperature,
         max_tokens: OPENAI_PLAN_MAX_TOKENS,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
+            content: `${system}\nReturn {"mealPlan":[${dayCount} day${dayCount === 1 ? "" : "s"} with ${params.mealsPerDay} meals each]}.`,
           },
           { role: "user", content: user },
         ],
@@ -219,9 +248,12 @@ async function callOpenAIOnce(params: {
     console.warn("[MEAL-PLAN] OpenAI response truncated — attempting partial parse");
   }
 
-  const raw = parseOpenAiMealPlanContent(messageContent);
+  const raw = parseOpenAiMealPlanContent(messageContent, dayCount);
 
   return raw.map((day, i: number) => {
+    const dayLabel = singleDay
+      ? singleDay.name
+      : String(day?.day || L.days[i] || `Day ${i + 1}`).trim();
     let meals = Array.isArray(day?.meals)
       ? day.meals.slice(0, params.mealsPerDay).map(normalizeMealStructure)
       : [];
@@ -247,9 +279,28 @@ async function callOpenAIOnce(params: {
       );
     }
     return {
-      day: String(day?.day || L.days[i] || `Day ${i + 1}`).trim(),
+      day: dayLabel,
       meals,
     };
+  });
+}
+
+export async function fetchAISingleDay(
+  input: PlanInput,
+  dayName: string,
+  dayIndex: number,
+): Promise<MealPlan> {
+  return await callOpenAIOnce({
+    mealsPerDay: input.mealsPerDay,
+    targets: input.targets,
+    constraints: input.constraints,
+    lang: input.lang,
+    banned: input.banned,
+    isRegeneration: input.isRegeneration,
+    priorDishes: input.priorDishes,
+    prefs: input.prefs,
+    mealPlanPrefs: input.mealPlanPrefs,
+    singleDay: { name: dayName, index: dayIndex },
   });
 }
 
@@ -263,6 +314,7 @@ export async function fetchAIWeeklyPlan(input: PlanInput): Promise<MealPlan> {
     isRegeneration: input.isRegeneration,
     priorDishes: input.priorDishes,
     prefs: input.prefs,
+    mealPlanPrefs: input.mealPlanPrefs,
   });
 }
 

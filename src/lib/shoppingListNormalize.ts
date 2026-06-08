@@ -1,3 +1,6 @@
+import { isGenericPortionAmount, parseIngredientAmount } from "@/lib/ingredientAmounts";
+import { defaultAmountForIngredient } from "@/lib/ingredientPricing";
+
 export type ShoppingListEntry = {
   name: string;
   amount: string;
@@ -20,8 +23,27 @@ export function isInvalidShoppingItemName(name: string): boolean {
   if (/^[\d.,]+$/.test(t)) return true;
   if (AMOUNT_ONLY.test(t)) return true;
   if (UNIT_ONLY.test(t)) return true;
+  if (/^\d+\s*(portion|portionen|port\.?|x|stück|st\.?)?$/i.test(t)) return true;
+  if (/^(mahlzeit|meal|gericht|dish|snack)\s*\d*$/i.test(t)) return true;
   if (t.length <= 2 && /^[\d.,]/.test(t)) return true;
   return false;
+}
+
+/** Ensure list rows always show a shoppable quantity (never a bare "3" or empty). */
+export function formatShoppingListAmount(name: string, amount: string): string {
+  const t = String(amount ?? "").trim();
+  if (!t || t === "—" || isGenericPortionAmount(t)) {
+    return defaultAmountForIngredient(name);
+  }
+  if (/^[\d.,]+$/.test(t)) {
+    const n = Number.parseFloat(t.replace(",", "."));
+    if (Number.isFinite(n) && n > 0 && n <= 30) {
+      return `${n} ${n === 1 ? "Portion" : "Portionen"}`;
+    }
+    return defaultAmountForIngredient(name);
+  }
+  if (parseIngredientAmount(t)) return t;
+  return t;
 }
 
 export function parseCombinedIngredientLine(raw: string): { name: string; amount: string } {

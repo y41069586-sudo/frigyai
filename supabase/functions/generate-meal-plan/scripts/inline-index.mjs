@@ -26,9 +26,11 @@ const MODULES = [
   "drafts.ts",
   "repairLoop.ts",
   "buildPlan.ts",
+  "buildSingleDay.ts",
   "variety.ts",
   "dietPools.ts",
   "dietPrompts.ts",
+  "mealPlanPrefs.ts",
   "mealBlueprints.ts",
   "planMealSanitize.ts",
 ];

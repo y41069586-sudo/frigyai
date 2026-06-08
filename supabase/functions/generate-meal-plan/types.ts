@@ -102,6 +102,8 @@ export type ReconcileResult = {
   warning?: MacroReconcileWarning;
 };
 
+import type { MealPlanPrefsInput } from "./mealPlanPrefs.ts";
+
 export type PlanInput = {
   mealsPerDay: number;
   targets: MacroTargets;
@@ -120,6 +122,8 @@ export type PlanInput = {
   varietySeed?: string;
   /** Prior week meals for dish-level dedup (ingredients + fingerprints). */
   priorDishes?: PriorDishSnapshot[];
+  /** User cuisine/time/budget/cooking preferences from first-time wizard. */
+  mealPlanPrefs?: MealPlanPrefsInput;
 };
 
 export type PriorDishSnapshot = {

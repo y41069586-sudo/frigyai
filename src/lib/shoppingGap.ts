@@ -10,7 +10,11 @@ import {
   estimateIngredientPrice,
   resolveIngredientPrice,
 } from "@/lib/ingredientPricing";
-import { isInvalidShoppingItemName, parseCombinedIngredientLine } from "@/lib/shoppingListNormalize";
+import {
+  formatShoppingListAmount,
+  isInvalidShoppingItemName,
+  parseCombinedIngredientLine,
+} from "@/lib/shoppingListNormalize";
 
 export function normalizeIngredientKey(name: string): string {
   return name
@@ -149,6 +153,8 @@ function coercePlanIngredient(raw: unknown): { name: string; amount: string; pri
 
   if (isGenericPortionAmount(amount) || !amount) {
     amount = defaultAmountForIngredient(name);
+  } else if (/^[\d.,]+$/.test(amount.trim())) {
+    amount = formatShoppingListAmount(name, amount);
   }
 
   return {
@@ -192,7 +198,7 @@ export function buildGapShoppingList(
 
   return Array.from(map.values()).map((v) => ({
     name: v.name,
-    amount: aggregateAmountStrings(v.amounts),
+    amount: formatShoppingListAmount(v.name, aggregateAmountStrings(v.amounts)),
     price: Math.round(v.price * 100) / 100,
   }));
 }

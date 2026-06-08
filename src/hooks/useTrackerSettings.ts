@@ -189,6 +189,7 @@ export const useTrackerSettings = () => {
   const [loading, setLoading] = useState(initial.loading);
   const [isConfigured, setIsConfigured] = useState(initial.isConfigured);
   const hasLoadedOnceRef = useRef(!initial.loading);
+  const lastLocalSaveAtRef = useRef(0);
 
   // Parse database row to settings
   const parseDbSettings = (data: any): TrackerSettings => ({
@@ -209,7 +210,7 @@ export const useTrackerSettings = () => {
   });
 
   // Save to database
-  const saveToDatabase = async (data: TrackerSettings) => {
+  const saveToDatabase = async (data: TrackerSettings): Promise<void> => {
     if (!user) return;
 
     const dbData = {
@@ -236,6 +237,7 @@ export const useTrackerSettings = () => {
 
     if (error) {
       console.error('Error saving tracker settings to database:', error.message || JSON.stringify(error));
+      throw new Error(error.message || 'Failed to save tracker settings');
     }
   };
 
@@ -418,6 +420,7 @@ export const useTrackerSettings = () => {
   // Save settings (merges with existing DB/local values — never wipe diet/allergies on macro edit)
   const saveSettings = useCallback(async (patch: Partial<TrackerSettings> & Pick<TrackerSettings, 'dailyCalories' | 'dailyProtein' | 'dailyCarbs' | 'dailyFat'>) => {
     let merged: TrackerSettings | null = null;
+    lastLocalSaveAtRef.current = Date.now();
     setSettings((prev) => {
       merged = mergeTrackerSettings(prev, patch);
       setIsConfigured(merged.dailyCalories > 0);
@@ -469,6 +472,8 @@ export const useTrackerSettings = () => {
 
     const onVisible = () => {
       if (document.visibilityState === "visible") {
+        const msSinceSave = Date.now() - lastLocalSaveAtRef.current;
+        if (msSinceSave < 8000) return;
         void loadSettings(true);
       }
     };

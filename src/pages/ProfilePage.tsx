@@ -38,8 +38,7 @@ import { cn } from "@/lib/utils";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openStoreSubscriptionManagement, restoreStorePurchases } from "@/lib/storeBilling";
-import { usesStoreBilling } from "@/lib/billingPlatform";
+import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
 import { isAppleSignInAvailable } from "@/lib/appleSignIn";
 import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
 
@@ -122,7 +121,6 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, session, subscriptionStatus, isPremium, signOut, checkSubscription, linkAppleAccount } = useAuth();
   const premiumActive = isPremium || isSubscriptionActive(subscriptionStatus);
-  const [restoreLoading, setRestoreLoading] = useState(false);
   const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
   const dateLocale = getAppLocale(language);
@@ -150,21 +148,6 @@ const ProfilePage = () => {
     toast({ title: t.success, description: t.subscriptionRefreshed });
   };
 
-  const handleRestorePurchases = async () => {
-    if (!session?.access_token) return;
-    setRestoreLoading(true);
-    try {
-      const result = await restoreStorePurchases(session.access_token);
-      await checkSubscription();
-      if (result.ok) {
-        toast({ title: t.success, description: t.purchasesRestoredMsg });
-      } else if (result.message) {
-        toast({ title: t.error, description: result.message, variant: "destructive" });
-      }
-    } finally {
-      setRestoreLoading(false);
-    }
-  };
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -337,14 +320,6 @@ const ProfilePage = () => {
                 label={t.manageSubscription}
                 description={portalLoading ? t.settingsOpeningPortal : undefined}
                 onClick={() => void handleManageSubscription()}
-              />
-            )}
-            {usesStoreBilling() && (
-              <SettingsRow
-                icon={RefreshCw}
-                label={t.restorePurchases}
-                description={restoreLoading ? t.loading : undefined}
-                onClick={() => void handleRestorePurchases()}
               />
             )}
             {isAppleSignInAvailable() &&

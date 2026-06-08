@@ -267,6 +267,70 @@ export interface ExtendedTranslations {
   weeklyPlanEmptyFeature2Desc: string;
   weeklyPlanEmptyFeature3Title: string;
   weeklyPlanEmptyFeature3Desc: string;
+  mealPlanPrefStep: string;
+  mealPlanPrefCuisineTitle: string;
+  mealPlanPrefCuisineDesc: string;
+  mealPlanPrefCuisineDisclaimer: string;
+  mealPlanPrefCuisine_international: string;
+  mealPlanPrefCuisine_asian: string;
+  mealPlanPrefCuisine_north_african: string;
+  mealPlanPrefCuisine_south_african: string;
+  mealPlanPrefCuisine_european: string;
+  mealPlanPrefCuisine_american: string;
+  mealPlanPrefCuisine_italian: string;
+  mealPlanPrefCuisine_german: string;
+  mealPlanPrefTimeTitle: string;
+  mealPlanPrefTimeDesc: string;
+  mealPlanPrefTime10: string;
+  mealPlanPrefTime10Desc: string;
+  mealPlanPrefTime30: string;
+  mealPlanPrefTime30Desc: string;
+  mealPlanPrefTime60: string;
+  mealPlanPrefTime60Desc: string;
+  mealPlanPrefCookTitle: string;
+  mealPlanPrefCookDesc: string;
+  mealPlanPrefCookDaily: string;
+  mealPlanPrefCookDailyDesc: string;
+  mealPlanPrefCook45: string;
+  mealPlanPrefCook45Desc: string;
+  mealPlanPrefCook34: string;
+  mealPlanPrefCook34Desc: string;
+  mealPlanPrefCook12: string;
+  mealPlanPrefCook12Desc: string;
+  mealPlanPrefBudgetStepTitle: string;
+  mealPlanPrefBudgetTitle: string;
+  mealPlanPrefBudgetCheap: string;
+  mealPlanPrefBudgetCheapDesc: string;
+  mealPlanPrefBudgetMedium: string;
+  mealPlanPrefBudgetMediumDesc: string;
+  mealPlanPrefBudgetAny: string;
+  mealPlanPrefBudgetAnyDesc: string;
+  mealPlanPrefVarietyTitle: string;
+  mealPlanPrefVarietyVaried: string;
+  mealPlanPrefVarietyVariedDesc: string;
+  mealPlanPrefVarietyRepeat: string;
+  mealPlanPrefVarietyRepeatDesc: string;
+  mealPlanPrefFinish: string;
+  mealPlanPrefEditBtn: string;
+  mealPlanPrefSaveBtn: string;
+  mealPlanPrefSaved: string;
+  mealPlanPrefSavedDesc: string;
+  mealPlanPrefRegenerateNow: string;
+  calorieGoalExceededTitle: string;
+  calorieGoalExceededDesc: string;
+  calorieGoalExceededAdjust: string;
+  calorieGoalExceededDismiss: string;
+  macroEditSaveFailed: string;
+  macroEditSaveFailedDesc: string;
+  yesterdayCalorieOverTitle: string;
+  yesterdayCalorieUnderTitle: string;
+  yesterdayCalorieOverDesc: string;
+  yesterdayCalorieUnderDesc: string;
+  yesterdayCalorieAdjustToday: string;
+  yesterdayCalorieSkip: string;
+  yesterdayCalorieAdjusting: string;
+  yesterdayCalorieAdjustSuccess: string;
+  yesterdayCalorieAdjustFailed: string;
   profileDeleting: string;
   profileDeleteBtn: string;
 
@@ -789,6 +853,74 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     weeklyPlanEmptyFeature2Desc: "Alle Zutaten für die Woche — übersichtlich sortiert.",
     weeklyPlanEmptyFeature3Title: "Allergien & Ernährung beachtet",
     weeklyPlanEmptyFeature3Desc: "Deine Vorgaben aus dem Profil fließen in den Plan ein.",
+    mealPlanPrefStep: "Schritt {current} von {total}",
+    mealPlanPrefCuisineTitle: "Welche Küchen magst du?",
+    mealPlanPrefCuisineDesc: "Wähle mehrere — Frigy mischt sie über die Woche.",
+    mealPlanPrefCuisineDisclaimer:
+      "Frigy kann nicht garantieren, dass jede Mahlzeit zu 100 % einer Küche entspricht. Nicht alle Gerichte können z. B. nur afrikanisch sein — wir orientieren uns an deiner Auswahl.",
+    mealPlanPrefCuisine_international: "International",
+    mealPlanPrefCuisine_asian: "Asiatisch",
+    mealPlanPrefCuisine_north_african: "Nordafrikanisch",
+    mealPlanPrefCuisine_south_african: "Südafrikanisch",
+    mealPlanPrefCuisine_european: "Europäisch",
+    mealPlanPrefCuisine_american: "Amerikanisch",
+    mealPlanPrefCuisine_italian: "Italienisch",
+    mealPlanPrefCuisine_german: "Deutsch",
+    mealPlanPrefTimeTitle: "Wie viel Zeit zum Kochen?",
+    mealPlanPrefTimeDesc: "Maximale Zubereitungszeit pro Mahlzeit.",
+    mealPlanPrefTime10: "Ca. 10 Minuten",
+    mealPlanPrefTime10Desc: "Schnelle Gerichte, wenig Aufwand",
+    mealPlanPrefTime30: "Ca. 30 Minuten",
+    mealPlanPrefTime30Desc: "Normale Hausmannskost",
+    mealPlanPrefTime60: "1 Stunde+",
+    mealPlanPrefTime60Desc: "Auch aufwendigere Gerichte ok",
+    mealPlanPrefCookTitle: "Wie oft kochst du?",
+    mealPlanPrefCookDesc: "Frigy plant Meal-Prep und Reste passend dazu.",
+    mealPlanPrefCookDaily: "Fast täglich",
+    mealPlanPrefCookDailyDesc: "Jeden Tag frisch kochen",
+    mealPlanPrefCook45: "4–5× pro Woche",
+    mealPlanPrefCook45Desc: "An manchen Tagen einfache Gerichte oder Reste",
+    mealPlanPrefCook34: "3–4× pro Woche",
+    mealPlanPrefCook34Desc: "Meal-Prep: gleiches Gericht manchmal 2 Tage hintereinander",
+    mealPlanPrefCook12: "1–2× pro Woche",
+    mealPlanPrefCook12Desc: "Viele schnelle/no-cook Mahlzeiten, Reste nutzen",
+    mealPlanPrefBudgetStepTitle: "Budget & Abwechslung",
+    mealPlanPrefBudgetTitle: "Budget",
+    mealPlanPrefBudgetCheap: "Günstig",
+    mealPlanPrefBudgetCheapDesc: "Discounter-Zutaten, preisbewusst",
+    mealPlanPrefBudgetMedium: "Mittel",
+    mealPlanPrefBudgetMediumDesc: "Ausgewogen, gelegentlich Qualität",
+    mealPlanPrefBudgetAny: "Egal",
+    mealPlanPrefBudgetAnyDesc: "Preis spielt keine Rolle",
+    mealPlanPrefVarietyTitle: "Gerichte wiederholen?",
+    mealPlanPrefVarietyVaried: "Möglichst verschieden",
+    mealPlanPrefVarietyVariedDesc: "Jede Woche neue Gerichte, wenig Wiederholungen",
+    mealPlanPrefVarietyRepeat: "Wiederholen ok",
+    mealPlanPrefVarietyRepeatDesc: "Meal-Prep & Lieblingsgerichte mehrfach in der Woche",
+    mealPlanPrefFinish: "Plan erstellen",
+    mealPlanPrefEditBtn: "Küchen & Zeit",
+    mealPlanPrefSaveBtn: "Speichern",
+    mealPlanPrefSaved: "Vorlieben gespeichert",
+    mealPlanPrefSavedDesc: "Asiatisch, Kochzeit, Budget usw. gelten beim nächsten Erstellen. Jetzt neu generieren?",
+    mealPlanPrefRegenerateNow: "Jetzt neu generieren",
+    calorieGoalExceededTitle: "Kalorienziel überschritten",
+    calorieGoalExceededDesc:
+      "Du hast heute mehr gegessen als dein Kalorienziel. Soll Frigy den Wochenplan für die nächsten Tage anpassen?",
+    calorieGoalExceededAdjust: "Plan anpassen",
+    calorieGoalExceededDismiss: "Später",
+    macroEditSaveFailed: "Speichern fehlgeschlagen",
+    macroEditSaveFailedDesc: "Deine Makroziele konnten nicht gespeichert werden. Bitte erneut versuchen.",
+    yesterdayCalorieOverTitle: "Gestern über dem Ziel",
+    yesterdayCalorieUnderTitle: "Gestern unter dem Ziel",
+    yesterdayCalorieOverDesc:
+      "Du hast gestern {delta} kcal mehr gegessen als dein Ziel ({eaten} von {target} kcal). Soll Frigy nur den heutigen Tag im Wochenplan anpassen — mit etwa {todayTarget} kcal?",
+    yesterdayCalorieUnderDesc:
+      "Du hast gestern {delta} kcal weniger gegessen als dein Ziel ({eaten} von {target} kcal). Soll Frigy nur den heutigen Tag anpassen — mit etwa {todayTarget} kcal?",
+    yesterdayCalorieAdjustToday: "Heute anpassen",
+    yesterdayCalorieSkip: "Nein, danke",
+    yesterdayCalorieAdjusting: "Heute wird angepasst…",
+    yesterdayCalorieAdjustSuccess: "Der heutige Tag wurde an dein Kalorienziel angepasst.",
+    yesterdayCalorieAdjustFailed: "Heute konnte nicht angepasst werden. Bitte erneut versuchen.",
     profileDeleting: "Wird gelöscht…",
     profileDeleteBtn: "Löschen",
 
@@ -1324,6 +1456,74 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     weeklyPlanEmptyFeature2Desc: "All ingredients for the week — neatly organized.",
     weeklyPlanEmptyFeature3Title: "Allergies & diet respected",
     weeklyPlanEmptyFeature3Desc: "Your profile preferences are built into the plan.",
+    mealPlanPrefStep: "Step {current} of {total}",
+    mealPlanPrefCuisineTitle: "Which cuisines do you like?",
+    mealPlanPrefCuisineDesc: "Pick several — Frigy will mix them across the week.",
+    mealPlanPrefCuisineDisclaimer:
+      "Frigy cannot guarantee every meal matches a cuisine 100%. Not every dish can be e.g. only African — we follow your selection as closely as possible.",
+    mealPlanPrefCuisine_international: "International",
+    mealPlanPrefCuisine_asian: "Asian",
+    mealPlanPrefCuisine_north_african: "North African",
+    mealPlanPrefCuisine_south_african: "South African",
+    mealPlanPrefCuisine_european: "European",
+    mealPlanPrefCuisine_american: "American",
+    mealPlanPrefCuisine_italian: "Italian",
+    mealPlanPrefCuisine_german: "German",
+    mealPlanPrefTimeTitle: "How much time to cook?",
+    mealPlanPrefTimeDesc: "Maximum prep time per meal.",
+    mealPlanPrefTime10: "About 10 minutes",
+    mealPlanPrefTime10Desc: "Quick meals, minimal effort",
+    mealPlanPrefTime30: "About 30 minutes",
+    mealPlanPrefTime30Desc: "Everyday home cooking",
+    mealPlanPrefTime60: "1 hour+",
+    mealPlanPrefTime60Desc: "Elaborate dishes are fine too",
+    mealPlanPrefCookTitle: "How often do you cook?",
+    mealPlanPrefCookDesc: "Frigy plans meal prep and leftovers accordingly.",
+    mealPlanPrefCookDaily: "Almost daily",
+    mealPlanPrefCookDailyDesc: "Cook fresh every day",
+    mealPlanPrefCook45: "4–5× per week",
+    mealPlanPrefCook45Desc: "Simple meals or leftovers on other days",
+    mealPlanPrefCook34: "3–4× per week",
+    mealPlanPrefCook34Desc: "Meal prep: same dish sometimes 2 days in a row",
+    mealPlanPrefCook12: "1–2× per week",
+    mealPlanPrefCook12Desc: "Many quick/no-cook meals, use leftovers",
+    mealPlanPrefBudgetStepTitle: "Budget & variety",
+    mealPlanPrefBudgetTitle: "Budget",
+    mealPlanPrefBudgetCheap: "Budget-friendly",
+    mealPlanPrefBudgetCheapDesc: "Discount ingredients, cost-conscious",
+    mealPlanPrefBudgetMedium: "Medium",
+    mealPlanPrefBudgetMediumDesc: "Balanced, occasional quality items",
+    mealPlanPrefBudgetAny: "No limit",
+    mealPlanPrefBudgetAnyDesc: "Price is not a constraint",
+    mealPlanPrefVarietyTitle: "Repeat dishes?",
+    mealPlanPrefVarietyVaried: "As varied as possible",
+    mealPlanPrefVarietyVariedDesc: "New dishes each week, minimal repeats",
+    mealPlanPrefVarietyRepeat: "Repeats OK",
+    mealPlanPrefVarietyRepeatDesc: "Meal prep & favorites multiple times per week",
+    mealPlanPrefFinish: "Create plan",
+    mealPlanPrefEditBtn: "Cuisines & time",
+    mealPlanPrefSaveBtn: "Save",
+    mealPlanPrefSaved: "Preferences saved",
+    mealPlanPrefSavedDesc: "Asian, cook time, budget, etc. apply on the next generation. Regenerate now?",
+    mealPlanPrefRegenerateNow: "Regenerate now",
+    calorieGoalExceededTitle: "Calorie goal exceeded",
+    calorieGoalExceededDesc:
+      "You ate more than your calorie goal today. Should Frigy adjust your meal plan for the coming days?",
+    calorieGoalExceededAdjust: "Adjust plan",
+    calorieGoalExceededDismiss: "Later",
+    macroEditSaveFailed: "Save failed",
+    macroEditSaveFailedDesc: "Your macro goals could not be saved. Please try again.",
+    yesterdayCalorieOverTitle: "Over goal yesterday",
+    yesterdayCalorieUnderTitle: "Under goal yesterday",
+    yesterdayCalorieOverDesc:
+      "You ate {delta} kcal more than your goal yesterday ({eaten} of {target} kcal). Adjust only today in your meal plan — about {todayTarget} kcal?",
+    yesterdayCalorieUnderDesc:
+      "You ate {delta} kcal less than your goal yesterday ({eaten} of {target} kcal). Adjust only today — about {todayTarget} kcal?",
+    yesterdayCalorieAdjustToday: "Adjust today",
+    yesterdayCalorieSkip: "No thanks",
+    yesterdayCalorieAdjusting: "Adjusting today…",
+    yesterdayCalorieAdjustSuccess: "Today's plan was adjusted to your calorie balance.",
+    yesterdayCalorieAdjustFailed: "Could not adjust today. Please try again.",
     profileDeleting: "Deleting…",
     profileDeleteBtn: "Delete",
 
@@ -1862,6 +2062,74 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     weeklyPlanEmptyFeature2Desc: "Tous les ingrédients de la semaine — bien organisés.",
     weeklyPlanEmptyFeature3Title: "Allergies & régime respectés",
     weeklyPlanEmptyFeature3Desc: "Tes préférences du profil sont intégrées au plan.",
+    mealPlanPrefStep: "Étape {current} sur {total}",
+    mealPlanPrefCuisineTitle: "Quelles cuisines aimes-tu ?",
+    mealPlanPrefCuisineDesc: "Choisis-en plusieurs — Frigy les mélange sur la semaine.",
+    mealPlanPrefCuisineDisclaimer:
+      "Frigy ne garantit pas que chaque repas correspond à 100 % à une cuisine. Tous les plats ne peuvent pas être p.ex. uniquement africains — on suit ta sélection au mieux.",
+    mealPlanPrefCuisine_international: "International",
+    mealPlanPrefCuisine_asian: "Asiatique",
+    mealPlanPrefCuisine_north_african: "Afrique du Nord",
+    mealPlanPrefCuisine_south_african: "Afrique du Sud",
+    mealPlanPrefCuisine_european: "Européen",
+    mealPlanPrefCuisine_american: "Américain",
+    mealPlanPrefCuisine_italian: "Italien",
+    mealPlanPrefCuisine_german: "Allemand",
+    mealPlanPrefTimeTitle: "Combien de temps pour cuisiner ?",
+    mealPlanPrefTimeDesc: "Temps de préparation max. par repas.",
+    mealPlanPrefTime10: "Environ 10 min",
+    mealPlanPrefTime10Desc: "Repas rapides, peu d'effort",
+    mealPlanPrefTime30: "Environ 30 min",
+    mealPlanPrefTime30Desc: "Cuisine maison classique",
+    mealPlanPrefTime60: "1 h+",
+    mealPlanPrefTime60Desc: "Plats élaborés possibles",
+    mealPlanPrefCookTitle: "À quelle fréquence cuisines-tu ?",
+    mealPlanPrefCookDesc: "Frigy planifie meal prep et restes en conséquence.",
+    mealPlanPrefCookDaily: "Presque tous les jours",
+    mealPlanPrefCookDailyDesc: "Cuisine fraîche chaque jour",
+    mealPlanPrefCook45: "4–5× par semaine",
+    mealPlanPrefCook45Desc: "Repas simples ou restes les autres jours",
+    mealPlanPrefCook34: "3–4× par semaine",
+    mealPlanPrefCook34Desc: "Meal prep : même plat parfois 2 jours de suite",
+    mealPlanPrefCook12: "1–2× par semaine",
+    mealPlanPrefCook12Desc: "Beaucoup de repas rapides/sans cuisson, restes",
+    mealPlanPrefBudgetStepTitle: "Budget & variété",
+    mealPlanPrefBudgetTitle: "Budget",
+    mealPlanPrefBudgetCheap: "Économique",
+    mealPlanPrefBudgetCheapDesc: "Ingrédients discount, prix bas",
+    mealPlanPrefBudgetMedium: "Moyen",
+    mealPlanPrefBudgetMediumDesc: "Équilibré, parfois qualité",
+    mealPlanPrefBudgetAny: "Sans limite",
+    mealPlanPrefBudgetAnyDesc: "Le prix n'est pas une contrainte",
+    mealPlanPrefVarietyTitle: "Répéter des plats ?",
+    mealPlanPrefVarietyVaried: "Le plus varié possible",
+    mealPlanPrefVarietyVariedDesc: "Nouveaux plats chaque semaine, peu de répétitions",
+    mealPlanPrefVarietyRepeat: "Répétitions OK",
+    mealPlanPrefVarietyRepeatDesc: "Meal prep & favoris plusieurs fois par semaine",
+    mealPlanPrefFinish: "Créer le plan",
+    mealPlanPrefEditBtn: "Cuisines & temps",
+    mealPlanPrefSaveBtn: "Enregistrer",
+    mealPlanPrefSaved: "Préférences enregistrées",
+    mealPlanPrefSavedDesc: "Asiatique, temps de cuisson, budget, etc. s'appliquent à la prochaine génération. Régénérer maintenant ?",
+    mealPlanPrefRegenerateNow: "Régénérer maintenant",
+    calorieGoalExceededTitle: "Objectif calorique dépassé",
+    calorieGoalExceededDesc:
+      "Tu as mangé plus que ton objectif calorique aujourd'hui. Frigy doit-il ajuster ton plan pour les prochains jours ?",
+    calorieGoalExceededAdjust: "Ajuster le plan",
+    calorieGoalExceededDismiss: "Plus tard",
+    macroEditSaveFailed: "Échec de l'enregistrement",
+    macroEditSaveFailedDesc: "Tes objectifs macro n'ont pas pu être enregistrés. Réessaie.",
+    yesterdayCalorieOverTitle: "Au-dessus de l'objectif hier",
+    yesterdayCalorieUnderTitle: "En dessous de l'objectif hier",
+    yesterdayCalorieOverDesc:
+      "Tu as mangé {delta} kcal de plus que ton objectif hier ({eaten} sur {target} kcal). Ajuster seulement aujourd'hui — environ {todayTarget} kcal ?",
+    yesterdayCalorieUnderDesc:
+      "Tu as mangé {delta} kcal de moins que ton objectif hier ({eaten} sur {target} kcal). Ajuster seulement aujourd'hui — environ {todayTarget} kcal ?",
+    yesterdayCalorieAdjustToday: "Ajuster aujourd'hui",
+    yesterdayCalorieSkip: "Non merci",
+    yesterdayCalorieAdjusting: "Ajustement en cours…",
+    yesterdayCalorieAdjustSuccess: "Le plan d'aujourd'hui a été ajusté.",
+    yesterdayCalorieAdjustFailed: "Impossible d'ajuster aujourd'hui. Réessaie.",
     profileDeleting: "Suppression…",
     profileDeleteBtn: "Supprimer",
 

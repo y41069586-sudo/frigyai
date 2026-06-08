@@ -49,6 +49,35 @@ export function uniqueNames(plan: MealPlan): MealPlan {
   });
 }
 
+/** Sync macros for a single day (e.g. balance adjustment). */
+export function finishSingleDay(
+  day: { day: string; meals: ReturnType<typeof normalizeMealStructure>[] },
+  targets: MacroTargets,
+  mealsPerDay: number,
+  lang: Lang,
+  dayIndex: number,
+): { day: string; meals: ReturnType<typeof normalizeMealStructure>[] } {
+  const L = LANG[lang];
+  let meals = Array.isArray(day.meals) ? day.meals.slice(0, mealsPerDay).map(normalizeMealStructure) : [];
+  while (meals.length < mealsPerDay) {
+    meals.push(
+      normalizeMealStructure({
+        name: `${L.meal} ${meals.length + 1}`,
+        type: L.meal,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        prepTime: 15,
+        ingredients: [{ name: "Gemüse", amount: "1 Portion", price: 1 }],
+        instructions: [],
+        allergenTags: ["none"],
+      }),
+    );
+  }
+  const shaped = { day: String(day.day || L.days[dayIndex] || day.day).trim(), meals };
+  return syncDay(shaped, targets, mealsPerDay, dayIndex);
+}
+
 /** One macro pipeline for AI, fallback, and sanitized plans. */
 export function finishPlan(
   plan: MealPlan,

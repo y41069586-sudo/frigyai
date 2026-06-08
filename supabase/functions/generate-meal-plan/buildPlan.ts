@@ -4,7 +4,7 @@ import { buildMealFromDishTitle, parseIngredientNamesFromDishTitle } from "./mea
 import { generateAIDraft } from "./openai.ts";
 import { finishPlan, mealSlot } from "./meals.ts";
 import { sanitizePlaceholderMeals } from "./planMealSanitize.ts";
-import { ensureDistinctMealsAcrossWeek } from "./variety.ts";
+import { ensureDistinctMealsAcrossWeek, dedupeSimilarMealsInWeek } from "./variety.ts";
 import { auditPlan } from "./validation.ts";
 import { generateFallbackDraft } from "./drafts.ts";
 import { repairPlan } from "./repairLoop.ts";
@@ -98,6 +98,15 @@ export async function buildPlan(
     lang: input.lang,
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
+  });
+  plan = dedupeSimilarMealsInWeek(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+    priorDishes: input.priorDishes,
+    varietySeed: input.varietySeed,
+    mealPlanPrefs: input.mealPlanPrefs,
   });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);

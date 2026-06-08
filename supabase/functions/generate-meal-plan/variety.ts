@@ -160,6 +160,93 @@ export function ensureDistinctMealsAcrossWeek(
   return out;
 }
 
+/** Replace meals that duplicate prior week or repeat too similarly within the same week. */
+export function dedupeSimilarMealsInWeek(
+  plan: MealPlan,
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "priorDishes" | "varietySeed" | "mealPlanPrefs"> & {
+    safetyCtx: SafetyContext;
+  },
+): MealPlan {
+  const prior = input.priorDishes ?? [];
+  const strictVariety = input.mealPlanPrefs?.variety === "varied";
+  if (!prior.length && !strictVariety) return plan;
+
+  const base = getDietPools(input.lang, input.prefs);
+  const pools = {
+    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
+    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
+    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+  };
+  const cursor = { b: 0, m: 0, s: 0 };
+  const usedFingerprints = new Set<string>();
+  const usedTitleKeys = new Set<string>();
+
+  const pickNew = (slot: "b" | "m" | "s", used: Set<string>): string => {
+    const list = pools[slot];
+    for (let pass = 0; pass < list.length + 2; pass++) {
+      for (let o = 0; o < Math.max(list.length, 1); o++) {
+        const title = list.length ? list[(cursor[slot] + o) % list.length]! : "Gemüsepfanne";
+        cursor[slot] = (cursor[slot] + o + 1) % Math.max(list.length, 1);
+        const key = titleKey(title);
+        if (!used.has(key)) {
+          used.add(key);
+          return title;
+        }
+      }
+    }
+    const idx = used.size % Math.max(list.length, 1);
+    const fallback = list.length ? list[idx]! : (slot === "m" ? "Gemüsepfanne mit Reis" : slot === "b" ? "Haferflocken mit Beeren" : "Obst mit Joghurt");
+    used.add(titleKey(fallback));
+    return fallback;
+  };
+
+  const out = plan.map((day) => ({
+    ...day,
+    meals: [...(day.meals ?? [])],
+  }));
+
+  for (let di = 0; di < out.length; di++) {
+    const meals = out[di]?.meals;
+    if (!meals) continue;
+    for (let si = 0; si < meals.length; si++) {
+      const meal = meals[si];
+      if (!meal) continue;
+      const slot = mealSlot(si, input.mealsPerDay);
+      const fingerprint = mealDishFingerprint(meal);
+      const titleKeyVal = titleKey(String(meal.name || ""));
+      const priorMatch = mealMatchesPriorDish(meal, prior);
+      const fpDup = fingerprint && usedFingerprints.has(fingerprint);
+      const titleDup = titleKeyVal && usedTitleKeys.has(titleKeyVal);
+      let similarDup = false;
+      if (strictVariety && fingerprint) {
+        for (const fp of usedFingerprints) {
+          if (dishesTooSimilar(fingerprint, fp)) {
+            similarDup = true;
+            break;
+          }
+        }
+      }
+
+      if (priorMatch || fpDup || titleDup || similarDup) {
+        const usedInSlot = new Set<string>(usedTitleKeys);
+        const newTitle = pickNew(slot, usedInSlot);
+        console.warn(
+          `[MEAL-PLAN] Deduped "${meal.name}" on ${out[di]?.day} → ${newTitle}${priorMatch ? ` (was ≈ ${priorMatch})` : ""}`,
+        );
+        meals[si] = buildMealFromDishTitle(newTitle, slot, input.lang, input.safetyCtx);
+        const newFp = mealDishFingerprint(meals[si]!);
+        if (newFp) usedFingerprints.add(newFp);
+        usedTitleKeys.add(titleKey(newTitle));
+      } else {
+        if (fingerprint) usedFingerprints.add(fingerprint);
+        if (titleKeyVal) usedTitleKeys.add(titleKeyVal);
+      }
+    }
+  }
+
+  return out;
+}
+
 export function formatPriorDishesForPrompt(prior: PriorDishSnapshot[], mealsPerDay: number): string {
   if (!prior.length) return "";
   const lines = prior.slice(0, 20).map((p) => {

@@ -129,6 +129,8 @@ export type PlanInput = {
   varietySeed?: string;
   /** Prior week meals for dish-level dedup (ingredients + fingerprints). */
   priorDishes?: PriorDishSnapshot[];
+  /** User cuisine/time/budget/cooking preferences from first-time wizard. */
+  mealPlanPrefs?: MealPlanPrefsInput;
 };
 
 export type PriorDishSnapshot = {
@@ -1651,6 +1653,35 @@ export function uniqueNames(plan: MealPlan): MealPlan {
   });
 }
 
+/** Sync macros for a single day (e.g. balance adjustment). */
+export function finishSingleDay(
+  day: { day: string; meals: ReturnType<typeof normalizeMealStructure>[] },
+  targets: MacroTargets,
+  mealsPerDay: number,
+  lang: Lang,
+  dayIndex: number,
+): { day: string; meals: ReturnType<typeof normalizeMealStructure>[] } {
+  const L = LANG[lang];
+  let meals = Array.isArray(day.meals) ? day.meals.slice(0, mealsPerDay).map(normalizeMealStructure) : [];
+  while (meals.length < mealsPerDay) {
+    meals.push(
+      normalizeMealStructure({
+        name: `${L.meal} ${meals.length + 1}`,
+        type: L.meal,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        prepTime: 15,
+        ingredients: [{ name: "Gemüse", amount: "1 Portion", price: 1 }],
+        instructions: [],
+        allergenTags: ["none"],
+      }),
+    );
+  }
+  const shaped = { day: String(day.day || L.days[dayIndex] || day.day).trim(), meals };
+  return syncDay(shaped, targets, mealsPerDay, dayIndex);
+}
+
 /** One macro pipeline for AI, fallback, and sanitized plans. */
 export function finishPlan(
   plan: MealPlan,
@@ -2013,7 +2044,7 @@ const aiDaySchema = z.object({
 });
 
 const aiPlanSchema = z.object({
-  mealPlan: z.array(aiDaySchema).length(7),
+  mealPlan: z.array(aiDaySchema).min(1).max(7),
 });
 
 type AiDayPlan = z.infer<typeof aiDaySchema>;
@@ -2046,13 +2077,13 @@ function coerceOpenAiJsonValue(content: unknown): unknown {
   }
 }
 
-export function parseOpenAiMealPlanContent(content: unknown): AiDayPlan[] {
+export function parseOpenAiMealPlanContent(content: unknown, expectedDays = 7): AiDayPlan[] {
   const raw = coerceOpenAiJsonValue(content);
   const parsed = aiPlanSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`Schema validation failed: ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
   }
-  return parsed.data.mealPlan;
+  return parsed.data.mealPlan.slice(0, expectedDays);
 }
 
 function formatVarietyBlock(
@@ -2107,6 +2138,8 @@ async function callOpenAIOnce(params: {
   priorDishes?: PriorDishSnapshot[];
   dietBlock?: string;
   prefs: string[];
+  mealPlanPrefs?: MealPlanPrefsInput;
+  singleDay?: { name: string; index: number };
 }): Promise<MealPlan> {
   const L = LANG[params.lang];
   const prior = params.priorDishes ?? [];
@@ -2114,28 +2147,53 @@ async function callOpenAIOnce(params: {
 
   const bannedBlock = formatVarietyBlock(prior, params.banned, regen, params.mealsPerDay);
   const dietBlock = params.dietBlock ?? buildDietMandatoryBlock(params.lang, params.prefs);
+  const prefsBlock = params.mealPlanPrefs
+    ? buildMealPlanPrefsPromptBlock(params.mealPlanPrefs, params.lang)
+    : "";
 
   const system = buildCompactSystemPrompt({
     lang: params.lang,
     mealsPerDay: params.mealsPerDay,
     targets: params.targets,
-    dietBlock,
+    dietBlock: [dietBlock, prefsBlock].filter(Boolean).join("\n"),
     bannedBlock,
     constraints: params.constraints,
     maxIngredients: OPENAI_MAX_INGREDIENTS_PER_MEAL,
   });
 
-  const user = regen
+  const varietyHint = params.mealPlanPrefs?.variety === "varied"
+    ? (params.lang === "de"
+      ? " Jede Mahlzeit muss ein NEUES, unterschiedliches Gericht sein — keine Wiederholungen in der Woche."
+      : params.lang === "fr"
+        ? " Chaque repas doit être un plat NOUVEAU et différent — pas de répétitions dans la semaine."
+        : " Every meal must be a NEW, distinct dish — no repeats within the week.")
+    : "";
+
+  const singleDay = params.singleDay;
+  const dayCount = singleDay ? 1 : 7;
+
+  const user = singleDay
+    ? (params.lang === "de"
+      ? `Erstelle NUR den Tag "${singleDay.name}" mit ${params.mealsPerDay} Mahlzeiten. Tagesziel exakt ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal).${varietyHint} Realistische Zutatenmengen und EUR-Preise.`
+      : params.lang === "fr"
+        ? `Crée UNIQUEMENT le jour "${singleDay.name}" avec ${params.mealsPerDay} repas. Objectif exact ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal).${varietyHint}`
+        : `Create ONLY the day "${singleDay.name}" with ${params.mealsPerDay} meals. Exact daily target ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal).${varietyHint}`)
+    : regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
     : params.lang === "de"
-      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte. Normale Hausmannskost (z. B. Reis Hackfleisch, Nudeln mit Soße, Hähnchen Kartoffeln) — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
-      : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day. Simple everyday home cooking (not exotic or restaurant-style). Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte.${varietyHint} Normale Hausmannskost passend zu den Küchen-Vorgaben — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
+      : params.lang === "fr"
+        ? `Crée un plan 7 jours (${params.mealsPerDay} repas/jour). Plats différents chaque jour.${varietyHint} Cuisine maison selon les cuisines choisies. Varie les macros par repas. Tag allergènes. Quantités réalistes et prix EUR.`
+        : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day.${varietyHint} Everyday home cooking matching chosen cuisines. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), OPENAI_FETCH_TIMEOUT_MS);
+
+  const baseTemp = regen ? 0.55 : 0.38;
+  const temperature = params.mealPlanPrefs?.variety === "varied" ? Math.min(0.62, baseTemp + 0.12) : baseTemp;
 
   let res: Response;
   try {
@@ -2145,13 +2203,13 @@ async function callOpenAIOnce(params: {
       headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: getOpenAIMealPlanModel(),
-        temperature: regen ? 0.5 : 0.28,
+        temperature,
         max_tokens: OPENAI_PLAN_MAX_TOKENS,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: `${system}\nReturn {"mealPlan":[7 days with ${params.mealsPerDay} meals each]}.`,
+            content: `${system}\nReturn {"mealPlan":[${dayCount} day${dayCount === 1 ? "" : "s"} with ${params.mealsPerDay} meals each]}.`,
           },
           { role: "user", content: user },
         ],
@@ -2176,9 +2234,12 @@ async function callOpenAIOnce(params: {
     console.warn("[MEAL-PLAN] OpenAI response truncated — attempting partial parse");
   }
 
-  const raw = parseOpenAiMealPlanContent(messageContent);
+  const raw = parseOpenAiMealPlanContent(messageContent, dayCount);
 
   return raw.map((day, i: number) => {
+    const dayLabel = singleDay
+      ? singleDay.name
+      : String(day?.day || L.days[i] || `Day ${i + 1}`).trim();
     let meals = Array.isArray(day?.meals)
       ? day.meals.slice(0, params.mealsPerDay).map(normalizeMealStructure)
       : [];
@@ -2204,9 +2265,28 @@ async function callOpenAIOnce(params: {
       );
     }
     return {
-      day: String(day?.day || L.days[i] || `Day ${i + 1}`).trim(),
+      day: dayLabel,
       meals,
     };
+  });
+}
+
+export async function fetchAISingleDay(
+  input: PlanInput,
+  dayName: string,
+  dayIndex: number,
+): Promise<MealPlan> {
+  return await callOpenAIOnce({
+    mealsPerDay: input.mealsPerDay,
+    targets: input.targets,
+    constraints: input.constraints,
+    lang: input.lang,
+    banned: input.banned,
+    isRegeneration: input.isRegeneration,
+    priorDishes: input.priorDishes,
+    prefs: input.prefs,
+    mealPlanPrefs: input.mealPlanPrefs,
+    singleDay: { name: dayName, index: dayIndex },
   });
 }
 
@@ -2220,6 +2300,7 @@ export async function fetchAIWeeklyPlan(input: PlanInput): Promise<MealPlan> {
     isRegeneration: input.isRegeneration,
     priorDishes: input.priorDishes,
     prefs: input.prefs,
+    mealPlanPrefs: input.mealPlanPrefs,
   });
 }
 
@@ -2693,6 +2774,15 @@ export async function buildPlan(
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
   });
+  plan = dedupeSimilarMealsInWeek(plan, {
+    mealsPerDay: input.mealsPerDay,
+    lang: input.lang,
+    prefs: input.prefs,
+    safetyCtx: input.safetyCtx,
+    priorDishes: input.priorDishes,
+    varietySeed: input.varietySeed,
+    mealPlanPrefs: input.mealPlanPrefs,
+  });
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
@@ -2708,6 +2798,52 @@ export async function buildPlan(
   }
 
   return { plan: finalPlan, usedAi, repairAttempts };
+}
+
+// ----- buildSingleDay.ts -----
+export type BuildSingleDayResult = {
+  day: DayPlan;
+  usedAi: boolean;
+};
+
+export async function buildSingleDay(
+  input: PlanInput,
+  dayIndex: number,
+  dayName: string,
+): Promise<BuildSingleDayResult> {
+  const banned = new Set(input.banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
+  let usedAi = false;
+  let rawDay: DayPlan | null = null;
+
+  if (getOpenAIKey()) {
+    try {
+      const draft = await fetchAISingleDay(input, dayName, dayIndex);
+      rawDay = draft[0] ?? null;
+      if (rawDay) {
+        const violations = auditPlan([rawDay], input.safetyCtx);
+        const allergyFree = violations.every((v) => v.allergy.length === 0);
+        if (!allergyFree) {
+          console.warn("[MEAL-PLAN] Single-day AI plan has allergy flags — using anyway");
+        }
+        usedAi = true;
+      }
+    } catch (e) {
+      console.warn("[MEAL-PLAN] Single-day OpenAI failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
+  if (!rawDay) {
+    const full = generateFallbackDraft(input, banned);
+    rawDay = full[dayIndex] ?? full[0] ?? null;
+    usedAi = false;
+  }
+
+  if (!rawDay) {
+    throw new Error("Could not build single day plan");
+  }
+
+  const day = finishSingleDay(rawDay, input.targets, input.mealsPerDay, input.lang, dayIndex);
+  return { day, usedAi };
 }
 
 // ----- variety.ts -----
@@ -2860,6 +2996,93 @@ export function ensureDistinctMealsAcrossWeek(
         key = titleKey(newTitle);
       }
       usedInSlot.add(key);
+    }
+  }
+
+  return out;
+}
+
+/** Replace meals that duplicate prior week or repeat too similarly within the same week. */
+export function dedupeSimilarMealsInWeek(
+  plan: MealPlan,
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "priorDishes" | "varietySeed" | "mealPlanPrefs"> & {
+    safetyCtx: SafetyContext;
+  },
+): MealPlan {
+  const prior = input.priorDishes ?? [];
+  const strictVariety = input.mealPlanPrefs?.variety === "varied";
+  if (!prior.length && !strictVariety) return plan;
+
+  const base = getDietPools(input.lang, input.prefs);
+  const pools = {
+    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
+    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
+    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+  };
+  const cursor = { b: 0, m: 0, s: 0 };
+  const usedFingerprints = new Set<string>();
+  const usedTitleKeys = new Set<string>();
+
+  const pickNew = (slot: "b" | "m" | "s", used: Set<string>): string => {
+    const list = pools[slot];
+    for (let pass = 0; pass < list.length + 2; pass++) {
+      for (let o = 0; o < Math.max(list.length, 1); o++) {
+        const title = list.length ? list[(cursor[slot] + o) % list.length]! : "Gemüsepfanne";
+        cursor[slot] = (cursor[slot] + o + 1) % Math.max(list.length, 1);
+        const key = titleKey(title);
+        if (!used.has(key)) {
+          used.add(key);
+          return title;
+        }
+      }
+    }
+    const idx = used.size % Math.max(list.length, 1);
+    const fallback = list.length ? list[idx]! : (slot === "m" ? "Gemüsepfanne mit Reis" : slot === "b" ? "Haferflocken mit Beeren" : "Obst mit Joghurt");
+    used.add(titleKey(fallback));
+    return fallback;
+  };
+
+  const out = plan.map((day) => ({
+    ...day,
+    meals: [...(day.meals ?? [])],
+  }));
+
+  for (let di = 0; di < out.length; di++) {
+    const meals = out[di]?.meals;
+    if (!meals) continue;
+    for (let si = 0; si < meals.length; si++) {
+      const meal = meals[si];
+      if (!meal) continue;
+      const slot = mealSlot(si, input.mealsPerDay);
+      const fingerprint = mealDishFingerprint(meal);
+      const titleKeyVal = titleKey(String(meal.name || ""));
+      const priorMatch = mealMatchesPriorDish(meal, prior);
+      const fpDup = fingerprint && usedFingerprints.has(fingerprint);
+      const titleDup = titleKeyVal && usedTitleKeys.has(titleKeyVal);
+      let similarDup = false;
+      if (strictVariety && fingerprint) {
+        for (const fp of usedFingerprints) {
+          if (dishesTooSimilar(fingerprint, fp)) {
+            similarDup = true;
+            break;
+          }
+        }
+      }
+
+      if (priorMatch || fpDup || titleDup || similarDup) {
+        const usedInSlot = new Set<string>(usedTitleKeys);
+        const newTitle = pickNew(slot, usedInSlot);
+        console.warn(
+          `[MEAL-PLAN] Deduped "${meal.name}" on ${out[di]?.day} → ${newTitle}${priorMatch ? ` (was ≈ ${priorMatch})` : ""}`,
+        );
+        meals[si] = buildMealFromDishTitle(newTitle, slot, input.lang, input.safetyCtx);
+        const newFp = mealDishFingerprint(meals[si]!);
+        if (newFp) usedFingerprints.add(newFp);
+        usedTitleKeys.add(titleKey(newTitle));
+      } else {
+        if (fingerprint) usedFingerprints.add(fingerprint);
+        if (titleKeyVal) usedTitleKeys.add(titleKeyVal);
+      }
     }
   }
 
@@ -3145,6 +3368,202 @@ export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): stri
     "STYLE: Normal international everyday food (Italian, Asian-inspired, Mediterranean, American — mixed).",
     `VARIETY: ${total} unique dish names across the week.`,
     "MACROS: Realistic different meal sizes (snack ~150–350 kcal, main ~450–750 kcal); daily totals must still match targets.",
+  ].join("\n");
+}
+
+// ----- mealPlanPrefs.ts -----
+export type MealPlanPrefsInput = {
+  cuisines: string[];
+  maxPrepTime: "10" | "30" | "60plus";
+  cookFrequency: "daily" | "4_5" | "3_4" | "1_2";
+  budget: "cheap" | "medium" | "any";
+  variety: "repeat_ok" | "varied";
+};
+
+const VALID_CUISINES = new Set([
+  "international",
+  "asian",
+  "north_african",
+  "south_african",
+  "european",
+  "american",
+  "italian",
+  "german",
+]);
+
+export function parseMealPlanPrefsFromBody(body: Record<string, unknown>): MealPlanPrefsInput | null {
+  const raw = body.mealPlanPreferences;
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+
+  const cuisines = Array.isArray(o.cuisines)
+    ? o.cuisines.map(String).filter((c) => VALID_CUISINES.has(c))
+    : [];
+
+  const maxPrepTime = o.maxPrepTime === "10" || o.maxPrepTime === "30" || o.maxPrepTime === "60plus"
+    ? o.maxPrepTime
+    : "30";
+
+  const cookFrequency =
+    o.cookFrequency === "daily" ||
+      o.cookFrequency === "4_5" ||
+      o.cookFrequency === "3_4" ||
+      o.cookFrequency === "1_2"
+      ? o.cookFrequency
+      : "3_4";
+
+  const budget = o.budget === "cheap" || o.budget === "medium" || o.budget === "any"
+    ? o.budget
+    : "medium";
+
+  const variety = o.variety === "repeat_ok" || o.variety === "varied" ? o.variety : "varied";
+
+  if (!cuisines.length) return null;
+
+  return { cuisines, maxPrepTime, cookFrequency, budget, variety };
+}
+
+const CUISINE_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    international: "International / gemischt",
+    asian: "Asiatisch",
+    north_african: "Nordafrikanisch",
+    south_african: "Südafrikanisch",
+    european: "Europäisch",
+    american: "Amerikanisch",
+    italian: "Italienisch",
+    german: "Deutsch",
+  },
+  en: {
+    international: "International / mixed",
+    asian: "Asian",
+    north_african: "North African",
+    south_african: "South African",
+    european: "European",
+    american: "American",
+    italian: "Italian",
+    german: "German",
+  },
+  fr: {
+    international: "International / mixte",
+    asian: "Asiatique",
+    north_african: "Afrique du Nord",
+    south_african: "Afrique du Sud",
+    european: "Européen",
+    american: "Américain",
+    italian: "Italien",
+    german: "Allemand",
+  },
+};
+
+function prepTimeLabel(lang: Lang, value: MealPlanPrefsInput["maxPrepTime"]): string {
+  if (lang === "de") {
+    if (value === "10") return "max. 10 Minuten pro Mahlzeit";
+    if (value === "30") return "max. 30 Minuten pro Mahlzeit";
+    return "60+ Minuten — auch aufwendigere Gerichte ok";
+  }
+  if (lang === "fr") {
+    if (value === "10") return "max. 10 min par repas";
+    if (value === "30") return "max. 30 min par repas";
+    return "60+ min — plats plus élaborés ok";
+  }
+  if (value === "10") return "max 10 minutes per meal";
+  if (value === "30") return "max 30 minutes per meal";
+  return "60+ minutes — elaborate dishes ok";
+}
+
+function cookFrequencyBlock(lang: Lang, value: MealPlanPrefsInput["cookFrequency"]): string {
+  if (lang === "de") {
+    switch (value) {
+      case "daily":
+        return "User kocht fast täglich frisch — wenig Meal-Prep, jeden Tag andere frische Gerichte bevorzugt.";
+      case "4_5":
+        return "User kocht 4–5× pro Woche — an anderen Tagen einfache/Reste-Gerichte, gelegentlich doppelte Portionen.";
+      case "3_4":
+        return "User kocht 3–4× pro Woche — Meal-Prep sinnvoll: gleiches Gericht an 2 aufeinanderfolgenden Tagen ist OK (z. B. Mo+Di), Reste nutzen.";
+      case "1_2":
+        return "User kocht nur 1–2× pro Woche — viele schnelle/no-cook Mahlzeiten (Joghurt, Brot, Salat, Aufschnitt), Reste über mehrere Tage.";
+    }
+  }
+  if (lang === "fr") {
+    switch (value) {
+      case "daily":
+        return "Cuisine presque tous les jours — peu de meal prep, plats frais variés.";
+      case "4_5":
+        return "Cuisine 4–5×/semaine — jours simples/restes, parfois double portion.";
+      case "3_4":
+        return "Cuisine 3–4×/semaine — meal prep ok: même plat 2 jours consécutifs (ex. lun+mar).";
+      case "1_2":
+        return "Cuisine 1–2×/semaine — beaucoup de repas rapides/sans cuisson, restes sur plusieurs jours.";
+    }
+  }
+  switch (value) {
+    case "daily":
+      return "Cooks almost daily — minimal meal prep, prefer fresh varied dishes.";
+    case "4_5":
+      return "Cooks 4–5×/week — simple/leftover meals other days, occasional double batches.";
+    case "3_4":
+      return "Cooks 3–4×/week — meal prep OK: same dish on 2 consecutive days (e.g. Mon+Tue).";
+    case "1_2":
+      return "Cooks 1–2×/week — many quick/no-cook meals, leftovers across days.";
+  }
+}
+
+function budgetBlock(lang: Lang, value: MealPlanPrefsInput["budget"]): string {
+  if (lang === "de") {
+    if (value === "cheap") return "Budget: günstig — Discounter-Zutaten, saisonales Gemüse, wenig teures Fleisch/Fisch.";
+    if (value === "medium") return "Budget: mittel — ausgewogene Preise, gelegentlich Qualitätsprodukte.";
+    return "Budget: egal — Preis keine Einschränkung.";
+  }
+  if (lang === "fr") {
+    if (value === "cheap") return "Budget: économique — ingrédients discount, légumes de saison.";
+    if (value === "medium") return "Budget: moyen — prix équilibrés.";
+    return "Budget: sans limite.";
+  }
+  if (value === "cheap") return "Budget: cheap — discount ingredients, seasonal veg, less expensive meat/fish.";
+  if (value === "medium") return "Budget: medium — balanced prices.";
+  return "Budget: no limit.";
+}
+
+function varietyBlock(lang: Lang, value: MealPlanPrefsInput["variety"]): string {
+  if (lang === "de") {
+    if (value === "varied") {
+      return "Abwechslung: MAXIMAL — jede Woche neue Gerichte, keine Wiederholung gleicher Hauptgerichte, unterschiedliche Proteine und Stile.";
+    }
+    return "Abwechslung: Wiederholungen OK — Meal-Prep und Lieblingsgerichte 2–3× in der Woche erlaubt.";
+  }
+  if (lang === "fr") {
+    if (value === "varied") {
+      return "Variété: MAXIMALE — nouveaux plats chaque semaine, pas de répétition des plats principaux.";
+    }
+    return "Variété: répétitions OK — meal prep et favoris 2–3×/semaine autorisés.";
+  }
+  if (value === "varied") {
+    return "Variety: MAXIMUM — new dishes weekly, no repeating main dishes, different proteins/styles.";
+  }
+  return "Variety: repeats OK — meal prep and favorites 2–3×/week allowed.";
+}
+
+export function buildMealPlanPrefsPromptBlock(prefs: MealPlanPrefsInput, lang: Lang): string {
+  const labels = CUISINE_LABELS[lang];
+  const cuisineList = prefs.cuisines.map((c) => labels[c] ?? c).join(", ");
+
+  const disclaimer = lang === "de"
+    ? "Hinweis: Frigy kann nicht garantieren, dass jede Mahlzeit zu 100 % einer Küche entspricht — mische realistisch, aber orientiere dich stark an den gewählten Stilen."
+    : lang === "fr"
+      ? "Note : Frigy ne garantit pas que chaque repas corresponde à 100 % à une cuisine — mélange réaliste, mais suis fortement les styles choisis."
+      : "Note: Frigy cannot guarantee every meal matches a cuisine 100% — mix realistically but strongly follow chosen styles.";
+
+  return [
+    "USER MEAL PLAN PREFERENCES (MUST follow while hitting daily macro targets):",
+    `Preferred cuisines/styles (mix across the week, not all meals from one region): ${cuisineList}.`,
+    disclaimer,
+    prepTimeLabel(lang, prefs.maxPrepTime),
+    `Set prepTime field per meal ≤ ${prefs.maxPrepTime === "60plus" ? "90" : prefs.maxPrepTime} minutes unless cookFrequency allows batch cooking.`,
+    cookFrequencyBlock(lang, prefs.cookFrequency),
+    budgetBlock(lang, prefs.budget),
+    varietyBlock(lang, prefs.variety),
+    "Still hit exact daily calorie/macro targets. Respect allergies and diet constraints above all.",
   ].join("\n");
 }
 
@@ -3497,9 +3916,18 @@ Deno.serve(async (req) => {
     const priorDishes = parsePriorMealsFromBody(body.previousMeals, banned);
     const isRegeneration = body.isRegeneration === true || body.isRegeneration === "true";
     const varietySeed = typeof body.varietySeed === "string" ? body.varietySeed.trim() : "";
+    const mealPlanPrefs = parseMealPlanPrefsFromBody(body);
+    const prefsPrompt = mealPlanPrefs ? buildMealPlanPrefsPromptBlock(mealPlanPrefs, lang) : "";
+    const singleDayIndexRaw = body.singleDayIndex;
+    const singleDayIndex = typeof singleDayIndexRaw === "number" && Number.isFinite(singleDayIndexRaw)
+      ? Math.min(6, Math.max(0, Math.round(singleDayIndexRaw)))
+      : typeof singleDayIndexRaw === "string" && singleDayIndexRaw.trim() !== ""
+        ? Math.min(6, Math.max(0, parseInt(singleDayIndexRaw, 10)))
+        : null;
     const constraints = [
       buildConstraints(allergies, prefs, goals, other, lang),
       buildNoPorkConstraintBlock(lang),
+      prefsPrompt,
       typeof body.constraintPrompt === "string" ? body.constraintPrompt.trim() : "",
     ]
       .filter(Boolean)
@@ -3521,6 +3949,7 @@ Deno.serve(async (req) => {
       isRegeneration: isRegeneration || priorDishes.length > 0,
       varietySeed,
       priorDishes,
+      mealPlanPrefs: mealPlanPrefs ?? undefined,
     };
 
     const hasOpenAiKey = Boolean(getOpenAIKey());
@@ -3529,7 +3958,37 @@ Deno.serve(async (req) => {
       isRegeneration: planInput.isRegeneration,
       mealsPerDay,
       priorDishes: priorDishes.length,
+      singleDayIndex,
     });
+
+    if (singleDayIndex !== null && !Number.isNaN(singleDayIndex)) {
+      const dayName = typeof body.singleDayName === "string" && body.singleDayName.trim()
+        ? body.singleDayName.trim()
+        : LANG[lang].days[singleDayIndex] ?? `Day ${singleDayIndex + 1}`;
+
+      let usedAi = false;
+      let dayPlan;
+      try {
+        const built = await buildSingleDay(planInput, singleDayIndex, dayName);
+        dayPlan = built.day;
+        usedAi = built.usedAi;
+      } catch (buildErr) {
+        const msg = buildErr instanceof Error ? buildErr.message : String(buildErr);
+        console.error("[MEAL-PLAN] buildSingleDay failed:", msg);
+        return json({ error: "single_day_failed", message: msg }, 500);
+      }
+
+      await trackMealPlanUsage(supabase, userId);
+
+      return json({
+        singleDay: dayPlan,
+        dayIndex: singleDayIndex,
+        appliedTargets: targets,
+        macroAuthority,
+        generatedWithAi: usedAi,
+        ...(targetWarning ? { targetWarning } : {}),
+      }, 200);
+    }
 
     let plan: MealPlan;
     let usedAi = false;
