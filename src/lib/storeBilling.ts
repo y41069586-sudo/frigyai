@@ -4,7 +4,7 @@ import { usesStoreBilling } from "@/lib/billingPlatform";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { supabase } from "@/integrations/supabase/client";
 
-const ANDROID_PACKAGE = "com.frigyapp.app";
+const ANDROID_PACKAGE = "com.frigy.app";
 
 const ENTITLEMENT_ID = import.meta.env.VITE_REVENUECAT_ENTITLEMENT_ID?.trim() || "premium";
 

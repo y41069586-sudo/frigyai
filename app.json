@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "frigy",
     "android": {
-      "package": "com.frigyapp.app",
+      "package": "com.frigy.app",
       "versionCode": 1
     },
     "ios": {

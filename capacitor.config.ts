@@ -1,6 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
+  // iOS App Store: com.frigyapp.app — Android Play Store applicationId: com.frigy.app (see android/app/build.gradle)
   appId: 'com.frigyapp.app',
   appName: 'Frigy',
   webDir: 'dist',

@@ -19,7 +19,7 @@ workflows:
         - frigy
       vars:
         NPM_CONFIG_LEGACY_PEER_DEPS: "true"
-        PACKAGE_NAME: com.frigyapp.app
+        PACKAGE_NAME: com.frigy.app
         VITE_REVENUECAT_ENTITLEMENT_ID: premium
         VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
@@ -45,6 +45,11 @@ workflows:
           set -e
           npx cap sync android
           test -d android/app/src/main/assets/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
+          # Play Console app uses com.frigy.app (not com.frigyapp.app)
+          if ! grep -q 'applicationId "com.frigy.app"' android/app/build.gradle; then
+            echo "ERROR: applicationId must be com.frigy.app for Google Play."
+            exit 1
+          fi
 
       - name: Set Android version code
         script: |

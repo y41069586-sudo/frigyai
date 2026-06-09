@@ -20,7 +20,7 @@ export const IOS_TEAM_ID =
 
 export const IOS_BUNDLE_ID = "com.frigyapp.app";
 
-export const ANDROID_PACKAGE = "com.frigyapp.app";
+export const ANDROID_PACKAGE = "com.frigy.app";
 
 /** ChottuLink dashboard → Destination URL (deep link target) */
 export const CHOTTU_LINK_DESTINATION_URL = `${FRIGY_APP_SCHEME}://signup?ref={ref}`;

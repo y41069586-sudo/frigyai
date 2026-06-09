@@ -1,7 +1,7 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 
 const appConfig = {
-  appId: "com.frigyapp.app",
+  appId: "com.frigy.app",
   appName: "Frigy",
   webDir: "dist",
   plugins: {
