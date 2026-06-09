@@ -2,12 +2,12 @@
   "expo": {
     "name": "Frigy",
     "slug": "vite_react_shadcn_ts",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "scheme": "frigy",
     "android": {
       "package": "com.frigy.app",
-      "versionCode": 1
+      "versionCode": 3
     },
     "ios": {
       "bundleIdentifier": "com.frigyapp.app",

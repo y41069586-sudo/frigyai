@@ -54,7 +54,11 @@ workflows:
       - name: Set Android version code
         script: |
           set -e
+          ANDROID_MIN_BUILD=3
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
+          if [ "$BUILD_NUM" -lt "$ANDROID_MIN_BUILD" ]; then
+            BUILD_NUM=$ANDROID_MIN_BUILD
+          fi
           GRADLE_FILE="android/app/build.gradle"
           # macOS (BSD sed) needs -i ''; GNU sed (Linux) uses -i alone
           if [ "$(uname -s)" = "Darwin" ]; then
