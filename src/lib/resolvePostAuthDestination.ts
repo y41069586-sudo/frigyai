@@ -101,14 +101,6 @@ export async function resolvePostAuthDestination(options: {
 
   const authIntent = options.authIntent ?? "auto";
 
-  if (await isReturningAppUser(userId, email, authUser)) {
-    return { phase: "dashboard", path: "/", userId };
-  }
-
-  if (authUser && isEstablishedAuthUser(authUser)) {
-    return { phase: "dashboard", path: "/", userId };
-  }
-
   const hasPremium = await resolvePremiumAccessAfterSignIn({
     userId,
     checkSubscription: options.checkSubscription,
@@ -120,11 +112,38 @@ export async function resolvePostAuthDestination(options: {
     return { phase: "dashboard", path: "/", userId };
   }
 
+  // New registrations must hit paywall before any "returning user" heuristics
+  // (known-email flags, fresh profiles row, partial onboarding rows, etc.).
+  if (authIntent === "signup") {
+    if (options.fromOnboarding) {
+      return {
+        phase: "onboarding_paywall",
+        path: "/?onboardingStep=paywall",
+        userId,
+      };
+    }
+    return {
+      phase: "standalone_paywall",
+      path: hasEverHadPremium()
+        ? buildPremiumPricingRoute({ trialEligible: false })
+        : resolvePaywallPath(options.explicitPath),
+      userId,
+    };
+  }
+
+  if (await isReturningAppUser(userId, email, authUser)) {
+    return { phase: "dashboard", path: "/", userId };
+  }
+
+  if (authUser && isEstablishedAuthUser(authUser)) {
+    return { phase: "dashboard", path: "/", userId };
+  }
+
   if (options.emailPasswordLogin && authIntent === "login") {
     return { phase: "dashboard", path: "/", userId };
   }
 
-  if (options.fromOnboarding || authIntent === "signup") {
+  if (options.fromOnboarding) {
     return {
       phase: "onboarding_paywall",
       path: "/?onboardingStep=paywall",

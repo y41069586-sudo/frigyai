@@ -34,7 +34,6 @@ export async function isReturningAppUser(
       .maybeSingle();
 
     if (onboarding?.onboarding_complete) return true;
-    if (onboarding?.user_name || onboarding?.selected_goal) return true;
 
     const { data: sub } = await supabase
       .from("subscription_cache")
@@ -43,17 +42,6 @@ export async function isReturningAppUser(
       .maybeSingle();
 
     if (sub?.product_id) return true;
-
-    const normalizedEmail = email?.trim().toLowerCase();
-    if (normalizedEmail) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
-
-      if (profile?.id) return true;
-    }
   } catch {
     // ignore — fall through
   }

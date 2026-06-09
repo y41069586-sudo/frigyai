@@ -402,7 +402,6 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   ) => {
     const silent = options?.silent === true;
     const normalizedEmail = email.trim().toLowerCase();
-    markKnownAccountEmail(normalizedEmail);
 
     const signInAfterSignup = async () => {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
