@@ -142,7 +142,7 @@ Diese Werte werden bei **`npm run build`** in die Web-Assets eingebaut. Supabase
 
 1. Workflow **Android Build** starten
 2. **Artifacts** → `app-release.aab` (Play Store) und `app-release.apk` (Test)
-3. **Signing:** Android Keystore in Codemagic — sonst Debug-Signatur (APK nur zum Testen)
+3. **Signing:** Android Keystore in Codemagic (Reference **`frigy_android`**) **und** in `codemagic.yaml` unter `android_signing` — sonst Debug-Signatur und Play Console lehnt das AAB ab
 
 Optional: `VITE_REVENUECAT_API_KEY_ANDROID=goog_…` in Group `frigy`.
 
@@ -233,4 +233,4 @@ In Xcode: Product → Run auf Simulator oder Gerät.
 Workflow **Android Build** in `codemagic.yaml`: Vite → `cap sync android` → Gradle `bundleRelease` + `assembleRelease` auf **mac_mini_m2** (nicht `linux_x2`, außer Billing ist aktiv).
 
 - **Artifacts:** `app-release.aab` (Play Store), `app-release.apk` (direkt installieren / intern testen)
-- **Signing:** Codemagic Team → Code signing → Android Keystore — sonst Debug-Signatur (APK nur zum Testen)
+- **Signing:** Team → Code signing identities → Android keystore, Reference **`frigy_android`** (Passwort, Alias `frigy`). In `codemagic.yaml` muss `environment.android_signing: [frigy_android]` stehen — Reference name in UI und YAML müssen **identisch** sein. Ohne das baut Gradle mit Debug-Signatur → Play Console: *signed in debug mode*.

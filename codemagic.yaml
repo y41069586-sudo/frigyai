@@ -12,6 +12,9 @@ workflows:
       xcode: latest
       node: 22
       java: 21
+      # Must match Reference name in Codemagic → Code signing identities → Android keystores
+      android_signing:
+        - frigy_android
       groups:
         - frigy
       vars:
@@ -55,6 +58,17 @@ workflows:
             sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" "$GRADLE_FILE"
           fi
           echo "Android versionCode=${BUILD_NUM}"
+
+      - name: Verify Android release signing
+        script: |
+          set -e
+          if [ -z "${CM_KEYSTORE_PATH:-}" ] || [ ! -f "${CM_KEYSTORE_PATH}" ]; then
+            echo "ERROR: No release keystore on build machine."
+            echo "Fix: Codemagic → Code signing identities → Android keystore with reference 'frigy_android'"
+            echo "      and android_signing in codemagic.yaml must use the same reference name."
+            exit 1
+          fi
+          echo "Release keystore OK: ${CM_KEYSTORE_PATH} (alias=${CM_KEY_ALIAS:-unset})"
 
       - name: Build AAB + APK (release)
         script: |
