@@ -1,16 +1,32 @@
 apply plugin: 'com.android.application'
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.frigy.app"
     compileSdk = rootProject.ext.compileSdkVersion
     signingConfigs {
         release {
-            def keystorePath = System.getenv("CM_KEYSTORE_PATH")
-            if (keystorePath != null && file(keystorePath).exists()) {
-                storeFile file(keystorePath)
+            def cmKeystorePath = System.getenv("CM_KEYSTORE_PATH")
+            if (cmKeystorePath != null && file(cmKeystorePath).exists()) {
+                // Codemagic: injected when Android keystore is configured (Team → Code signing)
+                storeFile file(cmKeystorePath)
                 storePassword System.getenv("CM_KEYSTORE_PASSWORD")
                 keyAlias System.getenv("CM_KEY_ALIAS")
                 keyPassword System.getenv("CM_KEY_PASSWORD")
+            } else if (keystorePropertiesFile.exists()) {
+                // Local release builds: android/keystore.properties (see keystore.properties.example)
+                def storeFilePath = keystoreProperties['storeFile']
+                if (storeFilePath != null) {
+                    storeFile file(storeFilePath)
+                }
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
             }
         }
     }
@@ -31,13 +47,30 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (signingConfigs.release.storeFile != null) {
-                signingConfig signingConfigs.release
-            } else {
-                // Fallback CI ohne Keystore — andere Signatur als alte EAS-APKs → einmal deinstallieren
-                signingConfig signingConfigs.debug
-            }
+            signingConfig signingConfigs.release
         }
+    }
+}
+
+// Google Play rejects debug-signed bundles — fail fast instead of silently using debug keys.
+gradle.taskGraph.whenReady { taskGraph ->
+    def isReleaseArtifactTask = taskGraph.allTasks.any { task ->
+        task.name ==~ /(?i).*(bundle|assemble)Release.*/
+    }
+    if (!isReleaseArtifactTask) {
+        return
+    }
+    def releaseSigning = android.signingConfigs.release
+    def store = releaseSigning.storeFile
+    if (store == null || !store.exists()) {
+        throw new GradleException(
+            "Release signing is not configured — Google Play rejects debug-signed AAB/APK.\n\n" +
+            "Codemagic: Team settings → Code signing identities → Android keystore (reference: frigy_release).\n" +
+            "           codemagic.yaml must list android_signing: [frigy_release], then rebuild.\n\n" +
+            "Local: cp android/keystore.properties.example android/keystore.properties,\n" +
+            "       create a release .keystore, fill passwords (never commit keystore.properties).\n\n" +
+            "See docs/CODEMAGIC.md (section Android) and NATIVE_APP_SETUP.md."
+        )
     }
 }
 

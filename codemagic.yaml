@@ -12,6 +12,10 @@ workflows:
       xcode: latest
       node: 22
       java: 21
+      # Upload release keystore in Codemagic Team → Code signing identities → Android keystores
+      # Reference name must match exactly (see docs/CODEMAGIC.md § Android).
+      android_signing:
+        - frigy_release
       groups:
         - frigy
       vars:

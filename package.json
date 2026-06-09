@@ -18,6 +18,7 @@
     "cap:add:ios": "npx cap add ios",
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
+    "android:bundle": "cd android && ./gradlew bundleRelease",
     "eas-build-post-install": "node scripts/eas-post-install.mjs",
     "supabase:deploy:meal-plan": "supabase functions deploy generate-meal-plan --no-verify-jwt",
     "supabase:deploy:delete-user": "supabase functions deploy delete-user",

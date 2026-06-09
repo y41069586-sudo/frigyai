@@ -104,4 +104,18 @@ else
   echo "VITE_REVENUECAT_API_KEY_ANDROID present."
 fi
 
+# Android release must be signed with upload/release keystore — not debug (Play Console rejects debug AABs).
+if [[ "$WORKFLOW" == *android* ]] || [[ "$WORKFLOW" == *Android* ]]; then
+  if [ -n "${CM_KEYSTORE_PATH:-}" ] && [ -f "${CM_KEYSTORE_PATH}" ]; then
+    echo "Android release keystore present: CM_KEYSTORE_PATH"
+  else
+    echo "ERROR: Android release keystore not injected (CM_KEYSTORE_PATH missing or file not found)."
+    echo "Fix: Codemagic Team settings → Code signing identities → Android keystores"
+    echo "     → Upload your Play upload keystore → Reference name: frigy_release"
+    echo "     codemagic.yaml must include: android_signing: [frigy_release]"
+    echo "     Then start a new Android Build workflow (do not upload old debug-signed AAB)."
+    exit 1
+  fi
+fi
+
 echo "Codemagic env OK (Supabase + signing prerequisites)."

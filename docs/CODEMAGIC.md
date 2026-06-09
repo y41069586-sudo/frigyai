@@ -233,4 +233,52 @@ In Xcode: Product → Run auf Simulator oder Gerät.
 Workflow **Android Build** in `codemagic.yaml`: Vite → `cap sync android` → Gradle `bundleRelease` + `assembleRelease` auf **mac_mini_m2** (nicht `linux_x2`, außer Billing ist aktiv).
 
 - **Artifacts:** `app-release.aab` (Play Store), `app-release.apk` (direkt installieren / intern testen)
-- **Signing:** Codemagic Team → Code signing → Android Keystore — sonst Debug-Signatur (APK nur zum Testen)
+
+### Android Release Signing (Pflicht für Play Store)
+
+Google Play lehnt Uploads ab mit:
+
+> *You uploaded an APK or Android App Bundle that was signed in debug mode.*
+
+**Ursache:** Der Release-Build wurde ohne Upload-Keystore erzeugt (früher fiel Gradle auf `signingConfigs.debug` zurück). Das ist jetzt deaktiviert — ohne Keystore bricht der Build mit einer klaren Fehlermeldung ab.
+
+#### Einmalig: Upload-Keystore anlegen (falls noch keiner existiert)
+
+```bash
+keytool -genkey -v -keystore frigy-release.keystore -alias frigy \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+**Passwörter und `.keystore` sicher aufbewahren** — ohne sie kannst du keine Updates mehr hochladen (außer du nutzt ausschließlich Play App Signing und hast den Upload-Key bei Google hinterlegt).
+
+#### Codemagic (empfohlen für Store-Builds)
+
+1. **Codemagic** → **Team settings** (Zahnrad) → **Code signing identities** → **Android keystores**
+2. **Upload keystore** → Datei `frigy-release.keystore` (oder dein bestehender Upload-Key)
+3. **Reference name:** exakt **`frigy_release`** (muss zu `codemagic.yaml` passen)
+4. Alias, Store password, Key password eintragen
+5. Neuen **Android Build** starten und **`app-release.aab`** aus **Artifacts** laden — **nicht** eine alte Debug-AAB wiederverwenden
+
+`codemagic.yaml` enthält:
+
+```yaml
+android_signing:
+  - frigy_release
+```
+
+Der Verify-Schritt prüft, dass `CM_KEYSTORE_PATH` gesetzt ist, bevor Gradle läuft.
+
+#### Lokal bauen (optional)
+
+```bash
+cp android/keystore.properties.example android/keystore.properties
+# storeFile, Passwörter anpassen — Datei nie committen
+npm run build && npx cap sync android
+cd android && ./gradlew bundleRelease
+# AAB: android/app/build/outputs/bundle/release/app-release.aab
+```
+
+#### Play Console
+
+- Nur **`app-release.aab`** aus einem erfolgreichen Release-Build hochladen
+- Bei **Play App Signing**: Google verwaltet den App-Signing-Key; du signierst weiterhin mit dem **Upload-Key** (dein Keystore)

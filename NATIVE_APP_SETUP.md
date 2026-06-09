@@ -119,18 +119,28 @@ npx cap open ios
 
 ### Android (Play Store):
 
+Google Play **akzeptiert keine Debug-signierten** AAB/APK. Du brauchst einen **Release-/Upload-Keystore**.
+
 ```bash
-# 1. Signierungsschlüssel erstellen (einmalig)
-keytool -genkey -v -keystore fridgie-release.keystore -alias fridgie -keyalg RSA -keysize 2048 -validity 10000
+# 1. Signierungsschlüssel erstellen (einmalig — Passwort sicher speichern!)
+keytool -genkey -v -keystore frigy-release.keystore -alias frigy \
+  -keyalg RSA -keysize 2048 -validity 10000
 
-# 2. In android/app/build.gradle konfigurieren
+# 2. Lokale Signing-Konfiguration (nicht committen)
+cp android/keystore.properties.example android/keystore.properties
+# storeFile, storePassword, keyAlias, keyPassword eintragen
 
-# 3. Release APK/AAB bauen
+# 3. Web-Build + Capacitor sync
+npm run build
+npx cap sync android
+
+# 4. Release AAB bauen (Play Store)
 cd android
 ./gradlew bundleRelease
-
-# APK liegt in: android/app/build/outputs/bundle/release/
+# AAB: app/build/outputs/bundle/release/app-release.aab
 ```
+
+**Codemagic:** Keystore unter Team → Code signing → Android keystores hochladen, Reference **`frigy_release`**. Details: `docs/CODEMAGIC.md` (Abschnitt Android).
 
 ## Troubleshooting
 

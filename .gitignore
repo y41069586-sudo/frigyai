@@ -27,3 +27,8 @@ vite.config.ts.timestamp-*
 *.njsproj
 *.sln
 *.sw?
+
+# Android release signing (never commit)
+*.keystore
+*.jks
+android/keystore.properties
