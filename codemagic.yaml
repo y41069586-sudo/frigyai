@@ -176,7 +176,12 @@ workflows:
         script: |
           set -e
           cd "$CM_BUILD_DIR/ios/App"
+          # CFBundleVersion must strictly increase on App Store Connect (build 1 already uploaded).
+          IOS_MIN_BUILD=2
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
+          if [ "$BUILD_NUM" -lt "$IOS_MIN_BUILD" ]; then
+            BUILD_NUM=$IOS_MIN_BUILD
+          fi
           agvtool new-version -all "$BUILD_NUM"
           echo "iOS CFBundleVersion=$BUILD_NUM"
 
