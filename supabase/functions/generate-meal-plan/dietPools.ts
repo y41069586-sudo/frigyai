@@ -1,3 +1,4 @@
+import type { MealPlanPrefsInput } from "./mealPlanPrefs.ts";
 import type { Lang } from "./types.ts";
 
 export type PoolSet = { b: string[]; m: string[]; s: string[] };
@@ -155,4 +156,216 @@ export function getDietPools(lang: Lang, prefs: string[]): PoolSet {
   const diet = resolveDietKey(prefs);
   const pools = BY_LANG[lang][diet] ?? BY_LANG[lang].balanced;
   return pools;
+}
+
+const CUISINE_EXTENSIONS: Record<Lang, Record<string, Partial<PoolSet>>> = {
+  de: {
+    asian: {
+      b: ["Reisbrei mit Mango", "Miso-Suppe light", "Congee mit Ei"],
+      m: ["Gebratene Nudeln", "Reis mit Hähnchen Teriyaki", "Ramen mit Gemüse", "Thai-Curry mild", "Sushi Bowl"],
+      s: ["Edamame", "Reiswaffeln mit Avocado", "Mango Stückchen"],
+    },
+    north_african: {
+      b: ["Couscous mit Obst", "Fladenbrot mit Honig", "Joghurt mit Datteln"],
+      m: ["Couscous mit Gemüse", "Linseneintopf nordafrikanisch", "Hähnchen mit Kichererbsen", "Harira Suppe"],
+      s: ["Datteln", "Hummus mit Karotten", "Oliven Mix"],
+    },
+    south_african: {
+      b: ["Pap mit Milch", "Maisporridge", "Eier mit Bohnen"],
+      m: ["Chakalaka mit Reis", "Bobotie light", "Grillhähnchen mit Mais", "Eintopf mit Süßkartoffel"],
+      s: ["Mango", "Erdnüsse", "Biltong-Style Rind"],
+    },
+    italian: {
+      b: ["Cappuccino und Croissant light", "Bruschetta", "Ricotta mit Honig"],
+      m: ["Spaghetti Aglio e Olio", "Risotto mit Pilzen", "Penne Arrabbiata", "Margherita Pizza", "Minestrone"],
+      s: ["Caprese Snack", "Grissini", "Parmesan Stückchen"],
+    },
+    german: {
+      b: ["Brötchen mit Aufschnitt", "Quark mit Kartoffeln", "Bircher Müsli"],
+      m: ["Kartoffelsuppe", "Schnitzel mit Salat", "Linseneintopf", "Kohlroulade light", "Bratkartoffeln mit Spiegelei"],
+      s: ["Leberkäse Stück", "Brezel", "Apfelstrudel light"],
+    },
+    american: {
+      b: ["Pancakes light", "Bagel mit Frischkäse", "French Toast light"],
+      m: ["Burger Bowl", "Chili con Carne", "BBQ Hähnchen mit Mais", "Mac and Cheese light", "Burrito Bowl"],
+      s: ["Popcorn", "Nachos light", "Peanut Butter Toast"],
+    },
+    european: {
+      b: ["Croissant light", "Vollkornbrot mit Käse", "Skyr mit Beeren"],
+      m: ["Ratatouille mit Reis", "Fisch mit Kartoffeln", "Gulasch light", "Quiche mit Salat"],
+      s: ["Crackers mit Käse", "Oliven", "Joghurt"],
+    },
+    international: {
+      b: ["Smoothie Bowl", "Overnight Oats", "Shakshuka light"],
+      m: ["Buddha Bowl", "Wrap mit Hähnchen", "Curry mit Reis", "Tacos light", "Falafel Bowl"],
+      s: ["Energy Balls", "Trail Mix", "Hummus Wrap"],
+    },
+  },
+  en: {
+    asian: {
+      b: ["Mango rice porridge", "Miso soup light", "Congee with egg"],
+      m: ["Stir fry noodles", "Teriyaki chicken rice", "Ramen veggies", "Thai curry mild", "Sushi bowl"],
+      s: ["Edamame", "Rice cakes avocado", "Mango pieces"],
+    },
+    north_african: {
+      b: ["Couscous fruit", "Flatbread honey", "Yogurt dates"],
+      m: ["Vegetable couscous", "North African lentil stew", "Chicken chickpeas", "Harira soup"],
+      s: ["Dates", "Hummus carrots", "Olives"],
+    },
+    south_african: {
+      b: ["Pap with milk", "Corn porridge", "Eggs beans"],
+      m: ["Chakalaka rice", "Bobotie light", "Grilled chicken maize", "Sweet potato stew"],
+      s: ["Mango", "Peanuts", "Biltong style beef"],
+    },
+    italian: {
+      b: ["Cappuccino croissant light", "Bruschetta", "Ricotta honey"],
+      m: ["Spaghetti aglio olio", "Mushroom risotto", "Penne arrabbiata", "Margherita pizza", "Minestrone"],
+      s: ["Caprese snack", "Grissini", "Parmesan cubes"],
+    },
+    german: {
+      b: ["Rolls with cold cuts", "Quark potatoes", "Bircher muesli"],
+      m: ["Potato soup", "Schnitzel salad", "Lentil stew", "Cabbage roll light", "Fried potatoes egg"],
+      s: ["Leberkase slice", "Pretzel", "Apple strudel light"],
+    },
+    american: {
+      b: ["Pancakes light", "Bagel cream cheese", "French toast light"],
+      m: ["Burger bowl", "Chili con carne", "BBQ chicken corn", "Mac and cheese light", "Burrito bowl"],
+      s: ["Popcorn", "Nachos light", "Peanut butter toast"],
+    },
+    european: {
+      b: ["Croissant light", "Wholegrain cheese bread", "Skyr berries"],
+      m: ["Ratatouille rice", "Fish potatoes", "Goulash light", "Quiche salad"],
+      s: ["Crackers cheese", "Olives", "Yogurt"],
+    },
+    international: {
+      b: ["Smoothie bowl", "Overnight oats", "Shakshuka light"],
+      m: ["Buddha bowl", "Chicken wrap", "Curry rice", "Tacos light", "Falafel bowl"],
+      s: ["Energy balls", "Trail mix", "Hummus wrap"],
+    },
+  },
+  fr: {
+    asian: {
+      b: ["Porridge mangue", "Soupe miso legere", "Congee oeuf"],
+      m: ["Nouilles sautees", "Poulet teriyaki riz", "Ramen legumes", "Curry thai doux", "Bowl sushi"],
+      s: ["Edamame", "Galettes riz avocat", "Morceaux mangue"],
+    },
+    north_african: {
+      b: ["Couscous fruits", "Pain plat miel", "Yaourt dattes"],
+      m: ["Couscous legumes", "Ragout lentilles", "Poulet pois chiches", "Soupe harira"],
+      s: ["Dattes", "Hummus carottes", "Olives"],
+    },
+    south_african: {
+      b: ["Pap lait", "Porridge mais", "Oeufs haricots"],
+      m: ["Chakalaka riz", "Bobotie light", "Poulet grille mais", "Ragout patate douce"],
+      s: ["Mangue", "Arachides", "Boeuf style biltong"],
+    },
+    italian: {
+      b: ["Cappuccino croissant", "Bruschetta", "Ricotta miel"],
+      m: ["Spaghetti aglio olio", "Risotto champignons", "Penne arrabbiata", "Pizza margherita", "Minestrone"],
+      s: ["Snack caprese", "Grissini", "Parmesan"],
+    },
+    german: {
+      b: ["Petits pains charcuterie", "Quark pommes", "Muesli bircher"],
+      m: ["Soupe pommes de terre", "Escalope salade", "Potee lentilles", "Chou farci light", "Pommes oeuf"],
+      s: ["Tranche leberkase", "Bretzel", "Strudel pommes"],
+    },
+    american: {
+      b: ["Pancakes light", "Bagel fromage frais", "Pain perdu light"],
+      m: ["Burger bowl", "Chili con carne", "Poulet BBQ mais", "Mac and cheese light", "Burrito bowl"],
+      s: ["Popcorn", "Nachos light", "Toast beurre cacahuete"],
+    },
+    european: {
+      b: ["Croissant light", "Pain complet fromage", "Skyr baies"],
+      m: ["Ratatouille riz", "Poisson pommes", "Goulash light", "Quiche salade"],
+      s: ["Crackers fromage", "Olives", "Yaourt"],
+    },
+    international: {
+      b: ["Smoothie bowl", "Overnight oats", "Shakshuka light"],
+      m: ["Buddha bowl", "Wrap poulet", "Curry riz", "Tacos light", "Bowl falafel"],
+      s: ["Energy balls", "Trail mix", "Wrap hummus"],
+    },
+  },
+};
+
+const QUICK_MEAL_HINTS = /\b(salat|salad|toast|wrap|sandwich|joghurt|yogurt|quark|obst|fruit|müsli|muesli|hafer|oat|smoothie|omelett|omelet|oeuf|egg|hummus|sticks|reiswaffel|overnight|bruschetta|caprese|edamame|crackers|nachos|popcorn|beeren|berries)\b/i;
+
+function mergeUnique(base: string[], extra: string[]): string[] {
+  const seen = new Set(base.map((x) => x.toLowerCase()));
+  const out = [...base];
+  for (const item of extra) {
+    const key = item.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
+/** Preferred titles first — used so cuisine picks win over generic balanced pool. */
+function mergeUniquePreferFirst(preferred: string[], fallback: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...preferred, ...fallback]) {
+    const key = item.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+function filterQuickPool(pool: string[]): string[] {
+  const quick = pool.filter((title) => QUICK_MEAL_HINTS.test(title));
+  return quick.length >= 3 ? quick : pool;
+}
+
+/** Apply cuisine/time preferences to template fallback pools (when OpenAI is unavailable). */
+export function enrichPoolsForMealPlanPrefs(
+  pools: PoolSet,
+  lang: Lang,
+  mealPlanPrefs?: MealPlanPrefsInput,
+): PoolSet {
+  if (!mealPlanPrefs) return pools;
+
+  const extensions = CUISINE_EXTENSIONS[lang] ?? CUISINE_EXTENSIONS.de;
+  const cuisineB: string[] = [];
+  const cuisineM: string[] = [];
+  const cuisineS: string[] = [];
+
+  for (const cuisine of mealPlanPrefs.cuisines) {
+    const ext = extensions[cuisine];
+    if (!ext) continue;
+    if (ext.b?.length) cuisineB.push(...ext.b);
+    if (ext.m?.length) cuisineM.push(...ext.m);
+    if (ext.s?.length) cuisineS.push(...ext.s);
+  }
+
+  // Cuisine dishes first — replacements must not fall back to generic "Oatmeal berries".
+  let b = mergeUniquePreferFirst(cuisineB, pools.b);
+  let m = mergeUniquePreferFirst(cuisineM, pools.m);
+  let s = mergeUniquePreferFirst(cuisineS, pools.s);
+
+  const specificCuisines = mealPlanPrefs.cuisines.filter(
+    (c) => c !== "international" && c !== "european",
+  );
+  if (specificCuisines.length > 0) {
+    if (cuisineM.length >= 5) {
+      m = mergeUniquePreferFirst(cuisineM, pools.m.slice(0, 3));
+    }
+    if (cuisineB.length >= 4) {
+      b = mergeUniquePreferFirst(cuisineB, pools.b.slice(0, 3));
+    }
+    if (cuisineS.length >= 3) {
+      s = mergeUniquePreferFirst(cuisineS, pools.s.slice(0, 2));
+    }
+  }
+
+  if (mealPlanPrefs.maxPrepTime === "10") {
+    b = filterQuickPool(b);
+    m = filterQuickPool(m);
+    s = filterQuickPool(s);
+  }
+
+  return { b, m, s };
 }

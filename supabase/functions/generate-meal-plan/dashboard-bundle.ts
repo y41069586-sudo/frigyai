@@ -1907,37 +1907,49 @@ export function guaranteedSafeMinimalPlan(params: {
   lang: Lang;
 }): MealPlan {
   const L = LANG[params.lang];
-  const templates: Record<Lang, { b: string; m: string; s: string; ings: [string, string, string] }> = {
-    de: {
-      b: "Obstsalat",
-      m: "Gemüsepfanne",
-      s: "Gemüse Sticks",
-      ings: ["Apfel", "Karotte", "Brokkoli"],
-    },
-    en: {
-      b: "Fruit salad",
-      m: "Vegetable pan",
-      s: "Veggie sticks",
-      ings: ["Apple", "Carrot", "Broccoli"],
-    },
-    fr: {
-      b: "Salade de fruits",
-      m: "Poelee legumes",
-      s: "Legumes crus",
-      ings: ["Pomme", "Carotte", "Brocoli"],
-    },
+  const weekTemplates: Record<Lang, Array<{ b: string; m: string; s: string }>> = {
+    de: [
+      { b: "Haferflocken mit Beeren", m: "Hähnchen mit Reis", s: "Apfel mit Nüssen" },
+      { b: "Joghurt mit Banane", m: "Linsensuppe mit Brot", s: "Quark mit Beeren" },
+      { b: "Rührei mit Brot", m: "Nudeln mit Tomatensoße", s: "Obst mit Joghurt" },
+      { b: "Müsli mit Apfel", m: "Thunfisch Salat", s: "Käse mit Gurke" },
+      { b: "Avocado Toast", m: "Putenpfanne mit Gemüse", s: "Brot mit Aufstrich" },
+      { b: "Porridge", m: "Gemüsepfanne mit Kartoffeln", s: "Milchreis" },
+      { b: "Obstsalat", m: "Reis mit Gemüse", s: "Gemüse Sticks" },
+    ],
+    en: [
+      { b: "Oatmeal berries", m: "Chicken and rice", s: "Apple nuts" },
+      { b: "Yogurt banana", m: "Lentil soup bread", s: "Cottage cheese berries" },
+      { b: "Scrambled eggs toast", m: "Pasta tomato", s: "Fruit yogurt" },
+      { b: "Granola apple", m: "Tuna salad", s: "Cheese cucumber" },
+      { b: "Avocado toast", m: "Turkey veggie pan", s: "Bread spread" },
+      { b: "Porridge", m: "Vegetable potato pan", s: "Rice pudding" },
+      { b: "Fruit salad", m: "Rice vegetables", s: "Veggie sticks" },
+    ],
+    fr: [
+      { b: "Porridge baies", m: "Poulet riz", s: "Pomme noix" },
+      { b: "Yaourt banane", m: "Soupe lentilles pain", s: "Fromage blanc fruits" },
+      { b: "Oeufs brouilles toast", m: "Pates tomate", s: "Fruits yaourt" },
+      { b: "Muesli pomme", m: "Salade thon", s: "Fromage concombre" },
+      { b: "Toast avocat", m: "Dinde legumes", s: "Pain tartine" },
+      { b: "Porridge", m: "Poelee legumes pommes", s: "Riz au lait" },
+      { b: "Salade de fruits", m: "Riz legumes", s: "Legumes crus" },
+    ],
   };
-  const t = templates[params.lang];
+  const templates = weekTemplates[params.lang];
   const ctx = createSafetyContext([], [], "");
 
-  return Array.from({ length: 7 }, (_, di) => ({
-    day: L.days[di],
-    meals: Array.from({ length: params.mealsPerDay }, (_, si) => {
-      const slot = mealSlot(si, params.mealsPerDay);
-      const title = slot === "b" ? t.b : slot === "m" ? t.m : t.s;
-      return buildMealFromDishTitle(title, slot, params.lang, ctx);
-    }),
-  }));
+  return Array.from({ length: 7 }, (_, di) => {
+    const t = templates[di % templates.length]!;
+    return {
+      day: L.days[di],
+      meals: Array.from({ length: params.mealsPerDay }, (_, si) => {
+        const slot = mealSlot(si, params.mealsPerDay);
+        const title = slot === "b" ? t.b : slot === "m" ? t.m : t.s;
+        return buildMealFromDishTitle(title, slot, params.lang, ctx);
+      }),
+    };
+  });
 }
 
 export function fallbackPlan(params: {
@@ -1951,18 +1963,25 @@ export function fallbackPlan(params: {
   bannedFingerprints?: Set<string>;
   varietySeed?: string;
   isRegeneration?: boolean;
+  mealPlanPrefs?: MealPlanPrefsInput;
 }): MealPlan {
   const L = LANG[params.lang];
   const ctx = createSafetyContext(params.allergies, params.prefs, params.other);
 
-  const basePools = getDietPools(params.lang, params.prefs);
+  const basePools = enrichPoolsForMealPlanPrefs(
+    getDietPools(params.lang, params.prefs),
+    params.lang,
+    params.mealPlanPrefs,
+  );
   const pools = {
     b: filterPool(basePools.b, ctx, params.lang, "b"),
     m: filterPool(basePools.m, ctx, params.lang, "m"),
     s: filterPool(basePools.s, ctx, params.lang, "s"),
   };
 
-  const shuffleKey = params.varietySeed || String(Date.now());
+  const cuisineKey = params.mealPlanPrefs?.cuisines?.join("-") ?? "";
+  const timeKey = params.mealPlanPrefs?.maxPrepTime ?? "";
+  const shuffleKey = [params.varietySeed, cuisineKey, timeKey, String(Date.now())].filter(Boolean).join("|");
   const safePools = {
     b: seededShuffle(pools.b, `${shuffleKey}-b-${params.isRegeneration ? "r" : "n"}`),
     m: seededShuffle(pools.m, `${shuffleKey}-m-${params.isRegeneration ? "r" : "n"}`),
@@ -2638,9 +2657,37 @@ export function generateFallbackDraft(
     ),
     varietySeed: input.varietySeed,
     isRegeneration: input.isRegeneration,
+    mealPlanPrefs: input.mealPlanPrefs,
   });
 
   return finishPlan(raw, input.targets, input.mealsPerDay, input.lang) ?? raw;
+}
+
+/** Keep AI-generated days; fill missing weekdays from cuisine-aware fallback (not full regen). */
+export function expandPlanToSevenDays(
+  plan: MealPlan,
+  input: PlanInput,
+  banned: Set<string>,
+): MealPlan {
+  if (!Array.isArray(plan) || plan.length >= 7) return plan;
+
+  const filler = generateFallbackDraft(input, banned);
+  const L = LANG[input.lang];
+  const out: MealPlan = [];
+
+  for (let i = 0; i < 7; i++) {
+    const existing = plan[i];
+    if (existing?.meals?.length) {
+      out.push({
+        day: String(existing.day || L.days[i]).trim(),
+        meals: existing.meals,
+      });
+    } else {
+      out.push(filler[i] ?? filler[filler.length - 1]!);
+    }
+  }
+
+  return out;
 }
 
 // ----- repairLoop.ts -----
@@ -2676,9 +2723,13 @@ export function repairPlan(
   }
 
   if (violations.length && attempt > 4) {
-    console.warn("[MEAL-PLAN] Hard escape: guaranteedSafeMinimalPlan");
-    plan = guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+    console.warn("[MEAL-PLAN] Hard escape: cuisine-aware fallback");
+    plan = generateFallbackDraft(input, new Set());
     violations = auditPlan(plan, input.safetyCtx);
+    if (violations.length) {
+      plan = guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+      violations = auditPlan(plan, input.safetyCtx);
+    }
   }
 
   return { plan, violations };
@@ -2752,11 +2803,15 @@ export async function buildPlan(
   }
 
   if (violations.length > 0) {
-    console.warn("[MEAL-PLAN] Last resort: minimal safe plan");
-    plan = guaranteedSafeMinimalPlan({
-      mealsPerDay: input.mealsPerDay,
-      lang: input.lang,
-    });
+    console.warn("[MEAL-PLAN] Last resort: cuisine-aware fallback plan");
+    plan = generateFallbackDraft(input, banned);
+    violations = auditPlan(plan, input.safetyCtx);
+    if (violations.length > 0) {
+      plan = guaranteedSafeMinimalPlan({
+        mealsPerDay: input.mealsPerDay,
+        lang: input.lang,
+      });
+    }
     plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
     usedAi = false;
   }
@@ -2767,12 +2822,15 @@ export async function buildPlan(
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
     varietySeed: input.varietySeed,
+    mealPlanPrefs: input.mealPlanPrefs,
   });
   plan = ensureDistinctMealsAcrossWeek(plan, {
     mealsPerDay: input.mealsPerDay,
     lang: input.lang,
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
+    mealPlanPrefs: input.mealPlanPrefs,
+    varietySeed: input.varietySeed,
   });
   plan = dedupeSimilarMealsInWeek(plan, {
     mealsPerDay: input.mealsPerDay,
@@ -2788,13 +2846,17 @@ export async function buildPlan(
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
 
   if (!Array.isArray(finalPlan) || finalPlan.length < 7) {
-    console.warn("[MEAL-PLAN] Plan shorter than 7 days — rebuilding from fallback");
-    const fallback = generateFallbackDraft(input, banned);
-    finalPlan =
-      finishPlan(fallback, input.targets, input.mealsPerDay, input.lang) ??
-      guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
-    finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
-    usedAi = false;
+    console.warn("[MEAL-PLAN] Plan shorter than 7 days — padding missing days from fallback");
+    const expanded = expandPlanToSevenDays(finalPlan ?? [], input, banned);
+    finalPlan = finishPlan(expanded, input.targets, input.mealsPerDay, input.lang) ?? expanded;
+    if (!Array.isArray(finalPlan) || finalPlan.length < 7) {
+      const fallback = generateFallbackDraft(input, banned);
+      finalPlan =
+        finishPlan(fallback, input.targets, input.mealsPerDay, input.lang) ??
+        guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+      finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
+      usedAi = false;
+    }
   }
 
   return { plan: finalPlan, usedAi, repairAttempts };
@@ -2947,13 +3009,20 @@ export function findRegenerationOverlaps(plan: MealPlan, prior: PriorDishSnapsho
  */
 export function ensureDistinctMealsAcrossWeek(
   plan: MealPlan,
-  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs"> & { safetyCtx: SafetyContext },
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "mealPlanPrefs" | "varietySeed"> & {
+    safetyCtx: SafetyContext;
+  },
 ): MealPlan {
-  const base = getDietPools(input.lang, input.prefs);
+  const shuffleKey = input.varietySeed || String(Date.now());
+  const base = enrichPoolsForMealPlanPrefs(
+    getDietPools(input.lang, input.prefs),
+    input.lang,
+    input.mealPlanPrefs,
+  );
   const pools = {
-    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
-    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
-    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+    b: seededShuffle(filterPool(base.b, input.safetyCtx, input.lang, "b"), `${shuffleKey}-distinct-b`),
+    m: seededShuffle(filterPool(base.m, input.safetyCtx, input.lang, "m"), `${shuffleKey}-distinct-m`),
+    s: seededShuffle(filterPool(base.s, input.safetyCtx, input.lang, "s"), `${shuffleKey}-distinct-s`),
   };
   const cursor = { b: 0, m: 0, s: 0 };
 
@@ -3013,11 +3082,16 @@ export function dedupeSimilarMealsInWeek(
   const strictVariety = input.mealPlanPrefs?.variety === "varied";
   if (!prior.length && !strictVariety) return plan;
 
-  const base = getDietPools(input.lang, input.prefs);
+  const shuffleKey = input.varietySeed || String(Date.now());
+  const base = enrichPoolsForMealPlanPrefs(
+    getDietPools(input.lang, input.prefs),
+    input.lang,
+    input.mealPlanPrefs,
+  );
   const pools = {
-    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
-    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
-    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+    b: seededShuffle(filterPool(base.b, input.safetyCtx, input.lang, "b"), `${shuffleKey}-dedupe-b`),
+    m: seededShuffle(filterPool(base.m, input.safetyCtx, input.lang, "m"), `${shuffleKey}-dedupe-m`),
+    s: seededShuffle(filterPool(base.s, input.safetyCtx, input.lang, "s"), `${shuffleKey}-dedupe-s`),
   };
   const cursor = { b: 0, m: 0, s: 0 };
   const usedFingerprints = new Set<string>();
@@ -3059,17 +3133,10 @@ export function dedupeSimilarMealsInWeek(
       const priorMatch = mealMatchesPriorDish(meal, prior);
       const fpDup = fingerprint && usedFingerprints.has(fingerprint);
       const titleDup = titleKeyVal && usedTitleKeys.has(titleKeyVal);
-      let similarDup = false;
-      if (strictVariety && fingerprint) {
-        for (const fp of usedFingerprints) {
-          if (dishesTooSimilar(fingerprint, fp)) {
-            similarDup = true;
-            break;
-          }
-        }
-      }
+      // Do not replace AI meals only for ingredient similarity within the same week —
+      // that was swapping Italian (etc.) dishes for generic English template titles.
 
-      if (priorMatch || fpDup || titleDup || similarDup) {
+      if (priorMatch || fpDup || titleDup) {
         const usedInSlot = new Set<string>(usedTitleKeys);
         const newTitle = pickNew(slot, usedInSlot);
         console.warn(
@@ -3262,6 +3329,218 @@ export function getDietPools(lang: Lang, prefs: string[]): PoolSet {
   const diet = resolveDietKey(prefs);
   const pools = BY_LANG[lang][diet] ?? BY_LANG[lang].balanced;
   return pools;
+}
+
+const CUISINE_EXTENSIONS: Record<Lang, Record<string, Partial<PoolSet>>> = {
+  de: {
+    asian: {
+      b: ["Reisbrei mit Mango", "Miso-Suppe light", "Congee mit Ei"],
+      m: ["Gebratene Nudeln", "Reis mit Hähnchen Teriyaki", "Ramen mit Gemüse", "Thai-Curry mild", "Sushi Bowl"],
+      s: ["Edamame", "Reiswaffeln mit Avocado", "Mango Stückchen"],
+    },
+    north_african: {
+      b: ["Couscous mit Obst", "Fladenbrot mit Honig", "Joghurt mit Datteln"],
+      m: ["Couscous mit Gemüse", "Linseneintopf nordafrikanisch", "Hähnchen mit Kichererbsen", "Harira Suppe"],
+      s: ["Datteln", "Hummus mit Karotten", "Oliven Mix"],
+    },
+    south_african: {
+      b: ["Pap mit Milch", "Maisporridge", "Eier mit Bohnen"],
+      m: ["Chakalaka mit Reis", "Bobotie light", "Grillhähnchen mit Mais", "Eintopf mit Süßkartoffel"],
+      s: ["Mango", "Erdnüsse", "Biltong-Style Rind"],
+    },
+    italian: {
+      b: ["Cappuccino und Croissant light", "Bruschetta", "Ricotta mit Honig"],
+      m: ["Spaghetti Aglio e Olio", "Risotto mit Pilzen", "Penne Arrabbiata", "Margherita Pizza", "Minestrone"],
+      s: ["Caprese Snack", "Grissini", "Parmesan Stückchen"],
+    },
+    german: {
+      b: ["Brötchen mit Aufschnitt", "Quark mit Kartoffeln", "Bircher Müsli"],
+      m: ["Kartoffelsuppe", "Schnitzel mit Salat", "Linseneintopf", "Kohlroulade light", "Bratkartoffeln mit Spiegelei"],
+      s: ["Leberkäse Stück", "Brezel", "Apfelstrudel light"],
+    },
+    american: {
+      b: ["Pancakes light", "Bagel mit Frischkäse", "French Toast light"],
+      m: ["Burger Bowl", "Chili con Carne", "BBQ Hähnchen mit Mais", "Mac and Cheese light", "Burrito Bowl"],
+      s: ["Popcorn", "Nachos light", "Peanut Butter Toast"],
+    },
+    european: {
+      b: ["Croissant light", "Vollkornbrot mit Käse", "Skyr mit Beeren"],
+      m: ["Ratatouille mit Reis", "Fisch mit Kartoffeln", "Gulasch light", "Quiche mit Salat"],
+      s: ["Crackers mit Käse", "Oliven", "Joghurt"],
+    },
+    international: {
+      b: ["Smoothie Bowl", "Overnight Oats", "Shakshuka light"],
+      m: ["Buddha Bowl", "Wrap mit Hähnchen", "Curry mit Reis", "Tacos light", "Falafel Bowl"],
+      s: ["Energy Balls", "Trail Mix", "Hummus Wrap"],
+    },
+  },
+  en: {
+    asian: {
+      b: ["Mango rice porridge", "Miso soup light", "Congee with egg"],
+      m: ["Stir fry noodles", "Teriyaki chicken rice", "Ramen veggies", "Thai curry mild", "Sushi bowl"],
+      s: ["Edamame", "Rice cakes avocado", "Mango pieces"],
+    },
+    north_african: {
+      b: ["Couscous fruit", "Flatbread honey", "Yogurt dates"],
+      m: ["Vegetable couscous", "North African lentil stew", "Chicken chickpeas", "Harira soup"],
+      s: ["Dates", "Hummus carrots", "Olives"],
+    },
+    south_african: {
+      b: ["Pap with milk", "Corn porridge", "Eggs beans"],
+      m: ["Chakalaka rice", "Bobotie light", "Grilled chicken maize", "Sweet potato stew"],
+      s: ["Mango", "Peanuts", "Biltong style beef"],
+    },
+    italian: {
+      b: ["Cappuccino croissant light", "Bruschetta", "Ricotta honey"],
+      m: ["Spaghetti aglio olio", "Mushroom risotto", "Penne arrabbiata", "Margherita pizza", "Minestrone"],
+      s: ["Caprese snack", "Grissini", "Parmesan cubes"],
+    },
+    german: {
+      b: ["Rolls with cold cuts", "Quark potatoes", "Bircher muesli"],
+      m: ["Potato soup", "Schnitzel salad", "Lentil stew", "Cabbage roll light", "Fried potatoes egg"],
+      s: ["Leberkase slice", "Pretzel", "Apple strudel light"],
+    },
+    american: {
+      b: ["Pancakes light", "Bagel cream cheese", "French toast light"],
+      m: ["Burger bowl", "Chili con carne", "BBQ chicken corn", "Mac and cheese light", "Burrito bowl"],
+      s: ["Popcorn", "Nachos light", "Peanut butter toast"],
+    },
+    european: {
+      b: ["Croissant light", "Wholegrain cheese bread", "Skyr berries"],
+      m: ["Ratatouille rice", "Fish potatoes", "Goulash light", "Quiche salad"],
+      s: ["Crackers cheese", "Olives", "Yogurt"],
+    },
+    international: {
+      b: ["Smoothie bowl", "Overnight oats", "Shakshuka light"],
+      m: ["Buddha bowl", "Chicken wrap", "Curry rice", "Tacos light", "Falafel bowl"],
+      s: ["Energy balls", "Trail mix", "Hummus wrap"],
+    },
+  },
+  fr: {
+    asian: {
+      b: ["Porridge mangue", "Soupe miso legere", "Congee oeuf"],
+      m: ["Nouilles sautees", "Poulet teriyaki riz", "Ramen legumes", "Curry thai doux", "Bowl sushi"],
+      s: ["Edamame", "Galettes riz avocat", "Morceaux mangue"],
+    },
+    north_african: {
+      b: ["Couscous fruits", "Pain plat miel", "Yaourt dattes"],
+      m: ["Couscous legumes", "Ragout lentilles", "Poulet pois chiches", "Soupe harira"],
+      s: ["Dattes", "Hummus carottes", "Olives"],
+    },
+    south_african: {
+      b: ["Pap lait", "Porridge mais", "Oeufs haricots"],
+      m: ["Chakalaka riz", "Bobotie light", "Poulet grille mais", "Ragout patate douce"],
+      s: ["Mangue", "Arachides", "Boeuf style biltong"],
+    },
+    italian: {
+      b: ["Cappuccino croissant", "Bruschetta", "Ricotta miel"],
+      m: ["Spaghetti aglio olio", "Risotto champignons", "Penne arrabbiata", "Pizza margherita", "Minestrone"],
+      s: ["Snack caprese", "Grissini", "Parmesan"],
+    },
+    german: {
+      b: ["Petits pains charcuterie", "Quark pommes", "Muesli bircher"],
+      m: ["Soupe pommes de terre", "Escalope salade", "Potee lentilles", "Chou farci light", "Pommes oeuf"],
+      s: ["Tranche leberkase", "Bretzel", "Strudel pommes"],
+    },
+    american: {
+      b: ["Pancakes light", "Bagel fromage frais", "Pain perdu light"],
+      m: ["Burger bowl", "Chili con carne", "Poulet BBQ mais", "Mac and cheese light", "Burrito bowl"],
+      s: ["Popcorn", "Nachos light", "Toast beurre cacahuete"],
+    },
+    european: {
+      b: ["Croissant light", "Pain complet fromage", "Skyr baies"],
+      m: ["Ratatouille riz", "Poisson pommes", "Goulash light", "Quiche salade"],
+      s: ["Crackers fromage", "Olives", "Yaourt"],
+    },
+    international: {
+      b: ["Smoothie bowl", "Overnight oats", "Shakshuka light"],
+      m: ["Buddha bowl", "Wrap poulet", "Curry riz", "Tacos light", "Bowl falafel"],
+      s: ["Energy balls", "Trail mix", "Wrap hummus"],
+    },
+  },
+};
+
+const QUICK_MEAL_HINTS = /\b(salat|salad|toast|wrap|sandwich|joghurt|yogurt|quark|obst|fruit|müsli|muesli|hafer|oat|smoothie|omelett|omelet|oeuf|egg|hummus|sticks|reiswaffel|overnight|bruschetta|caprese|edamame|crackers|nachos|popcorn|beeren|berries)\b/i;
+
+function mergeUnique(base: string[], extra: string[]): string[] {
+  const seen = new Set(base.map((x) => x.toLowerCase()));
+  const out = [...base];
+  for (const item of extra) {
+    const key = item.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
+/** Preferred titles first — used so cuisine picks win over generic balanced pool. */
+function mergeUniquePreferFirst(preferred: string[], fallback: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...preferred, ...fallback]) {
+    const key = item.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+function filterQuickPool(pool: string[]): string[] {
+  const quick = pool.filter((title) => QUICK_MEAL_HINTS.test(title));
+  return quick.length >= 3 ? quick : pool;
+}
+
+/** Apply cuisine/time preferences to template fallback pools (when OpenAI is unavailable). */
+export function enrichPoolsForMealPlanPrefs(
+  pools: PoolSet,
+  lang: Lang,
+  mealPlanPrefs?: MealPlanPrefsInput,
+): PoolSet {
+  if (!mealPlanPrefs) return pools;
+
+  const extensions = CUISINE_EXTENSIONS[lang] ?? CUISINE_EXTENSIONS.de;
+  const cuisineB: string[] = [];
+  const cuisineM: string[] = [];
+  const cuisineS: string[] = [];
+
+  for (const cuisine of mealPlanPrefs.cuisines) {
+    const ext = extensions[cuisine];
+    if (!ext) continue;
+    if (ext.b?.length) cuisineB.push(...ext.b);
+    if (ext.m?.length) cuisineM.push(...ext.m);
+    if (ext.s?.length) cuisineS.push(...ext.s);
+  }
+
+  // Cuisine dishes first — replacements must not fall back to generic "Oatmeal berries".
+  let b = mergeUniquePreferFirst(cuisineB, pools.b);
+  let m = mergeUniquePreferFirst(cuisineM, pools.m);
+  let s = mergeUniquePreferFirst(cuisineS, pools.s);
+
+  const specificCuisines = mealPlanPrefs.cuisines.filter(
+    (c) => c !== "international" && c !== "european",
+  );
+  if (specificCuisines.length > 0) {
+    if (cuisineM.length >= 5) {
+      m = mergeUniquePreferFirst(cuisineM, pools.m.slice(0, 3));
+    }
+    if (cuisineB.length >= 4) {
+      b = mergeUniquePreferFirst(cuisineB, pools.b.slice(0, 3));
+    }
+    if (cuisineS.length >= 3) {
+      s = mergeUniquePreferFirst(cuisineS, pools.s.slice(0, 2));
+    }
+  }
+
+  if (mealPlanPrefs.maxPrepTime === "10") {
+    b = filterQuickPool(b);
+    m = filterQuickPool(m);
+    s = filterQuickPool(s);
+  }
+
+  return { b, m, s };
 }
 
 // ----- dietPrompts.ts -----
@@ -3778,9 +4057,15 @@ class PoolPicker {
   private cursor = { b: 0, m: 0, s: 0 };
   private used = new Set<string>();
 
-  constructor(lang: Lang, prefs: string[], ctx: SafetyContext, seed: string) {
+  constructor(
+    lang: Lang,
+    prefs: string[],
+    ctx: SafetyContext,
+    seed: string,
+    mealPlanPrefs?: MealPlanPrefsInput,
+  ) {
     this.lang = lang;
-    const base = getDietPools(lang, prefs);
+    const base = enrichPoolsForMealPlanPrefs(getDietPools(lang, prefs), lang, mealPlanPrefs);
     const key = seed || String(Date.now());
     this.pools = {
       b: seededShuffle(filterPool(base.b, ctx, lang, "b"), `${key}-b`),
@@ -3815,11 +4100,17 @@ class PoolPicker {
 
 export function sanitizePlaceholderMeals(
   plan: MealPlan,
-  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "varietySeed"> & {
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "varietySeed" | "mealPlanPrefs"> & {
     safetyCtx: SafetyContext;
   },
 ): MealPlan {
-  const picker = new PoolPicker(input.lang, input.prefs, input.safetyCtx, input.varietySeed ?? "");
+  const picker = new PoolPicker(
+    input.lang,
+    input.prefs,
+    input.safetyCtx,
+    input.varietySeed ?? "",
+    input.mealPlanPrefs,
+  );
 
   return plan.map((day, dayIndex) => ({
     ...day,

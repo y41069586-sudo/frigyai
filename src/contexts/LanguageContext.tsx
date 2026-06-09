@@ -3576,7 +3576,7 @@ export function getTranslations(lang: Language): Translations {
 }
 
 export function getStoredLanguage(): Language {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === "undefined") return "de";
   const saved = localStorage.getItem("app-language");
-  return saved === "en" || saved === "fr" || saved === "de" ? saved : "en";
+  return saved === "en" || saved === "fr" || saved === "de" ? saved : "de";
 }

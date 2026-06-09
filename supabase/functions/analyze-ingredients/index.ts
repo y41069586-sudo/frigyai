@@ -31,6 +31,14 @@ const CANONICAL_RULES: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\b(pilze|champignons?)\b/i, label: "Champignons" },
   { pattern: /\b(wasserflasche|trinkwasser|mineralwasser|stilles\s*wasser|wasser|water|sprudel)\b/i, label: "Wasser" },
   { pattern: /\b(saft|orangensaft|apfelsaft)\b/i, label: "Saft" },
+  { pattern: /\b(cornflakes?|müsli|muesli|haferflocken)\b/i, label: "Müsli" },
+  { pattern: /\b(kakao|kakaopulver|cocoa)\b/i, label: "Kakaopulver" },
+  { pattern: /\b(tee|kräutertee|grüntee)\b/i, label: "Tee" },
+  { pattern: /\b(kaffee|espresso|instantkaffee)\b/i, label: "Kaffee" },
+  { pattern: /\b(honig|marmelade|nutella|erdnussbutter|peanut butter)\b/i, label: "Aufstrich" },
+  { pattern: /\b(öl|olivenöl|sonnenblumenöl|rapsöl)\b/i, label: "Öl" },
+  { pattern: /\b(mehl|weizenmehl|dinkelmehl)\b/i, label: "Mehl" },
+  { pattern: /\b(zucker|rohrzucker|puderzucker)\b/i, label: "Zucker" },
 ];
 
 function canonicalizeIngredientLabel(raw: string): string {
@@ -157,11 +165,13 @@ serve(async (req) => {
     const prompt = `Du analysierst Kühlschrank-, Vorrat- oder Essensfotos für eine Einkaufsliste.
 
 Antwort NUR als JSON:
-{"ingredients":["Eier","Milch","Tomaten"]}
+{"ingredients":["Eier","Milch","Cornflakes","Kakaopulver"]}
 
 Regeln:
-- Liste JEDES sichtbare Lebensmittel auf Deutsch (Grundform: "Eier", "Milch", "Tomaten")
-- Auch einzelne Eier, Eierkartons, Packungen, Dosen, Tupperware, Obst in Schalen, Flaschen (Wasser, Mineralwasser, Sprudel, Saft, Milch), Gewürze, Saucen
+- Liste JEDES sichtbare Lebensmittel auf Deutsch (Grundform: "Eier", "Milch", "Tomaten", "Cornflakes", "Kakaopulver")
+- Auch einzelne Eier, Eierkartons, Packungen, Dosen, Kartons, Schachteln, Tüten, Tupperware, Obst in Schalen
+- WICHTIG: Lies Produktnamen von Verpackungen (Cornflakes, Müsli, Kakao, Nudeln, Reis, Mehl, Zucker, Kaffee, Tee, Öl, Gewürze) — auch wenn nur die Vorderseite/Karton sichtbar ist
+- Flaschen: Wasser, Mineralwasser, Sprudel, Saft, Milch, Öl, Saucen
 - Auch wenn teilweise verdeckt, unscharf oder im Hintergrund — trotzdem auflisten
 - Scanne das gesamte Bild systematisch: oben, mitte, unten, links, rechts
 - Lieber zu viel listen als etwas Wichtiges weglassen

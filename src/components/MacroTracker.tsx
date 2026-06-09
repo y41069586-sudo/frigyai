@@ -1472,31 +1472,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
           setProfile(newProfile);
 
-          try {
-            await saveTrackerSettings({
-              age: trackerSettings?.age ?? age,
-              weight: trackerSettings?.weight ?? weight,
-              targetWeight: trackerSettings?.targetWeight ?? targetWeight,
-              goalMode: trackerSettings?.goalMode ?? goalMode,
-              weeklyGoal: trackerSettings?.weeklyGoal ?? weeklyLossRate,
-              dailyCalories: goals.dailyCalories,
-              dailyProtein: goals.dailyProtein,
-              dailyCarbs: goals.dailyCarbs,
-              dailyFat: goals.dailyFat,
-              mealsPerDay: trackerSettings?.mealsPerDay ?? mealsPerDay,
-              dietaryPreferences: trackerSettings?.dietaryPreferences,
-              healthGoals: trackerSettings?.healthGoals,
-              allergies: trackerSettings?.allergies,
-              allergiesOther: trackerSettings?.allergiesOther,
-            });
-          } catch {
-            toast({
-              title: t.macroEditSaveFailed,
-              description: t.macroEditSaveFailedDesc,
-              variant: 'destructive',
-            });
-            return;
-          }
+          await saveTrackerSettings({
+            age: trackerSettings?.age ?? age,
+            weight: trackerSettings?.weight ?? weight,
+            targetWeight: trackerSettings?.targetWeight ?? targetWeight,
+            goalMode: trackerSettings?.goalMode ?? goalMode,
+            weeklyGoal: trackerSettings?.weeklyGoal ?? weeklyLossRate,
+            dailyCalories: goals.dailyCalories,
+            dailyProtein: goals.dailyProtein,
+            dailyCarbs: goals.dailyCarbs,
+            dailyFat: goals.dailyFat,
+            mealsPerDay: trackerSettings?.mealsPerDay ?? mealsPerDay,
+            dietaryPreferences: trackerSettings?.dietaryPreferences,
+            healthGoals: trackerSettings?.healthGoals,
+            allergies: trackerSettings?.allergies,
+            allergiesOther: trackerSettings?.allergiesOther,
+          });
 
           if (mealPlanNeedsRefresh) {
             showMealPlanRefreshToast();

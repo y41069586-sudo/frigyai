@@ -14,6 +14,7 @@ import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
+import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { HealthDashboard } from "@/components/food-ai";
 import { DashboardWeightWidget } from "@/components/DashboardWeightWidget";
@@ -45,7 +46,7 @@ import {
   POST_PAY_WEEKPLAN_COACH_DISMISSED_KEY,
 } from "@/lib/frigyStorageSync";
 import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
-import { getLocalDateISO, getLocalDateString } from "@/lib/localDate";
+import { getLocalDateISO } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
@@ -64,70 +65,6 @@ function readOnboardingCompleteLocal(): boolean {
   return localStorage.getItem("onboardingComplete") === "true";
 }
 
-type CachedTodayFoodEntry = {
-  name?: string;
-  time?: string;
-  created_at?: string;
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fat?: number;
-  meal_type?: MealFocusKey;
-  mealType?: MealFocusKey;
-};
-
-function readTodayFoodSnapshot(timeLocale: string, defaultMealName: string) {
-  const saved = localStorage.getItem("todayFood");
-  if (!saved) return null;
-
-  try {
-    const data = JSON.parse(saved);
-    if (data.date !== getLocalDateString() || !Array.isArray(data.entries)) {
-      return null;
-    }
-
-    const meals = data.entries.map((entry: CachedTodayFoodEntry) => ({
-      name: entry.name || defaultMealName,
-      time:
-        entry.time ||
-        (entry.created_at
-          ? new Date(entry.created_at).toLocaleTimeString(timeLocale, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : new Date().toLocaleTimeString(timeLocale, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })),
-      calories: Number(entry.calories) || 0,
-      mealType: entry.meal_type ?? entry.mealType,
-    }));
-
-    const totals = data.entries.reduce(
-      (
-        acc: { calories: number; protein: number; carbs: number; fat: number },
-        entry: CachedTodayFoodEntry,
-      ) => ({
-        calories: acc.calories + (Number(entry.calories) || 0),
-        protein: acc.protein + (Number(entry.protein) || 0),
-        carbs: acc.carbs + (Number(entry.carbs) || 0),
-        fat: acc.fat + (Number(entry.fat) || 0),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 },
-    );
-
-    return { meals, totals };
-  } catch (error) {
-    console.error("Failed to parse todayFood", error);
-    return null;
-  }
-}
-
-function getInitialTodayMacroTotals() {
-  const snap = readTodayFoodSnapshot(getAppLocale(getStoredLanguage()), "Mahlzeit");
-  return snap?.totals ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
-}
-
 const Index = () => {
   const { user, session, subscriptionStatus, signOut, loading, sessionRestoring, checkSubscription, isPremium } = useAuth();
   const onboardingExitInFlightRef = useRef(false);
@@ -140,6 +77,7 @@ const Index = () => {
   const { t, language } = useLanguage();
   const timeLocale = getAppLocale(language);
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const { todayTotals, entries: todayFoodEntries } = useFoodEntries();
   const { regenerateTodayForBalance } = useMealPlanGeneration();
   const { streak, recordActivity, checkAndAwardBadge } = useGamification();
   const { isComplete: dbOnboardingComplete, loading: onboardingLoading, userName: dbUserName, saveProgress } = useOnboardingProgress();
@@ -172,7 +110,19 @@ const Index = () => {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [waterGoalMl, setWaterGoalMl] = useState(() => goalCupsToMl(readWaterGoalCupsFromStorage()));
-  const [todayMeals, setTodayMeals] = useState<{ name: string; time: string; calories: number; mealType?: MealFocusKey }[]>([]);
+  const todayMeals = useMemo(
+    () =>
+      todayFoodEntries.map((entry) => ({
+        name: entry.name || t.defaultMealName,
+        time: new Date(entry.created_at).toLocaleTimeString(timeLocale, {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        calories: entry.calories,
+        mealType: resolveMealFocusKey(entry.meal_type ?? null) ?? undefined,
+      })),
+    [todayFoodEntries, timeLocale, t.defaultMealName],
+  );
   const loggedMealTypes = useMemo(
     () =>
       Array.from(
@@ -184,11 +134,6 @@ const Index = () => {
       ) as MealFocusKey[],
     [todayMeals],
   );
-  const initialMacros = getInitialTodayMacroTotals();
-  const [caloriesEaten, setCaloriesEaten] = useState(initialMacros.calories);
-  const [proteinEaten, setProteinEaten] = useState(initialMacros.protein);
-  const [carbsEaten, setCarbsEaten] = useState(initialMacros.carbs);
-  const [fatEaten, setFatEaten] = useState(initialMacros.fat);
   const [yesterdayBalance, setYesterdayBalance] = useState<YesterdayCalorieBalance | null>(null);
   const [showYesterdayAdjust, setShowYesterdayAdjust] = useState(false);
   const [isAdjustingYesterday, setIsAdjustingYesterday] = useState(false);
@@ -301,115 +246,6 @@ const Index = () => {
     }
   };
 
-  // Load today's meals from localStorage
-  useEffect(() => {
-    let frameId: number | null = null;
-
-    const loadTodayMeals = () => {
-      const snapshot = readTodayFoodSnapshot(timeLocale, t.defaultMealName);
-      if (!snapshot) {
-        setTodayMeals([]);
-        setCaloriesEaten(0);
-        setProteinEaten(0);
-        setCarbsEaten(0);
-        setFatEaten(0);
-        return false;
-      }
-
-      setTodayMeals(snapshot.meals);
-      setCaloriesEaten(snapshot.totals.calories);
-      setProteinEaten(snapshot.totals.protein);
-      setCarbsEaten(snapshot.totals.carbs);
-      setFatEaten(snapshot.totals.fat);
-      return true;
-    };
-
-    const scheduleLoadTodayMeals = () => {
-      if (frameId != null) return;
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        loadTodayMeals();
-      });
-    };
-    
-    loadTodayMeals();
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "todayFood") scheduleLoadTodayMeals();
-    };
-
-    window.addEventListener("storage", handleStorageChange, { passive: true });
-    window.addEventListener(FRIGY_STORAGE_UPDATED, scheduleLoadTodayMeals, { passive: true });
-
-    const interval = setInterval(scheduleLoadTodayMeals, 30000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(FRIGY_STORAGE_UPDATED, scheduleLoadTodayMeals);
-      clearInterval(interval);
-      if (frameId != null) window.cancelAnimationFrame(frameId);
-    };
-  }, [timeLocale, t.defaultMealName, user?.id]);
-  
-  // Fallback: if local today cache is missing, hydrate macros from DB.
-  useEffect(() => {
-    const fetchDailyMacros = async () => {
-      if (!user) return;
-      if (readTodayFoodSnapshot(timeLocale, t.defaultMealName)) return;
-      const today = getLocalDateISO();
-      const { data } = await supabase
-        .from('daily_macros')
-        .select('calories, protein, carbs, fat')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-      if (data && !readTodayFoodSnapshot(timeLocale, t.defaultMealName)) {
-        setCaloriesEaten(data.calories);
-        setProteinEaten(data.protein);
-        setCarbsEaten(data.carbs);
-        setFatEaten(data.fat);
-      }
-    };
-
-    fetchDailyMacros();
-
-    const handleFoodEntryChanged = () => {
-      if (!readTodayFoodSnapshot(timeLocale, t.defaultMealName)) {
-        void fetchDailyMacros();
-      }
-    };
-
-    window.addEventListener('foodEntryAdded', handleFoodEntryChanged, { passive: true });
-
-    if (user) {
-      const intervalId = setInterval(async () => {
-        if (readTodayFoodSnapshot(timeLocale, t.defaultMealName)) return;
-        const today = getLocalDateISO();
-        const { data } = await supabase
-          .from('daily_macros')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .maybeSingle();
-
-        if (data && !readTodayFoodSnapshot(timeLocale, t.defaultMealName)) {
-          setCaloriesEaten(data.calories || 0);
-          setProteinEaten(data.protein || 0);
-          setCarbsEaten(data.carbs || 0);
-          setFatEaten(data.fat || 0);
-        }
-      }, 30000);
-
-      return () => {
-        clearInterval(intervalId);
-        window.removeEventListener('foodEntryAdded', handleFoodEntryChanged);
-      };
-    }
-
-    return () => {
-      window.removeEventListener('foodEntryAdded', handleFoodEntryChanged);
-    };
-  }, [user, timeLocale, t.defaultMealName]);
   
   // Handle reset onboarding from URL parameter (for testing or "Erneut starten" in profile)
   useEffect(() => {
@@ -838,13 +674,13 @@ const Index = () => {
           </motion.header>
 
           <HealthDashboard
-              caloriesEaten={caloriesEaten}
+              caloriesEaten={todayTotals.calories}
               targetCalories={targetCalories}
-              proteinEaten={proteinEaten}
+              proteinEaten={todayTotals.protein}
               targetProtein={targetProtein}
-              carbsEaten={carbsEaten}
+              carbsEaten={todayTotals.carbs}
               targetCarbs={targetCarbs}
-              fatEaten={fatEaten}
+              fatEaten={todayTotals.fat}
               targetFat={targetFat}
               targetsReady={targetsReady}
               loggedMealTypes={loggedMealTypes}

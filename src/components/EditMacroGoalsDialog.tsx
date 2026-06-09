@@ -25,7 +25,7 @@ interface EditMacroGoalsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentGoals: MacroGoals;
-  onSave: (goals: MacroGoals) => void;
+  onSave: (goals: MacroGoals) => void | Promise<void>;
   focusMacro?: FocusMacro;
   /** Used when calories change and user opts into auto P/C/F calculation. */
   weightKg?: number;
@@ -159,15 +159,23 @@ export const EditMacroGoalsDialog = ({
     return true;
   };
 
-  const commitSave = (goals: MacroGoals) => {
-    onSave(goals);
-    toast({
-      title: t.macroEditGoalsSaved,
-      description: t.macroEditGoalsSavedDesc,
-    });
-    setShowRecalcConfirm(false);
-    setPendingGoals(null);
-    onOpenChange(false);
+  const commitSave = async (goals: MacroGoals) => {
+    try {
+      await onSave(goals);
+      toast({
+        title: t.macroEditGoalsSaved,
+        description: t.macroEditGoalsSavedDesc,
+      });
+      setShowRecalcConfirm(false);
+      setPendingGoals(null);
+      onOpenChange(false);
+    } catch {
+      toast({
+        title: t.macroEditSaveFailed,
+        description: t.macroEditSaveFailedDesc,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleRecalcChoice = (recalculate: boolean) => {
@@ -178,12 +186,12 @@ export const EditMacroGoalsDialog = ({
         pendingGoals.dailyCalories,
         weightKg,
       );
-      commitSave(calculated);
+      void commitSave(calculated);
       return;
     }
 
     if (!validateGoals(pendingGoals)) return;
-    commitSave(pendingGoals);
+    void commitSave(pendingGoals);
   };
 
   const handleSave = () => {
@@ -204,7 +212,7 @@ export const EditMacroGoalsDialog = ({
       return;
     }
 
-    commitSave(goals);
+    void commitSave(goals);
   };
 
   const fieldBindings: Record<

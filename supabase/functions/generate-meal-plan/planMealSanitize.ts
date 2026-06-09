@@ -1,4 +1,5 @@
-import { getDietPools } from "./dietPools.ts";
+import { enrichPoolsForMealPlanPrefs, getDietPools } from "./dietPools.ts";
+import type { MealPlanPrefsInput } from "./mealPlanPrefs.ts";
 import { buildMealFromDishTitle } from "./mealBlueprints.ts";
 import { mealSlot } from "./meals.ts";
 import { normNameKey } from "./normalize.ts";
@@ -45,9 +46,15 @@ class PoolPicker {
   private cursor = { b: 0, m: 0, s: 0 };
   private used = new Set<string>();
 
-  constructor(lang: Lang, prefs: string[], ctx: SafetyContext, seed: string) {
+  constructor(
+    lang: Lang,
+    prefs: string[],
+    ctx: SafetyContext,
+    seed: string,
+    mealPlanPrefs?: MealPlanPrefsInput,
+  ) {
     this.lang = lang;
-    const base = getDietPools(lang, prefs);
+    const base = enrichPoolsForMealPlanPrefs(getDietPools(lang, prefs), lang, mealPlanPrefs);
     const key = seed || String(Date.now());
     this.pools = {
       b: seededShuffle(filterPool(base.b, ctx, lang, "b"), `${key}-b`),
@@ -82,11 +89,17 @@ class PoolPicker {
 
 export function sanitizePlaceholderMeals(
   plan: MealPlan,
-  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "varietySeed"> & {
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "varietySeed" | "mealPlanPrefs"> & {
     safetyCtx: SafetyContext;
   },
 ): MealPlan {
-  const picker = new PoolPicker(input.lang, input.prefs, input.safetyCtx, input.varietySeed ?? "");
+  const picker = new PoolPicker(
+    input.lang,
+    input.prefs,
+    input.safetyCtx,
+    input.varietySeed ?? "",
+    input.mealPlanPrefs,
+  );
 
   return plan.map((day, dayIndex) => ({
     ...day,

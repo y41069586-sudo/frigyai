@@ -38,6 +38,26 @@ function zeroCalorieFoodResult(name: string): Record<string, unknown> {
   };
 }
 
+/** Typical tracker portions for pantry items — before noisy Open Food Facts matches. */
+function lookupReferenceFoodByText(query: string): OffFoodResult | null {
+  const q = offNormalizeQuery(query);
+  if (!q) return null;
+
+  if (q === "kakao" || q === "kakaopulver" || q === "cocoa" || q === "cocoa powder") {
+    return {
+      name: "Kakaopulver (1 EL)",
+      calories: 18,
+      protein: 1,
+      carbs: 3,
+      fat: 1,
+      portion: "1 EL (~8 g)",
+      source: "open_food_facts",
+    };
+  }
+
+  return null;
+}
+
 function lookupZeroCalorieByText(query: string): OffFoodResult | null {
   const q = offNormalizeQuery(query);
   if (!q) return null;
@@ -129,12 +149,77 @@ function offNameScore(productName: string, query: string): number {
   const name = productName.toLowerCase();
   const q = offNormalizeQuery(query);
   if (!q) return 0;
-  if (name === q) return 100;
-  if (name.startsWith(q) || name.includes(` ${q}`)) return 80;
-  if (name.includes(q)) return 60;
-  const qTokens = q.split(" ").filter(Boolean);
-  const matched = qTokens.filter((t) => name.includes(t)).length;
-  return (matched / qTokens.length) * 50;
+  let score = 0;
+  if (name === q) score = 100;
+  else if (name.startsWith(q) || name.includes(` ${q}`)) score = 80;
+  else if (name.includes(q)) score = 60;
+  else {
+    const qTokens = q.split(" ").filter(Boolean);
+    const matched = qTokens.filter((t) => name.includes(t)).length;
+    score = (matched / qTokens.length) * 50;
+  }
+
+  // "Kakao" in tracker = cocoa powder, not chocolate drinks / candy bars.
+  if (q === "kakao" || q === "kakaopulver" || q.includes("kakaopulver")) {
+    if (/\bpulver\b|\bpowder\b/.test(name)) score += 28;
+    if (/\bkakao\b/.test(name) && !/\b(getränk|drink|milch|milk|riegel|bar|tafel)\b/.test(name)) {
+      score += 12;
+    }
+    if (/\b(getränk|drink|trinkschokolade|schokoladenmilch|milch|milk|riegel|tafel|nutella|schokoriegel)\b/.test(name)) {
+      score -= 45;
+    }
+    if (/\bschokolade\b/.test(name) && !/\bpulver\b/.test(name)) score -= 25;
+  }
+
+  return score;
+}
+
+const OFF_POWDER_RX =
+  /\b(kakaopulver|cocoa powder|backpulver|matcha|vanillepulver|zucker|sugar|mehl|flour|salz|salt)\b/i;
+const OFF_DRINK_RX = /\b(getränk|drink|saft|juice|limonade|cola|milch|milk)\b/i;
+
+function offResolveServingGrams(
+  product: Record<string, unknown>,
+  productName: string,
+  query: string,
+): { grams: number; portionLabel: string } {
+  const servingSizeRaw = String(product.serving_size || "").trim();
+  const sq = offParseNumber(product.serving_quantity);
+  const gFromLabel = servingSizeRaw.match(/(\d+(?:[.,]\d+)?)\s*g\b/i);
+  const parsedLabelG = gFromLabel ? offParseNumber(gFromLabel[1]) : 0;
+
+  if (sq > 0 && sq <= 250) {
+    const grams = parsedLabelG > 0 ? Math.min(sq, parsedLabelG) : sq;
+    return { grams, portionLabel: servingSizeRaw || `${grams}g` };
+  }
+  if (parsedLabelG > 0 && parsedLabelG <= 250) {
+    return { grams: parsedLabelG, portionLabel: servingSizeRaw };
+  }
+
+  const name = productName.toLowerCase();
+  const q = offNormalizeQuery(query);
+  const powderIntent = q === "kakao" || q === "kakaopulver" || OFF_POWDER_RX.test(name);
+
+  if (powderIntent && !OFF_DRINK_RX.test(name)) {
+    return { grams: 8, portionLabel: "1 EL (~8 g)" };
+  }
+
+  return { grams: 100, portionLabel: servingSizeRaw || "100g" };
+}
+
+function offDisplayName(productName: string, query: string, portionLabel: string): string {
+  const q = offNormalizeQuery(query);
+  const name = productName.trim();
+  if (!name) return query.trim();
+
+  if ((q === "kakao" || q === "kakaopulver") && /\bkakao\b/i.test(name) && !OFF_DRINK_RX.test(name)) {
+    return portionLabel.startsWith("1 EL") ? "Kakaopulver (1 EL)" : "Kakaopulver";
+  }
+
+  if (portionLabel && portionLabel !== "100g" && !name.toLowerCase().includes(portionLabel.toLowerCase())) {
+    return `${name} (${portionLabel})`;
+  }
+  return name;
 }
 
 function mapOffProductToFood(
@@ -156,18 +241,14 @@ function mapOffProductToFood(
   const name = rawName.trim();
   if (name.length < 2) return null;
 
-  let servingQty = offParseNumber(product.serving_quantity);
-  if (servingQty <= 0 || servingQty > 2000) servingQty = 100;
+  const { grams: servingQty, portionLabel: portion } = offResolveServingGrams(
+    product,
+    name,
+    query,
+  );
 
   const multiplier = servingQty / 100;
-  const portion =
-    (product.serving_size as string)?.trim() ||
-    (servingQty === 100 ? "100g" : `${servingQty}g`);
-
-  const displayName =
-    servingQty !== 100 && !name.toLowerCase().includes(String(servingQty))
-      ? `${name} (${portion})`
-      : name;
+  const displayName = offDisplayName(name, query, portion);
 
   return {
     name: displayName,
@@ -227,6 +308,7 @@ async function searchOpenFoodFacts(query: string): Promise<OffFoodResult | null>
       }
     }
 
+    if (best && best.score < 35) return null;
     return best?.food ?? null;
   } catch (err) {
     console.warn("[OFF] Search failed:", err);
@@ -352,18 +434,25 @@ async function analyzeWithOpenAI(
 ): Promise<Record<string, unknown> | null> {
   const systemPrompt = `Du bist Ernährungs-Assistent für ein Foto-Tagebuch. Antworte NUR mit JSON, kein anderer Text.
 
-Wenn auf dem Bild erkennbar ESSEN oder ein GETRÄNK ist (auch einfache Dinge: Brot, Obst, Joghurt, Müsli, Pizza, Nudeln, Reis, Salat, Suppe, Sandwich, Kaffee mit Milch, Smoothie, Snacks, Wasserflasche, Glas Wasser, Mineralwasser, Sprudel, Tee, schwarzer Kaffee):
+Wenn auf dem Bild erkennbar ESSEN, ein GETRÄNK oder ein LEBENSMITTEL-PRODUKT ist:
 {"found":true,"name":"Deutscher Name mit Menge","calories":123,"protein":10,"carbs":20,"fat":5,"portion":"z.B. 1 Teller"}
 
-Nur für reines Wasser / Mineralwasser / ungesüßten Tee / schwarzen Kaffee (ohne Zucker/Milch) — calories und alle Makros = 0.
-Für normales Essen (Brot, Fleisch, Obst, Pizza, …) IMMER realistische calories > 0 und passende Makros — nie alles 0.
+Erkenne auch:
+- Fertige Gerichte (Brot, Obst, Joghurt, Pizza, Nudeln, Reis, Salat, Suppe, Sandwich, Smoothie, Snacks)
+- Verpackte Lebensmittel anhand sichtbarer Produktbezeichnung (Cornflakes, Müsli, Kakaopulver, Nudeln, Reis, Mehl, Käse, Wurst, Milch, Joghurt, Marmelade, Kaffee, Tee)
+- Getränke (Wasserflasche, Mineralwasser, Sprudel, Saft, Kaffee mit Milch, Smoothie)
 
-NUR wenn das Bild KEIN Essen zeigt (leerer Teller, nur Besteck, Person, Landschaft, Verpackung ohne sichtbares Essen):
+Nur für reines Wasser / Mineralwasser / ungesüßten Tee / schwarzen Kaffee (ohne Zucker/Milch) — calories und alle Makros = 0.
+Für normales Essen und verpackte Produkte IMMER realistische calories > 0 und passende Makros — nie alles 0.
+Bei nur sichtbarer Verpackung: schätze eine typische Portion (z.B. "1 Schüssel Cornflakes mit Milch", "1 EL Kakaopulver").
+Kakaopulver/Kakao-Pulver: IMMER nur 1 EL (~8 g) schätzen — ca. 18 kcal, nicht die ganze Packung (100 g wären ~380 kcal).
+
+NUR wenn das Bild wirklich KEIN Essen/Produkt zeigt (leerer Teller, nur Besteck, Person, Landschaft, leere Verpackung ohne lesbares Produkt):
 {"found":false}
 
 REGELN:
-- Schätze die SICHTBARE Portion auf dem Foto — lieber eine grobe Schätzung als ablehnen
-- Typische Gerichte und Zutaten erkennen, auch bei unperfektem Foto
+- Schätze die SICHTBARE oder typische Portion — lieber eine grobe Schätzung als ablehnen
+- Lies Produktnamen auf Kartons, Dosen und Packungen
 - Keine Fantasie-Produkte erfinden
 - Kalorien müssen zu den Makros passen: kcal = 4*protein + 4*carbs + 9*fat
 - Ganze Zahlen für Kalorien und Makros
@@ -532,6 +621,11 @@ serve(async (req) => {
       if (zeroCal) {
         console.log("[ANALYZE-FOOD] zero-cal hit:", zeroCal.name);
         return successResponse(zeroCal);
+      }
+      const refFood = lookupReferenceFoodByText(food.trim());
+      if (refFood) {
+        console.log("[ANALYZE-FOOD] reference pantry hit:", refFood.name);
+        return successResponse(refFood);
       }
       console.log("[ANALYZE-FOOD] OFF search:", food.trim());
       const offMatch = await searchOpenFoodFacts(food.trim());

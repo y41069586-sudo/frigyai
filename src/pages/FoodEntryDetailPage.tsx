@@ -198,6 +198,12 @@ const FoodEntryDetailPage = () => {
 
         if (error) throw error;
 
+        window.dispatchEvent(
+          new CustomEvent('foodEntryAdded', {
+            detail: { timestamp: Date.now(), userId: user.id },
+          }),
+        );
+        notifyFrigyStorageUpdated();
         toast({ title: t.saved });
         navigate('/');
       } catch (error) {

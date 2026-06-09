@@ -4,7 +4,7 @@ import { buildPlan } from "./buildPlan.ts";
 import { buildSingleDay } from "./buildSingleDay.ts";
 import { buildConstraints, resolveLang } from "./constraints.ts";
 import { getOpenAIKey, LANG } from "./constants.ts";
-import { generateFallbackDraft } from "./drafts.ts";
+import { expandPlanToSevenDays, generateFallbackDraft } from "./drafts.ts";
 import { guaranteedSafeMinimalPlan } from "./fallbacks.ts";
 import { corsHeaders, json } from "./http.ts";
 import { reconcileTargets } from "./macros.ts";
@@ -165,12 +165,16 @@ Deno.serve(async (req) => {
     }
 
     if (!Array.isArray(plan) || plan.length < 7) {
-      console.warn("[MEAL-PLAN] plan too short — rebuilding fallback");
+      console.warn("[MEAL-PLAN] plan too short — padding missing days");
       const bannedSet = new Set(banned.map((n) => n.toLowerCase().trim()).filter(Boolean));
-      const fallback = generateFallbackDraft(planInput, bannedSet);
-      plan = finishPlan(fallback, targets, mealsPerDay, lang) ??
-        guaranteedSafeMinimalPlan({ mealsPerDay, lang });
-      plan = finishPlan(plan, targets, mealsPerDay, lang) ?? plan;
+      const expanded = expandPlanToSevenDays(plan ?? [], planInput, bannedSet);
+      plan = finishPlan(expanded, targets, mealsPerDay, lang) ?? expanded;
+      if (!Array.isArray(plan) || plan.length < 7) {
+        const fallback = generateFallbackDraft(planInput, bannedSet);
+        plan = finishPlan(fallback, targets, mealsPerDay, lang) ??
+          guaranteedSafeMinimalPlan({ mealsPerDay, lang });
+        plan = finishPlan(plan, targets, mealsPerDay, lang) ?? plan;
+      }
       usedAi = false;
     }
 

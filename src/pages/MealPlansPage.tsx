@@ -321,14 +321,17 @@ const MealPlansPage = () => {
       void runGenerateMealPlan();
       return;
     }
+    if (hasPlanContent) {
+      toast({
+        title: t.mealPlanPrefSaved,
+        description: t.mealPlanPrefSavedDesc,
+      });
+      void runGenerateMealPlan();
+      return;
+    }
     toast({
       title: t.mealPlanPrefSaved,
       description: t.mealPlanPrefSavedDesc,
-      action: hasPlanContent ? (
-        <ToastAction altText={t.mealPlanPrefRegenerateNow} onClick={() => void runGenerateMealPlan()}>
-          {t.mealPlanPrefRegenerateNow}
-        </ToastAction>
-      ) : undefined,
     });
   }, [runGenerateMealPlan, t, hasPlanContent]);
 

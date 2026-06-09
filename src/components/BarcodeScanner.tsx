@@ -171,12 +171,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
       if (data.status === 1 && data.product) {
         const p = data.product;
-        const servingSize = p.serving_quantity || 100;
+        const productName = String(p.product_name_de || p.product_name || '').trim();
+        const isPowder =
+          /\b(kakaopulver|kakao|cocoa|pulver|powder|backpulver|matcha)\b/i.test(productName) &&
+          !/\b(getränk|drink|milch|milk|saft|juice)\b/i.test(productName);
+        let servingSize = Number(p.serving_quantity) || 0;
+        if (servingSize <= 0 || servingSize > 250) {
+          servingSize = isPowder ? 8 : 100;
+        } else if (isPowder && servingSize >= 40) {
+          servingSize = 8;
+        }
         const multiplier = servingSize / 100;
         const nutriments = p.nutriments || {};
 
+        const displayName = isPowder && /\bkakao\b/i.test(productName)
+          ? 'Kakaopulver (1 EL)'
+          : (productName || t.barcodeUnknownProduct);
+
         const nutritionInfo: NutritionInfo = {
-          name: p.product_name_de || p.product_name || t.barcodeUnknownProduct,
+          name: displayName,
           calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
           protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
           carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),

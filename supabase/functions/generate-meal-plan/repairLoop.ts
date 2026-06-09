@@ -38,9 +38,13 @@ export function repairPlan(
   }
 
   if (violations.length && attempt > 4) {
-    console.warn("[MEAL-PLAN] Hard escape: guaranteedSafeMinimalPlan");
-    plan = guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+    console.warn("[MEAL-PLAN] Hard escape: cuisine-aware fallback");
+    plan = generateFallbackDraft(input, new Set());
     violations = auditPlan(plan, input.safetyCtx);
+    if (violations.length) {
+      plan = guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+      violations = auditPlan(plan, input.safetyCtx);
+    }
   }
 
   return { plan, violations };

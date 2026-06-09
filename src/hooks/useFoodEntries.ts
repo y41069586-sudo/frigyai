@@ -59,16 +59,78 @@ export interface FoodEntry {
   image_url?: string;
 }
 
+type MacroTotals = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+const EMPTY_TOTALS: MacroTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+type CachedTodayFoodEntry = {
+  id?: string;
+  name?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  portion?: string;
+  meal_type?: string;
+  image_url?: string;
+  created_at?: string;
+};
+
+/** Hydrate dashboard from localStorage so cold start does not flash 0 kcal. */
+export function readTodayFoodCache(): { entries: FoodEntry[]; todayTotals: MacroTotals; hasCache: boolean } {
+  try {
+    const saved = localStorage.getItem('todayFood');
+    if (!saved) return { entries: [], todayTotals: EMPTY_TOTALS, hasCache: false };
+
+    const data = JSON.parse(saved);
+    if (data.date !== getLocalDateString() || !Array.isArray(data.entries)) {
+      return { entries: [], todayTotals: EMPTY_TOTALS, hasCache: false };
+    }
+
+    const today = getLocalDateISO();
+    const entries: FoodEntry[] = data.entries.map((entry: CachedTodayFoodEntry, index: number) => ({
+      id: entry.id || `cache-${index}`,
+      user_id: '',
+      name: entry.name || '',
+      calories: Number(entry.calories) || 0,
+      protein: Number(entry.protein) || 0,
+      carbs: Number(entry.carbs) || 0,
+      fat: Number(entry.fat) || 0,
+      portion: entry.portion,
+      meal_type: entry.meal_type,
+      date: today,
+      created_at: entry.created_at || new Date().toISOString(),
+      image_url: entry.image_url,
+    }));
+
+    const todayTotals = entries.reduce<MacroTotals>(
+      (acc, entry) => ({
+        calories: acc.calories + entry.calories,
+        protein: acc.protein + entry.protein,
+        carbs: acc.carbs + entry.carbs,
+        fat: acc.fat + entry.fat,
+      }),
+      { ...EMPTY_TOTALS },
+    );
+
+    return { entries, todayTotals, hasCache: entries.length > 0 || todayTotals.calories > 0 };
+  } catch {
+    return { entries: [], todayTotals: EMPTY_TOTALS, hasCache: false };
+  }
+}
+
+const initialFoodState = readTodayFoodCache();
+
 export const useFoodEntries = () => {
   const { user } = useAuth();
-  const [entries, setEntries] = useState<FoodEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [todayTotals, setTodayTotals] = useState({
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0
-  });
+  const [entries, setEntries] = useState<FoodEntry[]>(initialFoodState.entries);
+  const [loading, setLoading] = useState(!initialFoodState.hasCache);
+  const [todayTotals, setTodayTotals] = useState(initialFoodState.todayTotals);
   const [today, setToday] = useState(() => getLocalDateISO());
 
   const notifyFoodEntriesChanged = useCallback(() => {

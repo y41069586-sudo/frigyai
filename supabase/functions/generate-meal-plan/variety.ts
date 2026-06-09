@@ -1,4 +1,5 @@
-import { getDietPools } from "./dietPools.ts";
+import { enrichPoolsForMealPlanPrefs, getDietPools } from "./dietPools.ts";
+import { seededShuffle } from "./shuffle.ts";
 import { buildMealFromDishTitle } from "./mealBlueprints.ts";
 import { mealSlot } from "./meals.ts";
 import { mealContentKey, mealDishFingerprint, mealMainIngredients, normNameKey } from "./normalize.ts";
@@ -105,13 +106,20 @@ export function findRegenerationOverlaps(plan: MealPlan, prior: PriorDishSnapsho
  */
 export function ensureDistinctMealsAcrossWeek(
   plan: MealPlan,
-  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs"> & { safetyCtx: SafetyContext },
+  input: Pick<PlanInput, "mealsPerDay" | "lang" | "prefs" | "mealPlanPrefs" | "varietySeed"> & {
+    safetyCtx: SafetyContext;
+  },
 ): MealPlan {
-  const base = getDietPools(input.lang, input.prefs);
+  const shuffleKey = input.varietySeed || String(Date.now());
+  const base = enrichPoolsForMealPlanPrefs(
+    getDietPools(input.lang, input.prefs),
+    input.lang,
+    input.mealPlanPrefs,
+  );
   const pools = {
-    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
-    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
-    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+    b: seededShuffle(filterPool(base.b, input.safetyCtx, input.lang, "b"), `${shuffleKey}-distinct-b`),
+    m: seededShuffle(filterPool(base.m, input.safetyCtx, input.lang, "m"), `${shuffleKey}-distinct-m`),
+    s: seededShuffle(filterPool(base.s, input.safetyCtx, input.lang, "s"), `${shuffleKey}-distinct-s`),
   };
   const cursor = { b: 0, m: 0, s: 0 };
 
@@ -171,11 +179,16 @@ export function dedupeSimilarMealsInWeek(
   const strictVariety = input.mealPlanPrefs?.variety === "varied";
   if (!prior.length && !strictVariety) return plan;
 
-  const base = getDietPools(input.lang, input.prefs);
+  const shuffleKey = input.varietySeed || String(Date.now());
+  const base = enrichPoolsForMealPlanPrefs(
+    getDietPools(input.lang, input.prefs),
+    input.lang,
+    input.mealPlanPrefs,
+  );
   const pools = {
-    b: filterPool(base.b, input.safetyCtx, input.lang, "b"),
-    m: filterPool(base.m, input.safetyCtx, input.lang, "m"),
-    s: filterPool(base.s, input.safetyCtx, input.lang, "s"),
+    b: seededShuffle(filterPool(base.b, input.safetyCtx, input.lang, "b"), `${shuffleKey}-dedupe-b`),
+    m: seededShuffle(filterPool(base.m, input.safetyCtx, input.lang, "m"), `${shuffleKey}-dedupe-m`),
+    s: seededShuffle(filterPool(base.s, input.safetyCtx, input.lang, "s"), `${shuffleKey}-dedupe-s`),
   };
   const cursor = { b: 0, m: 0, s: 0 };
   const usedFingerprints = new Set<string>();
@@ -217,17 +230,10 @@ export function dedupeSimilarMealsInWeek(
       const priorMatch = mealMatchesPriorDish(meal, prior);
       const fpDup = fingerprint && usedFingerprints.has(fingerprint);
       const titleDup = titleKeyVal && usedTitleKeys.has(titleKeyVal);
-      let similarDup = false;
-      if (strictVariety && fingerprint) {
-        for (const fp of usedFingerprints) {
-          if (dishesTooSimilar(fingerprint, fp)) {
-            similarDup = true;
-            break;
-          }
-        }
-      }
+      // Do not replace AI meals only for ingredient similarity within the same week —
+      // that was swapping Italian (etc.) dishes for generic English template titles.
 
-      if (priorMatch || fpDup || titleDup || similarDup) {
+      if (priorMatch || fpDup || titleDup) {
         const usedInSlot = new Set<string>(usedTitleKeys);
         const newTitle = pickNew(slot, usedInSlot);
         console.warn(

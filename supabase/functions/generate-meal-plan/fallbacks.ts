@@ -1,7 +1,8 @@
 import { LANG } from "./constants.ts";
-import { getDietPools } from "./dietPools.ts";
+import { enrichPoolsForMealPlanPrefs, getDietPools } from "./dietPools.ts";
 import { buildMealFromDishTitle, dishFingerprintFromTitle } from "./mealBlueprints.ts";
 import { mealSlot } from "./meals.ts";
+import type { MealPlanPrefsInput } from "./mealPlanPrefs.ts";
 import { seededShuffle } from "./shuffle.ts";
 import { createSafetyContext, filterPool } from "./validation.ts";
 import type { Lang, MacroTargets, MealPlan } from "./types.ts";
@@ -12,37 +13,49 @@ export function guaranteedSafeMinimalPlan(params: {
   lang: Lang;
 }): MealPlan {
   const L = LANG[params.lang];
-  const templates: Record<Lang, { b: string; m: string; s: string; ings: [string, string, string] }> = {
-    de: {
-      b: "Obstsalat",
-      m: "Gemüsepfanne",
-      s: "Gemüse Sticks",
-      ings: ["Apfel", "Karotte", "Brokkoli"],
-    },
-    en: {
-      b: "Fruit salad",
-      m: "Vegetable pan",
-      s: "Veggie sticks",
-      ings: ["Apple", "Carrot", "Broccoli"],
-    },
-    fr: {
-      b: "Salade de fruits",
-      m: "Poelee legumes",
-      s: "Legumes crus",
-      ings: ["Pomme", "Carotte", "Brocoli"],
-    },
+  const weekTemplates: Record<Lang, Array<{ b: string; m: string; s: string }>> = {
+    de: [
+      { b: "Haferflocken mit Beeren", m: "Hähnchen mit Reis", s: "Apfel mit Nüssen" },
+      { b: "Joghurt mit Banane", m: "Linsensuppe mit Brot", s: "Quark mit Beeren" },
+      { b: "Rührei mit Brot", m: "Nudeln mit Tomatensoße", s: "Obst mit Joghurt" },
+      { b: "Müsli mit Apfel", m: "Thunfisch Salat", s: "Käse mit Gurke" },
+      { b: "Avocado Toast", m: "Putenpfanne mit Gemüse", s: "Brot mit Aufstrich" },
+      { b: "Porridge", m: "Gemüsepfanne mit Kartoffeln", s: "Milchreis" },
+      { b: "Obstsalat", m: "Reis mit Gemüse", s: "Gemüse Sticks" },
+    ],
+    en: [
+      { b: "Oatmeal berries", m: "Chicken and rice", s: "Apple nuts" },
+      { b: "Yogurt banana", m: "Lentil soup bread", s: "Cottage cheese berries" },
+      { b: "Scrambled eggs toast", m: "Pasta tomato", s: "Fruit yogurt" },
+      { b: "Granola apple", m: "Tuna salad", s: "Cheese cucumber" },
+      { b: "Avocado toast", m: "Turkey veggie pan", s: "Bread spread" },
+      { b: "Porridge", m: "Vegetable potato pan", s: "Rice pudding" },
+      { b: "Fruit salad", m: "Rice vegetables", s: "Veggie sticks" },
+    ],
+    fr: [
+      { b: "Porridge baies", m: "Poulet riz", s: "Pomme noix" },
+      { b: "Yaourt banane", m: "Soupe lentilles pain", s: "Fromage blanc fruits" },
+      { b: "Oeufs brouilles toast", m: "Pates tomate", s: "Fruits yaourt" },
+      { b: "Muesli pomme", m: "Salade thon", s: "Fromage concombre" },
+      { b: "Toast avocat", m: "Dinde legumes", s: "Pain tartine" },
+      { b: "Porridge", m: "Poelee legumes pommes", s: "Riz au lait" },
+      { b: "Salade de fruits", m: "Riz legumes", s: "Legumes crus" },
+    ],
   };
-  const t = templates[params.lang];
+  const templates = weekTemplates[params.lang];
   const ctx = createSafetyContext([], [], "");
 
-  return Array.from({ length: 7 }, (_, di) => ({
-    day: L.days[di],
-    meals: Array.from({ length: params.mealsPerDay }, (_, si) => {
-      const slot = mealSlot(si, params.mealsPerDay);
-      const title = slot === "b" ? t.b : slot === "m" ? t.m : t.s;
-      return buildMealFromDishTitle(title, slot, params.lang, ctx);
-    }),
-  }));
+  return Array.from({ length: 7 }, (_, di) => {
+    const t = templates[di % templates.length]!;
+    return {
+      day: L.days[di],
+      meals: Array.from({ length: params.mealsPerDay }, (_, si) => {
+        const slot = mealSlot(si, params.mealsPerDay);
+        const title = slot === "b" ? t.b : slot === "m" ? t.m : t.s;
+        return buildMealFromDishTitle(title, slot, params.lang, ctx);
+      }),
+    };
+  });
 }
 
 export function fallbackPlan(params: {
@@ -56,18 +69,25 @@ export function fallbackPlan(params: {
   bannedFingerprints?: Set<string>;
   varietySeed?: string;
   isRegeneration?: boolean;
+  mealPlanPrefs?: MealPlanPrefsInput;
 }): MealPlan {
   const L = LANG[params.lang];
   const ctx = createSafetyContext(params.allergies, params.prefs, params.other);
 
-  const basePools = getDietPools(params.lang, params.prefs);
+  const basePools = enrichPoolsForMealPlanPrefs(
+    getDietPools(params.lang, params.prefs),
+    params.lang,
+    params.mealPlanPrefs,
+  );
   const pools = {
     b: filterPool(basePools.b, ctx, params.lang, "b"),
     m: filterPool(basePools.m, ctx, params.lang, "m"),
     s: filterPool(basePools.s, ctx, params.lang, "s"),
   };
 
-  const shuffleKey = params.varietySeed || String(Date.now());
+  const cuisineKey = params.mealPlanPrefs?.cuisines?.join("-") ?? "";
+  const timeKey = params.mealPlanPrefs?.maxPrepTime ?? "";
+  const shuffleKey = [params.varietySeed, cuisineKey, timeKey, String(Date.now())].filter(Boolean).join("|");
   const safePools = {
     b: seededShuffle(pools.b, `${shuffleKey}-b-${params.isRegeneration ? "r" : "n"}`),
     m: seededShuffle(pools.m, `${shuffleKey}-m-${params.isRegeneration ? "r" : "n"}`),

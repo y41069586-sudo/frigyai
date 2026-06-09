@@ -6,7 +6,7 @@ import { finishPlan, mealSlot } from "./meals.ts";
 import { sanitizePlaceholderMeals } from "./planMealSanitize.ts";
 import { ensureDistinctMealsAcrossWeek, dedupeSimilarMealsInWeek } from "./variety.ts";
 import { auditPlan } from "./validation.ts";
-import { generateFallbackDraft } from "./drafts.ts";
+import { expandPlanToSevenDays, generateFallbackDraft } from "./drafts.ts";
 import { repairPlan } from "./repairLoop.ts";
 import type { BuildPlanDeps, BuildPlanResult, Lang, MealPlan, PlanInput, SafetyContext } from "./types.ts";
 
@@ -77,11 +77,15 @@ export async function buildPlan(
   }
 
   if (violations.length > 0) {
-    console.warn("[MEAL-PLAN] Last resort: minimal safe plan");
-    plan = guaranteedSafeMinimalPlan({
-      mealsPerDay: input.mealsPerDay,
-      lang: input.lang,
-    });
+    console.warn("[MEAL-PLAN] Last resort: cuisine-aware fallback plan");
+    plan = generateFallbackDraft(input, banned);
+    violations = auditPlan(plan, input.safetyCtx);
+    if (violations.length > 0) {
+      plan = guaranteedSafeMinimalPlan({
+        mealsPerDay: input.mealsPerDay,
+        lang: input.lang,
+      });
+    }
     plan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
     usedAi = false;
   }
@@ -92,12 +96,15 @@ export async function buildPlan(
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
     varietySeed: input.varietySeed,
+    mealPlanPrefs: input.mealPlanPrefs,
   });
   plan = ensureDistinctMealsAcrossWeek(plan, {
     mealsPerDay: input.mealsPerDay,
     lang: input.lang,
     prefs: input.prefs,
     safetyCtx: input.safetyCtx,
+    mealPlanPrefs: input.mealPlanPrefs,
+    varietySeed: input.varietySeed,
   });
   plan = dedupeSimilarMealsInWeek(plan, {
     mealsPerDay: input.mealsPerDay,
@@ -113,13 +120,17 @@ export async function buildPlan(
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
 
   if (!Array.isArray(finalPlan) || finalPlan.length < 7) {
-    console.warn("[MEAL-PLAN] Plan shorter than 7 days — rebuilding from fallback");
-    const fallback = generateFallbackDraft(input, banned);
-    finalPlan =
-      finishPlan(fallback, input.targets, input.mealsPerDay, input.lang) ??
-      guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
-    finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
-    usedAi = false;
+    console.warn("[MEAL-PLAN] Plan shorter than 7 days — padding missing days from fallback");
+    const expanded = expandPlanToSevenDays(finalPlan ?? [], input, banned);
+    finalPlan = finishPlan(expanded, input.targets, input.mealsPerDay, input.lang) ?? expanded;
+    if (!Array.isArray(finalPlan) || finalPlan.length < 7) {
+      const fallback = generateFallbackDraft(input, banned);
+      finalPlan =
+        finishPlan(fallback, input.targets, input.mealsPerDay, input.lang) ??
+        guaranteedSafeMinimalPlan({ mealsPerDay: input.mealsPerDay, lang: input.lang });
+      finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
+      usedAi = false;
+    }
   }
 
   return { plan: finalPlan, usedAi, repairAttempts };
