@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { mergeMacroTargetsFromLocal, readOnboardingMacroTargets, readStoredTrackerTargets } from '@/lib/trackerTargets';
-import { notifyTrackerSettingsUpdated } from '@/lib/frigyStorageSync';
+import { FRIGY_TRACKER_SETTINGS_UPDATED, notifyTrackerSettingsUpdated } from '@/lib/frigyStorageSync';
 
 export interface TrackerSettings {
   age: number;
@@ -47,17 +47,28 @@ export function invalidateTrackerSettingsCache(): void {
   trackerLoadInflightUserId = null;
 }
 
-function readPersistedTrackerCache(userId: string | undefined): TrackerSettings | null {
+function readPersistedTrackerCacheEntry(userId: string | undefined): PersistedTrackerCache | null {
   if (!userId) return null;
   try {
     const raw = localStorage.getItem(PERSISTED_USER_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedTrackerCache;
     if (parsed.userId !== userId || !parsed.settings?.dailyCalories) return null;
-    return parsed.settings;
+    return parsed;
   } catch {
     return null;
   }
+}
+
+function readPersistedTrackerCache(userId: string | undefined): TrackerSettings | null {
+  return readPersistedTrackerCacheEntry(userId)?.settings ?? null;
+}
+
+function readCachedTrackerSettings(userId: string | undefined): TrackerSettings | null {
+  if (userId && trackerMemoryCache?.userId === userId && trackerMemoryCache.settings) {
+    return trackerMemoryCache.settings;
+  }
+  return readPersistedTrackerCache(userId) ?? readLocalTrackerSettings();
 }
 
 function writePersistedTrackerCache(userId: string, settings: TrackerSettings): void {
@@ -300,6 +311,22 @@ export const useTrackerSettings = () => {
 
         if (data && !error) {
           const dbSettings = parseDbSettings(data);
+          const cacheEntry = readPersistedTrackerCacheEntry(user.id);
+          const dbUpdatedMs = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+
+          // Keep in-session edits when local cache is newer than the last DB row.
+          if (
+            cacheEntry &&
+            cacheEntry.updatedAt > dbUpdatedMs &&
+            cacheEntry.settings.dailyCalories > 0
+          ) {
+            setSettings(cacheEntry.settings);
+            setIsConfigured(true);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cacheEntry.settings));
+            writeTrackerMemoryCache(user.id, cacheEntry.settings, true);
+            void saveToDatabase(cacheEntry.settings);
+            return;
+          }
 
           // Existing account targets always win over a repeated onboarding run.
           if (dbSettings.dailyCalories > 0) {
@@ -481,6 +508,21 @@ export const useTrackerSettings = () => {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [user, loadSettings]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const onTrackerSettingsUpdated = () => {
+      const cached = readCachedTrackerSettings(user.id);
+      if (!cached?.dailyCalories) return;
+      lastLocalSaveAtRef.current = Date.now();
+      setSettings(cached);
+      setIsConfigured(true);
+    };
+
+    window.addEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerSettingsUpdated);
+    return () => window.removeEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerSettingsUpdated);
+  }, [user?.id]);
 
   return {
     settings,

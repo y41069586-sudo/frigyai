@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { patchTodayFoodCacheEntry } from '@/hooks/useFoodEntries';
 interface LocalFoodEntry {
   id: string;
   name: string;
@@ -198,12 +199,12 @@ const FoodEntryDetailPage = () => {
 
         if (error) throw error;
 
+        patchTodayFoodCacheEntry(id, { name, calories, protein, carbs, fat });
         window.dispatchEvent(
           new CustomEvent('foodEntryAdded', {
             detail: { timestamp: Date.now(), userId: user.id },
           }),
         );
-        notifyFrigyStorageUpdated();
         toast({ title: t.saved });
         navigate('/');
       } catch (error) {

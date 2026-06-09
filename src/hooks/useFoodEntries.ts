@@ -81,6 +81,38 @@ type CachedTodayFoodEntry = {
   created_at?: string;
 };
 
+/** Patch a single cached food row so dashboard totals update before DB reload. */
+export function patchTodayFoodCacheEntry(
+  entryId: string,
+  patch: Partial<Pick<FoodEntry, 'name' | 'calories' | 'protein' | 'carbs' | 'fat'>>,
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const saved = localStorage.getItem('todayFood');
+    if (!saved) return;
+    const data = JSON.parse(saved) as { date?: string; entries?: CachedTodayFoodEntry[] };
+    if (data.date !== getLocalDateString() || !Array.isArray(data.entries)) return;
+
+    data.entries = data.entries.map((entry) =>
+      entry.id === entryId
+        ? {
+            ...entry,
+            ...patch,
+            calories: patch.calories ?? entry.calories,
+            protein: patch.protein ?? entry.protein,
+            carbs: patch.carbs ?? entry.carbs,
+            fat: patch.fat ?? entry.fat,
+            name: patch.name ?? entry.name,
+          }
+        : entry,
+    );
+    localStorage.setItem('todayFood', JSON.stringify(data));
+    notifyFrigyStorageUpdated();
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Hydrate dashboard from localStorage so cold start does not flash 0 kcal. */
 export function readTodayFoodCache(): { entries: FoodEntry[]; todayTotals: MacroTotals; hasCache: boolean } {
   try {

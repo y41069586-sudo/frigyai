@@ -1,5 +1,6 @@
 import { calculateMacros } from "@/components/onboarding/utils";
 import type { UserData } from "@/components/onboarding/types";
+import { macroGoalsEqual } from "@/lib/macroGoals";
 
 export type DailyMacroTargets = {
   dailyCalories: number;
@@ -18,6 +19,20 @@ function normalizeMacroTargets(raw: Partial<DailyMacroTargets> | null | undefine
     dailyCarbs: Number(raw.dailyCarbs) || 200,
     dailyFat: Number(raw.dailyFat) || 65,
   };
+}
+
+const PERSISTED_TRACKER_CACHE_KEY = "frigy_tracker_settings_cache";
+
+function readPersistedTrackerMacroTargets(): DailyMacroTargets | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PERSISTED_TRACKER_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { settings?: Partial<DailyMacroTargets> };
+    return normalizeMacroTargets(parsed.settings);
+  } catch {
+    return null;
+  }
 }
 
 /** Synchronous read from userProfile localStorage. */
@@ -68,12 +83,19 @@ export function resolveDashboardMacroTargets(
   const local = options?.storedProfileOnly
     ? readStoredTrackerTargets()
     : readStoredTrackerTargets() ?? readOnboardingMacroTargets();
+  const persisted = readPersistedTrackerMacroTargets();
 
   if (options?.preferLocal && local) {
     return local;
   }
 
+  // Hook state can lag one tick behind localStorage after an in-app edit.
+  if (persisted && fromRemote && !macroGoalsEqual(persisted, fromRemote)) {
+    return persisted;
+  }
+
   if (fromRemote) return fromRemote;
+  if (persisted) return persisted;
   if (local) return local;
   return null;
 }
