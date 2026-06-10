@@ -81,7 +81,13 @@ import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { supabase } from "@/integrations/supabase/client";
 import { isAppleSignInAvailable } from "@/lib/appleSignIn";
-import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
+import {
+  MINT_STEP_HEADER_PT,
+  ONBOARDING_MINT_PALETTE,
+  getMintStepTransition,
+  getMintStepVariants,
+  type MintStepDirection,
+} from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MotivationStep, CookingTimeStep, NotificationPrefsStep } from "./onboarding/steps";
@@ -551,16 +557,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const mintStepEase = [0.22, 1, 0.36, 1] as const;
-  const mintStepTransition = {
-    duration: isMobile ? 0.22 : 0.18,
-    ease: mintStepEase,
-  };
-  const mintStepVariants = {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-  };
+  const mintStepTransition = getMintStepTransition(isMobile);
+  const mintStepVariants = getMintStepVariants(isMobile);
   const legacyStepTransition = {
     duration: isMobile ? 0.3 : 0.32,
     ease: [0.4, 0, 0.2, 1] as const,
@@ -587,6 +585,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       : fallbackStep;
   
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
+  const [stepDirection, setStepDirection] = useState<MintStepDirection>(1);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -901,6 +900,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
 
     lightTap(); // Haptic feedback on navigation
+    setStepDirection(1);
 
     /* Splash immer explizit auf den nächsten Eintrag in onboardingSteps –
      * verhindert Verwechslung mit anderer Navigation; wenn der Array (z. B. alter PWA-Cache)
@@ -967,6 +967,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const goBack = () => {
     lightTap(); // Haptic feedback on navigation
+    setStepDirection(-1);
     let prevIndex = currentIndex - 1;
 
     if (
@@ -4322,10 +4323,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         ONBOARDING_MINT_BODY_STEPS.has(currentStep) ? (
         // These steps render fullscreen with their own layout
         <motion.div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-          <AnimatePresence initial={false} mode="wait">
+          <AnimatePresence initial={false} mode="wait" custom={stepDirection}>
             <motion.div
               key={currentStep}
-              className="onboarding-step-surface flex min-h-0 flex-1 flex-col"
+              custom={stepDirection}
+              className="onboarding-step-surface absolute inset-0 flex min-h-0 flex-col overflow-hidden"
               variants={mintStepVariants}
               initial="initial"
               animate="animate"

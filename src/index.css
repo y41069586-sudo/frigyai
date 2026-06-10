@@ -389,15 +389,15 @@ All colors MUST be HSL.
   }
 
   .onboarding-step-surface {
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    will-change: opacity;
+    will-change: opacity, transform;
   }
 
   @media (max-width: 767px) {
     .onboarding-step-surface {
-      will-change: opacity;
+      will-change: opacity, transform;
     }
   }
 }

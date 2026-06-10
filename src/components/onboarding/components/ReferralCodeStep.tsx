@@ -62,7 +62,6 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const L = {
     de: {
       title: "EIN FREUND LÄDT DICH EIN",
-      hint: "Der Code ordnet dich einem Partner zu. Premium schaltest du danach über das Abo frei.",
       label: "Empfehlungscode",
       invalid: "Ungültig",
       successTitle: "Code erkannt!",
@@ -73,7 +72,6 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
     },
     en: {
       title: "A FRIEND INVITED YOU",
-      hint: "The code links you to a partner. Unlock Premium with a subscription next.",
       label: "Referral code",
       invalid: "Invalid",
       successTitle: "Code recognized!",
@@ -84,7 +82,6 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
     },
     fr: {
       title: "UN AMI T'INVITE",
-      hint: "Le code te rattache à un partenaire. Premium s'active ensuite via l'abonnement.",
       label: "Code de parrainage",
       invalid: "Invalide",
       successTitle: "Code reconnu !",
@@ -289,18 +286,14 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       </div>
 
       <div className="min-h-0 flex-1 px-6 pt-4">
-        <motion.h1
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
+        <h1
           className="max-w-[360px] text-[30px] font-black uppercase leading-[1.04] tracking-[-0.055em] min-[390px]:text-[32px]"
           style={{ color: PALETTE.text }}
         >
           {t.title}
-        </motion.h1>
+        </h1>
 
-        <p className="mt-4 max-w-[330px] text-[14px] font-medium leading-snug text-[#6B7280]">{t.hint}</p>
-
-        <div className="mt-12">
+        <div className="mt-10">
           <p className="mb-5 text-[18px] font-bold tracking-[-0.035em]" style={{ color: PALETTE.text }}>
             {t.label}
           </p>
@@ -370,23 +363,25 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       {phase !== "success" && (
         <div className="shrink-0 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)] pt-2">
           <div className="flex w-full overflow-hidden rounded-[25px] border-[3px] border-neutral-950 bg-white">
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.98 }}
               onClick={onNext}
               disabled={phase === "validating" || phase === "check"}
               className="flex h-[54px] min-w-0 flex-1 items-center justify-center bg-white px-3 text-[17px] font-medium tracking-[-0.02em] text-neutral-950 disabled:opacity-50"
             >
               {t.skip}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.98 }}
               onClick={handleWeiter}
               disabled={phase === "validating" || phase === "check"}
               className="flex h-[54px] min-w-0 flex-1 items-center justify-center px-3 text-[17px] font-medium tracking-[-0.02em] text-white disabled:opacity-60"
               style={{ backgroundColor: PALETTE.primary }}
             >
               {t.next}
-            </button>
+            </motion.button>
           </div>
         </div>
       )}

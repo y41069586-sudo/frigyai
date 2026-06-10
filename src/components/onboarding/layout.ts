@@ -19,6 +19,35 @@ export const ONBOARDING_QUESTION_CLASS =
 export const ONBOARDING_QUESTION_UPPER_CLASS =
   "text-[17px] font-bold uppercase leading-snug tracking-wide";
 
+export type MintStepDirection = 1 | -1;
+
+/** GPU-friendly slide + fade between mint steps (small x on mobile to avoid layout jank). */
+export function getMintStepTransition(isMobile: boolean) {
+  return {
+    duration: isMobile ? 0.28 : 0.32,
+    ease: [0.22, 1, 0.36, 1] as const,
+  };
+}
+
+export function getMintStepVariants(isMobile: boolean) {
+  const enterX = isMobile ? 12 : 20;
+  const exitX = isMobile ? 8 : 14;
+  return {
+    initial: (direction: MintStepDirection) => ({
+      opacity: 0,
+      x: direction * enterX,
+    }),
+    animate: {
+      opacity: 1,
+      x: 0,
+    },
+    exit: (direction: MintStepDirection) => ({
+      opacity: 0,
+      x: direction * -exitX,
+    }),
+  };
+}
+
 /** Child steps skip their own entrance — parent AnimatePresence handles step transitions. */
 export const shouldSkipMintStepEntrance = () => true;
 
