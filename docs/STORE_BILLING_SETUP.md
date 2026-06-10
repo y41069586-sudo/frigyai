@@ -80,3 +80,48 @@ Nach erfolgreichem Store-Kauf ruft die App `sync-store-subscription` auf und sch
 2. `npm run build` → `npx cap sync` → auf echtem Gerät starten.
 3. Sandbox-Apple-ID (iOS) bzw. License Tester (Android) verwenden.
 4. Nach Kauf: Profil → Abo aktualisieren oder App neu starten; Premium sollte aktiv sein.
+
+## 8. Fehlerbehebung: „None of the products … could be fetched“ / leere Offerings
+
+Dieser Fehler kommt **nicht** vom App-Code, sondern wenn **StoreKit** die Product IDs aus RevenueCat nicht in App Store Connect findet.
+
+### Checkliste App Store Connect
+
+| Punkt | Wo prüfen |
+|-------|-----------|
+| Paid Applications Agreement aktiv | App Store Connect → **Geschäft** → Verträge |
+| Bank + Steuer „Clear“ | Geschäft → Banking / Tax |
+| Abos unter **dieser** App (`com.frigyapp.app`) | Meine Apps → Frigy → Abonnements |
+| Product IDs **exakt** wie in RevenueCat (Groß/Klein, Unterstriche) | Abo-Detail → Product ID |
+| Status **Bereit zur Übermittlung** (mind. für Sandbox) | Jedes Abo + Subscription Group |
+| Subscription Group lokalisiert (Name + App-Name) | Abonnementgruppe → Lokalisierungen |
+| Jedes Abo: Preis, Dauer, Lokalisierung, Review-Screenshot | Abo-Detail |
+| Intro Offer (3 Tage gratis) optional, aber Preis muss gesetzt sein | Introductory Offers |
+
+Neue Produkte können **bis zu 24 h** brauchen, bis StoreKit sie liefert.
+
+### Checkliste RevenueCat
+
+| Punkt | Wo prüfen |
+|-------|-----------|
+| iOS-App Bundle ID = `com.frigyapp.app` | Project → Apps |
+| App Store Connect API Key oder Shared Secret hinterlegt | App → App Store Connect |
+| Products importiert, IDs = ASC | Products |
+| Entitlement `premium` beiden Produkten zugewiesen | Entitlements |
+| Offering `default` = **Current** | Offerings |
+| Packages `$rc_monthly` / `$rc_annual` → richtige Store-Produkte | Offering `default` |
+| Public Key `appl_…` in Codemagic `VITE_REVENUECAT_API_KEY_IOS` | Codemagic → Group `frigy` |
+
+### Test-Hinweise
+
+- **Echtes iPhone** mit Sandbox-Apple-ID (Einstellungen → App Store → Sandbox-Konto), nicht Simulator ohne StoreKit-Datei.
+- Nach Änderungen an ASC/RevenueCat: App **neu installieren** oder kurz warten.
+- RevenueCat Dashboard → **Customer** des Users → „Restore“ / Logs prüfen.
+- Xcode: Capability **In-App Purchase** am Target aktiv (siehe `IOS_APP_STORE_COMPLIANCE.md`).
+
+### Typische Ursachen
+
+1. Product ID in RevenueCat heißt z. B. `premium_monthly`, in ASC aber anders (Tippfehler).
+2. Abos in ASC angelegt, aber Subscription Group nicht lokalisiert → Status bleibt unvollständig.
+3. Falscher RevenueCat API Key (anderes Projekt / Android-Key auf iOS).
+4. Paid Applications Agreement noch nicht unterzeichnet.
