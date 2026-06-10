@@ -19,7 +19,7 @@ for dir in "${CANDIDATES[@]}"; do
       if [ -f "$ipa" ]; then
         FOUND="$ipa"
         echo "OK: $ipa ($(du -h "$ipa" | awk '{print $1}'))"
-        IOS_MIN_BUILD="${IOS_MIN_BUILD:-9}"
+        IOS_MIN_BUILD="${IOS_MIN_BUILD:-10}"
         BUNDLE_VERSION=""
         if command -v unzip >/dev/null && command -v plutil >/dev/null; then
           INFO_PLIST="$(mktemp)"
