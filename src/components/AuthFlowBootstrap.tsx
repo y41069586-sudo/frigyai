@@ -34,6 +34,8 @@ export function AuthFlowBootstrap() {
   const tryStashed = () => {
     if (loading || triggeredRef.current) return;
     if (!peekStashedOAuthCallbackUrl()) return;
+    const { navigation } = getAuthFlowSnapshot();
+    if (navigation.executed) return;
 
     triggeredRef.current = true;
     void runStashedOAuthCompletion({ checkSubscription, navigate }).finally(() => {

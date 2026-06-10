@@ -12,6 +12,8 @@ import {
   type AuthResult,
   type RunAuthCompletionInput,
 } from "@/lib/authCompletion";
+import { clearOnboardingOAuthPending } from "@/lib/onboardingSession";
+import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
 import type { PostAuthIntent } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 
@@ -89,6 +91,10 @@ export function executeAuthNavigation(
       targetRoute: target,
       startedAt: null,
     });
+    if (result.status === "success" && result.routePhase === "onboarding_paywall") {
+      clearOnboardingOAuthPending();
+      window.setTimeout(() => resetAuthFlow(), 0);
+    }
     return true;
   } catch (error) {
     console.warn("[AuthRouter] Navigation failed:", error);
@@ -139,6 +145,9 @@ export function scheduleStashedOAuthRetry(options: {
   const delays = [400, 1200, 2800];
   for (const delayMs of delays) {
     window.setTimeout(() => {
+      if (!peekStashedOAuthCallbackUrl()) return;
+      const { navigation } = getAuthFlowSnapshot();
+      if (navigation.executed) return;
       void runStashedOAuthCompletion(options);
     }, delayMs);
   }

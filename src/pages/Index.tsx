@@ -50,6 +50,11 @@ import { getLocalDateISO } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
+import { isAuthCompletionPending } from "@/lib/authCompletion";
+import {
+  clearOnboardingSession,
+  isOnboardingInProgress,
+} from "@/lib/onboardingSession";
 import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
 import { YesterdayCalorieAdjustDialog } from "@/components/YesterdayCalorieAdjustDialog";
 import {
@@ -269,8 +274,9 @@ const Index = () => {
   // Skip only when onboarding was actually completed (local or DB), not merely because user is logged in
   const shouldSkipOnboarding = ONBOARDING_TEST_MODE ? false : (hasCompletedOnboarding || dbOnboardingComplete);
   const [showOnboarding, setShowOnboarding] = useState(() =>
-    ONBOARDING_TEST_MODE ? false : !readOnboardingCompleteLocal(),
+    ONBOARDING_TEST_MODE ? false : !readOnboardingCompleteLocal() || isOnboardingInProgress(),
   );
+  const [onboardingLatch, setOnboardingLatch] = useState(() => isOnboardingInProgress());
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
@@ -289,6 +295,13 @@ const Index = () => {
         (location.state as { returnToOnboarding?: boolean } | null)?.returnToOnboarding === true;
 
       if (onboardingResumeStep || returnToOnboarding) {
+        setShowOnboarding(true);
+        setOnboardingComplete(false);
+        setOnboardingLatch(true);
+        return;
+      }
+
+      if (isOnboardingInProgress() || onboardingLatch || isAuthCompletionPending()) {
         setShowOnboarding(true);
         setOnboardingComplete(false);
         return;
@@ -312,6 +325,7 @@ const Index = () => {
     onboardingResumeStep,
     location.state,
     showOnboarding,
+    onboardingLatch,
   ]);
   
   // Skip onboarding only if coming from subscription success
@@ -389,6 +403,8 @@ const Index = () => {
 
     if (onboardingExitInFlightRef.current) return;
     onboardingExitInFlightRef.current = true;
+    clearOnboardingSession();
+    setOnboardingLatch(false);
 
     try {
       let activeUser = user;
