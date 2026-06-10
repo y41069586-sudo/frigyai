@@ -199,14 +199,19 @@ workflows:
         script: |
           set -e
           cd "$CM_BUILD_DIR/ios/App"
-          # CFBundleVersion must strictly increase on App Store Connect (build 3 already uploaded).
-          IOS_MIN_BUILD=4
+          # CFBundleVersion must strictly increase on App Store Connect (build 4 already uploaded).
+          IOS_MIN_BUILD=5
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
           if [ "$BUILD_NUM" -lt "$IOS_MIN_BUILD" ]; then
             BUILD_NUM=$IOS_MIN_BUILD
           fi
           agvtool new-version -all "$BUILD_NUM"
-          echo "iOS CFBundleVersion=$BUILD_NUM"
+          ACTUAL_BUILD="$(agvtool what-version -terse 2>/dev/null | tail -1 | tr -d '[:space:]')"
+          echo "iOS CFBundleVersion set to $BUILD_NUM (agvtool reports: ${ACTUAL_BUILD:-unknown})"
+          if [ -z "$ACTUAL_BUILD" ] || [ "$ACTUAL_BUILD" -lt "$IOS_MIN_BUILD" ]; then
+            echo "ERROR: CFBundleVersion must be >= $IOS_MIN_BUILD (App Store rejects duplicate build numbers)."
+            exit 1
+          fi
 
       - name: Build IPA
         script: |
