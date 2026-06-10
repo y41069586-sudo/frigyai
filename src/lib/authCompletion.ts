@@ -22,6 +22,7 @@ import {
 } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 import { isMealPlanGenerationActive } from "@/lib/mealPlanGenerationLock";
+import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
 
 /** Pipeline phases while work is in progress. */
 export type AuthPendingPhase = "oauth_exchange" | "session" | "premium";
@@ -196,6 +197,13 @@ export const POST_AUTH_MANUAL_NAV_PATHS = new Set([
   "/badges",
 ]);
 
+function isOnboardingAuthRouteActive(): boolean {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("onboardingStep")) return true;
+  return isOnboardingInProgress() || isOnboardingOAuthPending();
+}
+
 /** Overlay until pipeline done AND navigation executed (or still pending). */
 export function isAuthFlowOverlayVisible(): boolean {
   if (isMealPlanGenerationActive()) {
@@ -203,11 +211,21 @@ export function isAuthFlowOverlayVisible(): boolean {
   }
 
   const { result, navigation } = snapshot;
+  const onboardingRoute = isOnboardingAuthRouteActive();
 
-  // Active OAuth / post-auth — always show loader (including after replaceState to `/`).
-  if (result.status === "pending") return true;
-  if (navigation.executing) return true;
-  if (isAuthNavigationPending()) return true;
+  if (result.status === "pending") {
+    if (result.phase === "oauth_exchange") return true;
+    if (onboardingRoute) return false;
+    return true;
+  }
+  if (navigation.executing) {
+    if (onboardingRoute) return false;
+    return true;
+  }
+  if (isAuthNavigationPending()) {
+    if (onboardingRoute) return false;
+    return true;
+  }
 
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {

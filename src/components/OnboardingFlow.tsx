@@ -31,6 +31,14 @@ import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
+import {
+  clearOnboardingOAuthPending,
+  clearOnboardingSession,
+  getOnboardingResumeStep,
+  markOnboardingInProgress,
+  markOnboardingOAuthPending,
+  setOnboardingResumeStep,
+} from "@/lib/onboardingSession";
 
 import { 
   OnboardingStep, UserData, defaultUserData, onboardingSteps,
@@ -581,12 +589,18 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const showScanFeedback = location.state?.showScanFeedback === true;
   const fallbackStep: OnboardingStep =
     showScanFeedback && onboardingSteps.includes("scan-feedback") ? "scan-feedback" : onboardingSteps[0];
-  const initialStep: OnboardingStep =
-    initialStepOverride && onboardingSteps.includes(initialStepOverride)
-      ? initialStepOverride
-      : fallbackStep;
-  
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
+  const resolveStartingStep = (): OnboardingStep => {
+    if (initialStepOverride && onboardingSteps.includes(initialStepOverride)) {
+      return initialStepOverride;
+    }
+    const resumed = getOnboardingResumeStep();
+    if (resumed) return resumed;
+    return fallbackStep;
+  };
+
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(resolveStartingStep);
+  const appliedInitialOverrideRef = useRef(false);
+  const paywallAccessCheckedRef = useRef(false);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -715,16 +729,22 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, [currentStep]);
 
   useEffect(() => {
-    if (
-      initialStepOverride &&
-      onboardingSteps.includes(initialStepOverride) &&
-      initialStepOverride !== currentStep
-    ) {
-      setCurrentStep(initialStepOverride);
-    }
-  }, [initialStepOverride, currentStep]);
+    markOnboardingInProgress();
+  }, []);
+
+  useEffect(() => {
+    setOnboardingResumeStep(currentStep);
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (!initialStepOverride || appliedInitialOverrideRef.current) return;
+    if (!onboardingSteps.includes(initialStepOverride)) return;
+    appliedInitialOverrideRef.current = true;
+    setCurrentStep(initialStepOverride);
+  }, [initialStepOverride]);
 
   const finishOnboardingExit = useCallback(() => {
+    clearOnboardingSession();
     saveOnboardingData(userData, { markOnboardingComplete: true });
     onComplete();
   }, [onComplete, userData]);
@@ -768,8 +788,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, [authMode, checkSubscription, finishOnboardingExit, goToPaywall, user?.id]);
 
   useEffect(() => {
-    if (currentStep !== "paywall" || !user) return;
+    if (currentStep !== "paywall") {
+      paywallAccessCheckedRef.current = false;
+      return;
+    }
+    if (!user || paywallAccessCheckedRef.current) return;
 
+    paywallAccessCheckedRef.current = true;
     let cancelled = false;
     void (async () => {
       if (await canAccessDashboard()) {
@@ -3744,11 +3769,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (isAuthLoading || isGoogleAuthLoading || isAppleAuthLoading) return;
           setIsGoogleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
+          markOnboardingOAuthPending("google");
           if (user) {
             await supabase.auth.signOut({ scope: "local" });
           }
           const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
           if (error) {
+            clearOnboardingOAuthPending();
             toast({
               title: t.onboardingLoginFailed,
               description: getPublicErrorMessage(
@@ -3765,11 +3792,13 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (isAuthLoading || isGoogleAuthLoading || isAppleAuthLoading) return;
           setIsAppleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
+          markOnboardingOAuthPending("apple");
           if (user) {
             await supabase.auth.signOut({ scope: "local" });
           }
           const { error } = await signInWithApple({ authQuery: { from: "onboarding" } });
           if (error) {
+            clearOnboardingOAuthPending();
             toast({
               title: t.onboardingLoginFailed,
               description: getPublicErrorMessage(
@@ -3779,6 +3808,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               variant: "destructive",
             });
           } else if (await waitForAuthSession(3500)) {
+            clearOnboardingOAuthPending();
             await goAfterSignup(true);
           }
           setIsAppleAuthLoading(false);
