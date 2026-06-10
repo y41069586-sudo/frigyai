@@ -777,6 +777,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     setCurrentStep(initialStepOverride);
   }, [initialStepOverride]);
 
+  useEffect(() => {
+    if (initialStepOverride === "paywall" && currentStep !== "paywall") {
+      setCurrentStep("paywall");
+    }
+  }, [initialStepOverride, currentStep]);
+
   const finishOnboardingExit = useCallback(() => {
     clearOnboardingSession();
     saveOnboardingData(userData, { markOnboardingComplete: true });
@@ -790,8 +796,11 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, []);
 
   const tryFinishOnboardingWithAccess = useCallback(async (sessionReady = false) => {
+    const { data } = await supabase.auth.getSession();
+    const sessionUserId = data.session?.user?.id ?? user?.id;
+
     const route = await resolvePostAuthDestination({
-      userId: user?.id,
+      userId: sessionUserId,
       checkSubscription,
       fromOnboarding: true,
       authIntent: authMode === "login" ? "login" : "signup",
@@ -3740,61 +3749,80 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           markOnboardingInProgress();
           markOnboardingOAuthPending("google");
           setOAuthPendingFromAuthQuery({ from: "onboarding" });
-          const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
-          if (error) {
-            clearOnboardingOAuthPending();
-            setIsGoogleAuthLoading(false);
-            return;
-          }
-          if (await waitForOAuthSession(20_000)) {
-            clearOnboardingOAuthPending();
+          try {
+            const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
+            if (error) {
+              clearOnboardingOAuthPending();
+              return;
+            }
+
+            if (Capacitor.isNativePlatform()) {
+              // Deep-link pipeline handles callback + routing; avoid 20s button spinner.
+              return;
+            }
+
+            const activeSession = await waitForOAuthSession(20_000);
+            if (!activeSession) {
+              if (!wasPostAuthRedirectRecentlyHandled()) {
+                toast({
+                  title: t.onboardingLoginFailed,
+                  description: t.onboardingPleaseLoginToProceed,
+                  variant: "destructive",
+                });
+                clearOnboardingOAuthPending();
+              }
+              return;
+            }
+
             if (!wasPostAuthRedirectRecentlyHandled()) {
               await goAfterSignup(true);
             }
-          } else if (!wasPostAuthRedirectRecentlyHandled()) {
-            clearOnboardingOAuthPending();
-            toast({
-              title: t.onboardingLoginFailed,
-              description: t.onboardingPleaseLoginToProceed,
-              variant: "destructive",
-            });
-          } else {
-            clearOnboardingOAuthPending();
+          } finally {
+            setIsGoogleAuthLoading(false);
           }
-          setIsGoogleAuthLoading(false);
         };
 
         const handleOnboardingAppleAuth = async () => {
           if (isAuthLoading || isGoogleAuthLoading || isAppleAuthLoading) return;
           setIsAppleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
+          markOnboardingInProgress();
           markOnboardingOAuthPending("apple");
           setOAuthPendingFromAuthQuery({ from: "onboarding" });
-          const { error, flow, session } = await signInWithApple({ authQuery: { from: "onboarding" } });
-          if (error) {
-            clearOnboardingOAuthPending();
-            setIsAppleAuthLoading(false);
-            return;
-          }
-          if (flow === "cancelled") {
-            clearOnboardingOAuthPending();
-            setIsAppleAuthLoading(false);
-            return;
-          }
+          try {
+            const { error, flow, session } = await signInWithApple({ authQuery: { from: "onboarding" } });
+            if (error) {
+              clearOnboardingOAuthPending();
+              return;
+            }
+            if (flow === "cancelled") {
+              clearOnboardingOAuthPending();
+              return;
+            }
 
-          const activeSession = await waitForAppleSignInSession(flow, session ?? null);
-          if (activeSession) {
-            clearOnboardingOAuthPending();
-            await goAfterSignup(true);
-          } else {
-            clearOnboardingOAuthPending();
-            toast({
-              title: t.onboardingLoginFailed,
-              description: t.onboardingPleaseLoginToProceed,
-              variant: "destructive",
-            });
+            if (flow === "oauth" && Capacitor.isNativePlatform()) {
+              return;
+            }
+
+            const activeSession = await waitForAppleSignInSession(flow, session ?? null);
+            if (!activeSession) {
+              if (!wasPostAuthRedirectRecentlyHandled()) {
+                clearOnboardingOAuthPending();
+                toast({
+                  title: t.onboardingLoginFailed,
+                  description: t.onboardingPleaseLoginToProceed,
+                  variant: "destructive",
+                });
+              }
+              return;
+            }
+
+            if (!wasPostAuthRedirectRecentlyHandled()) {
+              await goAfterSignup(true);
+            }
+          } finally {
+            setIsAppleAuthLoading(false);
           }
-          setIsAppleAuthLoading(false);
         };
 
         return (

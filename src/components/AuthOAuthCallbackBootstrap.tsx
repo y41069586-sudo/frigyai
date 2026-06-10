@@ -48,11 +48,7 @@ export function AuthOAuthCallbackBootstrap() {
         checkSubscription,
         navigate,
         onExchangeSuccess: () => {
-          window.history.replaceState(
-            {},
-            "",
-            fromOnboarding ? "/?onboardingStep=paywall" : "/",
-          );
+          navigate(fromOnboarding ? "/?onboardingStep=paywall" : "/", { replace: true });
         },
       });
 

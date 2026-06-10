@@ -73,7 +73,10 @@ export async function resolvePremiumAccessAfterSignIn(options: {
     await redeemPendingReferralCode(session.access_token);
   }
 
-  await syncStoreSubscriptionIfNeeded(session?.access_token);
+  await Promise.race([
+    syncStoreSubscriptionIfNeeded(session?.access_token),
+    new Promise<void>((resolve) => window.setTimeout(resolve, 3000)),
+  ]);
 
   if (!userId) {
     userId = (await supabase.auth.getSession()).data.session?.user?.id;

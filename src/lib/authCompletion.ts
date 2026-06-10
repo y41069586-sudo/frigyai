@@ -214,7 +214,6 @@ export function isAuthFlowOverlayVisible(): boolean {
   const onboardingRoute = isOnboardingAuthRouteActive();
 
   if (result.status === "pending") {
-    if (result.phase === "oauth_exchange") return true;
     if (onboardingRoute) return false;
     return true;
   }
