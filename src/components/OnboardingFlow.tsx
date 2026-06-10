@@ -287,8 +287,8 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           description: getPublicErrorMessage(
             error,
             provider === "google"
-              ? "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."
-              : "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
+              ? t.onboardingGoogleAuthFailed
+              : t.onboardingAppleAuthFailed,
           ),
           variant: "destructive",
         });
@@ -395,7 +395,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                       <path d="M17.05 20.28c-.98.95-2.05 1.88-3.51 1.9-1.48.02-1.95-.87-3.63-.87-1.68 0-2.2.85-3.6.89-1.44.04-2.53-1.47-3.48-2.42C2.32 17.7 1.07 12.45 3.11 9.11c1.02-1.66 2.85-2.71 4.84-2.74 1.51-.03 2.93 1.01 3.63 1.01.7 0 2.41-1.25 4.07-1.07.69.03 2.63.28 3.87 2.1-3.37 1.83-2.81 6.58.53 8.07-.67 1.64-1.43 3.27-2.24 4.9zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                     </svg>
-                    {isAppleAuthLoading ? t.loading : (t.signInWithApple ?? "Mit Apple anmelden")}
+                    {isAppleAuthLoading ? t.loading : t.signInWithApple}
                   </button>
                 )}
 
@@ -2050,7 +2050,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
-                Analysiere dein Profil...
+                {t.onboardingAnalyzingProfile}
               </motion.h1>
               
               <motion.div
@@ -3780,7 +3780,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               title: t.onboardingLoginFailed,
               description: getPublicErrorMessage(
                 error,
-                "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
+                t.onboardingGoogleAuthFailed,
               ),
               variant: "destructive",
             });
@@ -3803,7 +3803,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               title: t.onboardingLoginFailed,
               description: getPublicErrorMessage(
                 error,
-                "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
+                t.onboardingAppleAuthFailed,
               ),
               variant: "destructive",
             });
@@ -3849,7 +3849,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.12, duration: 0.3 }}
               >
-                {t.orContinueWith ?? "Oder schnell mit Google / Apple fortfahren"}
+                {t.orContinueWith}
               </motion.p>
 
               <motion.div
@@ -3868,7 +3868,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                       <path d="M17.05 20.28c-.98.95-2.05 1.88-3.51 1.9-1.48.02-1.95-.87-3.63-.87-1.68 0-2.2.85-3.6.89-1.44.04-2.53-1.47-3.48-2.42C2.32 17.7 1.07 12.45 3.11 9.11c1.02-1.66 2.85-2.71 4.84-2.74 1.51-.03 2.93 1.01 3.63 1.01.7 0 2.41-1.25 4.07-1.07.69.03 2.63.28 3.87 2.1-3.37 1.83-2.81 6.58.53 8.07-.67 1.64-1.43 3.27-2.24 4.9zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                     </svg>
-                    {isAppleAuthLoading ? t.loading : (t.signInWithApple ?? "Mit Apple anmelden")}
+                    {isAppleAuthLoading ? t.loading : t.signInWithApple}
                   </Button>
                 )}
 
@@ -4125,10 +4125,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 {selectedPlanOption === 'premium' && (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Weiter zu Premium
+                    {t.continueToPremium}
                   </>
                 )}
-                {!selectedPlanOption && "Wähle einen Plan"}
+                {!selectedPlanOption && t.selectAPlan}
               </Button>
             </div>
           </StepCard>

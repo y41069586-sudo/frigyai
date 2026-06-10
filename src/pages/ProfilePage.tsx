@@ -160,7 +160,7 @@ const ProfilePage = () => {
     } catch (error: unknown) {
       toast({
         title: t.error,
-        description: getPublicErrorMessage(error, "Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut."),
+        description: getPublicErrorMessage(error, t.settingsPortalOpenFailed),
         variant: "destructive",
       });
     } finally {
@@ -196,7 +196,7 @@ const ProfilePage = () => {
     } catch (error: unknown) {
       toast({
         title: t.error,
-        description: getPublicErrorMessage(error, "Dein Konto konnte gerade nicht gelöscht werden. Bitte versuche es erneut."),
+        description: getPublicErrorMessage(error, t.accountDeleteFailed),
         variant: "destructive",
       });
     } finally {

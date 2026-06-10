@@ -364,6 +364,10 @@ export interface ExtendedTranslations {
   aiDisclaimerShort: string;
   accountDeletedTitle: string;
   accountDeletedDesc: string;
+  settingsPortalOpenFailed: string;
+  accountDeleteFailed: string;
+  onboardingGoogleAuthFailed: string;
+  onboardingAppleAuthFailed: string;
   userNotAuthenticated: string;
   purchasesRestoredMsg: string;
   chatDarkModeOnTitle: string;
@@ -955,6 +959,13 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
       "KI-generierte Schätzungen — keine medizinische Beratung. Allergene immer am Produktetikett prüfen.",
     accountDeletedTitle: "Konto gelöscht",
     accountDeletedDesc: "Dein Konto wurde erfolgreich gelöscht.",
+    settingsPortalOpenFailed:
+      "Die Aboverwaltung konnte gerade nicht geöffnet werden. Bitte versuche es erneut.",
+    accountDeleteFailed: "Dein Konto konnte gerade nicht gelöscht werden. Bitte versuche es erneut.",
+    onboardingGoogleAuthFailed:
+      "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
+    onboardingAppleAuthFailed:
+      "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
     userNotAuthenticated: "Benutzer nicht authentifiziert",
     purchasesRestoredMsg: "Käufe wiederhergestellt.",
     chatDarkModeOnTitle: "Dark Mode aktiviert",
@@ -1558,6 +1569,13 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
       "AI-generated estimates — not medical advice. Always verify allergens on product labels.",
     accountDeletedTitle: "Account deleted",
     accountDeletedDesc: "Your account was deleted successfully.",
+    settingsPortalOpenFailed:
+      "Subscription management could not be opened right now. Please try again.",
+    accountDeleteFailed: "Your account could not be deleted right now. Please try again.",
+    onboardingGoogleAuthFailed:
+      "Google sign-in could not be completed right now. Please try again.",
+    onboardingAppleAuthFailed:
+      "Apple sign-in could not be completed right now. Please try again.",
     userNotAuthenticated: "User not authenticated",
     purchasesRestoredMsg: "Purchases restored.",
     chatDarkModeOnTitle: "Dark mode enabled",
@@ -2164,6 +2182,13 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
       "Estimations générées par IA — pas un conseil médical. Vérifie toujours les allergènes sur l'étiquette.",
     accountDeletedTitle: "Compte supprimé",
     accountDeletedDesc: "Ton compte a été supprimé avec succès.",
+    settingsPortalOpenFailed:
+      "La gestion de l'abonnement n'a pas pu être ouverte. Réessaie plus tard.",
+    accountDeleteFailed: "Ton compte n'a pas pu être supprimé. Réessaie plus tard.",
+    onboardingGoogleAuthFailed:
+      "La connexion Google n'a pas pu être terminée. Réessaie plus tard.",
+    onboardingAppleAuthFailed:
+      "La connexion Apple n'a pas pu être terminée. Réessaie plus tard.",
     userNotAuthenticated: "Utilisateur non authentifié",
     purchasesRestoredMsg: "Achats restaurés.",
     chatDarkModeOnTitle: "Mode sombre activé",
