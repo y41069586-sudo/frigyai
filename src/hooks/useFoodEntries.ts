@@ -6,6 +6,8 @@ import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
 import { getStoredAppLocale } from '@/lib/mealPlanLanguage';
 import { normalizeMealTypeForSave } from '@/lib/mealFocus';
+import { readStoredTrackerTargets } from "@/lib/trackerTargets";
+import { scheduleYesterdayBalanceNotification } from "@/lib/notifications";
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
@@ -242,6 +244,15 @@ export const useFoodEntries = () => {
 
       if (error) {
         console.warn('[DAILY-MACROS] Error updating:', error?.message || error);
+      } else {
+        const target = readStoredTrackerTargets()?.dailyCalories ?? 0;
+        if (target > 0) {
+          void scheduleYesterdayBalanceNotification({
+            eatenCalories: macroData.calories,
+            targetCalories: target,
+            forDateIso: date,
+          });
+        }
       }
     } catch (error: unknown) {
       console.warn('[DAILY-MACROS] Unexpected error:', error);

@@ -63,6 +63,7 @@ import {
   isYesterdayAdjustPromptDismissed,
   type YesterdayCalorieBalance,
 } from "@/lib/yesterdayCalorieBalance";
+import { maybeShowWebYesterdayBalanceNotification } from "@/lib/notifications";
 import { hasMealPlanContent, readWeeklyPlanFromStorage } from "@/lib/food-ai/weeklyPlanWidgetData";
 import type { DailyMacroTargets } from "@/lib/mealPlanMacros";
 
@@ -544,6 +545,7 @@ const Index = () => {
     void (async () => {
       const balance = await fetchYesterdayCalorieBalance(user.id, targetCalories);
       if (!balance || isYesterdayAdjustPromptDismissed(balance.date)) return;
+      maybeShowWebYesterdayBalanceNotification(balance);
       setYesterdayBalance(balance);
       setShowYesterdayAdjust(true);
     })();

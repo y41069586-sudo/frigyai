@@ -1,5 +1,11 @@
 import { useEffect, useRef } from "react";
-import { isNativeApp, syncRemindersFromStorage } from "@/lib/notifications";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  checkWebTrialEndingReminder,
+  isNativeApp,
+  resyncYesterdayBalanceNotificationForUser,
+  syncRemindersFromStorage,
+} from "@/lib/notifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useReminders } from "@/hooks/useReminders";
 
@@ -7,8 +13,19 @@ import { useReminders } from "@/hooks/useReminders";
 export function NotificationBootstrap() {
   usePushNotifications();
   useReminders();
+  const { user } = useAuth();
 
   const syncInFlight = useRef(false);
+
+  useEffect(() => {
+    checkWebTrialEndingReminder();
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    void resyncYesterdayBalanceNotificationForUser(user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isNativeApp()) return;
