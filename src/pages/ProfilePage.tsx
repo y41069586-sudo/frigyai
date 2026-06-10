@@ -10,7 +10,6 @@ import {
   ChevronRight,
   CreditCard,
   Settings,
-  Apple,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +38,6 @@ import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscrip
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
-import { isAppleSignInAvailable } from "@/lib/appleSignIn";
 import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
 
 function SettingsGroup({
@@ -119,7 +117,7 @@ function SettingsRow({
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, session, subscriptionStatus, isPremium, signOut, checkSubscription, linkAppleAccount } = useAuth();
+  const { user, session, subscriptionStatus, isPremium, signOut, checkSubscription } = useAuth();
   const premiumActive = isPremium || isSubscriptionActive(subscriptionStatus);
   const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
@@ -320,14 +318,6 @@ const ProfilePage = () => {
                 label={t.manageSubscription}
                 description={portalLoading ? t.settingsOpeningPortal : undefined}
                 onClick={() => void handleManageSubscription()}
-              />
-            )}
-            {isAppleSignInAvailable() &&
-              !user?.identities?.some((id) => id.provider === "apple") && (
-              <SettingsRow
-                icon={Apple}
-                label={t.linkAppleAccount}
-                onClick={() => void linkAppleAccount()}
               />
             )}
           </SettingsGroup>
