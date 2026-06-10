@@ -17,7 +17,15 @@ Before **Archive / App Store**: set `aps-environment` to `production` in `App.en
 ## Supabase Auth
 
 1. **Authentication → Providers → Apple**: enable, add Services ID / secret from Apple Developer.
-2. **URL Configuration → Redirect URLs**:
+2. **Client IDs (wichtig für native iOS-App):**  
+   Native Sign in with Apple sendet ein Token mit **Bundle ID** als Audience (`com.frigyapp.app`).  
+   Unter **Client IDs** muss diese Bundle ID stehen — **zusätzlich** zur Services ID für Web-OAuth, kommagetrennt, z. B.:
+   ```
+   com.frigyapp.app,dein.apple.services.id
+   ```
+   Ohne `com.frigyapp.app` erscheint nach Apple-Login:  
+   `Login failed — Unacceptable audience in id_token: [com.frigyapp.app]`
+3. **URL Configuration → Redirect URLs**:
    - `frigy://callback`
    - `https://app.frigy.app/auth/callback`
    - Your local dev URL if needed
