@@ -7,19 +7,11 @@ export const APPLE_BUNDLE_ID =
 const APPLE_REDIRECT_URI =
   import.meta.env.VITE_APPLE_REDIRECT_URI?.trim() || "https://app.frigy.app/auth/callback";
 
-function generateRawNonce(): string {
+function generateState(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const data = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 export function isAppleSignInAvailable(): boolean {
@@ -31,6 +23,10 @@ export function isAppleSignInAvailable(): boolean {
  * Falls back to OAuth in browser on other platforms.
  *
  * Supabase must list the iOS bundle ID under Apple → Client IDs, e.g. `com.frigyapp.app`.
+ *
+ * We intentionally omit `nonce` on native iOS: GoTrue compares hex(SHA256(nonce)) while Apple
+ * puts base64url(SHA256(nonce)) in the ID token (supabase/auth#2378) → "Nonces mismatch".
+ * Without a nonce claim, sign-in works; optional server workaround: Apple skip nonce check.
  */
 export async function signInWithApple(options?: {
   authQuery?: Record<string, string>;
@@ -45,13 +41,10 @@ export async function signInWithApple(options?: {
 
   try {
     const { AppleSignIn, SignInScope } = await import("@capawesome/capacitor-apple-sign-in");
-    const rawNonce = generateRawNonce();
-    const hashedNonce = await sha256Hex(rawNonce);
 
     const result = await AppleSignIn.signIn({
       scopes: [SignInScope.Email, SignInScope.FullName],
-      nonce: hashedNonce,
-      state: rawNonce,
+      state: generateState(),
     });
 
     const identityToken = result.idToken;
@@ -62,7 +55,6 @@ export async function signInWithApple(options?: {
     const { error } = await supabase.auth.signInWithIdToken({
       provider: "apple",
       token: identityToken,
-      nonce: rawNonce,
     });
 
     if (error) {
@@ -108,6 +100,16 @@ function resolveAppleAuthError(error: { message?: string; code?: string }): Erro
       `[AppleSignIn] Supabase rejected native Apple token. Add bundle ID "${APPLE_BUNDLE_ID}" ` +
         "to Dashboard → Authentication → Providers → Apple → Client IDs " +
         "(comma-separated with your Services ID if you use web OAuth too).",
+    );
+    return new Error(
+      "Apple-Anmeldung ist gerade nicht verfügbar. Bitte nutze E-Mail oder Google, oder versuche es später erneut.",
+    );
+  }
+
+  if (/nonce/i.test(msg)) {
+    console.error(
+      "[AppleSignIn] Nonce mismatch (Supabase GoTrue vs Apple encoding). " +
+        "Enable skip nonce check for Apple in Supabase Auth provider settings, or use a build without nonce in native Apple sign-in.",
     );
     return new Error(
       "Apple-Anmeldung ist gerade nicht verfügbar. Bitte nutze E-Mail oder Google, oder versuche es später erneut.",

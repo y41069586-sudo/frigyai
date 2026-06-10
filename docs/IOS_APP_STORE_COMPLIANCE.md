@@ -25,7 +25,10 @@ Before **Archive / App Store**: set `aps-environment` to `production` in `App.en
    ```
    Ohne `com.frigyapp.app` erscheint nach Apple-Login:  
    `Login failed — Unacceptable audience in id_token: [com.frigyapp.app]`
-3. **URL Configuration → Redirect URLs**:
+3. **Skip nonce check (falls „Nonces mismatch“):**  
+   Bekannter GoTrue-Bug: Apple nutzt base64url im ID-Token, GoTrue vergleicht hex ([supabase/auth#2378](https://github.com/supabase/auth/issues/2378)).  
+   In **Authentication → Providers → Apple** ggf. **Skip nonce check** aktivieren (hosted Dashboard), oder die App sendet keinen Nonce (native iOS in `appleSignIn.ts`).
+4. **URL Configuration → Redirect URLs**:
    - `frigy://callback`
    - `https://app.frigy.app/auth/callback`
    - Your local dev URL if needed
