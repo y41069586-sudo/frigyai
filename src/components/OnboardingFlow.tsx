@@ -301,8 +301,10 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
     }
   };
 
+  const isNativeAndroid = Capacitor.getPlatform() === "android";
+
   return (
-    <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FFFFFF] text-neutral-950">
+    <div className="relative flex h-[100dvh] max-h-[100dvh] w-full min-w-0 flex-col overflow-hidden bg-[#FFFFFF] text-neutral-950">
       <motion.div
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -327,7 +329,11 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           initial={{ opacity: 0, y: 18, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto flex h-[35svh] min-h-[230px] w-full max-w-[370px] shrink-0 items-center justify-center max-[380px]:min-h-[210px]"
+          className={`relative mx-auto flex w-full max-w-[370px] shrink-0 items-center justify-center ${
+            isNativeAndroid
+              ? "h-[28svh] min-h-[180px] max-[380px]:min-h-[165px]"
+              : "h-[35svh] min-h-[230px] max-[380px]:min-h-[210px]"
+          }`}
         >
           <motion.div
             className="relative flex h-[196px] w-[196px] items-center justify-center"
@@ -373,60 +379,71 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               <ArrowRight className="relative h-5 w-5 stroke-[2.6]" />
             </motion.button>
 
-            {!showLoginOptions ? (
-              <button
-                type="button"
-                onClick={() => setShowLoginOptions(true)}
-                className="mx-auto mt-4 block text-center text-[13px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
-              >
-                {t.onboardingAlreadyHaveAccount}
-              </button>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-4 w-full space-y-2.5"
-              >
-                {showAppleSignIn && (
-                  <button
+            <div className="mt-4 w-full overflow-hidden">
+              <AnimatePresence initial={false} mode="wait">
+                {!showLoginOptions ? (
+                  <motion.button
+                    key="splash-account-link"
                     type="button"
-                    onClick={() => void handleSplashOAuthLogin("apple")}
-                    disabled={oauthBusy}
-                    className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[22px] bg-black text-[15px] font-semibold tracking-[-0.02em] text-white transition-opacity disabled:opacity-60"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setShowLoginOptions(true)}
+                    className="mx-auto block w-full text-center text-[13px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
                   >
-                    <AppleSignInIcon size={20} />
-                    {isAppleAuthLoading ? t.loading : t.signInWithApple}
-                  </button>
+                    {t.onboardingAlreadyHaveAccount}
+                  </motion.button>
+                ) : (
+                  <motion.div
+                    key="splash-login-options"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    className="w-full space-y-2.5 overflow-hidden"
+                  >
+                    {showAppleSignIn && (
+                      <button
+                        type="button"
+                        onClick={() => void handleSplashOAuthLogin("apple")}
+                        disabled={oauthBusy}
+                        className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[22px] bg-black text-[15px] font-semibold tracking-[-0.02em] text-white transition-opacity disabled:opacity-60"
+                      >
+                        <AppleSignInIcon size={20} />
+                        {isAppleAuthLoading ? t.loading : (t.signInWithApple ?? "Mit Apple anmelden")}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => void handleSplashOAuthLogin("google")}
+                      disabled={oauthBusy}
+                      className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[22px] border border-neutral-200 bg-white text-[15px] font-semibold tracking-[-0.02em] text-neutral-900 shadow-sm transition-opacity disabled:opacity-60"
+                    >
+                      <GoogleSignInIcon size={20} />
+                      {isGoogleAuthLoading ? t.loading : t.signInWithGoogle}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate("/auth?mode=login")}
+                      className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
+                    >
+                      {t.signInBtn}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginOptions(false)}
+                      className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-600 hover:underline"
+                    >
+                      {t.back}
+                    </button>
+                  </motion.div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => void handleSplashOAuthLogin("google")}
-                  disabled={oauthBusy}
-                  className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[22px] border border-neutral-200 bg-white text-[15px] font-semibold tracking-[-0.02em] text-neutral-900 shadow-sm transition-opacity disabled:opacity-60"
-                >
-                  <GoogleSignInIcon size={20} />
-                  {isGoogleAuthLoading ? t.loading : t.signInWithGoogle}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/auth?mode=login")}
-                  className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
-                >
-                  {t.signInBtn}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowLoginOptions(false)}
-                  className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-600 hover:underline"
-                >
-                  {t.back}
-                </button>
-              </motion.div>
-            )}
+              </AnimatePresence>
+            </div>
           </div>
         </motion.div>
       </div>
