@@ -282,26 +282,35 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
       if (provider === "apple") {
         const { error, flow, session } = await signInWithApple({ authQuery: { from: "login" } });
-        if (error) {
+        if (error || flow === "cancelled") {
           return;
         }
-        if (flow === "cancelled") return;
+
+        if (flow === "oauth" && Capacitor.isNativePlatform()) {
+          return;
+        }
 
         const activeSession = await waitForAppleSignInSession(flow, session ?? null);
-        if (activeSession) {
-          await redirectAfterSignIn({
-            userId: activeSession.user.id,
-            checkSubscription,
-            navigate,
-            authIntent: "login",
-          });
+        if (!activeSession) {
+          if (!wasPostAuthRedirectRecentlyHandled()) {
+            toast({
+              title: t.onboardingLoginFailed,
+              description: t.onboardingPleaseLoginToProceed,
+              variant: "destructive",
+            });
+          }
           return;
         }
 
-        toast({
-          title: t.onboardingLoginFailed,
-          description: t.onboardingPleaseLoginToProceed,
-          variant: "destructive",
+        if (wasPostAuthRedirectRecentlyHandled()) {
+          return;
+        }
+
+        await redirectAfterSignIn({
+          userId: activeSession.user.id,
+          checkSubscription,
+          navigate,
+          authIntent: "login",
         });
         return;
       }
@@ -311,25 +320,31 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         return;
       }
 
-      if (await waitForOAuthSession(20_000)) {
-        const { data } = await supabase.auth.getSession();
-        if (data.session && !wasPostAuthRedirectRecentlyHandled()) {
-          await redirectAfterSignIn({
-            userId: data.session.user.id,
-            checkSubscription,
-            navigate,
-            authIntent: "login",
+      if (Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      const activeSession = await waitForOAuthSession(20_000);
+      if (!activeSession) {
+        if (!wasPostAuthRedirectRecentlyHandled()) {
+          toast({
+            title: t.onboardingLoginFailed,
+            description: t.onboardingPleaseLoginToProceed,
+            variant: "destructive",
           });
         }
         return;
       }
 
-      if (wasPostAuthRedirectRecentlyHandled()) return;
+      if (wasPostAuthRedirectRecentlyHandled()) {
+        return;
+      }
 
-      toast({
-        title: t.onboardingLoginFailed,
-        description: t.onboardingPleaseLoginToProceed,
-        variant: "destructive",
+      await redirectAfterSignIn({
+        userId: activeSession.user.id,
+        checkSubscription,
+        navigate,
+        authIntent: "login",
       });
     } finally {
       setLoading(false);
@@ -3742,15 +3757,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           }
         };
         
+        const oauthFrom = authMode === "login" ? "login" : "onboarding";
+
         const handleOnboardingGoogleAuth = async () => {
           if (isAuthLoading || isGoogleAuthLoading || isAppleAuthLoading) return;
           setIsGoogleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
           markOnboardingInProgress();
           markOnboardingOAuthPending("google");
-          setOAuthPendingFromAuthQuery({ from: "onboarding" });
+          setOAuthPendingFromAuthQuery({ from: oauthFrom });
           try {
-            const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
+            const { error } = await signInWithGoogle({ authQuery: { from: oauthFrom } });
             if (error) {
               clearOnboardingOAuthPending();
               return;
@@ -3788,9 +3805,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           saveOnboardingData(userData, { markOnboardingComplete: false });
           markOnboardingInProgress();
           markOnboardingOAuthPending("apple");
-          setOAuthPendingFromAuthQuery({ from: "onboarding" });
+          setOAuthPendingFromAuthQuery({ from: oauthFrom });
           try {
-            const { error, flow, session } = await signInWithApple({ authQuery: { from: "onboarding" } });
+            const { error, flow, session } = await signInWithApple({ authQuery: { from: oauthFrom } });
             if (error) {
               clearOnboardingOAuthPending();
               return;

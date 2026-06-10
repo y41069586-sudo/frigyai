@@ -106,9 +106,19 @@ export function resolveFromOnboarding(url?: string): boolean {
 }
 
 export function resolveOAuthAuthIntent(url?: string): "login" | "signup" {
-  if (resolveFromOnboarding(url)) return "signup";
-  const pending = getOAuthPending();
-  if (pending === "login") return "login";
-  if (pending === "signup") return "signup";
-  return "signup";
+  return resolveOAuthContext(url).authIntent;
+}
+
+/** Read onboarding/login flags before `clearOAuthPending()` wipes storage. */
+export function resolveOAuthContext(url?: string): {
+  fromOnboarding: boolean;
+  authIntent: "login" | "signup";
+} {
+  const fromOnboarding = resolveFromOnboarding(url);
+  const authIntent: "login" | "signup" = fromOnboarding
+    ? "signup"
+    : getOAuthPending() === "login"
+      ? "login"
+      : "signup";
+  return { fromOnboarding, authIntent };
 }

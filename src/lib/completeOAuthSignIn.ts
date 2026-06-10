@@ -16,10 +16,11 @@ export async function handleOAuthCallbackUrl(options: {
   url: string;
   checkSubscription: () => Promise<SubscriptionStatusLike | null>;
   navigate: NavigateFunction;
+  fromOnboarding?: boolean;
   onExchangeSuccess?: () => void;
   allowDefer?: boolean;
 }): Promise<OAuthCallbackResult> {
-  const { url, checkSubscription, navigate, onExchangeSuccess, allowDefer = true } = options;
+  const { url, checkSubscription, navigate, onExchangeSuccess, allowDefer = true, fromOnboarding } = options;
 
   if (isOAuthErrorUrl(url)) {
     clearOAuthPending();
@@ -40,7 +41,7 @@ export async function handleOAuthCallbackUrl(options: {
     oauthUrl: url,
     checkSubscription,
     navigate,
-    fromOnboarding: resolveFromOnboarding(url),
+    fromOnboarding: fromOnboarding ?? resolveFromOnboarding(url),
     onOAuthExchangeSuccess: onExchangeSuccess,
     allowOAuthDefer: allowDefer,
   });

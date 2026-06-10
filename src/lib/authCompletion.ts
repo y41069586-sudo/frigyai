@@ -12,7 +12,7 @@ import {
 import {
   clearOAuthPending,
   resolveFromOnboarding,
-  resolveOAuthAuthIntent,
+  resolveOAuthContext,
 } from "@/lib/oauthPending";
 import {
   ensureAuthSessionForRouting,
@@ -377,7 +377,8 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     setResult({ status: "pending", phase: "oauth_exchange" });
     await closeNativeOAuthBrowser();
 
-    const fromOnboarding = fromOnboardingOpt ?? resolveFromOnboarding(oauthUrl);
+    const oauthContext = resolveOAuthContext(oauthUrl);
+    const fromOnboarding = fromOnboardingOpt ?? oauthContext.fromOnboarding;
     const exchanged = await completeOAuthFromUrl(oauthUrl);
 
     if (!exchanged) {
@@ -390,11 +391,9 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     }
 
     clearStashedOAuthCallbackUrl();
+    const authIntent: PostAuthIntent = authIntentOpt ?? oauthContext.authIntent;
     clearOAuthPending();
     onOAuthExchangeSuccess?.();
-
-    const authIntent: PostAuthIntent =
-      authIntentOpt ?? resolveOAuthAuthIntent(oauthUrl);
 
     setResult({ status: "pending", phase: "session" });
     const oauthSessionWaitMs = Capacitor.isNativePlatform()

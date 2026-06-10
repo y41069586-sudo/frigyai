@@ -131,6 +131,28 @@ export async function resolvePostAuthDestination(options: {
     };
   }
 
+  if (authIntent === "login") {
+    if (await isReturningAppUser(userId, email, authUser)) {
+      return { phase: "dashboard", path: "/", userId };
+    }
+
+    if (authUser && isEstablishedAuthUser(authUser)) {
+      return { phase: "dashboard", path: "/", userId };
+    }
+
+    if (options.emailPasswordLogin) {
+      return { phase: "dashboard", path: "/", userId };
+    }
+
+    return {
+      phase: "standalone_paywall",
+      path: hasEverHadPremium()
+        ? buildPremiumPricingRoute({ trialEligible: false })
+        : resolvePaywallPath(options.explicitPath),
+      userId,
+    };
+  }
+
   if (await isReturningAppUser(userId, email, authUser)) {
     return { phase: "dashboard", path: "/", userId };
   }

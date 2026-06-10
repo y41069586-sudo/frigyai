@@ -5,7 +5,7 @@ import { App } from "@capacitor/app";
 import { resolveDeepLink } from "@/lib/appDeepLink";
 import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl, scheduleStashedOAuthRetry } from "@/lib/completeOAuthSignIn";
-import { resolveFromOnboarding } from "@/lib/oauthPending";
+import { resolveOAuthContext } from "@/lib/oauthPending";
 import { stashOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
 import { useAuth } from "@/contexts/AuthContext";
 import { captureReferralAttribution, applyDeferredReferralOnFirstOpen } from "@/lib/referralAttribution";
@@ -62,12 +62,14 @@ export function AppDeepLinkListener() {
 
       if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
         stashOAuthCallbackUrl(url);
+        const oauthContext = resolveOAuthContext(url);
         void handleOAuthCallbackUrl({
           url,
           checkSubscription,
           navigate,
+          fromOnboarding: oauthContext.fromOnboarding,
           onExchangeSuccess: () => {
-            if (resolveFromOnboarding(url)) {
+            if (oauthContext.fromOnboarding) {
               navigate("/?onboardingStep=paywall", { replace: true });
             }
           },

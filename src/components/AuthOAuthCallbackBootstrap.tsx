@@ -9,7 +9,7 @@ import {
   publishAuthResult,
   resetAuthFlow,
 } from "@/lib/authCompletion";
-import { clearOAuthPending, getOAuthPending, resolveFromOnboarding } from "@/lib/oauthPending";
+import { clearOAuthPending, getOAuthPending, resolveOAuthContext } from "@/lib/oauthPending";
 import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
 
@@ -42,13 +42,14 @@ export function AuthOAuthCallbackBootstrap() {
     publishAuthResult({ status: "pending", phase: "oauth_exchange" });
 
     void (async () => {
-      const fromOnboarding = resolveFromOnboarding(href);
+      const oauthContext = resolveOAuthContext(href);
       const result = await handleOAuthCallbackUrl({
         url: href,
         checkSubscription,
         navigate,
+        fromOnboarding: oauthContext.fromOnboarding,
         onExchangeSuccess: () => {
-          navigate(fromOnboarding ? "/?onboardingStep=paywall" : "/", { replace: true });
+          navigate(oauthContext.fromOnboarding ? "/?onboardingStep=paywall" : "/", { replace: true });
         },
       });
 
