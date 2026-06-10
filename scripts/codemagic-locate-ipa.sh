@@ -19,6 +19,26 @@ for dir in "${CANDIDATES[@]}"; do
       if [ -f "$ipa" ]; then
         FOUND="$ipa"
         echo "OK: $ipa ($(du -h "$ipa" | awk '{print $1}'))"
+        IOS_MIN_BUILD="${IOS_MIN_BUILD:-6}"
+        BUNDLE_VERSION=""
+        if command -v unzip >/dev/null && command -v plutil >/dev/null; then
+          INFO_PLIST="$(mktemp)"
+          unzip -p "$ipa" "Payload/"*.app/Info.plist >"$INFO_PLIST" 2>/dev/null || true
+          if [ -s "$INFO_PLIST" ]; then
+            BUNDLE_VERSION="$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST" 2>/dev/null || true)"
+          fi
+          rm -f "$INFO_PLIST"
+        fi
+        if [ -n "$BUNDLE_VERSION" ]; then
+          echo "CFBundleVersion in IPA: $BUNDLE_VERSION (minimum required: $IOS_MIN_BUILD)"
+          if [ "$BUNDLE_VERSION" -lt "$IOS_MIN_BUILD" ]; then
+            echo "ERROR: IPA CFBundleVersion $BUNDLE_VERSION is too low for App Store Connect."
+            echo "Rebuild from latest main (IOS_MIN_BUILD=$IOS_MIN_BUILD) or bump IOS_MIN_BUILD in codemagic.yaml."
+            exit 1
+          fi
+        else
+          echo "WARNING: Could not read CFBundleVersion from IPA (skipping version gate)."
+        fi
       fi
     done
   fi

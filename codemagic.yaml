@@ -200,7 +200,7 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR/ios/App"
           # CFBundleVersion must strictly increase on App Store Connect (build 5 already uploaded).
-          IOS_MIN_BUILD=6
+          export IOS_MIN_BUILD=6
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
           if [ "$BUILD_NUM" -lt "$IOS_MIN_BUILD" ]; then
             BUILD_NUM=$IOS_MIN_BUILD
@@ -212,6 +212,7 @@ workflows:
             echo "ERROR: CFBundleVersion must be >= $IOS_MIN_BUILD (App Store rejects duplicate build numbers)."
             exit 1
           fi
+          echo "$BUILD_NUM" > "$CM_BUILD_DIR/.ios_bundle_version"
 
       - name: Build IPA
         script: |
@@ -224,7 +225,9 @@ workflows:
             --disable-xcpretty
 
       - name: Verify IPA artifact
-        script: bash scripts/codemagic-locate-ipa.sh
+        script: |
+          export IOS_MIN_BUILD=6
+          bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
