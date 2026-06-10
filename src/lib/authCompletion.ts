@@ -66,7 +66,7 @@ export type RunAuthCompletionInput = {
   emailPasswordLogin?: boolean;
 };
 
-const WATCHDOG_MS = 12_000;
+const WATCHDOG_MS = 20_000;
 /** Max time navigation may stay in `executing` before forced recovery. */
 export const NAV_EXECUTION_TIMEOUT_MS = 5_000;
 const IDLE_NAVIGATION: AuthNavigationState = {

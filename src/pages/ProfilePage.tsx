@@ -32,13 +32,15 @@ import { ReminderSettings } from "@/components/ReminderSettings";
 import { DietPreferencesSettings } from "@/components/DietPreferencesSettings";
 import { ReferralCodesAdmin } from "@/components/ReferralCodesAdmin";
 import { isReferralAdmin } from "@/lib/admin";
-import { clearOnboardingForLogout } from "@/components/onboarding/utils";
-import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
+import { clearSessionDataForLogout } from "@/components/onboarding/utils";
 import { cn } from "@/lib/utils";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
+import { openStoreSubscriptionManagement, restoreStorePurchases } from "@/lib/storeBilling";
+import { usesStoreBilling } from "@/lib/billingPlatform";
+import { finalizeStorePurchase } from "@/lib/finalizeStorePurchase";
+import { markEverPremium } from "@/lib/trialEligibility";
 import { isAppleSignInAvailable } from "@/lib/appleSignIn";
 import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
 
@@ -121,24 +123,50 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, session, subscriptionStatus, isPremium, signOut, checkSubscription, linkAppleAccount } = useAuth();
   const premiumActive = isPremium || isSubscriptionActive(subscriptionStatus);
-  const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
   const dateLocale = getAppLocale(language);
   const [refreshing, setRefreshing] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const canManageSubscription = canManageStoreSubscription(subscriptionStatus);
+  const showStoreRestore = usesStoreBilling();
 
   const handleSignOut = async () => {
-    try {
-      await saveProgress({ onboarding_complete: false });
-    } catch {
-      /* still log out if DB update fails */
-    }
-    clearOnboardingForLogout();
+    clearSessionDataForLogout();
     await signOut();
     navigate("/", { replace: true });
+  };
+
+  const handleRestorePurchases = async () => {
+    if (restoreLoading || !session?.access_token) return;
+    setRestoreLoading(true);
+    try {
+      const result = await restoreStorePurchases(session.access_token);
+      if (!result.ok && result.message && !result.cancelled) {
+        toast({ title: t.error, description: result.message, variant: "destructive" });
+        return;
+      }
+      const active = await finalizeStorePurchase({
+        checkSubscription,
+        accessToken: session.access_token,
+        copy: {
+          premiumActivating: t.premiumActivating,
+          premiumActivatingDesc: t.premiumActivatingDesc,
+          premiumNotActiveYet: t.premiumNotActiveYet,
+          premiumNotActiveDesc: t.premiumNotActiveDesc,
+        },
+        toast,
+        maxAttempts: 12,
+      });
+      if (active) {
+        markEverPremium();
+        toast({ title: t.success, description: t.purchasesRestoredMsg });
+      }
+    } finally {
+      setRestoreLoading(false);
+    }
   };
 
   const handleRefreshSubscription = async () => {
@@ -180,28 +208,36 @@ const ProfilePage = () => {
 
     setDeleteLoading(true);
     try {
-      const { error: functionError } = await supabase.functions.invoke("delete-user", {
+      const { data, error: functionError } = await supabase.functions.invoke("delete-user", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (functionError) throw functionError;
+      if (data && typeof data === "object" && "error" in data && data.error) {
+        throw new Error(String(data.error));
+      }
 
       toast({
         title: t.accountDeletedTitle,
         description: t.accountDeletedDesc,
       });
 
-      localStorage.clear();
+      clearSessionDataForLogout();
+      localStorage.removeItem("onboardingComplete");
       await signOut();
+      setDeleteDialogOpen(false);
       navigate("/auth");
     } catch (error: unknown) {
+      const message = getPublicErrorMessage(
+        error,
+        "Dein Konto konnte gerade nicht gelöscht werden. Bitte versuche es erneut oder kontaktiere den Support.",
+      );
       toast({
         title: t.error,
-        description: getPublicErrorMessage(error, "Dein Konto konnte gerade nicht gelöscht werden. Bitte versuche es erneut."),
+        description: message,
         variant: "destructive",
       });
     } finally {
       setDeleteLoading(false);
-      setDeleteDialogOpen(false);
     }
   };
 
@@ -314,6 +350,14 @@ const ProfilePage = () => {
                 )
               }
             />
+            {showStoreRestore && (
+              <SettingsRow
+                icon={RefreshCw}
+                label={t.restorePurchases}
+                description={restoreLoading ? t.loading : undefined}
+                onClick={() => void handleRestorePurchases()}
+              />
+            )}
             {canManageSubscription && (
               <SettingsRow
                 icon={CreditCard}

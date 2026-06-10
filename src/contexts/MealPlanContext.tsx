@@ -14,6 +14,7 @@ import {
 import { isSubscriptionActive } from '@/lib/subscription';
 import { usesStoreBilling } from '@/lib/billingPlatform';
 import { syncStoreSubscriptionToServer } from '@/lib/storeBilling';
+import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
 import { resolveMealPlanGenerationTargets } from '@/lib/mealPlanGenerationTargets';
 import { readMealPlanPreferences } from '@/lib/mealPlanPreferences';
 import { hasMealPlanContent, resolveTodayMealPlanDayIndex } from '@/lib/food-ai/weeklyPlanWidgetData';
@@ -538,7 +539,8 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     let hasPremium = isPremium;
-    if (!hasPremium) {
+    if (!hasPremium && session.access_token) {
+      await syncStoreSubscriptionIfNeeded(session.access_token);
       const status = await checkSubscription();
       hasPremium = isSubscriptionActive(status);
     }
@@ -675,17 +677,19 @@ export const MealPlanProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           updateGenerationProgressTarget(80);
 
           if (unsafeMeals.length > 0) {
-            console.warn('[MEAL-PLAN-SAFETY] Client flagged meals (plan still saved):', unsafeMeals);
+            console.warn('[MEAL-PLAN-SAFETY] Rejected plan with unsafe meals:', unsafeMeals);
             const lang = getStoredLanguage();
             toast({
-              title: lang === 'fr' ? 'Vérification' : lang === 'en' ? 'Safety check' : 'Hinweis',
+              title: lang === 'fr' ? 'Plan non enregistré' : lang === 'en' ? 'Plan not saved' : 'Plan nicht gespeichert',
               description:
                 lang === 'fr'
-                  ? `Certains plats pourraient ne pas correspondre à vos restrictions (${unsafeMeals.slice(0, 2).join('; ')}). Vérifiez le plan.`
+                  ? `Certains plats ne correspondent pas à tes restrictions (${unsafeMeals.slice(0, 2).join('; ')}). Génère un nouveau plan.`
                   : lang === 'en'
-                    ? `Some meals may not match your restrictions (${unsafeMeals.slice(0, 2).join('; ')}). Please review the plan.`
-                    : `Einige Gerichte könnten zu deinen Vorgaben passen (${unsafeMeals.slice(0, 2).join('; ')}). Bitte Plan kurz prüfen.`,
+                    ? `Some meals conflict with your restrictions (${unsafeMeals.slice(0, 2).join('; ')}). Please generate again.`
+                    : `Einige Gerichte passen nicht zu deinen Vorgaben (${unsafeMeals.slice(0, 2).join('; ')}). Bitte neu generieren.`,
+              variant: 'destructive',
             });
+            return false;
           }
 
           // Debug: Check if ingredients are present

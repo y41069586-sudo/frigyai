@@ -4,7 +4,7 @@ import { redeemPendingReferralCode } from "@/lib/referralCode";
 import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 import { isPromoPremiumProductId, isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
-const AUTH_SUBSCRIPTION_CHECK_MS = 2000;
+const AUTH_SUBSCRIPTION_CHECK_MS = 4500;
 
 async function checkSubscriptionForAuthRouting(
   checkSubscription: () => Promise<SubscriptionStatusLike | null>,

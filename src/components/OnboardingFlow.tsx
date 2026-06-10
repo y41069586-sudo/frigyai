@@ -84,7 +84,7 @@ import {
 } from "@/lib/authErrors";
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
 import { restoreStorePurchases } from "@/lib/storeBilling";
-import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { finalizeStorePurchase } from "@/lib/finalizeStorePurchase";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
@@ -820,10 +820,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         return;
       }
       if (result.ok && result.channel === "store") {
-        const active = await waitForPremiumAfterPurchase(
+        const active = await finalizeStorePurchase({
           checkSubscription,
-          session.access_token,
-        );
+          accessToken: session.access_token,
+          copy: {
+            premiumActivating: t.premiumActivating,
+            premiumActivatingDesc: t.premiumActivatingDesc,
+            premiumNotActiveYet: t.premiumNotActiveYet,
+            premiumNotActiveDesc: t.premiumNotActiveDesc,
+          },
+          toast,
+        });
         if (active) {
           markEverPremium();
           if (plan === "monthly" && resolveTrialEligibleFromLocal()) {
@@ -850,22 +857,29 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     setPaywallRestoreLoading(true);
     try {
       const result = await restoreStorePurchases(session.access_token);
-      const active = await waitForPremiumAfterPurchase(
-        checkSubscription,
-        session.access_token,
-        4,
-      );
-      if (result.ok || active) {
-        markEverPremium();
-        finishOnboardingExit();
-        return;
-      }
-      if (result.message) {
+      if (!result.ok && result.message && !result.cancelled) {
         toast({
           title: t.error,
           description: result.message,
           variant: "destructive",
         });
+        return;
+      }
+      const active = await finalizeStorePurchase({
+        checkSubscription,
+        accessToken: session.access_token,
+        copy: {
+          premiumActivating: t.premiumActivating,
+          premiumActivatingDesc: t.premiumActivatingDesc,
+          premiumNotActiveYet: t.premiumNotActiveYet,
+          premiumNotActiveDesc: t.premiumNotActiveDesc,
+        },
+        toast,
+        maxAttempts: 12,
+      });
+      if (active) {
+        markEverPremium();
+        finishOnboardingExit();
       }
     } finally {
       setPaywallRestoreLoading(false);

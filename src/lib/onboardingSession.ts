@@ -1,26 +1,25 @@
-import type { OnboardingStep } from "@/components/onboarding/types";
+import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 
 const KEY_IN_PROGRESS = "frigy_onboarding_in_progress";
 const KEY_RESUME_STEP = "frigy_onboarding_resume_step";
 const KEY_OAUTH_PENDING = "frigy_onboarding_oauth_pending";
 
-const RESUME_STEPS = new Set<OnboardingStep>([
-  "welcome",
-  "gender",
-  "activity",
-  "apple-health-connect",
-  "referral",
-  "birthdate",
-  "height",
-  "weight",
-  "target-weight",
-  "goal",
-  "pace",
-  "projection",
-  "notifications",
-  "auth",
-  "paywall",
-]);
+/** Steps that can be restored after app kill / OAuth detour (excludes transient "analyzing"). */
+const RESUME_STEPS = new Set<OnboardingStep>(
+  onboardingSteps.filter((step) => step !== "analyzing"),
+);
+
+const LEGACY_RESUME_STEP_ALIASES: Record<string, OnboardingStep> = {
+  referral: "referral-code",
+  auth: "save-progress",
+  pace: "speed-select",
+  notifications: "notification-prefs",
+};
+
+function normalizeResumeStep(raw: string): OnboardingStep | null {
+  const mapped = LEGACY_RESUME_STEP_ALIASES[raw] ?? raw;
+  return RESUME_STEPS.has(mapped as OnboardingStep) ? (mapped as OnboardingStep) : null;
+}
 
 function canUseSessionStorage(): boolean {
   return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
@@ -69,7 +68,7 @@ export function getOnboardingResumeStep(): OnboardingStep | null {
   try {
     const raw = sessionStorage.getItem(KEY_RESUME_STEP);
     if (!raw) return null;
-    return RESUME_STEPS.has(raw as OnboardingStep) ? (raw as OnboardingStep) : null;
+    return normalizeResumeStep(raw);
   } catch {
     return null;
   }

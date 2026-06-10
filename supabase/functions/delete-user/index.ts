@@ -69,6 +69,8 @@ serve(async (req) => {
         supabaseClient.from('user_streaks').delete().eq('user_id', userId),
         supabaseClient.from('water_intake').delete().eq('user_id', userId),
         supabaseClient.from('onboarding_data').delete().eq('user_id', userId),
+        supabaseClient.from('user_onboarding').delete().eq('user_id', userId),
+        supabaseClient.from('weekly_meal_plans').delete().eq('user_id', userId),
         supabaseClient.from('subscription_cache').delete().eq('user_id', userId),
       ]);
       console.log(`[DELETE-USER] All user data deleted: ${userId}`);

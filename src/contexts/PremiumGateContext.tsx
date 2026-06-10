@@ -20,7 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
+import { supabase } from "@/integrations/supabase/client";
 import { isSubscriptionActive } from "@/lib/subscription";
+import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 
 const copy = {
   de: {
@@ -64,19 +66,19 @@ export function PremiumGateProvider({ children }: { children: ReactNode }) {
     if (isPremium) return true;
     if (isSubscriptionActive(subscriptionStatus)) return true;
 
-    // Show paywall immediately — don't wait for slow network checks (multiple taps).
-    setOpen(true);
-
     try {
+      const session = (await supabase.auth.getSession()).data.session;
+      await syncStoreSubscriptionIfNeeded(session?.access_token);
       const status = await checkSubscription();
       if (isSubscriptionActive(status)) {
         setOpen(false);
         return true;
       }
     } catch {
-      /* keep dialog open */
+      /* fall through to paywall dialog */
     }
 
+    setOpen(true);
     return false;
   }, [isPremium, subscriptionStatus, checkSubscription]);
 

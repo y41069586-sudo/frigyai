@@ -13,9 +13,9 @@ export function getMinCaloriesForAge(age: number): number {
   return age < 25 ? 1500 : age < 40 ? 1400 : 1300;
 }
 
-/** Nach Abmelden: Onboarding von vorne (lokaler Zustand). */
-export function clearOnboardingForLogout() {
-  localStorage.removeItem("onboardingComplete");
+/** Clears local app data on sign-out but keeps onboarding completion for re-login. */
+export function clearSessionDataForLogout() {
+  const onboardingWasComplete = localStorage.getItem("onboardingComplete") === "true";
   localStorage.removeItem("onboardingUserData");
   localStorage.removeItem("userName");
   localStorage.removeItem("userProfile");
@@ -26,6 +26,15 @@ export function clearOnboardingForLogout() {
   localStorage.removeItem("mealPlanGenerationCount");
   localStorage.removeItem("scanFeedback");
   clearPendingReferralCode();
+  if (onboardingWasComplete) {
+    localStorage.setItem("onboardingComplete", "true");
+  }
+}
+
+/** Full onboarding reset (testing / explicit restart). */
+export function clearOnboardingForLogout() {
+  localStorage.removeItem("onboardingComplete");
+  clearSessionDataForLogout();
 }
 
 // Macro calculation using Mifflin-St Jeor BMR formula

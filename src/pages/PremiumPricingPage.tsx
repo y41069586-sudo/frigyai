@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
 import { restoreStorePurchases } from "@/lib/storeBilling";
-import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { finalizeStorePurchase } from "@/lib/finalizeStorePurchase";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -54,10 +54,17 @@ const PremiumPricingPage = () => {
         attributionSource: "premium_pricing",
       });
       if (result.ok && result.channel === "store") {
-        const active = await waitForPremiumAfterPurchase(
+        const active = await finalizeStorePurchase({
           checkSubscription,
-          session.access_token,
-        );
+          accessToken: session.access_token,
+          copy: {
+            premiumActivating: t.premiumActivating,
+            premiumActivatingDesc: t.premiumActivatingDesc,
+            premiumNotActiveYet: t.premiumNotActiveYet,
+            premiumNotActiveDesc: t.premiumNotActiveDesc,
+          },
+          toast,
+        });
         if (active) {
           markEverPremium();
           if (plan === "monthly" && trialEligible) {
@@ -93,23 +100,30 @@ const PremiumPricingPage = () => {
     setRestoreLoading(true);
     try {
       const result = await restoreStorePurchases(session.access_token);
-      const active = await waitForPremiumAfterPurchase(
-        checkSubscription,
-        session.access_token,
-        4,
-      );
-      if (result.ok || active) {
-        markEverPremium();
-        localStorage.setItem("onboardingComplete", "true");
-        navigate("/", { replace: true });
-        return;
-      }
-      if (result.message) {
+      if (!result.ok && result.message && !result.cancelled) {
         toast({
           title: t.error,
           description: result.message,
           variant: "destructive",
         });
+        return;
+      }
+      const active = await finalizeStorePurchase({
+        checkSubscription,
+        accessToken: session.access_token,
+        copy: {
+          premiumActivating: t.premiumActivating,
+          premiumActivatingDesc: t.premiumActivatingDesc,
+          premiumNotActiveYet: t.premiumNotActiveYet,
+          premiumNotActiveDesc: t.premiumNotActiveDesc,
+        },
+        toast,
+        maxAttempts: 12,
+      });
+      if (active) {
+        markEverPremium();
+        localStorage.setItem("onboardingComplete", "true");
+        navigate("/", { replace: true });
       }
     } finally {
       setRestoreLoading(false);

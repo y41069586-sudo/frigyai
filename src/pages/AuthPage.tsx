@@ -148,9 +148,17 @@ const AuthPage = () => {
       setAuthStuck(false);
       return;
     }
-    const timer = window.setTimeout(() => setAuthStuck(true), 6000);
-    return () => window.clearTimeout(timer);
-  }, [user, loading, isRedirecting]);
+    const retryTimer = window.setTimeout(() => {
+      if (!redirectStartedRef.current && !wasPostAuthRedirectRecentlyHandled()) {
+        void finishAuthRedirect();
+      }
+    }, 4000);
+    const stuckTimer = window.setTimeout(() => setAuthStuck(true), 10000);
+    return () => {
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(stuckTimer);
+    };
+  }, [user, loading, isRedirecting, finishAuthRedirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -16,7 +16,7 @@ import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { startPremiumCheckout } from '@/lib/purchaseCheckout';
 import type { PaywallBillingPlan } from '@/components/onboarding/components/OnboardingPaywallStep';
 import { openStoreSubscriptionManagement } from '@/lib/storeBilling';
-import { waitForPremiumAfterPurchase } from '@/lib/subscriptionRefresh';
+import { finalizeStorePurchase } from '@/lib/finalizeStorePurchase';
 import { SubscriptionLegalLinks } from '@/components/SubscriptionLegalLinks';
 
 const PremiumPage = () => {
@@ -67,10 +67,17 @@ const PremiumPage = () => {
       });
 
       if (result.ok && result.channel === 'store') {
-        const active = await waitForPremiumAfterPurchase(
+        const active = await finalizeStorePurchase({
           checkSubscription,
-          session.access_token,
-        );
+          accessToken: session.access_token,
+          copy: {
+            premiumActivating: t.premiumActivating,
+            premiumActivatingDesc: t.premiumActivatingDesc,
+            premiumNotActiveYet: t.premiumNotActiveYet,
+            premiumNotActiveDesc: t.premiumNotActiveDesc,
+          },
+          toast,
+        });
         if (active) {
           setShowSuccessDialog(true);
         }

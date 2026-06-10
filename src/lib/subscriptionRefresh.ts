@@ -13,11 +13,14 @@ export async function syncStoreSubscriptionIfNeeded(accessToken: string | null |
   }
 }
 
+export const PREMIUM_ACTIVATION_MAX_ATTEMPTS = 20;
+export const PREMIUM_ACTIVATION_POLL_MS = 1500;
+
 /** Poll until premium is active or attempts exhausted (after IAP purchase). */
 export async function waitForPremiumAfterPurchase(
   checkSubscription: () => Promise<SubscriptionStatusLike | null>,
   accessToken: string | null | undefined,
-  maxAttempts = 8,
+  maxAttempts = PREMIUM_ACTIVATION_MAX_ATTEMPTS,
 ): Promise<boolean> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await syncStoreSubscriptionIfNeeded(accessToken);
@@ -26,7 +29,7 @@ export async function waitForPremiumAfterPurchase(
       return true;
     }
     if (attempt < maxAttempts - 1) {
-      await new Promise((resolve) => window.setTimeout(resolve, 1500));
+      await new Promise((resolve) => window.setTimeout(resolve, PREMIUM_ACTIVATION_POLL_MS));
     }
   }
   return false;
