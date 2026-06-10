@@ -17,7 +17,9 @@ Before **Archive / App Store**: set `aps-environment` to `production` in `App.en
 ## Supabase Auth
 
 1. **Authentication → Providers → Apple**: enable, add Services ID / secret from Apple Developer.
-2. **URL Configuration → Redirect URLs**:
+2. **Client IDs (native iOS):** must include bundle ID `com.frigyapp.app` (comma-separated with Services ID if using web OAuth too). Without it: `Unacceptable audience in id_token`.
+3. **Skip nonce check (if „Nonces mismatch“ persists):** enable on Apple provider in Supabase Dashboard — GoTrue compares hex vs Apple's base64url ([supabase/auth#2378](https://github.com/supabase/auth/issues/2378)). The app also omits nonce on native iOS and falls back to OAuth.
+4. **URL Configuration → Redirect URLs**:
    - `frigy://callback`
    - `https://app.frigy.app/auth/callback`
    - Your local dev URL if needed
