@@ -2,6 +2,11 @@ import { Capacitor } from "@capacitor/core";
 import type { PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import {
+  readCachedStoreOfferingPrices,
+  resolveRevenueCatUserId,
+  writeCachedStoreOfferingPrices,
+} from "@/lib/storeOfferingPricesCache";
 import { supabase } from "@/integrations/supabase/client";
 
 const ANDROID_PACKAGE = "com.frigy.app";
@@ -401,6 +406,56 @@ export async function fetchStoreOfferingPrices(): Promise<StoreOfferingPrices | 
     console.warn("[StoreBilling] fetchStoreOfferingPrices failed:", e);
     return null;
   }
+}
+
+const PREFETCH_TIMEOUT_MS = 8_000;
+const prefetchInflight = new Map<string, Promise<StoreOfferingPrices | null>>();
+
+async function withPrefetchTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Background load of store prices — call on app start and when user signs in. */
+export async function prefetchStoreOfferingPrices(
+  userId?: string | null,
+): Promise<StoreOfferingPrices | null> {
+  if (!isStoreBillingConfigured()) {
+    return readCachedStoreOfferingPrices();
+  }
+
+  const appUserId = resolveRevenueCatUserId(userId);
+  const inflight = prefetchInflight.get(appUserId);
+  if (inflight) return inflight;
+
+  const promise = (async () => {
+    try {
+      await withPrefetchTimeout(configureStoreBilling(appUserId), PREFETCH_TIMEOUT_MS);
+      const fetched = await withPrefetchTimeout(fetchStoreOfferingPrices(), PREFETCH_TIMEOUT_MS);
+      if (fetched?.monthly?.priceString && fetched?.yearly?.priceString) {
+        writeCachedStoreOfferingPrices(fetched);
+        return fetched;
+      }
+      return readCachedStoreOfferingPrices();
+    } catch (error) {
+      console.warn("[StoreBilling] prefetchStoreOfferingPrices failed:", error);
+      return readCachedStoreOfferingPrices();
+    }
+  })().finally(() => {
+    prefetchInflight.delete(appUserId);
+  });
+
+  prefetchInflight.set(appUserId, promise);
+  return promise;
 }
 
 export type StorePurchaseResult =

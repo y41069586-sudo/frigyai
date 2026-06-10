@@ -1,3 +1,4 @@
+import type { Session } from "@supabase/supabase-js";
 import type { Language } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -77,13 +78,42 @@ export function isEmailRateLimited(error: { message?: string; code?: string } | 
 
 /** Wait for Supabase session after signUp (auth listener / delayed session). */
 export async function waitForAuthSession(maxMs = 2800): Promise<boolean> {
+  const session = await waitForOAuthSession(maxMs);
+  return Boolean(session);
+}
+
+/** Wait for OAuth/native sign-in to persist a session (Google browser return, Apple, etc.). */
+export async function waitForOAuthSession(maxMs = 8000): Promise<Session | null> {
+  if (!supabase) return null;
+
   const start = Date.now();
-  while (Date.now() - start < maxMs) {
+  while (Date.now() - start < Math.min(maxMs, 500)) {
     const { data } = await supabase.auth.getSession();
-    if (data.session) return true;
-    await new Promise((resolve) => setTimeout(resolve, 160));
+    if (data.session) return data.session;
+    await new Promise((resolve) => window.setTimeout(resolve, 160));
   }
-  return false;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (session: Session | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+      resolve(session);
+    };
+
+    const timeoutId = window.setTimeout(async () => {
+      const { data } = await supabase.auth.getSession();
+      finish(data.session);
+    }, maxMs);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        finish(session);
+      }
+    });
+  });
 }
 
 export function resolveAuthErrorMessage(

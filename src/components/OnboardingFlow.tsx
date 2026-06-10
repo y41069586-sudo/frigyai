@@ -31,7 +31,7 @@ import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
-import { clearOAuthPending } from "@/lib/oauthPending";
+import { clearOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 import {
   clearOnboardingOAuthPending,
   clearOnboardingSession,
@@ -81,6 +81,7 @@ import {
   isUserAlreadyRegistered,
   resolveAuthErrorMessage,
   waitForAuthSession,
+  waitForOAuthSession,
 } from "@/lib/authErrors";
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
@@ -88,7 +89,8 @@ import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligi
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { supabase } from "@/integrations/supabase/client";
-import { isAppleSignInAvailable } from "@/lib/appleSignIn";
+import { isAppleSignInAvailable, waitForAppleSignInSession } from "@/lib/appleSignIn";
+import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from "@/lib/postAuthRedirect";
 import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -263,7 +265,7 @@ const SplashLanguageSwitcher = () => {
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { signInWithGoogle, signInWithApple, user } = useAuth();
+  const { signInWithGoogle, signInWithApple, checkSubscription } = useAuth();
   const { toast } = useToast();
   const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
   const [isAppleAuthLoading, setIsAppleAuthLoading] = useState(false);
@@ -276,22 +278,59 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
     const setLoading = provider === "google" ? setIsGoogleAuthLoading : setIsAppleAuthLoading;
     setLoading(true);
     try {
-      const { error } =
-        provider === "google"
-          ? await signInWithGoogle({ authQuery: { from: "login" } })
-          : await signInWithApple({ authQuery: { from: "login" } });
-      if (error) {
+      setOAuthPendingFromAuthQuery({ from: "login" });
+
+      if (provider === "apple") {
+        const { error, flow, session } = await signInWithApple({ authQuery: { from: "login" } });
+        if (error) {
+          return;
+        }
+        if (flow === "cancelled") return;
+
+        const activeSession = await waitForAppleSignInSession(flow, session ?? null);
+        if (activeSession) {
+          await redirectAfterSignIn({
+            userId: activeSession.user.id,
+            checkSubscription,
+            navigate,
+            authIntent: "login",
+          });
+          return;
+        }
+
         toast({
           title: t.onboardingLoginFailed,
-          description: getPublicErrorMessage(
-            error,
-            provider === "google"
-              ? "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."
-              : "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
-          ),
+          description: t.onboardingPleaseLoginToProceed,
           variant: "destructive",
         });
+        return;
       }
+
+      const { error } = await signInWithGoogle({ authQuery: { from: "login" } });
+      if (error) {
+        return;
+      }
+
+      if (await waitForOAuthSession(20_000)) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session && !wasPostAuthRedirectRecentlyHandled()) {
+          await redirectAfterSignIn({
+            userId: data.session.user.id,
+            checkSubscription,
+            navigate,
+            authIntent: "login",
+          });
+        }
+        return;
+      }
+
+      if (wasPostAuthRedirectRecentlyHandled()) return;
+
+      toast({
+        title: t.onboardingLoginFailed,
+        description: t.onboardingPleaseLoginToProceed,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -3700,24 +3739,27 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           saveOnboardingData(userData, { markOnboardingComplete: false });
           markOnboardingInProgress();
           markOnboardingOAuthPending("google");
-          clearOAuthPending();
+          setOAuthPendingFromAuthQuery({ from: "onboarding" });
           const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
           if (error) {
             clearOnboardingOAuthPending();
-            toast({
-              title: t.onboardingLoginFailed,
-              description: getPublicErrorMessage(
-                error,
-                "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
-              ),
-              variant: "destructive",
-            });
             setIsGoogleAuthLoading(false);
             return;
           }
-          if (await waitForAuthSession(4500)) {
+          if (await waitForOAuthSession(20_000)) {
             clearOnboardingOAuthPending();
-            await goAfterSignup(true);
+            if (!wasPostAuthRedirectRecentlyHandled()) {
+              await goAfterSignup(true);
+            }
+          } else if (!wasPostAuthRedirectRecentlyHandled()) {
+            clearOnboardingOAuthPending();
+            toast({
+              title: t.onboardingLoginFailed,
+              description: t.onboardingPleaseLoginToProceed,
+              variant: "destructive",
+            });
+          } else {
+            clearOnboardingOAuthPending();
           }
           setIsGoogleAuthLoading(false);
         };
@@ -3727,20 +3769,30 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           setIsAppleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
           markOnboardingOAuthPending("apple");
-          const { error } = await signInWithApple({ authQuery: { from: "onboarding" } });
+          setOAuthPendingFromAuthQuery({ from: "onboarding" });
+          const { error, flow, session } = await signInWithApple({ authQuery: { from: "onboarding" } });
           if (error) {
+            clearOnboardingOAuthPending();
+            setIsAppleAuthLoading(false);
+            return;
+          }
+          if (flow === "cancelled") {
+            clearOnboardingOAuthPending();
+            setIsAppleAuthLoading(false);
+            return;
+          }
+
+          const activeSession = await waitForAppleSignInSession(flow, session ?? null);
+          if (activeSession) {
+            clearOnboardingOAuthPending();
+            await goAfterSignup(true);
+          } else {
             clearOnboardingOAuthPending();
             toast({
               title: t.onboardingLoginFailed,
-              description: getPublicErrorMessage(
-                error,
-                "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
-              ),
+              description: t.onboardingPleaseLoginToProceed,
               variant: "destructive",
             });
-          } else if (await waitForAuthSession(3500)) {
-            clearOnboardingOAuthPending();
-            await goAfterSignup(true);
           }
           setIsAppleAuthLoading(false);
         };

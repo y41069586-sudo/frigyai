@@ -9,15 +9,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
-import { resolveAuthErrorMessage, waitForAuthSession } from '@/lib/authErrors';
+import { resolveAuthErrorMessage, waitForAuthSession, waitForOAuthSession } from '@/lib/authErrors';
 import { supabase } from '@/integrations/supabase/client';
 import { Capacitor } from '@capacitor/core';
 import { isOAuthCallbackUrl, POST_AUTH_PAYWALL_ROUTE } from '@/lib/authOAuth';
-import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from '@/lib/oauthPending';
+import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending, setOAuthPendingFromAuthQuery } from '@/lib/oauthPending';
 import { isAuthCompletionPending, isAuthFlowOverlayVisible } from '@/lib/authCompletion';
 import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from '@/lib/postAuthRedirect';
 import { persistOnboardingSignupFromStorage } from '@/components/onboarding/utils';
-import { isAppleSignInAvailable } from '@/lib/appleSignIn';
+import { isAppleSignInAvailable, waitForAppleSignInSession } from '@/lib/appleSignIn';
 import { AppleSignInIcon } from '@/components/icons/AppleSignInIcon';
 import { GoogleSignInIcon } from '@/components/icons/GoogleSignInIcon';
 
@@ -391,15 +391,23 @@ const AuthPage = () => {
                 onClick={async () => {
                   setIsAppleLoading(true);
                   setError(null);
-                  const { error: appleError } = await signInWithApple({
+                  setOAuthPendingFromAuthQuery(oauthFromQuery);
+                  const { error: appleError, flow, session } = await signInWithApple({
                     authQuery: oauthFromQuery,
                   });
                   if (appleError) {
                     const msg =
                       appleError instanceof Error ? appleError.message : "Apple-Anmeldung fehlgeschlagen";
                     setError(msg);
-                  } else if (await waitForAuthSession(3500)) {
-                    await finishAuthRedirect();
+                  } else if (flow === "cancelled") {
+                    /* user dismissed Apple sheet */
+                  } else {
+                    const activeSession = await waitForAppleSignInSession(flow, session ?? null);
+                    if (activeSession) {
+                      await finishAuthRedirect(activeSession);
+                    } else {
+                      setError(t.authLoginFailed);
+                    }
                   }
                   setIsAppleLoading(false);
                 }}
@@ -418,10 +426,17 @@ const AuthPage = () => {
                 setIsGoogleLoading(true);
                 setError(null);
                 redirectStartedRef.current = false;
+                setOAuthPendingFromAuthQuery(oauthFromQuery);
                 const { error: googleError } = await signInWithGoogle({
                   authQuery: oauthFromQuery,
                 });
                 if (googleError) {
+                  setError(t.authLoginFailed);
+                } else if (await waitForOAuthSession(20_000)) {
+                  if (!wasPostAuthRedirectRecentlyHandled()) {
+                    await finishAuthRedirect();
+                  }
+                } else if (!wasPostAuthRedirectRecentlyHandled()) {
                   setError(t.authLoginFailed);
                 }
                 setIsGoogleLoading(false);

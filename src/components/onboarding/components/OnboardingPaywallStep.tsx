@@ -255,6 +255,8 @@ export function OnboardingPaywallStep({
 
   const storeMonthlyHasIntro = storePrices?.monthly?.hasIntroOffer ?? true;
   const showMonthlyTrialUi = trialEligible && storeMonthlyHasIntro;
+  /** Top section: trial timeline only when monthly is selected; yearly shows benefits. */
+  const showTrialTimelineTop = isMonthly && showMonthlyTrialUi;
 
   const selectedPlanLabel = isMonthly ? t.planLengthMonthly : t.planLengthYearly;
   const selectedPrice = isMonthly ? monthlyPriceString : yearlyPriceString;
@@ -324,7 +326,7 @@ export function OnboardingPaywallStep({
         <div className="min-h-[clamp(2.5rem,8vh,4.5rem)] shrink-0" aria-hidden />
         <AnimatePresence mode="wait">
           <motion.div
-            key={showMonthlyTrialUi ? "trial" : "unlock"}
+            key={showTrialTimelineTop ? "trial" : "unlock"}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -332,10 +334,10 @@ export function OnboardingPaywallStep({
             className="mx-auto mt-auto w-full max-w-md pb-6 pt-2"
           >
             <h1 className="mb-5 text-center text-lg font-bold leading-snug tracking-tight min-[390px]:text-xl">
-              {showMonthlyTrialUi ? t.trialTitle : t.unlockTitle}
+              {showTrialTimelineTop ? t.trialTitle : t.unlockTitle}
             </h1>
 
-            {showMonthlyTrialUi ? (
+            {showTrialTimelineTop ? (
               <div className="space-y-1">
                 {trialSteps.map((step, i) => {
                   const Icon = step.icon;
@@ -462,7 +464,7 @@ export function OnboardingPaywallStep({
 
           <p className="mt-5 flex items-center justify-center gap-2 text-center text-[15px] text-[#374151]">
             <Check className="h-5 w-5 shrink-0" style={{ color: ONBOARDING_PALETTE.primaryDeep }} strokeWidth={2.5} />
-            {showMonthlyTrialUi ? t.noPaymentNow : t.noCommitment}
+            {showTrialTimelineTop ? t.noPaymentNow : t.noCommitment}
           </p>
 
           <motion.button
@@ -482,7 +484,7 @@ export function OnboardingPaywallStep({
                 {globalT.loading}
               </>
             ) : (
-              (showMonthlyTrialUi ? t.ctaTrial : t.ctaUnlock)
+              (showTrialTimelineTop ? t.ctaTrial : t.ctaUnlock)
             )}
           </motion.button>
 

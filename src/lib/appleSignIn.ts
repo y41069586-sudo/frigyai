@@ -1,11 +1,22 @@
 import { Capacitor } from "@capacitor/core";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { waitForOAuthSession } from "@/lib/authErrors";
 import { signInWithOAuthProvider } from "@/lib/authOAuth";
+import { setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 
 export const APPLE_BUNDLE_ID =
   import.meta.env.VITE_APPLE_BUNDLE_ID?.trim() || "com.frigyapp.app";
 const APPLE_REDIRECT_URI =
   import.meta.env.VITE_APPLE_REDIRECT_URI?.trim() || "https://app.frigy.app/auth/callback";
+
+export type AppleSignInFlow = "native" | "oauth" | "cancelled";
+
+export type AppleSignInResult = {
+  error: unknown | null;
+  flow: AppleSignInFlow;
+  session: Session | null;
+};
 
 function generateState(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -23,22 +34,25 @@ function isRecoverableNativeAppleError(error: { message?: string }): boolean {
   return /unacceptable audience|nonce/i.test(msg);
 }
 
+async function readSessionWithRetry(maxMs = 4000): Promise<Session | null> {
+  return waitForOAuthSession(maxMs);
+}
+
 /**
  * Native Sign in with Apple (iOS) → Supabase `signInWithIdToken`.
  * Falls back to OAuth in browser on other platforms or when native id_token fails.
- *
- * Native iOS omits `nonce`: GoTrue compares hex(SHA256) vs Apple's base64url (auth#2378).
- * Supabase must list bundle ID `com.frigyapp.app` under Apple → Client IDs.
  */
 export async function signInWithApple(options?: {
   authQuery?: Record<string, string>;
-}): Promise<{ error: unknown | null }> {
+}): Promise<AppleSignInResult> {
   if (!supabase) {
-    return { error: new Error("Supabase not configured") };
+    return { error: new Error("Supabase not configured"), flow: "native", session: null };
   }
 
   if (!isAppleSignInAvailable()) {
-    return signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
+    setOAuthPendingFromAuthQuery(options?.authQuery);
+    const { error } = await signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
+    return { error, flow: "oauth", session: null };
   }
 
   try {
@@ -51,10 +65,14 @@ export async function signInWithApple(options?: {
 
     const identityToken = result.idToken;
     if (!identityToken) {
-      return { error: new Error("Apple identity token missing") };
+      return {
+        error: new Error("Apple identity token missing"),
+        flow: "native",
+        session: null,
+      };
     }
 
-    const { error } = await supabase.auth.signInWithIdToken({
+    const { data, error } = await supabase.auth.signInWithIdToken({
       provider: "apple",
       token: identityToken,
     });
@@ -62,19 +80,32 @@ export async function signInWithApple(options?: {
     if (error) {
       if (isRecoverableNativeAppleError(error)) {
         console.warn("[AppleSignIn] native id_token rejected, falling back to OAuth:", error.message);
-        return signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
+        setOAuthPendingFromAuthQuery(options?.authQuery);
+        const oauth = await signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
+        return { error: oauth.error, flow: "oauth", session: null };
       }
-      return { error: resolveAppleAuthError(error) };
+      return { error: resolveAppleAuthError(error), flow: "native", session: null };
     }
 
-    return { error: null };
+    const session = data.session ?? (await readSessionWithRetry(6000));
+    if (!session) {
+      return {
+        error: new Error("Session nach Apple-Anmeldung nicht verfügbar. Bitte erneut versuchen."),
+        flow: "native",
+        session: null,
+      };
+    }
+
+    return { error: null, flow: "native", session };
   } catch (e: unknown) {
     const err = e as { message?: string; code?: string };
     if (err?.code === "1001" || /cancel/i.test(String(err?.message || ""))) {
-      return { error: null };
+      return { error: null, flow: "cancelled", session: null };
     }
     console.warn("[AppleSignIn] native failed, trying OAuth:", e);
-    return signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
+    setOAuthPendingFromAuthQuery(options?.authQuery);
+    const oauth = await signInWithOAuthProvider("apple", { authQuery: options?.authQuery });
+    return { error: oauth.error, flow: "oauth", session: null };
   }
 }
 
@@ -126,4 +157,15 @@ function resolveAppleAuthError(error: { message?: string; code?: string }): Erro
   }
 
   return new Error(msg || "Apple-Anmeldung fehlgeschlagen");
+}
+
+/** Wait for Apple sign-in to finish (native or OAuth browser return). */
+export async function waitForAppleSignInSession(
+  flow: AppleSignInFlow,
+  existingSession: Session | null = null,
+): Promise<Session | null> {
+  if (existingSession) return existingSession;
+  if (flow === "cancelled") return null;
+  const maxMs = flow === "oauth" ? 20_000 : 8_000;
+  return waitForOAuthSession(maxMs);
 }

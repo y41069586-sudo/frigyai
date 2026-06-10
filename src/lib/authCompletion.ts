@@ -398,7 +398,13 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
       authIntentOpt ?? resolveOAuthAuthIntent(oauthUrl);
 
     setResult({ status: "pending", phase: "session" });
-    const oauthSessionWaitMs = authIntent === "login" ? 2000 : 3500;
+    const oauthSessionWaitMs = Capacitor.isNativePlatform()
+      ? authIntent === "login"
+        ? 8000
+        : 10_000
+      : authIntent === "login"
+        ? 3000
+        : 5000;
     const sessionAfterOAuth = await ensureAuthSessionForRouting({ maxWaitMs: oauthSessionWaitMs });
     if (!sessionAfterOAuth.ok) {
       if (allowOAuthDefer && Capacitor.isNativePlatform()) {

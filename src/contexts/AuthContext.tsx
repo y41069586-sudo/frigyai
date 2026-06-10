@@ -17,7 +17,7 @@ import { isSubscriptionActive, mergeSubscriptionStatus } from '@/lib/subscriptio
 import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 import { getStoredLanguage, getTranslations } from '@/contexts/LanguageContext';
 import { signInWithOAuthProvider } from '@/lib/authOAuth';
-import { linkAppleIdentity, signInWithApple as nativeAppleSignIn } from '@/lib/appleSignIn';
+import { linkAppleIdentity, signInWithApple as nativeAppleSignIn, type AppleSignInFlow } from '@/lib/appleSignIn';
 import { syncStoreSubscriptionIfNeeded } from '@/lib/subscriptionRefresh';
 import { markEverPremium } from '@/lib/trialEligibility';
 import { applyPendingTrialReminderNative, scheduleTrialEndingReminder } from '@/lib/notifications';
@@ -58,7 +58,7 @@ interface AuthContextType {
   }) => Promise<{ error: unknown }>;
   signInWithApple: (options?: {
     authQuery?: Record<string, string>;
-  }) => Promise<{ error: unknown }>;
+  }) => Promise<{ error: unknown; flow?: AppleSignInFlow; session?: Session | null }>;
   linkAppleAccount: () => Promise<{ error: unknown }>;
   signOut: (options?: { silent?: boolean }) => Promise<void>;
   checkSubscription: () => Promise<SubscriptionStatus | null>;
@@ -590,17 +590,27 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithApple = async (options?: { authQuery?: Record<string, string> }) => {
-    const { error } = await nativeAppleSignIn(options);
+    const result = await nativeAppleSignIn(options);
 
-    if (error) {
+    if (result.session) {
+      applySession(result.session);
+      setLoading(false);
+      loadSubscriptionFast(result.session.user.id, result.session.access_token);
+    }
+
+    if (result.error) {
       toast({
         title: "Apple-Anmeldung fehlgeschlagen",
-        description: getPublicErrorMessage(error, "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
+        description: getPublicErrorMessage(result.error, "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."),
         variant: "destructive",
       });
     }
 
-    return { error };
+    return {
+      error: result.error,
+      flow: result.flow,
+      session: result.session,
+    };
   };
 
   const linkAppleAccount = async () => {
