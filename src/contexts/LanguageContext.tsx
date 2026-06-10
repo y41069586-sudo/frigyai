@@ -835,6 +835,7 @@ export interface Translations extends ExtendedTranslations {
   timeSavedLabel: string;
   goalSuccessLabel: string;
   saveYourProgress: string;
+  orContinueWith: string;
   createAccountToSave: string;
   signInToContinue: string;
   emailAddressPlaceholder: string;
@@ -1418,6 +1419,7 @@ const translations: Record<Language, Translations> = {
     timeSavedLabel: "Zeit gespart",
     goalSuccessLabel: "Zielerfolg",
     saveYourProgress: "Speichere deinen Fortschritt",
+    orContinueWith: "Oder schnell mit Google / Apple fortfahren",
     createAccountToSave: "Erstelle ein Konto um deinen Plan zu sichern",
     signInToContinue: "Melde dich an um fortzufahren",
     emailAddressPlaceholder: "E-Mail Adresse",
@@ -2298,6 +2300,7 @@ const translations: Record<Language, Translations> = {
     timeSavedLabel: "Time Saved",
     goalSuccessLabel: "Goal Success",
     saveYourProgress: "Save your progress",
+    orContinueWith: "Or continue quickly with Google / Apple",
     createAccountToSave: "Create an account to save your plan",
     signInToContinue: "Sign in to continue",
     emailAddressPlaceholder: "Email Address",
@@ -3178,6 +3181,7 @@ const translations: Record<Language, Translations> = {
     timeSavedLabel: "Temps gagné",
     goalSuccessLabel: "Succès objectif",
     saveYourProgress: "Sauvegarde ta progression",
+    orContinueWith: "Ou continue rapidement avec Google / Apple",
     createAccountToSave: "Crée un compte pour sauvegarder ton plan",
     signInToContinue: "Connecte-toi pour continuer",
     emailAddressPlaceholder: "Adresse e-mail",

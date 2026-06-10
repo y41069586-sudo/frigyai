@@ -3,8 +3,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl } from "@/lib/completeOAuthSignIn";
-import { clearOAuthPending, getOAuthPending } from "@/lib/oauthPending";
-import { publishAuthResult } from "@/lib/authCompletion";
+import {
+  isAuthCompletionPending,
+  isAuthNavigationPending,
+  publishAuthResult,
+  resetAuthFlow,
+} from "@/lib/authCompletion";
+import { clearOAuthPending, getOAuthPending, resolveFromOnboarding } from "@/lib/oauthPending";
+import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
 
 /**
@@ -36,12 +42,17 @@ export function AuthOAuthCallbackBootstrap() {
     publishAuthResult({ status: "pending", phase: "oauth_exchange" });
 
     void (async () => {
+      const fromOnboarding = resolveFromOnboarding(href);
       const result = await handleOAuthCallbackUrl({
         url: href,
         checkSubscription,
         navigate,
         onExchangeSuccess: () => {
-          window.history.replaceState({}, "", "/");
+          window.history.replaceState(
+            {},
+            "",
+            fromOnboarding ? "/?onboardingStep=paywall" : "/",
+          );
         },
       });
 
@@ -53,10 +64,18 @@ export function AuthOAuthCallbackBootstrap() {
 
   useEffect(() => {
     if (loading || pendingRedirectStartedRef.current || !user) return;
+    if (isOAuthCallbackUrl(window.location.href)) return;
+    if (isAuthCompletionPending() || isAuthNavigationPending()) return;
 
     const pending = getOAuthPending();
     // Login OAuth is completed by the deep-link / ?code= pipeline — not this fallback.
     if (pending !== "onboarding") return;
+
+    if (isOnboardingInProgress() || isOnboardingOAuthPending()) {
+      clearOAuthPending();
+      resetAuthFlow();
+      return;
+    }
 
     pendingRedirectStartedRef.current = true;
     clearOAuthPending();

@@ -199,8 +199,8 @@ workflows:
         script: |
           set -e
           cd "$CM_BUILD_DIR/ios/App"
-          # CFBundleVersion must strictly increase on App Store Connect (build 5 already uploaded).
-          export IOS_MIN_BUILD=6
+          # CFBundleVersion must strictly increase on App Store Connect (build 6 already uploaded).
+          export IOS_MIN_BUILD=7
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
           if [ "$BUILD_NUM" -lt "$IOS_MIN_BUILD" ]; then
             BUILD_NUM=$IOS_MIN_BUILD
@@ -226,7 +226,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD=6
+          export IOS_MIN_BUILD=7
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
