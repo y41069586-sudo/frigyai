@@ -83,7 +83,6 @@ import {
   waitForAuthSession,
 } from "@/lib/authErrors";
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
-import { restoreStorePurchases } from "@/lib/storeBilling";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
@@ -556,7 +555,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const { user, session, signUp, signIn, signOut, signInWithGoogle, signInWithApple, isPremium, checkSubscription } =
     useAuth();
-  const { prices: storePrices } = useStoreOfferingPrices(user?.id);
+  const { prices: storePrices, loading: storePricesLoading } = useStoreOfferingPrices(user?.id);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -601,7 +600,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(resolveStartingStep);
   const appliedInitialOverrideRef = useRef(false);
-  const paywallAccessCheckedRef = useRef(false);
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeScan, setFridgeScan] = useState(false);
@@ -620,7 +618,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   /** Apple: native on iOS, OAuth fallback on Android/web — always offer in onboarding. */
   const showAppleSignIn = true;
   const [paywallCheckoutLoading, setPaywallCheckoutLoading] = useState(false);
-  const [paywallRestoreLoading, setPaywallRestoreLoading] = useState(false);
   const authSubmitLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
@@ -750,17 +747,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     onComplete();
   }, [onComplete, userData]);
 
-  const canAccessDashboard = useCallback(async (sessionReady = false): Promise<boolean> => {
-    if (isPremium) return true;
-    const route = await resolvePostAuthDestination({
-      userId: user?.id,
-      checkSubscription,
-      fromOnboarding: true,
-      sessionWaitMs: sessionReady ? 3500 : 4500,
-    });
-    return route.phase === "dashboard";
-  }, [isPremium, checkSubscription, user?.id]);
-
   const goToPaywall = useCallback(() => {
     if (onboardingSteps.includes("paywall")) {
       setCurrentStep("paywall");
@@ -787,26 +773,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
     goToPaywall();
   }, [authMode, checkSubscription, finishOnboardingExit, goToPaywall, user?.id]);
-
-  useEffect(() => {
-    if (currentStep !== "paywall") {
-      paywallAccessCheckedRef.current = false;
-      return;
-    }
-    if (!user || paywallAccessCheckedRef.current) return;
-
-    paywallAccessCheckedRef.current = true;
-    let cancelled = false;
-    void (async () => {
-      if (await canAccessDashboard()) {
-        if (!cancelled) finishOnboardingExit();
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentStep, user, canAccessDashboard, finishOnboardingExit]);
 
   const handlePaywallCheckout = async (plan: PaywallBillingPlan) => {
     if (paywallCheckoutLoading) return;
@@ -851,41 +817,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       }
     } finally {
       setPaywallCheckoutLoading(false);
-    }
-  };
-
-  const handlePaywallRestore = async () => {
-    if (paywallRestoreLoading) return;
-    if (!session?.access_token) {
-      toast({
-        title: t.error,
-        description: t.onboardingPleaseLoginToProceed,
-        variant: "destructive",
-      });
-      return;
-    }
-    setPaywallRestoreLoading(true);
-    try {
-      const result = await restoreStorePurchases(session.access_token);
-      const active = await waitForPremiumAfterPurchase(
-        checkSubscription,
-        session.access_token,
-        4,
-      );
-      if (result.ok || active) {
-        markEverPremium();
-        finishOnboardingExit();
-        return;
-      }
-      if (result.message) {
-        toast({
-          title: t.error,
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setPaywallRestoreLoading(false);
     }
   };
 
@@ -4013,13 +3944,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             language={language}
             onBack={goBack}
             onCheckout={handlePaywallCheckout}
-            onRestorePurchases={handlePaywallRestore}
             onSignOut={async () => {
               await signOut();
             }}
             isCheckoutLoading={paywallCheckoutLoading}
-            isRestoreLoading={paywallRestoreLoading}
             storePrices={storePrices}
+            storePricesLoading={storePricesLoading}
             trialEligible={resolveTrialEligibleFromLocal()}
           />
         );

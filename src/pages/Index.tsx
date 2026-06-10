@@ -290,7 +290,7 @@ const Index = () => {
 
   // Update onboarding visibility when loading completes
   useEffect(() => {
-    if (!onboardingLoading && !loading) {
+    if (!onboardingLoading && !loading && !sessionRestoring) {
       const returnToOnboarding =
         (location.state as { returnToOnboarding?: boolean } | null)?.returnToOnboarding === true;
 
@@ -319,6 +319,7 @@ const Index = () => {
   }, [
     onboardingLoading,
     loading,
+    sessionRestoring,
     user,
     dbOnboardingComplete,
     hasCompletedOnboarding,
@@ -613,7 +614,8 @@ const Index = () => {
   }
 
   // Not logged in: onboarding or redirect to auth (no blank loader loop).
-  if (!user && !sessionRestoring) {
+  // Keep dashboard shell while session is re-validated after background — avoid auth flash.
+  if (!user && !sessionRestoring && !loading) {
     if (hasCompletedOnboarding || dbOnboardingComplete) {
       return <Navigate to="/auth" replace />;
     }

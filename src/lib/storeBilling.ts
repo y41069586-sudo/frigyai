@@ -8,6 +8,16 @@ const ANDROID_PACKAGE = "com.frigy.app";
 
 const ENTITLEMENT_ID = import.meta.env.VITE_REVENUECAT_ENTITLEMENT_ID?.trim() || "premium";
 
+type SubscriptionOption = import("@revenuecat/purchases-capacitor").SubscriptionOption;
+
+type PricingPhaseLike = {
+  price?: {
+    formatted?: string;
+    amountMicros?: number;
+    currencyCode?: string;
+  };
+};
+
 function getApiKey(): string | null {
   const platform = Capacitor.getPlatform();
   if (platform === "ios") {
@@ -17,6 +27,22 @@ function getApiKey(): string | null {
     return import.meta.env.VITE_REVENUECAT_API_KEY_ANDROID?.trim() || null;
   }
   return null;
+}
+
+/** Google Play base plan id for the gift / discounted yearly (default: paywall-gift). */
+export function getYearlyGiftBasePlanId(): string {
+  return (
+    import.meta.env.VITE_REVENUECAT_YEARLY_PROMO_BASE_PLAN_ID?.trim() ||
+    import.meta.env.VITE_REVENUECAT_YEARLY_PROMO_OFFER_TAG?.trim() ||
+    "paywall-gift"
+  );
+}
+
+function subscriptionOptionMatchesGiftPlan(option: SubscriptionOption): boolean {
+  const giftPlanId = getYearlyGiftBasePlanId();
+  if (option.id === giftPlanId) return true;
+  if (option.id.startsWith(`${giftPlanId}:`)) return true;
+  return (option.tags ?? []).includes(giftPlanId);
 }
 
 export function isStoreBillingConfigured(): boolean {
@@ -58,43 +84,248 @@ export async function syncStoreSubscriptionToServer(accessToken: string): Promis
   }
 }
 
+type RevenueCatPackage = NonNullable<
+  Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>["current"]
+>["availablePackages"][number];
+
+type StoreProductWithOptions = {
+  priceString: string;
+  price?: number;
+  currencyCode?: string;
+  pricePerMonthString?: string | null;
+  identifier?: string;
+  introPrice?: { priceString?: string } | null;
+  subscriptionOptions?: SubscriptionOption[] | null;
+};
+
+function packageSearchText(pkg: RevenueCatPackage): string {
+  const product = pkg.product as { identifier?: string } | undefined;
+  const packageType = (pkg as { packageType?: string }).packageType ?? "";
+  return `${pkg.identifier} ${product?.identifier ?? ""} ${packageType}`.toLowerCase();
+}
+
+function isYearlyLikePackage(pkg: RevenueCatPackage): boolean {
+  const hay = packageSearchText(pkg);
+  const packageType = ((pkg as { packageType?: string }).packageType ?? "").toUpperCase();
+  return (
+    packageType === "ANNUAL" ||
+    pkg.identifier === "$rc_annual" ||
+    pkg.identifier === "annual" ||
+    /(?:^|[^a-z])(?:annual|yearly|year|jahres|rc_annual)(?:[^a-z]|$)/i.test(hay)
+  );
+}
+
+function isMonthlyLikePackage(pkg: RevenueCatPackage): boolean {
+  const hay = packageSearchText(pkg);
+  const packageType = ((pkg as { packageType?: string }).packageType ?? "").toUpperCase();
+  return (
+    packageType === "MONTHLY" ||
+    pkg.identifier === "$rc_monthly" ||
+    pkg.identifier === "monthly" ||
+    /(?:^|[^a-z])(?:monthly|month|monat|rc_monthly)(?:[^a-z]|$)/i.test(hay)
+  );
+}
+
+/** Gift yearly: Google Play base plan paywall-gift (or offer on that plan). */
+export function findGiftSubscriptionOption(pkg: RevenueCatPackage): SubscriptionOption | null {
+  const product = pkg.product as StoreProductWithOptions;
+  const options = product.subscriptionOptions ?? [];
+  if (options.length === 0) return null;
+
+  const giftPlanId = getYearlyGiftBasePlanId();
+  const giftBasePlan = options.find((option) => option.isBasePlan && option.id === giftPlanId);
+  if (giftBasePlan) return giftBasePlan;
+
+  return options.find((option) => subscriptionOptionMatchesGiftPlan(option)) ?? null;
+}
+
+/** Standard yearly base plan — excludes paywall-gift. */
+export function findStandardYearlySubscriptionOption(
+  pkg: RevenueCatPackage,
+): SubscriptionOption | null {
+  const product = pkg.product as StoreProductWithOptions;
+  const options = product.subscriptionOptions ?? [];
+  if (options.length === 0) return null;
+
+  const standardBasePlans = options.filter(
+    (option) => option.isBasePlan && !subscriptionOptionMatchesGiftPlan(option),
+  );
+  if (standardBasePlans.length === 1) return standardBasePlans[0];
+
+  return (
+    options.find((option) => option.isBasePlan && !subscriptionOptionMatchesGiftPlan(option)) ??
+    null
+  );
+}
+
+function scorePackageForPlan(pkg: RevenueCatPackage, plan: PaywallBillingPlan): number {
+  const isYearlyLike = isYearlyLikePackage(pkg);
+  const isMonthlyLike = isMonthlyLikePackage(pkg);
+
+  if (plan === "yearly" || plan === "yearly_promo") {
+    if (pkg.identifier === "$rc_annual" || pkg.identifier === "annual") return 100;
+    if (((pkg as { packageType?: string }).packageType ?? "").toUpperCase() === "ANNUAL") return 95;
+    if (isMonthlyLike && !isYearlyLike) return -100;
+    if (isYearlyLike) return 80;
+    return 0;
+  }
+
+  if (isYearlyLike) return -100;
+  if (pkg.identifier === "$rc_monthly" || pkg.identifier === "monthly") return 100;
+  if (((pkg as { packageType?: string }).packageType ?? "").toUpperCase() === "MONTHLY") return 95;
+  if (isMonthlyLike) return 80;
+  return 0;
+}
+
+function collectOfferingPackages(
+  offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
+): RevenueCatPackage[] {
+  const current = offerings.current;
+  if (!current) return [];
+
+  const candidates = new Map<string, RevenueCatPackage>();
+  for (const pkg of current.availablePackages ?? []) {
+    candidates.set(pkg.identifier, pkg);
+  }
+  if (current.monthly) candidates.set(current.monthly.identifier, current.monthly);
+  if (current.annual) candidates.set(current.annual.identifier, current.annual);
+
+  return [...candidates.values()];
+}
+
 function pickPackage(
   offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
   plan: PaywallBillingPlan,
 ) {
-  const current = offerings.current;
-  if (!current) return null;
-  if (plan === "yearly") {
-    return current.annual ?? current.availablePackages.find((p) => /annual|year/i.test(p.identifier)) ?? null;
+  const packages = collectOfferingPackages(offerings);
+  if (packages.length === 0) return null;
+
+  let best: RevenueCatPackage | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  for (const pkg of packages) {
+    const score = scorePackageForPlan(pkg, plan);
+    if (score > bestScore) {
+      bestScore = score;
+      best = pkg;
+    }
   }
-  return current.monthly ?? current.availablePackages.find((p) => /month/i.test(p.identifier)) ?? null;
+
+  if (import.meta.env.DEV && best) {
+    console.info("[StoreBilling] pickPackage", {
+      plan,
+      picked: best.identifier,
+      productId: (best.product as { identifier?: string } | undefined)?.identifier,
+      score: bestScore,
+    });
+  }
+
+  return bestScore > 0 ? best : null;
 }
 
 export type StorePlanPrice = {
+  /** Localized price from the store (matches the purchase dialog). */
   priceString: string;
+  price?: number;
+  currencyCode?: string;
   pricePerMonthString?: string | null;
   hasIntroOffer: boolean;
+  introPriceString?: string | null;
+  productIdentifier?: string;
+  packageIdentifier?: string;
 };
 
 export type StoreOfferingPrices = {
   monthly: StorePlanPrice | null;
   yearly: StorePlanPrice | null;
+  /** Discounted yearly via Google Play subscription offer on the same product. */
+  yearlyPromo: StorePlanPrice | null;
 };
 
-function mapPackagePrice(
-  pkg: ReturnType<typeof pickPackage>,
-): StorePlanPrice | null {
+function phasePriceString(phase: PricingPhaseLike | null | undefined): string | null {
+  return phase?.price?.formatted?.trim() || null;
+}
+
+function phasePriceAmount(phase: PricingPhaseLike | null | undefined): number | undefined {
+  const micros = phase?.price?.amountMicros;
+  return typeof micros === "number" ? micros / 1_000_000 : undefined;
+}
+
+function mapPackagePrice(pkg: RevenueCatPackage | null): StorePlanPrice | null {
   if (!pkg?.product) return null;
-  const product = pkg.product as {
-    priceString: string;
-    pricePerMonthString?: string | null;
-    introPrice?: unknown | null;
-  };
+  const product = pkg.product as StoreProductWithOptions;
   return {
     priceString: product.priceString,
+    price: typeof product.price === "number" ? product.price : undefined,
+    currencyCode: product.currencyCode,
     pricePerMonthString: product.pricePerMonthString ?? null,
     hasIntroOffer: Boolean(product.introPrice),
+    introPriceString: product.introPrice?.priceString ?? null,
+    productIdentifier: product.identifier,
+    packageIdentifier: pkg.identifier,
   };
+}
+
+function mapSubscriptionOptionPrice(
+  yearlyPkg: RevenueCatPackage,
+  option: SubscriptionOption,
+): StorePlanPrice | null {
+  const introPhase = option.introPhase as PricingPhaseLike | null | undefined;
+  const fullPhase = option.fullPricePhase as PricingPhaseLike | null | undefined;
+  const firstPhase = (option.pricingPhases?.[0] ?? null) as PricingPhaseLike | null;
+
+  const priceString =
+    phasePriceString(introPhase) ||
+    phasePriceString(fullPhase) ||
+    phasePriceString(firstPhase);
+  if (!priceString) return null;
+
+  const price =
+    phasePriceAmount(introPhase) ??
+    phasePriceAmount(fullPhase) ??
+    phasePriceAmount(firstPhase);
+  const product = yearlyPkg.product as StoreProductWithOptions;
+
+  return {
+    priceString,
+    price,
+    currencyCode:
+      introPhase?.price?.currencyCode ??
+      fullPhase?.price?.currencyCode ??
+      firstPhase?.price?.currencyCode ??
+      product.currencyCode,
+    hasIntroOffer: Boolean(introPhase),
+    introPriceString: phasePriceString(introPhase) ?? undefined,
+    productIdentifier: product.identifier,
+    packageIdentifier: yearlyPkg.identifier,
+  };
+}
+
+function mapYearlyStandardPrice(yearlyPkg: RevenueCatPackage | null): StorePlanPrice | null {
+  if (!yearlyPkg) return null;
+
+  if (Capacitor.getPlatform() === "android") {
+    const standardOption = findStandardYearlySubscriptionOption(yearlyPkg);
+    if (standardOption) {
+      return mapSubscriptionOptionPrice(yearlyPkg, standardOption);
+    }
+  }
+
+  return mapPackagePrice(yearlyPkg);
+}
+
+function mapGiftOfferPrice(
+  yearlyPkg: RevenueCatPackage,
+  giftOption: SubscriptionOption,
+): StorePlanPrice | null {
+  return mapSubscriptionOptionPrice(yearlyPkg, giftOption);
+}
+
+function resolveYearlyPromoPrice(yearlyPkg: RevenueCatPackage | null): StorePlanPrice | null {
+  if (!yearlyPkg) return null;
+  const giftOption = findGiftSubscriptionOption(yearlyPkg);
+  if (!giftOption) return null;
+  return mapGiftOfferPrice(yearlyPkg, giftOption);
 }
 
 /** Live App Store / Play prices from RevenueCat offerings (not hardcoded). */
@@ -104,9 +335,20 @@ export async function fetchStoreOfferingPrices(): Promise<StoreOfferingPrices | 
   try {
     const { Purchases } = await import("@revenuecat/purchases-capacitor");
     const offerings = await Purchases.getOfferings();
+    const yearlyPkg = pickPackage(offerings, "yearly");
+
+    if (import.meta.env.DEV && yearlyPkg) {
+      const options = (yearlyPkg.product as StoreProductWithOptions).subscriptionOptions ?? [];
+      console.info(
+        "[StoreBilling] yearly subscriptionOptions",
+        options.map((o) => ({ id: o.id, tags: o.tags, isBasePlan: o.isBasePlan })),
+      );
+    }
+
     return {
       monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
-      yearly: mapPackagePrice(pickPackage(offerings, "yearly")),
+      yearly: mapYearlyStandardPrice(yearlyPkg),
+      yearlyPromo: resolveYearlyPromoPrice(yearlyPkg),
     };
   } catch (e) {
     console.warn("[StoreBilling] fetchStoreOfferingPrices failed:", e);
@@ -117,6 +359,54 @@ export async function fetchStoreOfferingPrices(): Promise<StoreOfferingPrices | 
 export type StorePurchaseResult =
   | { ok: true }
   | { ok: false; cancelled?: boolean; message?: string };
+
+async function purchaseSubscriptionOptionOnAndroid(
+  yearlyPkg: RevenueCatPackage,
+  option: SubscriptionOption,
+): Promise<
+  Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchaseSubscriptionOption>>
+> {
+  const { Purchases } = await import("@revenuecat/purchases-capacitor");
+  return Purchases.purchaseSubscriptionOption({ subscriptionOption: option });
+}
+
+async function purchaseGiftYearlyOffer(
+  offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
+): Promise<Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchaseSubscriptionOption>> | null> {
+  const yearlyPkg = pickPackage(offerings, "yearly");
+  if (!yearlyPkg) return null;
+
+  const giftOption = findGiftSubscriptionOption(yearlyPkg);
+  if (!giftOption) return null;
+
+  if (Capacitor.getPlatform() === "android") {
+    return purchaseSubscriptionOptionOnAndroid(yearlyPkg, giftOption);
+  }
+
+  const { Purchases } = await import("@revenuecat/purchases-capacitor");
+  return Purchases.purchasePackage({ aPackage: yearlyPkg });
+}
+
+async function purchaseStandardYearly(
+  offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
+): Promise<
+  | Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchasePackage>>
+  | Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchaseSubscriptionOption>>
+  | null
+> {
+  const yearlyPkg = pickPackage(offerings, "yearly");
+  if (!yearlyPkg) return null;
+
+  if (Capacitor.getPlatform() === "android") {
+    const standardOption = findStandardYearlySubscriptionOption(yearlyPkg);
+    if (standardOption) {
+      return purchaseSubscriptionOptionOnAndroid(yearlyPkg, standardOption);
+    }
+  }
+
+  const { Purchases } = await import("@revenuecat/purchases-capacitor");
+  return Purchases.purchasePackage({ aPackage: yearlyPkg });
+}
 
 export async function purchaseStorePlan(
   plan: PaywallBillingPlan,
@@ -129,15 +419,40 @@ export async function purchaseStorePlan(
     };
   }
 
+  const giftPlanId = getYearlyGiftBasePlanId();
+
   try {
     const { Purchases } = await import("@revenuecat/purchases-capacitor");
     const offerings = await Purchases.getOfferings();
-    const pkg = pickPackage(offerings, plan);
-    if (!pkg) {
-      return { ok: false, message: "Kein Abo-Paket in RevenueCat gefunden (Offering monthly/yearly)." };
+
+    let customerInfo: Awaited<
+      ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchasePackage>
+    >["customerInfo"];
+
+    if (plan === "yearly_promo") {
+      const giftResult = await purchaseGiftYearlyOffer(offerings);
+      if (!giftResult) {
+        return {
+          ok: false,
+          message: `Kein Play Base Plan „${giftPlanId}" auf dem Jahresabo gefunden. Prüfe Play Console und RevenueCat.`,
+        };
+      }
+      customerInfo = giftResult.customerInfo;
+    } else if (plan === "yearly") {
+      const yearlyResult = await purchaseStandardYearly(offerings);
+      if (!yearlyResult) {
+        return { ok: false, message: "Kein Jahresabo in RevenueCat gefunden." };
+      }
+      customerInfo = yearlyResult.customerInfo;
+    } else {
+      const pkg = pickPackage(offerings, plan);
+      if (!pkg) {
+        return { ok: false, message: "Kein Abo-Paket in RevenueCat gefunden (Offering monthly/yearly)." };
+      }
+      const result = await Purchases.purchasePackage({ aPackage: pkg });
+      customerInfo = result.customerInfo;
     }
 
-    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
     const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
     if (!active) {
       return { ok: false, message: "Kauf abgeschlossen, aber Premium-Entitlement fehlt." };

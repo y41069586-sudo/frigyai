@@ -33,16 +33,35 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+export type ResumeAuthSessionOptions = {
+  maxAttempts?: number;
+  /** Extra wait after foreground (network / WebView wake-up). */
+  initialDelayMs?: number;
+};
+
 /**
  * Restore auth after background / long inactivity.
  * Retries refresh on resume; keeps cached session on transient failures.
  */
-export async function resumeAuthSession(maxAttempts = 3): Promise<Session | null> {
-  const {
-    data: { session: current },
-  } = await supabase.auth.getSession();
+export async function resumeAuthSession(
+  maxAttemptsOrOptions: number | ResumeAuthSessionOptions = 3,
+): Promise<Session | null> {
+  const options =
+    typeof maxAttemptsOrOptions === "number"
+      ? { maxAttempts: maxAttemptsOrOptions }
+      : maxAttemptsOrOptions;
+  const maxAttempts = options.maxAttempts ?? 3;
+  const initialDelayMs = options.initialDelayMs ?? 0;
 
-  if (current?.user && !sessionExpiresWithin(current, 60_000)) {
+  if (initialDelayMs > 0) {
+    await sleep(initialDelayMs);
+  }
+
+  const readSession = async () => (await supabase.auth.getSession()).data.session;
+
+  let current = await readSession();
+
+  if (current?.user && !sessionExpiresWithin(current, 5 * 60_000)) {
     return current;
   }
 
@@ -50,7 +69,7 @@ export async function resumeAuthSession(maxAttempts = 3): Promise<Session | null
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (attempt > 0) {
-      await sleep(350 * attempt);
+      await sleep(Math.min(2_000, 400 * attempt));
     }
 
     try {
@@ -69,8 +88,14 @@ export async function resumeAuthSession(maxAttempts = 3): Promise<Session | null
         break;
       }
     }
+
+    current = await readSession();
+    if (current?.user && !sessionExpiresWithin(current, 60_000)) {
+      return current;
+    }
   }
 
+  current = await readSession();
   if (current?.user) {
     if (lastError && isDefinitiveSessionError(lastError)) {
       return null;

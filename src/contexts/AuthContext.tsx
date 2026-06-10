@@ -270,6 +270,9 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
 
   // Use ref to track session for visibility change handler (avoids dependency issues)
   const sessionRef = useRef<Session | null>(null);
+  const sessionRestoringRef = useRef(false);
+  const resumeSessionInFlightRef = useRef(false);
+  const lastResumeAtRef = useRef(0);
 
   const applySession = (nextSession: Session | null) => {
     if (nextSession?.user?.email) {
@@ -279,8 +282,14 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     setUser(nextSession?.user ?? null);
   };
 
-  const refreshSessionFromStorage = async (): Promise<Session | null> => {
-    return resumeAuthSession(3);
+  const refreshSessionFromStorage = async (options?: {
+    maxAttempts?: number;
+    initialDelayMs?: number;
+  }): Promise<Session | null> => {
+    return resumeAuthSession({
+      maxAttempts: options?.maxAttempts ?? 5,
+      initialDelayMs: options?.initialDelayMs ?? 0,
+    });
   };
   
   useEffect(() => {
@@ -303,16 +312,24 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
         if (!mounted) return;
         
         console.log('[Auth] State change:', event);
-        
-        applySession(currentSession);
-        setLoading(false);
-        
-        // Handle session errors - sign out if session is invalid
+
         if (event === 'TOKEN_REFRESHED' && !currentSession) {
-          console.log('[Auth] Token refresh failed, signing out');
-          setSubscriptionStatus(null);
+          console.log('[Auth] Token refresh failed, keeping cached session');
           return;
         }
+
+        if (
+          event === 'SIGNED_OUT' &&
+          !currentSession &&
+          sessionRef.current?.user &&
+          sessionRestoringRef.current
+        ) {
+          console.log('[Auth] Ignoring SIGNED_OUT during session resume');
+          return;
+        }
+
+        applySession(currentSession);
+        setLoading(false);
         
         // Load subscription: DB cache first, then RevenueCat refresh
         if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
@@ -341,22 +358,47 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     });
 
     const resumeSessionCheck = () => {
+      const now = Date.now();
+      if (resumeSessionInFlightRef.current || now - lastResumeAtRef.current < 1_500) {
+        return;
+      }
+      resumeSessionInFlightRef.current = true;
+      lastResumeAtRef.current = now;
+      sessionRestoringRef.current = true;
       setSessionRestoring(true);
-      void refreshSessionFromStorage()
-        .then((activeSession) => {
+
+      const hadUser = Boolean(sessionRef.current?.user);
+
+      void refreshSessionFromStorage({
+        maxAttempts: 5,
+        initialDelayMs: Capacitor.isNativePlatform() ? 450 : 150,
+      })
+        .then(async (activeSession) => {
           if (!mounted) return;
           if (activeSession?.user) {
             applySession(activeSession);
             loadSubscriptionFast(activeSession.user.id, activeSession.access_token);
             return;
           }
-          if (sessionRef.current?.user) {
+
+          const cached = (await supabase.auth.getSession()).data.session;
+          if (cached?.user) {
+            applySession(cached);
+            loadSubscriptionFast(cached.user.id, cached.access_token);
             return;
           }
+
+          if (hadUser || sessionRef.current?.user) {
+            console.warn('[Auth] Session resume failed — keeping last known user');
+            return;
+          }
+
           applySession(null);
           updateSubscriptionStatus(null);
         })
         .finally(() => {
+          resumeSessionInFlightRef.current = false;
+          sessionRestoringRef.current = false;
           if (mounted) setSessionRestoring(false);
         });
     };

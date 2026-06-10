@@ -1,21 +1,16 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronUp, Lock, Bell, Crown, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Lock, Bell, Crown, Loader2, X } from "lucide-react";
+import { PaywallExclusiveOfferModal } from "@/components/onboarding/components/PaywallExclusiveOfferModal";
 import { cn } from "@/lib/utils";
 import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import type { StoreOfferingPrices } from "@/lib/storeBilling";
-import {
-  getMarketingMonthlyPrice,
-  getMarketingYearlyPrice,
-  resolveMonthlyDisplayPrice,
-  resolveYearlyDisplayPrice,
-} from "@/lib/subscriptionPricing";
 
-export type PaywallBillingPlan = "monthly" | "yearly";
+export type PaywallBillingPlan = "monthly" | "yearly" | "yearly_promo";
 
 type OnboardingPaywallStepProps = {
   language: Language;
@@ -26,19 +21,55 @@ type OnboardingPaywallStepProps = {
   isCheckoutLoading?: boolean;
   isRestoreLoading?: boolean;
   storePrices?: StoreOfferingPrices | null;
+  storePricesLoading?: boolean;
   /** False after trial or any prior subscription — hides trial timeline & intro offer UI. */
   trialEligible?: boolean;
+  /** Standalone renew paywall only — hidden during first-time onboarding. */
+  showRestorePurchases?: boolean;
 };
 
-const copy = {
+type PaywallCopy = {
+  unlockTitle: string;
+  trialTitle: string;
+  monthly: string;
+  yearly: string;
+  trialBadge: string;
+  feature1Title: string;
+  feature1Desc: string;
+  feature2Title: string;
+  feature2Desc: string;
+  feature3Title: string;
+  feature3Desc: string;
+  trialToday: string;
+  trialTodayDesc: string;
+  trialReminder: string;
+  trialReminderDesc: string;
+  trialBilling: string;
+  trialBillingPrefix: string;
+  trialBillingSuffix: string;
+  noCommitment: string;
+  noPaymentNow: string;
+  ctaUnlock: string;
+  ctaTrial: string;
+  footerMonthly: (price: string) => string;
+  footerTrial: (price: string) => string;
+  footerYearly: (price: string) => string;
+  subscriptionName: string;
+  planLengthMonthly: string;
+  planLengthYearly: string;
+  autoRenewStore: string;
+  terms: string;
+  privacy: string;
+  legalToggleShow: string;
+  legalToggleHide: string;
+};
+
+const copy: Record<Language, PaywallCopy> = {
   de: {
     unlockTitle: "Schalte Frigy frei, um deine Ziele schneller zu erreichen",
     trialTitle: "Starte deine 3-tägige KOSTENLOSE Testphase",
     monthly: "Monatlich",
     yearly: "Jährlich",
-    monthlyPrice: "€9,99",
-    monthlySuffix: "/Mo",
-    yearlyPrice: "€36,95/Jahr",
     trialBadge: "3 TAGE KOSTENLOS",
     feature1Title: "Einfaches Food-Scanning",
     feature1Desc: "Tracke deine Kalorien mit nur einem Bild",
@@ -57,9 +88,9 @@ const copy = {
     noPaymentNow: "Keine Zahlung jetzt fällig",
     ctaUnlock: "Loslegen",
     ctaTrial: "3-tägige Testphase starten",
-    footerMonthly: "Nur €9,99 pro Monat",
-    footerTrial: "3 Tage kostenlos, danach €9,99/Monat",
-    footerYearly: "Jährlich – €36,95 pro Jahr",
+    footerMonthly: (price) => `Nur ${price} pro Monat`,
+    footerTrial: (price) => `3 Tage kostenlos, danach ${price}`,
+    footerYearly: (price) => `Jährlich – ${price}`,
     subscriptionName: "Frigy Premium",
     planLengthMonthly: "Monatsabo (1 Monat)",
     planLengthYearly: "Jahresabo (1 Jahr)",
@@ -75,9 +106,6 @@ const copy = {
     trialTitle: "Start your 3-day FREE trial",
     monthly: "Monthly",
     yearly: "Yearly",
-    monthlyPrice: "€9.99",
-    monthlySuffix: "/mo",
-    yearlyPrice: "€36.95/yr",
     trialBadge: "3 DAYS FREE",
     feature1Title: "Easy food scanning",
     feature1Desc: "Track your calories with just a picture",
@@ -96,9 +124,9 @@ const copy = {
     noPaymentNow: "No payment due now",
     ctaUnlock: "Start my journey",
     ctaTrial: "Start my 3-day free trial",
-    footerMonthly: "Just €9.99 per month",
-    footerTrial: "3 days free, then €9.99/mo",
-    footerYearly: "Yearly – €36.95 per year",
+    footerMonthly: (price) => `Just ${price} per month`,
+    footerTrial: (price) => `3 days free, then ${price}`,
+    footerYearly: (price) => `Yearly – ${price}`,
     subscriptionName: "Frigy Premium",
     planLengthMonthly: "Monthly subscription (1 month)",
     planLengthYearly: "Yearly subscription (1 year)",
@@ -114,9 +142,6 @@ const copy = {
     trialTitle: "Commence ton essai GRATUIT de 3 jours",
     monthly: "Mensuel",
     yearly: "Annuel",
-    monthlyPrice: "9,99 €",
-    monthlySuffix: "/mois",
-    yearlyPrice: "36,95 €/an",
     trialBadge: "3 JOURS GRATUITS",
     feature1Title: "Scan alimentaire facile",
     feature1Desc: "Suis tes calories avec une simple photo",
@@ -135,9 +160,9 @@ const copy = {
     noPaymentNow: "Aucun paiement maintenant",
     ctaUnlock: "Commencer",
     ctaTrial: "Démarrer l'essai de 3 jours",
-    footerMonthly: "Seulement 9,99 €/mois",
-    footerTrial: "3 jours gratuits, puis 9,99 €/mois",
-    footerYearly: "Annuel – 36,95 € par an",
+    footerMonthly: (price) => `Seulement ${price}`,
+    footerTrial: (price) => `3 jours gratuits, puis ${price}`,
+    footerYearly: (price) => `Annuel – ${price}`,
     subscriptionName: "Frigy Premium",
     planLengthMonthly: "Abonnement mensuel (1 mois)",
     planLengthYearly: "Abonnement annuel (1 an)",
@@ -174,6 +199,29 @@ function PlanRadio({ selected }: { selected: boolean }) {
   );
 }
 
+function StorePriceLine({
+  priceString,
+  loading,
+}: {
+  priceString: string | null | undefined;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <span
+        className="mt-1.5 inline-block h-[17px] w-[72px] animate-pulse rounded bg-[#E5E7EB]"
+        aria-hidden
+      />
+    );
+  }
+
+  return (
+    <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
+      {priceString ?? "—"}
+    </p>
+  );
+}
+
 export function OnboardingPaywallStep({
   language,
   onCheckout,
@@ -182,41 +230,41 @@ export function OnboardingPaywallStep({
   isCheckoutLoading = false,
   isRestoreLoading = false,
   storePrices = null,
+  storePricesLoading = false,
   trialEligible = true,
+  showRestorePurchases = false,
 }: OnboardingPaywallStepProps) {
   const { t: globalT } = useLanguage();
   const navigate = useNavigate();
   const [plan, setPlan] = useState<PaywallBillingPlan>("monthly");
-  const [autoRenewExpanded, setAutoRenewExpanded] = useState(false);
+  const [legalDetailsExpanded, setLegalDetailsExpanded] = useState(false);
+  const [exclusiveOfferOpen, setExclusiveOfferOpen] = useState(false);
   const t = copy[language];
   const billingDate = useMemo(() => formatBillingDate(language), [language]);
   const isMonthly = plan === "monthly";
-  const showStoreRestore = usesStoreBilling() && Boolean(onRestorePurchases);
-  const isStoreBilling = usesStoreBilling();
+  const showStoreRestore =
+    showRestorePurchases && usesStoreBilling() && Boolean(onRestorePurchases);
 
-  const monthlyPrice = resolveMonthlyDisplayPrice(language, storePrices?.monthly?.priceString);
-  const yearlyPrice = resolveYearlyDisplayPrice(language, storePrices?.yearly?.priceString);
+  const needsStorePrices = usesStoreBilling();
+  const monthlyPriceString = storePrices?.monthly?.priceString ?? null;
+  const yearlyPriceString = storePrices?.yearly?.priceString ?? null;
+  const pricesReady =
+    !needsStorePrices || (Boolean(monthlyPriceString && yearlyPriceString) && !storePricesLoading);
+
   const storeMonthlyHasIntro = storePrices?.monthly?.hasIntroOffer ?? true;
   const showMonthlyTrialUi = trialEligible && storeMonthlyHasIntro;
 
-  const autoRenewText = t.autoRenewStore;
   const selectedPlanLabel = isMonthly ? t.planLengthMonthly : t.planLengthYearly;
-  const selectedPrice = isMonthly ? monthlyPrice : yearlyPrice;
+  const selectedPrice = isMonthly ? monthlyPriceString : yearlyPriceString;
 
   const footerText = useMemo(() => {
+    const monthly = monthlyPriceString ?? "—";
+    const yearly = yearlyPriceString ?? "—";
     if (isMonthly) {
-      if (storePrices?.monthly) {
-        return showMonthlyTrialUi
-          ? `${t.noPaymentNow} · ${monthlyPrice}`
-          : `${monthlyPrice} ${t.monthlySuffix.trim()}`;
-      }
-      return showMonthlyTrialUi ? t.footerTrial : t.footerMonthly;
+      return showMonthlyTrialUi ? t.footerTrial(monthly) : t.footerMonthly(monthly);
     }
-    if (storePrices?.yearly) {
-      return `${t.yearly} · ${yearlyPrice}`;
-    }
-    return t.footerYearly;
-  }, [isMonthly, storePrices, showMonthlyTrialUi, monthlyPrice, yearlyPrice, t]);
+    return t.footerYearly(yearly);
+  }, [isMonthly, showMonthlyTrialUi, t, monthlyPriceString, yearlyPriceString]);
 
   const features = [
     { title: t.feature1Title, desc: t.feature1Desc },
@@ -246,9 +294,32 @@ export function OnboardingPaywallStep({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex min-h-0 flex-1 flex-col bg-white text-[#0a0a0a]"
+      className="relative flex min-h-0 flex-1 flex-col bg-white text-[#0a0a0a]"
     >
-      <motion.div className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
+      <button
+        type="button"
+        onClick={() => setExclusiveOfferOpen(true)}
+        className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6] text-[#6B7280] transition-colors hover:bg-[#E5E7EB] hover:text-[#0a0a0a] touch-manipulation sm:right-5"
+        aria-label="Exklusives Angebot"
+      >
+        <X className="h-5 w-5" strokeWidth={2.2} />
+      </button>
+
+      <PaywallExclusiveOfferModal
+        open={exclusiveOfferOpen}
+        language={language}
+        regularYearlyPrice={storePrices?.yearly}
+        promoYearlyPrice={storePrices?.yearlyPromo}
+        pricesLoading={needsStorePrices && storePricesLoading}
+        checkoutLoading={isCheckoutLoading}
+        onClose={() => setExclusiveOfferOpen(false)}
+        onClaimPromoYearly={async () => {
+          await onCheckout("yearly_promo");
+        }}
+      />
+
+      <motion.div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pt-[max(1.5rem,env(safe-area-inset-top)+0.5rem)] sm:px-5">
+        <div className="min-h-[clamp(2.5rem,8vh,4.5rem)] shrink-0" aria-hidden />
         <AnimatePresence mode="wait">
           <motion.div
             key={showMonthlyTrialUi ? "trial" : "unlock"}
@@ -256,7 +327,7 @@ export function OnboardingPaywallStep({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="mx-auto w-full max-w-md pb-28 pt-1"
+            className="mx-auto mt-auto w-full max-w-md pb-6 pt-2"
           >
             <h1 className="mb-5 text-center text-lg font-bold leading-snug tracking-tight min-[390px]:text-xl">
               {showMonthlyTrialUi ? t.trialTitle : t.unlockTitle}
@@ -327,10 +398,9 @@ export function OnboardingPaywallStep({
             )}
           </motion.div>
         </AnimatePresence>
-        <div className="h-4" aria-hidden />
       </motion.div>
 
-      <div className="relative z-20 shrink-0 border-t border-[#E5E7EB] bg-white px-4 pt-4 shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.1)] pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+      <div className="relative z-20 mt-auto shrink-0 border-t border-[#E5E7EB] bg-white px-4 pt-5 shadow-[0_-16px_48px_-12px_rgba(0,0,0,0.12)] pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
         <div
           className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-white"
           aria-hidden
@@ -357,10 +427,10 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.monthly}</p>
-                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
-                  {getMarketingMonthlyPrice(language)}
-                  <span className="text-[12px] font-medium text-[#6B7280]">{t.monthlySuffix}</span>
-                </p>
+                <StorePriceLine
+                  priceString={monthlyPriceString}
+                  loading={needsStorePrices && storePricesLoading}
+                />
               </div>
               <PlanRadio selected={plan === "monthly"} />
             </div>
@@ -378,7 +448,10 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.yearly}</p>
-                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">{yearlyPrice}</p>
+                <StorePriceLine
+                  priceString={yearlyPriceString}
+                  loading={needsStorePrices && storePricesLoading}
+                />
               </div>
               <PlanRadio selected={plan === "yearly"} />
             </div>
@@ -393,7 +466,7 @@ export function OnboardingPaywallStep({
           <motion.button
             type="button"
             whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
-            disabled={isCheckoutLoading || isRestoreLoading}
+            disabled={isCheckoutLoading || isRestoreLoading || !pricesReady}
             onClick={() => void onCheckout(plan)}
             className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation disabled:opacity-70"
             style={{
@@ -414,7 +487,7 @@ export function OnboardingPaywallStep({
           {showStoreRestore && (
             <button
               type="button"
-              disabled={isCheckoutLoading || isRestoreLoading}
+              disabled={isCheckoutLoading || isRestoreLoading || !pricesReady}
               onClick={() => void onRestorePurchases?.()}
               className="mt-3 w-full py-2.5 text-center text-[14px] font-semibold text-[#374151] underline underline-offset-2 transition-colors hover:text-[#0a0a0a] disabled:opacity-60"
             >
@@ -433,68 +506,70 @@ export function OnboardingPaywallStep({
             </button>
           )}
 
-          <p className="mt-4 text-center text-[12px] font-medium leading-snug text-[#6B7280]">
-            {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice}
-            {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
-          </p>
-
           <button
             type="button"
-            onClick={() => setAutoRenewExpanded((open) => !open)}
-            aria-expanded={autoRenewExpanded}
-            aria-label={autoRenewExpanded ? t.legalToggleHide : t.legalToggleShow}
-            className="mt-1 flex w-full items-center justify-center py-1 text-[#9CA3AF] transition-colors hover:text-[#6B7280] touch-manipulation"
+            onClick={() => setLegalDetailsExpanded((open) => !open)}
+            aria-expanded={legalDetailsExpanded}
+            aria-label={legalDetailsExpanded ? t.legalToggleHide : t.legalToggleShow}
+            className="mt-3 flex w-full items-center justify-center py-1.5 text-[#9CA3AF] transition-colors hover:text-[#6B7280] touch-manipulation"
           >
-            <ChevronUp
+            <ChevronDown
               className={cn(
                 "h-5 w-5 shrink-0 transition-transform duration-200",
-                autoRenewExpanded && "rotate-180",
+                legalDetailsExpanded && "rotate-180",
               )}
               aria-hidden
             />
           </button>
 
           <AnimatePresence initial={false}>
-            {autoRenewExpanded && (
-              <motion.p
-                key="paywall-auto-renew"
+            {legalDetailsExpanded && (
+              <motion.div
+                key="paywall-legal-details"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden text-center text-[11px] leading-relaxed text-[#9CA3AF]"
+                className="overflow-hidden"
               >
-                {autoRenewText}
-              </motion.p>
+                <p className="mt-2 text-center text-[12px] font-medium leading-snug text-[#6B7280]">
+                  {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice ?? "—"}
+                  {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
+                </p>
+
+                <p className="mt-2 text-center text-[11px] leading-relaxed text-[#9CA3AF]">
+                  {t.autoRenewStore}
+                </p>
+
+                <nav
+                  className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-medium"
+                  aria-label={t.terms}
+                >
+                  <button
+                    type="button"
+                    onClick={() => navigate("/legal/agb")}
+                    className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
+                  >
+                    {t.terms}
+                  </button>
+                  <span className="text-[#D1D5DB]" aria-hidden>
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/legal/datenschutz")}
+                    className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
+                  >
+                    {t.privacy}
+                  </button>
+                </nav>
+
+                <p className="mt-3 pb-1 text-center text-[13px] leading-snug text-[#9CA3AF]">
+                  {footerText}
+                </p>
+              </motion.div>
             )}
           </AnimatePresence>
-
-          <nav
-            className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-medium"
-            aria-label={t.terms}
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/legal/agb")}
-              className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
-            >
-              {t.terms}
-            </button>
-            <span className="text-[#D1D5DB]" aria-hidden>
-              ·
-            </span>
-            <button
-              type="button"
-              onClick={() => navigate("/legal/datenschutz")}
-              className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
-            >
-              {t.privacy}
-            </button>
-          </nav>
-
-          <p className="mt-3 text-center text-[13px] leading-snug text-[#9CA3AF]">
-            {footerText}
-          </p>
         </div>
       </div>
     </motion.div>

@@ -18,10 +18,13 @@ import type { PaywallBillingPlan } from '@/components/onboarding/components/Onbo
 import { openStoreSubscriptionManagement } from '@/lib/storeBilling';
 import { waitForPremiumAfterPurchase } from '@/lib/subscriptionRefresh';
 import { SubscriptionLegalLinks } from '@/components/SubscriptionLegalLinks';
+import { useStoreOfferingPrices } from '@/hooks/useStoreOfferingPrices';
+import { formatPremiumTrialHint } from '@/lib/paywallPricing';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
   const { t, language } = useLanguage();
+  const { prices: storePrices } = useStoreOfferingPrices(user?.id);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
@@ -57,7 +60,9 @@ const PremiumPage = () => {
     try {
       const stored = localStorage.getItem('selectedPlan');
       const plan: PaywallBillingPlan =
-        stored === 'monthly' || stored === 'yearly' ? stored : 'yearly';
+        stored === 'monthly' || stored === 'yearly' || stored === 'yearly_promo'
+          ? stored
+          : 'yearly';
 
       const result = await startPremiumCheckout(plan, {
         userId: user?.id,
@@ -466,7 +471,7 @@ const PremiumPage = () => {
               </Button>
               
               <p className="text-xs text-center text-muted-foreground mt-3">
-                {t.premiumTrialHint}
+                {formatPremiumTrialHint(language, storePrices?.monthly?.priceString)}
               </p>
               <SubscriptionLegalLinks className="mt-3" />
             </div>

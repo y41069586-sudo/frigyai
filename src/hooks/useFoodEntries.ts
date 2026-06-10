@@ -158,6 +158,11 @@ export function readTodayFoodCache(): { entries: FoodEntry[]; todayTotals: Macro
 
 const initialFoodState = readTodayFoodCache();
 
+function shouldSkipFoodEntriesLoad(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("onboardingComplete") !== "true";
+}
+
 export const useFoodEntries = () => {
   const { user } = useAuth();
   const [entries, setEntries] = useState<FoodEntry[]>(initialFoodState.entries);
@@ -249,6 +254,11 @@ export const useFoodEntries = () => {
       return;
     }
 
+    if (shouldSkipFoodEntriesLoad()) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const targetDate = date || today;
       const { data, error } = await supabase
@@ -286,13 +296,15 @@ export const useFoodEntries = () => {
       }
     } catch (error) {
       console.error('Error loading food entries:', error);
-      const lang = getStoredLanguage();
-      const tr = getTranslations(lang);
-      toast({
-        title: tr.error || 'Fehler',
-        description: tr.toastFoodLoadFailed || 'Deine Mahlzeitseinträge konnten nicht geladen werden',
-        variant: 'destructive'
-      });
+      if (!shouldSkipFoodEntriesLoad()) {
+        const lang = getStoredLanguage();
+        const tr = getTranslations(lang);
+        toast({
+          title: tr.error || 'Fehler',
+          description: tr.toastFoodLoadFailed || 'Deine Mahlzeitseinträge konnten nicht geladen werden',
+          variant: 'destructive'
+        });
+      }
     } finally {
       setLoading(false);
     }
