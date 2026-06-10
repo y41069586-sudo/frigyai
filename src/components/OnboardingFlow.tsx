@@ -276,9 +276,6 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
     const setLoading = provider === "google" ? setIsGoogleAuthLoading : setIsAppleAuthLoading;
     setLoading(true);
     try {
-      if (user) {
-        await supabase.auth.signOut({ scope: "local" });
-      }
       const { error } =
         provider === "google"
           ? await signInWithGoogle({ authQuery: { from: "login" } })
@@ -3704,9 +3701,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           markOnboardingInProgress();
           markOnboardingOAuthPending("google");
           clearOAuthPending();
-          if (user) {
-            await supabase.auth.signOut({ scope: "local" });
-          }
           const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
           if (error) {
             clearOnboardingOAuthPending();
@@ -3718,6 +3712,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               ),
               variant: "destructive",
             });
+            setIsGoogleAuthLoading(false);
+            return;
+          }
+          if (await waitForAuthSession(4500)) {
+            clearOnboardingOAuthPending();
+            await goAfterSignup(true);
           }
           setIsGoogleAuthLoading(false);
         };
@@ -3727,9 +3727,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           setIsAppleAuthLoading(true);
           saveOnboardingData(userData, { markOnboardingComplete: false });
           markOnboardingOAuthPending("apple");
-          if (user) {
-            await supabase.auth.signOut({ scope: "local" });
-          }
           const { error } = await signInWithApple({ authQuery: { from: "onboarding" } });
           if (error) {
             clearOnboardingOAuthPending();

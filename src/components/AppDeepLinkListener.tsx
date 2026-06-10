@@ -38,7 +38,7 @@ function shouldForwardToChottuSdk(url: string): boolean {
  */
 export function AppDeepLinkListener() {
   const navigate = useNavigate();
-  const { checkSubscription, loading } = useAuth();
+  const { checkSubscription } = useAuth();
   const recentlyHandledUrlsRef = useRef<Map<string, number>>(new Map());
 
   const handleUrl = useCallback(
@@ -60,13 +60,14 @@ export function AppDeepLinkListener() {
       }
 
       if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
-        if (loading && Capacitor.isNativePlatform()) {
-          stashOAuthCallbackUrl(url);
-          scheduleStashedOAuthRetry({ checkSubscription, navigate });
-          return;
-        }
-
-        void handleOAuthCallbackUrl({ url, checkSubscription, navigate });
+        stashOAuthCallbackUrl(url);
+        void handleOAuthCallbackUrl({
+          url,
+          checkSubscription,
+          navigate,
+          allowDefer: false,
+        });
+        scheduleStashedOAuthRetry({ checkSubscription, navigate });
         return;
       }
 
@@ -78,7 +79,7 @@ export function AppDeepLinkListener() {
 
       navigate(path, { replace: true });
     },
-    [checkSubscription, loading, navigate],
+    [checkSubscription, navigate],
   );
 
   useEffect(() => {

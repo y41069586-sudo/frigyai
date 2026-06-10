@@ -50,6 +50,23 @@ export function isStoreBillingConfigured(): boolean {
 }
 
 let configurePromise: Promise<void> | null = null;
+let configuredUserId: string | null = null;
+
+const CONFIGURE_TIMEOUT_MS = 6_000;
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timeout`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 export async function configureStoreBilling(appUserId: string): Promise<void> {
   if (!usesStoreBilling()) return;
@@ -59,20 +76,50 @@ export async function configureStoreBilling(appUserId: string): Promise<void> {
     return;
   }
 
-  if (!configurePromise) {
-    configurePromise = (async () => {
-      const { Purchases, LOG_LEVEL } = await import("@revenuecat/purchases-capacitor");
-      if (import.meta.env.DEV) {
-        await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
-      }
-      await Purchases.configure({
-        apiKey,
-        appUserID: appUserId,
-      });
-    })();
+  if (configurePromise && configuredUserId === appUserId) {
+    try {
+      await withTimeout(configurePromise, CONFIGURE_TIMEOUT_MS, "RevenueCat configure");
+      return;
+    } catch (error) {
+      console.warn("[StoreBilling] configure retry after failure:", error);
+      configurePromise = null;
+      configuredUserId = null;
+    }
   }
 
-  await configurePromise;
+  if (configurePromise && configuredUserId !== appUserId) {
+    try {
+      await withTimeout(configurePromise, CONFIGURE_TIMEOUT_MS, "RevenueCat configure");
+      const { Purchases } = await import("@revenuecat/purchases-capacitor");
+      await Purchases.logIn({ appUserID: appUserId });
+      configuredUserId = appUserId;
+      return;
+    } catch (error) {
+      console.warn("[StoreBilling] logIn failed, re-configuring:", error);
+      configurePromise = null;
+      configuredUserId = null;
+    }
+  }
+
+  configurePromise = (async () => {
+    const { Purchases, LOG_LEVEL } = await import("@revenuecat/purchases-capacitor");
+    if (import.meta.env.DEV) {
+      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+    }
+    await Purchases.configure({
+      apiKey,
+      appUserID: appUserId,
+    });
+    configuredUserId = appUserId;
+  })();
+
+  try {
+    await withTimeout(configurePromise, CONFIGURE_TIMEOUT_MS, "RevenueCat configure");
+  } catch (error) {
+    configurePromise = null;
+    configuredUserId = null;
+    throw error;
+  }
 }
 
 export async function syncStoreSubscriptionToServer(accessToken: string): Promise<void> {

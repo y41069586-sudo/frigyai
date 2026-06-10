@@ -28,11 +28,11 @@ import frigLogo from "@/assets/frigy-mascot.png";
  */
 export function AuthFlowBootstrap() {
   const navigate = useNavigate();
-  const { checkSubscription, loading } = useAuth();
+  const { checkSubscription } = useAuth();
   const triggeredRef = useRef(false);
 
   const tryStashed = () => {
-    if (loading || triggeredRef.current) return;
+    if (triggeredRef.current) return;
     if (!peekStashedOAuthCallbackUrl()) return;
     const { navigation } = getAuthFlowSnapshot();
     if (navigation.executed) return;
@@ -44,12 +44,11 @@ export function AuthFlowBootstrap() {
   };
 
   useEffect(() => {
-    if (loading) return;
     if (!peekStashedOAuthCallbackUrl() && !getOAuthPending()) return;
 
     tryStashed();
     scheduleStashedOAuthRetry({ checkSubscription, navigate });
-  }, [loading, checkSubscription, navigate]);
+  }, [checkSubscription, navigate]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -59,7 +58,7 @@ export function AuthFlowBootstrap() {
     }).then((handle) => () => {
       void handle.remove();
     });
-  }, [loading, checkSubscription, navigate]);
+  }, [checkSubscription, navigate]);
 
   return null;
 }
