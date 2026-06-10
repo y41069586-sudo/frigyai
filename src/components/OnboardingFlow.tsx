@@ -105,6 +105,8 @@ import HeroAnimation from "./HeroAnimation";
 import { InteractiveTutorial } from "./onboarding/InteractiveTutorial";
 import { AppleSignInIcon } from "@/components/icons/AppleSignInIcon";
 import { GoogleSignInIcon } from "@/components/icons/GoogleSignInIcon";
+import type { OnboardingCompleteOptions } from "@/lib/onboardingComplete";
+import { performFullLogout } from "@/lib/logout";
 
 // ─── Typewriter hook ─────────────────────────────────────────────────────────
 const useTypewriter = (text: string, speed = 40, startDelay = 1400) => {
@@ -436,7 +438,7 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface OnboardingFlowProps {
-  onComplete: () => void;
+  onComplete: (options?: OnboardingCompleteOptions) => void;
   /** QA helper: jump directly to a given step on mount (used by /onboarding-preview?step=…). */
   initialStep?: OnboardingStep;
 }
@@ -727,11 +729,14 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     setCurrentStep(initialStepOverride);
   }, [initialStepOverride]);
 
-  const finishOnboardingExit = useCallback(() => {
-    clearOnboardingSession();
-    saveOnboardingData(userData, { markOnboardingComplete: true });
-    onComplete();
-  }, [onComplete, userData]);
+  const finishOnboardingExit = useCallback(
+    (options?: OnboardingCompleteOptions) => {
+      clearOnboardingSession();
+      saveOnboardingData(userData, { markOnboardingComplete: true });
+      onComplete(options);
+    },
+    [onComplete, userData],
+  );
 
   const canAccessDashboard = useCallback(async (sessionReady = false): Promise<boolean> => {
     if (isPremium) return true;
@@ -836,7 +841,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (plan === "monthly" && resolveTrialEligibleFromLocal()) {
             void scheduleTrialEndingReminder();
           }
-          finishOnboardingExit();
+          finishOnboardingExit({ afterPurchase: true });
         }
       }
     } finally {
@@ -879,7 +884,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       });
       if (active) {
         markEverPremium();
-        finishOnboardingExit();
+        finishOnboardingExit({ afterPurchase: true });
       }
     } finally {
       setPaywallRestoreLoading(false);
@@ -4012,7 +4017,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             onCheckout={handlePaywallCheckout}
             onRestorePurchases={handlePaywallRestore}
             onSignOut={async () => {
-              await signOut();
+              await performFullLogout({ signOut });
+              navigate("/", { replace: true, state: { restartOnboarding: true } });
             }}
             isCheckoutLoading={paywallCheckoutLoading}
             isRestoreLoading={paywallRestoreLoading}

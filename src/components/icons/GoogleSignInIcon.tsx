@@ -6,14 +6,18 @@ type GoogleSignInIconProps = {
 };
 
 export function GoogleSignInIcon({ className, size = 20 }: GoogleSignInIconProps) {
+  const px = Math.round(size);
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
+      width={px}
+      height={px}
       viewBox="0 0 24 24"
       aria-hidden
-      className={cn("block shrink-0", className)}
+      shapeRendering="geometricPrecision"
+      className={cn("block shrink-0 flex-none pointer-events-none", className)}
+      style={{ width: px, height: px, minWidth: px, minHeight: px }}
     >
       <path
         fill="#4285F4"

@@ -93,7 +93,7 @@ export function executeAuthNavigation(
     });
     if (result.status === "success" && result.routePhase === "onboarding_paywall") {
       clearOnboardingOAuthPending();
-      window.setTimeout(() => resetAuthFlow(), 0);
+      resetAuthFlow();
     }
     return true;
   } catch (error) {

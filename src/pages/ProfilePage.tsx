@@ -32,7 +32,9 @@ import { ReminderSettings } from "@/components/ReminderSettings";
 import { DietPreferencesSettings } from "@/components/DietPreferencesSettings";
 import { ReferralCodesAdmin } from "@/components/ReferralCodesAdmin";
 import { isReferralAdmin } from "@/lib/admin";
-import { clearSessionDataForLogout } from "@/components/onboarding/utils";
+import { clearOnboardingForLogout } from "@/components/onboarding/utils";
+import { performFullLogout } from "@/lib/logout";
+import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
@@ -123,6 +125,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, session, subscriptionStatus, isPremium, signOut, checkSubscription, linkAppleAccount } = useAuth();
   const premiumActive = isPremium || isSubscriptionActive(subscriptionStatus);
+  const { saveProgress } = useOnboardingProgress();
   const { t, language } = useLanguage();
   const dateLocale = getAppLocale(language);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,9 +137,8 @@ const ProfilePage = () => {
   const showStoreRestore = usesStoreBilling();
 
   const handleSignOut = async () => {
-    clearSessionDataForLogout();
-    await signOut();
-    navigate("/", { replace: true });
+    await performFullLogout({ signOut, saveProgress });
+    navigate("/", { replace: true, state: { restartOnboarding: true } });
   };
 
   const handleRestorePurchases = async () => {
@@ -221,9 +223,8 @@ const ProfilePage = () => {
         description: t.accountDeletedDesc,
       });
 
-      clearSessionDataForLogout();
-      localStorage.removeItem("onboardingComplete");
-      await signOut();
+      clearOnboardingForLogout();
+      await signOut({ silent: true });
       setDeleteDialogOpen(false);
       navigate("/auth");
     } catch (error: unknown) {

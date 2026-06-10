@@ -10,8 +10,7 @@ import {
   resetAuthFlow,
 } from "@/lib/authCompletion";
 import { clearOAuthPending, getOAuthPending, resolveFromOnboarding } from "@/lib/oauthPending";
-import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
-import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
+import { clearOnboardingOAuthPending, isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
 
 /**
  * Handles Google/Apple OAuth return on any route (e.g. /auth?code=… or app.frigy.app/).
@@ -22,7 +21,6 @@ export function AuthOAuthCallbackBootstrap() {
   const location = useLocation();
   const { checkSubscription, user, loading } = useAuth();
   const oauthCallbackHandledRef = useRef(false);
-  const pendingRedirectStartedRef = useRef(false);
 
   useEffect(() => {
     if (oauthCallbackHandledRef.current) return;
@@ -42,7 +40,11 @@ export function AuthOAuthCallbackBootstrap() {
     publishAuthResult({ status: "pending", phase: "oauth_exchange" });
 
     void (async () => {
-      const fromOnboarding = resolveFromOnboarding(href);
+      const fromOnboarding =
+        resolveFromOnboarding(href) ||
+        isOnboardingInProgress() ||
+        isOnboardingOAuthPending();
+
       const result = await handleOAuthCallbackUrl({
         url: href,
         checkSubscription,
@@ -58,36 +60,34 @@ export function AuthOAuthCallbackBootstrap() {
 
       if (result.status === "error") {
         oauthCallbackHandledRef.current = false;
+        return;
+      }
+
+      if (result.status === "success" && result.routePhase === "onboarding_paywall") {
+        clearOAuthPending();
+        clearOnboardingOAuthPending();
+        resetAuthFlow();
       }
     })();
   }, [location.pathname, location.search, navigate, checkSubscription]);
 
+  /** Clear stale onboarding OAuth flags — callback handler owns the full pipeline. */
   useEffect(() => {
-    if (loading || pendingRedirectStartedRef.current || !user) return;
+    if (loading || !user) return;
     if (isOAuthCallbackUrl(window.location.href)) return;
     if (isAuthCompletionPending() || isAuthNavigationPending()) return;
 
     const pending = getOAuthPending();
-    // Login OAuth is completed by the deep-link / ?code= pipeline — not this fallback.
     if (pending !== "onboarding") return;
 
-    if (isOnboardingInProgress() || isOnboardingOAuthPending()) {
+    const onPaywall =
+      new URLSearchParams(window.location.search).get("onboardingStep") === "paywall";
+
+    if (onPaywall || isOnboardingInProgress() || isOnboardingOAuthPending()) {
       clearOAuthPending();
       resetAuthFlow();
-      return;
     }
-
-    pendingRedirectStartedRef.current = true;
-    clearOAuthPending();
-
-    void redirectAfterSignIn({
-      userId: user.id,
-      checkSubscription,
-      navigate,
-      fromOnboarding: true,
-      authIntent: "signup",
-    });
-  }, [loading, user, navigate, checkSubscription]);
+  }, [loading, user, location.search]);
 
   return null;
 }

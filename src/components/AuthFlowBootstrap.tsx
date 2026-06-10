@@ -103,7 +103,9 @@ export function AuthFlowRouter() {
         navigation.executed &&
         (result.status === "success" || result.status === "error")
       ) {
-        window.setTimeout(() => resetAuthFlow(), 1200);
+        const delayMs =
+          result.status === "success" && result.routePhase === "onboarding_paywall" ? 0 : 1200;
+        window.setTimeout(() => resetAuthFlow(), delayMs);
       }
     });
   }, []);

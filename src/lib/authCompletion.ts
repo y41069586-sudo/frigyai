@@ -201,7 +201,13 @@ function isOnboardingAuthRouteActive(): boolean {
   if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
   if (params.has("onboardingStep")) return true;
+  if (params.get("from") === "onboarding") return true;
   return isOnboardingInProgress() || isOnboardingOAuthPending();
+}
+
+function isOnboardingPaywallRoute(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("onboardingStep") === "paywall";
 }
 
 /** Overlay until pipeline done AND navigation executed (or still pending). */
@@ -214,16 +220,18 @@ export function isAuthFlowOverlayVisible(): boolean {
   const onboardingRoute = isOnboardingAuthRouteActive();
 
   if (result.status === "pending") {
-    if (result.phase === "oauth_exchange") return true;
-    if (onboardingRoute) return false;
+    if (onboardingRoute || isOnboardingPaywallRoute()) return false;
     return true;
   }
   if (navigation.executing) {
-    if (onboardingRoute) return false;
+    if (onboardingRoute || isOnboardingPaywallRoute()) return false;
     return true;
   }
   if (isAuthNavigationPending()) {
-    if (onboardingRoute) return false;
+    if (onboardingRoute || isOnboardingPaywallRoute()) return false;
+    if (snapshot.result.status === "success" && snapshot.result.routePhase === "onboarding_paywall") {
+      return false;
+    }
     return true;
   }
 

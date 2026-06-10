@@ -65,6 +65,7 @@ import {
 } from "@/lib/yesterdayCalorieBalance";
 import { hasMealPlanContent, readWeeklyPlanFromStorage } from "@/lib/food-ai/weeklyPlanWidgetData";
 import type { DailyMacroTargets } from "@/lib/mealPlanMacros";
+import type { OnboardingCompleteOptions } from "@/lib/onboardingComplete";
 
 function readOnboardingCompleteLocal(): boolean {
   return localStorage.getItem("onboardingComplete") === "true";
@@ -96,6 +97,9 @@ const Index = () => {
   const isFromSubscription = searchParams.get("subscription") === "success";
   const resetOnboarding = searchParams.get("resetOnboarding") === "true";
   const onboardingResumeStep = useMemo(() => {
+    if ((location.state as { restartOnboarding?: boolean } | null)?.restartOnboarding) {
+      return "splash" as OnboardingStep;
+    }
     const fromState = (location.state as { onboardingStep?: string } | null)?.onboardingStep;
     if (fromState && onboardingSteps.includes(fromState as OnboardingStep)) {
       return fromState as OnboardingStep;
@@ -395,7 +399,27 @@ const Index = () => {
     return () => window.clearTimeout(t);
   }, [user, onboardingComplete]);
 
-  const handleOnboardingComplete = useCallback(async () => {
+  const exitOnboardingToDashboard = useCallback(
+    async (activeUser: NonNullable<typeof user>) => {
+      localStorage.setItem("onboardingComplete", "true");
+      setLocalOnboardingComplete(true);
+      setShowOnboarding(false);
+      setOnboardingComplete(true);
+      setOnboardingLatch(false);
+      if (!dbOnboardingComplete) {
+        await saveProgress({ onboarding_complete: true });
+      }
+      const next = new URLSearchParams(searchParams);
+      if (next.has("onboardingStep")) {
+        next.delete("onboardingStep");
+        setSearchParams(next, { replace: true });
+      }
+    },
+    [dbOnboardingComplete, saveProgress, searchParams, setSearchParams],
+  );
+
+  const handleOnboardingComplete = useCallback(
+    async (options?: OnboardingCompleteOptions) => {
     if (ONBOARDING_TEST_MODE) {
       window.location.reload();
       return;
@@ -415,18 +439,8 @@ const Index = () => {
 
       const completedLocally = readOnboardingCompleteLocal();
 
-      if (activeUser && (completedLocally || dbOnboardingComplete)) {
-        setShowOnboarding(false);
-        setOnboardingComplete(true);
-        setLocalOnboardingComplete(true);
-        if (!dbOnboardingComplete) {
-          await saveProgress({ onboarding_complete: true });
-        }
-        const next = new URLSearchParams(searchParams);
-        if (next.has("onboardingStep")) {
-          next.delete("onboardingStep");
-          setSearchParams(next, { replace: true });
-        }
+      if (activeUser && (options?.afterPurchase || completedLocally || dbOnboardingComplete)) {
+        await exitOnboardingToDashboard(activeUser);
         return;
       }
 
@@ -439,16 +453,7 @@ const Index = () => {
         });
 
         if (route.phase === "dashboard") {
-          localStorage.setItem("onboardingComplete", "true");
-          setLocalOnboardingComplete(true);
-          setShowOnboarding(false);
-          setOnboardingComplete(true);
-          await saveProgress({ onboarding_complete: true });
-          const next = new URLSearchParams(searchParams);
-          if (next.has("onboardingStep")) {
-            next.delete("onboardingStep");
-            setSearchParams(next, { replace: true });
-          }
+          await exitOnboardingToDashboard(activeUser);
           return;
         }
 
@@ -471,14 +476,29 @@ const Index = () => {
     } finally {
       onboardingExitInFlightRef.current = false;
     }
-  }, [
+  },
+  [
     user,
     dbOnboardingComplete,
     checkSubscription,
     saveProgress,
     searchParams,
     setSearchParams,
+    exitOnboardingToDashboard,
   ]);
+
+  const restartOnboarding =
+    (location.state as { restartOnboarding?: boolean } | null)?.restartOnboarding === true;
+
+  useEffect(() => {
+    if (!restartOnboarding) return;
+    setShowOnboarding(true);
+    setOnboardingComplete(false);
+    setLocalOnboardingComplete(false);
+    setOnboardingLatch(false);
+    clearOnboardingSession();
+    window.history.replaceState({}, "", "/");
+  }, [restartOnboarding]);
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -612,14 +632,17 @@ const Index = () => {
     return <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />;
   }
 
-  // Not logged in: onboarding or redirect to auth (no blank loader loop).
+  // Not logged in: fresh onboarding or login for returning users.
   if (!user && !sessionRestoring) {
-    if (hasCompletedOnboarding || dbOnboardingComplete) {
-      return <Navigate to="/auth" replace />;
+    if (restartOnboarding || !readOnboardingCompleteLocal()) {
+      return (
+        <OnboardingFlow
+          onComplete={handleOnboardingComplete}
+          initialStep={onboardingResumeStep ?? "splash"}
+        />
+      );
     }
-    return (
-      <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />
-    );
+    return <Navigate to="/auth" replace />;
   }
 
   return (
