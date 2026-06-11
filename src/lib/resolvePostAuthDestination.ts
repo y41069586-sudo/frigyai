@@ -1,15 +1,11 @@
 import { persistOnboardingSignupFromStorage } from "@/components/onboarding/utils";
 import { waitForAuthSession } from "@/lib/authErrors";
-import { POST_AUTH_PAYWALL_ROUTE } from "@/lib/authOAuth";
-import { isEstablishedAuthUser } from "@/lib/isEstablishedAuthUser";
-import { buildPremiumPricingRoute, hasEverHadPremium } from "@/lib/trialEligibility";
-import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
-import type { SubscriptionStatusLike } from "@/lib/subscription";
+import { handleAuthSuccess } from "@/lib/handleAuthSuccess";
 import { supabase } from "@/integrations/supabase/client";
+import type { SubscriptionStatusLike } from "@/lib/subscription";
 
 export type PostAuthIntent = "login" | "signup" | "auto";
 
-/** Single routing outcome after auth — one decision, one destination. */
 export type PostAuthPhase =
   | "no_session"
   | "dashboard"
@@ -24,10 +20,6 @@ export type PostAuthRoute = {
 
 const DEFAULT_SESSION_WAIT_MS = 6000;
 
-/**
- * Block until Supabase session exists (storage + listener), or timeout.
- * Must pass before premium check or navigation.
- */
 export async function ensureAuthSessionForRouting(options?: {
   userId?: string | null;
   maxWaitMs?: number;
@@ -50,24 +42,11 @@ export async function ensureAuthSessionForRouting(options?: {
   return { ok: true, userId };
 }
 
-function resolvePaywallPath(explicitPath?: string | null): string {
-  const path = explicitPath?.trim();
-  if (
-    path &&
-    path.startsWith("/") &&
-    (path.includes("paywall") || path.includes("premium-pricing"))
-  ) {
-    return path;
-  }
-  return POST_AUTH_PAYWALL_ROUTE;
-}
-
 /**
- * Post-auth routing:
- * - Known / returning account → dashboard
- * - Referral promo / premium → dashboard
- * - Email login (existing account) → dashboard
- * - New signup (email, Google, Apple) → paywall
+ * Post-auth routing — DB `user_onboarding` record only (never Apple/Google heuristics).
+ *
+ * - Existing user (row exists) → dashboard
+ * - New user (no row) → create row → paywall
  */
 export async function resolvePostAuthDestination(options: {
   userId?: string | null;
@@ -77,9 +56,13 @@ export async function resolvePostAuthDestination(options: {
   skipReferralCheck?: boolean;
   sessionWaitMs?: number;
   authIntent?: PostAuthIntent;
-  /** Email/password login from /auth — account already exists */
   emailPasswordLogin?: boolean;
 }): Promise<PostAuthRoute> {
+  void options.checkSubscription;
+  void options.skipReferralCheck;
+  void options.authIntent;
+  void options.emailPasswordLogin;
+
   const sessionResult = await ensureAuthSessionForRouting({
     userId: options.userId,
     maxWaitMs: options.sessionWaitMs,
@@ -89,66 +72,24 @@ export async function resolvePostAuthDestination(options: {
     return { phase: "no_session", path: "/auth", userId: null };
   }
 
-  const userId = sessionResult.userId;
   const session = (await supabase.auth.getSession()).data.session;
-  const authUser = session?.user ?? null;
+  const authUser = session?.user;
+  if (!authUser) {
+    return { phase: "no_session", path: "/auth", userId: null };
+  }
 
   if (options.fromOnboarding) {
     persistOnboardingSignupFromStorage();
   }
 
-  const authIntent = options.authIntent ?? "auto";
-
-  const hasPremium = await resolvePremiumAccessAfterSignIn({
-    userId,
-    checkSubscription: options.checkSubscription,
-    sessionReady: true,
-    skipReferralCheck: options.skipReferralCheck,
+  const route = await handleAuthSuccess(authUser, {
+    fromOnboarding: options.fromOnboarding,
+    explicitPath: options.explicitPath,
   });
 
-  if (hasPremium) {
-    return { phase: "dashboard", path: "/", userId };
-  }
-
-  // New registrations must hit paywall before any "returning user" heuristics
-  // (known-email flags, fresh profiles row, partial onboarding rows, etc.).
-  if (authIntent === "signup") {
-    if (options.fromOnboarding) {
-      return {
-        phase: "onboarding_paywall",
-        path: "/?onboardingStep=paywall",
-        userId,
-      };
-    }
-    return {
-      phase: "standalone_paywall",
-      path: hasEverHadPremium()
-        ? buildPremiumPricingRoute({ trialEligible: false })
-        : resolvePaywallPath(options.explicitPath),
-      userId,
-    };
-  }
-
-  if (options.fromOnboarding) {
-    return {
-      phase: "onboarding_paywall",
-      path: "/?onboardingStep=paywall",
-      userId,
-    };
-  }
-
-  const paywallPath = hasEverHadPremium()
-    ? buildPremiumPricingRoute({ trialEligible: false })
-    : resolvePaywallPath(options.explicitPath);
-
-  // Login without active premium → paywall (not dashboard).
-  if (authIntent === "login" || options.emailPasswordLogin) {
-    return { phase: "standalone_paywall", path: paywallPath, userId };
-  }
-
-  if (authUser && isEstablishedAuthUser(authUser)) {
-    return { phase: "standalone_paywall", path: paywallPath, userId };
-  }
-
-  return { phase: "standalone_paywall", path: paywallPath, userId };
+  return {
+    phase: route.destination,
+    path: route.path,
+    userId: authUser.id,
+  };
 }

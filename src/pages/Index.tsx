@@ -49,7 +49,9 @@ import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
 import { getLocalDateISO } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
+import { resolveColdStartDestination } from "@/lib/handleAuthSuccess";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
+import { markUserOnboardingComplete } from "@/lib/userRecord";
 import { isAuthCompletionPending } from "@/lib/authCompletion";
 import {
   clearOnboardingSession,
@@ -401,21 +403,18 @@ const Index = () => {
 
   const exitOnboardingToDashboard = useCallback(
     async (activeUser: NonNullable<typeof user>) => {
-      localStorage.setItem("onboardingComplete", "true");
+      await markUserOnboardingComplete(activeUser.id);
       setLocalOnboardingComplete(true);
       setShowOnboarding(false);
       setOnboardingComplete(true);
       setOnboardingLatch(false);
-      if (!dbOnboardingComplete) {
-        await saveProgress({ onboarding_complete: true });
-      }
       const next = new URLSearchParams(searchParams);
       if (next.has("onboardingStep")) {
         next.delete("onboardingStep");
         setSearchParams(next, { replace: true });
       }
     },
-    [dbOnboardingComplete, saveProgress, searchParams, setSearchParams],
+    [searchParams, setSearchParams],
   );
 
   const handleOnboardingComplete = useCallback(
@@ -489,6 +488,56 @@ const Index = () => {
 
   const restartOnboarding =
     (location.state as { restartOnboarding?: boolean } | null)?.restartOnboarding === true;
+
+  const coldStartResolvedRef = useRef(false);
+
+  /** App start: logged-in users route by DB record (not OAuth provider). */
+  useEffect(() => {
+    if (!user || loading || onboardingLoading || sessionRestoring) return;
+    if (restartOnboarding || onboardingResumeStep || isOnboardingInProgress()) return;
+    if (isAuthCompletionPending()) return;
+    if (coldStartResolvedRef.current) return;
+
+    let cancelled = false;
+    coldStartResolvedRef.current = true;
+
+    void (async () => {
+      const route = await resolveColdStartDestination(user.id);
+      if (cancelled) return;
+
+      if (route.destination === "dashboard") {
+        setShowOnboarding(false);
+        setOnboardingComplete(true);
+        if (dbOnboardingComplete || readOnboardingCompleteLocal()) {
+          setLocalOnboardingComplete(true);
+        }
+        return;
+      }
+
+      setShowOnboarding(true);
+      setOnboardingComplete(false);
+      setSearchParams({ onboardingStep: "paywall" }, { replace: true });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    user,
+    loading,
+    onboardingLoading,
+    sessionRestoring,
+    restartOnboarding,
+    onboardingResumeStep,
+    dbOnboardingComplete,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
+    if (!user) {
+      coldStartResolvedRef.current = false;
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!restartOnboarding) return;
@@ -632,17 +681,14 @@ const Index = () => {
     return <OnboardingFlow onComplete={handleOnboardingComplete} initialStep={onboardingResumeStep} />;
   }
 
-  // Not logged in: fresh onboarding or login for returning users.
+  // Not logged in → onboarding (splash / full flow).
   if (!user && !sessionRestoring) {
-    if (restartOnboarding || !readOnboardingCompleteLocal()) {
-      return (
-        <OnboardingFlow
-          onComplete={handleOnboardingComplete}
-          initialStep={onboardingResumeStep ?? "splash"}
-        />
-      );
-    }
-    return <Navigate to="/auth" replace />;
+    return (
+      <OnboardingFlow
+        onComplete={handleOnboardingComplete}
+        initialStep={onboardingResumeStep ?? "splash"}
+      />
+    );
   }
 
   return (

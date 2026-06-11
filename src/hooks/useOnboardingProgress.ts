@@ -15,12 +15,14 @@ interface OnboardingProgress {
 export const useOnboardingProgress = () => {
   const { user } = useAuth();
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [hasRecord, setHasRecord] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Load onboarding progress from database
   const loadProgress = useCallback(async () => {
     if (!user) {
       setProgress(null);
+      setHasRecord(false);
       setLoading(false);
       return;
     }
@@ -36,6 +38,7 @@ export const useOnboardingProgress = () => {
         console.error('Error loading onboarding progress:', error);
         setProgress(null);
       } else if (data) {
+        setHasRecord(true);
         setProgress({
           onboarding_complete: data.onboarding_complete,
           user_name: data.user_name,
@@ -51,9 +54,8 @@ export const useOnboardingProgress = () => {
           localStorage.setItem('onboardingComplete', 'true');
         }
       } else {
-        // No record yet - check localStorage as fallback
-        const localComplete = localStorage.getItem('onboardingComplete') === 'true';
-        setProgress({ onboarding_complete: localComplete });
+        setHasRecord(false);
+        setProgress({ onboarding_complete: false });
       }
     } catch (e) {
       console.error('Failed to load onboarding progress:', e);
@@ -133,6 +135,7 @@ export const useOnboardingProgress = () => {
   return {
     progress,
     loading,
+    hasRecord,
     isComplete: progress?.onboarding_complete ?? false,
     userName: progress?.user_name ?? null,
     saveProgress,

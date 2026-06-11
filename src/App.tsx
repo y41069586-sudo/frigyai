@@ -17,6 +17,7 @@ import { lazyWithReload } from "@/lib/lazyWithReload";
 import { NotificationBootstrap } from "@/components/NotificationBootstrap";
 import { AppDeepLinkListener } from "@/components/AppDeepLinkListener";
 import { AuthFlowBootstrap, AuthFlowOverlay, AuthFlowRouter } from "@/components/AuthFlowBootstrap";
+import { AuthGuard } from "@/components/AuthGuard";
 import { PremiumGateProvider } from "@/contexts/PremiumGateContext";
 import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBootstrap";
 import { AuthOAuthCallbackBootstrap } from "@/components/AuthOAuthCallbackBootstrap";
@@ -73,19 +74,19 @@ const AppContent = () => {
         <div className="min-h-screen bg-background">
           <Routes location={location}>
             <Route path="/" element={<LazyRoute><Index /></LazyRoute>} />
-            <Route path="/meal-plans" element={<MealPlansPage />} />
+            <Route path="/meal-plans" element={<AuthGuard><MealPlansPage /></AuthGuard>} />
             <Route path="/onboarding-preview" element={<LazyRoute><OnboardingPreviewPage /></LazyRoute>} />
             <Route path="/signup" element={<LazyRoute><SignupDeepLinkPage /></LazyRoute>} />
             <Route path="/invite" element={<LazyRoute><SignupDeepLinkPage /></LazyRoute>} />
-            <Route path="/scan" element={<LazyRoute><ScanPage /></LazyRoute>} />
-            <Route path="/manual" element={<LazyRoute><ManualPage /></LazyRoute>} />
-            <Route path="/recipes" element={<LazyRoute><RecipesPage /></LazyRoute>} />
+            <Route path="/scan" element={<AuthGuard><LazyRoute><ScanPage /></LazyRoute></AuthGuard>} />
+            <Route path="/manual" element={<AuthGuard><LazyRoute><ManualPage /></LazyRoute></AuthGuard>} />
+            <Route path="/recipes" element={<AuthGuard><LazyRoute><RecipesPage /></LazyRoute></AuthGuard>} />
             <Route path="/recipe/:id" element={<LazyRoute><RecipeDetailPage /></LazyRoute>} />
             <Route path="/favorites" element={<LazyRoute><FavoritesPage /></LazyRoute>} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/premium" element={<LazyRoute><PremiumPage /></LazyRoute>} />
-            <Route path="/profile" element={<LazyRoute><ProfilePage /></LazyRoute>} />
-            <Route path="/badges" element={<LazyRoute><BadgesPage /></LazyRoute>} />
+            <Route path="/profile" element={<AuthGuard><LazyRoute><ProfilePage /></LazyRoute></AuthGuard>} />
+            <Route path="/badges" element={<AuthGuard><LazyRoute><BadgesPage /></LazyRoute></AuthGuard>} />
             <Route path="/reset-password" element={<LazyRoute><ResetPasswordPage /></LazyRoute>} />
             <Route path="/update-password" element={<LazyRoute><UpdatePasswordPage /></LazyRoute>} />
             <Route path="/email-confirmation" element={<LazyRoute><EmailConfirmationPage /></LazyRoute>} />

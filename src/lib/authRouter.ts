@@ -1,4 +1,5 @@
 import type { NavigateFunction } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   computeAuthCompletionOnce,
   computeStashedOAuthCompletion,
@@ -16,6 +17,7 @@ import { clearOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
 import type { PostAuthIntent } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
+import { getUserOnboardingRecord } from "@/lib/userRecord";
 
 const NAV_DEDUPE_MS = 1500;
 let lastNavigation = { path: "", at: 0 };
@@ -60,7 +62,15 @@ export function executeAuthNavigation(
 
   try {
     if (result.status === "success" && result.routePhase === "dashboard") {
-      localStorage.setItem("onboardingComplete", "true");
+      void supabase.auth.getSession().then(({ data }) => {
+        const userId = data.session?.user?.id;
+        if (!userId) return;
+        void getUserOnboardingRecord(userId).then((record) => {
+          if (record?.onboarding_complete) {
+            localStorage.setItem("onboardingComplete", "true");
+          }
+        });
+      });
     }
 
     const currentPath =

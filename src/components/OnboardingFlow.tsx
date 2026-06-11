@@ -266,42 +266,6 @@ const SplashLanguageSwitcher = () => {
 const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { signInWithGoogle, signInWithApple, user } = useAuth();
-  const { toast } = useToast();
-  const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
-  const [isAppleAuthLoading, setIsAppleAuthLoading] = useState(false);
-  const [showLoginOptions, setShowLoginOptions] = useState(false);
-  const showAppleSignIn = isAppleSignInAvailable() || Capacitor.getPlatform() === "web";
-  const oauthBusy = isGoogleAuthLoading || isAppleAuthLoading;
-
-  const handleSplashOAuthLogin = async (provider: "google" | "apple") => {
-    if (oauthBusy) return;
-    const setLoading = provider === "google" ? setIsGoogleAuthLoading : setIsAppleAuthLoading;
-    setLoading(true);
-    try {
-      if (user) {
-        await supabase.auth.signOut({ scope: "local" });
-      }
-      const { error } =
-        provider === "google"
-          ? await signInWithGoogle({ authQuery: { from: "login" } })
-          : await signInWithApple({ authQuery: { from: "login" } });
-      if (error) {
-        toast({
-          title: t.onboardingLoginFailed,
-          description: getPublicErrorMessage(
-            error,
-            provider === "google"
-              ? "Die Google-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut."
-              : "Die Apple-Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
-          ),
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-[#FFFFFF] text-neutral-950">
@@ -375,60 +339,13 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               <ArrowRight className="relative h-5 w-5 stroke-[2.6]" />
             </motion.button>
 
-            {!showLoginOptions ? (
-              <button
-                type="button"
-                onClick={() => setShowLoginOptions(true)}
-                className="mx-auto mt-4 block text-center text-[13px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
-              >
-                {t.onboardingAlreadyHaveAccount}
-              </button>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-4 w-full space-y-2.5"
-              >
-                {showAppleSignIn && (
-                  <button
-                    type="button"
-                    onClick={() => void handleSplashOAuthLogin("apple")}
-                    disabled={oauthBusy}
-                    className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[22px] bg-black text-[15px] font-semibold tracking-[-0.02em] text-white transition-opacity disabled:opacity-60"
-                  >
-                    <AppleSignInIcon size={20} />
-                    {isAppleAuthLoading ? t.loading : t.signInWithApple}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => void handleSplashOAuthLogin("google")}
-                  disabled={oauthBusy}
-                  className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[22px] border border-neutral-200 bg-white text-[15px] font-semibold tracking-[-0.02em] text-neutral-900 shadow-sm transition-opacity disabled:opacity-60"
-                >
-                  <GoogleSignInIcon size={20} />
-                  {isGoogleAuthLoading ? t.loading : t.signInWithGoogle}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/auth?mode=login")}
-                  className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
-                >
-                  {t.signInBtn}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowLoginOptions(false)}
-                  className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-600 hover:underline"
-                >
-                  {t.back}
-                </button>
-              </motion.div>
-            )}
+            <button
+              type="button"
+              onClick={() => navigate("/auth?mode=login")}
+              className="mx-auto mt-4 block text-center text-[13px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
+            >
+              {t.onboardingAlreadyHaveAccount}
+            </button>
           </div>
         </motion.div>
       </div>
