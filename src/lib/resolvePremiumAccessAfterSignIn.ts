@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { waitForAuthSession } from "@/lib/authErrors";
 import { redeemPendingReferralCode } from "@/lib/referralCode";
+import { refreshStoreCustomerInfo } from "@/lib/storeBilling";
 import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 import { isPromoPremiumProductId, isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
@@ -71,6 +72,10 @@ export async function resolvePremiumAccessAfterSignIn(options: {
 
   if (!options.skipReferralCheck && session?.access_token) {
     await redeemPendingReferralCode(session.access_token);
+  }
+
+  if (await refreshStoreCustomerInfo()) {
+    return true;
   }
 
   await syncStoreSubscriptionIfNeeded(session?.access_token);

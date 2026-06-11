@@ -51,6 +51,7 @@ import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 import { resolveColdStartDestination } from "@/lib/handleAuthSuccess";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
+import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
 import { markUserOnboardingComplete } from "@/lib/userRecord";
 import { isAuthCompletionPending } from "@/lib/authCompletion";
 import {
@@ -502,7 +503,14 @@ const Index = () => {
     coldStartResolvedRef.current = true;
 
     void (async () => {
-      const route = await resolveColdStartDestination(user.id);
+      const hasPremium = await resolvePremiumAccessAfterSignIn({
+        userId: user.id,
+        checkSubscription,
+        sessionReady: true,
+      });
+      if (cancelled) return;
+
+      const route = await resolveColdStartDestination(user.id, { hasPremium });
       if (cancelled) return;
 
       if (route.destination === "dashboard") {
@@ -516,6 +524,10 @@ const Index = () => {
 
       setShowOnboarding(true);
       setOnboardingComplete(false);
+      if (route.destination === "standalone_paywall") {
+        navigate(route.path, { replace: true });
+        return;
+      }
       setSearchParams({ onboardingStep: "paywall" }, { replace: true });
     })();
 
@@ -531,6 +543,8 @@ const Index = () => {
     onboardingResumeStep,
     dbOnboardingComplete,
     setSearchParams,
+    checkSubscription,
+    navigate,
   ]);
 
   useEffect(() => {

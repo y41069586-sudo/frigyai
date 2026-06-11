@@ -459,7 +459,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const { user, session, signUp, signIn, signOut, signInWithGoogle, signInWithApple, isPremium, checkSubscription } =
     useAuth();
-  const { prices: storePrices } = useStoreOfferingPrices(user?.id);
+  const {
+    prices: storePrices,
+    loading: pricesLoading,
+    error: pricesError,
+    reload: reloadPrices,
+  } = useStoreOfferingPrices(user?.id);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -702,6 +707,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
     goToPaywall();
   }, [authMode, checkSubscription, finishOnboardingExit, goToPaywall, user?.id]);
+
+  useEffect(() => {
+    if (currentStep === "paywall") {
+      reloadPrices();
+    }
+  }, [currentStep, reloadPrices]);
 
   useEffect(() => {
     if (currentStep !== "paywall") {
@@ -3952,6 +3963,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             isCheckoutLoading={paywallCheckoutLoading}
             isRestoreLoading={paywallRestoreLoading}
             storePrices={storePrices}
+            pricesLoading={pricesLoading}
+            pricesError={pricesError}
+            onRetryPrices={reloadPrices}
             trialEligible={resolveTrialEligibleFromLocal()}
           />
         );

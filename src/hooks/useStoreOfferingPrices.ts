@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import {
   configureStoreBilling,
-  fetchStoreOfferingPrices,
+  fetchStoreOfferingPricesWithRetry,
   type StoreOfferingPrices,
 } from "@/lib/storeBilling";
 
@@ -10,20 +10,41 @@ import {
 export function useStoreOfferingPrices(userId?: string | null) {
   const [prices, setPrices] = useState<StoreOfferingPrices | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const reload = useCallback(() => {
+    setReloadToken((token) => token + 1);
+  }, []);
 
   useEffect(() => {
-    if (!usesStoreBilling() || !userId) return;
+    if (!usesStoreBilling() || !userId) {
+      setPrices(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
     void (async () => {
       try {
         await configureStoreBilling(userId);
-        const fetched = await fetchStoreOfferingPrices();
-        if (!cancelled) setPrices(fetched);
+        const result = await fetchStoreOfferingPricesWithRetry();
+        if (cancelled) return;
+        if (result.ok) {
+          setPrices(result.prices);
+          setError(null);
+        } else {
+          setPrices(null);
+          setError(result.error);
+        }
       } catch (e) {
-        console.warn("[useStoreOfferingPrices]", e);
+        if (cancelled) return;
+        setPrices(null);
+        setError(e instanceof Error ? e.message : "Angebote konnten nicht geladen werden.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -32,7 +53,7 @@ export function useStoreOfferingPrices(userId?: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, reloadToken]);
 
-  return { prices, loading };
+  return { prices, loading, error, reload, retry: reload };
 }

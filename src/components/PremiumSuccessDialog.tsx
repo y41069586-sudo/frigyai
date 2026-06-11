@@ -6,7 +6,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { confettiBurst } from "@/lib/mobileEffects";
-import { SUBSCRIPTION_PRICING } from "@/lib/subscriptionPricing";
 
 interface PremiumSuccessDialogProps {
   open: boolean;
@@ -23,21 +22,21 @@ export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuc
   const copy = {
     de: {
       title: "Willkommen bei Premium!",
-      trialStarted: `Dein ${SUBSCRIPTION_PRICING.trialDays}-Tage kostenloser Test hat begonnen`,
+      trialStarted: "Deine kostenlose Testphase hat begonnen",
       active: "Premium ist jetzt aktiv",
       cta: "Los geht's!",
       cancelHint: "Jederzeit kündbar",
     },
     en: {
       title: "Welcome to Premium!",
-      trialStarted: `Your ${SUBSCRIPTION_PRICING.trialDays}-day free trial has started`,
+      trialStarted: "Your free trial has started",
       active: "Premium is now active",
       cta: "Let's go!",
       cancelHint: "Cancel anytime",
     },
     fr: {
       title: "Bienvenue sur Premium !",
-      trialStarted: `Ton essai gratuit de ${SUBSCRIPTION_PRICING.trialDays} jours a commencé`,
+      trialStarted: "Ton essai gratuit a commencé",
       active: "Premium est maintenant actif",
       cta: "C'est parti !",
       cancelHint: "Résiliable à tout moment",

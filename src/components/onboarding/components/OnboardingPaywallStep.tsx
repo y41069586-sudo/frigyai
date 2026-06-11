@@ -1,19 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronUp, Lock, Bell, Crown, Loader2 } from "lucide-react";
+import { Check, ChevronUp, Lock, Bell, Crown, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import type { StoreOfferingPrices } from "@/lib/storeBilling";
-import {
-  getMarketingMonthlyPrice,
-  getMarketingYearlyPrice,
-  resolveMonthlyDisplayPrice,
-  resolveYearlyDisplayPrice,
-} from "@/lib/subscriptionPricing";
 
 export type PaywallBillingPlan = "monthly" | "yearly";
 
@@ -26,6 +20,9 @@ type OnboardingPaywallStepProps = {
   isCheckoutLoading?: boolean;
   isRestoreLoading?: boolean;
   storePrices?: StoreOfferingPrices | null;
+  pricesLoading?: boolean;
+  pricesError?: string | null;
+  onRetryPrices?: () => void;
   /** False after trial or any prior subscription — hides trial timeline & intro offer UI. */
   trialEligible?: boolean;
 };
@@ -33,13 +30,11 @@ type OnboardingPaywallStepProps = {
 const copy = {
   de: {
     unlockTitle: "Schalte Frigy frei, um deine Ziele schneller zu erreichen",
-    trialTitle: "Starte deine 3-tägige KOSTENLOSE Testphase",
+    trialTitle: "Starte deine kostenlose Testphase",
     monthly: "Monatlich",
     yearly: "Jährlich",
-    monthlyPrice: "€9,99",
     monthlySuffix: "/Mo",
-    yearlyPrice: "€36,95/Jahr",
-    trialBadge: "3 TAGE KOSTENLOS",
+    trialBadge: "KOSTENLOSE TESTPHASE",
     feature1Title: "Einfaches Food-Scanning",
     feature1Desc: "Tracke deine Kalorien mit nur einem Bild",
     feature2Title: "Erreiche deine Ziele Schritt für Schritt",
@@ -48,18 +43,18 @@ const copy = {
     feature3Desc: "Bleib auf Kurs mit personalisierten Einblicken",
     trialToday: "Heute",
     trialTodayDesc: "Alle Premium-Funktionen freischalten – KI-Scan, Tracker und mehr",
-    trialReminder: "In 2 Tagen – Erinnerung",
+    trialReminder: "Erinnerung vor Ende",
     trialReminderDesc: "Wir erinnern dich, dass deine Testphase bald endet",
-    trialBilling: "In 3 Tagen – Abrechnung",
+    trialBilling: "Abrechnung nach Testphase",
     trialBillingPrefix: "Abrechnung am",
     trialBillingSuffix: ", sofern du nicht vorher kündigst",
     noCommitment: "Keine Bindung – jederzeit kündbar",
     noPaymentNow: "Keine Zahlung jetzt fällig",
     ctaUnlock: "Loslegen",
-    ctaTrial: "3-tägige Testphase starten",
-    footerMonthly: "Nur €9,99 pro Monat",
-    footerTrial: "3 Tage kostenlos, danach €9,99/Monat",
-    footerYearly: "Jährlich – €36,95 pro Jahr",
+    ctaTrial: "Kostenlose Testphase starten",
+    pricesLoading: "Preise werden geladen…",
+    pricesError: "Preise konnten nicht geladen werden.",
+    retryPrices: "Erneut versuchen",
     subscriptionName: "Frigy Premium",
     planLengthMonthly: "Monatsabo (1 Monat)",
     planLengthYearly: "Jahresabo (1 Jahr)",
@@ -72,13 +67,11 @@ const copy = {
   },
   en: {
     unlockTitle: "Unlock Frigy to reach your goals faster",
-    trialTitle: "Start your 3-day FREE trial",
+    trialTitle: "Start your FREE trial",
     monthly: "Monthly",
     yearly: "Yearly",
-    monthlyPrice: "€9.99",
     monthlySuffix: "/mo",
-    yearlyPrice: "€36.95/yr",
-    trialBadge: "3 DAYS FREE",
+    trialBadge: "FREE TRIAL",
     feature1Title: "Easy food scanning",
     feature1Desc: "Track your calories with just a picture",
     feature2Title: "Reach your goals step by step",
@@ -87,18 +80,18 @@ const copy = {
     feature3Desc: "Stay on track with personalized insights",
     trialToday: "Today",
     trialTodayDesc: "Unlock all premium features – AI scan, tracker and more",
-    trialReminder: "In 2 Days – Reminder",
+    trialReminder: "Reminder before trial ends",
     trialReminderDesc: "We'll remind you that your trial is ending soon",
-    trialBilling: "In 3 Days – Billing Starts",
+    trialBilling: "Billing after trial",
     trialBillingPrefix: "You'll be charged on",
     trialBillingSuffix: " unless you cancel anytime before",
     noCommitment: "No commitment – cancel anytime",
     noPaymentNow: "No payment due now",
     ctaUnlock: "Start my journey",
-    ctaTrial: "Start my 3-day free trial",
-    footerMonthly: "Just €9.99 per month",
-    footerTrial: "3 days free, then €9.99/mo",
-    footerYearly: "Yearly – €36.95 per year",
+    ctaTrial: "Start my free trial",
+    pricesLoading: "Loading prices…",
+    pricesError: "Prices could not be loaded.",
+    retryPrices: "Try again",
     subscriptionName: "Frigy Premium",
     planLengthMonthly: "Monthly subscription (1 month)",
     planLengthYearly: "Yearly subscription (1 year)",
@@ -111,13 +104,11 @@ const copy = {
   },
   fr: {
     unlockTitle: "Débloque Frigy pour atteindre tes objectifs plus vite",
-    trialTitle: "Commence ton essai GRATUIT de 3 jours",
+    trialTitle: "Commence ton essai GRATUIT",
     monthly: "Mensuel",
     yearly: "Annuel",
-    monthlyPrice: "9,99 €",
     monthlySuffix: "/mois",
-    yearlyPrice: "36,95 €/an",
-    trialBadge: "3 JOURS GRATUITS",
+    trialBadge: "ESSAI GRATUIT",
     feature1Title: "Scan alimentaire facile",
     feature1Desc: "Suis tes calories avec une simple photo",
     feature2Title: "Atteins tes objectifs pas à pas",
@@ -126,18 +117,18 @@ const copy = {
     feature3Desc: "Reste sur la bonne voie avec des insights personnalisés",
     trialToday: "Aujourd'hui",
     trialTodayDesc: "Débloque toutes les fonctions premium – scan IA, suivi et plus",
-    trialReminder: "Dans 2 jours – Rappel",
+    trialReminder: "Rappel avant la fin",
     trialReminderDesc: "On te rappellera que ton essai se termine bientôt",
-    trialBilling: "Dans 3 jours – Facturation",
+    trialBilling: "Facturation après l'essai",
     trialBillingPrefix: "Facturation le",
     trialBillingSuffix: ", sauf annulation avant",
     noCommitment: "Sans engagement – annule à tout moment",
     noPaymentNow: "Aucun paiement maintenant",
     ctaUnlock: "Commencer",
-    ctaTrial: "Démarrer l'essai de 3 jours",
-    footerMonthly: "Seulement 9,99 €/mois",
-    footerTrial: "3 jours gratuits, puis 9,99 €/mois",
-    footerYearly: "Annuel – 36,95 € par an",
+    ctaTrial: "Démarrer l'essai gratuit",
+    pricesLoading: "Chargement des prix…",
+    pricesError: "Impossible de charger les prix.",
+    retryPrices: "Réessayer",
     subscriptionName: "Frigy Premium",
     planLengthMonthly: "Abonnement mensuel (1 mois)",
     planLengthYearly: "Abonnement annuel (1 an)",
@@ -174,6 +165,38 @@ function PlanRadio({ selected }: { selected: boolean }) {
   );
 }
 
+function PriceLine({
+  loading,
+  priceString,
+  suffix,
+  loadingLabel,
+}: {
+  loading: boolean;
+  priceString?: string | null;
+  suffix?: string;
+  loadingLabel: string;
+}) {
+  if (loading) {
+    return (
+      <p className="mt-1.5 flex items-center gap-2 text-[14px] font-medium text-[#6B7280]">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        {loadingLabel}
+      </p>
+    );
+  }
+
+  if (!priceString?.trim()) {
+    return <p className="mt-1.5 text-[15px] font-bold text-[#9CA3AF]">—</p>;
+  }
+
+  return (
+    <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
+      {priceString}
+      {suffix ? <span className="text-[12px] font-medium text-[#6B7280]">{suffix}</span> : null}
+    </p>
+  );
+}
+
 export function OnboardingPaywallStep({
   language,
   onCheckout,
@@ -182,6 +205,9 @@ export function OnboardingPaywallStep({
   isCheckoutLoading = false,
   isRestoreLoading = false,
   storePrices = null,
+  pricesLoading = false,
+  pricesError = null,
+  onRetryPrices,
   trialEligible = true,
 }: OnboardingPaywallStepProps) {
   const { t: globalT } = useLanguage();
@@ -194,29 +220,46 @@ export function OnboardingPaywallStep({
   const showStoreRestore = usesStoreBilling() && Boolean(onRestorePurchases);
   const isStoreBilling = usesStoreBilling();
 
-  const monthlyPrice = resolveMonthlyDisplayPrice(language, storePrices?.monthly?.priceString);
-  const yearlyPrice = resolveYearlyDisplayPrice(language, storePrices?.yearly?.priceString);
-  const storeMonthlyHasIntro = storePrices?.monthly?.hasIntroOffer ?? true;
-  const showMonthlyTrialUi = trialEligible && storeMonthlyHasIntro;
+  const monthlyPrice = storePrices?.monthly?.priceString ?? null;
+  const yearlyPrice = storePrices?.yearly?.priceString ?? null;
+  const storeMonthlyHasIntro = storePrices?.monthly?.hasIntroOffer ?? false;
+  const showMonthlyTrialUi = trialEligible && storeMonthlyHasIntro && Boolean(monthlyPrice);
+  const pricesReady =
+    !isStoreBilling ||
+    (!pricesLoading &&
+      !pricesError &&
+      Boolean((isMonthly ? monthlyPrice : yearlyPrice)?.trim()));
+  const checkoutDisabled =
+    isCheckoutLoading || isRestoreLoading || pricesLoading || !pricesReady;
 
   const autoRenewText = t.autoRenewStore;
   const selectedPlanLabel = isMonthly ? t.planLengthMonthly : t.planLengthYearly;
   const selectedPrice = isMonthly ? monthlyPrice : yearlyPrice;
 
   const footerText = useMemo(() => {
+    if (pricesLoading) return t.pricesLoading;
+    if (pricesError) return pricesError;
     if (isMonthly) {
-      if (storePrices?.monthly) {
+      if (monthlyPrice) {
         return showMonthlyTrialUi
           ? `${t.noPaymentNow} · ${monthlyPrice}`
-          : `${monthlyPrice} ${t.monthlySuffix.trim()}`;
+          : `${monthlyPrice}${t.monthlySuffix}`;
       }
-      return showMonthlyTrialUi ? t.footerTrial : t.footerMonthly;
+      return t.pricesError;
     }
-    if (storePrices?.yearly) {
+    if (yearlyPrice) {
       return `${t.yearly} · ${yearlyPrice}`;
     }
-    return t.footerYearly;
-  }, [isMonthly, storePrices, showMonthlyTrialUi, monthlyPrice, yearlyPrice, t]);
+    return t.pricesError;
+  }, [
+    isMonthly,
+    monthlyPrice,
+    yearlyPrice,
+    showMonthlyTrialUi,
+    pricesLoading,
+    pricesError,
+    t,
+  ]);
 
   const features = [
     { title: t.feature1Title, desc: t.feature1Desc },
@@ -336,6 +379,22 @@ export function OnboardingPaywallStep({
           aria-hidden
         />
         <div className="mx-auto w-full max-w-md">
+          {pricesError && (
+            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-center text-[13px] text-red-700">
+              <p>{pricesError}</p>
+              {onRetryPrices && (
+                <button
+                  type="button"
+                  onClick={() => onRetryPrices()}
+                  className="mt-2 inline-flex items-center gap-1.5 font-semibold underline underline-offset-2"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                  {t.retryPrices}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
@@ -357,10 +416,12 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.monthly}</p>
-                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
-                  {getMarketingMonthlyPrice(language)}
-                  <span className="text-[12px] font-medium text-[#6B7280]">{t.monthlySuffix}</span>
-                </p>
+                <PriceLine
+                  loading={pricesLoading}
+                  priceString={monthlyPrice}
+                  suffix={monthlyPrice ? t.monthlySuffix : undefined}
+                  loadingLabel={t.pricesLoading}
+                />
               </div>
               <PlanRadio selected={plan === "monthly"} />
             </div>
@@ -378,7 +439,11 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.yearly}</p>
-                <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">{yearlyPrice}</p>
+                <PriceLine
+                  loading={pricesLoading}
+                  priceString={yearlyPrice}
+                  loadingLabel={t.pricesLoading}
+                />
               </div>
               <PlanRadio selected={plan === "yearly"} />
             </div>
@@ -392,8 +457,8 @@ export function OnboardingPaywallStep({
 
           <motion.button
             type="button"
-            whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
-            disabled={isCheckoutLoading || isRestoreLoading}
+            whileTap={{ scale: checkoutDisabled ? 1 : 0.98 }}
+            disabled={checkoutDisabled}
             onClick={() => void onCheckout(plan)}
             className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation disabled:opacity-70"
             style={{
@@ -405,6 +470,11 @@ export function OnboardingPaywallStep({
               <>
                 <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
                 {globalT.loading}
+              </>
+            ) : pricesLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                {t.pricesLoading}
               </>
             ) : (
               (showMonthlyTrialUi ? t.ctaTrial : t.ctaUnlock)
@@ -434,7 +504,8 @@ export function OnboardingPaywallStep({
           )}
 
           <p className="mt-4 text-center text-[12px] font-medium leading-snug text-[#6B7280]">
-            {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice}
+            {t.subscriptionName} · {selectedPlanLabel}
+            {selectedPrice ? ` · ${selectedPrice}` : ""}
             {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
           </p>
 

@@ -1,3 +1,4 @@
+import { refreshStoreCustomerInfo } from "@/lib/storeBilling";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 
@@ -29,6 +30,8 @@ export async function finalizeStorePurchase(options: {
       description: options.copy.premiumActivatingDesc,
     });
   }
+
+  await refreshStoreCustomerInfo();
 
   const active = await waitForPremiumAfterPurchase(
     options.checkSubscription,

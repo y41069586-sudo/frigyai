@@ -4,10 +4,10 @@ import { usesStoreBilling } from "@/lib/billingPlatform";
 import {
   configureStoreBilling,
   isStoreBillingConfigured,
+  refreshStoreCustomerInfo,
+  REVENUECAT_ENTITLEMENT_ID,
   syncStoreSubscriptionToServer,
 } from "@/lib/storeBilling";
-
-const ENTITLEMENT_ID = import.meta.env.VITE_REVENUECAT_ENTITLEMENT_ID?.trim() || "premium";
 
 /** Initializes RevenueCat when user is signed in on native apps. */
 export function StoreBillingBootstrap() {
@@ -24,14 +24,18 @@ export function StoreBillingBootstrap() {
       await configureStoreBilling(user.id);
       if (cancelled) return;
 
+      await refreshStoreCustomerInfo();
       await syncStoreSubscriptionToServer(session.access_token);
       await checkSubscription();
 
       const { Purchases } = await import("@revenuecat/purchases-capacitor");
       listenerId = await Purchases.addCustomerInfoUpdateListener(async (customerInfo) => {
-        if (!customerInfo.entitlements.active[ENTITLEMENT_ID]) return;
+        const hasEntitlement = Boolean(customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_ID]);
         await syncStoreSubscriptionToServer(session.access_token);
         await checkSubscription();
+        if (!hasEntitlement) {
+          console.info("[StoreBilling] Premium entitlement inactive — subscription synced.");
+        }
       });
     })();
 

@@ -6,7 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ANDROID_PACKAGE = "com.frigy.app";
 
-const ENTITLEMENT_ID = import.meta.env.VITE_REVENUECAT_ENTITLEMENT_ID?.trim() || "premium";
+export const REVENUECAT_ENTITLEMENT_ID =
+  import.meta.env.VITE_REVENUECAT_ENTITLEMENT_ID?.trim() || "premium";
+
+const OFFERINGS_RETRY_DELAYS_MS = [0, 600, 1500];
 
 function getApiKey(): string | null {
   const platform = Capacitor.getPlatform();
@@ -97,20 +100,81 @@ function mapPackagePrice(
   };
 }
 
-/** Live App Store / Play prices from RevenueCat offerings (not hardcoded). */
+function validateOfferingPrices(prices: StoreOfferingPrices): string | null {
+  if (!prices.monthly?.priceString?.trim() && !prices.yearly?.priceString?.trim()) {
+    return "Keine Abo-Pakete in RevenueCat gefunden (monthly/yearly).";
+  }
+  return null;
+}
+
+function formatOfferingsError(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "Angebote konnten nicht geladen werden. Bitte erneut versuchen.";
+}
+
+/** Live App Store / Play prices from RevenueCat offerings — never hardcoded. */
 export async function fetchStoreOfferingPrices(): Promise<StoreOfferingPrices | null> {
-  if (!isStoreBillingConfigured()) return null;
+  const result = await fetchStoreOfferingPricesWithRetry();
+  return result.ok ? result.prices : null;
+}
+
+export type FetchStoreOfferingPricesResult =
+  | { ok: true; prices: StoreOfferingPrices }
+  | { ok: false; error: string };
+
+/** Reload offerings from RevenueCat with retry (call on every paywall open). */
+export async function fetchStoreOfferingPricesWithRetry(
+  maxAttempts = OFFERINGS_RETRY_DELAYS_MS.length,
+): Promise<FetchStoreOfferingPricesResult> {
+  if (!isStoreBillingConfigured()) {
+    return {
+      ok: false,
+      error: "In-App-Abos sind auf diesem Gerät nicht verfügbar.",
+    };
+  }
+
+  let lastError = "Angebote konnten nicht geladen werden.";
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const delayMs = OFFERINGS_RETRY_DELAYS_MS[attempt] ?? 1500;
+    if (delayMs > 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    }
+
+    try {
+      const { Purchases } = await import("@revenuecat/purchases-capacitor");
+      const offerings = await Purchases.getOfferings();
+      const prices: StoreOfferingPrices = {
+        monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
+        yearly: mapPackagePrice(pickPackage(offerings, "yearly")),
+      };
+      const validationError = validateOfferingPrices(prices);
+      if (validationError) {
+        lastError = validationError;
+        continue;
+      }
+      return { ok: true, prices };
+    } catch (error) {
+      lastError = formatOfferingsError(error);
+      console.warn(`[StoreBilling] fetchStoreOfferingPrices attempt ${attempt + 1} failed:`, error);
+    }
+  }
+
+  return { ok: false, error: lastError };
+}
+
+export async function refreshStoreCustomerInfo(): Promise<boolean> {
+  if (!isStoreBillingConfigured()) return false;
 
   try {
     const { Purchases } = await import("@revenuecat/purchases-capacitor");
-    const offerings = await Purchases.getOfferings();
-    return {
-      monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
-      yearly: mapPackagePrice(pickPackage(offerings, "yearly")),
-    };
-  } catch (e) {
-    console.warn("[StoreBilling] fetchStoreOfferingPrices failed:", e);
-    return null;
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    return Boolean(customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_ID]);
+  } catch (error) {
+    console.warn("[StoreBilling] refreshStoreCustomerInfo failed:", error);
+    return false;
   }
 }
 
@@ -138,7 +202,7 @@ export async function purchaseStorePlan(
     }
 
     const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-    const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
+    const active = customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_ID];
     if (!active) {
       return { ok: false, message: "Kauf abgeschlossen, aber Premium-Entitlement fehlt." };
     }
@@ -172,7 +236,7 @@ export async function restoreStorePurchases(accessToken: string): Promise<StoreP
   try {
     const { Purchases } = await import("@revenuecat/purchases-capacitor");
     const { customerInfo } = await Purchases.restorePurchases();
-    const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
+    const active = customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_ID];
     if (!active) {
       return { ok: false, message: "Kein aktives Abo gefunden." };
     }

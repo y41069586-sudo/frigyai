@@ -1,6 +1,7 @@
 import { persistOnboardingSignupFromStorage } from "@/components/onboarding/utils";
 import { waitForAuthSession } from "@/lib/authErrors";
 import { handleAuthSuccess } from "@/lib/handleAuthSuccess";
+import { resolvePremiumAccessAfterSignIn } from "@/lib/resolvePremiumAccessAfterSignIn";
 import { supabase } from "@/integrations/supabase/client";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 
@@ -43,10 +44,11 @@ export async function ensureAuthSessionForRouting(options?: {
 }
 
 /**
- * Post-auth routing — DB `user_onboarding` record only (never Apple/Google heuristics).
+ * Post-auth routing — RevenueCat premium first, then DB record.
  *
- * - Existing user (row exists) → dashboard
- * - New user (no row) → create row → paywall
+ * - Active premium → dashboard
+ * - No premium + new user → paywall
+ * - No premium + existing user → standalone paywall
  */
 export async function resolvePostAuthDestination(options: {
   userId?: string | null;
@@ -58,8 +60,6 @@ export async function resolvePostAuthDestination(options: {
   authIntent?: PostAuthIntent;
   emailPasswordLogin?: boolean;
 }): Promise<PostAuthRoute> {
-  void options.checkSubscription;
-  void options.skipReferralCheck;
   void options.authIntent;
   void options.emailPasswordLogin;
 
@@ -82,9 +82,17 @@ export async function resolvePostAuthDestination(options: {
     persistOnboardingSignupFromStorage();
   }
 
+  const hasPremium = await resolvePremiumAccessAfterSignIn({
+    userId: authUser.id,
+    checkSubscription: options.checkSubscription,
+    skipReferralCheck: options.skipReferralCheck,
+    sessionReady: true,
+  });
+
   const route = await handleAuthSuccess(authUser, {
     fromOnboarding: options.fromOnboarding,
     explicitPath: options.explicitPath,
+    hasPremium,
   });
 
   return {

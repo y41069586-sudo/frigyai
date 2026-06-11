@@ -1,5 +1,9 @@
 import { usesStoreBilling } from "@/lib/billingPlatform";
-import { isStoreBillingConfigured, syncStoreSubscriptionToServer } from "@/lib/storeBilling";
+import {
+  isStoreBillingConfigured,
+  refreshStoreCustomerInfo,
+  syncStoreSubscriptionToServer,
+} from "@/lib/storeBilling";
 import { isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
 /** Sync RevenueCat → Supabase before reading subscription status (native apps). */
@@ -23,6 +27,14 @@ export async function waitForPremiumAfterPurchase(
   maxAttempts = PREMIUM_ACTIVATION_MAX_ATTEMPTS,
 ): Promise<boolean> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (await refreshStoreCustomerInfo()) {
+      await syncStoreSubscriptionIfNeeded(accessToken);
+      const status = await checkSubscription();
+      if (isSubscriptionActive(status)) {
+        return true;
+      }
+    }
+
     await syncStoreSubscriptionIfNeeded(accessToken);
     const status = await checkSubscription();
     if (isSubscriptionActive(status)) {

@@ -30,15 +30,28 @@ function resolveStandalonePaywallPath(explicitPath?: string | null): string {
 }
 
 /**
- * Central post-auth routing — DB record only, never OAuth provider heuristics.
+ * Central post-auth routing — RevenueCat premium + DB record.
  *
- * - No `user_onboarding` row → create row → paywall
- * - Row exists → dashboard
+ * - Active premium (RevenueCat) → dashboard
+ * - No premium + new user → paywall
+ * - No premium + existing user → standalone paywall
  */
 export async function handleAuthSuccess(
   user: User,
-  options?: { fromOnboarding?: boolean; explicitPath?: string | null },
+  options?: {
+    fromOnboarding?: boolean;
+    explicitPath?: string | null;
+    hasPremium?: boolean;
+  },
 ): Promise<AuthSuccessRoute> {
+  if (options?.hasPremium) {
+    const record = await getUserOnboardingRecord(user.id);
+    if (record?.onboarding_complete) {
+      localStorage.setItem("onboardingComplete", "true");
+    }
+    return { destination: "dashboard", path: "/", isNewUser: false };
+  }
+
   const { isNew } = await ensureUserOnboardingRecord(user);
 
   if (!isNew) {
@@ -46,7 +59,11 @@ export async function handleAuthSuccess(
     if (record?.onboarding_complete) {
       localStorage.setItem("onboardingComplete", "true");
     }
-    return { destination: "dashboard", path: "/", isNewUser: false };
+    return {
+      destination: "standalone_paywall",
+      path: resolveStandalonePaywallPath(options?.explicitPath),
+      isNewUser: false,
+    };
   }
 
   if (options?.fromOnboarding) {
@@ -67,15 +84,26 @@ export async function handleAuthSuccess(
 /** Cold-start routing when a session already exists. */
 export async function resolveColdStartDestination(
   userId: string,
+  options?: { hasPremium?: boolean },
 ): Promise<AuthSuccessRoute> {
-  const hasRecord = await hasUserOnboardingRecord(userId);
-
-  if (hasRecord) {
+  if (options?.hasPremium) {
     const record = await getUserOnboardingRecord(userId);
     if (record?.onboarding_complete) {
       localStorage.setItem("onboardingComplete", "true");
     }
     return { destination: "dashboard", path: "/", isNewUser: false };
+  }
+
+  const hasRecord = await hasUserOnboardingRecord(userId);
+
+  if (hasRecord) {
+    return {
+      destination: "standalone_paywall",
+      path: hasEverHadPremium()
+        ? buildPremiumPricingRoute({ trialEligible: false })
+        : POST_AUTH_PAYWALL_ROUTE,
+      isNewUser: false,
+    };
   }
 
   return {
