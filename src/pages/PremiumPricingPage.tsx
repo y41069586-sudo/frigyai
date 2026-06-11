@@ -19,7 +19,12 @@ import { scheduleTrialEndingReminder } from "@/lib/notifications";
 const PremiumPricingPage = () => {
   const { language, t } = useLanguage();
   const { session, subscriptionStatus, user, checkSubscription, signOut } = useAuth();
-  const { prices: storePrices, loading: storePricesLoading } = useStoreOfferingPrices(user?.id);
+  const {
+    prices: storePrices,
+    loading: storePricesLoading,
+    error: storePricesError,
+    reload: reloadStorePrices,
+  } = useStoreOfferingPrices(user?.id);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -135,6 +140,8 @@ const PremiumPricingPage = () => {
         isRestoreLoading={restoreLoading}
         storePrices={storePrices}
         storePricesLoading={storePricesLoading}
+        storePricesError={storePricesError}
+        onReloadStorePrices={reloadStorePrices}
         trialEligible={trialEligible}
         showRestorePurchases
       />

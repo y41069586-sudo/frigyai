@@ -22,6 +22,8 @@ type OnboardingPaywallStepProps = {
   isRestoreLoading?: boolean;
   storePrices?: StoreOfferingPrices | null;
   storePricesLoading?: boolean;
+  storePricesError?: boolean;
+  onReloadStorePrices?: () => void;
   /** False after trial or any prior subscription — hides trial timeline & intro offer UI. */
   trialEligible?: boolean;
   /** Standalone renew paywall only — hidden during first-time onboarding. */
@@ -232,6 +234,8 @@ export function OnboardingPaywallStep({
   isRestoreLoading = false,
   storePrices = null,
   storePricesLoading = false,
+  storePricesError = false,
+  onReloadStorePrices,
   trialEligible = true,
   showRestorePurchases = false,
 }: OnboardingPaywallStepProps) {
@@ -472,6 +476,20 @@ export function OnboardingPaywallStep({
             </div>
           </button>
           </div>
+
+          {needsStorePrices && storePricesError && !storePricesLoading && (
+            <button
+              type="button"
+              onClick={() => onReloadStorePrices?.()}
+              className="mt-3 w-full rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5 text-center text-[14px] font-semibold text-[#374151] transition-colors hover:bg-[#F3F4F6]"
+            >
+              {language === "de"
+                ? "Preise erneut laden"
+                : language === "fr"
+                  ? "Recharger les prix"
+                  : "Reload prices"}
+            </button>
+          )}
 
           <p className="mt-5 flex items-center justify-center gap-2 text-center text-[15px] text-[#374151]">
             <Check className="h-5 w-5 shrink-0" style={{ color: ONBOARDING_PALETTE.primaryDeep }} strokeWidth={2.5} />

@@ -660,7 +660,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const { user, session, signUp, signIn, signOut, signInWithGoogle, signInWithApple, isPremium, checkSubscription } =
     useAuth();
-  const { prices: storePrices, loading: storePricesLoading } = useStoreOfferingPrices(user?.id);
+  const {
+    prices: storePrices,
+    loading: storePricesLoading,
+    error: storePricesError,
+    reload: reloadStorePrices,
+  } = useStoreOfferingPrices(user?.id);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -4215,6 +4220,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             isCheckoutLoading={paywallCheckoutLoading}
             storePrices={storePrices}
             storePricesLoading={storePricesLoading}
+            storePricesError={storePricesError}
+            onReloadStorePrices={reloadStorePrices}
             trialEligible={resolveTrialEligibleFromLocal()}
           />
         );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import { prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 import {
@@ -9,7 +9,7 @@ import {
 } from "@/lib/storeOfferingPricesCache";
 import type { StoreOfferingPrices } from "@/lib/storeBilling";
 
-const LOADING_MAX_MS = 12_000;
+const LOADING_MAX_MS = 20_000;
 
 function getSnapshot(): StoreOfferingPrices | null {
   return getStoreOfferingPricesSnapshot();
@@ -22,10 +22,54 @@ export function useStoreOfferingPrices(userId?: string | null) {
   const [loading, setLoading] = useState(
     () => usesStoreBilling() && !hasFreshStoreOfferingPrices(),
   );
+  const [error, setError] = useState(false);
+
+  const loadPrices = useCallback(
+    (force = false) => {
+      if (!usesStoreBilling()) {
+        setLoading(false);
+        setError(false);
+        return Promise.resolve<StoreOfferingPrices | null>(null);
+      }
+
+      setLoading(true);
+      setError(false);
+
+      const loadingCap = window.setTimeout(() => {
+        setLoading(false);
+      }, LOADING_MAX_MS);
+
+      return prefetchStoreOfferingPrices(userId, { force })
+        .then((result) => {
+          const ready = Boolean(result?.monthly?.priceString && result?.yearly?.priceString);
+          setError(!ready);
+          return result;
+        })
+        .catch(() => {
+          setError(true);
+          return null;
+        })
+        .finally(() => {
+          clearTimeout(loadingCap);
+          if (hasFreshStoreOfferingPrices()) {
+            setLoading(false);
+            setError(false);
+          } else {
+            setLoading(false);
+          }
+        });
+    },
+    [userId],
+  );
+
+  const reload = useCallback(() => {
+    void loadPrices(true);
+  }, [loadPrices]);
 
   useEffect(() => {
     if (!usesStoreBilling()) {
       setLoading(false);
+      setError(false);
       return;
     }
 
@@ -33,33 +77,20 @@ export function useStoreOfferingPrices(userId?: string | null) {
     if (lastUserIdRef.current === userKey) return;
     lastUserIdRef.current = userKey;
 
-    const loadingCap = window.setTimeout(() => {
-      setLoading(false);
-    }, LOADING_MAX_MS);
-
-    const stopLoadingWhenReady = () => {
-      if (hasFreshStoreOfferingPrices()) {
-        clearTimeout(loadingCap);
-        setLoading(false);
-      }
-    };
-
     if (hasFreshStoreOfferingPrices()) {
       setLoading(false);
+      setError(false);
       void prefetchStoreOfferingPrices(userId);
-      return () => clearTimeout(loadingCap);
+      return;
     }
 
-    setLoading(true);
-    void prefetchStoreOfferingPrices(userId).finally(stopLoadingWhenReady);
-
-    return () => {
-      clearTimeout(loadingCap);
-    };
-  }, [userId]);
+    void loadPrices(false);
+  }, [userId, loadPrices]);
 
   return {
     prices: prices ?? readCachedStoreOfferingPrices(),
     loading,
+    error,
+    reload,
   };
 }

@@ -57,7 +57,10 @@ export function isStoreBillingConfigured(): boolean {
 let configurePromise: Promise<void> | null = null;
 let configuredUserId: string | null = null;
 
-const CONFIGURE_TIMEOUT_MS = 6_000;
+const CONFIGURE_TIMEOUT_MS = 12_000;
+const OFFERINGS_TIMEOUT_MS = 15_000;
+const PREFETCH_TIMEOUT_MS = 20_000;
+const OFFERINGS_RETRY_DELAYS_MS = [0, 1_500, 3_500] as const;
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -245,18 +248,36 @@ function collectOfferingPackages(
   return [...candidates.values()];
 }
 
+function pickPackageFromCurrentOffering(
+  offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
+  plan: PaywallBillingPlan,
+): RevenueCatPackage | null {
+  const current = offerings.current;
+  if (!current) return null;
+
+  if (plan === "monthly" && current.monthly) return current.monthly;
+  if ((plan === "yearly" || plan === "yearly_promo") && current.annual) return current.annual;
+
+  return null;
+}
+
 function pickPackage(
   offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
   plan: PaywallBillingPlan,
 ) {
+  const direct = pickPackageFromCurrentOffering(offerings, plan);
+  if (direct) return direct;
+
   const packages = collectOfferingPackages(offerings);
   if (packages.length === 0) return null;
 
   let best: RevenueCatPackage | null = null;
   let bestScore = Number.NEGATIVE_INFINITY;
+  let viableCount = 0;
 
   for (const pkg of packages) {
     const score = scorePackageForPlan(pkg, plan);
+    if (score >= 0) viableCount += 1;
     if (score > bestScore) {
       bestScore = score;
       best = pkg;
@@ -269,10 +290,15 @@ function pickPackage(
       picked: best.identifier,
       productId: (best.product as { identifier?: string } | undefined)?.identifier,
       score: bestScore,
+      viableCount,
+      offeringId: offerings.current?.identifier,
     });
   }
 
-  return bestScore > 0 ? best : null;
+  if (!best) return null;
+  if (bestScore > 0) return best;
+  if (bestScore === 0 && viableCount === 1) return best;
+  return null;
 }
 
 export type StorePlanPrice = {
@@ -303,11 +329,32 @@ function phasePriceAmount(phase: PricingPhaseLike | null | undefined): number | 
   return typeof micros === "number" ? micros / 1_000_000 : undefined;
 }
 
+function findDefaultSubscriptionOption(pkg: RevenueCatPackage): SubscriptionOption | null {
+  const product = pkg.product as StoreProductWithOptions;
+  const options = product.subscriptionOptions ?? [];
+  if (options.length === 0) return null;
+
+  const basePlan = options.find((option) => option.isBasePlan);
+  return basePlan ?? options[0] ?? null;
+}
+
 function mapPackagePrice(pkg: RevenueCatPackage | null): StorePlanPrice | null {
   if (!pkg?.product) return null;
+
+  if (Capacitor.getPlatform() === "android") {
+    const defaultOption = findDefaultSubscriptionOption(pkg);
+    if (defaultOption) {
+      const fromOption = mapSubscriptionOptionPrice(pkg, defaultOption);
+      if (fromOption?.priceString) return fromOption;
+    }
+  }
+
   const product = pkg.product as StoreProductWithOptions;
+  const priceString = product.priceString?.trim();
+  if (!priceString) return null;
+
   return {
-    priceString: product.priceString,
+    priceString,
     price: typeof product.price === "number" ? product.price : undefined,
     currencyCode: product.currencyCode,
     pricePerMonthString: product.pricePerMonthString ?? null,
@@ -380,35 +427,102 @@ function resolveYearlyPromoPrice(yearlyPkg: RevenueCatPackage | null): StorePlan
   return mapGiftOfferPrice(yearlyPkg, giftOption);
 }
 
-/** Live App Store / Play prices from RevenueCat offerings (not hardcoded). */
-export async function fetchStoreOfferingPrices(): Promise<StoreOfferingPrices | null> {
+type StoreOfferings = Awaited<
+  ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>
+>;
+
+async function loadStoreOfferings(): Promise<StoreOfferings> {
+  const { Purchases } = await import("@revenuecat/purchases-capacitor");
+  try {
+    return await Purchases.syncAttributesAndOfferingsIfNeeded();
+  } catch (error) {
+    console.warn("[StoreBilling] syncAttributesAndOfferingsIfNeeded failed, using getOfferings:", error);
+    return Purchases.getOfferings();
+  }
+}
+
+function logOfferingSnapshot(offerings: StoreOfferings): void {
+  const current = offerings.current;
+  if (!current) {
+    console.warn("[StoreBilling] RevenueCat offerings.current is empty — check dashboard Offering + products.");
+    return;
+  }
+
+  if (!import.meta.env.DEV) return;
+
+  console.info("[StoreBilling] offerings snapshot", {
+    offeringId: current.identifier,
+    monthly: current.monthly?.identifier ?? null,
+    annual: current.annual?.identifier ?? null,
+    packages: (current.availablePackages ?? []).map((pkg) => ({
+      id: pkg.identifier,
+      productId: (pkg.product as { identifier?: string } | undefined)?.identifier,
+      priceString: (pkg.product as StoreProductWithOptions | undefined)?.priceString ?? null,
+      currencyCode: (pkg.product as StoreProductWithOptions | undefined)?.currencyCode ?? null,
+    })),
+  });
+}
+
+function mapOfferingPrices(offerings: StoreOfferings): StoreOfferingPrices {
+  const yearlyPkg = pickPackage(offerings, "yearly");
+
+  if (import.meta.env.DEV && yearlyPkg) {
+    const options = (yearlyPkg.product as StoreProductWithOptions).subscriptionOptions ?? [];
+    console.info(
+      "[StoreBilling] yearly subscriptionOptions",
+      options.map((o) => ({ id: o.id, tags: o.tags, isBasePlan: o.isBasePlan })),
+    );
+  }
+
+  return {
+    monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
+    yearly: mapYearlyStandardPrice(yearlyPkg),
+    yearlyPromo: resolveYearlyPromoPrice(yearlyPkg),
+  };
+}
+
+function hasCompleteStorePrices(prices: StoreOfferingPrices | null | undefined): boolean {
+  return Boolean(prices?.monthly?.priceString && prices?.yearly?.priceString);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Live App Store / Play prices from RevenueCat offerings (localized by store region). */
+export async function fetchStoreOfferingPrices(
+  userId?: string | null,
+): Promise<StoreOfferingPrices | null> {
   if (!isStoreBillingConfigured()) return null;
 
+  const appUserId = resolveRevenueCatUserId(userId);
+
   try {
-    const { Purchases } = await import("@revenuecat/purchases-capacitor");
-    const offerings = await Purchases.getOfferings();
-    const yearlyPkg = pickPackage(offerings, "yearly");
-
-    if (import.meta.env.DEV && yearlyPkg) {
-      const options = (yearlyPkg.product as StoreProductWithOptions).subscriptionOptions ?? [];
-      console.info(
-        "[StoreBilling] yearly subscriptionOptions",
-        options.map((o) => ({ id: o.id, tags: o.tags, isBasePlan: o.isBasePlan })),
-      );
-    }
-
-    return {
-      monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
-      yearly: mapYearlyStandardPrice(yearlyPkg),
-      yearlyPromo: resolveYearlyPromoPrice(yearlyPkg),
-    };
+    await configureStoreBilling(appUserId);
+    const offerings = await withTimeout(loadStoreOfferings(), OFFERINGS_TIMEOUT_MS, "RevenueCat offerings");
+    logOfferingSnapshot(offerings);
+    return mapOfferingPrices(offerings);
   } catch (e) {
     console.warn("[StoreBilling] fetchStoreOfferingPrices failed:", e);
     return null;
   }
 }
 
-const PREFETCH_TIMEOUT_MS = 8_000;
+/** Retry offerings fetch — store prices can lag right after configure on cold start. */
+export async function fetchStoreOfferingPricesWithRetry(
+  userId?: string | null,
+): Promise<StoreOfferingPrices | null> {
+  let last: StoreOfferingPrices | null = null;
+
+  for (const delayMs of OFFERINGS_RETRY_DELAYS_MS) {
+    if (delayMs > 0) await sleep(delayMs);
+    last = await fetchStoreOfferingPrices(userId);
+    if (hasCompleteStorePrices(last)) return last;
+  }
+
+  return last;
+}
+
 const prefetchInflight = new Map<string, Promise<StoreOfferingPrices | null>>();
 
 async function withPrefetchTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -425,36 +539,44 @@ async function withPrefetchTimeout<T>(promise: Promise<T>, ms: number): Promise<
   }
 }
 
+type PrefetchStoreOfferingPricesOptions = {
+  force?: boolean;
+};
+
 /** Background load of store prices — call on app start and when user signs in. */
 export async function prefetchStoreOfferingPrices(
   userId?: string | null,
+  options?: PrefetchStoreOfferingPricesOptions,
 ): Promise<StoreOfferingPrices | null> {
   if (!isStoreBillingConfigured()) {
     return readCachedStoreOfferingPrices();
   }
 
   const appUserId = resolveRevenueCatUserId(userId);
-  const inflight = prefetchInflight.get(appUserId);
-  if (inflight) return inflight;
+  const inflightKey = `${appUserId}:${options?.force ? "force" : "default"}`;
+  const inflight = prefetchInflight.get(inflightKey);
+  if (inflight && !options?.force) return inflight;
 
   const promise = (async () => {
     try {
-      await withPrefetchTimeout(configureStoreBilling(appUserId), PREFETCH_TIMEOUT_MS);
-      const fetched = await withPrefetchTimeout(fetchStoreOfferingPrices(), PREFETCH_TIMEOUT_MS);
-      if (fetched?.monthly?.priceString && fetched?.yearly?.priceString) {
+      const fetched = await withPrefetchTimeout(
+        fetchStoreOfferingPricesWithRetry(userId),
+        PREFETCH_TIMEOUT_MS,
+      );
+      if (fetched) {
         writeCachedStoreOfferingPrices(fetched);
-        return fetched;
       }
+      if (hasCompleteStorePrices(fetched)) return fetched;
       return readCachedStoreOfferingPrices();
     } catch (error) {
       console.warn("[StoreBilling] prefetchStoreOfferingPrices failed:", error);
       return readCachedStoreOfferingPrices();
     }
   })().finally(() => {
-    prefetchInflight.delete(appUserId);
+    prefetchInflight.delete(inflightKey);
   });
 
-  prefetchInflight.set(appUserId, promise);
+  prefetchInflight.set(inflightKey, promise);
   return promise;
 }
 
@@ -513,6 +635,7 @@ async function purchaseStandardYearly(
 export async function purchaseStorePlan(
   plan: PaywallBillingPlan,
   accessToken: string,
+  userId?: string | null,
 ): Promise<StorePurchaseResult> {
   if (!isStoreBillingConfigured()) {
     return {
@@ -524,8 +647,8 @@ export async function purchaseStorePlan(
   const giftPlanId = getYearlyGiftBasePlanId();
 
   try {
-    const { Purchases } = await import("@revenuecat/purchases-capacitor");
-    const offerings = await Purchases.getOfferings();
+    await configureStoreBilling(resolveRevenueCatUserId(userId));
+    const offerings = await loadStoreOfferings();
 
     let customerInfo: Awaited<
       ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchasePackage>
