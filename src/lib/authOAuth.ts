@@ -1,10 +1,14 @@
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { FRIGY_APP_SCHEME } from "@/lib/appDeepLink";
+import { publishAuthResult, resetAuthFlow } from "@/lib/authCompletion";
 import { DEV_SERVER_PORT, LOCAL_OAUTH_REDIRECT } from "@/lib/devServerPort";
-import { isRetriableOAuthExchangeError } from "@/lib/oauthCallbackRecovery";
+import {
+  clearStashedOAuthCallbackUrl,
+  isRetriableOAuthExchangeError,
+} from "@/lib/oauthCallbackRecovery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
+import { clearOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 
 export type OAuthProvider = "google" | "apple";
 
@@ -186,6 +190,34 @@ function buildAuthRedirectTo(options?: {
   return getOAuthRedirectUrl().split("?")[0];
 }
 
+let oauthBrowserDismissHandle: { remove: () => void } | null = null;
+
+async function registerOAuthBrowserDismissWatcher(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+
+  try {
+    if (oauthBrowserDismissHandle) {
+      await oauthBrowserDismissHandle.remove();
+      oauthBrowserDismissHandle = null;
+    }
+
+    const { Browser } = await import("@capacitor/browser");
+    const handle = await Browser.addListener("browserFinished", async () => {
+      await handle.remove();
+      oauthBrowserDismissHandle = null;
+
+      const { data } = await supabase.auth.getSession();
+      if (data.session) return;
+
+      clearOAuthPending();
+      resetAuthFlow();
+    });
+    oauthBrowserDismissHandle = handle;
+  } catch {
+    // ignore
+  }
+}
+
 export async function signInWithOAuthProvider(
   provider: OAuthProvider,
   options?: { redirectPath?: string; authQuery?: Record<string, string> },
@@ -196,6 +228,7 @@ export async function signInWithOAuthProvider(
 
   const redirectTo = buildAuthRedirectTo(options);
 
+  clearStashedOAuthCallbackUrl();
   setOAuthPendingFromAuthQuery(options?.authQuery);
 
   const isWeb = !Capacitor.isNativePlatform();
@@ -262,7 +295,9 @@ export async function signInWithOAuthProvider(
   console.info("[AuthOAuth] opening:", authorizeUrl);
 
   if (Capacitor.isNativePlatform()) {
+    publishAuthResult({ status: "pending", phase: "oauth_exchange" });
     await openExternalUrl(authorizeUrl);
+    void registerOAuthBrowserDismissWatcher();
   } else {
     window.location.assign(authorizeUrl);
   }

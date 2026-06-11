@@ -22,7 +22,8 @@ import {
 } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 import { isMealPlanGenerationActive } from "@/lib/mealPlanGenerationLock";
-import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
+import { getOAuthPending } from "@/lib/oauthPending";
+import { isOnboardingOAuthPending } from "@/lib/onboardingSession";
 
 /** Pipeline phases while work is in progress. */
 export type AuthPendingPhase = "oauth_exchange" | "session" | "premium";
@@ -197,13 +198,6 @@ export const POST_AUTH_MANUAL_NAV_PATHS = new Set([
   "/badges",
 ]);
 
-function isOnboardingAuthRouteActive(): boolean {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  if (params.has("onboardingStep")) return true;
-  return isOnboardingInProgress() || isOnboardingOAuthPending();
-}
-
 /** Overlay until pipeline done AND navigation executed (or still pending). */
 export function isAuthFlowOverlayVisible(): boolean {
   if (isMealPlanGenerationActive()) {
@@ -211,18 +205,14 @@ export function isAuthFlowOverlayVisible(): boolean {
   }
 
   const { result, navigation } = snapshot;
-  const onboardingRoute = isOnboardingAuthRouteActive();
 
   if (result.status === "pending") {
-    if (onboardingRoute) return false;
     return true;
   }
   if (navigation.executing) {
-    if (onboardingRoute) return false;
     return true;
   }
   if (isAuthNavigationPending()) {
-    if (onboardingRoute) return false;
     return true;
   }
 
@@ -238,8 +228,12 @@ export function isAuthFlowOverlayVisible(): boolean {
 export function dismissStalledAuthNavigation(): void {
   if (isMealPlanGenerationActive()) return;
 
-  const { result } = getAuthFlowSnapshot();
-  if (result.status === "pending" && result.phase === "oauth_exchange") return;
+  const { result, navigation } = getAuthFlowSnapshot();
+  if (result.status === "pending") return;
+  if (navigation.executing) return;
+  if (isAuthNavigationPending()) return;
+  if (getOAuthPending()) return;
+  if (isOnboardingOAuthPending()) return;
 
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {
@@ -247,8 +241,6 @@ export function dismissStalledAuthNavigation(): void {
     return;
   }
 
-  const { navigation } = getAuthFlowSnapshot();
-  if (navigation.executing) return;
   resetAuthFlow();
 }
 
@@ -375,11 +367,12 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
     }
 
     setResult({ status: "pending", phase: "oauth_exchange" });
-    await closeNativeOAuthBrowser();
 
     const oauthContext = resolveOAuthContext(oauthUrl);
     const fromOnboarding = fromOnboardingOpt ?? oauthContext.fromOnboarding;
     const exchanged = await completeOAuthFromUrl(oauthUrl);
+
+    await closeNativeOAuthBrowser();
 
     if (!exchanged) {
       if (allowOAuthDefer && Capacitor.isNativePlatform()) {

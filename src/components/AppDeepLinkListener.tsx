@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { resolveDeepLink } from "@/lib/appDeepLink";
+import { publishAuthResult } from "@/lib/authCompletion";
 import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl, scheduleStashedOAuthRetry } from "@/lib/completeOAuthSignIn";
 import { resolveOAuthContext } from "@/lib/oauthPending";
@@ -61,6 +62,7 @@ export function AppDeepLinkListener() {
       }
 
       if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
+        publishAuthResult({ status: "pending", phase: "oauth_exchange" });
         stashOAuthCallbackUrl(url);
         const oauthContext = resolveOAuthContext(url);
         void handleOAuthCallbackUrl({
@@ -68,11 +70,7 @@ export function AppDeepLinkListener() {
           checkSubscription,
           navigate,
           fromOnboarding: oauthContext.fromOnboarding,
-          onExchangeSuccess: () => {
-            if (oauthContext.fromOnboarding) {
-              navigate("/?onboardingStep=paywall", { replace: true });
-            }
-          },
+          authIntent: oauthContext.authIntent,
         });
         scheduleStashedOAuthRetry({ checkSubscription, navigate });
         return;

@@ -1,3 +1,6 @@
+import { Capacitor } from "@capacitor/core";
+import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
+
 /** Tracks in-flight OAuth (web sessionStorage + native localStorage). */
 export const OAUTH_PENDING_KEY = "frigy_oauth_pending";
 
@@ -41,6 +44,11 @@ export function clearStaleOAuthPendingIfIdle(): void {
     href.includes("oauth_error=");
 
   if (hasCallback) return;
+
+  // Native OAuth returns via frigy://callback — keep pending until deep link is handled.
+  if (Capacitor.isNativePlatform()) return;
+
+  if (peekStashedOAuthCallbackUrl()) return;
 
   const pending = getOAuthPending();
   if (!pending) return;

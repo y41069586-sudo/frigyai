@@ -250,8 +250,7 @@ export function OnboardingPaywallStep({
   const yearlyPriceString = storePrices?.yearly?.priceString ?? null;
   const pricesReady =
     !needsStorePrices ||
-    Boolean(monthlyPriceString && yearlyPriceString) ||
-    !storePricesLoading;
+    Boolean(monthlyPriceString && yearlyPriceString);
 
   const storeMonthlyHasIntro = storePrices?.monthly?.hasIntroOffer ?? true;
   const showMonthlyTrialUi = trialEligible && storeMonthlyHasIntro;

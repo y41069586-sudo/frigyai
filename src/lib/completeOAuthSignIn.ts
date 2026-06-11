@@ -8,6 +8,7 @@ import {
   runStashedOAuthCompletion,
   scheduleStashedOAuthRetry,
 } from "@/lib/authRouter";
+import type { PostAuthIntent } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 
 export type OAuthCallbackResult = AuthResult;
@@ -17,10 +18,19 @@ export async function handleOAuthCallbackUrl(options: {
   checkSubscription: () => Promise<SubscriptionStatusLike | null>;
   navigate: NavigateFunction;
   fromOnboarding?: boolean;
+  authIntent?: PostAuthIntent;
   onExchangeSuccess?: () => void;
   allowDefer?: boolean;
 }): Promise<OAuthCallbackResult> {
-  const { url, checkSubscription, navigate, onExchangeSuccess, allowDefer = true, fromOnboarding } = options;
+  const {
+    url,
+    checkSubscription,
+    navigate,
+    onExchangeSuccess,
+    allowDefer = true,
+    fromOnboarding,
+    authIntent,
+  } = options;
 
   if (isOAuthErrorUrl(url)) {
     clearOAuthPending();
@@ -42,6 +52,7 @@ export async function handleOAuthCallbackUrl(options: {
     checkSubscription,
     navigate,
     fromOnboarding: fromOnboarding ?? resolveFromOnboarding(url),
+    authIntent,
     onOAuthExchangeSuccess: onExchangeSuccess,
     allowOAuthDefer: allowDefer,
   });

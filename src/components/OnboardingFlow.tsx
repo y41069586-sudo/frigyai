@@ -31,7 +31,8 @@ import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
-import { clearOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
+import { getAuthFlowSnapshot, isAuthCompletionPending, subscribeAuthFlow } from "@/lib/authCompletion";
+import { clearOAuthPending, getOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 import {
   clearOnboardingOAuthPending,
   clearOnboardingSession,
@@ -272,6 +273,22 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
   const [showLoginOptions, setShowLoginOptions] = useState(false);
   const showAppleSignIn = isAppleSignInAvailable() || Capacitor.getPlatform() === "web";
   const oauthBusy = isGoogleAuthLoading || isAppleAuthLoading;
+
+  useEffect(() => {
+    if (!oauthBusy) return;
+    return subscribeAuthFlow(() => {
+      const snap = getAuthFlowSnapshot();
+      if (snap.navigation.executed || snap.result.status === "error") {
+        setIsGoogleAuthLoading(false);
+        setIsAppleAuthLoading(false);
+        return;
+      }
+      if (!isAuthCompletionPending() && snap.result.status === "idle" && !getOAuthPending()) {
+        setIsGoogleAuthLoading(false);
+        setIsAppleAuthLoading(false);
+      }
+    });
+  }, [oauthBusy]);
 
   const handleSplashOAuthLogin = async (provider: "google" | "apple") => {
     if (oauthBusy) return;
@@ -809,6 +826,28 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       setCurrentStep("paywall");
     }
   }, []);
+
+  const authRouteHandledRef = useRef(false);
+
+  useEffect(() => {
+    return subscribeAuthFlow(() => {
+      const { result, navigation } = getAuthFlowSnapshot();
+      if (result.status !== "success" || !navigation.executed || authRouteHandledRef.current) {
+        return;
+      }
+
+      authRouteHandledRef.current = true;
+      if (result.routePhase === "dashboard") {
+        finishOnboardingExit();
+      } else if (result.routePhase === "onboarding_paywall") {
+        goToPaywall();
+      }
+
+      window.setTimeout(() => {
+        authRouteHandledRef.current = false;
+      }, 2500);
+    });
+  }, [finishOnboardingExit, goToPaywall]);
 
   const tryFinishOnboardingWithAccess = useCallback(async (sessionReady = false) => {
     const { data } = await supabase.auth.getSession();

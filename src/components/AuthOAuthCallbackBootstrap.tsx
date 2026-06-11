@@ -10,7 +10,7 @@ import {
   resetAuthFlow,
 } from "@/lib/authCompletion";
 import { clearOAuthPending, getOAuthPending, resolveOAuthContext } from "@/lib/oauthPending";
-import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
+import { isOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
 
 /**
@@ -48,9 +48,7 @@ export function AuthOAuthCallbackBootstrap() {
         checkSubscription,
         navigate,
         fromOnboarding: oauthContext.fromOnboarding,
-        onExchangeSuccess: () => {
-          navigate(oauthContext.fromOnboarding ? "/?onboardingStep=paywall" : "/", { replace: true });
-        },
+        authIntent: oauthContext.authIntent,
       });
 
       if (result.status === "error") {
@@ -68,9 +66,7 @@ export function AuthOAuthCallbackBootstrap() {
     // Login OAuth is completed by the deep-link / ?code= pipeline — not this fallback.
     if (pending !== "onboarding") return;
 
-    if (isOnboardingInProgress() || isOnboardingOAuthPending()) {
-      clearOAuthPending();
-      resetAuthFlow();
+    if (isOnboardingOAuthPending() || isAuthCompletionPending() || isAuthNavigationPending()) {
       return;
     }
 
