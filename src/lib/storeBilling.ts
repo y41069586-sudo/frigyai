@@ -21,7 +21,14 @@ type PricingPhaseLike = {
     amountMicros?: number;
     currencyCode?: string;
   };
+  billingPeriod?: {
+    unit?: string;
+    value?: number;
+    iso8601?: string;
+  };
 };
+
+type BillingCadence = "monthly" | "yearly";
 
 function getApiKey(): string | null {
   const platform = Capacitor.getPlatform();
@@ -181,6 +188,74 @@ function isMonthlyLikePackage(pkg: RevenueCatPackage): boolean {
   );
 }
 
+function packageTypeOf(pkg: RevenueCatPackage): string {
+  return ((pkg as { packageType?: string }).packageType ?? "").toUpperCase();
+}
+
+function subscriptionOptionBillingCadence(option: SubscriptionOption): BillingCadence | null {
+  const period =
+    (option as { billingPeriod?: PricingPhaseLike["billingPeriod"] }).billingPeriod ??
+    (option.fullPricePhase as PricingPhaseLike | null | undefined)?.billingPeriod;
+
+  const iso = period?.iso8601?.trim().toUpperCase() ?? "";
+  if (iso === "P1Y" || /^P\d+Y$/.test(iso)) return "yearly";
+  if (iso === "P1M" || /^P\d+M$/.test(iso)) {
+    const months = iso === "P1M" ? 1 : Number.parseInt(iso.slice(1, -1), 10);
+    if (months >= 12) return "yearly";
+    if (months === 1) return "monthly";
+  }
+
+  const unit = period?.unit?.toUpperCase() ?? "";
+  if (unit === "YEAR") return "yearly";
+  if (unit === "MONTH" && (period?.value ?? 1) >= 12) return "yearly";
+  if (unit === "MONTH") return "monthly";
+
+  const id = option.id.toLowerCase();
+  if (/(year|annual|jahres)/.test(id)) return "yearly";
+  if (/(month|monat)/.test(id)) return "monthly";
+  return null;
+}
+
+function packageBillingCadence(pkg: RevenueCatPackage): BillingCadence | null {
+  const packageType = packageTypeOf(pkg);
+  if (packageType === "MONTHLY") return "monthly";
+  if (packageType === "ANNUAL") return "yearly";
+
+  const yearlyLike = isYearlyLikePackage(pkg);
+  const monthlyLike = isMonthlyLikePackage(pkg);
+  if (yearlyLike && !monthlyLike) return "yearly";
+  if (monthlyLike && !yearlyLike) return "monthly";
+
+  if (Capacitor.getPlatform() === "android") {
+    const product = pkg.product as StoreProductWithOptions;
+    const options = product.subscriptionOptions ?? [];
+    const basePlans = options.filter((option) => option.isBasePlan);
+    const cadences = basePlans
+      .map((option) => subscriptionOptionBillingCadence(option))
+      .filter((cadence): cadence is BillingCadence => cadence !== null);
+    if (cadences.length === 1) return cadences[0]!;
+    if (cadences.includes("yearly") && !cadences.includes("monthly")) return "yearly";
+    if (cadences.includes("monthly") && !cadences.includes("yearly")) return "monthly";
+  }
+
+  return null;
+}
+
+function packageMatchesPlan(pkg: RevenueCatPackage, plan: PaywallBillingPlan): boolean {
+  const cadence = packageBillingCadence(pkg);
+  if (plan === "monthly") {
+    if (cadence === "monthly") return true;
+    if (cadence === "yearly") return false;
+    return isMonthlyLikePackage(pkg) && !isYearlyLikePackage(pkg);
+  }
+  if (plan === "yearly" || plan === "yearly_promo") {
+    if (cadence === "yearly") return true;
+    if (cadence === "monthly") return false;
+    return isYearlyLikePackage(pkg) && !isMonthlyLikePackage(pkg);
+  }
+  return false;
+}
+
 /** Gift yearly: Google Play base plan paywall-gift (or offer on that plan). */
 export function findGiftSubscriptionOption(pkg: RevenueCatPackage): SubscriptionOption | null {
   const product = pkg.product as StoreProductWithOptions;
@@ -214,20 +289,25 @@ export function findStandardYearlySubscriptionOption(
 }
 
 function scorePackageForPlan(pkg: RevenueCatPackage, plan: PaywallBillingPlan): number {
+  const cadence = packageBillingCadence(pkg);
   const isYearlyLike = isYearlyLikePackage(pkg);
   const isMonthlyLike = isMonthlyLikePackage(pkg);
 
   if (plan === "yearly" || plan === "yearly_promo") {
+    if (cadence === "yearly") return 110;
+    if (cadence === "monthly") return -110;
     if (pkg.identifier === "$rc_annual" || pkg.identifier === "annual") return 100;
-    if (((pkg as { packageType?: string }).packageType ?? "").toUpperCase() === "ANNUAL") return 95;
+    if (packageTypeOf(pkg) === "ANNUAL") return 95;
     if (isMonthlyLike && !isYearlyLike) return -100;
     if (isYearlyLike) return 80;
     return 0;
   }
 
+  if (cadence === "monthly") return 110;
+  if (cadence === "yearly") return -110;
   if (isYearlyLike) return -100;
   if (pkg.identifier === "$rc_monthly" || pkg.identifier === "monthly") return 100;
-  if (((pkg as { packageType?: string }).packageType ?? "").toUpperCase() === "MONTHLY") return 95;
+  if (packageTypeOf(pkg) === "MONTHLY") return 95;
   if (isMonthlyLike) return 80;
   return 0;
 }
@@ -255,8 +335,16 @@ function pickPackageFromCurrentOffering(
   const current = offerings.current;
   if (!current) return null;
 
-  if (plan === "monthly" && current.monthly) return current.monthly;
-  if ((plan === "yearly" || plan === "yearly_promo") && current.annual) return current.annual;
+  if (plan === "monthly" && current.monthly && packageMatchesPlan(current.monthly, plan)) {
+    return current.monthly;
+  }
+  if (
+    (plan === "yearly" || plan === "yearly_promo") &&
+    current.annual &&
+    packageMatchesPlan(current.annual, plan)
+  ) {
+    return current.annual;
+  }
 
   return null;
 }
@@ -329,22 +417,39 @@ function phasePriceAmount(phase: PricingPhaseLike | null | undefined): number | 
   return typeof micros === "number" ? micros / 1_000_000 : undefined;
 }
 
-function findDefaultSubscriptionOption(pkg: RevenueCatPackage): SubscriptionOption | null {
+function findSubscriptionOptionForCadence(
+  pkg: RevenueCatPackage,
+  cadence: BillingCadence,
+): SubscriptionOption | null {
   const product = pkg.product as StoreProductWithOptions;
   const options = product.subscriptionOptions ?? [];
   if (options.length === 0) return null;
 
-  const basePlan = options.find((option) => option.isBasePlan);
-  return basePlan ?? options[0] ?? null;
+  const matching = options.filter((option) => subscriptionOptionBillingCadence(option) === cadence);
+  if (matching.length > 0) {
+    return matching.find((option) => option.isBasePlan) ?? matching[0] ?? null;
+  }
+
+  if (cadence === "yearly") {
+    return findStandardYearlySubscriptionOption(pkg);
+  }
+
+  const nonGiftBase = options.find(
+    (option) => option.isBasePlan && !subscriptionOptionMatchesGiftPlan(option),
+  );
+  return nonGiftBase ?? options.find((option) => option.isBasePlan) ?? options[0] ?? null;
 }
 
-function mapPackagePrice(pkg: RevenueCatPackage | null): StorePlanPrice | null {
+function mapPackagePrice(
+  pkg: RevenueCatPackage | null,
+  cadence: BillingCadence = "monthly",
+): StorePlanPrice | null {
   if (!pkg?.product) return null;
 
   if (Capacitor.getPlatform() === "android") {
-    const defaultOption = findDefaultSubscriptionOption(pkg);
-    if (defaultOption) {
-      const fromOption = mapSubscriptionOptionPrice(pkg, defaultOption);
+    const option = findSubscriptionOptionForCadence(pkg, cadence);
+    if (option) {
+      const fromOption = mapSubscriptionOptionPrice(pkg, option);
       if (fromOption?.priceString) return fromOption;
     }
   }
@@ -410,7 +515,7 @@ function mapYearlyStandardPrice(yearlyPkg: RevenueCatPackage | null): StorePlanP
     }
   }
 
-  return mapPackagePrice(yearlyPkg);
+  return mapPackagePrice(yearlyPkg, "yearly");
 }
 
 function mapGiftOfferPrice(
@@ -463,22 +568,54 @@ function logOfferingSnapshot(offerings: StoreOfferings): void {
   });
 }
 
+function correctSwappedMonthlyYearlyPrices(prices: StoreOfferingPrices): StoreOfferingPrices {
+  const monthlyAmount = prices.monthly?.price;
+  const yearlyAmount = prices.yearly?.price;
+  if (
+    typeof monthlyAmount === "number" &&
+    typeof yearlyAmount === "number" &&
+    monthlyAmount > yearlyAmount
+  ) {
+    console.warn(
+      "[StoreBilling] Monthly/yearly prices look swapped — correcting by amount (check RevenueCat Offering packages).",
+    );
+    return {
+      monthly: prices.yearly,
+      yearly: prices.monthly,
+      yearlyPromo: prices.yearlyPromo,
+    };
+  }
+  return prices;
+}
+
 function mapOfferingPrices(offerings: StoreOfferings): StoreOfferingPrices {
+  const monthlyPkg = pickPackage(offerings, "monthly");
   const yearlyPkg = pickPackage(offerings, "yearly");
 
-  if (import.meta.env.DEV && yearlyPkg) {
-    const options = (yearlyPkg.product as StoreProductWithOptions).subscriptionOptions ?? [];
-    console.info(
-      "[StoreBilling] yearly subscriptionOptions",
-      options.map((o) => ({ id: o.id, tags: o.tags, isBasePlan: o.isBasePlan })),
-    );
+  if (import.meta.env.DEV) {
+    console.info("[StoreBilling] mapOfferingPrices", {
+      monthly: monthlyPkg
+        ? {
+            id: monthlyPkg.identifier,
+            productId: (monthlyPkg.product as { identifier?: string } | undefined)?.identifier,
+            cadence: packageBillingCadence(monthlyPkg),
+          }
+        : null,
+      yearly: yearlyPkg
+        ? {
+            id: yearlyPkg.identifier,
+            productId: (yearlyPkg.product as { identifier?: string } | undefined)?.identifier,
+            cadence: packageBillingCadence(yearlyPkg),
+          }
+        : null,
+    });
   }
 
-  return {
-    monthly: mapPackagePrice(pickPackage(offerings, "monthly")),
+  return correctSwappedMonthlyYearlyPrices({
+    monthly: mapPackagePrice(monthlyPkg, "monthly"),
     yearly: mapYearlyStandardPrice(yearlyPkg),
     yearlyPromo: resolveYearlyPromoPrice(yearlyPkg),
-  };
+  });
 }
 
 function hasCompleteStorePrices(prices: StoreOfferingPrices | null | undefined): boolean {

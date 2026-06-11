@@ -37,9 +37,11 @@ Die App kauft den Base Plan `paywall-gift` per `purchaseSubscriptionOption` — 
 1. Neues Projekt → Apps für **iOS** und **Android** hinzufügen.
 2. Unter **Products** die Store-Produkte importieren.
 3. **Entitlement** `premium` anlegen und Produkten zuweisen.
-4. **Offering** `default` mit Packages:
-   - `$rc_monthly` → Monatsabo
-   - `$rc_annual` → Jahresabo (ein Package reicht — Promo läuft über Play Offer)
+4. **Offering** `default` mit Packages (**nicht vertauschen**):
+   - `$rc_monthly` → **Monats**-Produkt aus Play Console (Package-Typ MONTHLY)
+   - `$rc_annual` → **Jahres**-Produkt aus Play Console (Package-Typ ANNUAL)
+   - Promo läuft über Play Base Plan `paywall-gift` auf dem Jahresabo
+   - Wenn Monat/Jahr vertauscht sind, zeigt die Paywall falsche Preise
 5. **API Keys** kopieren:
    - Public iOS → `VITE_REVENUECAT_API_KEY_IOS`
    - Public Android → `VITE_REVENUECAT_API_KEY_ANDROID`
