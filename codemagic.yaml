@@ -54,7 +54,7 @@ workflows:
       - name: Set Android version code
         script: |
           set -e
-          ANDROID_MIN_BUILD=3
+          ANDROID_MIN_BUILD=4
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
           if [ "$BUILD_NUM" -lt "$ANDROID_MIN_BUILD" ]; then
             BUILD_NUM=$ANDROID_MIN_BUILD
@@ -199,8 +199,8 @@ workflows:
         script: |
           set -e
           cd "$CM_BUILD_DIR/ios/App"
-          # CFBundleVersion must strictly increase on App Store Connect (build 7 already uploaded).
-          export IOS_MIN_BUILD=10
+          # CFBundleVersion must strictly increase on App Store Connect (build 10 already uploaded).
+          export IOS_MIN_BUILD=11
           BUILD_NUM="${CM_BUILD_NUMBER:-1}"
           if [ "$BUILD_NUM" -lt "$IOS_MIN_BUILD" ]; then
             BUILD_NUM=$IOS_MIN_BUILD
