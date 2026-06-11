@@ -23,37 +23,65 @@ export function resolveRevenueCatUserId(userId?: string | null): string {
   return anon;
 }
 
+function mergeStoreOfferingPrices(
+  existing: StoreOfferingPrices | null,
+  incoming: StoreOfferingPrices,
+): StoreOfferingPrices {
+  return {
+    monthly: incoming.monthly?.priceString ? incoming.monthly : (existing?.monthly ?? null),
+    yearly: incoming.yearly?.priceString ? incoming.yearly : (existing?.yearly ?? null),
+    yearlyPromo: incoming.yearlyPromo?.priceString
+      ? incoming.yearlyPromo
+      : (existing?.yearlyPromo ?? null),
+  };
+}
+
 export function readCachedStoreOfferingPrices(): StoreOfferingPrices | null {
   if (memoryPrices?.monthly?.priceString && memoryPrices?.yearly?.priceString) {
     return memoryPrices;
   }
 
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") return memoryPrices;
+
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
+    if (!raw) return memoryPrices;
     const parsed = JSON.parse(raw) as { prices?: StoreOfferingPrices; at?: number };
-    if (!parsed.prices?.monthly?.priceString || !parsed.prices?.yearly?.priceString) return null;
-    if (!parsed.at || Date.now() - parsed.at > CACHE_TTL_MS) return null;
-    memoryPrices = parsed.prices;
-    return parsed.prices;
+    if (!parsed.at || Date.now() - parsed.at > CACHE_TTL_MS) return memoryPrices;
+
+    const fromStorage = parsed.prices ?? null;
+    if (!fromStorage) return memoryPrices;
+
+    memoryPrices = mergeStoreOfferingPrices(memoryPrices, fromStorage);
+    if (memoryPrices.monthly?.priceString && memoryPrices.yearly?.priceString) {
+      return memoryPrices;
+    }
+    return memoryPrices.monthly?.priceString || memoryPrices.yearly?.priceString
+      ? memoryPrices
+      : null;
   } catch {
-    return null;
+    return memoryPrices;
   }
 }
 
 export function writeCachedStoreOfferingPrices(prices: StoreOfferingPrices): void {
-  if (!prices.monthly?.priceString || !prices.yearly?.priceString) return;
+  const merged = mergeStoreOfferingPrices(memoryPrices, prices);
+  if (!merged.monthly?.priceString && !merged.yearly?.priceString) return;
 
-  memoryPrices = prices;
+  const changed =
+    merged.monthly?.priceString !== memoryPrices?.monthly?.priceString ||
+    merged.yearly?.priceString !== memoryPrices?.yearly?.priceString ||
+    merged.yearlyPromo?.priceString !== memoryPrices?.yearlyPromo?.priceString;
+
+  memoryPrices = merged;
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ prices, at: Date.now() }));
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ prices: merged, at: Date.now() }));
     } catch {
       /* ignore quota */
     }
   }
-  notifySubscribers();
+  if (changed) notifySubscribers();
 }
 
 export function getStoreOfferingPricesSnapshot(): StoreOfferingPrices | null {
@@ -66,5 +94,6 @@ export function subscribeStoreOfferingPrices(listener: () => void): () => void {
 }
 
 export function hasFreshStoreOfferingPrices(): boolean {
-  return Boolean(getStoreOfferingPricesSnapshot());
+  const snapshot = getStoreOfferingPricesSnapshot();
+  return Boolean(snapshot?.monthly?.priceString && snapshot?.yearly?.priceString);
 }

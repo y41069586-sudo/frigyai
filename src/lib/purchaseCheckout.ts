@@ -29,7 +29,7 @@ export async function startPremiumCheckout(
     };
   }
 
-  const result = await purchaseStorePlan(plan, ctx.accessToken);
+  const result = await purchaseStorePlan(plan, ctx.accessToken, ctx.userId);
   if (result.ok) return { ok: true, channel: "store" };
   return { ok: false, cancelled: result.cancelled, message: result.message };
 }
