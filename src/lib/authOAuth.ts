@@ -151,6 +151,19 @@ function getSupabaseAuthBase(): string {
   return base;
 }
 
+/** Force Google account chooser — required on native (in-app browser reuses Safari/Chrome cookies). */
+function ensureGoogleAccountPicker(authorizeUrl: string, provider: OAuthProvider): string {
+  if (provider !== "google" || !authorizeUrl) return authorizeUrl;
+  try {
+    const url = new URL(authorizeUrl);
+    url.searchParams.delete("login_hint");
+    url.searchParams.set("prompt", "select_account");
+    return url.toString();
+  } catch {
+    return authorizeUrl;
+  }
+}
+
 /** Direct authorize URL (same as Supabase server expects for Google). */
 export function buildProviderAuthorizeUrl(
   provider: OAuthProvider,
@@ -252,8 +265,6 @@ export async function signInWithOAuthProvider(
   clearStashedOAuthCallbackUrl();
   setOAuthPendingFromAuthQuery(options?.authQuery);
 
-  const isWeb = !Capacitor.isNativePlatform();
-
   if (import.meta.env.DEV) {
     console.info("[AuthOAuth] redirectTo:", redirectTo);
     if (
@@ -275,8 +286,10 @@ export async function signInWithOAuthProvider(
     options: {
       redirectTo,
       skipBrowserRedirect: true,
-      // Force Google account picker (avoids silent re-login with cached session during local testing).
-      ...(provider === "google" && isWeb ? { queryParams: { prompt: "select_account" } } : {}),
+      // Always show Google account picker (native in-app browser otherwise auto-uses last account).
+      ...(provider === "google"
+        ? { queryParams: { prompt: "select_account" } }
+        : {}),
     },
   });
 
@@ -312,6 +325,8 @@ export async function signInWithOAuthProvider(
       ),
     };
   }
+
+  authorizeUrl = ensureGoogleAccountPicker(authorizeUrl, provider);
 
   console.info("[AuthOAuth] opening:", authorizeUrl);
 
