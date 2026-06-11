@@ -14,7 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Capacitor } from '@capacitor/core';
 import { isOAuthCallbackUrl, POST_AUTH_PAYWALL_ROUTE } from '@/lib/authOAuth';
 import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from '@/lib/oauthPending';
-import { isAuthCompletionPending, isAuthFlowOverlayVisible } from '@/lib/authCompletion';
+import {
+  isAuthCompletionPending,
+  isAuthFlowOverlayVisible,
+  subscribeAuthFlow,
+} from '@/lib/authCompletion';
 import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from '@/lib/postAuthRedirect';
 import { persistOnboardingSignupFromStorage } from '@/components/onboarding/utils';
 import { isAppleSignInAvailable } from '@/lib/appleSignIn';
@@ -228,6 +232,15 @@ const AuthPage = () => {
     clearStaleOAuthPendingIfIdle();
   }, []);
 
+  useEffect(() => {
+    if (!isGoogleLoading) return;
+    return subscribeAuthFlow(() => {
+      if (!isAuthCompletionPending() && !getOAuthPending()) {
+        setIsGoogleLoading(false);
+      }
+    });
+  }, [isGoogleLoading]);
+
   const oauthInFlight =
     hasOAuthCallback ||
     isAuthCompletionPending() ||
@@ -426,13 +439,15 @@ const AuthPage = () => {
                 setIsGoogleLoading(true);
                 setError(null);
                 redirectStartedRef.current = false;
-                const { error: googleError } = await signInWithGoogle({
+                const { error: googleError, browserOpened } = await signInWithGoogle({
                   authQuery: oauthFromQuery,
                 });
                 if (googleError) {
                   setError(t.authLoginFailed);
+                  setIsGoogleLoading(false);
+                } else if (!browserOpened) {
+                  setIsGoogleLoading(false);
                 }
-                setIsGoogleLoading(false);
               }}
               disabled={isGoogleLoading || isAppleLoading}
             >

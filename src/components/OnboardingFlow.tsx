@@ -31,7 +31,8 @@ import { MintTextHighlight } from "./onboarding/components/MintTextHighlight";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
-import { clearOAuthPending } from "@/lib/oauthPending";
+import { isAuthCompletionPending, subscribeAuthFlow } from "@/lib/authCompletion";
+import { clearOAuthPending, getOAuthPending } from "@/lib/oauthPending";
 import {
   clearOnboardingOAuthPending,
   clearOnboardingSession,
@@ -525,6 +526,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const [paywallRestoreLoading, setPaywallRestoreLoading] = useState(false);
   const authSubmitLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
+
+  useEffect(() => {
+    if (!isGoogleAuthLoading) return;
+    return subscribeAuthFlow(() => {
+      if (!isAuthCompletionPending() && !getOAuthPending()) {
+        setIsGoogleAuthLoading(false);
+      }
+    });
+  }, [isGoogleAuthLoading]);
   
   // Scan feedback state (moved to top level to avoid hooks in switch)
   const [scanFeedback, setScanFeedback] = useState<'positive' | 'negative' | null>(null);
@@ -3695,7 +3705,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (user) {
             await supabase.auth.signOut({ scope: "local" });
           }
-          const { error } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
+          const { error, browserOpened } = await signInWithGoogle({ authQuery: { from: "onboarding" } });
           if (error) {
             clearOnboardingOAuthPending();
             toast({
@@ -3706,8 +3716,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               ),
               variant: "destructive",
             });
+            setIsGoogleAuthLoading(false);
+          } else if (!browserOpened) {
+            setIsGoogleAuthLoading(false);
           }
-          setIsGoogleAuthLoading(false);
         };
 
         const handleOnboardingAppleAuth = async () => {

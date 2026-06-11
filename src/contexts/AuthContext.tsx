@@ -55,7 +55,7 @@ interface AuthContextType {
   signInWithGoogle: (options?: {
     redirectPath?: string;
     authQuery?: Record<string, string>;
-  }) => Promise<{ error: unknown }>;
+  }) => Promise<{ error: unknown; browserOpened?: boolean }>;
   signInWithApple: (options?: {
     authQuery?: Record<string, string>;
   }) => Promise<{ error: unknown }>;
@@ -534,7 +534,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     redirectPath?: string;
     authQuery?: Record<string, string>;
   }) => {
-    const { error } = await signInWithOAuthProvider("google", options);
+    const { error, browserOpened } = await signInWithOAuthProvider("google", options);
 
     if (error) {
       toast({
@@ -544,7 +544,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    return { error };
+    return { error, browserOpened };
   };
 
   const signInWithApple = async (options?: { authQuery?: Record<string, string> }) => {

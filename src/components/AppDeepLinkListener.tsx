@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { resolveDeepLink } from "@/lib/appDeepLink";
+import { closeNativeOAuthBrowser, publishAuthResult } from "@/lib/authCompletion";
 import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl, scheduleStashedOAuthRetry } from "@/lib/completeOAuthSignIn";
 import { stashOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
+import { resolveFromOnboarding } from "@/lib/oauthPending";
+import { isOnboardingInProgress, isOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { useAuth } from "@/contexts/AuthContext";
 import { captureReferralAttribution, applyDeferredReferralOnFirstOpen } from "@/lib/referralAttribution";
 import { ChottuLinkNative } from "@/lib/chottuLinkNative";
@@ -60,13 +63,32 @@ export function AppDeepLinkListener() {
       }
 
       if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
+        void closeNativeOAuthBrowser();
+        publishAuthResult({ status: "pending", phase: "oauth_exchange" });
+
+        const fromOnboarding =
+          resolveFromOnboarding(url) ||
+          isOnboardingInProgress() ||
+          isOnboardingOAuthPending();
+
         if (loading && Capacitor.isNativePlatform()) {
           stashOAuthCallbackUrl(url);
           scheduleStashedOAuthRetry({ checkSubscription, navigate });
           return;
         }
 
-        void handleOAuthCallbackUrl({ url, checkSubscription, navigate });
+        void handleOAuthCallbackUrl({
+          url,
+          checkSubscription,
+          navigate,
+          onExchangeSuccess: () => {
+            window.history.replaceState(
+              {},
+              "",
+              fromOnboarding ? "/?onboardingStep=paywall" : "/",
+            );
+          },
+        });
         return;
       }
 

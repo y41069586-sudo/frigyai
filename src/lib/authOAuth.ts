@@ -1,10 +1,11 @@
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { FRIGY_APP_SCHEME } from "@/lib/appDeepLink";
+import { publishAuthResult, resetAuthFlow } from "@/lib/authCompletion";
 import { DEV_SERVER_PORT, LOCAL_OAUTH_REDIRECT } from "@/lib/devServerPort";
 import { isRetriableOAuthExchangeError } from "@/lib/oauthCallbackRecovery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
+import { clearOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 
 export type OAuthProvider = "google" | "apple";
 
@@ -142,6 +143,42 @@ function getSupabaseAuthBase(): string {
   return base;
 }
 
+function normalizeRedirectTarget(value: string): string {
+  return value.split("?")[0].replace(/\/$/, "");
+}
+
+function readAuthorizeRedirectTo(authorizeUrl: string): string | null {
+  try {
+    const redirectTo = new URL(authorizeUrl).searchParams.get("redirect_to");
+    return redirectTo ? decodeURIComponent(redirectTo) : null;
+  } catch {
+    return null;
+  }
+}
+
+function redirectToMatchesAuthorizeUrl(authorizeUrl: string, expectedRedirect: string): boolean {
+  const actual = readAuthorizeRedirectTo(authorizeUrl);
+  if (!actual) {
+    return (
+      authorizeUrl.includes("redirect_to=") &&
+      (authorizeUrl.includes(encodeURIComponent(expectedRedirect)) ||
+        authorizeUrl.includes(expectedRedirect))
+    );
+  }
+  return normalizeRedirectTarget(actual) === normalizeRedirectTarget(expectedRedirect);
+}
+
+/** Patch redirect_to on the SDK URL while keeping PKCE params intact. */
+function patchAuthorizeRedirect(authorizeUrl: string, expectedRedirect: string): string {
+  try {
+    const parsed = new URL(authorizeUrl);
+    parsed.searchParams.set("redirect_to", expectedRedirect);
+    return parsed.toString();
+  } catch {
+    return authorizeUrl;
+  }
+}
+
 /** Direct authorize URL (same as Supabase server expects for Google). */
 export function buildProviderAuthorizeUrl(
   provider: OAuthProvider,
@@ -155,6 +192,24 @@ export function buildProviderAuthorizeUrl(
     params.set("prompt", "select_account");
   }
   return `${getSupabaseAuthBase()}/auth/v1/authorize?${params.toString()}`;
+}
+
+async function registerOAuthBrowserDismissWatcher(): Promise<void> {
+  if (!Capacitor.isNativePlatform() || !supabase) return;
+
+  try {
+    const { Browser } = await import("@capacitor/browser");
+    const handle = await Browser.addListener("browserFinished", async () => {
+      await handle.remove();
+      const { data } = await supabase.auth.getSession();
+      if (data.session) return;
+
+      clearOAuthPending();
+      resetAuthFlow();
+    });
+  } catch {
+    // ignore
+  }
 }
 
 export function isOAuthCallbackUrl(url: string): boolean {
@@ -189,7 +244,7 @@ function buildAuthRedirectTo(options?: {
 export async function signInWithOAuthProvider(
   provider: OAuthProvider,
   options?: { redirectPath?: string; authQuery?: Record<string, string> },
-): Promise<{ error: unknown | null }> {
+): Promise<{ error: unknown | null; browserOpened?: boolean }> {
   if (!supabase) {
     return { error: new Error("Supabase not configured") };
   }
@@ -221,25 +276,22 @@ export async function signInWithOAuthProvider(
     options: {
       redirectTo,
       skipBrowserRedirect: true,
-      // Force Google account picker (avoids silent re-login with cached session during local testing).
-      ...(provider === "google" && isWeb ? { queryParams: { prompt: "select_account" } } : {}),
+      ...(provider === "google"
+        ? { queryParams: { prompt: "select_account" } }
+        : {}),
     },
   });
 
   if (error) return { error };
 
-  let authorizeUrl = data?.url?.trim() || "";
+  const sdkAuthorizeUrl = data?.url?.trim() || "";
+  let authorizeUrl = sdkAuthorizeUrl;
 
   const expectedRedirect = redirectTo.split("?")[0];
-  const redirectBroken =
-    !authorizeUrl ||
-    !authorizeUrl.includes("redirect_to=") ||
-    !authorizeUrl.includes(encodeURIComponent(expectedRedirect));
-
-  if (redirectBroken) {
-    authorizeUrl = buildProviderAuthorizeUrl(provider, expectedRedirect);
+  if (authorizeUrl && !redirectToMatchesAuthorizeUrl(authorizeUrl, expectedRedirect)) {
+    authorizeUrl = patchAuthorizeRedirect(authorizeUrl, expectedRedirect);
     if (import.meta.env.DEV) {
-      console.warn("[AuthOAuth] SDK-URL ohne passendes redirect_to — nutze direkte Authorize-URL:", authorizeUrl);
+      console.warn("[AuthOAuth] redirect_to korrigiert auf:", expectedRedirect);
     }
   }
 
@@ -247,6 +299,14 @@ export async function signInWithOAuthProvider(
     return {
       error: new Error(
         "Keine OAuth-URL von Supabase. Prüfe Google-Provider im Dashboard und starte npm run dev neu.",
+      ),
+    };
+  }
+
+  if (!redirectToMatchesAuthorizeUrl(authorizeUrl, expectedRedirect)) {
+    return {
+      error: new Error(
+        `OAuth-Weiterleitung ungültig (${expectedRedirect}). Prüfe Redirect URLs in Supabase.`,
       ),
     };
   }
@@ -262,10 +322,12 @@ export async function signInWithOAuthProvider(
   console.info("[AuthOAuth] opening:", authorizeUrl);
 
   if (Capacitor.isNativePlatform()) {
+    publishAuthResult({ status: "pending", phase: "oauth_exchange" });
     await openExternalUrl(authorizeUrl);
+    void registerOAuthBrowserDismissWatcher();
   } else {
     window.location.assign(authorizeUrl);
   }
 
-  return { error: null };
+  return { error: null, browserOpened: Capacitor.isNativePlatform() };
 }

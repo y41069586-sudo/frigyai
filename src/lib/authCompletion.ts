@@ -305,7 +305,7 @@ export function resetAuthFlow(): void {
   setSnapshot({ status: "idle" }, { ...IDLE_NAVIGATION });
 }
 
-async function closeNativeOAuthBrowser(): Promise<void> {
+export async function closeNativeOAuthBrowser(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { Browser } = await import("@capacitor/browser");
