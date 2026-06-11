@@ -1,14 +1,19 @@
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { FRIGY_APP_SCHEME } from "@/lib/appDeepLink";
-import { publishAuthResult, resetAuthFlow } from "@/lib/authCompletion";
-import { DEV_SERVER_PORT, LOCAL_OAUTH_REDIRECT } from "@/lib/devServerPort";
+import {
+  isAuthCompletionPending,
+  isAuthNavigationPending,
+  resetAuthFlow,
+} from "@/lib/authCompletion";
 import {
   clearStashedOAuthCallbackUrl,
   isRetriableOAuthExchangeError,
+  peekStashedOAuthCallbackUrl,
 } from "@/lib/oauthCallbackRecovery";
+import { DEV_SERVER_PORT, LOCAL_OAUTH_REDIRECT } from "@/lib/devServerPort";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { clearOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
+import { clearOAuthPending, getOAuthPending, setOAuthPendingFromAuthQuery } from "@/lib/oauthPending";
 
 export type OAuthProvider = "google" | "apple";
 
@@ -191,6 +196,10 @@ function buildAuthRedirectTo(options?: {
 }
 
 let oauthBrowserDismissHandle: { remove: () => void } | null = null;
+let oauthBrowserOpenedAt = 0;
+
+/** Deep link may arrive after the in-app browser closes (e.g. Google single-account). */
+const OAUTH_BROWSER_GRACE_MS = 10_000;
 
 async function registerOAuthBrowserDismissWatcher(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
@@ -201,13 +210,25 @@ async function registerOAuthBrowserDismissWatcher(): Promise<void> {
       oauthBrowserDismissHandle = null;
     }
 
+    oauthBrowserOpenedAt = Date.now();
+
     const { Browser } = await import("@capacitor/browser");
     const handle = await Browser.addListener("browserFinished", async () => {
       await handle.remove();
       oauthBrowserDismissHandle = null;
 
+      const elapsed = Date.now() - oauthBrowserOpenedAt;
+      const remainingGrace = OAUTH_BROWSER_GRACE_MS - elapsed;
+      if (remainingGrace > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, Math.min(2500, remainingGrace)));
+      }
+
       const { data } = await supabase.auth.getSession();
       if (data.session) return;
+
+      if (isAuthCompletionPending() || isAuthNavigationPending()) return;
+      if (getOAuthPending()) return;
+      if (peekStashedOAuthCallbackUrl()) return;
 
       clearOAuthPending();
       resetAuthFlow();
@@ -295,7 +316,6 @@ export async function signInWithOAuthProvider(
   console.info("[AuthOAuth] opening:", authorizeUrl);
 
   if (Capacitor.isNativePlatform()) {
-    publishAuthResult({ status: "pending", phase: "oauth_exchange" });
     await openExternalUrl(authorizeUrl);
     void registerOAuthBrowserDismissWatcher();
   } else {

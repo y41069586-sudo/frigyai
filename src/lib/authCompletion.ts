@@ -189,6 +189,39 @@ export function isAuthNavigationPending(): boolean {
   );
 }
 
+/** Resolves when post-auth navigation side-effects finish (or timeout / error). */
+export function waitForAuthNavigationExecuted(timeoutMs = NAV_EXECUTION_TIMEOUT_MS + 3000): Promise<boolean> {
+  const initial = getAuthFlowSnapshot();
+  if (initial.navigation.executed) return Promise.resolve(true);
+  if (initial.result.status === "error") return Promise.resolve(false);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsub();
+      resolve(value);
+    };
+
+    const unsub = subscribeAuthFlow(() => {
+      const snap = getAuthFlowSnapshot();
+      if (snap.navigation.executed) {
+        finish(true);
+        return;
+      }
+      if (snap.result.status === "error") {
+        finish(false);
+      }
+    });
+
+    const timer = setTimeout(() => {
+      finish(getAuthFlowSnapshot().navigation.executed);
+    }, timeoutMs);
+  });
+}
+
 /** Routes where manual bottom-nav taps should not be overridden by late auth redirects. */
 export const POST_AUTH_MANUAL_NAV_PATHS = new Set([
   "/",

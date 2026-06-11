@@ -89,9 +89,14 @@ import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
+import { prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 import { supabase } from "@/integrations/supabase/client";
 import { isAppleSignInAvailable, waitForAppleSignInSession } from "@/lib/appleSignIn";
-import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from "@/lib/postAuthRedirect";
+import {
+  redirectAfterSignIn,
+  waitForAuthNavigationExecuted,
+  wasPostAuthRedirectRecentlyHandled,
+} from "@/lib/postAuthRedirect";
 import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -290,16 +295,23 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
     });
   }, [oauthBusy]);
 
+  const clearSplashOAuthLoading = () => {
+    setIsGoogleAuthLoading(false);
+    setIsAppleAuthLoading(false);
+  };
+
   const handleSplashOAuthLogin = async (provider: "google" | "apple") => {
     if (oauthBusy) return;
     const setLoading = provider === "google" ? setIsGoogleAuthLoading : setIsAppleAuthLoading;
     setLoading(true);
+
     try {
       setOAuthPendingFromAuthQuery({ from: "login" });
 
       if (provider === "apple") {
         const { error, flow, session } = await signInWithApple({ authQuery: { from: "login" } });
         if (error || flow === "cancelled") {
+          clearSplashOAuthLoading();
           return;
         }
 
@@ -316,10 +328,13 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
               variant: "destructive",
             });
           }
+          clearSplashOAuthLoading();
           return;
         }
 
         if (wasPostAuthRedirectRecentlyHandled()) {
+          await waitForAuthNavigationExecuted();
+          clearSplashOAuthLoading();
           return;
         }
 
@@ -329,11 +344,14 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
           navigate,
           authIntent: "login",
         });
+        await waitForAuthNavigationExecuted();
+        clearSplashOAuthLoading();
         return;
       }
 
       const { error } = await signInWithGoogle({ authQuery: { from: "login" } });
       if (error) {
+        clearSplashOAuthLoading();
         return;
       }
 
@@ -350,10 +368,13 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
             variant: "destructive",
           });
         }
+        clearSplashOAuthLoading();
         return;
       }
 
       if (wasPostAuthRedirectRecentlyHandled()) {
+        await waitForAuthNavigationExecuted();
+        clearSplashOAuthLoading();
         return;
       }
 
@@ -363,8 +384,10 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
         navigate,
         authIntent: "login",
       });
-    } finally {
-      setLoading(false);
+      await waitForAuthNavigationExecuted();
+      clearSplashOAuthLoading();
+    } catch {
+      clearSplashOAuthLoading();
     }
   };
 
@@ -823,9 +846,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const goToPaywall = useCallback(() => {
     if (onboardingSteps.includes("paywall")) {
+      void prefetchStoreOfferingPrices(user?.id ?? null);
       setCurrentStep("paywall");
     }
-  }, []);
+  }, [user?.id]);
 
   const authRouteHandledRef = useRef(false);
 
@@ -841,13 +865,16 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         finishOnboardingExit();
       } else if (result.routePhase === "onboarding_paywall") {
         goToPaywall();
+      } else if (result.routePhase === "standalone_paywall") {
+        clearOnboardingSession();
+        onComplete();
       }
 
       window.setTimeout(() => {
         authRouteHandledRef.current = false;
       }, 2500);
     });
-  }, [finishOnboardingExit, goToPaywall]);
+  }, [finishOnboardingExit, goToPaywall, onComplete]);
 
   const tryFinishOnboardingWithAccess = useCallback(async (sessionReady = false) => {
     const { data } = await supabase.auth.getSession();
