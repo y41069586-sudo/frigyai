@@ -50,7 +50,7 @@ import { getLocalDateISO } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
-import { isAuthCompletionPending } from "@/lib/authCompletion";
+import { isAuthCompletionPending, isAuthNavigationPending } from "@/lib/authCompletion";
 import {
   clearOnboardingSession,
   isOnboardingInProgress,
@@ -302,7 +302,12 @@ const Index = () => {
         return;
       }
 
-      if (isOnboardingInProgress() || onboardingLatch || isAuthCompletionPending()) {
+      if (
+        isOnboardingInProgress() ||
+        onboardingLatch ||
+        isAuthCompletionPending() ||
+        isAuthNavigationPending()
+      ) {
         setShowOnboarding(true);
         setOnboardingComplete(false);
         return;

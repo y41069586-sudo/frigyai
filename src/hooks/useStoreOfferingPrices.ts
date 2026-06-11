@@ -9,7 +9,7 @@ import {
 } from "@/lib/storeOfferingPricesCache";
 import type { StoreOfferingPrices } from "@/lib/storeBilling";
 
-const LOADING_MAX_MS = 800;
+const LOADING_MAX_MS = 12_000;
 
 function getSnapshot(): StoreOfferingPrices | null {
   return getStoreOfferingPricesSnapshot();
@@ -37,6 +37,13 @@ export function useStoreOfferingPrices(userId?: string | null) {
       setLoading(false);
     }, LOADING_MAX_MS);
 
+    const stopLoadingWhenReady = () => {
+      if (hasFreshStoreOfferingPrices()) {
+        clearTimeout(loadingCap);
+        setLoading(false);
+      }
+    };
+
     if (hasFreshStoreOfferingPrices()) {
       setLoading(false);
       void prefetchStoreOfferingPrices(userId);
@@ -44,10 +51,7 @@ export function useStoreOfferingPrices(userId?: string | null) {
     }
 
     setLoading(true);
-    void prefetchStoreOfferingPrices(userId).finally(() => {
-      clearTimeout(loadingCap);
-      setLoading(false);
-    });
+    void prefetchStoreOfferingPrices(userId).finally(stopLoadingWhenReady);
 
     return () => {
       clearTimeout(loadingCap);
