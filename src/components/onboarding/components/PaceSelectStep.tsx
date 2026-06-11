@@ -242,7 +242,7 @@ export function PaceSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language } = useLanguage();
+  const { language, t: tr } = useLanguage();
   const skippedMaintainRef = useRef(false);
 
   useEffect(() => {
@@ -342,7 +342,7 @@ export function PaceSelectStep({
 
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
     { id: "metric", label: t.metric },
-    { id: "imperial", label: "Imperial" },
+    { id: "imperial", label: tr.onboardingUnitImperial },
   ];
 
   return (

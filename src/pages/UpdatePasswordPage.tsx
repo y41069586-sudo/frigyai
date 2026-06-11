@@ -21,7 +21,6 @@ const UpdatePasswordPage = () => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if user came from password reset email
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get("access_token");
     const type = hashParams.get("type");
@@ -40,7 +39,7 @@ const UpdatePasswordPage = () => {
     if (password !== confirmPassword) {
       toast({
         title: t.error,
-        description: "Passwörter stimmen nicht überein",
+        description: t.updatePasswordMismatch,
         variant: "destructive",
       });
       return;
@@ -49,7 +48,7 @@ const UpdatePasswordPage = () => {
     if (password.length < 6) {
       toast({
         title: t.error,
-        description: "Passwort muss mindestens 6 Zeichen lang sein",
+        description: t.updatePasswordMinLength,
         variant: "destructive",
       });
       return;
@@ -65,12 +64,12 @@ const UpdatePasswordPage = () => {
       setIsSuccess(true);
       toast({
         title: t.success,
-        description: "Dein Passwort wurde erfolgreich geändert!",
+        description: t.updatePasswordSuccessDesc,
       });
     } catch (error: unknown) {
       toast({
         title: t.error,
-        description: getPublicErrorMessage(error, "Das Passwort konnte gerade nicht geändert werden. Bitte versuche es erneut."),
+        description: getPublicErrorMessage(error, t.updatePasswordChangeFailed),
         variant: "destructive",
       });
     } finally {
@@ -90,12 +89,10 @@ const UpdatePasswordPage = () => {
             <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Passwort geändert!</h2>
-            <p className="text-muted-foreground mb-6">
-              Du kannst dich jetzt mit deinem neuen Passwort anmelden.
-            </p>
+            <h2 className="text-2xl font-bold mb-2">{t.updatePasswordChangedTitle}</h2>
+            <p className="text-muted-foreground mb-6">{t.updatePasswordSuccessDesc}</p>
             <Button onClick={() => navigate("/auth")} className="w-full glow-button">
-              Zur Anmeldung
+              {t.signIn}
             </Button>
           </div>
         </motion.div>
@@ -116,14 +113,14 @@ const UpdatePasswordPage = () => {
             <h1 className="text-2xl font-bold ml-3 neon-text">Frigy</h1>
           </div>
 
-          <h2 className="text-xl font-bold text-center mb-2">Neues Passwort</h2>
+          <h2 className="text-xl font-bold text-center mb-2">{t.updatePasswordNewTitle}</h2>
           <p className="text-sm text-muted-foreground text-center mb-6">
-            Wähle ein neues, sicheres Passwort für dein Konto.
+            {t.updatePasswordNewSubtitle}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Neues Passwort</Label>
+              <Label htmlFor="password">{t.updatePasswordNewLabel}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -168,7 +165,7 @@ const UpdatePasswordPage = () => {
               className="w-full glow-button h-12"
               disabled={isSubmitting}
             >
-              {isSubmitting ? t.loading : "Passwort ändern"}
+              {isSubmitting ? t.loading : t.updatePasswordChangeBtn}
             </Button>
           </form>
         </div>

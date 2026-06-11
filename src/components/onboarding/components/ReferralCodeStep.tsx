@@ -30,7 +30,7 @@ const CODE_LENGTH = 6;
 type StepPhase = "input" | "validating" | "check" | "success";
 
 export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
-  const { language } = useLanguage();
+  const { language, t: tr } = useLanguage();
   const { session, checkSubscription } = useAuth();
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [phase, setPhase] = useState<StepPhase>("input");
@@ -250,7 +250,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
               <div className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold"
                 style={{ backgroundColor: "rgba(110, 240, 168, 0.15)", color: PALETTE.primaryDark }}>
                 <Check className="h-4 w-4" />
-                Partner
+                {tr.referralPartnerBadge}
               </div>
               <h2 className="text-[28px] font-black uppercase leading-tight tracking-[-0.04em]" style={{ color: PALETTE.text }}>
                 {t.successTitle}

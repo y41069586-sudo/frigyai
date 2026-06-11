@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gift, Loader2, Sparkles, X } from "lucide-react";
-import { Language } from "@/contexts/LanguageContext";
+import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { ONBOARDING_PALETTE } from "@/components/onboarding/palette";
 import { buildExclusiveYearlyOffer } from "@/lib/paywallPricing";
 import type { StorePlanPrice } from "@/lib/storeBilling";
@@ -72,6 +72,7 @@ export function PaywallExclusiveOfferModal({
   onClose,
   onClaimPromoYearly,
 }: PaywallExclusiveOfferModalProps) {
+  const { t: i18n } = useLanguage();
   const [phase, setPhase] = useState<"gift" | "opened">("gift");
   const t = copy[language];
 
@@ -105,7 +106,7 @@ export function PaywallExclusiveOfferModal({
           <button
             type="button"
             className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
-            aria-label="Schließen"
+            aria-label={i18n.ariaClose}
             onClick={handleClose}
           />
 
@@ -131,7 +132,7 @@ export function PaywallExclusiveOfferModal({
               type="button"
               onClick={handleClose}
               className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[#6B7280] shadow-sm transition-colors hover:text-[#0a0a0a]"
-              aria-label="Schließen"
+              aria-label={i18n.ariaClose}
             >
               <X className="h-4 w-4" />
             </button>

@@ -557,6 +557,102 @@ export interface ExtendedTranslations {
   dietPreferencesSubtitle: string;
   dietPreferencesSavedTitle: string;
   dietPreferencesSavedDesc: string;
+
+  frigyCommunityShareTitle: string;
+  communityPageTitle: string;
+  communityPageSubtitle: string;
+  communityShareRecipe: string;
+  communityStatMembers: string;
+  communityStatRecipes: string;
+  communityStatSuccess: string;
+  communityTabRecipes: string;
+  communityTabPosts: string;
+  communityLoadingRecipes: string;
+  communityEmptyRecipesTitle: string;
+  communityEmptyRecipesDesc: string;
+  communityEmptyPostsTitle: string;
+  communityEmptyPostsDesc: string;
+  communityFirstRecipeBtn: string;
+  communityMoreIngredients: string;
+
+  resetPasswordInstructions: string;
+  resetPasswordSendLink: string;
+  resetPasswordBackToLogin: string;
+  resetPasswordEmailSentTitle: string;
+  resetPasswordEmailSentDesc: string;
+  resetPasswordCheckSpam: string;
+  resetPasswordSendFailed: string;
+  updatePasswordNewTitle: string;
+  updatePasswordNewSubtitle: string;
+  updatePasswordNewLabel: string;
+  updatePasswordChangeBtn: string;
+  updatePasswordMismatch: string;
+  updatePasswordMinLength: string;
+  updatePasswordChangedTitle: string;
+  updatePasswordSuccessDesc: string;
+  updatePasswordChangeFailed: string;
+
+  authStuckMessage: string;
+  authStuckContinue: string;
+  authStuckSignOutRestart: string;
+
+  billingNotConfigured: string;
+  billingGiftPlanNotFound: string;
+  billingNoYearlyPackage: string;
+  billingNoPackage: string;
+  billingEntitlementMissing: string;
+  billingPurchaseFailed: string;
+  billingRestoreUnavailable: string;
+  billingNoActiveSubscription: string;
+  billingRestoreFailed: string;
+
+  interactiveTutorialIntroSubtitle: string;
+  interactiveTutorialFeatureScan: string;
+  interactiveTutorialFeatureWeekplan: string;
+  interactiveTutorialFeatureShopping: string;
+  interactiveTutorialStart: string;
+  interactiveTutorialProblemTitle: string;
+  interactiveTutorialProblemDesc: string;
+  interactiveTutorialScanTitle: string;
+  interactiveTutorialScanDesc: string;
+  interactiveTutorialScanCarrot: string;
+  interactiveTutorialScanCheese: string;
+  interactiveTutorialRecipesTitle: string;
+  interactiveTutorialRecipesDesc: string;
+  interactiveTutorialRecipe1Name: string;
+  interactiveTutorialRecipe1Time: string;
+  interactiveTutorialRecipe2Name: string;
+  interactiveTutorialRecipe2Time: string;
+  interactiveTutorialRecipe3Name: string;
+  interactiveTutorialRecipe3Time: string;
+  interactiveTutorialNotEnoughBadge: string;
+  interactiveTutorialFrigyPlanBadge: string;
+  interactiveTutorialListBadge: string;
+  interactiveTutorialFrigyPlanTitle: string;
+  interactiveTutorialFrigyPlanDesc: string;
+  interactiveTutorialWeekplanLabel: string;
+  interactiveTutorialWeekDayMon: string;
+  interactiveTutorialWeekDayTue: string;
+  interactiveTutorialWeekDayWed: string;
+  interactiveTutorialWeekDayThu: string;
+  interactiveTutorialWeekDayFri: string;
+  interactiveTutorialWeekDaySat: string;
+  interactiveTutorialWeekDaySun: string;
+  interactiveTutorialWeekplanTitle: string;
+  interactiveTutorialWeekplanDesc: string;
+  interactiveTutorialShoppingLabel: string;
+  interactiveTutorialShoppingItem1: string;
+  interactiveTutorialShoppingItem2: string;
+  interactiveTutorialShoppingItem3: string;
+  interactiveTutorialShoppingItem4: string;
+  interactiveTutorialShoppingTitle: string;
+  interactiveTutorialShoppingDesc: string;
+  interactiveTutorialPracticalBtn: string;
+  interactiveTutorialFinishTitle: string;
+  interactiveTutorialFinishDesc: string;
+
+  referralPartnerBadge: string;
+  ariaClose: string;
 }
 
 export const extendedTranslations: Record<Language, ExtendedTranslations> = {
@@ -1148,6 +1244,113 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     dietPreferencesSubtitle: "Wird für Rezepte und Wochenplan verwendet",
     dietPreferencesSavedTitle: "Gespeichert",
     dietPreferencesSavedDesc: "Deine Ernährungsweise wurde aktualisiert.",
+
+    frigyCommunityShareTitle: "Frigy Community",
+    communityPageTitle: "Community",
+    communityPageSubtitle: "Rezepte, Ideen & Motivation",
+    communityShareRecipe: "Rezept teilen",
+    communityStatMembers: "Mitglieder",
+    communityStatRecipes: "Rezepte",
+    communityStatSuccess: "Erfolgsquote",
+    communityTabRecipes: "Rezepte",
+    communityTabPosts: "Beiträge",
+    communityLoadingRecipes: "Rezepte werden geladen...",
+    communityEmptyRecipesTitle: "Noch keine Rezepte",
+    communityEmptyRecipesDesc: "Sei der Erste, der ein Rezept teilt!",
+    communityEmptyPostsTitle: "Noch keine Beiträge",
+    communityEmptyPostsDesc:
+      "Teile dein erstes Rezept — Beiträge erscheinen hier, wenn die Community wächst.",
+    communityFirstRecipeBtn: "Erstes Rezept teilen",
+    communityMoreIngredients: "weitere",
+
+    resetPasswordInstructions:
+      "Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen.",
+    resetPasswordSendLink: "Reset-Link senden",
+    resetPasswordBackToLogin: "Zurück zur Anmeldung",
+    resetPasswordEmailSentTitle: "E-Mail gesendet!",
+    resetPasswordEmailSentDesc:
+      "Wir haben dir einen Link zum Zurücksetzen deines Passworts an {email} gesendet.",
+    resetPasswordCheckSpam:
+      "Überprüfe auch deinen Spam-Ordner, falls du die E-Mail nicht findest.",
+    resetPasswordSendFailed:
+      "Die Reset-E-Mail konnte gerade nicht gesendet werden. Bitte versuche es erneut.",
+    updatePasswordNewTitle: "Neues Passwort",
+    updatePasswordNewSubtitle: "Wähle ein neues, sicheres Passwort für dein Konto.",
+    updatePasswordNewLabel: "Neues Passwort",
+    updatePasswordChangeBtn: "Passwort ändern",
+    updatePasswordMismatch: "Passwörter stimmen nicht überein",
+    updatePasswordMinLength: "Passwort muss mindestens 6 Zeichen lang sein",
+    updatePasswordChangedTitle: "Passwort geändert!",
+    updatePasswordSuccessDesc: "Du kannst dich jetzt mit deinem neuen Passwort anmelden.",
+    updatePasswordChangeFailed:
+      "Das Passwort konnte gerade nicht geändert werden. Bitte versuche es erneut.",
+
+    authStuckMessage: "Anmeldung hängt. Bitte Session zurücksetzen und erneut versuchen.",
+    authStuckContinue: "Weiter",
+    authStuckSignOutRestart: "Abmelden & neu starten",
+
+    billingNotConfigured:
+      "App Store / Play Abo ist noch nicht konfiguriert (RevenueCat API Keys fehlen).",
+    billingGiftPlanNotFound:
+      'Kein Play Base Plan „{planId}" auf dem Jahresabo gefunden. Prüfe Play Console und RevenueCat.',
+    billingNoYearlyPackage: "Kein Jahresabo in RevenueCat gefunden.",
+    billingNoPackage: "Kein Abo-Paket in RevenueCat gefunden (Offering monthly/yearly).",
+    billingEntitlementMissing: "Kauf abgeschlossen, aber Premium-Entitlement fehlt.",
+    billingPurchaseFailed: "Store-Kauf fehlgeschlagen.",
+    billingRestoreUnavailable: "Store-Wiederherstellung nicht verfügbar.",
+    billingNoActiveSubscription: "Kein aktives Abo gefunden.",
+    billingRestoreFailed: "Wiederherstellung fehlgeschlagen.",
+
+    interactiveTutorialIntroSubtitle: "Scan zuerst deinen Kühlschrank, Frigy plant den Rest.",
+    interactiveTutorialFeatureScan: "Kühlschrank scannen",
+    interactiveTutorialFeatureWeekplan: "Wochenplan",
+    interactiveTutorialFeatureShopping: "Einkaufsliste",
+    interactiveTutorialStart: "Tutorial starten",
+    interactiveTutorialProblemTitle: "Du hast Zutaten zuhause.",
+    interactiveTutorialProblemDesc: "Frigy macht daraus einen klaren Plan.",
+    interactiveTutorialScanTitle: "Frigy erkennt deine Zutaten per Kamera",
+    interactiveTutorialScanDesc: "Web und Mobile werden unterstützt.",
+    interactiveTutorialScanCarrot: "🥕 Karotte",
+    interactiveTutorialScanCheese: "🧀 Käse",
+    interactiveTutorialRecipesTitle: "Wochenplan aus deinen Zutaten",
+    interactiveTutorialRecipesDesc:
+      "Nach dem Scan schlägt Frigy dir Mahlzeiten vor – abgestimmt auf das, was du zuhause hast.",
+    interactiveTutorialRecipe1Name: "Schnelle Pasta",
+    interactiveTutorialRecipe1Time: "15 Min",
+    interactiveTutorialRecipe2Name: "Gemüse-Pfanne",
+    interactiveTutorialRecipe2Time: "20 Min",
+    interactiveTutorialRecipe3Name: "Omelette",
+    interactiveTutorialRecipe3Time: "10 Min",
+    interactiveTutorialNotEnoughBadge: "Zu wenig?",
+    interactiveTutorialFrigyPlanBadge: "Frigy Plan",
+    interactiveTutorialListBadge: "Liste",
+    interactiveTutorialFrigyPlanTitle: "Zu wenig im Kühlschrank?",
+    interactiveTutorialFrigyPlanDesc:
+      "Dann erstell dir einen Frigy Plan: Frigy plant dir die Woche und füllt automatisch deine Einkaufsliste mit allem, was noch fehlt.",
+    interactiveTutorialWeekplanLabel: "Wochenplan",
+    interactiveTutorialWeekDayMon: "Mo",
+    interactiveTutorialWeekDayTue: "Di",
+    interactiveTutorialWeekDayWed: "Mi",
+    interactiveTutorialWeekDayThu: "Do",
+    interactiveTutorialWeekDayFri: "Fr",
+    interactiveTutorialWeekDaySat: "Sa",
+    interactiveTutorialWeekDaySun: "So",
+    interactiveTutorialWeekplanTitle: "Dein Wochenplan für die ganze Woche",
+    interactiveTutorialWeekplanDesc:
+      "Sieben Tage strukturiert – mit Wiederverwendung deiner Zutaten und einer Einkaufsliste für fehlende Artikel.",
+    interactiveTutorialShoppingLabel: "Einkaufsliste",
+    interactiveTutorialShoppingItem1: "Tomaten",
+    interactiveTutorialShoppingItem2: "Zwiebeln",
+    interactiveTutorialShoppingItem3: "Knoblauch",
+    interactiveTutorialShoppingItem4: "Olivenöl",
+    interactiveTutorialShoppingTitle: "Automatische Einkaufsliste",
+    interactiveTutorialShoppingDesc: "Fehlende Zutaten werden nach Kategorien gruppiert",
+    interactiveTutorialPracticalBtn: "Praktisch",
+    interactiveTutorialFinishTitle: "Du musst nicht mehr überlegen.",
+    interactiveTutorialFinishDesc: "Frigy macht das für dich.",
+
+    referralPartnerBadge: "Partner",
+    ariaClose: "Schließen",
   },
   en: {
     toastPleaseLogin: "Please sign in",
@@ -1751,6 +1954,95 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     dietPreferencesSubtitle: "Used for recipes and weekly plan",
     dietPreferencesSavedTitle: "Saved",
     dietPreferencesSavedDesc: "Your diet preference was updated.",
+
+    resetPasswordInstructions:
+      "Enter your email address and we'll send you a link to reset your password.",
+    resetPasswordSendLink: "Send reset link",
+    resetPasswordBackToLogin: "Back to sign in",
+    resetPasswordEmailSentTitle: "Email sent!",
+    resetPasswordEmailSentDesc:
+      "We sent a password reset link to {email}.",
+    resetPasswordCheckSpam:
+      "Check your spam folder if you don't see the email.",
+    resetPasswordSendFailed:
+      "We couldn't send the reset email right now. Please try again.",
+    updatePasswordNewTitle: "New password",
+    updatePasswordNewSubtitle: "Choose a new, secure password for your account.",
+    updatePasswordNewLabel: "New password",
+    updatePasswordChangeBtn: "Change password",
+    updatePasswordMismatch: "Passwords don't match",
+    updatePasswordMinLength: "Password must be at least 6 characters",
+    updatePasswordChangedTitle: "Password changed!",
+    updatePasswordSuccessDesc: "You can now sign in with your new password.",
+    updatePasswordChangeFailed:
+      "We couldn't change your password right now. Please try again.",
+
+    authStuckMessage: "Sign-in is stuck. Please reset your session and try again.",
+    authStuckContinue: "Continue",
+    authStuckSignOutRestart: "Sign out & start over",
+
+    billingNotConfigured:
+      "App Store / Play subscription is not configured yet (RevenueCat API keys missing).",
+    billingGiftPlanNotFound:
+      'No Play base plan "{planId}" found on the yearly subscription. Check Play Console and RevenueCat.',
+    billingNoYearlyPackage: "No yearly subscription found in RevenueCat.",
+    billingNoPackage: "No subscription package found in RevenueCat (monthly/yearly offering).",
+    billingEntitlementMissing: "Purchase completed, but Premium entitlement is missing.",
+    billingPurchaseFailed: "Store purchase failed.",
+    billingRestoreUnavailable: "Store restore is not available.",
+    billingNoActiveSubscription: "No active subscription found.",
+    billingRestoreFailed: "Restore failed.",
+
+    interactiveTutorialIntroSubtitle: "Scan your fridge first — Frigy plans the rest.",
+    interactiveTutorialFeatureScan: "Scan fridge",
+    interactiveTutorialFeatureWeekplan: "Weekly plan",
+    interactiveTutorialFeatureShopping: "Shopping list",
+    interactiveTutorialStart: "Start tutorial",
+    interactiveTutorialProblemTitle: "You have ingredients at home.",
+    interactiveTutorialProblemDesc: "Frigy turns them into a clear plan.",
+    interactiveTutorialScanTitle: "Frigy recognizes your ingredients via camera",
+    interactiveTutorialScanDesc: "Web and mobile are supported.",
+    interactiveTutorialScanCarrot: "🥕 Carrot",
+    interactiveTutorialScanCheese: "🧀 Cheese",
+    interactiveTutorialRecipesTitle: "Weekly plan from your ingredients",
+    interactiveTutorialRecipesDesc:
+      "After scanning, Frigy suggests meals based on what you have at home.",
+    interactiveTutorialRecipe1Name: "Quick pasta",
+    interactiveTutorialRecipe1Time: "15 min",
+    interactiveTutorialRecipe2Name: "Veggie stir-fry",
+    interactiveTutorialRecipe2Time: "20 min",
+    interactiveTutorialRecipe3Name: "Omelette",
+    interactiveTutorialRecipe3Time: "10 min",
+    interactiveTutorialNotEnoughBadge: "Not enough?",
+    interactiveTutorialFrigyPlanBadge: "Frigy Plan",
+    interactiveTutorialListBadge: "List",
+    interactiveTutorialFrigyPlanTitle: "Not enough in the fridge?",
+    interactiveTutorialFrigyPlanDesc:
+      "Create a Frigy Plan: Frigy plans your week and automatically fills your shopping list with what's still missing.",
+    interactiveTutorialWeekplanLabel: "Weekly plan",
+    interactiveTutorialWeekDayMon: "Mon",
+    interactiveTutorialWeekDayTue: "Tue",
+    interactiveTutorialWeekDayWed: "Wed",
+    interactiveTutorialWeekDayThu: "Thu",
+    interactiveTutorialWeekDayFri: "Fri",
+    interactiveTutorialWeekDaySat: "Sat",
+    interactiveTutorialWeekDaySun: "Sun",
+    interactiveTutorialWeekplanTitle: "Your weekly plan for the whole week",
+    interactiveTutorialWeekplanDesc:
+      "Seven structured days — reusing your ingredients with a shopping list for missing items.",
+    interactiveTutorialShoppingLabel: "Shopping list",
+    interactiveTutorialShoppingItem1: "Tomatoes",
+    interactiveTutorialShoppingItem2: "Onions",
+    interactiveTutorialShoppingItem3: "Garlic",
+    interactiveTutorialShoppingItem4: "Olive oil",
+    interactiveTutorialShoppingTitle: "Automatic shopping list",
+    interactiveTutorialShoppingDesc: "Missing ingredients are grouped by category",
+    interactiveTutorialPracticalBtn: "Handy",
+    interactiveTutorialFinishTitle: "No more overthinking.",
+    interactiveTutorialFinishDesc: "Frigy does it for you.",
+
+    referralPartnerBadge: "Partner",
+    ariaClose: "Close",
   },
   fr: {
     toastPleaseLogin: "Veuillez vous connecter",
@@ -2357,6 +2649,95 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     dietPreferencesSubtitle: "Utilisé pour les recettes et le plan hebdo",
     dietPreferencesSavedTitle: "Enregistré",
     dietPreferencesSavedDesc: "Ton régime alimentaire a été mis à jour.",
+
+    resetPasswordInstructions:
+      "Entre ton adresse e-mail et nous t'enverrons un lien pour réinitialiser ton mot de passe.",
+    resetPasswordSendLink: "Envoyer le lien",
+    resetPasswordBackToLogin: "Retour à la connexion",
+    resetPasswordEmailSentTitle: "E-mail envoyé !",
+    resetPasswordEmailSentDesc:
+      "Nous avons envoyé un lien de réinitialisation à {email}.",
+    resetPasswordCheckSpam:
+      "Vérifie aussi tes spams si tu ne trouves pas l'e-mail.",
+    resetPasswordSendFailed:
+      "L'e-mail de réinitialisation n'a pas pu être envoyé. Réessaie.",
+    updatePasswordNewTitle: "Nouveau mot de passe",
+    updatePasswordNewSubtitle: "Choisis un nouveau mot de passe sécurisé pour ton compte.",
+    updatePasswordNewLabel: "Nouveau mot de passe",
+    updatePasswordChangeBtn: "Changer le mot de passe",
+    updatePasswordMismatch: "Les mots de passe ne correspondent pas",
+    updatePasswordMinLength: "Le mot de passe doit contenir au moins 6 caractères",
+    updatePasswordChangedTitle: "Mot de passe modifié !",
+    updatePasswordSuccessDesc: "Tu peux maintenant te connecter avec ton nouveau mot de passe.",
+    updatePasswordChangeFailed:
+      "Le mot de passe n'a pas pu être modifié. Réessaie.",
+
+    authStuckMessage: "La connexion est bloquée. Réinitialise la session et réessaie.",
+    authStuckContinue: "Continuer",
+    authStuckSignOutRestart: "Se déconnecter et recommencer",
+
+    billingNotConfigured:
+      "L'abonnement App Store / Play n'est pas encore configuré (clés API RevenueCat manquantes).",
+    billingGiftPlanNotFound:
+      'Aucun forfait de base Play « {planId} » trouvé sur l\'abonnement annuel. Vérifie Play Console et RevenueCat.',
+    billingNoYearlyPackage: "Aucun abonnement annuel trouvé dans RevenueCat.",
+    billingNoPackage: "Aucun forfait d'abonnement trouvé dans RevenueCat (offre mensuelle/annuelle).",
+    billingEntitlementMissing: "Achat terminé, mais l'entitlement Premium est manquant.",
+    billingPurchaseFailed: "Échec de l'achat sur le store.",
+    billingRestoreUnavailable: "La restauration du store n'est pas disponible.",
+    billingNoActiveSubscription: "Aucun abonnement actif trouvé.",
+    billingRestoreFailed: "Échec de la restauration.",
+
+    interactiveTutorialIntroSubtitle: "Scanne d'abord ton frigo — Frigy planifie le reste.",
+    interactiveTutorialFeatureScan: "Scanner le frigo",
+    interactiveTutorialFeatureWeekplan: "Plan hebdo",
+    interactiveTutorialFeatureShopping: "Liste de courses",
+    interactiveTutorialStart: "Démarrer le tutoriel",
+    interactiveTutorialProblemTitle: "Tu as des ingrédients chez toi.",
+    interactiveTutorialProblemDesc: "Frigy en fait un plan clair.",
+    interactiveTutorialScanTitle: "Frigy reconnaît tes ingrédients par caméra",
+    interactiveTutorialScanDesc: "Web et mobile sont pris en charge.",
+    interactiveTutorialScanCarrot: "🥕 Carotte",
+    interactiveTutorialScanCheese: "🧀 Fromage",
+    interactiveTutorialRecipesTitle: "Plan hebdo à partir de tes ingrédients",
+    interactiveTutorialRecipesDesc:
+      "Après le scan, Frigy te propose des repas adaptés à ce que tu as chez toi.",
+    interactiveTutorialRecipe1Name: "Pâtes rapides",
+    interactiveTutorialRecipe1Time: "15 min",
+    interactiveTutorialRecipe2Name: "Poêlée de légumes",
+    interactiveTutorialRecipe2Time: "20 min",
+    interactiveTutorialRecipe3Name: "Omelette",
+    interactiveTutorialRecipe3Time: "10 min",
+    interactiveTutorialNotEnoughBadge: "Pas assez ?",
+    interactiveTutorialFrigyPlanBadge: "Frigy Plan",
+    interactiveTutorialListBadge: "Liste",
+    interactiveTutorialFrigyPlanTitle: "Pas assez dans le frigo ?",
+    interactiveTutorialFrigyPlanDesc:
+      "Crée un Frigy Plan : Frigy planifie ta semaine et remplit automatiquement ta liste de courses avec ce qui manque.",
+    interactiveTutorialWeekplanLabel: "Plan hebdo",
+    interactiveTutorialWeekDayMon: "Lun",
+    interactiveTutorialWeekDayTue: "Mar",
+    interactiveTutorialWeekDayWed: "Mer",
+    interactiveTutorialWeekDayThu: "Jeu",
+    interactiveTutorialWeekDayFri: "Ven",
+    interactiveTutorialWeekDaySat: "Sam",
+    interactiveTutorialWeekDaySun: "Dim",
+    interactiveTutorialWeekplanTitle: "Ton plan hebdo pour toute la semaine",
+    interactiveTutorialWeekplanDesc:
+      "Sept jours structurés — réutilisation de tes ingrédients et liste de courses pour les articles manquants.",
+    interactiveTutorialShoppingLabel: "Liste de courses",
+    interactiveTutorialShoppingItem1: "Tomates",
+    interactiveTutorialShoppingItem2: "Oignons",
+    interactiveTutorialShoppingItem3: "Ail",
+    interactiveTutorialShoppingItem4: "Huile d'olive",
+    interactiveTutorialShoppingTitle: "Liste de courses automatique",
+    interactiveTutorialShoppingDesc: "Les ingrédients manquants sont regroupés par catégorie",
+    interactiveTutorialPracticalBtn: "Pratique",
+    interactiveTutorialFinishTitle: "Plus besoin de réfléchir.",
+    interactiveTutorialFinishDesc: "Frigy s'en charge pour toi.",
+
+    referralPartnerBadge: "Partenaire",
+    ariaClose: "Fermer",
   },
 };
 

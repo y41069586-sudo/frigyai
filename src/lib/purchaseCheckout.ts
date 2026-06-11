@@ -1,4 +1,5 @@
 import type { PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
+import { getStoredLanguage, getTranslations } from "@/contexts/LanguageContext";
 import { configureStoreBilling, isStoreBillingConfigured, purchaseStorePlan } from "@/lib/storeBilling";
 
 export type CheckoutContext = {
@@ -16,16 +17,17 @@ export async function startPremiumCheckout(
   plan: PaywallBillingPlan,
   ctx: CheckoutContext,
 ): Promise<CheckoutResult> {
+  const tr = getTranslations(getStoredLanguage());
+
   if (!ctx.accessToken || !ctx.userId) {
-    return { ok: false, message: "Bitte zuerst anmelden." };
+    return { ok: false, message: tr.toastPleaseLogin };
   }
 
   await configureStoreBilling(ctx.userId);
   if (!isStoreBillingConfigured()) {
     return {
       ok: false,
-      message:
-        "In-App-Abos sind noch nicht eingerichtet. Bitte RevenueCat API Keys in .env setzen (siehe docs/STORE_BILLING_SETUP.md).",
+      message: tr.billingNotConfigured,
     };
   }
 

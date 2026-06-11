@@ -305,7 +305,7 @@ export function OnboardingPaywallStep({
           type="button"
           onClick={onBack}
           className="absolute left-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6] text-[#6B7280] transition-colors hover:bg-[#E5E7EB] hover:text-[#0a0a0a] touch-manipulation sm:left-5"
-          aria-label="Zurück"
+          aria-label={globalT.ariaBack}
         >
           <ChevronDown className="h-5 w-5 rotate-90" strokeWidth={2.2} />
         </button>

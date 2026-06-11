@@ -259,7 +259,7 @@ const AuthPage = () => {
         <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
           <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl" />
           <p className="text-sm text-muted-foreground mb-4">
-            Anmeldung hängt. Bitte Session zurücksetzen und erneut versuchen.
+            {t.authStuckMessage}
           </p>
           <div className="flex flex-col gap-2">
             <Button
@@ -270,7 +270,7 @@ const AuthPage = () => {
                 void finishAuthRedirect();
               }}
             >
-              Weiter
+              {t.authStuckContinue}
             </Button>
             <Button
               type="button"
@@ -284,7 +284,7 @@ const AuthPage = () => {
                 window.location.replace('/auth');
               }}
             >
-              Abmelden & neu starten
+              {t.authStuckSignOutRestart}
             </Button>
           </div>
         </div>

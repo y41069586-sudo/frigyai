@@ -1,5 +1,10 @@
 import { Capacitor } from "@capacitor/core";
 import type { PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
+import {
+  formatTranslation,
+  getStoredLanguage,
+  getTranslations,
+} from "@/contexts/LanguageContext";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import {
@@ -514,10 +519,12 @@ export async function purchaseStorePlan(
   plan: PaywallBillingPlan,
   accessToken: string,
 ): Promise<StorePurchaseResult> {
+  const tr = getTranslations(getStoredLanguage());
+
   if (!isStoreBillingConfigured()) {
     return {
       ok: false,
-      message: "App Store / Play Abo ist noch nicht konfiguriert (RevenueCat API Keys fehlen).",
+      message: tr.billingNotConfigured,
     };
   }
 
@@ -536,20 +543,20 @@ export async function purchaseStorePlan(
       if (!giftResult) {
         return {
           ok: false,
-          message: `Kein Play Base Plan „${giftPlanId}" auf dem Jahresabo gefunden. Prüfe Play Console und RevenueCat.`,
+          message: formatTranslation(tr.billingGiftPlanNotFound, { planId: giftPlanId }),
         };
       }
       customerInfo = giftResult.customerInfo;
     } else if (plan === "yearly") {
       const yearlyResult = await purchaseStandardYearly(offerings);
       if (!yearlyResult) {
-        return { ok: false, message: "Kein Jahresabo in RevenueCat gefunden." };
+        return { ok: false, message: tr.billingNoYearlyPackage };
       }
       customerInfo = yearlyResult.customerInfo;
     } else {
       const pkg = pickPackage(offerings, plan);
       if (!pkg) {
-        return { ok: false, message: "Kein Abo-Paket in RevenueCat gefunden (Offering monthly/yearly)." };
+        return { ok: false, message: tr.billingNoPackage };
       }
       const result = await Purchases.purchasePackage({ aPackage: pkg });
       customerInfo = result.customerInfo;
@@ -557,7 +564,7 @@ export async function purchaseStorePlan(
 
     const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
     if (!active) {
-      return { ok: false, message: "Kauf abgeschlossen, aber Premium-Entitlement fehlt." };
+      return { ok: false, message: tr.billingEntitlementMissing };
     }
 
     await syncStoreSubscriptionToServer(accessToken);
@@ -567,7 +574,7 @@ export async function purchaseStorePlan(
     if (err?.userCancelled || err?.code === "1" || /cancel/i.test(String(err?.message || ""))) {
       return { ok: false, cancelled: true };
     }
-    return { ok: false, message: err?.message || "Store-Kauf fehlgeschlagen." };
+    return { ok: false, message: err?.message || tr.billingPurchaseFailed };
   }
 }
 
@@ -582,8 +589,10 @@ export async function openStoreSubscriptionManagement(): Promise<void> {
 }
 
 export async function restoreStorePurchases(accessToken: string): Promise<StorePurchaseResult> {
+  const tr = getTranslations(getStoredLanguage());
+
   if (!isStoreBillingConfigured()) {
-    return { ok: false, message: "Store-Wiederherstellung nicht verfügbar." };
+    return { ok: false, message: tr.billingRestoreUnavailable };
   }
 
   try {
@@ -591,12 +600,12 @@ export async function restoreStorePurchases(accessToken: string): Promise<StoreP
     const { customerInfo } = await Purchases.restorePurchases();
     const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
     if (!active) {
-      return { ok: false, message: "Kein aktives Abo gefunden." };
+      return { ok: false, message: tr.billingNoActiveSubscription };
     }
     await syncStoreSubscriptionToServer(accessToken);
     return { ok: true };
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Wiederherstellung fehlgeschlagen.";
+    const message = e instanceof Error ? e.message : tr.billingRestoreFailed;
     return { ok: false, message };
   }
 }

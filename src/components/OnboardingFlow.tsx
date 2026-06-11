@@ -206,7 +206,7 @@ const NotebookOnboardingChrome = ({
                 variant="outline"
                 onClick={onBack}
                 className="h-12 min-w-[52px] rounded-2xl border-border bg-[#EDE9E4] px-0 shadow-none hover:bg-[#E5E2DC]"
-                aria-label="Zurück"
+                aria-label={t.ariaBack}
               >
                 <ChevronRight className="size-6 rotate-180 text-neutral-900" />
               </Button>
@@ -4015,7 +4015,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   type="button"
                   onClick={goBack}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6] text-[#374151]"
-                  aria-label="Zurück"
+                  aria-label={t.ariaBack}
                 >
                   <ChevronRight className="h-5 w-5 rotate-180" />
                 </button>
@@ -4304,10 +4304,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 {selectedPlanOption === 'premium' && (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Weiter zu Premium
+                    {t.continueToPremium}
                   </>
                 )}
-                {!selectedPlanOption && "Wähle einen Plan"}
+                {!selectedPlanOption && t.selectAPlan}
               </Button>
             </div>
           </StepCard>
@@ -4330,7 +4330,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ y: 0 }}
                 transition={{ delay: 1, duration: 0.4 }}
               >
-                Du hast es geschafft! 🎉
+                {t.youMadeIt} 🎉
               </motion.h1>
               <motion.p
                 className="text-lg text-muted-foreground mt-4 max-w-xs mx-auto"
@@ -4338,7 +4338,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.3, duration: 0.4 }}
               >
-                Frigy ist bereit für dich!
+                {t.frigyReadyForYou}
               </motion.p>
             </motion.div>
 
@@ -4371,7 +4371,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 onClick={goNext}
                 className="w-full max-w-sm mx-auto h-12 rounded-xl flex items-center justify-center"
               >
-                Weiter geht's!
+                {t.letsGoContinue}
                 <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
             </motion.div>
@@ -4403,7 +4403,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
               >
-                Dein System ist bereit.
+                {t.systemReady}
               </motion.h1>
               
               <motion.p 
@@ -4412,7 +4412,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
-                Makros. Struktur. Weniger nachdenken.
+                {t.macrosStructureLessThinking}
               </motion.p>
               
               <motion.div
@@ -4421,7 +4421,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
                 <Button onClick={handleComplete} className="w-full max-w-xs h-12 rounded-xl">
-                  Zum Dashboard
+                  {t.toDashboard}
                   <ChevronRight className="w-5 h-5 ml-1" />
                 </Button>
               </motion.div>
