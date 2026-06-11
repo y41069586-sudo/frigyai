@@ -62,7 +62,6 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const L = {
     de: {
       title: "EIN FREUND LÄDT DICH EIN",
-      hint: "Der Code ordnet dich einem Partner zu. Premium schaltest du danach über das Abo frei.",
       label: "Empfehlungscode",
       invalid: "Ungültig",
       successTitle: "Code erkannt!",
@@ -73,7 +72,6 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
     },
     en: {
       title: "A FRIEND INVITED YOU",
-      hint: "The code links you to a partner. Unlock Premium with a subscription next.",
       label: "Referral code",
       invalid: "Invalid",
       successTitle: "Code recognized!",
@@ -84,7 +82,6 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
     },
     fr: {
       title: "UN AMI T'INVITE",
-      hint: "Le code te rattache à un partenaire. Premium s'active ensuite via l'abonnement.",
       label: "Code de parrainage",
       invalid: "Invalide",
       successTitle: "Code reconnu !",
@@ -298,9 +295,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
           {t.title}
         </motion.h1>
 
-        <p className="mt-4 max-w-[330px] text-[14px] font-medium leading-snug text-[#6B7280]">{t.hint}</p>
-
-        <div className="mt-12">
+        <div className="mt-10">
           <p className="mb-5 text-[18px] font-bold tracking-[-0.035em]" style={{ color: PALETTE.text }}>
             {t.label}
           </p>
