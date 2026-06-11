@@ -13,6 +13,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
 import { dismissStalledAuthNavigation } from "@/lib/authCompletion";
+import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
 import { notifyOpenLogMeal, notifyOverlayOpen } from "@/lib/overlayEvents";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
@@ -150,6 +151,6 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     </nav>
   );
 
-  if (!mounted) return null;
+  if (!mounted || shouldHideBottomNavForFirstPlan()) return null;
   return createPortal(bar, document.body);
 };

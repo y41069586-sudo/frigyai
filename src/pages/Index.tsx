@@ -59,7 +59,10 @@ import {
 import {
   clearOnboardingSession,
   isOnboardingInProgress,
+  markOnboardingInProgress,
 } from "@/lib/onboardingSession";
+import { markSplashLoginNewUser } from "@/lib/splashLoginOnboarding";
+import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
 import { useMealPlanGeneration } from "@/contexts/MealPlanContext";
 import { YesterdayCalorieAdjustDialog } from "@/components/YesterdayCalorieAdjustDialog";
 import {
@@ -304,6 +307,16 @@ const Index = () => {
         setShowOnboarding(false);
         setOnboardingComplete(true);
         setOnboardingLatch(false);
+        return;
+      }
+
+      if (result.routePhase === "onboarding_start") {
+        markSplashLoginNewUser();
+        markOnboardingInProgress();
+        setShowOnboarding(true);
+        setOnboardingComplete(false);
+        setOnboardingLatch(true);
+        setSearchParams({ onboardingStep: "gender" }, { replace: true });
         return;
       }
 
@@ -759,7 +772,7 @@ const Index = () => {
       )}
 
       {/* Bottom Navigation - Show for all logged in users */}
-      {user && dashboardReady && (
+      {user && dashboardReady && !shouldHideBottomNavForFirstPlan() && (
         <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
       )}
 

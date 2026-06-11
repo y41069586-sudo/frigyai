@@ -95,7 +95,9 @@ export function executeAuthNavigation(
 
     if (
       result.status === "success" &&
-      (result.routePhase === "onboarding_paywall" || result.routePhase === "standalone_paywall") &&
+      (result.routePhase === "onboarding_paywall" ||
+        result.routePhase === "standalone_paywall" ||
+        result.routePhase === "onboarding_start") &&
       usesStoreBilling() &&
       isStoreBillingConfigured()
     ) {

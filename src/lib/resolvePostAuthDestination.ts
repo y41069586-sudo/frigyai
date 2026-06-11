@@ -14,6 +14,7 @@ export type PostAuthIntent = "login" | "signup" | "auto";
 export type PostAuthPhase =
   | "no_session"
   | "dashboard"
+  | "onboarding_start"
   | "onboarding_paywall"
   | "standalone_paywall";
 
@@ -145,10 +146,8 @@ export async function resolvePostAuthDestination(options: {
     }
 
     return {
-      phase: "standalone_paywall",
-      path: hasEverHadPremium()
-        ? buildPremiumPricingRoute({ trialEligible: false })
-        : resolvePaywallPath(options.explicitPath),
+      phase: "onboarding_start",
+      path: "/?onboardingStep=gender",
       userId,
     };
   }

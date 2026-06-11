@@ -7,6 +7,7 @@ import {
   dismissStalledAuthNavigation,
   POST_AUTH_MANUAL_NAV_PATHS,
 } from "@/lib/authCompletion";
+import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
 
 /**
  * Bottom nav rendered outside RouteErrorBoundary so Wochenplan stays reachable
@@ -29,7 +30,7 @@ export function MainNavChrome() {
   }
 
   // Logged-out users get redirected from meal-plans content; skip duplicate nav.
-  if (!user) {
+  if (!user || shouldHideBottomNavForFirstPlan()) {
     return null;
   }
 

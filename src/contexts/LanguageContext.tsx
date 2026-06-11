@@ -670,6 +670,8 @@ export interface Translations extends ExtendedTranslations {
   firstWeeklyPlanSuccessTitle: string;
   firstWeeklyPlanSuccessSubtitle: string;
   firstWeeklyPlanContinueBtn: string;
+  firstWeeklyPlanPerfectBtn: string;
+  splashLoginAccountReady: string;
   firstWeeklyPlanFeatureMeals: string;
   firstWeeklyPlanFeatureMacros: string;
   firstWeeklyPlanFeatureShopping: string;
@@ -1313,6 +1315,9 @@ const translations: Record<Language, Translations> = {
     firstWeeklyPlanSuccessSubtitle:
       "Deine Woche ist geplant. Du findest deinen Plan jederzeit unter „Plan“.",
     firstWeeklyPlanContinueBtn: "Weiter",
+    firstWeeklyPlanPerfectBtn: "Perfekt",
+    splashLoginAccountReady:
+      "Dein Konto ist verbunden. Speichere deinen Plan und wähle dein Abo — danach erstellst du deinen ersten Wochenplan.",
     firstWeeklyPlanFeatureMeals: "5 Mahlzeiten pro Tag",
     firstWeeklyPlanFeatureMacros: "Passend zu deinen Makros",
     firstWeeklyPlanFeatureShopping: "Automatische Einkaufsliste",
@@ -2194,6 +2199,9 @@ const translations: Record<Language, Translations> = {
     firstWeeklyPlanSuccessSubtitle:
       "Your week is planned. Find your plan anytime under “Plan”.",
     firstWeeklyPlanContinueBtn: "Continue",
+    firstWeeklyPlanPerfectBtn: "Perfect",
+    splashLoginAccountReady:
+      "Your account is connected. Save your plan and choose your subscription — then create your first weekly plan.",
     firstWeeklyPlanFeatureMeals: "5 meals per day",
     firstWeeklyPlanFeatureMacros: "Matched to your macros",
     firstWeeklyPlanFeatureShopping: "Automatic shopping list",
@@ -3075,6 +3083,9 @@ const translations: Record<Language, Translations> = {
     firstWeeklyPlanSuccessSubtitle:
       "Ta semaine est prête. Retrouve ton plan à tout moment sous « Plan ».",
     firstWeeklyPlanContinueBtn: "Continuer",
+    firstWeeklyPlanPerfectBtn: "Parfait",
+    splashLoginAccountReady:
+      "Ton compte est connecté. Enregistre ton plan et choisis ton abonnement — puis crée ton premier plan de la semaine.",
     firstWeeklyPlanFeatureMeals: "5 repas par jour",
     firstWeeklyPlanFeatureMacros: "Adapté à tes macros",
     firstWeeklyPlanFeatureShopping: "Liste de courses automatique",

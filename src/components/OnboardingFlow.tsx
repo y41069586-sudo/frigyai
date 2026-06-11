@@ -97,6 +97,12 @@ import {
   waitForAuthNavigationExecuted,
   wasPostAuthRedirectRecentlyHandled,
 } from "@/lib/postAuthRedirect";
+import { FIRST_WEEK_PLAN_ROUTE, markFirstWeekPlanPending } from "@/lib/firstWeekPlanFlow";
+import {
+  clearSplashLoginNewUser,
+  isSplashLoginNewUser,
+  markSplashLoginNewUser,
+} from "@/lib/splashLoginOnboarding";
 import { MINT_STEP_HEADER_PT, ONBOARDING_MINT_PALETTE } from "./onboarding/layout";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -850,6 +856,14 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     onComplete();
   }, [onComplete, userData]);
 
+  const exitToFirstWeekPlan = useCallback(() => {
+    saveOnboardingData(userData, { markOnboardingComplete: true });
+    clearSplashLoginNewUser();
+    markFirstWeekPlanPending();
+    clearOnboardingSession();
+    navigate(FIRST_WEEK_PLAN_ROUTE, { replace: true });
+  }, [navigate, userData]);
+
   const goToPaywall = useCallback(() => {
     if (onboardingSteps.includes("paywall")) {
       void prefetchStoreOfferingPrices(user?.id ?? null);
@@ -869,6 +883,10 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       authRouteHandledRef.current = true;
       if (result.routePhase === "dashboard") {
         finishOnboardingExit();
+      } else if (result.routePhase === "onboarding_start") {
+        markSplashLoginNewUser();
+        markOnboardingInProgress();
+        setCurrentStep("gender");
       } else if (result.routePhase === "onboarding_paywall") {
         goToPaywall();
       } else if (result.routePhase === "standalone_paywall") {
@@ -940,7 +958,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           if (plan === "monthly" && resolveTrialEligibleFromLocal()) {
             void scheduleTrialEndingReminder();
           }
-          finishOnboardingExit();
+          exitToFirstWeekPlan();
         }
       }
     } finally {
@@ -3704,6 +3722,36 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         );
 
       case "save-progress": {
+        const splashLoginContinue = isSplashLoginNewUser() && Boolean(user);
+
+        if (splashLoginContinue) {
+          return (
+            <StepCard step="save-progress">
+              <motion.div
+                className="flex h-full min-h-0 w-full flex-col items-center justify-center px-6 text-center"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-lg">
+                  <Check className="h-7 w-7 text-primary-foreground" />
+                </div>
+                <h1 className="text-[22px] font-bold tracking-tight">{t.saveYourProgress}</h1>
+                <p className="mt-3 max-w-sm text-sm text-muted-foreground">
+                  {t.splashLoginAccountReady}
+                </p>
+                <Button
+                  type="button"
+                  className="mt-8 h-12 w-full max-w-sm rounded-2xl text-base font-bold"
+                  disabled={isAuthLoading}
+                  onClick={() => void goAfterSignup(true)}
+                >
+                  {t.continueBtn}
+                </Button>
+              </motion.div>
+            </StepCard>
+          );
+        }
+
         const handleAuth = async () => {
           if (authSubmitLockRef.current || isAuthLoading) return;
 

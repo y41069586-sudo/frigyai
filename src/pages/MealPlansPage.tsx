@@ -36,6 +36,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
 import { dismissStalledAuthNavigation } from '@/lib/authCompletion';
 import {
+  completeFirstWeekPlanFlow,
+  isFirstWeekPlanPending,
+  markFirstWeekPlanPending,
+} from '@/lib/firstWeekPlanFlow';
+import {
   tabPanelExit,
   tabPanelFrom,
   tabPanelTransition,
@@ -158,6 +163,8 @@ const MealPlansPage = () => {
   // Use centralized tracker settings hook for consistent data
   const { settings: trackerSettings, reloadSettings } = useTrackerSettings();
   const hasPlanContent = useMemo(() => hasMealPlanContent(mealPlan), [mealPlan]);
+  const isFirstPlanFlow =
+    searchParams.get('firstPlan') === '1' || isFirstWeekPlanPending();
 
   const pageCopy = {
     mealAddedTitle: `${t.eaten}! ✓`,
@@ -342,6 +349,44 @@ const MealPlansPage = () => {
   }, [t.mealPlanPrefSaveBtn]);
 
   useEffect(() => {
+    if (!isFirstPlanFlow) return;
+    if (searchParams.get('tab') && searchParams.get('tab') !== 'meals') {
+      const params = new URLSearchParams(searchParams);
+      params.set('tab', 'meals');
+      setSearchParams(params, { replace: true });
+    }
+  }, [isFirstPlanFlow, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!isFirstPlanFlow || hasPlanContent || isGenerating) return;
+    if (pendingMealPlanRefreshRef.current) return;
+
+    pendingMealPlanRefreshRef.current = true;
+    markFirstWeekPlanPending();
+
+    const params = new URLSearchParams(searchParams);
+    params.set('firstPlan', '1');
+    params.set('tab', 'meals');
+    setSearchParams(params, { replace: true });
+
+    void (async () => {
+      try {
+        await generateMealPlan();
+      } finally {
+        pendingMealPlanRefreshRef.current = false;
+      }
+    })();
+  }, [isFirstPlanFlow, hasPlanContent, isGenerating, generateMealPlan, searchParams, setSearchParams]);
+
+  const finishFirstPlanFlow = useCallback(() => {
+    completeFirstWeekPlanFlow();
+    const params = new URLSearchParams(searchParams);
+    params.delete('firstPlan');
+    setSearchParams(params, { replace: true });
+    navigate('/', { replace: true });
+  }, [navigate, searchParams, setSearchParams]);
+
+  useEffect(() => {
     const shouldRegenerate = activeTab === 'meals' && searchParams.get('regenerate') === '1';
 
     if (!shouldRegenerate || pendingMealPlanRefreshRef.current) {
@@ -513,28 +558,41 @@ const MealPlansPage = () => {
       <nav className="sticky top-0 z-[60] bg-[#F2FFF8]/95 border-b border-primary/15 safe-top sm:bg-[#F2FFF8]/90 sm:backdrop-blur-lg">
         <div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="mr-1 h-9 w-9 shrink-0 rounded-full"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <NavLink to="/">
+            {!isFirstPlanFlow && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="mr-1 h-9 w-9 shrink-0 rounded-full"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            {isFirstPlanFlow ? (
               <h1 className="text-[18px] font-black tracking-[-0.04em] text-foreground sm:text-xl">
                 Frigy
               </h1>
-            </NavLink>
+            ) : (
+              <NavLink to="/">
+                <h1 className="text-[18px] font-black tracking-[-0.04em] text-foreground sm:text-xl">
+                  Frigy
+                </h1>
+              </NavLink>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-1.5" />
         </div>
       </nav>
 
-      <div className="container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6 pb-bottom-nav">
+      <div
+        className={cn(
+          "container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6",
+          isFirstPlanFlow && hasPlanContent ? "pb-28" : "pb-bottom-nav",
+        )}
+      >
         <motion.div className="min-h-[50vh] space-y-4 sm:space-y-6">
           <AnimatePresence mode="sync" initial={false}>
-          {activeTab === 'reminders' && (
+          {activeTab === 'reminders' && !isFirstPlanFlow && (
             <motion.div
               key="reminders"
               initial={isMobile ? { opacity: 1 } : tabPanelFrom(isMobile)}
@@ -561,8 +619,22 @@ const MealPlansPage = () => {
               transition={tabPanelTransition(isMobile)}
               className="relative"
             >
+                {isFirstPlanFlow && !hasPlanContent && !isGenerating && (
+                  <div className="mb-4 rounded-2xl border border-primary/15 bg-white/80 p-4 text-center">
+                    <h2 className="text-lg font-bold text-foreground">{t.firstWeeklyPlanTitle}</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">{t.firstWeeklyPlanSubtitle}</p>
+                  </div>
+                )}
+
+                {isFirstPlanFlow && hasPlanContent && (
+                  <div className="mb-4 rounded-2xl border border-primary/20 bg-white/90 p-4 text-center">
+                    <h2 className="text-lg font-bold text-foreground">{t.firstWeeklyPlanPreviewTitle}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{t.firstWeeklyPlanPreviewSubtitle}</p>
+                  </div>
+                )}
+
                 <div className="mb-4 sm:mb-6">
-                  {hasPlanContent && (
+                  {hasPlanContent && !isFirstPlanFlow && (
                   <div className="flex w-full flex-wrap items-center gap-2 min-h-9">
                     <div className="grid w-full min-w-0 grid-cols-[minmax(72px,auto)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
                       <ExportMealPlan mealPlan={mealPlan} pdfOnly />
@@ -611,7 +683,7 @@ const MealPlansPage = () => {
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">
-                  {!hasPlanContent && !isGenerating && (
+                  {!hasPlanContent && !isGenerating && !isFirstPlanFlow && (
                     <WeeklyPlanEmptyState
                       dailyCalories={trackerSettings?.dailyCalories}
                       dailyProtein={trackerSettings?.dailyProtein}
@@ -663,15 +735,17 @@ const MealPlansPage = () => {
                                 <span className="text-amber-400">{meal.carbs}K</span>
                                 <span className="text-blue-400">{meal.fat}F</span>
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full mt-2 h-7 min-[360px]:h-8 sm:h-7 text-[10px] min-[360px]:text-[11px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
-                                onClick={(e) => addMealToTracker(meal, e)}
-                              >
-                                <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
-                                {t.eaten}
-                              </Button>
+                              {!isFirstPlanFlow && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full mt-2 h-7 min-[360px]:h-8 sm:h-7 text-[10px] min-[360px]:text-[11px] sm:text-xs border-primary/30 hover:bg-primary/20 touch-target"
+                                  onClick={(e) => addMealToTracker(meal, e)}
+                                >
+                                  <Check className="h-3 w-3 mr-0.5 sm:mr-1" />
+                                  {t.eaten}
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -683,7 +757,7 @@ const MealPlansPage = () => {
             </motion.div>
           )}
 
-          {activeTab === 'shopping' && (
+          {activeTab === 'shopping' && !isFirstPlanFlow && (
             <motion.div
               key="shopping"
               initial={isMobile ? { opacity: 1 } : tabPanelFrom(isMobile)}
@@ -739,6 +813,18 @@ const MealPlansPage = () => {
           navigate('/scan');
         }}
       />
+
+      {isFirstPlanFlow && hasPlanContent && !isGenerating && (
+        <div className="fixed inset-x-0 bottom-0 z-[120] border-t border-primary/15 bg-[#F2FFF8]/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+          <Button
+            type="button"
+            className="h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] text-base font-bold text-[#082013]"
+            onClick={finishFirstPlanFlow}
+          >
+            {t.firstWeeklyPlanPerfectBtn}
+          </Button>
+        </div>
+      )}
 
     </div>
     </>
