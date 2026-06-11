@@ -98,6 +98,10 @@ export async function resumeAuthSession(
   current = await readSession();
   if (current?.user) {
     if (lastError && isDefinitiveSessionError(lastError)) {
+      // Refresh token may be invalid while access token is still usable — keep user signed in.
+      if (!sessionExpiresWithin(current, 60_000)) {
+        return current;
+      }
       return null;
     }
     return current;

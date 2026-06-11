@@ -299,19 +299,36 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Fallback timeout to prevent infinite loading
+    const isNative = Capacitor.isNativePlatform();
+    sessionRestoringRef.current = isNative;
+    if (isNative) {
+      setSessionRestoring(true);
+    }
+
+    // Fallback timeout to prevent infinite loading (native cold start needs longer).
     const loadingTimeout = setTimeout(() => {
       if (mounted) {
         console.log('[Auth] Loading timeout reached, forcing loading to false');
         setLoading(false);
+        sessionRestoringRef.current = false;
+        setSessionRestoring(false);
       }
-    }, 3000);
+    }, isNative ? 8_000 : 3_000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         if (!mounted) return;
         
         console.log('[Auth] State change:', event);
+
+        if (event === 'INITIAL_SESSION') {
+          if (currentSession?.user) {
+            applySession(currentSession);
+            setLoading(false);
+            loadSubscriptionFast(currentSession.user.id, currentSession.access_token);
+          }
+          return;
+        }
 
         if (event === 'TOKEN_REFRESHED' && !currentSession) {
           console.log('[Auth] Token refresh failed, keeping cached session');
@@ -341,21 +358,36 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     );
 
     // Initial session check — try refresh before clearing stored auth
-    void refreshSessionFromStorage().then((initialSession) => {
-      if (!mounted) return;
-      if (initialSession?.user) {
-        applySession(initialSession);
-        loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
-      } else {
-        applySession(null);
-        updateSubscriptionStatus(null);
-      }
-      setLoading(false);
-    }).catch((err) => {
-      if (!mounted) return;
-      console.error('[Auth] Failed to check initial session:', err);
-      setLoading(false);
-    });
+    void refreshSessionFromStorage({
+      maxAttempts: 5,
+      initialDelayMs: isNative ? 450 : 0,
+    })
+      .then(async (initialSession) => {
+        if (!mounted) return;
+        if (initialSession?.user) {
+          applySession(initialSession);
+          loadSubscriptionFast(initialSession.user.id, initialSession.access_token);
+        } else {
+          const cached = (await supabase.auth.getSession()).data.session;
+          if (cached?.user) {
+            applySession(cached);
+            loadSubscriptionFast(cached.user.id, cached.access_token);
+          } else if (!sessionRef.current?.user) {
+            applySession(null);
+            updateSubscriptionStatus(null);
+          }
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        console.error('[Auth] Failed to check initial session:', err);
+        setLoading(false);
+      })
+      .finally(() => {
+        sessionRestoringRef.current = false;
+        if (mounted) setSessionRestoring(false);
+      });
 
     const resumeSessionCheck = () => {
       const now = Date.now();
