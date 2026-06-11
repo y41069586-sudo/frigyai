@@ -34,7 +34,7 @@ case "$WORKFLOW" in
   *ios*|*iOS*) REQUIRE_IOS_REVENUECAT=1 ;;
   *android*|*Android*)
     REQUIRE_IOS_REVENUECAT=0
-    REQUIRE_ANDROID_REVENUECAT=0
+    REQUIRE_ANDROID_REVENUECAT=1
     ;;
   *)
     # Unknown workflow — require both unless explicitly relaxed
