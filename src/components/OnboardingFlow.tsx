@@ -51,6 +51,7 @@ import {
 import {
   calculateMacros,
   calculateWeeksToGoal,
+  clearOnboardingCompleteFlag,
   saveOnboardingData,
   saveOnboardingAfterSignup,
 } from "./onboarding/utils";
@@ -78,6 +79,7 @@ import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
 import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
 import {
+  isEmailNotConfirmed,
   isEmailRateLimited,
   isUserAlreadyRegistered,
   resolveAuthErrorMessage,
@@ -826,8 +828,12 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   useEffect(() => {
     if (currentStep === "save-progress") {
       setAuthMode("signup");
+      if (!user) {
+        clearOnboardingCompleteFlag();
+        markOnboardingInProgress();
+      }
     }
-  }, [currentStep]);
+  }, [currentStep, user]);
 
   useEffect(() => {
     markOnboardingInProgress();
@@ -850,7 +856,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   }, [initialStepOverride, currentStep]);
 
-  const finishOnboardingExit = useCallback(() => {
+  const finishOnboardingExit = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) {
+      clearOnboardingCompleteFlag();
+      markOnboardingInProgress();
+      setCurrentStep("save-progress");
+      return;
+    }
+
     clearOnboardingSession();
     saveOnboardingData(userData, { markOnboardingComplete: true });
     onComplete();
@@ -864,12 +878,20 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     navigate(FIRST_WEEK_PLAN_ROUTE, { replace: true });
   }, [navigate, userData]);
 
-  const goToPaywall = useCallback(() => {
+  const goToPaywall = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) {
+      clearOnboardingCompleteFlag();
+      markOnboardingInProgress();
+      setCurrentStep("save-progress");
+      return;
+    }
+
     if (onboardingSteps.includes("paywall")) {
-      void prefetchStoreOfferingPrices(user?.id ?? null);
+      void prefetchStoreOfferingPrices(data.session.user.id);
       setCurrentStep("paywall");
     }
-  }, [user?.id]);
+  }, []);
 
   const authRouteHandledRef = useRef(false);
 
@@ -882,7 +904,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
       authRouteHandledRef.current = true;
       if (result.routePhase === "dashboard") {
-        finishOnboardingExit();
+        void finishOnboardingExit();
       } else if (result.routePhase === "onboarding_start") {
         markSplashLoginNewUser();
         markOnboardingInProgress();
@@ -898,7 +920,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const tryFinishOnboardingWithAccess = useCallback(async (sessionReady = false) => {
     const { data } = await supabase.auth.getSession();
-    const sessionUserId = data.session?.user?.id ?? user?.id;
+    const activeSession = data.session;
+    const sessionUserId = activeSession?.user?.id ?? user?.id;
+
+    if (!activeSession?.user || !sessionUserId) {
+      clearOnboardingCompleteFlag();
+      markOnboardingInProgress();
+      setCurrentStep("save-progress");
+      return;
+    }
 
     const route = await resolvePostAuthDestination({
       userId: sessionUserId,
@@ -909,11 +939,14 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     });
 
     if (route.phase === "no_session") {
+      clearOnboardingCompleteFlag();
+      markOnboardingInProgress();
+      setCurrentStep("save-progress");
       return;
     }
 
     if (route.phase === "dashboard") {
-      finishOnboardingExit();
+      await finishOnboardingExit();
       return;
     }
 
@@ -1078,13 +1111,18 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     ) {
       prevIndex--;
     }
+
+    if ((currentStep === "paywall" || currentStep === "save-progress") && !user) {
+      clearOnboardingCompleteFlag();
+      markOnboardingInProgress();
+    }
     
     if (prevIndex >= 0) setCurrentStep(onboardingSteps[prevIndex]);
   };
 
   const handleComplete = () => {
     successFeedback(); // Success haptic on completion
-    saveOnboardingData(userData);
+    saveOnboardingData(userData, { markOnboardingComplete: false });
     onComplete();
   };
 
@@ -3793,10 +3831,15 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               const { error } = await signUp(authEmail, authPassword, { silent: true });
 
               const ensureSessionAfterSignup = async (): Promise<boolean> => {
-                if (await waitForAuthSession(1200)) return true;
-                const { session } = await signIn(authEmail, authPassword, { silent: true });
+                if (await waitForAuthSession(4000)) return true;
+                const { session, error: signInError } = await signIn(authEmail, authPassword, {
+                  silent: true,
+                });
                 if (session) return true;
-                return waitForAuthSession(1200);
+                if (signInError && isEmailNotConfirmed(signInError)) {
+                  return waitForAuthSession(2500);
+                }
+                return waitForAuthSession(3000);
               };
 
               if (error) {
@@ -3965,9 +4008,21 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
+              <div
+                className="flex shrink-0 items-center px-4 pt-[max(0.75rem,env(safe-area-inset-top))]"
+              >
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6] text-[#374151]"
+                  aria-label="Zurück"
+                >
+                  <ChevronRight className="h-5 w-5 rotate-180" />
+                </button>
+              </div>
               <motion.div
                 className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4"
-                style={{ paddingTop: MINT_STEP_HEADER_PT }}
+                style={{ paddingTop: "0.5rem" }}
               >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
@@ -4176,7 +4231,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         const handlePlanContinue = () => {
           if (selectedPlanOption === 'premium') {
             // Save onboarding data and navigate using react-router
-            saveOnboardingData(userData);
+            saveOnboardingData(userData, { markOnboardingComplete: false });
             // Use navigate from react-router to avoid SPA routing conflicts
             // onComplete will handle the state callback if needed
             onComplete();

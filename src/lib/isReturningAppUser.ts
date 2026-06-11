@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { isEstablishedAuthUser } from "@/lib/isEstablishedAuthUser";
 import { isKnownAccountEmail } from "@/lib/knownAccountEmail";
+import { isOnboardingInProgress } from "@/lib/onboardingSession";
 import { hasEverHadPremium } from "@/lib/trialEligibility";
 
 /**
@@ -19,7 +20,9 @@ export async function isReturningAppUser(
   if (user && isEstablishedAuthUser(user)) return true;
 
   try {
-    if (localStorage.getItem("onboardingComplete") === "true") return true;
+    if (!isOnboardingInProgress() && localStorage.getItem("onboardingComplete") === "true") {
+      return true;
+    }
   } catch {
     // ignore
   }

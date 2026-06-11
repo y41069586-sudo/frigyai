@@ -488,6 +488,7 @@ const Index = () => {
           userId: activeUser.id,
           checkSubscription,
           fromOnboarding: true,
+          authIntent: "signup",
           sessionWaitMs: 4500,
         });
 
@@ -513,13 +514,16 @@ const Index = () => {
         }
       }
 
-      setShowOnboarding(false);
-      setOnboardingComplete(true);
-
       if (!activeUser) {
-        setSearchParams({ onboardingStep: "save-progress" }, { replace: true });
+        try {
+          localStorage.removeItem("onboardingComplete");
+        } catch {
+          // ignore
+        }
+        setLocalOnboardingComplete(false);
         setShowOnboarding(true);
         setOnboardingComplete(false);
+        setSearchParams({ onboardingStep: "save-progress" }, { replace: true });
       }
     } finally {
       onboardingExitInFlightRef.current = false;

@@ -127,15 +127,24 @@ async function syncTrackerProfileToCloud(settings: Record<string, unknown>) {
 }
 
 export type SaveOnboardingOptions = {
-  /** Default true — set false until paywall / post-signup flow is done */
+  /** Only true after paywall / successful signup flow is finished */
   markOnboardingComplete?: boolean;
 };
+
+export function clearOnboardingCompleteFlag(): void {
+  try {
+    localStorage.removeItem("onboardingComplete");
+    notifyFrigyStorageUpdated();
+  } catch {
+    // ignore
+  }
+}
 
 export const saveOnboardingData = (
   userData: UserData,
   options: SaveOnboardingOptions = {},
 ) => {
-  const markComplete = options.markOnboardingComplete ?? true;
+  const markComplete = options.markOnboardingComplete ?? false;
 
   localStorage.setItem("onboardingUserData", JSON.stringify(userData));
   if (markComplete) {

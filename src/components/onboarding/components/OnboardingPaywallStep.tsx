@@ -224,6 +224,7 @@ function StorePriceLine({
 
 export function OnboardingPaywallStep({
   language,
+  onBack,
   onCheckout,
   onRestorePurchases,
   onSignOut,
@@ -299,6 +300,17 @@ export function OnboardingPaywallStep({
       animate={{ opacity: 1 }}
       className="relative flex min-h-0 flex-1 flex-col bg-white text-[#0a0a0a]"
     >
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="absolute left-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6] text-[#6B7280] transition-colors hover:bg-[#E5E7EB] hover:text-[#0a0a0a] touch-manipulation sm:left-5"
+          aria-label="Zurück"
+        >
+          <ChevronDown className="h-5 w-5 rotate-90" strokeWidth={2.2} />
+        </button>
+      ) : null}
+
       <button
         type="button"
         onClick={() => setExclusiveOfferOpen(true)}
