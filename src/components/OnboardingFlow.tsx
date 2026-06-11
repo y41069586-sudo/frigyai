@@ -940,7 +940,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       checkSubscription,
       fromOnboarding: true,
       authIntent: authMode === "login" ? "login" : "signup",
-      sessionWaitMs: sessionReady ? 3500 : 4500,
+      sessionWaitMs: sessionReady ? 800 : 4500,
     });
 
     if (route.phase === "no_session") {
@@ -1006,8 +1006,16 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const goAfterSignup = useCallback(async (sessionReady = false) => {
     saveOnboardingAfterSignup(userData);
+
+    const { data } = await supabase.auth.getSession();
+    if (authMode === "signup" && data.session?.user) {
+      goToPaywall();
+      void tryFinishOnboardingWithAccess(true);
+      return;
+    }
+
     await tryFinishOnboardingWithAccess(sessionReady);
-  }, [tryFinishOnboardingWithAccess, userData]);
+  }, [authMode, goToPaywall, tryFinishOnboardingWithAccess, userData]);
 
   const goNext = () => {
     // Check if user can proceed from current step before allowing navigation
@@ -3836,15 +3844,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               const { error } = await signUp(authEmail, authPassword, { silent: true });
 
               const ensureSessionAfterSignup = async (): Promise<boolean> => {
-                if (await waitForAuthSession(4000)) return true;
+                const { data: existing } = await supabase.auth.getSession();
+                if (existing.session) return true;
+                if (await waitForAuthSession(1200)) return true;
                 const { session, error: signInError } = await signIn(authEmail, authPassword, {
                   silent: true,
                 });
                 if (session) return true;
                 if (signInError && isEmailNotConfirmed(signInError)) {
-                  return waitForAuthSession(2500);
+                  return waitForAuthSession(1500);
                 }
-                return waitForAuthSession(3000);
+                return waitForAuthSession(2000);
               };
 
               if (error) {

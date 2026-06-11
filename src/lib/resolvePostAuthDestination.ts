@@ -102,10 +102,29 @@ export async function resolvePostAuthDestination(options: {
 
   const authIntent = options.authIntent ?? "auto";
 
+  // New onboarding signups → paywall immediately; premium check is quick (no store sync wait).
+  if (authIntent === "signup" && options.fromOnboarding) {
+    const hasPremium = await resolvePremiumAccessAfterSignIn({
+      userId,
+      checkSubscription: options.checkSubscription,
+      sessionReady: true,
+      skipReferralCheck: options.skipReferralCheck,
+      fast: true,
+    });
+    if (hasPremium) {
+      return { phase: "dashboard", path: "/", userId };
+    }
+    return {
+      phase: "onboarding_paywall",
+      path: "/?onboardingStep=paywall",
+      userId,
+    };
+  }
+
   const hasPremium = await resolvePremiumAccessAfterSignIn({
     userId,
     checkSubscription: options.checkSubscription,
-    sessionReady: true,
+    sessionReady: Boolean(options.sessionWaitMs && options.sessionWaitMs < 2000),
     skipReferralCheck: options.skipReferralCheck,
   });
 
@@ -113,8 +132,6 @@ export async function resolvePostAuthDestination(options: {
     return { phase: "dashboard", path: "/", userId };
   }
 
-  // New registrations must hit paywall before any "returning user" heuristics
-  // (known-email flags, fresh profiles row, partial onboarding rows, etc.).
   if (authIntent === "signup") {
     if (options.fromOnboarding) {
       return {

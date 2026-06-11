@@ -5,14 +5,16 @@ import { syncStoreSubscriptionIfNeeded } from "@/lib/subscriptionRefresh";
 import { isPromoPremiumProductId, isSubscriptionActive, type SubscriptionStatusLike } from "@/lib/subscription";
 
 const AUTH_SUBSCRIPTION_CHECK_MS = 2000;
+const FAST_SUBSCRIPTION_CHECK_MS = 600;
 
 async function checkSubscriptionForAuthRouting(
   checkSubscription: () => Promise<SubscriptionStatusLike | null>,
+  timeoutMs = AUTH_SUBSCRIPTION_CHECK_MS,
 ): Promise<SubscriptionStatusLike | null> {
   try {
     return await Promise.race([
       checkSubscription(),
-      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), AUTH_SUBSCRIPTION_CHECK_MS)),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), timeoutMs)),
     ]);
   } catch {
     return null;
@@ -57,10 +59,12 @@ export async function resolvePremiumAccessAfterSignIn(options: {
   skipReferralCheck?: boolean;
   /** Caller already has a session (e.g. right after sign-in) — skip long session polling. */
   sessionReady?: boolean;
+  /** Onboarding signup — only quick local/DB checks; skip slow store sync. */
+  fast?: boolean;
 }): Promise<boolean> {
   const existingSession = (await supabase.auth.getSession()).data.session;
   if (!existingSession) {
-    const waitMs = options.sessionReady ? 1200 : 4500;
+    const waitMs = options.fast ? 600 : options.sessionReady ? 1200 : 4500;
     if (!(await waitForAuthSession(waitMs))) {
       return false;
     }
@@ -70,13 +74,19 @@ export async function resolvePremiumAccessAfterSignIn(options: {
   let userId = options.userId ?? session?.user?.id;
 
   if (!options.skipReferralCheck && session?.access_token) {
-    await redeemPendingReferralCode(session.access_token);
+    if (options.fast) {
+      void redeemPendingReferralCode(session.access_token);
+    } else {
+      await redeemPendingReferralCode(session.access_token);
+    }
   }
 
-  await Promise.race([
-    syncStoreSubscriptionIfNeeded(session?.access_token),
-    new Promise<void>((resolve) => window.setTimeout(resolve, 3000)),
-  ]);
+  if (!options.fast) {
+    await Promise.race([
+      syncStoreSubscriptionIfNeeded(session?.access_token),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 3000)),
+    ]);
+  }
 
   if (!userId) {
     userId = (await supabase.auth.getSession()).data.session?.user?.id;
@@ -87,6 +97,14 @@ export async function resolvePremiumAccessAfterSignIn(options: {
     if (isSubscriptionActive(dbCache)) {
       return true;
     }
+  }
+
+  if (options.fast) {
+    const status = await checkSubscriptionForAuthRouting(
+      options.checkSubscription,
+      FAST_SUBSCRIPTION_CHECK_MS,
+    );
+    return isSubscriptionActive(status);
   }
 
   const retryDelaysMs = options.sessionReady ? [0, 200] : [0, 300, 500];
