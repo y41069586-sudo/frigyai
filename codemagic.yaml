@@ -24,6 +24,8 @@ workflows:
         VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
+        # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
+        ANDROID_VERSION_CODE: "4"
 
     scripts:
       - name: Verify build environment
@@ -54,10 +56,9 @@ workflows:
       - name: Set Android version code
         script: |
           set -e
-          ANDROID_MIN_BUILD=4
-          BUILD_NUM="${CM_BUILD_NUMBER:-1}"
-          if [ "$BUILD_NUM" -lt "$ANDROID_MIN_BUILD" ]; then
-            BUILD_NUM=$ANDROID_MIN_BUILD
+          BUILD_NUM="${ANDROID_VERSION_CODE:-4}"
+          if [ -n "${CM_BUILD_NUMBER:-}" ] && [ "$CM_BUILD_NUMBER" -gt "$BUILD_NUM" ]; then
+            BUILD_NUM="$CM_BUILD_NUMBER"
           fi
           GRADLE_FILE="android/app/build.gradle"
           # macOS (BSD sed) needs -i ''; GNU sed (Linux) uses -i alone
@@ -130,6 +131,8 @@ workflows:
         VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
+        # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
+        IOS_BUILD_NUMBER: "11"
 
     scripts:
       - name: Verify build environment
@@ -198,21 +201,7 @@ workflows:
       - name: Set iOS build number
         script: |
           set -e
-          cd "$CM_BUILD_DIR/ios/App"
-          # CFBundleVersion must strictly increase on App Store Connect (build 10 already uploaded).
-          export IOS_MIN_BUILD=11
-          BUILD_NUM="${CM_BUILD_NUMBER:-1}"
-          if [ "$BUILD_NUM" -lt "$IOS_MIN_BUILD" ]; then
-            BUILD_NUM=$IOS_MIN_BUILD
-          fi
-          agvtool new-version -all "$BUILD_NUM"
-          ACTUAL_BUILD="$(agvtool what-version -terse 2>/dev/null | tail -1 | tr -d '[:space:]')"
-          echo "iOS CFBundleVersion set to $BUILD_NUM (agvtool reports: ${ACTUAL_BUILD:-unknown})"
-          if [ -z "$ACTUAL_BUILD" ] || [ "$ACTUAL_BUILD" -lt "$IOS_MIN_BUILD" ]; then
-            echo "ERROR: CFBundleVersion must be >= $IOS_MIN_BUILD (App Store rejects duplicate build numbers)."
-            exit 1
-          fi
-          echo "$BUILD_NUM" > "$CM_BUILD_DIR/.ios_bundle_version"
+          bash scripts/codemagic-set-ios-build.sh
 
       - name: Build IPA
         script: |
@@ -226,7 +215,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD=11
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-11}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
