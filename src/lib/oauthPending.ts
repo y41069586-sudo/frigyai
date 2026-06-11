@@ -1,5 +1,8 @@
 import { Capacitor } from "@capacitor/core";
-import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
+import {
+  peekStashedOAuthCallbackUrl,
+  peekStashedOAuthContext,
+} from "@/lib/oauthCallbackRecovery";
 
 /** Tracks in-flight OAuth (web sessionStorage + native localStorage). */
 export const OAUTH_PENDING_KEY = "frigy_oauth_pending";
@@ -122,6 +125,14 @@ export function resolveOAuthContext(url?: string): {
   fromOnboarding: boolean;
   authIntent: "login" | "signup";
 } {
+  const stashed = peekStashedOAuthContext();
+  if (stashed?.authIntent) {
+    return {
+      fromOnboarding: stashed.fromOnboarding ?? false,
+      authIntent: stashed.authIntent,
+    };
+  }
+
   const fromOnboarding = resolveFromOnboarding(url);
   const authIntent: "login" | "signup" = fromOnboarding
     ? "signup"

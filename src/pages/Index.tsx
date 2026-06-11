@@ -286,11 +286,16 @@ const Index = () => {
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
+  const authRouteHandledRef = useRef(false);
 
   useEffect(() => {
     return subscribeAuthFlow(() => {
       const { result, navigation } = getAuthFlowSnapshot();
-      if (result.status !== "success" || !navigation.executed) return;
+      if (result.status !== "success" || !navigation.executed || authRouteHandledRef.current) {
+        return;
+      }
+
+      authRouteHandledRef.current = true;
 
       if (result.routePhase === "dashboard") {
         clearOnboardingSession();

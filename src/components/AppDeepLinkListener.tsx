@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { resolveDeepLink } from "@/lib/appDeepLink";
-import { publishAuthResult } from "@/lib/authCompletion";
+import { isAuthFlowRecentlySettled } from "@/lib/authCompletion";
 import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl, scheduleStashedOAuthRetry } from "@/lib/completeOAuthSignIn";
 import { resolveOAuthContext } from "@/lib/oauthPending";
-import { stashOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
+import {
+  isOAuthCallbackConsumed,
+  stashOAuthCallbackUrl,
+} from "@/lib/oauthCallbackRecovery";
 import { useAuth } from "@/contexts/AuthContext";
 import { captureReferralAttribution, applyDeferredReferralOnFirstOpen } from "@/lib/referralAttribution";
 import { ChottuLinkNative } from "@/lib/chottuLinkNative";
@@ -52,6 +55,12 @@ export function AppDeepLinkListener() {
       const lastHandledAt = recent.get(url) ?? 0;
       if (now - lastHandledAt < 1500) return;
 
+      if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
+        if (isOAuthCallbackConsumed(url) || isAuthFlowRecentlySettled()) {
+          return;
+        }
+      }
+
       recent.set(url, now);
       if (recent.size > 20) {
         for (const [entryUrl, timestamp] of recent.entries()) {
@@ -62,17 +71,19 @@ export function AppDeepLinkListener() {
       }
 
       if (isOAuthErrorUrl(url) || isOAuthCallbackUrl(url)) {
-        publishAuthResult({ status: "pending", phase: "oauth_exchange" });
-        stashOAuthCallbackUrl(url);
         const oauthContext = resolveOAuthContext(url);
+        stashOAuthCallbackUrl(url, oauthContext);
         void handleOAuthCallbackUrl({
           url,
           checkSubscription,
           navigate,
           fromOnboarding: oauthContext.fromOnboarding,
           authIntent: oauthContext.authIntent,
+        }).then((result) => {
+          if (result.status === "deferred") {
+            scheduleStashedOAuthRetry({ checkSubscription, navigate });
+          }
         });
-        scheduleStashedOAuthRetry({ checkSubscription, navigate });
         return;
       }
 
@@ -143,17 +154,6 @@ export function AppDeepLinkListener() {
       if (result?.url) {
         pipeUrl(result.url);
       }
-    });
-
-    void App.addListener("appStateChange", ({ isActive }) => {
-      if (!isActive) return;
-      void App.getLaunchUrl().then((result) => {
-        if (result?.url) pipeUrl(result.url);
-      });
-    }).then((handle) => {
-      listenerRemovers.push(() => {
-        void handle.remove();
-      });
     });
 
     return () => {

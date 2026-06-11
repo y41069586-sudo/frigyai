@@ -6,8 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   getAuthFlowSnapshot,
   dismissStalledAuthNavigation,
-  isAuthCompletionPending,
   isAuthFlowOverlayVisible,
+  isAuthFlowRecentlySettled,
   NAV_EXECUTION_TIMEOUT_MS,
   POST_AUTH_MANUAL_NAV_PATHS,
   recoverFromStuckAuthNavigation,
@@ -21,9 +21,7 @@ import {
   scheduleStashedOAuthRetry,
 } from "@/lib/authRouter";
 import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
-import { clearOAuthPending, getOAuthPending } from "@/lib/oauthPending";
-import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
-import { supabase } from "@/integrations/supabase/client";
+import { getOAuthPending } from "@/lib/oauthPending";
 import frigLogo from "@/assets/frigy-mascot.png";
 
 /**
@@ -36,9 +34,10 @@ export function AuthFlowBootstrap() {
 
   const tryStashed = () => {
     if (triggeredRef.current) return;
+    if (isAuthFlowRecentlySettled()) return;
     if (!peekStashedOAuthCallbackUrl()) return;
-    const { navigation } = getAuthFlowSnapshot();
-    if (navigation.executed) return;
+    const { navigation, result } = getAuthFlowSnapshot();
+    if (navigation.executed || result.status === "success") return;
 
     triggeredRef.current = true;
     void runStashedOAuthCompletion({ checkSubscription, navigate }).finally(() => {
@@ -46,34 +45,8 @@ export function AuthFlowBootstrap() {
     });
   };
 
-  const tryPendingLoginSession = () => {
-    if (triggeredRef.current) return;
-    const pending = getOAuthPending();
-    if (pending !== "login" && pending !== "signup") return;
-
-    const { navigation } = getAuthFlowSnapshot();
-    if (navigation.executed || isAuthCompletionPending()) return;
-
-    triggeredRef.current = true;
-    void (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session?.user) return;
-
-      clearOAuthPending();
-      await redirectAfterSignIn({
-        userId: data.session.user.id,
-        checkSubscription,
-        navigate,
-        authIntent: pending === "login" ? "login" : "signup",
-      });
-    })().finally(() => {
-      triggeredRef.current = false;
-    });
-  };
-
   useEffect(() => {
     tryStashed();
-    tryPendingLoginSession();
     if (peekStashedOAuthCallbackUrl() || getOAuthPending()) {
       scheduleStashedOAuthRetry({ checkSubscription, navigate });
     }
@@ -85,7 +58,6 @@ export function AuthFlowBootstrap() {
     void App.addListener("appStateChange", ({ isActive }) => {
       if (!isActive) return;
       tryStashed();
-      tryPendingLoginSession();
     }).then((handle) => () => {
       void handle.remove();
     });

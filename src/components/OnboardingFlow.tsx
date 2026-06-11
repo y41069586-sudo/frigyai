@@ -875,10 +875,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
         clearOnboardingSession();
         onComplete();
       }
-
-      window.setTimeout(() => {
-        authRouteHandledRef.current = false;
-      }, 2500);
     });
   }, [finishOnboardingExit, goToPaywall, onComplete]);
 

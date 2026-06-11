@@ -6,7 +6,10 @@ import {
 } from "@/lib/authOAuth";
 import {
   clearStashedOAuthCallbackUrl,
+  isOAuthCallbackConsumed,
+  markOAuthCallbackConsumed,
   peekStashedOAuthCallbackUrl,
+  peekStashedOAuthContext,
   stashOAuthCallbackUrl,
 } from "@/lib/oauthCallbackRecovery";
 import {
@@ -86,6 +89,22 @@ const listeners = new Set<() => void>();
 let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
 let executionWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
 let activeRun: Promise<AuthResult> | null = null;
+let authFlowSettledAt = 0;
+let authFlowSettledUserId: string | null = null;
+
+const AUTH_SETTLE_COOLDOWN_MS = 60_000;
+
+export function markAuthFlowSettled(userId?: string | null): void {
+  authFlowSettledAt = Date.now();
+  authFlowSettledUserId = userId ?? null;
+}
+
+export function isAuthFlowRecentlySettled(userId?: string | null): boolean {
+  if (!authFlowSettledAt) return false;
+  if (Date.now() - authFlowSettledAt > AUTH_SETTLE_COOLDOWN_MS) return false;
+  if (userId && authFlowSettledUserId && userId !== authFlowSettledUserId) return false;
+  return true;
+}
 
 function notify(): void {
   listeners.forEach((listener) => listener());
@@ -249,6 +268,10 @@ export function isAuthFlowOverlayVisible(): boolean {
     return true;
   }
 
+  if (isAuthFlowRecentlySettled()) {
+    return false;
+  }
+
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {
     return false;
@@ -400,6 +423,10 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
       return { status: "ignored" };
     }
 
+    if (isOAuthCallbackConsumed(oauthUrl)) {
+      return { status: "ignored" };
+    }
+
     setResult({ status: "pending", phase: "oauth_exchange" });
 
     const oauthContext = resolveOAuthContext(oauthUrl);
@@ -417,6 +444,7 @@ export async function computeAuthCompletion(input: RunAuthCompletionInput): Prom
       return failResult("OAuth-Code konnte nicht eingelöst werden. Bitte erneut anmelden.");
     }
 
+    markOAuthCallbackConsumed(oauthUrl);
     clearStashedOAuthCallbackUrl();
     const authIntent: PostAuthIntent = authIntentOpt ?? oauthContext.authIntent;
     clearOAuthPending();
@@ -480,6 +508,19 @@ export function computeAuthCompletionOnce(input: RunAuthCompletionInput): Promis
     return activeRun;
   }
 
+  if (input.oauthUrl && isOAuthCallbackConsumed(input.oauthUrl)) {
+    return Promise.resolve({ status: "ignored" });
+  }
+
+  const settledUserId = input.userId ?? null;
+  if (!input.oauthUrl && settledUserId && isAuthFlowRecentlySettled(settledUserId)) {
+    const snap = getAuthFlowSnapshot();
+    if (snap.result.status === "success" && snap.navigation.executed) {
+      return Promise.resolve(snap.result);
+    }
+    return Promise.resolve({ status: "ignored" });
+  }
+
   activeRun = computeAuthCompletion(input).finally(() => {
     activeRun = null;
     if (snapshot.result.status === "deferred" || snapshot.result.status === "ignored") {
@@ -498,10 +539,13 @@ export function computeStashedOAuthCompletion(input: {
     return Promise.resolve({ status: "ignored" });
   }
 
+  const stashed = peekStashedOAuthContext();
   return computeAuthCompletionOnce({
     oauthUrl: url,
     checkSubscription: input.checkSubscription,
     allowOAuthDefer: false,
+    fromOnboarding: stashed?.fromOnboarding,
+    authIntent: stashed?.authIntent,
   });
 }
 

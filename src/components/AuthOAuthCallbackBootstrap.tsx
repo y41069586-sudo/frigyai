@@ -5,10 +5,10 @@ import { isOAuthCallbackUrl, isOAuthErrorUrl } from "@/lib/authOAuth";
 import { handleOAuthCallbackUrl } from "@/lib/completeOAuthSignIn";
 import {
   isAuthCompletionPending,
+  isAuthFlowRecentlySettled,
   isAuthNavigationPending,
-  publishAuthResult,
-  resetAuthFlow,
 } from "@/lib/authCompletion";
+import { isOAuthCallbackConsumed, stashOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
 import { clearOAuthPending, getOAuthPending, resolveOAuthContext } from "@/lib/oauthPending";
 import { isOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
@@ -37,12 +37,13 @@ export function AuthOAuthCallbackBootstrap() {
     }
 
     if (!isOAuthCallbackUrl(href)) return;
+    if (isOAuthCallbackConsumed(href) || isAuthFlowRecentlySettled()) return;
 
     oauthCallbackHandledRef.current = true;
-    publishAuthResult({ status: "pending", phase: "oauth_exchange" });
 
     void (async () => {
       const oauthContext = resolveOAuthContext(href);
+      stashOAuthCallbackUrl(href, oauthContext);
       const result = await handleOAuthCallbackUrl({
         url: href,
         checkSubscription,

@@ -1,10 +1,13 @@
 import type { NavigateFunction } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   computeAuthCompletionOnce,
   computeStashedOAuthCompletion,
   getAuthFlowSnapshot,
   isAuthCompletionPending,
+  isAuthFlowRecentlySettled,
   isAuthNavigationPending,
+  markAuthFlowSettled,
   POST_AUTH_MANUAL_NAV_PATHS,
   publishAuthResult,
   resetAuthFlow,
@@ -81,6 +84,11 @@ export function executeAuthNavigation(
         targetRoute: target,
         startedAt: null,
       });
+      if (result.status === "success") {
+        void supabase.auth.getSession().then(({ data }) => {
+          markAuthFlowSettled(data.session?.user?.id ?? null);
+        });
+      }
       window.setTimeout(() => resetAuthFlow(), 0);
       return true;
     }
@@ -102,6 +110,11 @@ export function executeAuthNavigation(
       targetRoute: target,
       startedAt: null,
     });
+    if (result.status === "success") {
+      void supabase.auth.getSession().then(({ data }) => {
+        markAuthFlowSettled(data.session?.user?.id ?? null);
+      });
+    }
     if (result.status === "success" && result.routePhase === "onboarding_paywall") {
       clearOnboardingOAuthPending();
       window.setTimeout(() => resetAuthFlow(), 0);
@@ -157,8 +170,11 @@ export function scheduleStashedOAuthRetry(options: {
   for (const delayMs of delays) {
     window.setTimeout(() => {
       if (!peekStashedOAuthCallbackUrl()) return;
-      const { navigation } = getAuthFlowSnapshot();
+      if (isAuthFlowRecentlySettled()) return;
+      const { navigation, result } = getAuthFlowSnapshot();
       if (navigation.executed) return;
+      if (result.status === "success") return;
+      if (isAuthCompletionPending()) return;
       void runStashedOAuthCompletion(options);
     }, delayMs);
   }
