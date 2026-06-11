@@ -145,6 +145,17 @@ export function AppDeepLinkListener() {
       }
     });
 
+    void App.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) return;
+      void App.getLaunchUrl().then((result) => {
+        if (result?.url) pipeUrl(result.url);
+      });
+    }).then((handle) => {
+      listenerRemovers.push(() => {
+        void handle.remove();
+      });
+    });
+
     return () => {
       listenerRemovers.forEach((remove) => remove());
     };

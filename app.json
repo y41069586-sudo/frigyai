@@ -11,7 +11,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.frigyapp.app",
-      "buildNumber": "13"
+      "buildNumber": "14"
     },
     "extra": {
       "eas": {

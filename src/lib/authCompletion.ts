@@ -267,6 +267,7 @@ export function dismissStalledAuthNavigation(): void {
   if (isAuthNavigationPending()) return;
   if (getOAuthPending()) return;
   if (isOnboardingOAuthPending()) return;
+  if (result.status === "success" && navigation.executed) return;
 
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {

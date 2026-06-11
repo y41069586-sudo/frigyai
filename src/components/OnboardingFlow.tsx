@@ -286,11 +286,6 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
       if (snap.navigation.executed || snap.result.status === "error") {
         setIsGoogleAuthLoading(false);
         setIsAppleAuthLoading(false);
-        return;
-      }
-      if (!isAuthCompletionPending() && snap.result.status === "idle" && !getOAuthPending()) {
-        setIsGoogleAuthLoading(false);
-        setIsAppleAuthLoading(false);
       }
     });
   }, [oauthBusy]);
@@ -395,6 +390,17 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
   return (
     <div className="relative flex h-[100dvh] max-h-[100dvh] w-full min-w-0 flex-col overflow-hidden bg-[#FFFFFF] text-neutral-950">
+      {oauthBusy && (
+        <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-white/95 px-6 backdrop-blur-sm">
+          <img
+            src={frigyLogoSrc}
+            alt="Frigy"
+            className="mb-4 h-14 w-14 animate-pulse object-contain"
+            draggable={false}
+          />
+          <p className="text-sm font-medium text-neutral-500">{t.loading}</p>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}

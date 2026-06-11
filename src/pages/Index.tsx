@@ -50,7 +50,12 @@ import { getLocalDateISO } from "@/lib/localDate";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 import { recordWaterGoalDayMet } from "@/lib/waterGoalStreak";
 import { resolvePostAuthDestination } from "@/lib/resolvePostAuthDestination";
-import { isAuthCompletionPending, isAuthNavigationPending } from "@/lib/authCompletion";
+import {
+  getAuthFlowSnapshot,
+  isAuthCompletionPending,
+  isAuthNavigationPending,
+  subscribeAuthFlow,
+} from "@/lib/authCompletion";
 import {
   clearOnboardingSession,
   isOnboardingInProgress,
@@ -281,6 +286,29 @@ const Index = () => {
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
   const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return subscribeAuthFlow(() => {
+      const { result, navigation } = getAuthFlowSnapshot();
+      if (result.status !== "success" || !navigation.executed) return;
+
+      if (result.routePhase === "dashboard") {
+        clearOnboardingSession();
+        localStorage.setItem("onboardingComplete", "true");
+        setLocalOnboardingComplete(true);
+        setShowOnboarding(false);
+        setOnboardingComplete(true);
+        setOnboardingLatch(false);
+        return;
+      }
+
+      if (result.routePhase === "onboarding_paywall") {
+        setShowOnboarding(true);
+        setOnboardingComplete(false);
+        setSearchParams({ onboardingStep: "paywall" }, { replace: true });
+      }
+    });
+  }, [setSearchParams]);
 
   useEffect(() => {
     const sync = () => setLocalOnboardingComplete(readOnboardingCompleteLocal());

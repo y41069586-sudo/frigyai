@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   getAuthFlowSnapshot,
   dismissStalledAuthNavigation,
+  isAuthCompletionPending,
   isAuthFlowOverlayVisible,
   NAV_EXECUTION_TIMEOUT_MS,
   POST_AUTH_MANUAL_NAV_PATHS,
@@ -20,7 +21,9 @@ import {
   scheduleStashedOAuthRetry,
 } from "@/lib/authRouter";
 import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
-import { getOAuthPending } from "@/lib/oauthPending";
+import { clearOAuthPending, getOAuthPending } from "@/lib/oauthPending";
+import { redirectAfterSignIn } from "@/lib/postAuthRedirect";
+import { supabase } from "@/integrations/supabase/client";
 import frigLogo from "@/assets/frigy-mascot.png";
 
 /**
@@ -43,18 +46,46 @@ export function AuthFlowBootstrap() {
     });
   };
 
-  useEffect(() => {
-    if (!peekStashedOAuthCallbackUrl() && !getOAuthPending()) return;
+  const tryPendingLoginSession = () => {
+    if (triggeredRef.current) return;
+    const pending = getOAuthPending();
+    if (pending !== "login" && pending !== "signup") return;
 
+    const { navigation } = getAuthFlowSnapshot();
+    if (navigation.executed || isAuthCompletionPending()) return;
+
+    triggeredRef.current = true;
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) return;
+
+      clearOAuthPending();
+      await redirectAfterSignIn({
+        userId: data.session.user.id,
+        checkSubscription,
+        navigate,
+        authIntent: pending === "login" ? "login" : "signup",
+      });
+    })().finally(() => {
+      triggeredRef.current = false;
+    });
+  };
+
+  useEffect(() => {
     tryStashed();
-    scheduleStashedOAuthRetry({ checkSubscription, navigate });
+    tryPendingLoginSession();
+    if (peekStashedOAuthCallbackUrl() || getOAuthPending()) {
+      scheduleStashedOAuthRetry({ checkSubscription, navigate });
+    }
   }, [checkSubscription, navigate]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
     void App.addListener("appStateChange", ({ isActive }) => {
-      if (isActive) tryStashed();
+      if (!isActive) return;
+      tryStashed();
+      tryPendingLoginSession();
     }).then((handle) => () => {
       void handle.remove();
     });
