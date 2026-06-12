@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Beef, Check, Droplet, Pencil, Plus, Wheat } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
@@ -31,8 +30,6 @@ type TrackerWidgetProps = {
   onToggleExpand?: () => void;
   /** false while tracker goals still load — suppresses brief “over goal” flash */
   targetsReady?: boolean;
-  /** true while tracker settings are still loading from DB */
-  targetsLoading?: boolean;
   /** summary = calories/macros only; quick-log = meal slot buttons; all = both */
   section?: "all" | "summary" | "quick-log";
 };
@@ -54,7 +51,6 @@ export function TrackerWidget({
   loggedMealTypes = [],
   showQuickLog = true,
   targetsReady = true,
-  targetsLoading = false,
   section = "all",
 }: TrackerWidgetProps) {
   const { t, language } = useLanguage();
@@ -90,8 +86,6 @@ export function TrackerWidget({
   const openTrackerTap = useScrollFriendlyTap(() => onOpenTracker?.());
   const showSummary = section === "all" || section === "summary";
   const showSlots = (section === "all" || section === "quick-log") && showQuickLog;
-  const showTargetsSkeleton = targetsLoading && !targetsReady;
-  const skipSummaryEntrance = showSummary && trackerSummaryEntered;
   const skipProgressAnimation = trackerSummaryEntered;
 
   useEffect(() => {
@@ -105,22 +99,9 @@ export function TrackerWidget({
         delay={delay}
         variant="glass"
         interactive={false}
-        skipEntrance={skipSummaryEntrance}
+        skipEntrance
         className="w-full min-w-0 rounded-[2rem] p-5 sm:p-6"
       >
-        {showTargetsSkeleton ? (
-          <div className="space-y-5 py-1" aria-busy="true" aria-label={t.loading}>
-            <Skeleton className="h-3 w-16 rounded-full" />
-            <Skeleton className="h-10 w-40 rounded-xl" />
-            <Skeleton className="h-3 w-52 rounded-full" />
-            <Skeleton className="h-3 w-full rounded-full" />
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              <Skeleton className="h-[76px] rounded-2xl" />
-              <Skeleton className="h-[76px] rounded-2xl" />
-              <Skeleton className="h-[76px] rounded-2xl" />
-            </div>
-          </div>
-        ) : (
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
@@ -187,7 +168,6 @@ export function TrackerWidget({
             <InlineStat icon={Droplet} colorClass="text-sky-500 bg-sky-50" ringColor="#38bdf8" label={t.fat} value={fatText} progress={fatPct} />
           </div>
         </div>
-        )}
       </WidgetCard>
       )}
 
@@ -248,10 +228,10 @@ function MealSlotButton({
       transition={{ delay: delay + 0.08 + index * 0.04, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       {...tap}
       className={cn(
-        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border-2 bg-white px-1.5 py-2 text-center shadow-[0_12px_28px_-14px_rgba(15,23,42,0.18)] transition-[box-shadow,background-color,border-color] sm:min-h-[78px] dark:bg-white/[0.96]",
+        "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-[1.15rem] border-0 bg-white px-1.5 py-2 text-center shadow-[0_12px_28px_-14px_rgba(15,23,42,0.18)] transition-[box-shadow,background-color] sm:min-h-[78px] dark:bg-white/[0.96]",
         logged
-          ? "border-primary bg-primary/[0.08] text-primary shadow-[0_12px_28px_-14px_rgba(57,212,127,0.22)]"
-          : "border-transparent text-foreground hover:bg-white hover:shadow-[0_14px_32px_-14px_rgba(15,23,42,0.22)] active:scale-[0.98]",
+          ? "bg-primary/[0.08] text-primary shadow-[0_12px_28px_-14px_rgba(57,212,127,0.22)]"
+          : "text-foreground hover:bg-white hover:shadow-[0_14px_32px_-14px_rgba(15,23,42,0.22)] active:scale-[0.98]",
       )}
       aria-label={`${addMealLabel} ${slot.label}`}
     >
@@ -259,10 +239,8 @@ function MealSlotButton({
       <span className="text-[10px] font-bold leading-tight sm:text-[11px]">{slot.label}</span>
       <span
         className={cn(
-          "flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-offset-1 sm:h-5.5 sm:w-5.5",
-          logged
-            ? "bg-primary text-primary-foreground ring-primary ring-offset-white"
-            : "bg-primary/12 ring-transparent ring-offset-transparent",
+          "flex h-5 w-5 items-center justify-center rounded-full sm:h-5.5 sm:w-5.5",
+          logged ? "bg-primary" : "bg-primary/12",
         )}
       >
         {logged ? (

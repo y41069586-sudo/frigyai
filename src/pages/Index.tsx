@@ -289,7 +289,6 @@ const Index = () => {
   );
   const [onboardingLatch, setOnboardingLatch] = useState(() => isOnboardingInProgress());
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
-  const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
   const authRouteHandledRef = useRef(false);
 
@@ -774,7 +773,6 @@ const Index = () => {
               fatEaten={todayTotals.fat}
               targetFat={targetFat}
               targetsReady={targetsReady}
-              targetsLoading={trackerLoading && !targetsReady}
               loggedMealTypes={loggedMealTypes}
               waterGlasses={waterGlasses}
               waterGoalMl={waterGoalMl}
@@ -788,12 +786,12 @@ const Index = () => {
         </div>
       </main>
 
-      {user && dashboardReady && (
+      {user && (
         <MacroTracker onSetupComplete={reloadSettings} />
       )}
 
       {/* Bottom Navigation - Show for all logged in users */}
-      {user && dashboardReady && !shouldHideBottomNavForFirstPlan() && (
+      {user && !shouldHideBottomNavForFirstPlan() && (
         <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
       )}
 
