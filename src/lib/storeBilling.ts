@@ -65,9 +65,9 @@ let configurePromise: Promise<void> | null = null;
 let configuredUserId: string | null = null;
 
 const CONFIGURE_TIMEOUT_MS = 12_000;
-const OFFERINGS_TIMEOUT_MS = 15_000;
-const PREFETCH_TIMEOUT_MS = 20_000;
-const OFFERINGS_RETRY_DELAYS_MS = [0, 1_500, 3_500] as const;
+const OFFERINGS_TIMEOUT_MS = 10_000;
+const PREFETCH_TIMEOUT_MS = 12_000;
+const OFFERINGS_RETRY_DELAYS_MS = [0, 400, 1_000] as const;
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;

@@ -22,6 +22,11 @@ const CANONICAL_RULES: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\b(pilze|champignons?)\b/i, label: "Champignons" },
   { pattern: /\b(wasserflasche|trinkwasser|mineralwasser|stilles\s*wasser|wasser|water|sprudel)\b/i, label: "Wasser" },
   { pattern: /\b(saft|orangensaft|apfelsaft)\b/i, label: "Saft" },
+  { pattern: /\b(salz|meersalz|jodsalz)\b/i, label: "Salz" },
+  { pattern: /\b(pfeffer|schwarzer pfeffer|pepper)\b/i, label: "Pfeffer" },
+  { pattern: /\b(paprikapulver|curry|zimt|oregano|basilikum|thymian|chili|knoblauchpulver|gewürz|gewürze)\b/i, label: "Gewürze" },
+  { pattern: /\b(essig|balsamico)\b/i, label: "Essig" },
+  { pattern: /\b(ketchup|senf|mayonnaise|mayo|sojasauce)\b/i, label: "Sauce" },
 ];
 
 export function canonicalizeIngredientLabel(raw: string): string {

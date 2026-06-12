@@ -166,6 +166,12 @@ const MealPlansPage = () => {
   const isFirstPlanFlow =
     searchParams.get('firstPlan') === '1' || isFirstWeekPlanPending();
 
+  useEffect(() => {
+    if (isFirstPlanFlow) {
+      markFirstWeekPlanPending();
+    }
+  }, [isFirstPlanFlow]);
+
   const pageCopy = {
     mealAddedTitle: `${t.eaten}! ✓`,
     premiumActivatingTitle: t.mealPlanPremiumActivatingTitle,
@@ -587,7 +593,7 @@ const MealPlansPage = () => {
       <div
         className={cn(
           "container mx-auto px-2.5 min-[360px]:px-3 sm:px-4 py-4 sm:py-6",
-          isFirstPlanFlow && hasPlanContent ? "pb-28" : "pb-bottom-nav",
+          isFirstPlanFlow ? "pb-28" : "pb-bottom-nav",
         )}
       >
         <motion.div className="min-h-[50vh] space-y-4 sm:space-y-6">

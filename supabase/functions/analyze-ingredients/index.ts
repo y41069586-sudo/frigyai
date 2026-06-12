@@ -39,6 +39,12 @@ const CANONICAL_RULES: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\b(öl|olivenöl|sonnenblumenöl|rapsöl)\b/i, label: "Öl" },
   { pattern: /\b(mehl|weizenmehl|dinkelmehl)\b/i, label: "Mehl" },
   { pattern: /\b(zucker|rohrzucker|puderzucker)\b/i, label: "Zucker" },
+  { pattern: /\b(salz|meersalz|jodsalz|salzstreuer)\b/i, label: "Salz" },
+  { pattern: /\b(pfeffer|schwarzer pfeffer|pfefferstreuer|pepper)\b/i, label: "Pfeffer" },
+  { pattern: /\b(paprikapulver|curry|zimt|oregano|basilikum|thymian|chili|knoblauchpulver|gewürz|gewürze)\b/i, label: "Gewürze" },
+  { pattern: /\b(essig|balsamico|apfelessig)\b/i, label: "Essig" },
+  { pattern: /\b(brühe|gemüsebrühe|fond)\b/i, label: "Brühe" },
+  { pattern: /\b(ketchup|senf|mayonnaise|mayo|sojasauce|sojasoße)\b/i, label: "Sauce" },
 ];
 
 function canonicalizeIngredientLabel(raw: string): string {
@@ -165,16 +171,17 @@ serve(async (req) => {
     const prompt = `Du analysierst Kühlschrank-, Vorrat- oder Essensfotos für eine Einkaufsliste.
 
 Antwort NUR als JSON:
-{"ingredients":["Eier","Milch","Cornflakes","Kakaopulver"]}
+{"ingredients":["Eier","Milch","Salz","Pfeffer","Cornflakes"]}
 
 Regeln:
-- Liste JEDES sichtbare Lebensmittel auf Deutsch (Grundform: "Eier", "Milch", "Tomaten", "Cornflakes", "Kakaopulver")
+- Liste JEDES sichtbare essbare und trinkbare Produkt auf Deutsch — egal ob Obst, Gemüse, Fleisch, Fisch, Milchprodukte, Brot, Snacks, Süßigkeiten, Tiefkühl, Konserven, Saucen, Getränke, Babyfood, Backzutaten
+- Gewürze und Basics einzeln benennen wenn sichtbar: Salz, Pfeffer, Paprikapulver, Curry, Zimt, Öl, Essig, Zucker, Mehl, Hefe, Brühe — auch in kleinen Gläsern, Streuer-Dosen oder am Rand
 - Auch einzelne Eier, Eierkartons, Packungen, Dosen, Kartons, Schachteln, Tüten, Tupperware, Obst in Schalen
-- WICHTIG: Lies Produktnamen von Verpackungen (Cornflakes, Müsli, Kakao, Nudeln, Reis, Mehl, Zucker, Kaffee, Tee, Öl, Gewürze) — auch wenn nur die Vorderseite/Karton sichtbar ist
-- Flaschen: Wasser, Mineralwasser, Sprudel, Saft, Milch, Öl, Saucen
+- WICHTIG: Lies Produktnamen von Verpackungen (Cornflakes, Müsli, Kakao, Nudeln, Reis, Mehl, Zucker, Kaffee, Tee, Öl) — auch wenn nur die Vorderseite/Karton sichtbar ist
+- Flaschen und Dosen: Wasser, Mineralwasser, Sprudel, Saft, Limo, Energydrink, Milch, Öl, Saucen, Bier, Wein (alkoholfrei mitzählen wenn sichtbar)
 - Auch wenn teilweise verdeckt, unscharf oder im Hintergrund — trotzdem auflisten
 - Scanne das gesamte Bild systematisch: oben, mitte, unten, links, rechts
-- Lieber zu viel listen als etwas Wichtiges weglassen
+- Lieber zu viel listen als etwas weglassen — lieber "Salz" und "Pfeffer" doppelt als gar nicht
 - Keine Mengenangaben im Namen (nicht "6 Eier", sondern "Eier")
 - Kein Text außer dem JSON${knownHint}`;
 

@@ -9,7 +9,7 @@ import {
 } from "@/lib/storeOfferingPricesCache";
 import type { StoreOfferingPrices } from "@/lib/storeBilling";
 
-const LOADING_MAX_MS = 20_000;
+const LOADING_MAX_MS = 12_000;
 
 function getSnapshot(): StoreOfferingPrices | null {
   return getStoreOfferingPricesSnapshot();
@@ -80,7 +80,7 @@ export function useStoreOfferingPrices(userId?: string | null) {
     if (hasFreshStoreOfferingPrices()) {
       setLoading(false);
       setError(false);
-      void prefetchStoreOfferingPrices(userId);
+      void prefetchStoreOfferingPrices(userId, { force: true });
       return;
     }
 

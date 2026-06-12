@@ -1,10 +1,10 @@
 import { useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Camera, ImagePlus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIngredientCamera } from "@/hooks/useIngredientCamera";
 import { cn } from "@/lib/utils";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 
 const VIDEO_HIDE_CSS = `
   .frigy-scan-video::-webkit-media-controls,
@@ -20,6 +20,11 @@ const VIDEO_HIDE_CSS = `
   }
 `;
 
+/** Shared viewport circle — keep in sync with analyzing mask hole. */
+export const FRIGY_SCAN_CIRCLE_SIZE = "min(84vw, 360px)";
+const FRIGY_SCAN_CIRCLE_MASK_RADIUS = "min(42vw, 180px)";
+const FRIGY_SCAN_CIRCLE_CENTER_Y = "42%";
+
 type FrigyLiveCameraCaptureProps = {
   active: boolean;
   onClose: () => void;
@@ -32,6 +37,14 @@ type FrigyLiveCameraCaptureProps = {
   headerEnd?: React.ReactNode;
   overlayTop?: React.ReactNode;
   beforeShutter?: React.ReactNode;
+  analyzing?: boolean;
+  analyzingPreviewUrl?: string | null;
+  analyzingTitle?: string;
+  analyzingSubtitle?: string;
+  analyzingMessage?: string;
+  analyzingProgress?: number;
+  analyzingPhotoIndex?: number;
+  analyzingPhotoTotal?: number;
 };
 
 /**
@@ -48,6 +61,14 @@ export function FrigyLiveCameraCapture({
   headerEnd,
   overlayTop,
   beforeShutter,
+  analyzing = false,
+  analyzingPreviewUrl,
+  analyzingTitle,
+  analyzingSubtitle,
+  analyzingMessage,
+  analyzingProgress,
+  analyzingPhotoIndex,
+  analyzingPhotoTotal,
 }: FrigyLiveCameraCaptureProps) {
   const { t } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -61,14 +82,29 @@ export function FrigyLiveCameraCapture({
     capturePhoto,
     retry: retryCamera,
     isLive,
-  } = useIngredientCamera({ active });
+  } = useIngredientCamera({ active: active && !analyzing });
 
   const showCameraHint =
+    !analyzing &&
     !previewReady &&
     (cameraStatus === "error" || cameraStatus === "denied" || cameraStatus === "fallback");
 
+  const progressValue =
+    typeof analyzingProgress === "number" ? Math.min(100, Math.max(0, analyzingProgress)) : null;
+  const showPhotoCounter =
+    analyzing &&
+    typeof analyzingPhotoIndex === "number" &&
+    typeof analyzingPhotoTotal === "number" &&
+    analyzingPhotoTotal > 0;
+  const photoCounterLabel = showPhotoCounter
+    ? formatTranslation(t.scanPhotoCounter, {
+        current: analyzingPhotoIndex!,
+        total: analyzingPhotoTotal!,
+      })
+    : "";
+
   const handleShutterPress = async () => {
-    if (captureLockRef.current || shutterDisabled || cameraStatus === "starting") return;
+    if (captureLockRef.current || shutterDisabled || cameraStatus === "starting" || analyzing) return;
 
     captureLockRef.current = true;
     try {
@@ -92,7 +128,7 @@ export function FrigyLiveCameraCapture({
   const handleGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!files.length || shutterDisabled) return;
+    if (!files.length || shutterDisabled || analyzing) return;
     if (galleryMultiple && onPhotoFiles && files.length > 1) {
       onPhotoFiles(files);
       return;
@@ -103,13 +139,47 @@ export function FrigyLiveCameraCapture({
   if (!active) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex flex-col bg-black text-white safe-area-inset">
+    <div
+      className={cn(
+        "fixed inset-0 z-[120] flex flex-col safe-area-inset",
+        analyzing ? "bg-[#F6FFFA] text-neutral-950" : "bg-black text-white",
+      )}
+    >
       <style>{VIDEO_HIDE_CSS}</style>
+      <style>{`
+        @keyframes frigy-scan-line-move {
+          0%, 100% { top: 12%; opacity: 0.62; }
+          50% { top: 84%; opacity: 1; }
+        }
+        @keyframes frigy-scan-sweep-move {
+          0%, 100% { top: 12%; opacity: 0.2; }
+          50% { top: 84%; opacity: 0.45; }
+        }
+        .frigy-scan-line {
+          position: absolute;
+          left: 9%;
+          right: 9%;
+          height: 3px;
+          border-radius: 9999px;
+          animation: frigy-scan-line-move 1.5s ease-in-out infinite;
+          will-change: top, opacity;
+        }
+        .frigy-scan-sweep {
+          position: absolute;
+          left: 7%;
+          right: 7%;
+          height: 18%;
+          border-radius: 9999px;
+          animation: frigy-scan-sweep-move 1.5s ease-in-out infinite;
+          will-change: top, opacity;
+        }
+      `}</style>
+
       <video
         ref={setVideoRef}
         className={cn(
-          "frigy-scan-video pointer-events-none absolute inset-0 z-0 h-full w-full object-cover transition-opacity duration-150",
-          previewReady ? "opacity-100" : "opacity-0",
+          "frigy-scan-video pointer-events-none absolute inset-0 z-0 h-full w-full object-cover transition-opacity duration-300",
+          !analyzing && previewReady ? "opacity-100" : "opacity-0",
         )}
         autoPlay
         muted
@@ -156,67 +226,178 @@ export function FrigyLiveCameraCapture({
         </div>
       )}
 
-      <div
-        className="pointer-events-none absolute inset-0 z-[2]"
-        style={{
-          background:
-            "radial-gradient(ellipse 75% 65% at 50% 42%, transparent 0%, transparent 42%, rgba(0,0,0,0.45) 100%)",
-        }}
-      />
-      <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
+      {!analyzing ? (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 z-[2]"
+            style={{
+              background: `radial-gradient(ellipse 82% 72% at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0%, transparent 44%, rgba(0,0,0,0.45) 100%)`,
+            }}
+          />
+          <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
+        </>
+      ) : (
+        <motion.div
+          initial={{
+            opacity: 0,
+            scale: 1.08,
+            WebkitMaskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent 120vmax, black 120vmax)`,
+            maskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent 120vmax, black 120vmax)`,
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            WebkitMaskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent ${FRIGY_SCAN_CIRCLE_MASK_RADIUS}, black calc(${FRIGY_SCAN_CIRCLE_MASK_RADIUS} + 1px))`,
+            maskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent ${FRIGY_SCAN_CIRCLE_MASK_RADIUS}, black calc(${FRIGY_SCAN_CIRCLE_MASK_RADIUS} + 1px))`,
+          }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute inset-0 z-[2] bg-[#F6FFFA]"
+        />
+      )}
 
-      <header className="relative z-10 flex shrink-0 items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      {analyzing ? (
+        <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(circle_at_50%_28%,rgba(117,251,178,0.14),transparent_30%)]" />
+      ) : null}
+
+      <header
+        className={cn(
+          "relative z-10 flex shrink-0 items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]",
+          analyzing && "pt-[max(1rem,env(safe-area-inset-top))]",
+        )}
+      >
         <button
           type="button"
           onClick={onClose}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm"
+          className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm",
+            analyzing ? "bg-black/5 hover:bg-black/10" : "bg-black/50",
+          )}
           aria-label={t.close}
         >
-          <X className="h-5 w-5" />
+          <X className={cn("h-5 w-5", analyzing && "text-neutral-900")} />
         </button>
-        {headerEnd ?? <span className="w-10" aria-hidden />}
+        {analyzing ? <span className="w-10" aria-hidden /> : (headerEnd ?? <span className="w-10" aria-hidden />)}
       </header>
 
-      {overlayTop}
+      {!analyzing ? overlayTop : null}
 
-      <div className="pointer-events-none relative z-10 mx-4 flex min-h-0 flex-1 items-center justify-center">
+      <div className="pointer-events-none relative z-10 mx-4 flex min-h-0 flex-1 flex-col items-center justify-center">
         <div
-          className="rounded-full border-[3px] border-[#75FBB2] bg-transparent"
-          style={{ width: "min(72vw, 280px)", height: "min(72vw, 280px)" }}
-        />
-      </div>
-
-      <div className="relative z-20 mt-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom)+0.5rem)] pt-4">
-        {beforeShutter}
-
-        <div className="relative flex items-end justify-center">
-          <motion.button
-            type="button"
-            whileTap={{ scale: shutterDisabled ? 1 : 0.94 }}
-            onClick={() => void handleShutterPress()}
-            disabled={shutterDisabled}
-            className={cn(
-              "relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white shadow-[0_8px_32px_rgba(110,240,168,0.45)]",
-              "ring-[3px] ring-[#75FBB2] ring-offset-4 ring-offset-black/80",
-              shutterDisabled && "opacity-60",
-            )}
-            aria-label={shutterAriaLabel ?? t.foodScanPlateTitle}
-          >
-            <span className="sr-only">{shutterAriaLabel ?? t.foodScanPlateTitle}</span>
-          </motion.button>
-
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.95 }}
-            onClick={() => galleryRef.current?.click()}
-            disabled={shutterDisabled}
-            className="absolute bottom-1 right-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20 backdrop-blur-md disabled:opacity-60"
-            aria-label={t.gallery}
-          >
-            <ImagePlus className="h-6 w-6 text-[#75FBB2]" />
-          </motion.button>
+          className={cn(
+            "relative overflow-hidden rounded-full bg-transparent transition-[box-shadow,border-color] duration-500",
+            analyzing
+              ? "border border-[#D8FCE8] shadow-[0_32px_90px_-48px_rgba(34,197,94,0.34)]"
+              : "border-[3px] border-[#75FBB2]",
+          )}
+          style={{ width: FRIGY_SCAN_CIRCLE_SIZE, height: FRIGY_SCAN_CIRCLE_SIZE }}
+        >
+          {analyzing ? (
+            <>
+              <div className="absolute inset-[8%] overflow-hidden rounded-full bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.95)]">
+                {analyzingPreviewUrl ? (
+                  <img
+                    key={analyzingPreviewUrl}
+                    src={analyzingPreviewUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-[linear-gradient(180deg,#FFFFFF_0%,#EEF7F1_100%)]" />
+                )}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.42),transparent_38%)]" />
+                <div className="pointer-events-none absolute inset-x-[7%] frigy-scan-sweep rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.55),rgba(255,255,255,0))] blur-sm" />
+                <div className="pointer-events-none absolute frigy-scan-line bg-[linear-gradient(90deg,rgba(117,251,178,0),rgba(117,251,178,1),rgba(117,251,178,0))] shadow-[0_0_20px_rgba(117,251,178,0.9)]" />
+              </div>
+              <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/90" />
+              <div className="pointer-events-none absolute inset-[4%] rounded-full ring-1 ring-[#75FBB2]/35" />
+            </>
+          ) : null}
         </div>
+
+        <AnimatePresence>
+          {analyzing ? (
+            <motion.div
+              key="analyzing-copy"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ delay: 0.35, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-10 flex max-w-[320px] flex-col items-center px-2 text-center"
+            >
+              {analyzingTitle ? (
+                <h2 className="text-[18px] font-extrabold tracking-[-0.03em] text-neutral-950 min-[390px]:text-[19px]">
+                  {analyzingTitle}
+                </h2>
+              ) : null}
+              {analyzingSubtitle ? (
+                <p className="mt-2 text-[14px] font-semibold tracking-[-0.02em] text-neutral-400">
+                  {analyzingSubtitle}
+                </p>
+              ) : null}
+              {showPhotoCounter ? (
+                <p className="mt-4 text-[13px] font-bold tracking-[0.06em] text-[#39D47F]">
+                  {photoCounterLabel}
+                </p>
+              ) : null}
+              {analyzingMessage ? (
+                <p className="mt-6 text-[15px] font-medium leading-relaxed tracking-[-0.02em] text-neutral-500">
+                  {analyzingMessage}
+                </p>
+              ) : null}
+              {progressValue != null ? (
+                <div className="mt-5 w-full max-w-[240px]">
+                  <p className="mb-2 text-[12px] font-semibold tracking-[0.08em] text-neutral-400">
+                    {Math.round(progressValue)}%
+                  </p>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[#D8FCE8]">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,#75FBB2,#39D47F)] transition-[width] duration-300 ease-out"
+                      style={{ width: `${progressValue}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
+
+      {!analyzing ? (
+        <div className="relative z-20 mt-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom)+0.5rem)] pt-4">
+          {beforeShutter}
+
+          <div className="relative flex items-end justify-center">
+            <motion.button
+              type="button"
+              whileTap={{ scale: shutterDisabled ? 1 : 0.94 }}
+              onClick={() => void handleShutterPress()}
+              disabled={shutterDisabled}
+              className={cn(
+                "relative z-10 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white shadow-[0_8px_32px_rgba(110,240,168,0.45)]",
+                "ring-[3px] ring-[#75FBB2] ring-offset-4 ring-offset-black/80",
+                shutterDisabled && "opacity-60",
+              )}
+              aria-label={shutterAriaLabel ?? t.foodScanPlateTitle}
+            >
+              <span className="sr-only">{shutterAriaLabel ?? t.foodScanPlateTitle}</span>
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => galleryRef.current?.click()}
+              disabled={shutterDisabled}
+              className="absolute bottom-1 right-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20 backdrop-blur-md disabled:opacity-60"
+              aria-label={t.gallery}
+            >
+              <ImagePlus className="h-6 w-6 text-[#75FBB2]" />
+            </motion.button>
+          </div>
+        </div>
+      ) : (
+        <div className="shrink-0 pb-[max(1.5rem,env(safe-area-inset-bottom)+0.5rem)]" aria-hidden />
+      )}
 
       <input
         ref={galleryRef}

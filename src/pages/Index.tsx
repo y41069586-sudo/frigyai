@@ -624,13 +624,17 @@ const Index = () => {
   }, [yesterdayBalance]);
   
   
-  // Auth bootstrap only when no session yet — keep bottom nav so Wochenplan stays reachable
+  // Auth bootstrap only when no session yet — hide bottom nav during onboarding bootstrap (prevents nav flash).
   const authBootstrapping = (loading || sessionRestoring) && !user && !session;
+  const showBootstrapBottomNav =
+    (hasCompletedOnboarding || dbOnboardingComplete) && !shouldHideBottomNavForFirstPlan();
   if (authBootstrapping && !isMealPlanGenerationActive()) {
     return (
       <>
         <PageLoader />
-        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+        {showBootstrapBottomNav ? (
+          <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+        ) : null}
       </>
     );
   }
