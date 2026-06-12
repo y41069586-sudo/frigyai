@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Beef, Check, Droplet, Pencil, Plus, Wheat } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
@@ -32,6 +33,8 @@ type TrackerWidgetProps = {
   /** summary = calories/macros only; quick-log = meal slot buttons; all = both */
   section?: "all" | "summary" | "quick-log";
 };
+
+let trackerSummaryEntered = false;
 
 export function TrackerWidget({
   delay = 0,
@@ -83,6 +86,12 @@ export function TrackerWidget({
   const openTrackerTap = useScrollFriendlyTap(() => onOpenTracker?.());
   const showSummary = section === "all" || section === "summary";
   const showSlots = (section === "all" || section === "quick-log") && showQuickLog;
+  const skipSummaryEntrance = showSummary && trackerSummaryEntered;
+  const skipProgressAnimation = trackerSummaryEntered;
+
+  useEffect(() => {
+    if (showSummary) trackerSummaryEntered = true;
+  }, [showSummary]);
 
   return (
     <div className={cn("dashboard-touch-scroll space-y-6", section !== "quick-log" && "w-full min-w-0")}>
@@ -91,6 +100,7 @@ export function TrackerWidget({
         delay={delay}
         variant="glass"
         interactive={false}
+        skipEntrance={skipSummaryEntrance}
         className="w-full min-w-0 rounded-[2rem] p-5 sm:p-6"
       >
         <div className="space-y-7 text-foreground">
@@ -136,9 +146,13 @@ export function TrackerWidget({
             <div className="h-3 overflow-hidden rounded-full bg-primary/10">
               <motion.div
                 className={cn("h-full origin-left rounded-full", isOverGoal ? "bg-rose-500" : "bg-primary")}
-                initial={{ scaleX: 0 }}
+                initial={skipProgressAnimation ? false : { scaleX: 0 }}
                 animate={{ scaleX: calPct / 100 }}
-                transition={{ duration: 0.85, delay: delay + 0.05, ease: [0.22, 1, 0.36, 1] }}
+                transition={
+                  skipProgressAnimation
+                    ? { duration: 0 }
+                    : { duration: 0.85, delay: delay + 0.05, ease: [0.22, 1, 0.36, 1] }
+                }
               />
             </div>
             <div className="flex items-center justify-between text-[12px] font-medium text-muted-foreground">
@@ -265,7 +279,7 @@ function InlineStat({
           background: `conic-gradient(${ringColor} ${progress * 3.6}deg, rgba(148,163,184,0.22) 0deg)`,
         }}
       />
-      <div className="pointer-events-none absolute inset-[3px] rounded-[0.82rem] border border-transparent bg-[#f9fbf9]/96 sm:border-slate-200/65" />
+      <div className="pointer-events-none absolute inset-[3px] rounded-[0.82rem] bg-[#f9fbf9]/96" />
       <div className="relative z-[1]">
         <span className={cn("mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-full", colorClass)}>
           <Icon className="h-3.5 w-3.5" />
