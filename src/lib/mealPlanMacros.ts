@@ -38,6 +38,28 @@ export function sumMealMacros(meals: MacroMeal[]) {
   );
 }
 
+/** Scale macro grams to match the user's stated calorie target (tracker kcal wins). */
+export function scaleTargetsToStatedCalories(targets: DailyMacroTargets): DailyMacroTargets {
+  const stated = Math.round(targets.dailyCalories);
+  const implied = macroCaloriesFromGrams(
+    targets.dailyProtein,
+    targets.dailyCarbs,
+    targets.dailyFat,
+  );
+  if (stated <= 0) return harmonizeDailyTargets(targets);
+  if (Math.abs(implied - stated) <= MACRO_KCAL_TOLERANCE) {
+    return harmonizeDailyTargets({ ...targets, dailyCalories: stated });
+  }
+
+  const ratio = stated / Math.max(implied, 1);
+  return harmonizeDailyTargets({
+    dailyCalories: stated,
+    dailyProtein: Math.max(30, Math.round(targets.dailyProtein * ratio)),
+    dailyCarbs: Math.max(30, Math.round(targets.dailyCarbs * ratio)),
+    dailyFat: Math.max(15, Math.round(targets.dailyFat * ratio)),
+  });
+}
+
 /** Align calorie goal with macro grams so all four targets can be hit exactly. */
 export function harmonizeDailyTargets(targets: DailyMacroTargets): DailyMacroTargets {
   const implied = macroCaloriesFromGrams(
