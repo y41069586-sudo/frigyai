@@ -6,6 +6,11 @@ import type { Dispatch, SetStateAction } from "react";
 import type { UserData } from "../types";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import {
+  OnboardingInputHelper,
+  OnboardingManualInput,
+  OnboardingManualInputField,
+} from "./OnboardingManualInput";
 import { MIN_ONBOARDING_AGE } from "../utils";
 
 const PALETTE = {
@@ -207,12 +212,9 @@ export function BirthdateSelectStep({
       </OnboardingMascotQuestion>
 
       <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
-        <div className="mx-auto w-full max-w-[320px]">
-          <div
-            className="rounded-[24px] border px-5 py-4 shadow-[0_18px_45px_-28px_rgba(57,212,127,0.45)]"
-            style={{ backgroundColor: "#FFFFFF", borderColor: PALETTE.border }}
-          >
-            <input
+        <div className="mx-auto w-full max-w-[300px]">
+          <OnboardingManualInputField>
+            <OnboardingManualInput
               type="text"
               inputMode="numeric"
               autoComplete="bday"
@@ -220,23 +222,16 @@ export function BirthdateSelectStep({
               onChange={(event) => handleBirthdateChange(event.target.value)}
               placeholder={placeholder}
               aria-label={title}
-              className="w-full bg-transparent text-center text-[28px] font-semibold tracking-[-0.04em] outline-none placeholder:text-[#9AB5A7]"
-              style={{ color: PALETTE.text }}
             />
-          </div>
+          </OnboardingManualInputField>
 
-          <p
-            className="mt-3 text-center text-[12px] font-medium"
-            style={{
-              color: showTooYoung || showInvalid ? "#DC2626" : PALETTE.textMuted,
-            }}
-          >
+          <OnboardingInputHelper error={showTooYoung || showInvalid}>
             {showTooYoung
               ? tooYoungText
               : showInvalid
                 ? errorText
                 : helperText}
-          </p>
+          </OnboardingInputHelper>
         </div>
       </div>
 

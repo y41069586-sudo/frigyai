@@ -61,6 +61,13 @@ import {
   AnimatedBicycle, AnimatedMotorcycle, AnimatedRocket, OnboardingProgressBar
 } from "./onboarding/components";
 import { OnboardingDataNotice } from "./onboarding/components/OnboardingDataNotice";
+import {
+  OnboardingAuthField,
+  OnboardingManualInput,
+  OnboardingManualInputField,
+  onboardingAuthInputClass,
+} from "./onboarding/components/OnboardingManualInput";
+import { ONBOARDING_PALETTE } from "./onboarding/palette";
 import { GenderSelectStep } from "./onboarding/components/GenderSelectStep";
 import { BirthdateSelectStep } from "./onboarding/components/BirthdateSelectStep";
 import { WeightSelectStep } from "./onboarding/components/WeightSelectStep";
@@ -1258,24 +1265,26 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
               <motion.div
                 key="name-input-wrapper"
-                className="w-full max-w-sm"
+                className="w-full max-w-[300px]"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.3 }}
               >
-                <input
-                  type="text"
-                  value={userData.name}
-                  onChange={(e) => setUserData({ ...userData, name: e.target.value })}
-                  placeholder={t.onboardingYourName}
-                  className="w-full px-6 py-4 text-xl text-center font-semibold bg-card border-2 border-border rounded-2xl focus:border-primary focus:outline-none transition-colors"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && userData.name.trim()) {
-                      goNext();
-                    }
-                  }}
-                />
+                <OnboardingManualInputField>
+                  <OnboardingManualInput
+                    type="text"
+                    value={userData.name}
+                    onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                    placeholder={t.onboardingYourName}
+                    aria-label={t.onboardingYourName}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && userData.name.trim()) {
+                        goNext();
+                      }
+                    }}
+                  />
+                </OnboardingManualInputField>
               </motion.div>
 
               <motion.div
@@ -4111,41 +4120,49 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                   </div>
                 </div>
 
-                {/* Email input */}
-                <div className="relative">
-                  <label htmlFor="auth-email" className="sr-only">{t.emailAddressPlaceholder}</label>
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" aria-hidden="true" />
-                  <Input
+                <OnboardingAuthField
+                  id="auth-email"
+                  label={t.emailAddressPlaceholder}
+                  icon={<Mail className="h-[18px] w-[18px]" />}
+                >
+                  <OnboardingManualInput
                     id="auth-email"
                     type="email"
+                    variant="auth"
                     placeholder={t.emailAddressPlaceholder}
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
-                    className="pl-11 h-12 rounded-xl bg-card border-border"
+                    className={onboardingAuthInputClass}
                     aria-label={t.emailAddressPlaceholder}
                   />
-                </div>
+                </OnboardingAuthField>
 
-                {/* Password input */}
-                <div className="relative">
-                  <label htmlFor="auth-password" className="sr-only">{t.passwordPlaceholder}</label>
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50" aria-hidden="true" />
-                  <Input
+                <OnboardingAuthField
+                  id="auth-password"
+                  label={t.passwordPlaceholder}
+                  icon={<Lock className="h-[18px] w-[18px]" />}
+                  trailing={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 z-10 -translate-y-1/2"
+                      style={{ color: ONBOARDING_PALETTE.textMuted }}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+                    </button>
+                  }
+                >
+                  <OnboardingManualInput
                     id="auth-password"
                     type={showPassword ? "text" : "password"}
+                    variant="auth"
                     placeholder={t.passwordPlaceholder}
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
-                    className="pl-11 pr-11 h-12 rounded-xl bg-card border-border"
+                    className={`${onboardingAuthInputClass} pr-11`}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
+                </OnboardingAuthField>
                 
                 {/* Submit button */}
                 <Button 

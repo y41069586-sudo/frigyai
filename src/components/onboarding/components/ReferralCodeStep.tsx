@@ -9,6 +9,7 @@ import {
   validateReferralCode,
 } from "@/lib/referralCode";
 import { getStoredInfluencerRef } from "@/lib/referralAttribution";
+import { OnboardingOtpCell } from "./OnboardingManualInput";
 
 type ReferralCodeStepProps = {
   onBack?: () => void;
@@ -300,10 +301,10 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
             {t.label}
           </p>
 
-          <div className="relative grid grid-cols-6 gap-2.5">
+          <div className="relative grid grid-cols-6 gap-2">
             {code.map((char, index) => (
               <div key={index} className="relative">
-                <input
+                <OnboardingOtpCell
                   ref={(node) => {
                     inputsRef.current[index] = node;
                   }}
@@ -318,12 +319,8 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
                   onPaste={handlePaste}
                   aria-label={`${t.label} ${index + 1}`}
                   aria-invalid={!!fieldError}
-                  className="h-[54px] min-w-0 w-full rounded-none border-0 text-center text-[22px] font-bold uppercase outline-none transition-all duration-300 disabled:opacity-70"
-                  style={{
-                    backgroundColor: fieldError ? "#FEF2F2" : showCheckOnInputs ? "rgba(110, 240, 168,0.12)" : PALETTE.chip,
-                    color: PALETTE.text,
-                    boxShadow: showCheckOnInputs ? `0 0 0 2px ${PALETTE.primary}` : fieldError ? `0 0 0 1px ${PALETTE.error}` : undefined,
-                  }}
+                  hasError={!!fieldError}
+                  success={showCheckOnInputs}
                 />
               </div>
             ))}
