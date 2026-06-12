@@ -259,6 +259,10 @@ export function isAuthFlowOverlayVisible(): boolean {
   const { result, navigation } = snapshot;
 
   if (result.status === "pending") {
+    // Premium routing runs silently — no full-screen "Zugang wird geprüft" overlay.
+    if (result.phase === "premium") {
+      return false;
+    }
     return true;
   }
   if (navigation.executing) {

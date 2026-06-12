@@ -40,6 +40,8 @@ import {
   markOnboardingInProgress,
   markOnboardingOAuthPending,
   setOnboardingResumeStep,
+  shouldDeferAuthOnboardingStartRedirect,
+  shouldDeferAuthPaywallRedirect,
 } from "@/lib/onboardingSession";
 
 import { 
@@ -856,9 +858,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, [initialStepOverride]);
 
   useEffect(() => {
-    if (initialStepOverride === "paywall" && currentStep !== "paywall") {
-      setCurrentStep("paywall");
-    }
+    if (initialStepOverride !== "paywall" || currentStep === "paywall") return;
+    if (shouldDeferAuthPaywallRedirect(currentStep)) return;
+    setCurrentStep("paywall");
   }, [initialStepOverride, currentStep]);
 
   const finishOnboardingExit = useCallback(async () => {
@@ -904,6 +906,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     return subscribeAuthFlow(() => {
       const { result, navigation } = getAuthFlowSnapshot();
       if (result.status !== "success" || !navigation.executed || authRouteHandledRef.current) {
+        return;
+      }
+
+      if (
+        result.routePhase === "onboarding_start" &&
+        shouldDeferAuthOnboardingStartRedirect(currentStep)
+      ) {
+        return;
+      }
+
+      if (result.routePhase === "onboarding_paywall" && shouldDeferAuthPaywallRedirect(currentStep)) {
         return;
       }
 
@@ -1006,16 +1019,8 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
   const goAfterSignup = useCallback(async (sessionReady = false) => {
     saveOnboardingAfterSignup(userData);
-
-    const { data } = await supabase.auth.getSession();
-    if (authMode === "signup" && data.session?.user) {
-      goToPaywall();
-      void tryFinishOnboardingWithAccess(true);
-      return;
-    }
-
     await tryFinishOnboardingWithAccess(sessionReady);
-  }, [authMode, goToPaywall, tryFinishOnboardingWithAccess, userData]);
+  }, [tryFinishOnboardingWithAccess, userData]);
 
   const goNext = () => {
     // Check if user can proceed from current step before allowing navigation
