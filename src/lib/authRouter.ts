@@ -15,7 +15,11 @@ import {
   type AuthResult,
   type RunAuthCompletionInput,
 } from "@/lib/authCompletion";
-import { clearOnboardingOAuthPending } from "@/lib/onboardingSession";
+import {
+  clearOnboardingOAuthPending,
+  shouldDeferAuthOnboardingStartRedirect,
+  shouldDeferAuthPaywallRedirect,
+} from "@/lib/onboardingSession";
 import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
 import { isStoreBillingConfigured, prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 import { usesStoreBilling } from "@/lib/billingPlatform";
@@ -89,6 +93,44 @@ export function executeAuthNavigation(
           markAuthFlowSettled(data.session?.user?.id ?? null);
         });
       }
+      window.setTimeout(() => resetAuthFlow(), 0);
+      return true;
+    }
+
+    if (
+      result.status === "success" &&
+      result.routePhase === "onboarding_paywall" &&
+      shouldDeferAuthPaywallRedirect()
+    ) {
+      setAuthNavigationState({
+        executing: false,
+        executed: true,
+        failed: false,
+        targetRoute: null,
+        startedAt: null,
+      });
+      void supabase.auth.getSession().then(({ data }) => {
+        markAuthFlowSettled(data.session?.user?.id ?? null);
+      });
+      window.setTimeout(() => resetAuthFlow(), 0);
+      return true;
+    }
+
+    if (
+      result.status === "success" &&
+      result.routePhase === "onboarding_start" &&
+      shouldDeferAuthOnboardingStartRedirect()
+    ) {
+      setAuthNavigationState({
+        executing: false,
+        executed: true,
+        failed: false,
+        targetRoute: null,
+        startedAt: null,
+      });
+      void supabase.auth.getSession().then(({ data }) => {
+        markAuthFlowSettled(data.session?.user?.id ?? null);
+      });
       window.setTimeout(() => resetAuthFlow(), 0);
       return true;
     }

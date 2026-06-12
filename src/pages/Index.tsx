@@ -60,6 +60,8 @@ import {
   clearOnboardingSession,
   isOnboardingInProgress,
   markOnboardingInProgress,
+  shouldDeferAuthOnboardingStartRedirect,
+  shouldDeferAuthPaywallRedirect,
 } from "@/lib/onboardingSession";
 import { markSplashLoginNewUser } from "@/lib/splashLoginOnboarding";
 import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
@@ -295,6 +297,17 @@ const Index = () => {
     return subscribeAuthFlow(() => {
       const { result, navigation } = getAuthFlowSnapshot();
       if (result.status !== "success" || !navigation.executed || authRouteHandledRef.current) {
+        return;
+      }
+
+      if (
+        result.routePhase === "onboarding_start" &&
+        shouldDeferAuthOnboardingStartRedirect()
+      ) {
+        return;
+      }
+
+      if (result.routePhase === "onboarding_paywall" && shouldDeferAuthPaywallRedirect()) {
         return;
       }
 
