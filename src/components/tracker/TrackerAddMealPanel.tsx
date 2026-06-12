@@ -662,7 +662,7 @@ export function TrackerAddMealPanel({
             <button
               type="button"
               onClick={() => setLoggedListOpen(true)}
-              className="text-[14px] font-bold tabular-nums text-primary transition-opacity active:opacity-70"
+              className="flex h-8 min-w-8 items-center justify-center rounded-full border-2 border-primary bg-primary/[0.08] px-2 text-[14px] font-bold tabular-nums text-primary transition-opacity active:opacity-70"
               aria-label={copy.todayMealsAria(mealCount)}
             >
               {mealCount}
@@ -949,7 +949,7 @@ export function TrackerAddMealPanel({
                           ) : null}
                         </button>
                         <span
-                          className="shrink-0 text-sm font-semibold tabular-nums"
+                          className="shrink-0 rounded-lg border-2 border-primary/35 bg-primary/[0.06] px-2 py-0.5 text-sm font-semibold tabular-nums"
                           style={{ color: PALETTE.primaryDark }}
                         >
                           {meal.calories} kcal
