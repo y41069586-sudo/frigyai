@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, ImagePlus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,27 @@ const VIDEO_HIDE_CSS = `
   }
 `;
 
-/** Shared viewport circle — keep in sync with analyzing mask hole. */
+/** Shared viewport circle — mask hole is measured from this element at runtime. */
 export const FRIGY_SCAN_CIRCLE_SIZE = "min(84vw, 360px)";
-const FRIGY_SCAN_CIRCLE_MASK_RADIUS = "min(42vw, 180px)";
-const FRIGY_SCAN_CIRCLE_CENTER_Y = "42%";
+
+type CircleMaskGeometry = {
+  cx: string;
+  cy: string;
+  radius: string;
+};
+
+const DEFAULT_CIRCLE_MASK: CircleMaskGeometry = {
+  cx: "50%",
+  cy: "50%",
+  radius: "min(42vw, 180px)",
+};
+
+function circleMaskGradient(
+  { cx, cy, radius }: CircleMaskGeometry,
+  holeRadius: string = radius,
+): string {
+  return `radial-gradient(circle at ${cx} ${cy}, transparent 0, transparent ${holeRadius}, black calc(${holeRadius} + 1px))`;
+}
 
 type FrigyLiveCameraCaptureProps = {
   active: boolean;
@@ -72,7 +89,9 @@ export function FrigyLiveCameraCapture({
 }: FrigyLiveCameraCaptureProps) {
   const { t } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
+  const circleRef = useRef<HTMLDivElement>(null);
   const captureLockRef = useRef(false);
+  const [circleMask, setCircleMask] = useState<CircleMaskGeometry>(DEFAULT_CIRCLE_MASK);
 
   const {
     setVideoRef,
@@ -83,6 +102,35 @@ export function FrigyLiveCameraCapture({
     retry: retryCamera,
     isLive,
   } = useIngredientCamera({ active: active && !analyzing });
+
+  useLayoutEffect(() => {
+    const el = circleRef.current;
+    if (!el || !active) return;
+
+    const updateMaskGeometry = () => {
+      const node = circleRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+
+      const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+      const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+      setCircleMask({
+        cx: `${cx.toFixed(2)}%`,
+        cy: `${cy.toFixed(2)}%`,
+        radius: `${(rect.width / 2).toFixed(1)}px`,
+      });
+    };
+
+    updateMaskGeometry();
+    const observer = new ResizeObserver(updateMaskGeometry);
+    observer.observe(el);
+    window.addEventListener("resize", updateMaskGeometry);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateMaskGeometry);
+    };
+  }, [active, analyzing]);
 
   const showCameraHint =
     !analyzing &&
@@ -141,8 +189,8 @@ export function FrigyLiveCameraCapture({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[120] flex flex-col safe-area-inset",
-        analyzing ? "bg-[#F6FFFA] text-neutral-950" : "bg-black text-white",
+        "fixed inset-0 z-[120] flex flex-col safe-area-inset bg-black text-white",
+        analyzing && "text-neutral-950",
       )}
     >
       <style>{VIDEO_HIDE_CSS}</style>
@@ -255,26 +303,25 @@ export function FrigyLiveCameraCapture({
           <div
             className="pointer-events-none absolute inset-0 z-[2]"
             style={{
-              background: `radial-gradient(ellipse 82% 72% at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0%, transparent 44%, rgba(0,0,0,0.45) 100%)`,
+              background: `radial-gradient(ellipse 82% 72% at ${circleMask.cx} ${circleMask.cy}, transparent 0%, transparent 44%, rgba(0,0,0,0.45) 100%)`,
             }}
           />
           <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
         </>
       ) : (
         <motion.div
+          key="analyze-white-mask"
           initial={{
             opacity: 0,
-            scale: 1.08,
-            WebkitMaskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent 120vmax, black 120vmax)`,
-            maskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent 120vmax, black 120vmax)`,
+            WebkitMaskImage: circleMaskGradient(circleMask),
+            maskImage: circleMaskGradient(circleMask),
           }}
           animate={{
             opacity: 1,
-            scale: 1,
-            WebkitMaskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent ${FRIGY_SCAN_CIRCLE_MASK_RADIUS}, black calc(${FRIGY_SCAN_CIRCLE_MASK_RADIUS} + 1px))`,
-            maskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent ${FRIGY_SCAN_CIRCLE_MASK_RADIUS}, black calc(${FRIGY_SCAN_CIRCLE_MASK_RADIUS} + 1px))`,
+            WebkitMaskImage: circleMaskGradient(circleMask),
+            maskImage: circleMaskGradient(circleMask),
           }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="pointer-events-none absolute inset-0 z-[2] bg-[#F6FFFA]"
         />
       )}
@@ -307,6 +354,7 @@ export function FrigyLiveCameraCapture({
 
       <div className="pointer-events-none relative z-10 mx-4 flex min-h-0 flex-1 flex-col items-center justify-center">
         <div
+          ref={circleRef}
           className={cn(
             "relative overflow-hidden rounded-full bg-transparent transition-[box-shadow,border-color] duration-500",
             analyzing ? "border-0 shadow-none" : "border-[3px] border-[#75FBB2]",

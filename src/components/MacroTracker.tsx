@@ -857,7 +857,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
   };
 
-  const handleBarcodeScanned = async (food: any) => {
+  const handleBarcodeScanned = useCallback(async (food: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    image?: string;
+  }) => {
     setScannedProductData(food);
     setShowSuccessOverlay(true);
     setShowBarcodeScanner(false);
@@ -896,7 +903,16 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     void checkAndAwardBadge('first_scan');
     playSuccess();
     setLastAnalyzedFood(food);
-  };
+  }, [
+    addDbEntry,
+    checkAndAwardBadge,
+    foodEntries,
+    mealPromptKey,
+    playSuccess,
+    recordActivity,
+    saveFoodEntries,
+    timeLocale,
+  ]);
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
   const totalProtein = foodEntries.reduce((sum, e) => sum + e.protein, 0);

@@ -31,6 +31,11 @@ export function AuthFlowBootstrap() {
   const navigate = useNavigate();
   const { checkSubscription } = useAuth();
   const triggeredRef = useRef(false);
+  const checkSubscriptionRef = useRef(checkSubscription);
+
+  useEffect(() => {
+    checkSubscriptionRef.current = checkSubscription;
+  }, [checkSubscription]);
 
   const tryStashed = () => {
     if (triggeredRef.current) return;
@@ -40,7 +45,10 @@ export function AuthFlowBootstrap() {
     if (navigation.executed || result.status === "success") return;
 
     triggeredRef.current = true;
-    void runStashedOAuthCompletion({ checkSubscription, navigate }).finally(() => {
+    void runStashedOAuthCompletion({
+      checkSubscription: () => checkSubscriptionRef.current(),
+      navigate,
+    }).finally(() => {
       triggeredRef.current = false;
     });
   };
@@ -48,9 +56,12 @@ export function AuthFlowBootstrap() {
   useEffect(() => {
     tryStashed();
     if (peekStashedOAuthCallbackUrl() || getOAuthPending()) {
-      scheduleStashedOAuthRetry({ checkSubscription, navigate });
+      scheduleStashedOAuthRetry({
+        checkSubscription: () => checkSubscriptionRef.current(),
+        navigate,
+      });
     }
-  }, [checkSubscription, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -61,7 +72,7 @@ export function AuthFlowBootstrap() {
     }).then((handle) => () => {
       void handle.remove();
     });
-  }, [checkSubscription, navigate]);
+  }, [navigate]);
 
   return null;
 }
@@ -135,7 +146,6 @@ export function AuthFlowOverlay() {
 
   useEffect(() => {
     if (!POST_AUTH_MANUAL_NAV_PATHS.has(location.pathname)) return;
-    if (isAuthFlowOverlayVisible()) return;
     dismissStalledAuthNavigation();
   }, [location.pathname]);
 
