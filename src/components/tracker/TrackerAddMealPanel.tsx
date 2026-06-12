@@ -949,7 +949,7 @@ export function TrackerAddMealPanel({
                           ) : null}
                         </button>
                         <span
-                          className="shrink-0 rounded-lg border-2 border-primary/35 bg-primary/[0.06] px-2 py-0.5 text-sm font-semibold tabular-nums"
+                          className="shrink-0 text-sm font-semibold tabular-nums"
                           style={{ color: PALETTE.primaryDark }}
                         >
                           {meal.calories} kcal

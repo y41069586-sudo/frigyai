@@ -35,7 +35,6 @@ export type HealthDashboardProps = {
   aiChatEnabled?: boolean;
   onAiChatPromptSubmit?: (message: string) => void;
   targetsReady?: boolean;
-  targetsLoading?: boolean;
 };
 
 export function HealthDashboard({
@@ -54,7 +53,6 @@ export function HealthDashboard({
   aiChatEnabled = false,
   onAiChatPromptSubmit,
   targetsReady = true,
-  targetsLoading = false,
 }: HealthDashboardProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -111,7 +109,6 @@ export function HealthDashboard({
             onOpenMealPlanner={() => navigate(mealPlansUrlForToday())}
             onOpenTracker={() => notifyEditTrackerGoals("calories")}
             targetsReady={targetsReady}
-            targetsLoading={targetsLoading}
           />
 
           <TrackerWidget
@@ -128,7 +125,6 @@ export function HealthDashboard({
             loggedMealTypes={loggedMealTypes}
             onAddMeal={(slot) => notifyOpenLogMeal(slot)}
             targetsReady={targetsReady}
-            targetsLoading={targetsLoading}
           />
         </div>
 
