@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
-  FrigyScanAnalyzingStage,
   FrigyScanFailureStage,
   FrigyScanSuccessStage,
   type FrigyScanSuccessData,
@@ -117,22 +116,15 @@ export function FrigyFoodScanFlow({
     );
   }
 
-  if (resolvedPhase === "analyzing") {
-    return (
-      <FrigyScanAnalyzingStage
-        previewUrl={activePreviewImage}
-        title={t.foodScanPlateTitle}
-        subtitle={t.foodScanAiPowered}
-        message={analyzingLabel ?? t.analyzingFood}
-        progress={analyzingProgress}
-        onClose={onClose}
-      />
-    );
-  }
-
   return (
     <FrigyLiveCameraCapture
-      active={open && resolvedPhase === "capture"}
+      active={open && (resolvedPhase === "capture" || resolvedPhase === "analyzing")}
+      analyzing={resolvedPhase === "analyzing"}
+      analyzingPreviewUrl={activePreviewImage}
+      analyzingTitle={t.foodScanPlateTitle}
+      analyzingSubtitle={t.foodScanAiPowered}
+      analyzingMessage={analyzingLabel ?? t.analyzingFood}
+      analyzingProgress={analyzingProgress}
       onClose={onClose}
       onPhotoFile={beginAnalysis}
       shutterDisabled={analyzing}

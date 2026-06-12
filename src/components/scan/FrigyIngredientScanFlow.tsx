@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
-import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
+import { FrigyScanFailureStage } from "./FrigyScanStates";
 import { FrigyLiveCameraCapture } from "./FrigyLiveCameraCapture";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
 
@@ -169,21 +169,6 @@ export function FrigyIngredientScanFlow({
     beginAnalyze(pendingPhotos);
   };
 
-  if (phase === "analyzing") {
-    return (
-      <FrigyScanAnalyzingStage
-        previewUrl={externalAnalyzingPreviewUrl ?? analysisPreviewUrl}
-        title={L.analyzingTitle}
-        subtitle={t.foodScanAiPowered}
-        message={L.analyzingSubtitle}
-        progress={scanProgress}
-        photoIndex={scanPhotoIndex}
-        photoTotal={scanPhotoTotal}
-        onClose={onClose}
-      />
-    );
-  }
-
   if (phase === "error" && analysisErrorMessage) {
     return (
       <FrigyScanFailureStage
@@ -285,7 +270,15 @@ export function FrigyIngredientScanFlow({
 
   return (
     <FrigyLiveCameraCapture
-      active={phase === "capture"}
+      active={phase === "capture" || phase === "analyzing"}
+      analyzing={phase === "analyzing"}
+      analyzingPreviewUrl={externalAnalyzingPreviewUrl ?? analysisPreviewUrl}
+      analyzingTitle={L.analyzingTitle}
+      analyzingSubtitle={t.foodScanAiPowered}
+      analyzingMessage={L.analyzingSubtitle}
+      analyzingProgress={scanProgress}
+      analyzingPhotoIndex={scanPhotoIndex}
+      analyzingPhotoTotal={scanPhotoTotal}
       onClose={onClose}
       onPhotoFile={(file) => addFiles([file])}
       onPhotoFiles={addFiles}

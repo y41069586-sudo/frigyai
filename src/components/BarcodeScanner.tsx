@@ -56,10 +56,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const healthFailCountRef = useRef(0);
   const recoverInFlightRef = useRef(false);
   const productDataRef = useRef(productData);
+  const isLoadingRef = useRef(false);
+  const startScannerRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
 
   useEffect(() => {
     productDataRef.current = productData;
   }, [productData]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -87,6 +93,30 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       console.warn('[BarcodeScanner] Mobile video autoplay failed:', err);
     });
   }, []);
+
+  const pauseScanner = useCallback(() => {
+    const Quagga = quaggaRef.current;
+    if (!Quagga) return;
+    try {
+      Quagga.stop();
+    } catch (stopErr) {
+      console.warn('[BarcodeScanner] Scanner pause error (ignored):', stopErr);
+    }
+  }, []);
+
+  const resumeScanner = useCallback(async () => {
+    const Quagga = quaggaRef.current;
+    if (!Quagga || !isOpenRef.current) return false;
+    try {
+      Quagga.start();
+      window.setTimeout(prepareMobileVideo, 80);
+      setIsScannerActive(true);
+      return true;
+    } catch (resumeErr) {
+      console.warn('[BarcodeScanner] Scanner resume error:', resumeErr);
+      return false;
+    }
+  }, [prepareMobileVideo]);
 
   const stopScanner = useCallback(async () => {
     try {
@@ -142,16 +172,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     lastDetectedHitsRef.current = 0;
 
     try {
-      const Quagga = quaggaRef.current;
-      if (Quagga) {
-        try {
-          Quagga.stop();
-            setIsScannerActive(false);
-        } catch (stopErr) {
-          console.warn('[BarcodeScanner] Scanner stop error (ignored):', stopErr);
-        }
-      }
-
+      pauseScanner();
       setIsLoading(true);
 
         const controller = new AbortController();
@@ -213,16 +234,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         });
 
           detectionLockRef.current = false;
-          const QuaggaResume = quaggaRef.current;
-          if (QuaggaResume && isOpenRef.current) {
-            try {
-              QuaggaResume.start();
-              window.setTimeout(prepareMobileVideo, 80);
-              setIsScannerActive(true);
-          } catch (resumeErr) {
-            console.warn('[BarcodeScanner] Scanner resume error (ignored):', resumeErr);
+          if (isOpenRef.current) {
+            const resumed = await resumeScanner();
+            if (!resumed) await startScannerRef.current({ silent: true });
           }
-        }
       }
     } catch (err: any) {
       console.error('[BarcodeScanner] Error:', err);
@@ -233,21 +248,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       });
 
         detectionLockRef.current = false;
-        const QuaggaResume = quaggaRef.current;
-        if (QuaggaResume && isOpenRef.current) {
-          try {
-            QuaggaResume.start();
-            window.setTimeout(prepareMobileVideo, 80);
-            setIsScannerActive(true);
-        } catch (resumeErr) {
-          console.warn('[BarcodeScanner] Scanner resume error (ignored):', resumeErr);
+        if (isOpenRef.current) {
+          const resumed = await resumeScanner();
+          if (!resumed) await startScannerRef.current({ silent: true });
         }
-      }
     } finally {
         setIsLoading(false);
       }
     },
-    [onFoodScanned, prepareMobileVideo, productData, t],
+    [onFoodScanned, pauseScanner, productData, resumeScanner, t],
   );
 
   const startScanner = useCallback(async (options?: { silent?: boolean }) => {
@@ -348,24 +357,39 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         window.clearInterval(watchdogTimerRef.current);
       }
       watchdogTimerRef.current = window.setInterval(() => {
-        if (!isOpenRef.current || !readerRef.current || detectionLockRef.current || productDataRef.current) return;
+        if (
+          !isOpenRef.current ||
+          !readerRef.current ||
+          detectionLockRef.current ||
+          productDataRef.current ||
+          isLoadingRef.current
+        ) {
+          return;
+        }
         const video = readerRef.current.querySelector('video') as HTMLVideoElement | null;
         if (!video) return;
 
         const streamLive = video.srcObject instanceof MediaStream
-          ? video.srcObject.getVideoTracks().some((t) => t.readyState === 'live')
+          ? video.srcObject.getVideoTracks().some((track) => track.readyState === 'live')
           : true;
 
-        if (video.videoWidth < 1 || video.readyState < 2 || video.paused || !streamLive) {
+        const needsNudge =
+          video.videoWidth < 1 ||
+          video.readyState < 2 ||
+          !streamLive ||
+          (video.paused && document.visibilityState === 'visible');
+
+        if (needsNudge) {
           healthFailCountRef.current += 1;
+          void video.play().catch(() => undefined);
           prepareMobileVideo();
-          if (healthFailCountRef.current >= 4 && !recoverInFlightRef.current) {
+          if (healthFailCountRef.current >= 8 && !recoverInFlightRef.current) {
             recoverInFlightRef.current = true;
             healthFailCountRef.current = 0;
             void (async () => {
               try {
                 await stopScanner();
-                if (isOpenRef.current) await startScanner({ silent: true });
+                if (isOpenRef.current) await startScannerRef.current({ silent: true });
               } catch (recoverErr) {
                 console.warn('[BarcodeScanner] Silent recover failed:', recoverErr);
               } finally {
@@ -377,7 +401,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         }
 
         healthFailCountRef.current = 0;
-      }, 2500);
+      }, 3000);
     } catch (err: unknown) {
       if (generation !== startGenerationRef.current) return;
 
@@ -402,6 +426,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       setIsScannerActive(false);
     }
   }, [handleBarcodeDetected, prepareMobileVideo, stopScanner, t]);
+
+  useEffect(() => {
+    startScannerRef.current = startScanner;
+  }, [startScanner]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -440,18 +468,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const handleScanAnother = async () => {
     detectionLockRef.current = false;
     setProductData(null);
-    const Quagga = quaggaRef.current;
-    if (Quagga) {
-      try {
-        Quagga.start();
-        window.setTimeout(prepareMobileVideo, 80);
-        setIsScannerActive(true);
-      } catch {
-        await startScanner();
-      }
-    } else {
-      await startScanner();
-    }
+    setIsLoading(false);
+    const resumed = await resumeScanner();
+    if (!resumed) await startScanner();
   };
 
   const handleClose = () => {
@@ -560,7 +579,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                   width: 100% !important;
                   height: 100% !important;
                   overflow: hidden !important;
-              opacity: ${showScanner && isScannerActive ? 1 : 0};
+              opacity: ${showScanner ? 1 : 0};
               pointer-events: ${showScanner ? 'auto' : 'none'};
                 }
                 #barcode-reader video {
