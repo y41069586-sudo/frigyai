@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OnboardingPaywallStep, type PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { startPremiumCheckout } from "@/lib/purchaseCheckout";
-import { restoreStorePurchases } from "@/lib/storeBilling";
+import { restoreStorePurchases, redeemStorePromoCode } from "@/lib/storeBilling";
 import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,7 @@ const PremiumPricingPage = () => {
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [promoRedeemLoading, setPromoRedeemLoading] = useState(false);
   const isPreview = searchParams.get("preview") === "1" || searchParams.get("preview") === "true";
   const trialEligible =
     !isPreview &&
@@ -121,6 +122,42 @@ const PremiumPricingPage = () => {
     }
   };
 
+  const handleRedeemPromo = async () => {
+    if (promoRedeemLoading) return;
+    if (!session?.access_token) {
+      toast({
+        title: t.error,
+        description: t.onboardingPleaseLoginToProceed,
+        variant: "destructive",
+      });
+      return;
+    }
+    setPromoRedeemLoading(true);
+    try {
+      const result = await redeemStorePromoCode(session.access_token, user?.id);
+      const active = await waitForPremiumAfterPurchase(
+        checkSubscription,
+        session.access_token,
+        6,
+      );
+      if (result.ok || active) {
+        markEverPremium();
+        localStorage.setItem("onboardingComplete", "true");
+        navigate("/", { replace: true });
+        return;
+      }
+      if (!result.cancelled && result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setPromoRedeemLoading(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -132,12 +169,14 @@ const PremiumPricingPage = () => {
         onBack={() => navigate(-1)}
         onCheckout={handleCheckout}
         onRestorePurchases={handleRestore}
+        onRedeemPromoCode={handleRedeemPromo}
         onSignOut={async () => {
           await signOut();
           navigate("/auth", { replace: true });
         }}
         isCheckoutLoading={checkoutLoading}
         isRestoreLoading={restoreLoading}
+        isPromoRedeemLoading={promoRedeemLoading}
         storePrices={storePrices}
         storePricesLoading={storePricesLoading}
         storePricesError={storePricesError}

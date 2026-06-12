@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CreditCard,
   Settings,
+  Ticket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,7 +38,10 @@ import { cn } from "@/lib/utils";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openStoreSubscriptionManagement } from "@/lib/storeBilling";
+import { openStoreSubscriptionManagement, redeemStorePromoCode, isStoreBillingConfigured } from "@/lib/storeBilling";
+import { usesStoreBilling } from "@/lib/billingPlatform";
+import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { markEverPremium } from "@/lib/trialEligibility";
 import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
 
 function SettingsGroup({
@@ -124,9 +128,11 @@ const ProfilePage = () => {
   const dateLocale = getAppLocale(language);
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [promoRedeemLoading, setPromoRedeemLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const canManageSubscription = canManageStoreSubscription(subscriptionStatus);
+  const showPromoRedeem = !premiumActive && usesStoreBilling() && isStoreBillingConfigured();
 
   const handleSignOut = async () => {
     try {
@@ -144,6 +150,33 @@ const ProfilePage = () => {
     await checkSubscription();
     setRefreshing(false);
     toast({ title: t.success, description: t.subscriptionRefreshed });
+  };
+
+  const handleRedeemPromoCode = async () => {
+    if (promoRedeemLoading || !session?.access_token) return;
+    setPromoRedeemLoading(true);
+    try {
+      const result = await redeemStorePromoCode(session.access_token, user?.id);
+      const active = await waitForPremiumAfterPurchase(
+        checkSubscription,
+        session.access_token,
+        6,
+      );
+      if (result.ok || active) {
+        markEverPremium();
+        toast({ title: t.success, description: t.premiumActive });
+        return;
+      }
+      if (!result.cancelled && result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setPromoRedeemLoading(false);
+    }
   };
 
 
@@ -312,6 +345,14 @@ const ProfilePage = () => {
                 )
               }
             />
+            {showPromoRedeem && (
+              <SettingsRow
+                icon={Ticket}
+                label={t.redeemPromoCode}
+                description={promoRedeemLoading ? t.loading : undefined}
+                onClick={() => void handleRedeemPromoCode()}
+              />
+            )}
             {canManageSubscription && (
               <SettingsRow
                 icon={CreditCard}

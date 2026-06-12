@@ -860,3 +860,92 @@ export async function restoreStorePurchases(accessToken: string): Promise<StoreP
     return { ok: false, message };
   }
 }
+
+const PLAY_REDEEM_URL = "https://play.google.com/redeem";
+
+/** Wait until the native app returns to the foreground (e.g. after Play Store redeem). */
+async function waitForAppForeground(timeoutMs = 5 * 60_000): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const { App } = await import("@capacitor/app");
+  const state = await App.getState();
+  if (state.isActive) {
+    await sleep(400);
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    let listener: { remove: () => Promise<void> } | null = null;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      void listener?.remove();
+      clearTimeout(timer);
+      resolve();
+    };
+
+    void App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) finish();
+    }).then((handle) => {
+      listener = handle;
+    });
+
+    const timer = setTimeout(finish, timeoutMs);
+  });
+
+  await sleep(400);
+}
+
+async function syncEntitlementAfterStoreRedemption(
+  accessToken: string,
+): Promise<StorePurchaseResult> {
+  const { Purchases } = await import("@revenuecat/purchases-capacitor");
+  const { customerInfo } = await Purchases.restorePurchases();
+  const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
+  if (!active) {
+    return { ok: false, message: "Kein aktives Abo gefunden." };
+  }
+  await syncStoreSubscriptionToServer(accessToken);
+  return { ok: true };
+}
+
+/**
+ * Redeem App Store / Play Store promo or offer codes generated in the store consoles.
+ * iOS opens the native code sheet; Android opens the Play redeem page then syncs on return.
+ */
+export async function redeemStorePromoCode(
+  accessToken: string,
+  userId?: string | null,
+): Promise<StorePurchaseResult> {
+  if (!isStoreBillingConfigured()) {
+    return { ok: false, message: "Promo-Codes sind nur in der App verfügbar." };
+  }
+
+  const platform = Capacitor.getPlatform();
+
+  try {
+    await configureStoreBilling(resolveRevenueCatUserId(userId));
+    const { Purchases } = await import("@revenuecat/purchases-capacitor");
+
+    if (platform === "ios") {
+      await Purchases.presentCodeRedemptionSheet();
+      return syncEntitlementAfterStoreRedemption(accessToken);
+    }
+
+    if (platform === "android") {
+      await openExternalUrl(PLAY_REDEEM_URL);
+      await waitForAppForeground();
+      return syncEntitlementAfterStoreRedemption(accessToken);
+    }
+
+    return { ok: false, message: "Promo-Codes sind nur auf iOS und Android verfügbar." };
+  } catch (e: unknown) {
+    const err = e as { code?: string; message?: string; userCancelled?: boolean };
+    if (err?.userCancelled || err?.code === "1" || /cancel/i.test(String(err?.message || ""))) {
+      return { ok: false, cancelled: true };
+    }
+    const message = e instanceof Error ? e.message : "Promo-Code konnte nicht eingelöst werden.";
+    return { ok: false, message };
+  }
+}

@@ -17,9 +17,11 @@ type OnboardingPaywallStepProps = {
   onBack?: () => void;
   onCheckout: (plan: PaywallBillingPlan) => void | Promise<void>;
   onRestorePurchases?: () => void | Promise<void>;
+  onRedeemPromoCode?: () => void | Promise<void>;
   onSignOut?: () => void | Promise<void>;
   isCheckoutLoading?: boolean;
   isRestoreLoading?: boolean;
+  isPromoRedeemLoading?: boolean;
   storePrices?: StoreOfferingPrices | null;
   storePricesLoading?: boolean;
   storePricesError?: boolean;
@@ -229,9 +231,11 @@ export function OnboardingPaywallStep({
   onBack,
   onCheckout,
   onRestorePurchases,
+  onRedeemPromoCode,
   onSignOut,
   isCheckoutLoading = false,
   isRestoreLoading = false,
+  isPromoRedeemLoading = false,
   storePrices = null,
   storePricesLoading = false,
   storePricesError = false,
@@ -249,6 +253,8 @@ export function OnboardingPaywallStep({
   const isMonthly = plan === "monthly";
   const showStoreRestore =
     showRestorePurchases && usesStoreBilling() && Boolean(onRestorePurchases);
+  const showPromoRedeem = usesStoreBilling() && Boolean(onRedeemPromoCode);
+  const storeActionBusy = isRestoreLoading || isPromoRedeemLoading;
 
   const needsStorePrices = usesStoreBilling();
   const monthlyPriceString = storePrices?.monthly?.priceString ?? null;
@@ -499,7 +505,7 @@ export function OnboardingPaywallStep({
           <motion.button
             type="button"
             whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
-            disabled={isCheckoutLoading || isRestoreLoading || !pricesReady}
+            disabled={isCheckoutLoading || isRestoreLoading || isPromoRedeemLoading || !pricesReady}
             onClick={() => void onCheckout(plan)}
             className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation disabled:opacity-70"
             style={{
@@ -517,12 +523,23 @@ export function OnboardingPaywallStep({
             )}
           </motion.button>
 
+          {showPromoRedeem && (
+            <button
+              type="button"
+              disabled={isCheckoutLoading || storeActionBusy || !pricesReady}
+              onClick={() => void onRedeemPromoCode?.()}
+              className="mt-3 w-full py-2.5 text-center text-[14px] font-semibold text-[#374151] underline underline-offset-2 transition-colors hover:text-[#0a0a0a] disabled:opacity-60"
+            >
+              {isPromoRedeemLoading ? globalT.loading : globalT.redeemPromoCode}
+            </button>
+          )}
+
           {showStoreRestore && (
             <button
               type="button"
-              disabled={isCheckoutLoading || isRestoreLoading || !pricesReady}
+              disabled={isCheckoutLoading || storeActionBusy || !pricesReady}
               onClick={() => void onRestorePurchases?.()}
-              className="mt-3 w-full py-2.5 text-center text-[14px] font-semibold text-[#374151] underline underline-offset-2 transition-colors hover:text-[#0a0a0a] disabled:opacity-60"
+              className="mt-1 w-full py-2.5 text-center text-[14px] font-semibold text-[#374151] underline underline-offset-2 transition-colors hover:text-[#0a0a0a] disabled:opacity-60"
             >
               {isRestoreLoading ? globalT.loading : globalT.restorePurchases}
             </button>
@@ -531,7 +548,7 @@ export function OnboardingPaywallStep({
           {onSignOut && (
             <button
               type="button"
-              disabled={isCheckoutLoading || isRestoreLoading}
+              disabled={isCheckoutLoading || storeActionBusy}
               onClick={() => void onSignOut()}
               className="mt-2 w-full py-2 text-center text-[12px] font-medium text-[#9CA3AF] transition-colors hover:text-[#6B7280] disabled:opacity-60"
             >
