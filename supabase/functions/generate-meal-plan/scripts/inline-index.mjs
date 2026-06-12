@@ -13,6 +13,7 @@ const MODULES = [
   "ingredientSanitize.ts",
   "ingredientDefaults.ts",
   "shoppingAggregate.ts",
+  "mealCalorieHints.ts",
   "macros.ts",
   "meals.ts",
   "validation.ts",

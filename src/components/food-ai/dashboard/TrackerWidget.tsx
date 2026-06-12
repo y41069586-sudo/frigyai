@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Beef, Check, Droplet, Pencil, Plus, Wheat } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
@@ -30,6 +31,8 @@ type TrackerWidgetProps = {
   onToggleExpand?: () => void;
   /** false while tracker goals still load — suppresses brief “over goal” flash */
   targetsReady?: boolean;
+  /** true while tracker settings are still loading from DB */
+  targetsLoading?: boolean;
   /** summary = calories/macros only; quick-log = meal slot buttons; all = both */
   section?: "all" | "summary" | "quick-log";
 };
@@ -51,6 +54,7 @@ export function TrackerWidget({
   loggedMealTypes = [],
   showQuickLog = true,
   targetsReady = true,
+  targetsLoading = false,
   section = "all",
 }: TrackerWidgetProps) {
   const { t, language } = useLanguage();
@@ -86,6 +90,7 @@ export function TrackerWidget({
   const openTrackerTap = useScrollFriendlyTap(() => onOpenTracker?.());
   const showSummary = section === "all" || section === "summary";
   const showSlots = (section === "all" || section === "quick-log") && showQuickLog;
+  const showTargetsSkeleton = targetsLoading && !targetsReady;
   const skipSummaryEntrance = showSummary && trackerSummaryEntered;
   const skipProgressAnimation = trackerSummaryEntered;
 
@@ -103,6 +108,19 @@ export function TrackerWidget({
         skipEntrance={skipSummaryEntrance}
         className="w-full min-w-0 rounded-[2rem] p-5 sm:p-6"
       >
+        {showTargetsSkeleton ? (
+          <div className="space-y-5 py-1" aria-busy="true" aria-label={t.loading}>
+            <Skeleton className="h-3 w-16 rounded-full" />
+            <Skeleton className="h-10 w-40 rounded-xl" />
+            <Skeleton className="h-3 w-52 rounded-full" />
+            <Skeleton className="h-3 w-full rounded-full" />
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <Skeleton className="h-[76px] rounded-2xl" />
+              <Skeleton className="h-[76px] rounded-2xl" />
+              <Skeleton className="h-[76px] rounded-2xl" />
+            </div>
+          </div>
+        ) : (
         <div className="space-y-7 text-foreground">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
@@ -169,16 +187,16 @@ export function TrackerWidget({
             <InlineStat icon={Droplet} colorClass="text-sky-500 bg-sky-50" ringColor="#38bdf8" label={t.fat} value={fatText} progress={fatPct} />
           </div>
         </div>
+        )}
       </WidgetCard>
       )}
 
       {showSlots && (
       <motion.section
         className="space-y-3"
-        initial={{ opacity: 0, y: 18 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.12, margin: "0px 0px -40px 0px" }}
-        transition={{ duration: 0.4, delay: delay + 0.04, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: delay + 0.04, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-end justify-between">
           <h2 className="text-[24px] font-bold tracking-[-0.03em] text-foreground">{t.today}</h2>
@@ -225,9 +243,8 @@ function MealSlotButton({
   return (
     <motion.button
       type="button"
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay + 0.08 + index * 0.04, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       {...tap}
       className={cn(
