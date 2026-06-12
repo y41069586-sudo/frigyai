@@ -343,11 +343,15 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     );
     setFoodEntries(freshEntries);
 
-    localStorage.setItem('todayFood', JSON.stringify({
+    const nextPayload = JSON.stringify({
       date: getLocalDateString(),
       entries: freshEntries,
-    }));
-    notifyFrigyStorageUpdated();
+    });
+    const existingPayload = localStorage.getItem('todayFood');
+    if (existingPayload !== nextPayload) {
+      localStorage.setItem('todayFood', nextPayload);
+      notifyFrigyStorageUpdated();
+    }
   }, [dbEntries, foodEntriesLoading, mapDbEntriesToTrackerEntries, user]);
 
   // Expose reset function to parent

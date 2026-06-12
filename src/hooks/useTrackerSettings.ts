@@ -39,6 +39,9 @@ type TrackerCacheEntry = {
 let trackerMemoryCache: TrackerCacheEntry | null = null;
 let trackerLoadInflight: Promise<void> | null = null;
 let trackerLoadInflightUserId: string | null = null;
+let trackerSettingsLoadedAt = 0;
+
+const TRACKER_SETTINGS_RELOAD_MS = 30_000;
 
 /** Call after onboarding saves userProfile so dashboard does not flash stale DB macros. */
 export function invalidateTrackerSettingsCache(): void {
@@ -296,6 +299,16 @@ export const useTrackerSettings = () => {
 
   // Load settings from database or localStorage
   const loadSettings = useCallback(async (silent = false) => {
+    if (
+      silent &&
+      user &&
+      trackerMemoryCache?.userId === user.id &&
+      trackerMemoryCache.settings &&
+      Date.now() - trackerSettingsLoadedAt < TRACKER_SETTINGS_RELOAD_MS
+    ) {
+      return;
+    }
+
     if (!silent && !hasLoadedOnceRef.current) {
       setLoading(true);
     }
@@ -420,6 +433,7 @@ export const useTrackerSettings = () => {
       }
     } finally {
       hasLoadedOnceRef.current = true;
+      trackerSettingsLoadedAt = Date.now();
       setLoading(false);
     }
     };

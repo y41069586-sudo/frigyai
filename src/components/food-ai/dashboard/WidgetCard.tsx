@@ -18,6 +18,8 @@ export type WidgetCardProps = {
   interactive?: boolean;
   /** visual variant */
   variant?: "glass" | "soft" | "gradient";
+  /** skip fade-in when remounting (e.g. dashboard tracker after tab switch) */
+  skipEntrance?: boolean;
 };
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
@@ -36,15 +38,16 @@ export function WidgetCard({
   onClick,
   interactive = true,
   variant = "glass",
+  skipEntrance = false,
 }: WidgetCardProps) {
   const isMobile = useIsMobile();
 
   return (
     <motion.div
-      initial={entryFrom(isMobile, 18)}
-      whileInView={entryTo(isMobile)}
-      viewport={dashboardScrollViewport}
-      transition={dashboardScrollTransition(isMobile, delay)}
+      initial={skipEntrance ? false : entryFrom(isMobile, 18)}
+      whileInView={skipEntrance ? undefined : entryTo(isMobile)}
+      viewport={skipEntrance ? undefined : dashboardScrollViewport}
+      transition={skipEntrance ? { duration: 0 } : dashboardScrollTransition(isMobile, delay)}
       whileHover={
         interactive && !isMobile
           ? { y: -3, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }

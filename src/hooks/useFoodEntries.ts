@@ -160,16 +160,64 @@ export function readTodayFoodCache(): { entries: FoodEntry[]; todayTotals: Macro
 
 const initialFoodState = readTodayFoodCache();
 
+type FoodEntriesMemoryCache = {
+  userId: string;
+  date: string;
+  entries: FoodEntry[];
+  todayTotals: MacroTotals;
+  loadedAt: number;
+};
+
+const FOOD_ENTRIES_RELOAD_MS = 30_000;
+
+let foodEntriesMemoryCache: FoodEntriesMemoryCache | null = null;
+
+function readFoodEntriesMemoryCache(userId: string, date: string): FoodEntriesMemoryCache | null {
+  if (!foodEntriesMemoryCache) return null;
+  if (foodEntriesMemoryCache.userId !== userId || foodEntriesMemoryCache.date !== date) return null;
+  return foodEntriesMemoryCache;
+}
+
+function writeFoodEntriesMemoryCache(
+  userId: string,
+  date: string,
+  entries: FoodEntry[],
+  todayTotals: MacroTotals,
+): void {
+  foodEntriesMemoryCache = { userId, date, entries, todayTotals, loadedAt: Date.now() };
+}
+
 function shouldSkipFoodEntriesLoad(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem("onboardingComplete") !== "true";
 }
 
+function getInitialFoodEntriesState(userId: string | undefined) {
+  const today = getLocalDateISO();
+  if (userId) {
+    const cached = readFoodEntriesMemoryCache(userId, today);
+    if (cached) {
+      return {
+        entries: cached.entries,
+        todayTotals: cached.todayTotals,
+        loading: false,
+      };
+    }
+  }
+
+  return {
+    entries: initialFoodState.entries,
+    todayTotals: initialFoodState.todayTotals,
+    loading: !initialFoodState.hasCache,
+  };
+}
+
 export const useFoodEntries = () => {
   const { user } = useAuth();
-  const [entries, setEntries] = useState<FoodEntry[]>(initialFoodState.entries);
-  const [loading, setLoading] = useState(!initialFoodState.hasCache);
-  const [todayTotals, setTodayTotals] = useState(initialFoodState.todayTotals);
+  const initial = getInitialFoodEntriesState(user?.id);
+  const [entries, setEntries] = useState<FoodEntry[]>(initial.entries);
+  const [loading, setLoading] = useState(initial.loading);
+  const [todayTotals, setTodayTotals] = useState(initial.todayTotals);
   const [today, setToday] = useState(() => getLocalDateISO());
 
   const notifyFoodEntriesChanged = useCallback(() => {
@@ -182,6 +230,19 @@ export const useFoodEntries = () => {
   const syncTodayFoodCache = useCallback((nextEntries: FoodEntry[], date: string) => {
     if (typeof window === 'undefined') return;
     if (date !== getLocalDateISO()) return;
+
+    if (user) {
+      const totals = nextEntries.reduce<MacroTotals>(
+        (acc, entry) => ({
+          calories: acc.calories + entry.calories,
+          protein: acc.protein + entry.protein,
+          carbs: acc.carbs + entry.carbs,
+          fat: acc.fat + entry.fat,
+        }),
+        { ...EMPTY_TOTALS },
+      );
+      writeFoodEntriesMemoryCache(user.id, date, nextEntries, totals);
+    }
 
     localStorage.setItem('todayFood', JSON.stringify({
       date: getLocalDateString(),
@@ -203,7 +264,7 @@ export const useFoodEntries = () => {
       })),
     }));
     notifyFrigyStorageUpdated();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const refreshToday = () => {
@@ -259,7 +320,7 @@ export const useFoodEntries = () => {
     }
   }, [user, today]);
 
-  const loadEntries = useCallback(async (date?: string) => {
+  const loadEntries = useCallback(async (date?: string, options?: { force?: boolean }) => {
     if (!user) {
       setLoading(false);
       return;
@@ -270,8 +331,20 @@ export const useFoodEntries = () => {
       return;
     }
 
+    const targetDate = date || today;
+    const cached = readFoodEntriesMemoryCache(user.id, targetDate);
+    if (
+      !options?.force &&
+      cached &&
+      Date.now() - cached.loadedAt < FOOD_ENTRIES_RELOAD_MS
+    ) {
+      setEntries(cached.entries);
+      setTodayTotals(cached.todayTotals);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const targetDate = date || today;
       const { data, error } = await supabase
         .from('food_entries')
         .select('*')
@@ -298,6 +371,7 @@ export const useFoodEntries = () => {
       }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
       setTodayTotals(totals);
+      writeFoodEntriesMemoryCache(user.id, targetDate, typedData, totals);
       syncTodayFoodCache(typedData, targetDate);
 
       try {
@@ -531,7 +605,7 @@ export const useFoodEntries = () => {
       }
       loadEntriesDebounceRef.current = setTimeout(() => {
         loadEntriesDebounceRef.current = null;
-        void loadEntries();
+        void loadEntries(undefined, { force: true });
       }, 450);
     };
 
