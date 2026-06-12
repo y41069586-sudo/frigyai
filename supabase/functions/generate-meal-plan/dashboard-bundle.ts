@@ -1366,26 +1366,13 @@ export function reconcileTargets(raw: MacroTargets): ReconcileResult {
 
   const rawRatio = stated / implied;
   if (rawRatio < RECONCILE_RATIO_MIN || rawRatio > RECONCILE_RATIO_MAX) {
-    const targets = harmonizeTargets({ dailyProtein: protein, dailyCarbs: carbs, dailyFat: fat, dailyCalories: implied });
-    console.warn("[MEAL-PLAN] kcal/macro mismatch — macros kept as primary", { stated, implied });
-    return {
-      macroAuthority: "macros",
-      targets,
-      warning: {
-        type: "macros_primary",
-        statedKcal: stated,
-        impliedKcal: implied,
-        appliedKcal: targets.dailyCalories,
-        message: `Angegebene ${stated} kcal wichen zu stark von den Makros ab (${implied} kcal). Plan nutzt Makro-basierte ${targets.dailyCalories} kcal.`,
-      },
-    };
+    console.warn("[MEAL-PLAN] kcal/macro mismatch — scaling macros to stated kcal", { stated, implied });
   }
 
-  const ratio = rawRatio;
   const scaled = harmonizeTargets({
-    dailyProtein: Math.min(MACRO_CAPS.protein, Math.max(1, Math.round(protein * ratio))),
-    dailyCarbs: Math.min(MACRO_CAPS.carbs, Math.max(1, Math.round(carbs * ratio))),
-    dailyFat: Math.min(MACRO_CAPS.fat, Math.max(1, Math.round(fat * ratio))),
+    dailyProtein: Math.min(MACRO_CAPS.protein, Math.max(1, Math.round(protein * rawRatio))),
+    dailyCarbs: Math.min(MACRO_CAPS.carbs, Math.max(1, Math.round(carbs * rawRatio))),
+    dailyFat: Math.min(MACRO_CAPS.fat, Math.max(1, Math.round(fat * rawRatio))),
     dailyCalories: stated,
   });
   return {
@@ -1528,25 +1515,67 @@ export function correctSyncedDayDrift(meals: Meal[], targets: MacroTargets): Mea
   return adjusted;
 }
 
-/** Per-meal kcal weights: AI ratios when present, else slot + day + dish name (not identical every day). */
-function mealKcalWeights(meals: Meal[], mealsPerDay: number, dayIndex: number): number[] {
+/** Per-meal kcal weights: dish-aware hints, AI ratios only when realistic, else slot + day jitter. */
+function mealKcalWeights(
+  meals: Meal[],
+  mealsPerDay: number,
+  dayIndex: number,
+  dailyCalories: number,
+): number[] {
   const baseSlot = slotWeights(mealsPerDay);
   return meals.map((m, i) => {
     const p = Math.max(0, Number(m.protein) || 0);
     const c = Math.max(0, Number(m.carbs) || 0);
     const f = Math.max(0, Number(m.fat) || 0);
     const aiKcal = macroKcal(p, c, f);
-    if (aiKcal >= 80) return aiKcal;
+    const minKcal = dishMinimumKcal(m.name, m.type, dailyCalories, mealsPerDay);
+    const maxKcal = dishMaximumKcal(m.name, m.type, dailyCalories);
+    const aiRealistic = minKcal === 0 || aiKcal >= minKcal * 0.85;
+    const aiWithinMax = !Number.isFinite(maxKcal) || aiKcal <= maxKcal * 1.1;
+    if (aiKcal >= 80 && aiRealistic && aiWithinMax) return aiKcal;
 
+    const dishHint = dishCalorieWeightHint(m.name, m.type, i, mealsPerDay);
     const slot = mealSlotForSync(i, mealsPerDay);
     const slotHint = slot === "b" ? 0.2 : slot === "m" ? 0.36 : 0.12;
     const base = baseSlot[i] ?? slotHint;
+    let weight = Math.max(dishHint * dailyCalories, base * dailyCalories * 0.85);
+    if (minKcal > 0) weight = Math.max(weight, minKcal);
+    if (Number.isFinite(maxKcal)) weight = Math.min(weight, maxKcal);
+
     const name = String(m.name || "");
     let h = (dayIndex + 1) * 7919;
     for (let j = 0; j < name.length; j++) h = (Math.imul(h, 31) + name.charCodeAt(j)) >>> 0;
-    const jitter = 0.62 + (h % 76) / 100;
-    return Math.max(0.05, base * jitter);
+    const jitter = 0.88 + (h % 24) / 100;
+    return Math.max(0.05, weight * jitter);
   });
+}
+
+const MAX_MEAL_KCAL_SHARE: Record<number, number> = {
+  3: 0.48,
+  4: 0.42,
+  5: 0.36,
+};
+
+function mealExceedsDailyShare(meals: Meal[], dailyKcal: number, mealsPerDay: number): boolean {
+  const maxShare = MAX_MEAL_KCAL_SHARE[mealsPerDay] ?? 0.4;
+  const maxKcal = dailyKcal * maxShare;
+  return meals.some((m) => m.calories > maxKcal + 25);
+}
+
+function distributeMealsBySlotWeights(
+  meals: Meal[],
+  targets: MacroTargets,
+  mealsPerDay: number,
+  dayIndex: number,
+): Meal[] {
+  const t = harmonizeTargets(targets);
+  const w = mealKcalWeights(meals, mealsPerDay, dayIndex, t.dailyCalories);
+  const proteins = distributeIntegers(t.dailyProtein, w);
+  const carbs = distributeIntegers(t.dailyCarbs, w);
+  const fats = distributeIntegers(t.dailyFat, w);
+  return meals.map((m, i) =>
+    recalcMeal({ ...m, protein: proteins[i]!, carbs: carbs[i]!, fat: fats[i]! }),
+  );
 }
 
 function scaleMealsToDailyTargets(meals: Meal[], targets: MacroTargets): Meal[] {
@@ -1585,17 +1614,15 @@ export function syncDay(
   const aiTotals = sum.protein + sum.carbs + sum.fat;
   const kcalSpread = meals.map((m) => macroKcal(Number(m.protein) || 0, Number(m.carbs) || 0, Number(m.fat) || 0));
   const distinctKcals = new Set(kcalSpread.map((k) => Math.round(k / 40))).size;
+  const unrealisticAi = aiMacrosUnrealisticForDishes(meals, t.dailyCalories, mealsPerDay);
 
-  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length)) {
+  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length) && !unrealisticAi) {
     meals = scaleMealsToDailyTargets(meals, t);
+    if (mealExceedsDailyShare(meals, t.dailyCalories, mealsPerDay)) {
+      meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
+    }
   } else {
-    const w = mealKcalWeights(meals, mealsPerDay, dayIndex);
-    const proteins = distributeIntegers(t.dailyProtein, w);
-    const carbs = distributeIntegers(t.dailyCarbs, w);
-    const fats = distributeIntegers(t.dailyFat, w);
-    meals = meals.map((m, i) =>
-      recalcMeal({ ...m, protein: proteins[i]!, carbs: carbs[i]!, fat: fats[i]! }),
-    );
+    meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
   }
 
   meals = correctSyncedDayDrift(meals, t);

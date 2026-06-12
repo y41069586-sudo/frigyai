@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, ImagePlus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,27 @@ const VIDEO_HIDE_CSS = `
   }
 `;
 
-/** Shared viewport circle — keep in sync with analyzing mask hole. */
+/** Shared viewport circle — mask hole is measured from this element at runtime. */
 export const FRIGY_SCAN_CIRCLE_SIZE = "min(84vw, 360px)";
-const FRIGY_SCAN_CIRCLE_MASK_RADIUS = "min(42vw, 180px)";
-const FRIGY_SCAN_CIRCLE_CENTER_Y = "42%";
+
+type CircleMaskGeometry = {
+  cx: string;
+  cy: string;
+  radius: string;
+};
+
+const DEFAULT_CIRCLE_MASK: CircleMaskGeometry = {
+  cx: "50%",
+  cy: "50%",
+  radius: "min(42vw, 180px)",
+};
+
+function circleMaskGradient(
+  { cx, cy, radius }: CircleMaskGeometry,
+  holeRadius: string = radius,
+): string {
+  return `radial-gradient(circle at ${cx} ${cy}, transparent 0, transparent ${holeRadius}, black calc(${holeRadius} + 1px))`;
+}
 
 type FrigyLiveCameraCaptureProps = {
   active: boolean;
@@ -72,7 +89,9 @@ export function FrigyLiveCameraCapture({
 }: FrigyLiveCameraCaptureProps) {
   const { t } = useLanguage();
   const galleryRef = useRef<HTMLInputElement>(null);
+  const circleRef = useRef<HTMLDivElement>(null);
   const captureLockRef = useRef(false);
+  const [circleMask, setCircleMask] = useState<CircleMaskGeometry>(DEFAULT_CIRCLE_MASK);
 
   const {
     setVideoRef,
@@ -83,6 +102,35 @@ export function FrigyLiveCameraCapture({
     retry: retryCamera,
     isLive,
   } = useIngredientCamera({ active: active && !analyzing });
+
+  useLayoutEffect(() => {
+    const el = circleRef.current;
+    if (!el || !active) return;
+
+    const updateMaskGeometry = () => {
+      const node = circleRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+
+      const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+      const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+      setCircleMask({
+        cx: `${cx.toFixed(2)}%`,
+        cy: `${cy.toFixed(2)}%`,
+        radius: `${(rect.width / 2).toFixed(1)}px`,
+      });
+    };
+
+    updateMaskGeometry();
+    const observer = new ResizeObserver(updateMaskGeometry);
+    observer.observe(el);
+    window.addEventListener("resize", updateMaskGeometry);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateMaskGeometry);
+    };
+  }, [active, analyzing]);
 
   const showCameraHint =
     !analyzing &&
@@ -141,61 +189,92 @@ export function FrigyLiveCameraCapture({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[120] flex flex-col safe-area-inset",
-        analyzing ? "bg-[#F6FFFA] text-neutral-950" : "bg-black text-white",
+        "fixed inset-0 z-[120] flex flex-col safe-area-inset bg-black text-white",
+        analyzing && "text-neutral-950",
       )}
     >
       <style>{VIDEO_HIDE_CSS}</style>
       <style>{`
-        @keyframes frigy-analyze-beam {
-          0%, 100% { transform: translateY(calc(-50% - 38%)); opacity: 0.4; }
-          50% { transform: translateY(calc(-50% + 38%)); opacity: 1; }
+        @keyframes frigy-wind-sweep {
+          0% { top: -42%; opacity: 0; }
+          8% { opacity: 0.85; }
+          92% { opacity: 0.7; }
+          100% { top: 108%; opacity: 0; }
         }
-        @keyframes frigy-analyze-glow {
-          0%, 100% { transform: translateY(calc(-50% - 38%)); opacity: 0.12; }
-          50% { transform: translateY(calc(-50% + 38%)); opacity: 0.42; }
+        @keyframes frigy-wind-sweep-fast {
+          0% { top: -48%; opacity: 0; }
+          10% { opacity: 0.95; }
+          90% { opacity: 0.55; }
+          100% { top: 112%; opacity: 0; }
         }
-        .frigy-analyze-beam {
+        .frigy-analyze-wind {
           position: absolute;
-          left: 10%;
-          right: 10%;
-          top: 50%;
-          height: 2px;
-          border-radius: 9999px;
+          pointer-events: none;
+          will-change: top, opacity;
+        }
+        .frigy-analyze-wind-soft {
+          left: -18%;
+          right: -18%;
+          height: 38%;
+          border-radius: 42% 58% 45% 55% / 48% 42% 58% 52%;
           background: linear-gradient(
-            90deg,
+            118deg,
             rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.85) 18%,
-            rgba(255, 255, 255, 1) 50%,
-            rgba(255, 255, 255, 0.85) 82%,
+            rgba(255, 255, 255, 0.08) 16%,
+            rgba(255, 255, 255, 0.28) 38%,
+            rgba(255, 255, 255, 0.42) 50%,
+            rgba(255, 255, 255, 0.24) 62%,
+            rgba(255, 255, 255, 0.06) 84%,
             rgba(255, 255, 255, 0) 100%
           );
-          box-shadow:
-            0 0 10px 2px rgba(255, 255, 255, 0.75),
-            0 0 24px 6px rgba(255, 255, 255, 0.28);
-          animation: frigy-analyze-beam 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-          will-change: transform, opacity;
+          filter: blur(14px);
+          transform: rotate(-7deg);
+          animation: frigy-wind-sweep 2.8s cubic-bezier(0.42, 0.02, 0.58, 0.98) infinite;
         }
-        .frigy-analyze-glow {
-          position: absolute;
-          left: 8%;
-          right: 8%;
-          top: 50%;
-          height: 22%;
-          margin-top: -11%;
-          border-radius: 9999px;
+        .frigy-analyze-wind-core {
+          left: -8%;
+          right: -8%;
+          height: 20%;
+          border-radius: 38% 62% 35% 65% / 52% 38% 62% 48%;
           background: linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0),
-            rgba(255, 255, 255, 0.22) 46%,
-            rgba(255, 255, 255, 0.38) 50%,
-            rgba(255, 255, 255, 0.22) 54%,
-            rgba(255, 255, 255, 0)
+            112deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.35) 22%,
+            rgba(255, 255, 255, 0.92) 48%,
+            rgba(255, 255, 255, 0.88) 52%,
+            rgba(255, 255, 255, 0.32) 78%,
+            rgba(255, 255, 255, 0) 100%
           );
-          filter: blur(6px);
-          animation: frigy-analyze-glow 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-          will-change: transform, opacity;
-          pointer-events: none;
+          filter: blur(4px);
+          box-shadow: 0 0 28px 8px rgba(255, 255, 255, 0.22);
+          transform: rotate(4deg);
+          animation: frigy-wind-sweep-fast 2.1s cubic-bezier(0.38, 0.04, 0.62, 0.96) infinite;
+          animation-delay: -0.65s;
+        }
+        .frigy-analyze-wind-trail {
+          left: 4%;
+          right: 4%;
+          height: 14%;
+          border-radius: 55% 45% 50% 50% / 60% 40% 60% 40%;
+          background: linear-gradient(
+            105deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.18) 30%,
+            rgba(255, 255, 255, 0.55) 50%,
+            rgba(255, 255, 255, 0.14) 72%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          filter: blur(7px);
+          transform: rotate(-3deg) skewX(-8deg);
+          animation: frigy-wind-sweep 2.45s cubic-bezier(0.44, 0.03, 0.56, 0.97) infinite;
+          animation-delay: -1.35s;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .frigy-analyze-wind-soft,
+          .frigy-analyze-wind-core,
+          .frigy-analyze-wind-trail {
+            animation-duration: 4.5s;
+          }
         }
       `}</style>
 
@@ -255,26 +334,25 @@ export function FrigyLiveCameraCapture({
           <div
             className="pointer-events-none absolute inset-0 z-[2]"
             style={{
-              background: `radial-gradient(ellipse 82% 72% at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0%, transparent 44%, rgba(0,0,0,0.45) 100%)`,
+              background: `radial-gradient(ellipse 82% 72% at ${circleMask.cx} ${circleMask.cy}, transparent 0%, transparent 44%, rgba(0,0,0,0.45) 100%)`,
             }}
           />
           <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
         </>
       ) : (
         <motion.div
+          key="analyze-white-mask"
           initial={{
             opacity: 0,
-            scale: 1.08,
-            WebkitMaskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent 120vmax, black 120vmax)`,
-            maskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent 120vmax, black 120vmax)`,
+            WebkitMaskImage: circleMaskGradient(circleMask),
+            maskImage: circleMaskGradient(circleMask),
           }}
           animate={{
             opacity: 1,
-            scale: 1,
-            WebkitMaskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent ${FRIGY_SCAN_CIRCLE_MASK_RADIUS}, black calc(${FRIGY_SCAN_CIRCLE_MASK_RADIUS} + 1px))`,
-            maskImage: `radial-gradient(circle at 50% ${FRIGY_SCAN_CIRCLE_CENTER_Y}, transparent 0, transparent ${FRIGY_SCAN_CIRCLE_MASK_RADIUS}, black calc(${FRIGY_SCAN_CIRCLE_MASK_RADIUS} + 1px))`,
+            WebkitMaskImage: circleMaskGradient(circleMask),
+            maskImage: circleMaskGradient(circleMask),
           }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="pointer-events-none absolute inset-0 z-[2] bg-[#F6FFFA]"
         />
       )}
@@ -307,6 +385,7 @@ export function FrigyLiveCameraCapture({
 
       <div className="pointer-events-none relative z-10 mx-4 flex min-h-0 flex-1 flex-col items-center justify-center">
         <div
+          ref={circleRef}
           className={cn(
             "relative overflow-hidden rounded-full bg-transparent transition-[box-shadow,border-color] duration-500",
             analyzing ? "border-0 shadow-none" : "border-[3px] border-[#75FBB2]",
@@ -328,8 +407,9 @@ export function FrigyLiveCameraCapture({
               )}
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.28),transparent_42%)]" />
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                <div className="frigy-analyze-glow" aria-hidden />
-                <div className="frigy-analyze-beam" aria-hidden />
+                <div className="frigy-analyze-wind frigy-analyze-wind-soft" aria-hidden />
+                <div className="frigy-analyze-wind frigy-analyze-wind-core" aria-hidden />
+                <div className="frigy-analyze-wind frigy-analyze-wind-trail" aria-hidden />
               </div>
             </div>
           ) : null}

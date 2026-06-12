@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Check, Flame, X } from "lucide-react";
-import { useEffect } from "react";
 import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
 import { confettiBurst } from "@/lib/mobileEffects";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
@@ -228,18 +227,17 @@ export type FrigyScanSuccessData = {
 
 type FrigyScanSuccessStageProps = {
   result: FrigyScanSuccessData;
-  onDismiss: () => void;
-  /** Wenn gesetzt: kein Auto-Schließen, zweiter Button „nochmal scannen“. */
+  onConfirm: () => void;
+  onCancel: () => void;
   onScanAnother?: () => void;
-  autoDismissMs?: number;
 };
 
-/** Erfolg nach Essens-Scan — gleicher Look wie Analyse / „Frigy sagt“. */
+/** Erfolg nach Essens-Scan — Nutzer bestätigt explizit oder bricht mit X ab. */
 export function FrigyScanSuccessStage({
   result,
-  onDismiss,
+  onConfirm,
+  onCancel,
   onScanAnother,
-  autoDismissMs = onScanAnother ? 0 : 2800,
 }: FrigyScanSuccessStageProps) {
   const { t } = useLanguage();
   const copy = {
@@ -251,17 +249,15 @@ export function FrigyScanSuccessStage({
     scanAnother: t.foodScanScanAnother,
   };
 
-  useEffect(() => {
-    confettiBurst({
+  const handleConfirm = () => {
+    void confettiBurst({
       particleCount: 80,
       spread: 60,
       origin: { y: 0.55 },
       colors: ["#75FBB2", "#39D47F", "#86efac", "#ffffff"],
     });
-    if (autoDismissMs <= 0) return;
-    const timer = window.setTimeout(onDismiss, autoDismissMs);
-    return () => window.clearTimeout(timer);
-  }, [autoDismissMs, onDismiss]);
+    onConfirm();
+  };
 
   return (
     <motion.div
@@ -269,11 +265,18 @@ export function FrigyScanSuccessStage({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[145] flex flex-col overflow-hidden bg-[#F6FFFA] text-neutral-950 safe-area-inset"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onDismiss();
-      }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(117,251,178,0.22),transparent_30%),linear-gradient(180deg,#FFFFFF_0%,#F6FFFA_50%,#EEF9F2_100%)]" />
+      <div className="relative z-10 flex shrink-0 items-center justify-end px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-black/5 transition-colors hover:bg-black/10"
+          aria-label={t.close}
+        >
+          <X className="h-6 w-6 text-neutral-900" />
+        </button>
+      </div>
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-[max(2rem,env(safe-area-inset-bottom)+1rem)]">
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
@@ -329,7 +332,7 @@ export function FrigyScanSuccessStage({
             whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation();
-              onDismiss();
+              handleConfirm();
             }}
             className="flex h-14 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] text-[17px] font-semibold text-[#082013] shadow-[0_16px_40px_-22px_rgba(57,212,127,0.5)]"
           >
