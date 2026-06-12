@@ -774,6 +774,7 @@ const Index = () => {
               fatEaten={todayTotals.fat}
               targetFat={targetFat}
               targetsReady={targetsReady}
+              targetsLoading={trackerLoading && !targetsReady}
               loggedMealTypes={loggedMealTypes}
               waterGlasses={waterGlasses}
               waterGoalMl={waterGoalMl}
