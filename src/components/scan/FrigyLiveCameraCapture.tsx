@@ -195,55 +195,86 @@ export function FrigyLiveCameraCapture({
     >
       <style>{VIDEO_HIDE_CSS}</style>
       <style>{`
-        @keyframes frigy-analyze-beam {
-          0%, 100% { transform: translateY(calc(-50% - 38%)); opacity: 0.4; }
-          50% { transform: translateY(calc(-50% + 38%)); opacity: 1; }
+        @keyframes frigy-wind-sweep {
+          0% { top: -42%; opacity: 0; }
+          8% { opacity: 0.85; }
+          92% { opacity: 0.7; }
+          100% { top: 108%; opacity: 0; }
         }
-        @keyframes frigy-analyze-glow {
-          0%, 100% { transform: translateY(calc(-50% - 38%)); opacity: 0.12; }
-          50% { transform: translateY(calc(-50% + 38%)); opacity: 0.42; }
+        @keyframes frigy-wind-sweep-fast {
+          0% { top: -48%; opacity: 0; }
+          10% { opacity: 0.95; }
+          90% { opacity: 0.55; }
+          100% { top: 112%; opacity: 0; }
         }
-        .frigy-analyze-beam {
+        .frigy-analyze-wind {
           position: absolute;
-          left: 10%;
-          right: 10%;
-          top: 50%;
-          height: 2px;
-          border-radius: 9999px;
+          pointer-events: none;
+          will-change: top, opacity;
+        }
+        .frigy-analyze-wind-soft {
+          left: -18%;
+          right: -18%;
+          height: 38%;
+          border-radius: 42% 58% 45% 55% / 48% 42% 58% 52%;
           background: linear-gradient(
-            90deg,
+            118deg,
             rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.85) 18%,
-            rgba(255, 255, 255, 1) 50%,
-            rgba(255, 255, 255, 0.85) 82%,
+            rgba(255, 255, 255, 0.08) 16%,
+            rgba(255, 255, 255, 0.28) 38%,
+            rgba(255, 255, 255, 0.42) 50%,
+            rgba(255, 255, 255, 0.24) 62%,
+            rgba(255, 255, 255, 0.06) 84%,
             rgba(255, 255, 255, 0) 100%
           );
-          box-shadow:
-            0 0 10px 2px rgba(255, 255, 255, 0.75),
-            0 0 24px 6px rgba(255, 255, 255, 0.28);
-          animation: frigy-analyze-beam 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-          will-change: transform, opacity;
+          filter: blur(14px);
+          transform: rotate(-7deg);
+          animation: frigy-wind-sweep 2.8s cubic-bezier(0.42, 0.02, 0.58, 0.98) infinite;
         }
-        .frigy-analyze-glow {
-          position: absolute;
-          left: 8%;
-          right: 8%;
-          top: 50%;
-          height: 22%;
-          margin-top: -11%;
-          border-radius: 9999px;
+        .frigy-analyze-wind-core {
+          left: -8%;
+          right: -8%;
+          height: 20%;
+          border-radius: 38% 62% 35% 65% / 52% 38% 62% 48%;
           background: linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0),
-            rgba(255, 255, 255, 0.22) 46%,
-            rgba(255, 255, 255, 0.38) 50%,
-            rgba(255, 255, 255, 0.22) 54%,
-            rgba(255, 255, 255, 0)
+            112deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.35) 22%,
+            rgba(255, 255, 255, 0.92) 48%,
+            rgba(255, 255, 255, 0.88) 52%,
+            rgba(255, 255, 255, 0.32) 78%,
+            rgba(255, 255, 255, 0) 100%
           );
-          filter: blur(6px);
-          animation: frigy-analyze-glow 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-          will-change: transform, opacity;
-          pointer-events: none;
+          filter: blur(4px);
+          box-shadow: 0 0 28px 8px rgba(255, 255, 255, 0.22);
+          transform: rotate(4deg);
+          animation: frigy-wind-sweep-fast 2.1s cubic-bezier(0.38, 0.04, 0.62, 0.96) infinite;
+          animation-delay: -0.65s;
+        }
+        .frigy-analyze-wind-trail {
+          left: 4%;
+          right: 4%;
+          height: 14%;
+          border-radius: 55% 45% 50% 50% / 60% 40% 60% 40%;
+          background: linear-gradient(
+            105deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.18) 30%,
+            rgba(255, 255, 255, 0.55) 50%,
+            rgba(255, 255, 255, 0.14) 72%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          filter: blur(7px);
+          transform: rotate(-3deg) skewX(-8deg);
+          animation: frigy-wind-sweep 2.45s cubic-bezier(0.44, 0.03, 0.56, 0.97) infinite;
+          animation-delay: -1.35s;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .frigy-analyze-wind-soft,
+          .frigy-analyze-wind-core,
+          .frigy-analyze-wind-trail {
+            animation-duration: 4.5s;
+          }
         }
       `}</style>
 
@@ -376,8 +407,9 @@ export function FrigyLiveCameraCapture({
               )}
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.28),transparent_42%)]" />
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                <div className="frigy-analyze-glow" aria-hidden />
-                <div className="frigy-analyze-beam" aria-hidden />
+                <div className="frigy-analyze-wind frigy-analyze-wind-soft" aria-hidden />
+                <div className="frigy-analyze-wind frigy-analyze-wind-core" aria-hidden />
+                <div className="frigy-analyze-wind frigy-analyze-wind-trail" aria-hidden />
               </div>
             </div>
           ) : null}
