@@ -37,7 +37,10 @@ const YESTERDAY_BALANCE_WEB_SENT_PREFIX = "frigy_yesterday_balance_web_";
 const YESTERDAY_BALANCE_NOTIFY_HOUR = 8;
 const YESTERDAY_BALANCE_NOTIFY_MINUTE = 15;
 
-const MIN_GAP_MS = 90 * 60 * 1000;
+const MIN_GAP_MINUTES = 90;
+const WATER_SLOT_COUNT = DEFAULT_WATER_SLOTS.length;
+
+let reminderSyncInFlight: Promise<void> | null = null;
 
 export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform();
@@ -201,13 +204,30 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
   return { hour: h ?? 0, minute: m ?? 0 };
 }
 
-function nextDailyOccurrence(hour: number, minute: number): Date {
-  const at = new Date();
-  at.setHours(hour, minute, 0, 0);
-  if (at.getTime() <= Date.now()) {
-    at.setDate(at.getDate() + 1);
-  }
-  return at;
+function minutesSinceMidnight(hour: number, minute: number): number {
+  return hour * 60 + minute;
+}
+
+function dailyScheduleAt(hour: number, minute: number) {
+  return {
+    on: {
+      hour,
+      minute,
+      second: 0,
+    },
+  };
+}
+
+function isSlotTooClose(
+  hour: number,
+  minute: number,
+  scheduled: { hour: number; minute: number }[],
+): boolean {
+  const slotMinutes = minutesSinceMidnight(hour, minute);
+  return scheduled.some((other) => {
+    const diff = Math.abs(slotMinutes - minutesSinceMidnight(other.hour, other.minute));
+    return diff > 0 && diff < MIN_GAP_MINUTES;
+  });
 }
 
 export function reminderNotificationCopy(language: Language) {
@@ -253,48 +273,56 @@ export function reminderNotificationCopy(language: Language) {
   };
 }
 
-/** Daily water slots for web + native (no tight setInterval). */
-export function buildWaterSchedule(intervalHours: number): { hour: number; minute: number }[] {
+/** How many water reminders per day for the chosen interval (min 2, max 4). */
+export function waterReminderCount(intervalHours: number): number {
   const step = Math.max(2, Math.min(4, intervalHours));
-  const slots: { hour: number; minute: number }[] = [];
-  for (let i = 0; i < DEFAULT_WATER_SLOTS.length; i++) {
-    const base = DEFAULT_WATER_SLOTS[i];
-    const hour = Math.min(21, Math.max(9, base.hour + (step - 3) * (i % 2)));
-    slots.push({ hour, minute: base.minute });
-  }
-  return slots;
+  if (step >= 4) return 2;
+  if (step >= 3) return 3;
+  return 4;
 }
 
-function isTooCloseToExisting(at: Date, scheduled: Date[]): boolean {
-  return scheduled.some((other) => Math.abs(other.getTime() - at.getTime()) < MIN_GAP_MS);
+/** Daily water slots for web + native — count follows user interval setting. */
+export function buildWaterSchedule(intervalHours: number): { hour: number; minute: number }[] {
+  const count = waterReminderCount(intervalHours);
+  return DEFAULT_WATER_SLOTS.slice(0, count);
 }
 
 async function cancelAllFrigyNotifications(
   LocalNotifications: typeof import("@capacitor/local-notifications").LocalNotifications,
 ): Promise<void> {
+  const fixedCancelIds = [
+    ...Array.from({ length: WATER_SLOT_COUNT }, (_, i) => ({ id: WATER_ID_BASE + i })),
+    ...Array.from({ length: 6 }, (_, i) => ({ id: MEALS_ID_BASE + i })),
+    { id: WEIGHT_ID },
+    { id: TEST_ID },
+  ];
+
+  try {
+    await LocalNotifications.cancel({ notifications: fixedCancelIds });
+  } catch {
+    /* ignore */
+  }
+
   try {
     const pending = await LocalNotifications.getPending();
-    const ids = (pending.notifications ?? [])
-      .filter((n) => n.id !== TRIAL_REMINDER_ID && n.id !== YESTERDAY_BALANCE_ID)
+    const extraIds = (pending.notifications ?? [])
+      .filter(
+        (n) =>
+          n.id !== TRIAL_REMINDER_ID &&
+          n.id !== YESTERDAY_BALANCE_ID &&
+          !fixedCancelIds.some((entry) => entry.id === n.id),
+      )
       .map((n) => ({ id: n.id }));
-    if (ids.length > 0) {
-      await LocalNotifications.cancel({ notifications: ids });
+    if (extraIds.length > 0) {
+      await LocalNotifications.cancel({ notifications: extraIds });
     }
   } catch {
-    const cancelIds = [
-      ...Array.from({ length: 20 }, (_, i) => ({ id: WATER_ID_BASE + i })),
-      ...Array.from({ length: 6 }, (_, i) => ({ id: MEALS_ID_BASE + i })),
-      { id: WEIGHT_ID },
-      { id: TEST_ID },
-    ];
-    await LocalNotifications.cancel({ notifications: cancelIds });
+    /* ignore */
   }
 }
 
-export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
+async function scheduleRemindersFromConfig(config: ReminderConfig): Promise<void> {
   const normalized = normalizeReminderConfig(config);
-  // Do not notifyFrigyStorageUpdated here — would re-sync on every food/plan save and spam notifications.
-
   if (!isNativeApp()) return;
 
   const copy = reminderNotificationCopy(getStoredLanguage());
@@ -306,19 +334,18 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
   await cancelAllFrigyNotifications(LocalNotifications);
 
   const notifications: Parameters<typeof LocalNotifications.schedule>[0]["notifications"] = [];
-  const scheduledTimes: Date[] = [];
+  const scheduledSlots: { hour: number; minute: number }[] = [];
 
   if (normalized.water.enabled) {
     const waterSlots = buildWaterSchedule(normalized.water.interval);
     waterSlots.forEach((slot, idx) => {
-      const at = nextDailyOccurrence(slot.hour, slot.minute);
-      if (isTooCloseToExisting(at, scheduledTimes)) return;
-      scheduledTimes.push(at);
+      if (isSlotTooClose(slot.hour, slot.minute, scheduledSlots)) return;
+      scheduledSlots.push(slot);
       notifications.push({
         id: WATER_ID_BASE + idx,
         title: copy.waterTitle,
         body: copy.waterBody,
-        schedule: { at, repeats: true, every: "day" },
+        schedule: dailyScheduleAt(slot.hour, slot.minute),
         sound: "default",
         channelId: "frigy_reminders",
       });
@@ -328,14 +355,13 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
   if (normalized.meals.enabled) {
     normalized.meals.times.forEach((time, idx) => {
       const { hour, minute } = parseTime(time);
-      const at = nextDailyOccurrence(hour, minute);
-      if (isTooCloseToExisting(at, scheduledTimes)) return;
-      scheduledTimes.push(at);
+      if (isSlotTooClose(hour, minute, scheduledSlots)) return;
+      scheduledSlots.push({ hour, minute });
       notifications.push({
         id: MEALS_ID_BASE + idx,
         title: `🍽️ ${copy.mealName(hour)}!`,
         body: copy.mealBody,
-        schedule: { at, repeats: true, every: "day" },
+        schedule: dailyScheduleAt(hour, minute),
         sound: "default",
         channelId: "frigy_reminders",
       });
@@ -344,13 +370,12 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
 
   if (normalized.weight.enabled) {
     const { hour, minute } = parseTime(normalized.weight.time);
-    const at = nextDailyOccurrence(hour, minute);
-    if (!isTooCloseToExisting(at, scheduledTimes)) {
+    if (!isSlotTooClose(hour, minute, scheduledSlots)) {
       notifications.push({
         id: WEIGHT_ID,
         title: copy.weightTitle,
         body: copy.weightBody,
-        schedule: { at, repeats: true, every: "day" },
+        schedule: dailyScheduleAt(hour, minute),
         sound: "default",
         channelId: "frigy_reminders",
       });
@@ -360,6 +385,21 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
   if (notifications.length > 0) {
     await LocalNotifications.schedule({ notifications });
   }
+}
+
+export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
+  // Do not notifyFrigyStorageUpdated here — would re-sync on every food/plan save and spam notifications.
+  if (!isNativeApp()) return;
+
+  if (reminderSyncInFlight) {
+    await reminderSyncInFlight;
+    return;
+  }
+
+  reminderSyncInFlight = scheduleRemindersFromConfig(config).finally(() => {
+    reminderSyncInFlight = null;
+  });
+  await reminderSyncInFlight;
 }
 
 export async function syncRemindersFromStorage(): Promise<void> {
