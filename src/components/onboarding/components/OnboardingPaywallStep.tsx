@@ -21,9 +21,6 @@ type OnboardingPaywallStepProps = {
   isCheckoutLoading?: boolean;
   isRestoreLoading?: boolean;
   storePrices?: StoreOfferingPrices | null;
-  storePricesLoading?: boolean;
-  storePricesError?: boolean;
-  onReloadStorePrices?: () => void;
   /** False after trial or any prior subscription — hides trial timeline & intro offer UI. */
   trialEligible?: boolean;
   /** Standalone renew paywall only — hidden during first-time onboarding. */
@@ -201,22 +198,7 @@ function PlanRadio({ selected }: { selected: boolean }) {
   );
 }
 
-function StorePriceLine({
-  priceString,
-  loading,
-}: {
-  priceString: string | null | undefined;
-  loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <span
-        className="mt-1.5 inline-block h-[17px] w-[72px] animate-pulse rounded bg-[#E5E7EB]"
-        aria-hidden
-      />
-    );
-  }
-
+function StorePriceLine({ priceString }: { priceString: string | null | undefined }) {
   return (
     <p className="mt-1.5 text-[17px] font-bold leading-none tracking-tight">
       {priceString ?? "—"}
@@ -233,9 +215,6 @@ export function OnboardingPaywallStep({
   isCheckoutLoading = false,
   isRestoreLoading = false,
   storePrices = null,
-  storePricesLoading = false,
-  storePricesError = false,
-  onReloadStorePrices,
   trialEligible = true,
   showRestorePurchases = false,
 }: OnboardingPaywallStepProps) {
@@ -329,7 +308,6 @@ export function OnboardingPaywallStep({
         language={language}
         regularYearlyPrice={storePrices?.yearly}
         promoYearlyPrice={storePrices?.yearlyPromo}
-        pricesLoading={needsStorePrices && storePricesLoading}
         checkoutLoading={isCheckoutLoading}
         onClose={() => setExclusiveOfferOpen(false)}
         onClaimPromoYearly={async () => {
@@ -446,10 +424,7 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.monthly}</p>
-                <StorePriceLine
-                  priceString={monthlyPriceString}
-                  loading={needsStorePrices && storePricesLoading}
-                />
+                <StorePriceLine priceString={monthlyPriceString} />
               </div>
               <PlanRadio selected={plan === "monthly"} />
             </div>
@@ -467,29 +442,12 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.yearly}</p>
-                <StorePriceLine
-                  priceString={yearlyPriceString}
-                  loading={needsStorePrices && storePricesLoading}
-                />
+                <StorePriceLine priceString={yearlyPriceString} />
               </div>
               <PlanRadio selected={plan === "yearly"} />
             </div>
           </button>
           </div>
-
-          {needsStorePrices && storePricesError && !storePricesLoading && (
-            <button
-              type="button"
-              onClick={() => onReloadStorePrices?.()}
-              className="mt-3 w-full rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5 text-center text-[14px] font-semibold text-[#374151] transition-colors hover:bg-[#F3F4F6]"
-            >
-              {language === "de"
-                ? "Preise erneut laden"
-                : language === "fr"
-                  ? "Recharger les prix"
-                  : "Reload prices"}
-            </button>
-          )}
 
           <p className="mt-5 flex items-center justify-center gap-2 text-center text-[15px] text-[#374151]">
             <Check className="h-5 w-5 shrink-0" style={{ color: ONBOARDING_PALETTE.primaryDeep }} strokeWidth={2.5} />

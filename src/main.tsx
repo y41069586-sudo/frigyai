@@ -2,10 +2,7 @@ import { createRoot } from "react-dom/client";
 import { MotionConfig } from "framer-motion";
 import App from "./App.tsx";
 import "./index.css";
-import { usesStoreBilling } from "@/lib/billingPlatform";
 import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from "@/lib/oauthPending";
-import { readCachedStoreOfferingPrices } from "@/lib/storeOfferingPricesCache";
-import { isStoreBillingConfigured, prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 
 function isLocalDevHost(): boolean {
   if (typeof window === "undefined") return import.meta.env.DEV;
@@ -45,12 +42,6 @@ function clearStaleDevAuthFlags(): void {
 void clearDevClientCaches();
 clearStaleDevAuthFlags();
 clearStaleOAuthPendingIfIdle();
-
-// Warm paywall price cache from localStorage, then prefetch RevenueCat in background (native).
-readCachedStoreOfferingPrices();
-if (usesStoreBilling() && isStoreBillingConfigured()) {
-  void prefetchStoreOfferingPrices(null);
-}
 
 createRoot(document.getElementById("root")!).render(
   <MotionConfig reducedMotion="user" transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>

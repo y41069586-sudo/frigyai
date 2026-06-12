@@ -17,8 +17,6 @@ import {
 } from "@/lib/authCompletion";
 import { clearOnboardingOAuthPending } from "@/lib/onboardingSession";
 import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
-import { isStoreBillingConfigured, prefetchStoreOfferingPrices } from "@/lib/storeBilling";
-import { usesStoreBilling } from "@/lib/billingPlatform";
 import type { PostAuthIntent } from "@/lib/resolvePostAuthDestination";
 import type { SubscriptionStatusLike } from "@/lib/subscription";
 
@@ -91,17 +89,6 @@ export function executeAuthNavigation(
       }
       window.setTimeout(() => resetAuthFlow(), 0);
       return true;
-    }
-
-    if (
-      result.status === "success" &&
-      (result.routePhase === "onboarding_paywall" ||
-        result.routePhase === "standalone_paywall" ||
-        result.routePhase === "onboarding_start") &&
-      usesStoreBilling() &&
-      isStoreBillingConfigured()
-    ) {
-      void prefetchStoreOfferingPrices(null);
     }
 
     navigateOnce(navigate, target);

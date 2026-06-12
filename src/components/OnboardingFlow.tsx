@@ -91,7 +91,6 @@ import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
-import { prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 import { supabase } from "@/integrations/supabase/client";
 import { isAppleSignInAvailable, waitForAppleSignInSession } from "@/lib/appleSignIn";
 import {
@@ -660,12 +659,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   const { lightTap, successFeedback, selectionTap } = useHapticFeedback();
   const { user, session, signUp, signIn, signOut, signInWithGoogle, signInWithApple, isPremium, checkSubscription } =
     useAuth();
-  const {
-    prices: storePrices,
-    loading: storePricesLoading,
-    error: storePricesError,
-    reload: reloadStorePrices,
-  } = useStoreOfferingPrices(user?.id);
+  const { prices: storePrices } = useStoreOfferingPrices(user?.id);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -893,7 +887,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
 
     if (onboardingSteps.includes("paywall")) {
-      void prefetchStoreOfferingPrices(data.session.user.id);
       setCurrentStep("paywall");
     }
   }, []);
@@ -4229,9 +4222,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
             }}
             isCheckoutLoading={paywallCheckoutLoading}
             storePrices={storePrices}
-            storePricesLoading={storePricesLoading}
-            storePricesError={storePricesError}
-            onReloadStorePrices={reloadStorePrices}
             trialEligible={resolveTrialEligibleFromLocal()}
           />
         );
