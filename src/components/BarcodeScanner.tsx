@@ -286,11 +286,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           productDataRef.current = nutritionInfo;
           setProductData(nutritionInfo);
           setStatusHint(null);
-          toast({
-            title: `✅ ${t.barcodeProductRecognized}`,
-            description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
-          });
-          void onFoodScanned(nutritionInfo);
           return;
         }
 
@@ -308,7 +303,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         }
       }
     },
-    [lookupBarcode, onFoodScanned, pauseScanner, productData, resumeScanner, scheduleScannerRetry, t],
+    [lookupBarcode, pauseScanner, productData, resumeScanner, scheduleScannerRetry, t],
   );
 
   const startScanner = useCallback(
@@ -532,6 +527,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   const handleScanAnother = async () => {
     detectionLockRef.current = false;
+    productDataRef.current = null;
     setProductData(null);
     setIsLoading(false);
     setStatusHint(null);
@@ -539,7 +535,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (!resumed) await startScanner({ silent: true });
   };
 
+  const handleConfirmAdd = () => {
+    if (!productData) return;
+    void onFoodScanned(productData);
+  };
+
   const handleClose = () => {
+    productDataRef.current = null;
+    setProductData(null);
     void stopScanner();
     onClose();
   };
@@ -615,8 +618,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 </p>
               </div>
               <Button
-                onClick={handleScanAnother}
+                onClick={handleConfirmAdd}
                 className="w-full bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]"
+              >
+                {t.addToTrackerBtn}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => void handleScanAnother()}
+                className="w-full"
               >
                 🔄 {t.barcodeScanNewProduct}
               </Button>

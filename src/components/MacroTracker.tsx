@@ -19,7 +19,6 @@ import { usePremiumGate } from '@/contexts/PremiumGateContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
-import { ScanSuccessOverlay } from './ScanSuccessOverlay';
 import { FrigyFoodScanFlow, type FoodScanPhase } from '@/components/scan/FrigyFoodScanFlow';
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
@@ -190,8 +189,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     protein: number;
     carbs: number;
     fat: number;
+    image_url?: string;
   } | null>(null);
-  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showFoodCamera, setShowFoodCamera] = useState(false);
   const [foodScanPhase, setFoodScanPhase] = useState<FoodScanPhase>('capture');
@@ -205,7 +204,6 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     carbs: number;
     fat: number;
   } | null>(null);
-  const [scannedProductData, setScannedProductData] = useState<any>(null);
 
   const openLogMealPanel = useCallback((focus: MealFocusKey | null = null) => {
     setMealPromptKey(focus);
@@ -601,6 +599,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein: data.protein,
         carbs: data.carbs,
         fat: data.fat,
+        image_url: data.image_url,
       };
 
       if (imageBase64) {
@@ -610,10 +609,10 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setFoodScanPhase('success');
         setFoodScanProgress(100);
         scanFlowSettled = true;
-        playSuccess();
+        succeeded = true;
+        return succeeded;
       }
 
-      // Save to database with image_url (after UI update so scan flow never hangs)
       let savedEntry;
       try {
         savedEntry = await addDbEntry({
@@ -644,18 +643,11 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
-
-      if (!imageBase64) {
-        closeLogMealPanel();
-        toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
-        playClick();
-      }
-
+      closeLogMealPanel();
+      toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
+      playClick();
       recordActivity();
       checkAndAwardBadge('meal_logged');
-      if (imageBase64) {
-        void checkAndAwardBadge('first_scan');
-      }
       succeeded = true;
     } catch (error: any) {
       const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood;
@@ -709,6 +701,56 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     resetFoodScanToCapture();
     setShowFoodCamera(false);
     notifyOverlayOpen(false);
+  };
+
+  const cancelCameraFoodAdd = () => {
+    dismissFoodScanFlow();
+  };
+
+  const confirmCameraFoodAdd = async () => {
+    const result = foodScanSuccess;
+    if (!result) {
+      dismissFoodScanFlow();
+      return;
+    }
+
+    const resolvedMealType = normalizeMealTypeForSave(mealPromptKey);
+    let savedEntry;
+    try {
+      savedEntry = await addDbEntry({
+        name: result.name,
+        calories: Math.round(result.calories),
+        protein: Math.round(result.protein || 0),
+        carbs: Math.round(result.carbs || 0),
+        fat: Math.round(result.fat || 0),
+        meal_type: resolvedMealType,
+        image_url: result.image_url,
+      });
+    } catch (dbError: unknown) {
+      console.error('Database save error:', dbError);
+      savedEntry = null;
+    }
+
+    const newEntry: FoodEntry = {
+      id: savedEntry?.id || Date.now().toString(),
+      name: result.name,
+      calories: result.calories,
+      protein: result.protein,
+      carbs: result.carbs,
+      fat: result.fat,
+      time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
+      image_url: result.image_url,
+      meal_type: resolvedMealType,
+    };
+
+    saveFoodEntries([...foodEntries, newEntry]);
+    setLastAnalyzedFood(result);
+    recordActivity();
+    checkAndAwardBadge('meal_logged');
+    void checkAndAwardBadge('first_scan');
+    playSuccess();
+    toast({ title: t.foodAdded, description: `${result.name} - ${result.calories} kcal` });
+    dismissFoodScanFlow();
   };
 
   const openFoodCamera = () => {
@@ -857,9 +899,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     }
   };
 
-  const handleBarcodeScanned = async (food: any) => {
-    setScannedProductData(food);
-    setShowSuccessOverlay(true);
+  const handleBarcodeScanned = async (food: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    image?: string;
+  }) => {
     setShowBarcodeScanner(false);
     notifyOverlayOpen(false);
 
@@ -896,6 +943,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     void checkAndAwardBadge('first_scan');
     playSuccess();
     setLastAnalyzedFood(food);
+    toast({ title: t.foodAdded, description: `${food.name} - ${food.calories} kcal` });
   };
 
   const totalCalories = foodEntries.reduce((sum, e) => sum + e.calories, 0);
@@ -1539,26 +1587,13 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
             successResult={foodScanSuccess}
             onClose={closeFoodCamera}
             onCapture={processCameraFile}
-            onSuccessDismiss={dismissFoodScanFlow}
+            onSuccessConfirm={() => void confirmCameraFoodAdd()}
+            onSuccessCancel={cancelCameraFoodAdd}
             onScanAnotherAfterSuccess={scanAnotherFoodFromCamera}
             onRetryAfterError={resetFoodScanToCapture}
           />
         )}
       </AnimatePresence>
-
-      {/* Success Overlay after successful scan */}
-      <ScanSuccessOverlay
-        isVisible={showSuccessOverlay}
-        foodName={lastAnalyzedFood?.name || ''}
-        calories={lastAnalyzedFood?.calories || 0}
-        protein={lastAnalyzedFood?.protein || 0}
-        carbs={lastAnalyzedFood?.carbs || 0}
-        fat={lastAnalyzedFood?.fat || 0}
-        onComplete={() => {
-          setShowSuccessOverlay(false);
-          setAnalyzingImage(null);
-        }}
-      />
 
       {/* Barcode Scanner */}
       <BarcodeScanner
