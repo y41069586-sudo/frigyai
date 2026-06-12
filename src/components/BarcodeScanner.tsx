@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { notifyOverlayOpen } from '@/lib/overlayEvents';
@@ -25,9 +25,12 @@ interface BarcodeScannerProps {
   onFoodScanned: (food: NutritionInfo) => void;
 }
 
+const INIT_RETRY_DELAYS_MS = [400, 900, 1_600, 2_800] as const;
+const MAX_INIT_RETRY_DELAY_MS = 3_200;
+
 async function waitForReader(
   getEl: () => HTMLDivElement | null,
-  maxMs = 6000,
+  maxMs = 8000,
 ): Promise<HTMLDivElement | null> {
   const start = performance.now();
   while (performance.now() - start < maxMs) {
@@ -38,20 +41,26 @@ async function waitForReader(
   return getEl();
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScannerProps) => {
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [productData, setProductData] = useState<NutritionInfo | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [statusHint, setStatusHint] = useState<string | null>(null);
   const quaggaRef = useRef<QuaggaApi | null>(null);
   const detectionLockRef = useRef(false);
-  const detectionHandlerRef = useRef<((data: any) => void) | null>(null);
+  const detectionHandlerRef = useRef<((data: { codeResult?: { code?: string } }) => void) | null>(null);
   const readerRef = useRef<HTMLDivElement | null>(null);
   const startGenerationRef = useRef(0);
   const isOpenRef = useRef(isOpen);
   const watchdogTimerRef = useRef<number | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
+  const initAttemptRef = useRef(0);
   const lastDetectedCodeRef = useRef<string | null>(null);
   const lastDetectedHitsRef = useRef(0);
   const healthFailCountRef = useRef(0);
@@ -72,6 +81,29 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     isOpenRef.current = isOpen;
     notifyOverlayOpen(isOpen);
   }, [isOpen]);
+
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current != null) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleScannerRetry = useCallback(
+    (attempt = 0) => {
+      if (!isOpenRef.current || productDataRef.current) return;
+      clearRetryTimer();
+      const delay =
+        INIT_RETRY_DELAYS_MS[Math.min(attempt, INIT_RETRY_DELAYS_MS.length - 1)] ??
+        MAX_INIT_RETRY_DELAY_MS;
+      retryTimerRef.current = window.setTimeout(() => {
+        retryTimerRef.current = null;
+        if (!isOpenRef.current || productDataRef.current) return;
+        void startScannerRef.current({ silent: true, retryAttempt: attempt + 1 });
+      }, delay);
+    },
+    [clearRetryTimer],
+  );
 
   const prepareMobileVideo = useCallback(() => {
     const video = readerRef.current?.querySelector('video') as HTMLVideoElement | null;
@@ -112,6 +144,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       Quagga.start();
       window.setTimeout(prepareMobileVideo, 80);
       setIsScannerActive(true);
+      setStatusHint(null);
       return true;
     } catch (resumeErr) {
       console.warn('[BarcodeScanner] Scanner resume error:', resumeErr);
@@ -120,6 +153,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   }, [prepareMobileVideo]);
 
   const stopScanner = useCallback(async () => {
+    clearRetryTimer();
     try {
       const Quagga = quaggaRef.current;
       if (Quagga) {
@@ -155,7 +189,72 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         watchdogTimerRef.current = null;
       }
     }
-  }, []);
+  }, [clearRetryTimer]);
+
+  const lookupBarcode = useCallback(
+    async (normalizedBarcode: string): Promise<NutritionInfo | null> => {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 10_000);
+        try {
+          const response = await fetch(
+            `https://world.openfoodfacts.org/api/v0/product/${normalizedBarcode}.json`,
+            { signal: controller.signal },
+          );
+          window.clearTimeout(timeoutId);
+          if (!response.ok) {
+            if (attempt === 0) {
+              await sleep(500);
+              continue;
+            }
+            return null;
+          }
+
+          const data = await response.json();
+          if (data.status !== 1 || !data.product) return null;
+
+          const p = data.product;
+          const productName = String(p.product_name_de || p.product_name || '').trim();
+          const isPowder =
+            /\b(kakaopulver|kakao|cocoa|pulver|powder|backpulver|matcha)\b/i.test(productName) &&
+            !/\b(getränk|drink|milch|milk|saft|juice)\b/i.test(productName);
+          let servingSize = Number(p.serving_quantity) || 0;
+          if (servingSize <= 0 || servingSize > 250) {
+            servingSize = isPowder ? 8 : 100;
+          } else if (isPowder && servingSize >= 40) {
+            servingSize = 8;
+          }
+          const multiplier = servingSize / 100;
+          const nutriments = p.nutriments || {};
+
+          const displayName = isPowder && /\bkakao\b/i.test(productName)
+            ? 'Kakaopulver (1 EL)'
+            : (productName || t.barcodeUnknownProduct);
+
+          return {
+            name: displayName,
+            calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
+            protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
+            carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
+            fat: Math.round((nutriments.fat_100g || 0) * multiplier),
+            image: p.image_front_small_url || p.image_url,
+            brand: p.brands,
+            barcode: normalizedBarcode,
+          };
+        } catch (err) {
+          window.clearTimeout(timeoutId);
+          console.warn('[BarcodeScanner] Product lookup failed:', err);
+          if (attempt === 0) {
+            await sleep(500);
+            continue;
+          }
+          return null;
+        }
+      }
+      return null;
+    },
+    [t.barcodeUnknownProduct],
+  );
 
   const handleBarcodeDetected = useCallback(
     async (barcode: string) => {
@@ -170,287 +269,221 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       }
       if (lastDetectedHitsRef.current < 2) return;
 
-    detectionLockRef.current = true;
-    lastDetectedCodeRef.current = null;
-    lastDetectedHitsRef.current = 0;
-
-    try {
-      pauseScanner();
-      setIsLoading(true);
-
-        const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 9000);
-
-        const response = await fetch(
-          `https://world.openfoodfacts.org/api/v0/product/${normalizedBarcode}.json`,
-          { signal: controller.signal },
-        );
-        window.clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.status === 1 && data.product) {
-        const p = data.product;
-        const productName = String(p.product_name_de || p.product_name || '').trim();
-        const isPowder =
-          /\b(kakaopulver|kakao|cocoa|pulver|powder|backpulver|matcha)\b/i.test(productName) &&
-          !/\b(getränk|drink|milch|milk|saft|juice)\b/i.test(productName);
-        let servingSize = Number(p.serving_quantity) || 0;
-        if (servingSize <= 0 || servingSize > 250) {
-          servingSize = isPowder ? 8 : 100;
-        } else if (isPowder && servingSize >= 40) {
-          servingSize = 8;
-        }
-        const multiplier = servingSize / 100;
-        const nutriments = p.nutriments || {};
-
-        const displayName = isPowder && /\bkakao\b/i.test(productName)
-          ? 'Kakaopulver (1 EL)'
-          : (productName || t.barcodeUnknownProduct);
-
-        const nutritionInfo: NutritionInfo = {
-          name: displayName,
-          calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
-          protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
-          carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
-          fat: Math.round((nutriments.fat_100g || 0) * multiplier),
-          image: p.image_front_small_url || p.image_url,
-          brand: p.brands,
-          barcode: normalizedBarcode,
-        };
-
-        setProductData(nutritionInfo);
-        toast({
-          title: `✅ ${t.barcodeProductRecognized}`,
-          description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
-        });
-          void onFoodScanned(nutritionInfo);
-      } else {
-        toast({
-          title: `❌ ${t.barcodeProductNotFound}`,
-          description: t.barcodeNotInDatabase,
-          variant: 'destructive',
-        });
-
-          detectionLockRef.current = false;
-          if (isOpenRef.current) {
-            const resumed = await resumeScanner();
-            if (!resumed) await startScannerRef.current({ silent: true });
-          }
-      }
-    } catch (err: any) {
-      console.error('[BarcodeScanner] Error:', err);
-      toast({
-        title: t.error,
-        description: err.message || t.barcodeFetchError,
-        variant: 'destructive',
-      });
-
-        detectionLockRef.current = false;
-        if (isOpenRef.current) {
-          const resumed = await resumeScanner();
-          if (!resumed) await startScannerRef.current({ silent: true });
-        }
-    } finally {
-        setIsLoading(false);
-      }
-    },
-    [onFoodScanned, pauseScanner, productData, resumeScanner, t],
-  );
-
-  const startScanner = useCallback(async (options?: { silent?: boolean }) => {
-    const silent = options?.silent === true;
-    const generation = ++startGenerationRef.current;
-
-    try {
-      setError(null);
-      setIsInitializing(true);
-      setIsScannerActive(false);
-      setIsLoading(false);
-      detectionLockRef.current = false;
+      detectionLockRef.current = true;
       lastDetectedCodeRef.current = null;
       lastDetectedHitsRef.current = 0;
 
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setError(`❌ ${t.barcodeNoCameraSupport}`);
-        return;
+      let foundProduct = false;
+      try {
+        pauseScanner();
+        setIsLoading(true);
+        setStatusHint(t.barcodeLoadingProduct);
+
+        const nutritionInfo = await lookupBarcode(normalizedBarcode);
+
+        if (nutritionInfo) {
+          foundProduct = true;
+          productDataRef.current = nutritionInfo;
+          setProductData(nutritionInfo);
+          setStatusHint(null);
+          toast({
+            title: `✅ ${t.barcodeProductRecognized}`,
+            description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
+          });
+          void onFoodScanned(nutritionInfo);
+          return;
+        }
+
+        setStatusHint(t.barcodeNotInDatabase);
+        toast({
+          title: t.barcodeProductNotFound,
+          description: t.barcodeHoldInFrame,
+        });
+      } finally {
+        detectionLockRef.current = false;
+        setIsLoading(false);
+        if (!foundProduct && isOpenRef.current && !productDataRef.current) {
+          const resumed = await resumeScanner();
+          if (!resumed) scheduleScannerRetry(0);
+        }
       }
+    },
+    [lookupBarcode, onFoodScanned, pauseScanner, productData, resumeScanner, scheduleScannerRetry, t],
+  );
 
-      if (!window.isSecureContext) {
-        setError(`❌ ${t.barcodeNeedsHttps}`);
-        return;
-      }
+  const startScanner = useCallback(
+    async (options?: { silent?: boolean; retryAttempt?: number }) => {
+      const retryAttempt = options?.retryAttempt ?? 0;
+      const generation = ++startGenerationRef.current;
 
-      let reader = await waitForReader(() => readerRef.current);
-      if (!reader) {
-        await new Promise<void>((r) => window.setTimeout(r, 350));
-        reader = await waitForReader(() => readerRef.current, 3500);
-      }
-      if (!reader || generation !== startGenerationRef.current || !isOpenRef.current) {
-        if (isOpenRef.current && !silent) setError(`❌ ${t.barcodeScannerOpenFailed}`);
-        return;
-      }
+      try {
+        setIsInitializing(true);
+        setIsScannerActive(false);
+        setIsLoading(false);
+        setStatusHint(retryAttempt > 0 ? t.barcodeHoldInFrame : null);
+        detectionLockRef.current = false;
+        lastDetectedCodeRef.current = null;
+        lastDetectedHitsRef.current = 0;
 
-      reader.innerHTML = '';
+        if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+          scheduleScannerRetry(retryAttempt);
+          return;
+        }
 
-      const Quagga = (await import('@ericblade/quagga2')).default;
-      if (!Quagga || generation !== startGenerationRef.current || !isOpenRef.current) {
-        if (!silent) setError(`❌ ${t.barcodeScannerLoadFailed}`);
-        return;
-      }
+        let reader = await waitForReader(() => readerRef.current);
+        if (!reader) {
+          await sleep(300);
+          reader = await waitForReader(() => readerRef.current, 5000);
+        }
+        if (!reader || generation !== startGenerationRef.current || !isOpenRef.current) {
+          scheduleScannerRetry(retryAttempt);
+          return;
+        }
 
-      quaggaRef.current = Quagga;
+        if (reader.childElementCount > 0) {
+          reader.innerHTML = '';
+        }
 
-      await new Promise<void>((resolve, reject) => {
-        const initTimeout = window.setTimeout(() => {
-          reject(new Error('Quagga initialization timeout'));
-        }, 12000);
+        const Quagga = (await import('@ericblade/quagga2')).default;
+        if (!Quagga || generation !== startGenerationRef.current || !isOpenRef.current) {
+          scheduleScannerRetry(retryAttempt);
+          return;
+        }
 
-        Quagga.init(
-          {
-            frequency: 18,
-            inputStream: {
-              type: 'LiveStream',
-              target: reader,
-              constraints: {
-                facingMode: { ideal: 'environment' },
-                width: { min: 480, ideal: 1280, max: 1920 },
-                height: { min: 360, ideal: 720, max: 1080 },
+        quaggaRef.current = Quagga;
+
+        const attempt = initAttemptRef.current % 3;
+        initAttemptRef.current += 1;
+        const facingMode =
+          attempt === 0 ? { ideal: 'environment' as const } : attempt === 1 ? 'environment' : 'user';
+
+        await new Promise<void>((resolve, reject) => {
+          const initTimeout = window.setTimeout(() => {
+            reject(new Error('Quagga initialization timeout'));
+          }, 14_000);
+
+          Quagga.init(
+            {
+              frequency: 20,
+              inputStream: {
+                type: 'LiveStream',
+                target: reader,
+                constraints: {
+                  facingMode,
+                  width: { min: 320, ideal: 1280, max: 1920 },
+                  height: { min: 240, ideal: 720, max: 1080 },
+                },
+                area: { top: '22%', right: '4%', bottom: '22%', left: '4%' },
               },
-              area: { top: '28%', right: '4%', bottom: '28%', left: '4%' },
+              locator: { patchSize: 'medium', halfSample: true },
+              locate: false,
+              numOfWorkers: 0,
+              decoder: {
+                readers: [
+                  'ean_reader',
+                  'ean_8_reader',
+                  'upc_reader',
+                  'upc_e_reader',
+                  'code_128_reader',
+                  'code_39_reader',
+                  'codabar_reader',
+                ],
+              },
             },
-            locator: { patchSize: 'medium', halfSample: true },
-            locate: false,
-            numOfWorkers: 0,
-            decoder: {
-              readers: [
-                'ean_reader',
-                'ean_8_reader',
-                'upc_reader',
-                'upc_e_reader',
-                'code_128_reader',
-                'code_39_reader',
-              ],
+            (err: unknown) => {
+              window.clearTimeout(initTimeout);
+              if (err) reject(err);
+              else resolve();
             },
-          },
-          (err: unknown) => {
-            window.clearTimeout(initTimeout);
-            if (err) reject(err);
-            else resolve();
-          },
-        );
-      });
+          );
+        });
 
-      if (generation !== startGenerationRef.current || !isOpenRef.current) {
-        try {
-          Quagga.stop();
-        } catch {
-          /* ignore */
-        }
-        return;
-      }
-
-      Quagga.start();
-      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      prepareMobileVideo();
-
-      const detectionHandler = (data: { codeResult?: { code?: string } }) => {
-        const code = data?.codeResult?.code;
-        if (code) void handleBarcodeDetected(code);
-      };
-      detectionHandlerRef.current = detectionHandler;
-      Quagga.onDetected(detectionHandler);
-
-      setIsScannerActive(true);
-      setIsInitializing(false);
-      healthFailCountRef.current = 0;
-
-      if (watchdogTimerRef.current != null) {
-        window.clearInterval(watchdogTimerRef.current);
-      }
-      watchdogTimerRef.current = window.setInterval(() => {
-        if (
-          !isOpenRef.current ||
-          !readerRef.current ||
-          detectionLockRef.current ||
-          productDataRef.current ||
-          isLoadingRef.current
-        ) {
-          return;
-        }
-        const video = readerRef.current.querySelector('video') as HTMLVideoElement | null;
-        if (!video) return;
-
-        const streamLive = video.srcObject instanceof MediaStream
-          ? video.srcObject.getVideoTracks().some((track) => track.readyState === 'live')
-          : true;
-
-        const needsNudge =
-          video.videoWidth < 1 ||
-          video.readyState < 2 ||
-          !streamLive ||
-          (video.paused && document.visibilityState === 'visible');
-
-        if (needsNudge) {
-          healthFailCountRef.current += 1;
-          void video.play().catch(() => undefined);
-          prepareMobileVideo();
-          if (healthFailCountRef.current >= 8 && !recoverInFlightRef.current) {
-            recoverInFlightRef.current = true;
-            healthFailCountRef.current = 0;
-            void (async () => {
-              try {
-                await stopScanner();
-                if (isOpenRef.current) await startScannerRef.current({ silent: true });
-              } catch (recoverErr) {
-                console.warn('[BarcodeScanner] Silent recover failed:', recoverErr);
-              } finally {
-                recoverInFlightRef.current = false;
-              }
-            })();
+        if (generation !== startGenerationRef.current || !isOpenRef.current) {
+          try {
+            Quagga.stop();
+          } catch {
+            /* ignore */
           }
           return;
         }
 
+        Quagga.start();
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        prepareMobileVideo();
+
+        const detectionHandler = (data: { codeResult?: { code?: string } }) => {
+          const code = data?.codeResult?.code;
+          if (code) void handleBarcodeDetected(code);
+        };
+        detectionHandlerRef.current = detectionHandler;
+        Quagga.onDetected(detectionHandler);
+
+        setIsScannerActive(true);
+        setIsInitializing(false);
+        setStatusHint(null);
+        initAttemptRef.current = 0;
         healthFailCountRef.current = 0;
-      }, 3000);
-    } catch (err: unknown) {
-      if (generation !== startGenerationRef.current) return;
 
-      console.error('[BarcodeScanner] Scanner init error:', err);
-      if (silent) return;
-
-      let errorMsg = `❌ ${t.barcodeCameraStartFailed}`;
-      const errorName = `${(err as Error)?.name ?? ''} ${(err as Error)?.message ?? ''}`;
-      if (errorName.includes('NotAllowedError') || errorName.includes('PermissionDeniedError')) {
-        errorMsg = `❌ ${t.barcodeCameraDenied}`;
-      } else if (errorName.includes('NotFoundError') || errorName.includes('DevicesNotFoundError')) {
-        errorMsg = `❌ ${t.barcodeCameraNotFound}`;
-      } else if (errorName.includes('NotReadableError') || errorName.includes('TrackStartError')) {
-        errorMsg = `❌ ${t.barcodeCameraInUse}`;
-      } else if (errorName.includes('NotSupportedError') || errorName.includes('SecurityError')) {
-        errorMsg = `❌ ${t.barcodeCameraHttpsRequired}`;
-      } else if (errorName.includes('timeout')) {
-        errorMsg = `❌ ${t.barcodeCameraInitSlow}`;
-      }
-
-      setError(errorMsg);
-      setIsScannerActive(false);
-      setIsInitializing(false);
-
-      if (isOpenRef.current && !silent) {
-        window.setTimeout(() => {
-          if (isOpenRef.current && !quaggaRef.current) {
-            void startScannerRef.current({ silent: true });
+        if (watchdogTimerRef.current != null) {
+          window.clearInterval(watchdogTimerRef.current);
+        }
+        watchdogTimerRef.current = window.setInterval(() => {
+          if (
+            !isOpenRef.current ||
+            !readerRef.current ||
+            detectionLockRef.current ||
+            productDataRef.current ||
+            isLoadingRef.current
+          ) {
+            return;
           }
-        }, 900);
+          const video = readerRef.current.querySelector('video') as HTMLVideoElement | null;
+          if (!video) return;
+
+          const streamLive = video.srcObject instanceof MediaStream
+            ? video.srcObject.getVideoTracks().some((track) => track.readyState === 'live')
+            : true;
+
+          const needsNudge =
+            video.videoWidth < 1 ||
+            video.readyState < 2 ||
+            !streamLive ||
+            (video.paused && document.visibilityState === 'visible');
+
+          if (needsNudge) {
+            healthFailCountRef.current += 1;
+            void video.play().catch(() => undefined);
+            prepareMobileVideo();
+            if (healthFailCountRef.current >= 6 && !recoverInFlightRef.current) {
+              recoverInFlightRef.current = true;
+              healthFailCountRef.current = 0;
+              void (async () => {
+                try {
+                  await stopScanner();
+                  if (isOpenRef.current) await startScannerRef.current({ silent: true });
+                } catch (recoverErr) {
+                  console.warn('[BarcodeScanner] Silent recover failed:', recoverErr);
+                  scheduleScannerRetry(0);
+                } finally {
+                  recoverInFlightRef.current = false;
+                }
+              })();
+            }
+            return;
+          }
+
+          healthFailCountRef.current = 0;
+        }, 2500);
+      } catch (err: unknown) {
+        if (generation !== startGenerationRef.current) return;
+        console.warn('[BarcodeScanner] Scanner init retry:', err);
+        setIsScannerActive(false);
+        setIsInitializing(true);
+        scheduleScannerRetry(retryAttempt);
       }
-    }
-  }, [handleBarcodeDetected, prepareMobileVideo, stopScanner, t]);
+    },
+    [handleBarcodeDetected, prepareMobileVideo, scheduleScannerRetry, stopScanner, t.barcodeHoldInFrame],
+  );
 
   useEffect(() => {
     startScannerRef.current = startScanner;
@@ -460,14 +493,19 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     if (!isOpen) return;
     const onVisible = () => {
       if (document.visibilityState === 'visible' && isOpenRef.current) {
-        window.setTimeout(() => prepareMobileVideo(), 120);
+        window.setTimeout(() => {
+          prepareMobileVideo();
+          if (!quaggaRef.current && !productDataRef.current) {
+            scheduleScannerRetry(0);
+          }
+        }, 120);
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isOpen, prepareMobileVideo]);
+  }, [isOpen, prepareMobileVideo, scheduleScannerRetry]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -475,12 +513,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
       return undefined;
     }
 
-    setError(null);
     setProductData(null);
     setIsLoading(false);
-      setIsScannerActive(false);
-      setIsInitializing(false);
-      detectionLockRef.current = false;
+    setIsScannerActive(false);
+    setIsInitializing(true);
+    setStatusHint(null);
+    initAttemptRef.current = 0;
+    detectionLockRef.current = false;
     lastDetectedCodeRef.current = null;
     lastDetectedHitsRef.current = 0;
 
@@ -495,8 +534,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     detectionLockRef.current = false;
     setProductData(null);
     setIsLoading(false);
+    setStatusHint(null);
     const resumed = await resumeScanner();
-    if (!resumed) await startScanner();
+    if (!resumed) await startScanner({ silent: true });
   };
 
   const handleClose = () => {
@@ -506,7 +546,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   if (!isOpen) return null;
 
-  const showScanner = !error && !productData;
+  const showScanner = !productData;
+  const showBusyOverlay = isLoading || isInitializing;
 
   return (
     <AnimatePresence>
@@ -533,33 +574,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          {error ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="z-20 space-y-6 px-6 text-center"
-            >
-              <AlertCircle className="mx-auto h-20 w-20 text-destructive" />
-              <div>
-                <p className="mb-2 text-base font-semibold text-white">{t.error}</p>
-                <p className="text-sm text-white/70">{error}</p>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-                <Button
-                  onClick={() => {
-                    setError(null);
-                    void startScanner();
-                  }}
-                  className="bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]"
-                >
-                  {t.tryAgain}
-                </Button>
-                <Button variant="outline" onClick={handleClose} className="border-white/30 bg-white/10 text-white hover:bg-white/20">
-                  {t.close}
-                </Button>
-              </div>
-            </motion.div>
-          ) : productData ? (
+          {productData ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -608,25 +623,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             </motion.div>
           ) : null}
 
-          {/* Reader mount — always in DOM while open so init finds the target */}
-              <style>{`
-                #barcode-reader {
-                  position: absolute !important;
+          <style>{`
+            #barcode-reader {
+              position: absolute !important;
               inset: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  overflow: hidden !important;
+              width: 100% !important;
+              height: 100% !important;
+              overflow: hidden !important;
               opacity: ${showScanner ? 1 : 0};
               pointer-events: ${showScanner ? 'auto' : 'none'};
-                }
-                #barcode-reader video {
-                  position: absolute !important;
+            }
+            #barcode-reader video {
+              position: absolute !important;
               inset: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  object-fit: cover !important;
-                  display: block !important;
-                }
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: cover !important;
+              display: block !important;
+            }
             #barcode-reader video::-webkit-media-controls,
             #barcode-reader video::-webkit-media-controls-panel,
             #barcode-reader video::-webkit-media-controls-play-button,
@@ -636,16 +650,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               display: none !important;
               -webkit-appearance: none !important;
             }
-                #barcode-reader canvas {
-                  position: absolute !important;
+            #barcode-reader canvas {
+              position: absolute !important;
               inset: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  object-fit: cover !important;
-                  opacity: 0 !important;
-                  pointer-events: none !important;
-                }
-              `}</style>
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: cover !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+            }
+          `}</style>
           <div id="barcode-reader" ref={readerRef} className="absolute inset-0 h-full w-full overflow-hidden" />
 
           {showScanner && (
@@ -711,23 +725,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
               <div
                 className="relative overflow-hidden rounded-2xl"
                 style={{
-                  width: "min(94vw, 400px)",
-                  height: "min(44vw, 196px)",
+                  width: 'min(94vw, 400px)',
+                  height: 'min(44vw, 196px)',
                 }}
               >
                 <div
                   className="absolute inset-0 rounded-2xl"
-                  style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.52)" }}
+                  style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.52)' }}
                 />
-
                 <div className="absolute inset-0 rounded-2xl barcode-frame-pulse" />
-
                 {(
                   [
-                    "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-xl",
-                    "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-xl",
-                    "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-xl",
-                    "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-xl",
+                    'left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-xl',
+                    'right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-xl',
+                    'left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-xl',
+                    'right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-xl',
                   ] as const
                 ).map((cornerClass) => (
                   <div
@@ -735,28 +747,27 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                     className={`absolute h-8 w-8 border-[#75FBB2] ${cornerClass}`}
                   />
                 ))}
-
                 <div className="barcode-scan-glow" aria-hidden />
                 <div className="barcode-scan-line" aria-hidden />
               </div>
 
               <p className="absolute bottom-[max(2.5rem,env(safe-area-inset-bottom))] px-6 text-center text-sm font-medium text-white/90">
-                {t.barcodeHoldInFrame}
+                {statusHint ?? t.barcodeHoldInFrame}
               </p>
             </div>
           )}
 
-              {(isLoading || isInitializing) && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75"
-                >
+          {showBusyOverlay && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/55"
+            >
               <Loader2 className="mb-4 h-16 w-16 animate-spin text-[#75FBB2]" />
-              <p className="font-semibold text-white">
-                {isLoading ? t.barcodeLoadingProduct : t.barcodeHoldInFrame}
+              <p className="px-6 text-center font-semibold text-white">
+                {statusHint ?? (isLoading ? t.barcodeLoadingProduct : t.barcodeHoldInFrame)}
               </p>
-                </motion.div>
+            </motion.div>
           )}
         </motion.div>
       </motion.div>
