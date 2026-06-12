@@ -215,7 +215,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-19}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-20}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
