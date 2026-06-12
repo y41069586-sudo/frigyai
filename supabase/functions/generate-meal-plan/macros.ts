@@ -6,6 +6,12 @@ import {
   SLOT_WEIGHTS,
 } from "./constants.ts";
 import { sanitizeIngredient } from "./ingredientSanitize.ts";
+import {
+  aiMacrosUnrealisticForDishes,
+  dishCalorieWeightHint,
+  dishMaximumKcal,
+  dishMinimumKcal,
+} from "./mealCalorieHints.ts";
 import { sanitizeMealInstructions } from "./planMealSanitize.ts";
 import type {
   DayPlan,
@@ -211,24 +217,38 @@ export function correctSyncedDayDrift(meals: Meal[], targets: MacroTargets): Mea
   return adjusted;
 }
 
-/** Per-meal kcal weights: AI ratios when present, else slot + day + dish name (not identical every day). */
-function mealKcalWeights(meals: Meal[], mealsPerDay: number, dayIndex: number): number[] {
+/** Per-meal kcal weights: dish-aware hints, AI ratios only when realistic, else slot + day jitter. */
+function mealKcalWeights(
+  meals: Meal[],
+  mealsPerDay: number,
+  dayIndex: number,
+  dailyCalories: number,
+): number[] {
   const baseSlot = slotWeights(mealsPerDay);
   return meals.map((m, i) => {
     const p = Math.max(0, Number(m.protein) || 0);
     const c = Math.max(0, Number(m.carbs) || 0);
     const f = Math.max(0, Number(m.fat) || 0);
     const aiKcal = macroKcal(p, c, f);
-    if (aiKcal >= 80) return aiKcal;
+    const minKcal = dishMinimumKcal(m.name, m.type, dailyCalories, mealsPerDay);
+    const maxKcal = dishMaximumKcal(m.name, m.type, dailyCalories);
+    const aiRealistic = minKcal === 0 || aiKcal >= minKcal * 0.85;
+    const aiWithinMax = !Number.isFinite(maxKcal) || aiKcal <= maxKcal * 1.1;
+    if (aiKcal >= 80 && aiRealistic && aiWithinMax) return aiKcal;
 
+    const dishHint = dishCalorieWeightHint(m.name, m.type, i, mealsPerDay);
     const slot = mealSlotForSync(i, mealsPerDay);
     const slotHint = slot === "b" ? 0.2 : slot === "m" ? 0.36 : 0.12;
     const base = baseSlot[i] ?? slotHint;
+    let weight = Math.max(dishHint * dailyCalories, base * dailyCalories * 0.85);
+    if (minKcal > 0) weight = Math.max(weight, minKcal);
+    if (Number.isFinite(maxKcal)) weight = Math.min(weight, maxKcal);
+
     const name = String(m.name || "");
     let h = (dayIndex + 1) * 7919;
     for (let j = 0; j < name.length; j++) h = (Math.imul(h, 31) + name.charCodeAt(j)) >>> 0;
-    const jitter = 0.62 + (h % 76) / 100;
-    return Math.max(0.05, base * jitter);
+    const jitter = 0.88 + (h % 24) / 100;
+    return Math.max(0.05, weight * jitter);
   });
 }
 
@@ -268,11 +288,12 @@ export function syncDay(
   const aiTotals = sum.protein + sum.carbs + sum.fat;
   const kcalSpread = meals.map((m) => macroKcal(Number(m.protein) || 0, Number(m.carbs) || 0, Number(m.fat) || 0));
   const distinctKcals = new Set(kcalSpread.map((k) => Math.round(k / 40))).size;
+  const unrealisticAi = aiMacrosUnrealisticForDishes(meals, t.dailyCalories, mealsPerDay);
 
-  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length)) {
+  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length) && !unrealisticAi) {
     meals = scaleMealsToDailyTargets(meals, t);
   } else {
-    const w = mealKcalWeights(meals, mealsPerDay, dayIndex);
+    const w = mealKcalWeights(meals, mealsPerDay, dayIndex, t.dailyCalories);
     const proteins = distributeIntegers(t.dailyProtein, w);
     const carbs = distributeIntegers(t.dailyCarbs, w);
     const fats = distributeIntegers(t.dailyFat, w);
