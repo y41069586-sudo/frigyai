@@ -27,19 +27,22 @@ type CircleMaskGeometry = {
   cx: string;
   cy: string;
   radius: string;
+  cxPx: number;
+  cyPx: number;
+  radiusPx: number;
 };
 
 const DEFAULT_CIRCLE_MASK: CircleMaskGeometry = {
   cx: "50%",
   cy: "50%",
   radius: "min(42vw, 180px)",
+  cxPx: 0,
+  cyPx: 0,
+  radiusPx: 180,
 };
 
-function circleMaskGradient(
-  { cx, cy, radius }: CircleMaskGeometry,
-  holeRadius: string = radius,
-): string {
-  return `radial-gradient(circle at ${cx} ${cy}, transparent 0, transparent ${holeRadius}, black calc(${holeRadius} + 1px))`;
+function circleClipPath(geom: CircleMaskGeometry, radiusPx = geom.radiusPx): string {
+  return `circle(${radiusPx.toFixed(1)}px at ${geom.cxPx.toFixed(1)}px ${geom.cyPx.toFixed(1)}px)`;
 }
 
 type FrigyLiveCameraCaptureProps = {
@@ -88,6 +91,7 @@ export function FrigyLiveCameraCapture({
   analyzingPhotoTotal,
 }: FrigyLiveCameraCaptureProps) {
   const { t } = useLanguage();
+  const rootRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const circleRef = useRef<HTMLDivElement>(null);
   const captureLockRef = useRef(false);
@@ -105,32 +109,71 @@ export function FrigyLiveCameraCapture({
 
   useLayoutEffect(() => {
     const el = circleRef.current;
-    if (!el || !active) return;
+    const root = rootRef.current;
+    if (!el || !root || !active) return;
 
     const updateMaskGeometry = () => {
       const node = circleRef.current;
-      if (!node) return;
+      const container = rootRef.current;
+      if (!node || !container) return;
       const rect = node.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
       if (rect.width < 1 || rect.height < 1) return;
 
+      const cxPx = rect.left + rect.width / 2 - containerRect.left;
+      const cyPx = rect.top + rect.height / 2 - containerRect.top;
+      const radiusPx = rect.width / 2;
       const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
       const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+
       setCircleMask({
         cx: `${cx.toFixed(2)}%`,
         cy: `${cy.toFixed(2)}%`,
-        radius: `${(rect.width / 2).toFixed(1)}px`,
+        radius: `${radiusPx.toFixed(1)}px`,
+        cxPx,
+        cyPx,
+        radiusPx,
       });
     };
 
     updateMaskGeometry();
     const observer = new ResizeObserver(updateMaskGeometry);
     observer.observe(el);
+    observer.observe(root);
     window.addEventListener("resize", updateMaskGeometry);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", updateMaskGeometry);
     };
   }, [active, analyzing]);
+
+  useLayoutEffect(() => {
+    if (!analyzing) return;
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const node = circleRef.current;
+        const container = rootRef.current;
+        if (!node || !container) return;
+        const rect = node.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (rect.width < 1) return;
+        const cxPx = rect.left + rect.width / 2 - containerRect.left;
+        const cyPx = rect.top + rect.height / 2 - containerRect.top;
+        const radiusPx = rect.width / 2;
+        const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+        const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+        setCircleMask({
+          cx: `${cx.toFixed(2)}%`,
+          cy: `${cy.toFixed(2)}%`,
+          radius: `${radiusPx.toFixed(1)}px`,
+          cxPx,
+          cyPx,
+          radiusPx,
+        });
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [analyzing]);
 
   const showCameraHint =
     !analyzing &&
@@ -139,6 +182,14 @@ export function FrigyLiveCameraCapture({
 
   const progressValue =
     typeof analyzingProgress === "number" ? Math.min(100, Math.max(0, analyzingProgress)) : null;
+  const containerW = rootRef.current?.clientWidth ?? (typeof window !== "undefined" ? window.innerWidth : 390);
+  const containerH = rootRef.current?.clientHeight ?? (typeof window !== "undefined" ? window.innerHeight : 844);
+  const expandedClipRadius =
+    Math.hypot(
+      Math.max(circleMask.cxPx, containerW - circleMask.cxPx),
+      Math.max(circleMask.cyPx, containerH - circleMask.cyPx),
+    ) + 24;
+  const maskReady = circleMask.radiusPx > 0;
   const showPhotoCounter =
     analyzing &&
     typeof analyzingPhotoIndex === "number" &&
@@ -188,6 +239,7 @@ export function FrigyLiveCameraCapture({
 
   return (
     <div
+      ref={rootRef}
       className={cn(
         "fixed inset-0 z-[120] flex flex-col safe-area-inset bg-black text-white",
         analyzing && "text-neutral-950",
@@ -339,23 +391,21 @@ export function FrigyLiveCameraCapture({
           />
           <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-transparent to-black/65" />
         </>
-      ) : (
+      ) : maskReady ? (
         <motion.div
           key="analyze-white-mask"
           initial={{
             opacity: 0,
-            WebkitMaskImage: circleMaskGradient(circleMask),
-            maskImage: circleMaskGradient(circleMask),
+            clipPath: circleClipPath(circleMask, Math.max(8, circleMask.radiusPx * 0.12)),
           }}
           animate={{
             opacity: 1,
-            WebkitMaskImage: circleMaskGradient(circleMask),
-            maskImage: circleMaskGradient(circleMask),
+            clipPath: circleClipPath(circleMask, expandedClipRadius),
           }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="pointer-events-none absolute inset-0 z-[2] bg-[#F6FFFA]"
+          transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute inset-0 z-[2] bg-[#F6FFFA] [will-change:clip-path,opacity]"
         />
-      )}
+      ) : null}
 
       {analyzing ? (
         <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(circle_at_50%_28%,rgba(117,251,178,0.14),transparent_30%)]" />
@@ -388,31 +438,43 @@ export function FrigyLiveCameraCapture({
           ref={circleRef}
           className={cn(
             "relative overflow-hidden rounded-full bg-transparent transition-[box-shadow,border-color] duration-500",
-            analyzing ? "border-0 shadow-none" : "border-[3px] border-[#75FBB2]",
+            analyzing
+              ? "border-[3px] border-transparent shadow-none"
+              : "border-[3px] border-[#75FBB2]",
           )}
           style={{ width: FRIGY_SCAN_CIRCLE_SIZE, height: FRIGY_SCAN_CIRCLE_SIZE }}
         >
-          {analyzing ? (
-            <div className="absolute inset-0 overflow-hidden rounded-full bg-white">
-              {analyzingPreviewUrl ? (
-                <img
-                  key={analyzingPreviewUrl}
-                  src={analyzingPreviewUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  draggable={false}
-                />
-              ) : (
-                <div className="h-full w-full bg-[linear-gradient(180deg,#FFFFFF_0%,#EEF7F1_100%)]" />
-              )}
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.28),transparent_42%)]" />
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                <div className="frigy-analyze-wind frigy-analyze-wind-soft" aria-hidden />
-                <div className="frigy-analyze-wind frigy-analyze-wind-core" aria-hidden />
-                <div className="frigy-analyze-wind frigy-analyze-wind-trail" aria-hidden />
-              </div>
-            </div>
-          ) : null}
+          <AnimatePresence mode="wait">
+            {analyzing ? (
+              <motion.div
+                key="analyze-circle-fill"
+                initial={{ opacity: 0, scale: 0.82 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 overflow-hidden rounded-full bg-white"
+                style={{ transformOrigin: "center center" }}
+              >
+                {analyzingPreviewUrl ? (
+                  <img
+                    key={analyzingPreviewUrl}
+                    src={analyzingPreviewUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-[linear-gradient(180deg,#FFFFFF_0%,#EEF7F1_100%)]" />
+                )}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.28),transparent_42%)]" />
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+                  <div className="frigy-analyze-wind frigy-analyze-wind-soft" aria-hidden />
+                  <div className="frigy-analyze-wind frigy-analyze-wind-core" aria-hidden />
+                  <div className="frigy-analyze-wind frigy-analyze-wind-trail" aria-hidden />
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
 
         <AnimatePresence>
