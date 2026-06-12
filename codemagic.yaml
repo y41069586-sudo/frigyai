@@ -25,7 +25,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
-        ANDROID_VERSION_CODE: "4"
+        ANDROID_VERSION_CODE: "7"
 
     scripts:
       - name: Verify build environment
@@ -132,7 +132,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
-        IOS_BUILD_NUMBER: "22"
+        IOS_BUILD_NUMBER: "23"
 
     scripts:
       - name: Verify build environment
@@ -215,7 +215,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-22}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-23}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
