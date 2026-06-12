@@ -21,7 +21,8 @@ type FrigyFoodScanFlowProps = {
   onClose: () => void;
   onCapture: (file: File) => void;
   onRetryAfterError?: () => void;
-  onSuccessDismiss?: () => void;
+  onSuccessConfirm?: () => void;
+  onSuccessCancel?: () => void;
   onScanAnotherAfterSuccess?: () => void;
 };
 
@@ -37,7 +38,8 @@ export function FrigyFoodScanFlow({
   onClose,
   onCapture,
   onRetryAfterError,
-  onSuccessDismiss,
+  onSuccessConfirm,
+  onSuccessCancel,
   onScanAnotherAfterSuccess,
 }: FrigyFoodScanFlowProps) {
   const { t } = useLanguage();
@@ -95,7 +97,8 @@ export function FrigyFoodScanFlow({
     return (
       <FrigyScanSuccessStage
         result={successResult}
-        onDismiss={() => onSuccessDismiss?.()}
+        onConfirm={() => onSuccessConfirm?.()}
+        onCancel={() => onSuccessCancel?.()}
         onScanAnother={onScanAnotherAfterSuccess}
       />
     );
