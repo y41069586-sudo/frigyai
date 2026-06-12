@@ -259,6 +259,10 @@ export function isAuthFlowOverlayVisible(): boolean {
   const { result, navigation } = snapshot;
 
   if (result.status === "pending") {
+    if (result.phase === "premium") {
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) return false;
+    }
     return true;
   }
   if (navigation.executing) {
@@ -285,6 +289,17 @@ export function dismissStalledAuthNavigation(): void {
   if (isMealPlanGenerationActive()) return;
 
   const { result, navigation } = getAuthFlowSnapshot();
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  if (
+    result.status === "pending" &&
+    result.phase === "premium" &&
+    POST_AUTH_MANUAL_NAV_PATHS.has(path) &&
+    !peekStashedOAuthCallbackUrl() &&
+    !getOAuthPending()
+  ) {
+    resetAuthFlow();
+    return;
+  }
   if (result.status === "pending") return;
   if (navigation.executing) return;
   if (isAuthNavigationPending()) return;
@@ -292,7 +307,6 @@ export function dismissStalledAuthNavigation(): void {
   if (isOnboardingOAuthPending()) return;
   if (result.status === "success" && navigation.executed) return;
 
-  const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (POST_AUTH_MANUAL_NAV_PATHS.has(path)) {
     resetAuthFlow();
     return;

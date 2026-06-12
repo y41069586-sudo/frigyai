@@ -348,12 +348,11 @@ const Index = () => {
         return;
       }
 
-      if (
-        isOnboardingInProgress() ||
-        onboardingLatch ||
-        isAuthCompletionPending() ||
-        isAuthNavigationPending()
-      ) {
+      const authFlowBlocksOnboarding =
+        (isAuthCompletionPending() || isAuthNavigationPending()) &&
+        !(hasCompletedOnboarding || dbOnboardingComplete);
+
+      if (isOnboardingInProgress() || onboardingLatch || authFlowBlocksOnboarding) {
         setShowOnboarding(true);
         setOnboardingComplete(false);
         return;

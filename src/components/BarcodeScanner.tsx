@@ -67,7 +67,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const recoverInFlightRef = useRef(false);
   const productDataRef = useRef(productData);
   const isLoadingRef = useRef(false);
+  const onFoodScannedRef = useRef(onFoodScanned);
   const startScannerRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
     productDataRef.current = productData;
@@ -81,6 +83,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     isOpenRef.current = isOpen;
     notifyOverlayOpen(isOpen);
   }, [isOpen]);
+
+  useEffect(() => {
+    onFoodScannedRef.current = onFoodScanned;
+  }, [onFoodScanned]);
 
   const clearRetryTimer = useCallback(() => {
     if (retryTimerRef.current != null) {
@@ -259,7 +265,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const handleBarcodeDetected = useCallback(
     async (barcode: string) => {
       const normalizedBarcode = String(barcode || '').replace(/\s+/g, '').trim();
-      if (!normalizedBarcode || normalizedBarcode.length < 6 || detectionLockRef.current || productData) return;
+      if (
+        !normalizedBarcode ||
+        normalizedBarcode.length < 6 ||
+        detectionLockRef.current ||
+        productDataRef.current
+      ) {
+        return;
+      }
 
       if (lastDetectedCodeRef.current === normalizedBarcode) {
         lastDetectedHitsRef.current += 1;
@@ -441,15 +454,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
           const needsNudge =
             video.videoWidth < 1 ||
-            video.readyState < 2 ||
-            !streamLive ||
-            (video.paused && document.visibilityState === 'visible');
+            (video.readyState < 2 && !streamLive) ||
+            (!streamLive && document.visibilityState === 'visible');
 
           if (needsNudge) {
             healthFailCountRef.current += 1;
             void video.play().catch(() => undefined);
             prepareMobileVideo();
-            if (healthFailCountRef.current >= 6 && !recoverInFlightRef.current) {
+            if (healthFailCountRef.current >= 10 && !recoverInFlightRef.current) {
               recoverInFlightRef.current = true;
               healthFailCountRef.current = 0;
               void (async () => {
@@ -473,7 +485,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         if (generation !== startGenerationRef.current) return;
         console.warn('[BarcodeScanner] Scanner init retry:', err);
         setIsScannerActive(false);
-        setIsInitializing(true);
+        setIsInitializing(false);
         scheduleScannerRetry(retryAttempt);
       }
     },
@@ -504,11 +516,17 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   useEffect(() => {
     if (!isOpen) {
+      wasOpenRef.current = false;
       void stopScanner();
       return undefined;
     }
 
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
+    if (!justOpened) return undefined;
+
     setProductData(null);
+    productDataRef.current = null;
     setIsLoading(false);
     setIsScannerActive(false);
     setIsInitializing(true);
@@ -518,12 +536,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     lastDetectedCodeRef.current = null;
     lastDetectedHitsRef.current = 0;
 
-    void startScanner();
+    void startScannerRef.current();
 
     return () => {
       void stopScanner();
     };
-  }, [isOpen, startScanner, stopScanner]);
+  }, [isOpen, stopScanner]);
 
   const handleScanAnother = async () => {
     detectionLockRef.current = false;

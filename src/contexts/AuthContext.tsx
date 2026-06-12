@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, clearSupabaseAuthStorage } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -230,9 +230,42 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const checkSubscription = async (): Promise<SubscriptionStatus | null> => {
-    let accessToken = session?.access_token;
-    let userId = user?.id ?? session?.user?.id;
+  // Refs for stable checkSubscription (avoids retriggering auth bootstrap on every render)
+  const sessionRef = useRef<Session | null>(null);
+  const userRef = useRef(user);
+  const sessionRestoringRef = useRef(false);
+  const resumeSessionInFlightRef = useRef(false);
+  const lastResumeAtRef = useRef(0);
+
+  const applySession = (nextSession: Session | null) => {
+    if (nextSession?.user?.email) {
+      markKnownAccountEmail(nextSession.user.email);
+    }
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+  };
+
+  const refreshSessionFromStorage = async (options?: {
+    maxAttempts?: number;
+    initialDelayMs?: number;
+  }): Promise<Session | null> => {
+    return resumeAuthSession({
+      maxAttempts: options?.maxAttempts ?? 5,
+      initialDelayMs: options?.initialDelayMs ?? 0,
+    });
+  };
+  
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const checkSubscription = useCallback(async (): Promise<SubscriptionStatus | null> => {
+    let accessToken = sessionRef.current?.access_token;
+    let userId = userRef.current?.id ?? sessionRef.current?.user?.id;
     if (!accessToken) {
       const { data } = await supabase.auth.getSession();
       accessToken = data.session?.access_token;
@@ -266,35 +299,7 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
       }
       return null;
     }
-  };
-
-  // Use ref to track session for visibility change handler (avoids dependency issues)
-  const sessionRef = useRef<Session | null>(null);
-  const sessionRestoringRef = useRef(false);
-  const resumeSessionInFlightRef = useRef(false);
-  const lastResumeAtRef = useRef(0);
-
-  const applySession = (nextSession: Session | null) => {
-    if (nextSession?.user?.email) {
-      markKnownAccountEmail(nextSession.user.email);
-    }
-    setSession(nextSession);
-    setUser(nextSession?.user ?? null);
-  };
-
-  const refreshSessionFromStorage = async (options?: {
-    maxAttempts?: number;
-    initialDelayMs?: number;
-  }): Promise<Session | null> => {
-    return resumeAuthSession({
-      maxAttempts: options?.maxAttempts ?? 5,
-      initialDelayMs: options?.initialDelayMs ?? 0,
-    });
-  };
-  
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
