@@ -7,13 +7,14 @@ function isChottuLinkConfigured(): boolean {
   return Boolean((import.meta.env.VITE_CHOTTULINK_API_KEY as string | undefined)?.trim());
 }
 
-/** Link ChottuLink install attribution to the logged-in Supabase user. */
+/** Link ChottuLink install attribution to the logged-in Supabase user (iOS only for now). */
 export async function identifyChottuLinkUser(options: {
   userId: string;
   email?: string | null;
   name?: string | null;
 }): Promise<void> {
   if (!Capacitor.isNativePlatform() || !isChottuLinkConfigured()) return;
+  if (Capacitor.getPlatform() === "android") return;
 
   try {
     await ChottuLinkNative.identify({
@@ -34,11 +35,12 @@ export type StorePurchaseConversionInput = {
   transactionId?: string;
 };
 
-/** Fire ChottuLink conversion for influencer revenue in their dashboard. */
+/** Fire ChottuLink conversion for influencer revenue in their dashboard (iOS only for now). */
 export async function trackChottuLinkStoreConversion(
   input: StorePurchaseConversionInput,
 ): Promise<void> {
   if (!Capacitor.isNativePlatform() || !isChottuLinkConfigured()) return;
+  if (Capacitor.getPlatform() === "android") return;
   if (!getStoredInfluencerRef()) return;
   if (!Number.isFinite(input.revenue) || input.revenue <= 0) return;
 
