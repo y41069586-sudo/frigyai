@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { recordRevenueCatAffiliateCommission } from "../_shared/affiliate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,7 +27,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const event = body?.event;
+    const event = (body?.event ?? {}) as Record<string, unknown>;
     const appUserId = event?.app_user_id ?? event?.original_app_user_id;
     if (!appUserId || typeof appUserId !== "string") {
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
@@ -65,7 +66,21 @@ serve(async (req) => {
       { onConflict: "user_id" },
     );
 
-    return new Response(JSON.stringify({ ok: true }), {
+    let affiliate: { recorded: boolean; reason?: string } = { recorded: false };
+    try {
+      affiliate = await recordRevenueCatAffiliateCommission(supabase, event);
+      if (affiliate.recorded) {
+        console.log("[revenuecat-webhook] affiliate commission recorded", {
+          userId: appUserId,
+          eventId: event.id,
+          type: event.type,
+        });
+      }
+    } catch (affiliateError) {
+      console.error("[revenuecat-webhook] affiliate commission failed:", affiliateError);
+    }
+
+    return new Response(JSON.stringify({ ok: true, affiliate }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {

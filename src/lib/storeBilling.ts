@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import type { PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { usesStoreBilling } from "@/lib/billingPlatform";
+import { trackChottuLinkStoreConversion } from "@/lib/chottuLinkAnalytics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import {
   readCachedStoreOfferingPrices,
@@ -769,6 +770,15 @@ async function purchaseStandardYearly(
   return Purchases.purchasePackage({ aPackage: yearlyPkg });
 }
 
+function resolvePlanPriceForAnalytics(
+  plan: PaywallBillingPlan,
+  prices: StoreOfferingPrices,
+): StorePlanPrice | null {
+  if (plan === "yearly_promo") return prices.yearlyPromo ?? prices.yearly;
+  if (plan === "yearly") return prices.yearly;
+  return prices.monthly;
+}
+
 export async function purchaseStorePlan(
   plan: PaywallBillingPlan,
   accessToken: string,
@@ -821,6 +831,16 @@ export async function purchaseStorePlan(
     }
 
     await syncStoreSubscriptionToServer(accessToken);
+
+    const analyticsPrices = mapOfferingPrices(offerings);
+    const planPrice = resolvePlanPriceForAnalytics(plan, analyticsPrices);
+    void trackChottuLinkStoreConversion({
+      plan,
+      revenue: planPrice?.price ?? 0,
+      currency: planPrice?.currencyCode,
+      productId: planPrice?.productIdentifier ?? active.productIdentifier,
+    });
+
     return { ok: true };
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string; userCancelled?: boolean };

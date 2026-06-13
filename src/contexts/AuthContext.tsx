@@ -4,6 +4,7 @@ import { supabase, clearSupabaseAuthStorage } from '@/integrations/supabase/clie
 import { useToast } from '@/hooks/use-toast';
 import { redeemPendingReferralCode } from '@/lib/referralCode';
 import { syncAffiliateAttributionToServer } from '@/lib/affiliateSync';
+import { identifyChottuLinkUser } from '@/lib/chottuLinkAnalytics';
 import { applyDeferredReferralOnFirstOpen } from '@/lib/referralAttribution';
 import {
   isEmailNotConfirmed,
@@ -201,6 +202,14 @@ const AuthProviderInner = ({ children }: { children: ReactNode }) => {
   const loadSubscriptionFast = async (userId: string, accessToken: string) => {
     applyDeferredReferralOnFirstOpen();
     await syncAffiliateAttributionToServer(accessToken, { source: "auth" });
+
+    const { data: authData } = await supabase.auth.getUser(accessToken);
+    const authUser = authData.user;
+    void identifyChottuLinkUser({
+      userId,
+      email: authUser?.email ?? null,
+      name: (authUser?.user_metadata?.full_name as string | undefined) ?? null,
+    });
 
     const referral = await redeemPendingReferralCode(accessToken);
     if (referral.success && referral.message && !referral.already_redeemed) {

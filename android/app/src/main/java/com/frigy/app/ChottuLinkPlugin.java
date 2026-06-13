@@ -12,6 +12,12 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.PluginMethod;
 
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 @CapacitorPlugin(name = "ChottuLink")
 public class ChottuLinkPlugin extends Plugin {
 
@@ -104,6 +110,86 @@ public class ChottuLinkPlugin extends Plugin {
         } catch (Exception error) {
             call.reject(error.getMessage(), error);
         }
+    }
+
+    @PluginMethod
+    public void identify(PluginCall call) {
+        String id = call.getString("id");
+        if (id == null || id.trim().isEmpty()) {
+            call.reject("id is required");
+            return;
+        }
+
+        try {
+            ChottuLink.CustomerMeta.Builder builder = new ChottuLink.CustomerMeta.Builder();
+            builder.setId(id.trim());
+            if (call.getString("name") != null) builder.setName(call.getString("name"));
+            if (call.getString("email") != null) builder.setEmail(call.getString("email"));
+            if (call.getString("phone") != null) builder.setPhone(call.getString("phone"));
+            if (call.getString("emailSha256") != null) builder.setEmailSha256(call.getString("emailSha256"));
+            if (call.getString("phoneSha256") != null) builder.setPhoneSha256(call.getString("phoneSha256"));
+            ChottuLink.identify(builder.build());
+            call.resolve();
+        } catch (Exception error) {
+            Log.e(TAG, "identify failed", error);
+            call.reject(error.getMessage(), error);
+        }
+    }
+
+    @PluginMethod
+    public void trackConversion(PluginCall call) {
+        Double revenue = call.getDouble("revenue");
+        if (revenue == null || revenue <= 0) {
+            call.reject("revenue is required");
+            return;
+        }
+
+        try {
+            ChottuLink.ConversionMeta.Builder builder = new ChottuLink.ConversionMeta.Builder();
+            builder.setRevenue(revenue);
+            if (call.getString("currency") != null) builder.setCurrency(call.getString("currency"));
+            builder.setEventName(call.getString("eventName", "conversion"));
+            if (call.getString("productId") != null) builder.setProductId(call.getString("productId"));
+            if (call.getString("transactionId") != null) builder.setTransactionId(call.getString("transactionId"));
+            JSObject metadata = call.getObject("metadata");
+            if (metadata != null) builder.setMetadata(jsonObjectToMap(metadata));
+            ChottuLink.trackConversion(builder.build());
+            call.resolve();
+        } catch (Exception error) {
+            Log.e(TAG, "trackConversion failed", error);
+            call.reject(error.getMessage(), error);
+        }
+    }
+
+    @PluginMethod
+    public void trackEvent(PluginCall call) {
+        String name = call.getString("name");
+        if (name == null || name.trim().isEmpty()) {
+            call.reject("name is required");
+            return;
+        }
+
+        try {
+            JSObject data = call.getObject("data");
+            Map<String, Object> map = data != null ? jsonObjectToMap(data) : null;
+            ChottuLink.trackEvent(name.trim(), map);
+            call.resolve();
+        } catch (Exception error) {
+            Log.e(TAG, "trackEvent failed", error);
+            call.reject(error.getMessage(), error);
+        }
+    }
+
+    private Map<String, Object> jsonObjectToMap(JSONObject obj) {
+        Map<String, Object> map = new HashMap<>();
+        if (obj == null) return map;
+
+        Iterator<String> keys = obj.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            map.put(key, obj.opt(key));
+        }
+        return map;
     }
 
     private void handleDynamicLink(Intent intent) {
