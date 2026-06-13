@@ -116,7 +116,6 @@ export function mapRevenueCatStoreToPaymentSource(store: string | null | undefin
   const normalized = String(store ?? "").toUpperCase();
   if (normalized === "APP_STORE") return "app_store";
   if (normalized === "PLAY_STORE") return "play_store";
-  if (normalized === "STRIPE") return "stripe";
   return "store";
 }
 
@@ -163,9 +162,8 @@ export async function recordAffiliatePayment(
     paymentSource?: string;
     storeName?: string | null;
     revenuecatEventId?: string | null;
-    stripeSessionId?: string | null;
-    stripeInvoiceId?: string | null;
-    stripeCustomerId?: string | null;
+    productId?: string | null;
+    transactionId?: string | null;
     metadata?: Record<string, unknown>;
   },
 ): Promise<boolean> {
@@ -175,19 +173,18 @@ export async function recordAffiliatePayment(
     referral_code_id: input.referralCodeId,
     user_id: input.userId,
     affiliate_slug: input.affiliateSlug,
-    stripe_event_id: input.paymentEventId,
-    stripe_session_id: input.stripeSessionId ?? null,
-    stripe_invoice_id: input.stripeInvoiceId ?? null,
-    stripe_customer_id: input.stripeCustomerId ?? null,
+    payment_event_id: input.paymentEventId,
     amount_cents: input.amountCents,
     currency: input.currency,
     commission_rate_percent: input.commissionRatePercent,
     commission_cents: commissionCents,
     payment_status: "completed",
     commission_status: "pending",
-    payment_source: input.paymentSource ?? "stripe",
+    payment_source: input.paymentSource ?? "store",
     store_name: input.storeName ?? null,
     revenuecat_event_id: input.revenuecatEventId ?? null,
+    product_id: input.productId ?? null,
+    transaction_id: input.transactionId ?? null,
     metadata: input.metadata ?? {},
   });
 
@@ -268,9 +265,9 @@ export async function recordRevenueCatAffiliateCommission(
     paymentSource,
     storeName: event.store ? String(event.store) : null,
     revenuecatEventId: eventId,
+    productId: event.product_id ? String(event.product_id) : null,
+    transactionId: event.transaction_id ? String(event.transaction_id) : null,
     metadata: {
-      product_id: event.product_id ?? null,
-      transaction_id: event.transaction_id ?? null,
       event_type: event.type ?? null,
       period_type: event.period_type ?? null,
       store: event.store ?? null,

@@ -25,7 +25,6 @@ function mapRevenueCatStoreToPaymentSource(store: string | null | undefined): st
   const normalized = String(store ?? "").toUpperCase();
   if (normalized === "APP_STORE") return "app_store";
   if (normalized === "PLAY_STORE") return "play_store";
-  if (normalized === "STRIPE") return "stripe";
   return "store";
 }
 
@@ -84,6 +83,8 @@ async function recordAffiliatePayment(
     paymentSource: string;
     storeName: string | null;
     revenuecatEventId: string;
+    productId: string | null;
+    transactionId: string | null;
     metadata: Record<string, unknown>;
   },
 ): Promise<boolean> {
@@ -93,7 +94,7 @@ async function recordAffiliatePayment(
     referral_code_id: input.referralCodeId,
     user_id: input.userId,
     affiliate_slug: input.affiliateSlug,
-    stripe_event_id: input.paymentEventId,
+    payment_event_id: input.paymentEventId,
     amount_cents: input.amountCents,
     currency: input.currency,
     commission_rate_percent: input.commissionRatePercent,
@@ -103,6 +104,8 @@ async function recordAffiliatePayment(
     payment_source: input.paymentSource,
     store_name: input.storeName,
     revenuecat_event_id: input.revenuecatEventId,
+    product_id: input.productId,
+    transaction_id: input.transactionId,
     metadata: input.metadata,
   });
 
@@ -181,9 +184,9 @@ async function recordRevenueCatAffiliateCommission(
     paymentSource,
     storeName: event.store ? String(event.store) : null,
     revenuecatEventId: eventId,
+    productId: event.product_id ? String(event.product_id) : null,
+    transactionId: event.transaction_id ? String(event.transaction_id) : null,
     metadata: {
-      product_id: event.product_id ?? null,
-      transaction_id: event.transaction_id ?? null,
       event_type: event.type ?? null,
       period_type: event.period_type ?? null,
       store: event.store ?? null,
