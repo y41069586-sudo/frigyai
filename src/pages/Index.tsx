@@ -14,6 +14,7 @@ import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
+import { FRIGY_TRACKER_SETTINGS_UPDATED } from "@/lib/frigyStorageSync";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { HealthDashboard } from "@/components/food-ai";
@@ -93,6 +94,13 @@ const Index = () => {
   const { t, language } = useLanguage();
   const timeLocale = getAppLocale(language);
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const [trackerGoalsTick, setTrackerGoalsTick] = useState(0);
+
+  useEffect(() => {
+    const bumpTrackerGoals = () => setTrackerGoalsTick((tick) => tick + 1);
+    window.addEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, bumpTrackerGoals);
+    return () => window.removeEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, bumpTrackerGoals);
+  }, []);
   const { todayTotals, entries: todayFoodEntries } = useFoodEntries();
   const { regenerateTodayForBalance } = useMealPlanGeneration();
   const { streak, recordActivity, checkAndAwardBadge } = useGamification();
@@ -594,7 +602,7 @@ const Index = () => {
         preferLocal: trackerLoading && !(trackerSettings?.dailyCalories ?? 0),
         storedProfileOnly: Boolean(user || session),
       }),
-    [trackerSettings, trackerLoading, user, session],
+    [trackerSettings, trackerLoading, user, session, trackerGoalsTick],
   );
   const targetCalories = macroTargets?.dailyCalories ?? 0;
   const targetProtein = macroTargets?.dailyProtein ?? 0;
@@ -787,7 +795,7 @@ const Index = () => {
       </main>
 
       {user && (
-        <MacroTracker onSetupComplete={reloadSettings} />
+        <MacroTracker onSetupComplete={() => reloadSettings(false)} />
       )}
 
       {/* Bottom Navigation - Show for all logged in users */}
