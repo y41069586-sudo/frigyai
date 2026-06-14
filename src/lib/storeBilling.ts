@@ -270,6 +270,29 @@ export function findGiftSubscriptionOption(pkg: RevenueCatPackage): Subscription
   return options.find((option) => subscriptionOptionMatchesGiftPlan(option)) ?? null;
 }
 
+/** Standard monthly base plan on Google Play (excludes gift / yearly plans). */
+export function findStandardMonthlySubscriptionOption(
+  pkg: RevenueCatPackage,
+): SubscriptionOption | null {
+  const product = pkg.product as StoreProductWithOptions;
+  const options = product.subscriptionOptions ?? [];
+  if (options.length === 0) return null;
+
+  const monthlyBasePlans = options.filter(
+    (option) =>
+      option.isBasePlan &&
+      !subscriptionOptionMatchesGiftPlan(option) &&
+      subscriptionOptionBillingCadence(option) === "monthly",
+  );
+  if (monthlyBasePlans.length === 1) return monthlyBasePlans[0];
+
+  return (
+    monthlyBasePlans.find((option) => /(?:month|monat)/i.test(option.id)) ??
+    monthlyBasePlans[0] ??
+    null
+  );
+}
+
 /** Standard yearly base plan — excludes paywall-gift. */
 export function findStandardYearlySubscriptionOption(
   pkg: RevenueCatPackage,
@@ -336,16 +359,9 @@ function pickPackageFromCurrentOffering(
   const current = offerings.current;
   if (!current) return null;
 
-  if (plan === "monthly" && current.monthly && packageMatchesPlan(current.monthly, plan)) {
-    return current.monthly;
-  }
-  if (
-    (plan === "yearly" || plan === "yearly_promo") &&
-    current.annual &&
-    packageMatchesPlan(current.annual, plan)
-  ) {
-    return current.annual;
-  }
+  // RevenueCat dashboard slots are the source of truth — do not second-guess package mapping.
+  if (plan === "monthly" && current.monthly) return current.monthly;
+  if ((plan === "yearly" || plan === "yearly_promo") && current.annual) return current.annual;
 
   return null;
 }
@@ -386,6 +402,11 @@ function pickPackage(
 
   if (!best) return null;
   if (bestScore > 0) return best;
+
+  const current = offerings.current;
+  if (plan === "monthly" && current?.monthly) return current.monthly;
+  if ((plan === "yearly" || plan === "yearly_promo") && current?.annual) return current.annual;
+
   if (bestScore === 0 && viableCount === 1) return best;
   return null;
 }
@@ -434,6 +455,9 @@ function findSubscriptionOptionForCadence(
   if (cadence === "yearly") {
     return findStandardYearlySubscriptionOption(pkg);
   }
+
+  const monthlyOption = findStandardMonthlySubscriptionOption(pkg);
+  if (monthlyOption) return monthlyOption;
 
   const nonGiftBase = options.find(
     (option) => option.isBasePlan && !subscriptionOptionMatchesGiftPlan(option),
@@ -589,6 +613,33 @@ function correctSwappedMonthlyYearlyPrices(prices: StoreOfferingPrices): StoreOf
   return prices;
 }
 
+function mapMonthlyPrice(
+  offerings: StoreOfferings,
+  monthlyPkg: RevenueCatPackage | null,
+): StorePlanPrice | null {
+  const direct = mapPackagePrice(monthlyPkg, "monthly");
+  if (direct?.priceString) return direct;
+
+  for (const pkg of collectOfferingPackages(offerings)) {
+    if (Capacitor.getPlatform() === "android") {
+      const option =
+        findSubscriptionOptionForCadence(pkg, "monthly") ??
+        findStandardMonthlySubscriptionOption(pkg);
+      if (option) {
+        const fromOption = mapSubscriptionOptionPrice(pkg, option);
+        if (fromOption?.priceString) return fromOption;
+      }
+    }
+
+    if (isMonthlyLikePackage(pkg) && !isYearlyLikePackage(pkg)) {
+      const fallback = mapPackagePrice(pkg, "monthly");
+      if (fallback?.priceString) return fallback;
+    }
+  }
+
+  return null;
+}
+
 function mapOfferingPrices(offerings: StoreOfferings): StoreOfferingPrices {
   const monthlyPkg = pickPackage(offerings, "monthly");
   const yearlyPkg = pickPackage(offerings, "yearly");
@@ -612,11 +663,19 @@ function mapOfferingPrices(offerings: StoreOfferings): StoreOfferingPrices {
     });
   }
 
-  return correctSwappedMonthlyYearlyPrices({
-    monthly: mapPackagePrice(monthlyPkg, "monthly"),
+  const prices = correctSwappedMonthlyYearlyPrices({
+    monthly: mapMonthlyPrice(offerings, monthlyPkg),
     yearly: mapYearlyStandardPrice(yearlyPkg),
     yearlyPromo: resolveYearlyPromoPrice(yearlyPkg),
   });
+
+  if (!prices.monthly?.priceString) {
+    console.warn(
+      "[StoreBilling] Monthly price missing — verify RevenueCat Offering has a Monthly package linked to App Store / Play product.",
+    );
+  }
+
+  return prices;
 }
 
 function hasCompleteStorePrices(prices: StoreOfferingPrices | null | undefined): boolean {
@@ -770,6 +829,29 @@ async function purchaseStandardYearly(
   return Purchases.purchasePackage({ aPackage: yearlyPkg });
 }
 
+async function purchaseMonthly(
+  offerings: Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.getOfferings>>,
+): Promise<
+  | Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchasePackage>>
+  | Awaited<ReturnType<typeof import("@revenuecat/purchases-capacitor").Purchases.purchaseSubscriptionOption>>
+  | null
+> {
+  const monthlyPkg = pickPackage(offerings, "monthly");
+  if (!monthlyPkg) return null;
+
+  if (Capacitor.getPlatform() === "android") {
+    const monthlyOption =
+      findSubscriptionOptionForCadence(monthlyPkg, "monthly") ??
+      findStandardMonthlySubscriptionOption(monthlyPkg);
+    if (monthlyOption) {
+      return purchaseSubscriptionOptionOnAndroid(monthlyPkg, monthlyOption);
+    }
+  }
+
+  const { Purchases } = await import("@revenuecat/purchases-capacitor");
+  return Purchases.purchasePackage({ aPackage: monthlyPkg });
+}
+
 function resolvePlanPriceForAnalytics(
   plan: PaywallBillingPlan,
   prices: StoreOfferingPrices,
@@ -817,12 +899,11 @@ export async function purchaseStorePlan(
       }
       customerInfo = yearlyResult.customerInfo;
     } else {
-      const pkg = pickPackage(offerings, plan);
-      if (!pkg) {
-        return { ok: false, message: "Kein Abo-Paket in RevenueCat gefunden (Offering monthly/yearly)." };
+      const monthlyResult = await purchaseMonthly(offerings);
+      if (!monthlyResult) {
+        return { ok: false, message: "Kein Monatsabo in RevenueCat gefunden." };
       }
-      const result = await Purchases.purchasePackage({ aPackage: pkg });
-      customerInfo = result.customerInfo;
+      customerInfo = monthlyResult.customerInfo;
     }
 
     const active = customerInfo.entitlements.active[ENTITLEMENT_ID];
