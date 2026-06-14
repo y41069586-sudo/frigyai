@@ -533,14 +533,6 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/auth?mode=login")}
-                      className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
-                    >
-                      {t.signInBtn}
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setShowLoginOptions(false)}
                       className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-600 hover:underline"
                     >
