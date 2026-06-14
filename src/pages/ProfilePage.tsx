@@ -38,9 +38,9 @@ import { cn } from "@/lib/utils";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openStoreSubscriptionManagement, redeemStorePromoCode, isStoreBillingConfigured } from "@/lib/storeBilling";
+import { openStoreSubscriptionManagement, isStoreBillingConfigured } from "@/lib/storeBilling";
 import { usesStoreBilling } from "@/lib/billingPlatform";
-import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { useStorePromoRedeem } from "@/hooks/useStorePromoRedeem";
 import { markEverPremium } from "@/lib/trialEligibility";
 import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
 
@@ -128,11 +128,21 @@ const ProfilePage = () => {
   const dateLocale = getAppLocale(language);
   const [refreshing, setRefreshing] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [promoRedeemLoading, setPromoRedeemLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const canManageSubscription = canManageStoreSubscription(subscriptionStatus);
   const showPromoRedeem = !premiumActive && usesStoreBilling() && isStoreBillingConfigured();
+
+  const { startRedeem: startPromoRedeem, loading: promoRedeemLoading, promoCodeDialog } =
+    useStorePromoRedeem({
+      accessToken: session?.access_token,
+      userId: user?.id,
+      checkSubscription,
+      onSuccess: () => {
+        markEverPremium();
+        toast({ title: t.success, description: t.premiumActive });
+      },
+    });
 
   const handleSignOut = async () => {
     try {
@@ -151,34 +161,6 @@ const ProfilePage = () => {
     setRefreshing(false);
     toast({ title: t.success, description: t.subscriptionRefreshed });
   };
-
-  const handleRedeemPromoCode = async () => {
-    if (promoRedeemLoading || !session?.access_token) return;
-    setPromoRedeemLoading(true);
-    try {
-      const result = await redeemStorePromoCode(session.access_token, user?.id);
-      const active = await waitForPremiumAfterPurchase(
-        checkSubscription,
-        session.access_token,
-        6,
-      );
-      if (result.ok || active) {
-        markEverPremium();
-        toast({ title: t.success, description: t.premiumActive });
-        return;
-      }
-      if (!result.cancelled && result.message) {
-        toast({
-          title: t.error,
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setPromoRedeemLoading(false);
-    }
-  };
-
 
   const handleManageSubscription = async () => {
     if (!session) {
@@ -251,6 +233,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-[#F7FAF7] safe-area-inset">
+      {promoCodeDialog}
       <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-[#F7FAF7]/90 backdrop-blur-md safe-top">
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
           <Button
@@ -350,7 +333,7 @@ const ProfilePage = () => {
                 icon={Ticket}
                 label={t.redeemPromoCode}
                 description={promoRedeemLoading ? t.loading : undefined}
-                onClick={() => void handleRedeemPromoCode()}
+                onClick={() => void startPromoRedeem()}
               />
             )}
             {canManageSubscription && (

@@ -395,6 +395,11 @@ export interface Translations extends ExtendedTranslations {
   signInWithApple: string;
   restorePurchases: string;
   redeemPromoCode: string;
+  storePromoCodeTitle: string;
+  storePromoCodeDescription: string;
+  storePromoCodePlaceholder: string;
+  storePromoCodeOpenPlay: string;
+  storePromoCodePlayHint: string;
   linkAppleAccount: string;
   noAccount: string;
   alreadyHaveAccount: string;
@@ -1035,6 +1040,13 @@ const translations: Record<Language, Translations> = {
     signInWithApple: "Mit Apple anmelden",
     restorePurchases: "Käufe wiederherstellen",
     redeemPromoCode: "Promo-Code einlösen",
+    storePromoCodeTitle: "Google-Play-Promo-Code",
+    storePromoCodeDescription:
+      "Gib den Code aus der Play Console ein. Wir öffnen die Play-Store-App mit deinem Code — nicht den Browser.",
+    storePromoCodePlaceholder: "z. B. FRIGY2026",
+    storePromoCodeOpenPlay: "Im Play Store einlösen",
+    storePromoCodePlayHint:
+      "Wichtig: Dieselbe Google-Adresse wie im Play Store. App muss aus dem Play Store installiert sein. Abo und Code müssen veröffentlicht und aktiv sein.",
     linkAppleAccount: "Apple-Konto verknüpfen",
     noAccount: "Noch kein Konto? Jetzt registrieren",
     alreadyHaveAccount: "Bereits registriert? Jetzt anmelden",
@@ -1920,6 +1932,13 @@ const translations: Record<Language, Translations> = {
     signInWithApple: "Sign in with Apple",
     restorePurchases: "Restore purchases",
     redeemPromoCode: "Redeem promo code",
+    storePromoCodeTitle: "Google Play promo code",
+    storePromoCodeDescription:
+      "Enter the code from Play Console. We open the Play Store app with your code — not the browser.",
+    storePromoCodePlaceholder: "e.g. FRIGY2026",
+    storePromoCodeOpenPlay: "Redeem in Play Store",
+    storePromoCodePlayHint:
+      "Important: Use the same Google account as in the Play Store. App must be installed from Play Store. Subscription and code must be published and active.",
     linkAppleAccount: "Link Apple account",
     noAccount: "No account yet? Sign up now",
     alreadyHaveAccount: "Already have an account? Sign in",
@@ -2805,6 +2824,13 @@ const translations: Record<Language, Translations> = {
     signInWithApple: "Se connecter avec Apple",
     restorePurchases: "Restaurer les achats",
     redeemPromoCode: "Utiliser un code promo",
+    storePromoCodeTitle: "Code promo Google Play",
+    storePromoCodeDescription:
+      "Saisis le code de la Play Console. Nous ouvrons l’app Play Store avec ton code — pas le navigateur.",
+    storePromoCodePlaceholder: "ex. FRIGY2026",
+    storePromoCodeOpenPlay: "Utiliser dans le Play Store",
+    storePromoCodePlayHint:
+      "Important : même compte Google que le Play Store. L’app doit être installée depuis le Play Store. Abonnement et code publiés et actifs.",
     linkAppleAccount: "Lier le compte Apple",
     noAccount: "Pas encore de compte? Inscrivez-vous",
     alreadyHaveAccount: "Déjà un compte? Connectez-vous",

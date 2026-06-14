@@ -93,7 +93,8 @@ import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
-import { prefetchStoreOfferingPrices, redeemStorePromoCode } from "@/lib/storeBilling";
+import { useStorePromoRedeem } from "@/hooks/useStorePromoRedeem";
+import { prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 import { supabase } from "@/integrations/supabase/client";
 import { isAppleSignInAvailable, waitForAppleSignInSession } from "@/lib/appleSignIn";
 import {
@@ -722,7 +723,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   /** Apple: native on iOS, OAuth fallback on Android/web — always offer in onboarding. */
   const showAppleSignIn = true;
   const [paywallCheckoutLoading, setPaywallCheckoutLoading] = useState(false);
-  const [paywallPromoRedeemLoading, setPaywallPromoRedeemLoading] = useState(false);
   const authSubmitLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
@@ -878,6 +878,20 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     navigate(FIRST_WEEK_PLAN_ROUTE, { replace: true });
   }, [navigate, userData]);
 
+  const {
+    startRedeem: startPaywallPromoRedeem,
+    loading: paywallPromoRedeemLoading,
+    promoCodeDialog,
+  } = useStorePromoRedeem({
+    accessToken: session?.access_token,
+    userId: user?.id,
+    checkSubscription,
+    onSuccess: () => {
+      markEverPremium();
+      exitToFirstWeekPlan();
+    },
+  });
+
   const goToPaywall = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session?.user) {
@@ -1007,43 +1021,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       }
     } finally {
       setPaywallCheckoutLoading(false);
-    }
-  };
-
-  const handlePaywallRedeemPromo = async () => {
-    if (paywallPromoRedeemLoading) return;
-    lightTap();
-    if (!session?.access_token || !user?.id) {
-      toast({
-        title: t.error,
-        description: t.onboardingPleaseLoginToProceed,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setPaywallPromoRedeemLoading(true);
-    try {
-      const result = await redeemStorePromoCode(session.access_token, user.id);
-      const active = await waitForPremiumAfterPurchase(
-        checkSubscription,
-        session.access_token,
-        6,
-      );
-      if (result.ok || active) {
-        markEverPremium();
-        exitToFirstWeekPlan();
-        return;
-      }
-      if (!result.cancelled && result.message) {
-        toast({
-          title: t.error,
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setPaywallPromoRedeemLoading(false);
     }
   };
 
@@ -4255,22 +4232,28 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
       case "paywall":
         return (
-          <OnboardingPaywallStep
-            language={language}
-            onBack={goBack}
-            onCheckout={handlePaywallCheckout}
-            onRedeemPromoCode={handlePaywallRedeemPromo}
-            onSignOut={async () => {
-              await signOut();
-            }}
-            isCheckoutLoading={paywallCheckoutLoading}
-            isPromoRedeemLoading={paywallPromoRedeemLoading}
-            storePrices={storePrices}
-            storePricesLoading={storePricesLoading}
-            storePricesError={storePricesError}
-            onReloadStorePrices={reloadStorePrices}
-            trialEligible={resolveTrialEligibleFromLocal()}
-          />
+          <>
+            {promoCodeDialog}
+            <OnboardingPaywallStep
+              language={language}
+              onBack={goBack}
+              onCheckout={handlePaywallCheckout}
+              onRedeemPromoCode={() => {
+                lightTap();
+                startPaywallPromoRedeem();
+              }}
+              onSignOut={async () => {
+                await signOut();
+              }}
+              isCheckoutLoading={paywallCheckoutLoading}
+              isPromoRedeemLoading={paywallPromoRedeemLoading}
+              storePrices={storePrices}
+              storePricesLoading={storePricesLoading}
+              storePricesError={storePricesError}
+              onReloadStorePrices={reloadStorePrices}
+              trialEligible={resolveTrialEligibleFromLocal()}
+            />
+          </>
         );
 
       case "premium-hint": {

@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import type { PaywallBillingPlan } from "@/components/onboarding/components/OnboardingPaywallStep";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import { trackChottuLinkStoreConversion } from "@/lib/chottuLinkAnalytics";
+import { openPlayStorePromoRedeem } from "@/lib/playStoreRedeem";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import {
   readCachedStoreOfferingPrices,
@@ -962,8 +963,6 @@ export async function restoreStorePurchases(accessToken: string): Promise<StoreP
   }
 }
 
-const PLAY_REDEEM_URL = "https://play.google.com/redeem";
-
 /** Wait until the native app returns to the foreground (e.g. after Play Store redeem). */
 async function waitForAppForeground(timeoutMs = 5 * 60_000): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
@@ -1018,6 +1017,7 @@ async function syncEntitlementAfterStoreRedemption(
 export async function redeemStorePromoCode(
   accessToken: string,
   userId?: string | null,
+  options?: { code?: string },
 ): Promise<StorePurchaseResult> {
   if (!isStoreBillingConfigured()) {
     return { ok: false, message: "Promo-Codes sind nur in der App verfügbar." };
@@ -1035,7 +1035,16 @@ export async function redeemStorePromoCode(
     }
 
     if (platform === "android") {
-      await openExternalUrl(PLAY_REDEEM_URL);
+      const code = options?.code?.trim();
+      if (!code) {
+        return {
+          ok: false,
+          message:
+            "Bitte gib deinen Google-Play-Promo-Code ein (exakt wie in der Play Console, Groß-/Kleinschreibung beachten).",
+        };
+      }
+
+      await openPlayStorePromoRedeem(code);
       await waitForAppForeground();
       return syncEntitlementAfterStoreRedemption(accessToken);
     }
