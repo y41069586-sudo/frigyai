@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect } from "react";
 import {
   Home,
   Calendar,
@@ -12,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { BlurView } from "@/components/ui/BlurView";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIOSPlatform } from "@/hooks/useIOSPlatform";
 import { motion } from "framer-motion";
 import { dismissStalledAuthNavigation } from "@/lib/authCompletion";
 import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
@@ -20,6 +20,11 @@ import { notifyOpenLogMeal, notifyOverlayOpen } from "@/lib/overlayEvents";
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
+  /**
+   * `sticky` keeps the bar inside the scroll container so iOS WKWebView can sample
+   * scrolled pixels for backdrop-filter. `fixed` is only for legacy fallbacks.
+   */
+  placement?: "sticky" | "fixed";
 }
 
 type NavId = "home" | "meals" | "shopping";
@@ -35,16 +40,18 @@ const ITEMS: {
   { id: "shopping", labelKey: "navShoppingShort", icon: ShoppingCart, activeClass: "text-primary" },
 ];
 
-export const BottomNavigation = (_props: BottomNavigationProps) => {
+export const BottomNavigation = ({
+  placement = "sticky",
+}: BottomNavigationProps) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [mounted, setMounted] = useState(false);
   const isMobile = useIsMobile();
+  const ios = useIOSPlatform();
+  const useSticky = placement === "sticky" || ios;
 
   useEffect(() => {
-    setMounted(true);
     notifyOverlayOpen(false);
   }, []);
 
@@ -83,14 +90,19 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     navigate("/?logMeal=1");
   };
 
-  const bar = (
+  if (shouldHideBottomNavForFirstPlan()) return null;
+
+  return (
     <nav
       aria-label={t.ariaMainNavigation}
-      className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
+      className={cn(
+        "pointer-events-none z-[100] flex shrink-0 justify-center px-4 pb-1 safe-bottom",
+        useSticky ? "sticky bottom-2 mt-2" : "fixed inset-x-0 bottom-2",
+      )}
     >
       <BlurView
         variant="tabBar"
-        intensity={72}
+        intensity={80}
         className={cn(
           "pointer-events-auto flex w-full max-w-md items-end gap-1.5 rounded-full px-2.5 py-1.5 pr-1.5",
           "shadow-[0_22px_56px_-20px_rgba(0,0,0,0.22)]",
@@ -153,7 +165,4 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       </BlurView>
     </nav>
   );
-
-  if (!mounted || shouldHideBottomNavForFirstPlan()) return null;
-  return createPortal(bar, document.body);
 };

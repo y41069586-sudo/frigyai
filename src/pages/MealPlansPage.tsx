@@ -32,6 +32,7 @@ import {
 } from '@/lib/mealPlanPreferences';
 import { cn } from '@/lib/utils';
 import { GlassNavBar } from '@/components/ui/BlurView';
+import { BottomNavigation } from '@/components/BottomNavigation';
 import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
@@ -40,6 +41,7 @@ import {
   completeFirstWeekPlanFlow,
   isFirstWeekPlanPending,
   markFirstWeekPlanPending,
+  shouldHideBottomNavForFirstPlan,
 } from '@/lib/firstWeekPlanFlow';
 import {
   tabPanelExit,
@@ -561,7 +563,8 @@ const MealPlansPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-[#F2FFF8] safe-area-inset">
+      <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#F2FFF8] safe-area-inset">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
       <GlassNavBar className="z-[60] border-primary/15" innerClassName="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center">
             {!isFirstPlanFlow && (
@@ -784,6 +787,10 @@ const MealPlansPage = () => {
         </motion.div>
       </div>
 
+      {user && !shouldHideBottomNavForFirstPlan() && <BottomNavigation />}
+        </div>
+      </div>
+
       <MealDetailDialog
         meal={selectedMeal}
         open={dialogOpen}
@@ -831,7 +838,6 @@ const MealPlansPage = () => {
         </div>
       )}
 
-    </div>
     </>
   );
 };

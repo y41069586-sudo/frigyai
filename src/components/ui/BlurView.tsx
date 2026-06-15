@@ -11,8 +11,8 @@ import { useIOSPlatform } from "@/hooks/useIOSPlatform";
 
 /**
  * Frigy BlurView — Capacitor/Vite equivalent of expo-blur BlurView.
- * Native iOS uses WKWebView + CSS backdrop-filter (expo-blur is not in this stack).
- * Web uses the same backdrop-filter fallback.
+ * iOS WKWebView: backdrop-filter must live on the painted shell (not a nested child)
+ * and the element must share a scroll ancestor with the content behind it.
  */
 export type BlurViewVariant =
   | "default"
@@ -44,13 +44,13 @@ type BlurMode = "ios" | "web" | "solid";
 
 const BLUR_IOS: Record<BlurViewVariant, number> = {
   default: 56,
-  tabBar: 72,
-  navBar: 56,
+  tabBar: 80,
+  navBar: 64,
   sheet: 64,
   modal: 64,
   card: 48,
-  pill: 40,
-  overlay: 24,
+  pill: 44,
+  overlay: 28,
   popover: 36,
 };
 
@@ -68,8 +68,8 @@ const BLUR_WEB: Record<BlurViewVariant, number> = {
 
 const TINT_LIGHT: Record<BlurViewVariant, string> = {
   default: "rgba(255, 255, 255, 0.22)",
-  tabBar: "rgba(255, 255, 255, 0.18)",
-  navBar: "rgba(255, 255, 255, 0.20)",
+  tabBar: "rgba(255, 255, 255, 0.14)",
+  navBar: "rgba(255, 255, 255, 0.18)",
   sheet: "rgba(255, 255, 255, 0.24)",
   modal: "rgba(255, 255, 255, 0.26)",
   card: "rgba(255, 255, 255, 0.20)",
@@ -128,6 +128,16 @@ function blurStyles(mode: BlurMode, variant: BlurViewVariant, intensity: number,
   };
 }
 
+function sheenStyle(tint: BlurViewTint): CSSProperties {
+  return {
+    background:
+      tint === "dark"
+        ? "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 55%)"
+        : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.06) 45%, transparent 72%)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.45)",
+  };
+}
+
 export const BlurView = forwardRef<HTMLElement, BlurViewProps>(function BlurView(
   {
     children,
@@ -161,30 +171,33 @@ export const BlurView = forwardRef<HTMLElement, BlurViewProps>(function BlurView
   }
 
   const backdropStyle = blurStyles(mode, variant, blurPx, tint);
+  const inlineBlur = mode === "ios";
 
   return (
     <Component
       ref={ref}
-      className={cn("frigy-blur-view relative overflow-hidden", className)}
-      style={style}
+      className={cn(
+        "frigy-blur-view relative",
+        inlineBlur ? "frigy-blur-view--ios border border-white/30 dark:border-white/12" : "overflow-hidden",
+        className,
+      )}
+      style={{
+        ...style,
+        ...(inlineBlur ? backdropStyle : undefined),
+      }}
       {...props}
     >
-      {/* Dedicated blur layer — must stay semi-transparent so backdrop-filter is visible */}
+      {!inlineBlur && (
+        <div
+          aria-hidden
+          className="frigy-blur-view__backdrop pointer-events-none absolute inset-0"
+          style={backdropStyle}
+        />
+      )}
       <div
         aria-hidden
-        className="frigy-blur-view__backdrop pointer-events-none absolute inset-0"
-        style={backdropStyle}
-      />
-      <div
-        aria-hidden
-        className="frigy-blur-view__sheen pointer-events-none absolute inset-0 border border-white/30 dark:border-white/12"
-        style={{
-          background:
-            tint === "dark"
-              ? "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 55%)"
-              : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.06) 45%, transparent 72%)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.45)",
-        }}
+        className="frigy-blur-view__sheen pointer-events-none absolute inset-0"
+        style={sheenStyle(tint)}
       />
       <div className="frigy-blur-view__content relative z-[1]">{children}</div>
     </Component>
@@ -209,7 +222,7 @@ export function GlassNavBar({
     <BlurView
       variant="navBar"
       as={as}
-      intensity={56}
+      intensity={64}
       className={cn("sticky top-0 z-[60] safe-top border-b border-white/20", className)}
     >
       <div className={innerClassName}>{children}</div>

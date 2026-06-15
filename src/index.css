@@ -402,16 +402,20 @@ All colors MUST be HSL.
   }
 }
 
-/* ── BlurView (real backdrop-filter layers — iOS Capacitor + web) ── */
+/* ── BlurView (real backdrop-filter — iOS Capacitor + web) ── */
 .frigy-blur-view {
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* iOS WKWebView: blur on the shell itself (nested backdrop layers often sample nothing). */
+.frigy-blur-view--ios {
+  overflow: visible;
+  isolation: auto;
 }
 
 .frigy-blur-view__backdrop {
   z-index: 0;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 
 .frigy-blur-view__sheen {
