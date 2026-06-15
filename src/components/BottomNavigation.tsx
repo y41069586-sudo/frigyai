@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import {
   Home,
   Calendar,
@@ -12,19 +12,17 @@ import { BlurView } from "@/components/ui/BlurView";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIOSPlatform } from "@/hooks/useIOSPlatform";
-import { motion } from "framer-motion";
+import { useTabBarMinimize } from "@/hooks/useTabBarMinimize";
+import { motion, useReducedMotion } from "framer-motion";
 import { dismissStalledAuthNavigation } from "@/lib/authCompletion";
 import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
 import { notifyOpenLogMeal, notifyOverlayOpen } from "@/lib/overlayEvents";
+import { triggerWheelHaptic } from "@/lib/wheelPickerUtils";
 
 interface BottomNavigationProps {
   trackerSetup?: boolean;
   trackerLoading?: boolean;
-  /**
-   * `sticky` keeps the bar inside the scroll container so iOS WKWebView can sample
-   * scrolled pixels for backdrop-filter. `fixed` is only for legacy fallbacks.
-   */
-  placement?: "sticky" | "fixed";
+  scrollContainerRef?: RefObject<HTMLElement | null>;
 }
 
 type NavId = "home" | "meals" | "shopping";
@@ -33,15 +31,18 @@ const ITEMS: {
   id: NavId;
   labelKey: "navHome" | "navPlanShort" | "navShoppingShort";
   icon: LucideIcon;
-  activeClass: string;
 }[] = [
-  { id: "home", labelKey: "navHome", icon: Home, activeClass: "text-primary" },
-  { id: "meals", labelKey: "navPlanShort", icon: Calendar, activeClass: "text-primary" },
-  { id: "shopping", labelKey: "navShoppingShort", icon: ShoppingCart, activeClass: "text-primary" },
+  { id: "home", labelKey: "navHome", icon: Home },
+  { id: "meals", labelKey: "navPlanShort", icon: Calendar },
+  { id: "shopping", labelKey: "navShoppingShort", icon: ShoppingCart },
 ];
 
+/** iOS UISpringTimingParameters-like curve used across the system. */
+const IOS_SPRING = { type: "spring" as const, stiffness: 520, damping: 38, mass: 0.82 };
+const IOS_TAP = { duration: 0.12, ease: [0.22, 1, 0.36, 1] as const };
+
 export const BottomNavigation = ({
-  placement = "sticky",
+  scrollContainerRef,
 }: BottomNavigationProps) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -49,7 +50,8 @@ export const BottomNavigation = ({
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const ios = useIOSPlatform();
-  const useSticky = placement === "sticky" || ios;
+  const reduceMotion = useReducedMotion();
+  const minimized = useTabBarMinimize(scrollContainerRef ?? { current: null }, ios && !reduceMotion);
 
   useEffect(() => {
     notifyOverlayOpen(false);
@@ -73,6 +75,7 @@ export const BottomNavigation = ({
   const trackerActive = isHome && searchParams.get("logMeal") === "1";
 
   const go = (id: NavId) => {
+    triggerWheelHaptic();
     dismissStalledAuthNavigation();
     if (id === "home") {
       navigate("/");
@@ -82,6 +85,7 @@ export const BottomNavigation = ({
   };
 
   const openTracker = () => {
+    triggerWheelHaptic();
     dismissStalledAuthNavigation();
     if (isHome) {
       notifyOpenLogMeal(null);
@@ -92,77 +96,122 @@ export const BottomNavigation = ({
 
   if (shouldHideBottomNavForFirstPlan()) return null;
 
+  const layoutId = isMobile ? undefined : "ios-liquid-tab-indicator";
+  const dockClass = scrollContainerRef
+    ? "absolute inset-x-0 bottom-0"
+    : "fixed inset-x-0 bottom-0";
+
   return (
-    <nav
-      aria-label={t.ariaMainNavigation}
+    <div
       className={cn(
-        "pointer-events-none z-[100] flex shrink-0 justify-center px-4 pb-1 safe-bottom",
-        useSticky ? "sticky bottom-2 mt-2" : "fixed inset-x-0 bottom-2",
+        "pointer-events-none z-[100] flex flex-col items-center px-5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]",
+        dockClass,
       )}
+      aria-hidden={false}
     >
-      <BlurView
-        variant="tabBar"
-        intensity={80}
-        className={cn(
-          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 rounded-full px-2.5 py-1.5 pr-1.5",
-          "shadow-[0_22px_56px_-20px_rgba(0,0,0,0.22)]",
-        )}
+      {/* tabViewBottomAccessory — primary action above tab bar (iOS 26 pattern) */}
+      <motion.div
+        className="pointer-events-auto mb-3 flex w-full max-w-[min(100%,24rem)] justify-end"
+        animate={minimized ? { opacity: 0.88, y: 10, scale: 0.94 } : { opacity: 1, y: 0, scale: 1 }}
+        transition={IOS_SPRING}
       >
-        {ITEMS.map((item) => {
-          const active = isTabActive(item.id);
-          const Icon = item.icon;
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => go(item.id)}
-              className="relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-full px-1 py-1.5 transition-transform active:scale-[0.96]"
-            >
-              {active && (
-                <motion.div
-                  layoutId={isMobile ? undefined : "bottom-nav-active-pill"}
-                  className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
-                  transition={
-                    isMobile
-                      ? { duration: 0.16, ease: [0.22, 1, 0.36, 1] }
-                      : { type: "spring", stiffness: 380, damping: 32, mass: 0.85 }
-                  }
-                />
-              )}
-              <Icon
-                className={cn(
-                  "relative z-[1] h-6 w-6",
-                  active ? item.activeClass : "text-muted-foreground",
-                )}
-              />
-              <span
-                className={cn(
-                  "relative z-[1] max-w-full truncate px-0.5 text-[9px] font-bold leading-tight sm:text-[10px]",
-                  active ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {t[item.labelKey]}
-              </span>
-            </button>
-          );
-        })}
-
         <motion.button
           type="button"
           onClick={openTracker}
-          whileTap={{ scale: 0.94 }}
-          className={cn(
-            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
-            trackerActive
-              ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"
-              : "bg-primary",
-          )}
+          whileTap={{ scale: 0.92 }}
+          transition={IOS_TAP}
           aria-label={t.navTracker}
+          className="relative"
         >
-          <Plus className="h-8 w-8 stroke-[3]" />
+          <BlurView
+            variant="pill"
+            intensity={48}
+            className={cn(
+              "flex h-14 w-14 items-center justify-center rounded-full shadow-[0_16px_40px_-14px_hsl(var(--primary)/0.75)]",
+              trackerActive && "ring-2 ring-primary/40 ring-offset-2 ring-offset-transparent",
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground",
+                trackerActive && "shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]",
+              )}
+            >
+              <Plus className="h-7 w-7 stroke-[2.75]" />
+            </span>
+          </BlurView>
         </motion.button>
-      </BlurView>
-    </nav>
+      </motion.div>
+
+      {/* Floating Liquid Glass tab bar — UITabBar capsule */}
+      <motion.nav
+        aria-label={t.ariaMainNavigation}
+        className="pointer-events-auto w-full max-w-[min(100%,24rem)]"
+        animate={
+          minimized
+            ? { y: 6, scale: 0.96, opacity: 0.94 }
+            : { y: 0, scale: 1, opacity: 1 }
+        }
+        transition={IOS_SPRING}
+      >
+        <BlurView
+          variant="tabBar"
+          intensity={72}
+          className="flex h-[49px] items-stretch gap-0.5 rounded-[1.35rem] px-1.5 shadow-[0_20px_50px_-18px_rgba(0,0,0,0.28)]"
+        >
+          {ITEMS.map((item) => {
+            const active = isTabActive(item.id);
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => go(item.id)}
+                className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.1rem] px-1 py-1"
+              >
+                {active && (
+                  <motion.div
+                    layoutId={layoutId}
+                    className="absolute inset-[2px] rounded-[1rem] bg-primary/[0.12] dark:bg-primary/20"
+                    transition={reduceMotion ? { duration: 0 } : IOS_SPRING}
+                  />
+                )}
+                <motion.div
+                  className="relative z-[1] flex flex-col items-center justify-center gap-0.5"
+                  animate={{
+                    scale: active ? 1.04 : 1,
+                    y: active ? -0.5 : 0,
+                  }}
+                  transition={reduceMotion ? { duration: 0 } : IOS_SPRING}
+                >
+                  <Icon
+                    className={cn(
+                      "h-[22px] w-[22px] transition-colors duration-200",
+                      active ? "text-primary" : "text-muted-foreground",
+                    )}
+                    strokeWidth={active ? 2.4 : 2}
+                  />
+                  <motion.span
+                    className={cn(
+                      "max-w-full truncate text-[10px] font-semibold leading-none tracking-tight",
+                      active ? "text-foreground" : "text-muted-foreground",
+                    )}
+                    animate={
+                      minimized
+                        ? { opacity: 0, height: 0, marginTop: 0 }
+                        : { opacity: 1, height: "auto", marginTop: 0 }
+                    }
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {t[item.labelKey]}
+                  </motion.span>
+                </motion.div>
+              </button>
+            );
+          })}
+        </BlurView>
+      </motion.nav>
+    </div>
   );
 };

@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { AppScrollShell } from "@/components/layout/AppScrollShell";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { FRIGY_TRACKER_SETTINGS_UPDATED } from "@/lib/frigyStorageSync";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
@@ -653,9 +654,7 @@ const Index = () => {
     return (
       <>
         <PageLoader />
-        {showBootstrapBottomNav ? (
-          <BottomNavigation placement="fixed" trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
-        ) : null}
+        {showBootstrapBottomNav ? <BottomNavigation /> : null}
       </>
     );
   }
@@ -707,12 +706,11 @@ const Index = () => {
   }
 
   return (
-    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#FFFFFF]">
-      {/* Main Content — single scroll container (fixes stuck scroll + enables iOS backdrop blur) */}
-      <main className="dashboard-scroll-main relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pb-2 pt-9 sm:px-6 sm:pt-11 safe-top [-webkit-overflow-scrolling:touch]">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_55%,transparent_100%)]" />
+    <>
+    <AppScrollShell className="bg-[#FFFFFF]" scrollClassName="px-4 pt-9 sm:px-6 sm:pt-11 safe-top">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_55%,transparent_100%)]" />
 
-        <div className="relative mx-auto flex w-full max-w-full flex-1 flex-col space-y-8 pb-bottom-nav sm:max-w-md lg:max-w-2xl">
+      <div className="relative mx-auto flex w-full max-w-full flex-col space-y-8 pb-bottom-nav sm:max-w-md lg:max-w-2xl">
           
           {/* Header - Clean & Modern */}
           <motion.header
@@ -805,11 +803,7 @@ const Index = () => {
               }}
             />
         </div>
-
-        {user && !shouldHideBottomNavForFirstPlan() && (
-          <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
-        )}
-      </main>
+    </AppScrollShell>
 
       {user && (
         <MacroTracker onSetupComplete={() => reloadSettings(false)} />
@@ -897,7 +891,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </>
   );
 };
 
