@@ -142,137 +142,6 @@ All colors MUST be HSL.
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid hsla(0, 0%, 100%, 0.5);
   }
-
-  /* ── iOS Liquid Glass (Capacitor iOS only — html.platform-ios) ── */
-  .platform-ios {
-    --ios-glass-blur: 20px;
-    --ios-glass-saturate: 180%;
-    --ios-glass-fill: rgba(255, 255, 255, 0.68);
-    --ios-glass-fill-strong: rgba(255, 255, 255, 0.78);
-    --ios-glass-fill-subtle: rgba(255, 255, 255, 0.52);
-    --ios-glass-border: rgba(255, 255, 255, 0.18);
-    --ios-glass-highlight: rgba(255, 255, 255, 0.42);
-    --ios-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-    --ios-glass-shadow-lg: 0 18px 48px -18px rgba(0, 0, 0, 0.14);
-    --ios-glass-overlay: rgba(0, 0, 0, 0.32);
-  }
-
-  .platform-ios.dark {
-    --ios-glass-fill: rgba(44, 44, 46, 0.74);
-    --ios-glass-fill-strong: rgba(58, 58, 60, 0.82);
-    --ios-glass-fill-subtle: rgba(44, 44, 46, 0.58);
-    --ios-glass-border: rgba(255, 255, 255, 0.12);
-    --ios-glass-highlight: rgba(255, 255, 255, 0.1);
-    --ios-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
-    --ios-glass-shadow-lg: 0 18px 48px -18px rgba(0, 0, 0, 0.42);
-    --ios-glass-overlay: rgba(0, 0, 0, 0.52);
-  }
-
-  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    .platform-ios .ios-glass-surface {
-      background: var(--ios-glass-fill);
-      backdrop-filter: blur(var(--ios-glass-blur)) saturate(var(--ios-glass-saturate));
-      -webkit-backdrop-filter: blur(var(--ios-glass-blur)) saturate(var(--ios-glass-saturate));
-      border-color: var(--ios-glass-border);
-      box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight);
-    }
-
-    .platform-ios .ios-glass-tab-bar {
-      background: var(--ios-glass-fill-strong) !important;
-      backdrop-filter: blur(24px) saturate(190%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
-      border-color: var(--ios-glass-border) !important;
-      box-shadow: var(--ios-glass-shadow-lg), inset 0 1px 0 var(--ios-glass-highlight);
-    }
-
-    .platform-ios .ios-glass-nav-bar {
-      background: var(--ios-glass-fill) !important;
-      backdrop-filter: blur(var(--ios-glass-blur)) saturate(var(--ios-glass-saturate)) !important;
-      -webkit-backdrop-filter: blur(var(--ios-glass-blur)) saturate(var(--ios-glass-saturate)) !important;
-      border-color: var(--ios-glass-border) !important;
-      box-shadow: inset 0 -0.5px 0 var(--ios-glass-border);
-    }
-
-    .platform-ios .ios-glass-modal {
-      background: var(--ios-glass-fill-strong);
-      backdrop-filter: blur(28px) saturate(190%);
-      -webkit-backdrop-filter: blur(28px) saturate(190%);
-      border-color: var(--ios-glass-border);
-      box-shadow: var(--ios-glass-shadow-lg), inset 0 0.5px 0 var(--ios-glass-highlight);
-    }
-
-    .platform-ios .ios-glass-sheet {
-      background: var(--ios-glass-fill-strong);
-      backdrop-filter: blur(28px) saturate(190%);
-      -webkit-backdrop-filter: blur(28px) saturate(190%);
-      border-color: var(--ios-glass-border);
-      box-shadow: var(--ios-glass-shadow-lg), inset 0 1px 0 var(--ios-glass-highlight);
-    }
-
-    .platform-ios .ios-glass-overlay {
-      background: var(--ios-glass-overlay);
-      backdrop-filter: blur(8px) saturate(120%);
-      -webkit-backdrop-filter: blur(8px) saturate(120%);
-    }
-
-    .platform-ios .ios-glass-popover {
-      background: var(--ios-glass-fill-strong);
-      backdrop-filter: blur(22px) saturate(185%);
-      -webkit-backdrop-filter: blur(22px) saturate(185%);
-      border-color: var(--ios-glass-border);
-      box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight);
-    }
-
-    .platform-ios .ios-glass-fab {
-      backdrop-filter: blur(12px) saturate(160%);
-      -webkit-backdrop-filter: blur(12px) saturate(160%);
-      box-shadow: 0 20px 42px -16px hsla(147, 94%, 72%, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.28);
-    }
-
-    .platform-ios .ios-glass-header-pill {
-      background: var(--ios-glass-fill-subtle);
-      backdrop-filter: blur(16px) saturate(175%);
-      -webkit-backdrop-filter: blur(16px) saturate(175%);
-      border: 1px solid var(--ios-glass-border);
-      box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight);
-    }
-
-    .platform-ios .ios-glass-card {
-      background: var(--ios-glass-fill-subtle);
-      backdrop-filter: blur(18px) saturate(175%);
-      -webkit-backdrop-filter: blur(18px) saturate(175%);
-      border-color: var(--ios-glass-border);
-      box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight);
-    }
-  }
-
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .platform-ios .ios-glass-surface,
-    .platform-ios .ios-glass-tab-bar,
-    .platform-ios .ios-glass-nav-bar,
-    .platform-ios .ios-glass-modal,
-    .platform-ios .ios-glass-sheet,
-    .platform-ios .ios-glass-popover,
-    .platform-ios .ios-glass-header-pill,
-    .platform-ios .ios-glass-card {
-      background: rgba(255, 255, 255, 0.94);
-    }
-
-    .platform-ios.dark .ios-glass-surface,
-    .platform-ios.dark .ios-glass-tab-bar,
-    .platform-ios.dark .ios-glass-nav-bar,
-    .platform-ios.dark .ios-glass-modal,
-    .platform-ios.dark .ios-glass-sheet,
-    .platform-ios.dark .ios-glass-popover,
-    .platform-ios.dark .ios-glass-header-pill,
-    .platform-ios.dark .ios-glass-card {
-      background: rgba(44, 44, 46, 0.94);
-    }
-
-    .platform-ios .ios-glass-overlay {
-      background: rgba(0, 0, 0, 0.45);
-    }
-  }
   
   
   .hero-gradient {
@@ -531,4 +400,125 @@ All colors MUST be HSL.
       will-change: opacity;
     }
   }
+}
+
+/* ── iOS Liquid Glass (unlayered — beats Tailwind utilities on native iOS) ── */
+.platform-ios {
+  --ios-glass-blur: 40px;
+  --ios-glass-saturate: 200%;
+  --ios-glass-fill: rgba(255, 255, 255, 0.45);
+  --ios-glass-fill-strong: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.38) 100%
+  );
+  --ios-glass-fill-subtle: rgba(255, 255, 255, 0.38);
+  --ios-glass-border: rgba(255, 255, 255, 0.42);
+  --ios-glass-highlight: rgba(255, 255, 255, 0.75);
+  --ios-glass-shadow: 0 12px 40px -16px rgba(0, 0, 0, 0.16);
+  --ios-glass-shadow-lg: 0 22px 56px -20px rgba(0, 0, 0, 0.22);
+  --ios-glass-overlay: rgba(0, 0, 0, 0.28);
+}
+
+.platform-ios.dark {
+  --ios-glass-fill: rgba(44, 44, 46, 0.55);
+  --ios-glass-fill-strong: linear-gradient(
+    180deg,
+    rgba(72, 72, 74, 0.82) 0%,
+    rgba(44, 44, 46, 0.52) 100%
+  );
+  --ios-glass-fill-subtle: rgba(44, 44, 46, 0.48);
+  --ios-glass-border: rgba(255, 255, 255, 0.14);
+  --ios-glass-highlight: rgba(255, 255, 255, 0.12);
+  --ios-glass-shadow: 0 12px 40px -16px rgba(0, 0, 0, 0.35);
+  --ios-glass-shadow-lg: 0 22px 56px -20px rgba(0, 0, 0, 0.45);
+  --ios-glass-overlay: rgba(0, 0, 0, 0.48);
+}
+
+.platform-ios .ios-glass-tab-bar {
+  position: relative;
+  isolation: isolate;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  background: var(--ios-glass-fill-strong) !important;
+  backdrop-filter: blur(var(--ios-glass-blur)) saturate(var(--ios-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--ios-glass-blur)) saturate(var(--ios-glass-saturate)) !important;
+  border: 1px solid var(--ios-glass-border) !important;
+  box-shadow:
+    var(--ios-glass-shadow-lg),
+    inset 0 1px 0 var(--ios-glass-highlight),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.platform-ios .ios-glass-tab-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.08) 42%,
+    transparent 72%
+  );
+  z-index: 0;
+}
+
+.platform-ios .ios-glass-tab-bar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.platform-ios .ios-glass-nav-bar {
+  background: var(--ios-glass-fill) !important;
+  backdrop-filter: blur(32px) saturate(var(--ios-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(var(--ios-glass-saturate)) !important;
+  border-color: var(--ios-glass-border) !important;
+  box-shadow: inset 0 -0.5px 0 var(--ios-glass-border) !important;
+}
+
+.platform-ios .ios-glass-modal,
+.platform-ios .ios-glass-sheet {
+  background: var(--ios-glass-fill-strong) !important;
+  backdrop-filter: blur(36px) saturate(var(--ios-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(var(--ios-glass-saturate)) !important;
+  border-color: var(--ios-glass-border) !important;
+  box-shadow: var(--ios-glass-shadow-lg), inset 0 1px 0 var(--ios-glass-highlight) !important;
+}
+
+.platform-ios .ios-glass-overlay {
+  background: var(--ios-glass-overlay) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.platform-ios .ios-glass-popover {
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(28px) saturate(var(--ios-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(var(--ios-glass-saturate)) !important;
+  border-color: var(--ios-glass-border) !important;
+  box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight) !important;
+}
+
+.platform-ios .ios-glass-header-pill {
+  background: var(--ios-glass-fill-subtle) !important;
+  backdrop-filter: blur(24px) saturate(var(--ios-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(var(--ios-glass-saturate)) !important;
+  border: 1px solid var(--ios-glass-border) !important;
+  box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight) !important;
+}
+
+.platform-ios .ios-glass-card {
+  background: var(--ios-glass-fill-subtle) !important;
+  backdrop-filter: blur(28px) saturate(var(--ios-glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(var(--ios-glass-saturate)) !important;
+  border-color: var(--ios-glass-border) !important;
+  box-shadow: var(--ios-glass-shadow), inset 0 0.5px 0 var(--ios-glass-highlight) !important;
+}
+
+.platform-ios .ios-glass-fab {
+  box-shadow:
+    0 22px 48px -14px hsla(147, 94%, 72%, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
 }

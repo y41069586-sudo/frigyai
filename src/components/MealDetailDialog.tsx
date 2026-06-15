@@ -21,7 +21,7 @@ import {
   viewportPanelTransition,
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
-import { iosGlass } from "@/lib/liquidGlass";
+import { iosGlass, iosGlassModalBase, iosGlassOverlayBase, iosGlassSheetBase } from "@/lib/liquidGlass";
 import { localizeMealTypeLabel, cleanMealDisplayName, getCookingPhaseLabel } from "@/lib/mealI18n";
 import { normalizeMealTypeForSave } from "@/lib/mealFocus";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
@@ -212,7 +212,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={() => onOpenChange(false)}
-            className="fixed inset-0 z-[60] bg-black/45 ios-glass-overlay"
+            className={cn("fixed inset-0 z-[60] bg-black/45", iosGlassOverlayBase(), "ios-glass-overlay")}
           />
 
           <motion.div
@@ -225,6 +225,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             transition={viewportPanelTransition(isMobile)}
             className={cn(
               "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
+              iosGlassModalBase(),
               iosGlass.modal,
               !isMobile && "gpu-smooth",
               isMobile
@@ -355,6 +356,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             <div
               className={cn(
                 "absolute inset-x-0 bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl",
+                iosGlassSheetBase(),
                 iosGlass.sheet,
                 "gap-3 px-5 pt-3",
                 "pb-[max(0.75rem,env(safe-area-inset-bottom,0px)+0.5rem)]",

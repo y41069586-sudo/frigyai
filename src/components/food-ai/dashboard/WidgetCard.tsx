@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { iosGlass } from "@/lib/liquidGlass";
+import { iosGlass, iosGlassCardBase } from "@/lib/liquidGlass";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { entryFrom, entryTo, dashboardScrollTransition, dashboardScrollViewport } from "@/lib/motionPresets";
 import {
@@ -25,7 +25,7 @@ export type WidgetCardProps = {
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
   glass:
-    `${dashboardCardBorder} bg-white/88 ${dashboardCardShadow} sm:bg-white/72 sm:backdrop-blur-xl dark:bg-white/[0.06] ${iosGlass.card}`,
+    `${dashboardCardBorder} bg-white/88 ${dashboardCardShadow} sm:bg-white/72 sm:backdrop-blur-xl dark:bg-white/[0.06] ${iosGlassCardBase()} ${iosGlass.card}`,
   soft:
     `${dashboardCardBorder} bg-card/96 ${dashboardCardShadow} sm:bg-card/82 sm:backdrop-blur-md`,
   gradient:

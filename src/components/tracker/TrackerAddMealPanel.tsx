@@ -8,7 +8,7 @@ import {
   type MealFocusKey,
 } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
-import { iosGlass } from "@/lib/liquidGlass";
+import { iosGlass, iosGlassOverlayBase, iosGlassSheetBase } from "@/lib/liquidGlass";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -806,7 +806,7 @@ export function TrackerAddMealPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 bg-black/25 ios-glass-overlay"
+                className={cn("absolute inset-0 z-20 bg-black/25", iosGlassOverlayBase(), "ios-glass-overlay")}
                 aria-label={copy.detailsClose}
                 onClick={() => setSelectedRecipe(null)}
               />
@@ -817,6 +817,7 @@ export function TrackerAddMealPanel({
                 transition={bottomSheetTransition(isMobile)}
                 className={cn(
                   "absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white",
+                  iosGlassSheetBase(),
                   iosGlass.sheet,
                 )}
                 style={{
@@ -895,7 +896,7 @@ export function TrackerAddMealPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 bg-black/25 ios-glass-overlay"
+                className={cn("absolute inset-0 z-20 bg-black/25", iosGlassOverlayBase(), "ios-glass-overlay")}
                 aria-label={copy.close}
                 onClick={() => setLoggedListOpen(false)}
               />
@@ -906,6 +907,7 @@ export function TrackerAddMealPanel({
                 transition={bottomSheetTransition(isMobile)}
                 className={cn(
                   "absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom",
+                  iosGlassSheetBase(),
                   iosGlass.sheet,
                 )}
                 style={{

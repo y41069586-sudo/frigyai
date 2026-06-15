@@ -35,7 +35,7 @@ import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
-import { iosGlass } from "@/lib/liquidGlass";
+import { iosGlass, iosGlassNavBarBase } from "@/lib/liquidGlass";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
@@ -235,7 +235,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-[#F7FAF7] safe-area-inset">
       {promoCodeDialog}
-      <header className={cn("sticky top-0 z-50 border-b border-slate-200/60 bg-[#F7FAF7]/90 backdrop-blur-md safe-top", iosGlass.navBar)}>
+      <header className={cn("sticky top-0 z-50 border-b border-slate-200/60 backdrop-blur-md safe-top", "bg-[#F7FAF7]/90", iosGlassNavBarBase(), iosGlass.navBar)}>
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
           <Button
             variant="ghost"

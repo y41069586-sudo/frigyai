@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { iosGlass } from "@/lib/liquidGlass";
+import { iosGlass, iosGlassFabRing, iosGlassTabBarBase } from "@/lib/liquidGlass";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
@@ -90,8 +90,8 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
     >
       <div
         className={cn(
-          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible rounded-full border border-gray-200/90 bg-white/95 px-2.5 py-1.5 pr-1.5",
-          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-gray-700/50 dark:bg-background/92 sm:dark:bg-background/80",
+          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible rounded-full px-2.5 py-1.5 pr-1.5",
+          iosGlassTabBarBase(),
           iosGlass.tabBar,
         )}
       >
@@ -140,7 +140,8 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           onClick={openTracker}
           whileTap={{ scale: 0.94 }}
           className={cn(
-            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
+            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4",
+            iosGlassFabRing(),
             iosGlass.fab,
             trackerActive
               ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"

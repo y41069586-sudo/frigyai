@@ -34,7 +34,7 @@ import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
 import { resolveMealFocusKey, type MealFocusKey } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
-import { iosGlass } from "@/lib/liquidGlass";
+import { iosGlass, iosGlassHeaderPillBase } from "@/lib/liquidGlass";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
 import {
@@ -732,6 +732,7 @@ const Index = () => {
                 onClick={() => setShowWeightDialog(true)}
                 className={cn(
                   "flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]",
+                  iosGlassHeaderPillBase(),
                   iosGlass.headerPill,
                 )}
                 whileTap={{ scale: 0.95 }}
@@ -761,6 +762,7 @@ const Index = () => {
                 onClick={() => setIsChatbotOpen(!isChatbotOpen)}
                 className={cn(
                   "w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors",
+                  iosGlassHeaderPillBase(),
                   iosGlass.headerPill,
                 )}
                 whileTap={{ scale: 0.95 }}
@@ -773,6 +775,7 @@ const Index = () => {
                 onClick={() => navigate('/profile')}
                 className={cn(
                   "w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center",
+                  iosGlassHeaderPillBase(),
                   iosGlass.headerPill,
                 )}
                 whileTap={{ scale: 0.95 }}

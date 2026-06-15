@@ -3,7 +3,7 @@ import { MotionConfig } from "framer-motion";
 import App from "./App.tsx";
 import "./index.css";
 import { usesStoreBilling } from "@/lib/billingPlatform";
-import { markIOSPlatformClass } from "@/lib/platformUi";
+import { bootstrapIOSPlatformClass } from "@/lib/platformUi";
 import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from "@/lib/oauthPending";
 import { readCachedStoreOfferingPrices } from "@/lib/storeOfferingPricesCache";
 import { isStoreBillingConfigured, prefetchStoreOfferingPrices } from "@/lib/storeBilling";
@@ -46,7 +46,7 @@ function clearStaleDevAuthFlags(): void {
 void clearDevClientCaches();
 clearStaleDevAuthFlags();
 clearStaleOAuthPendingIfIdle();
-markIOSPlatformClass();
+bootstrapIOSPlatformClass();
 
 // Warm paywall price cache from localStorage, then prefetch RevenueCat in background (native).
 readCachedStoreOfferingPrices();

@@ -22,6 +22,7 @@ import { ReferralAttributionBootstrap } from "@/components/ReferralAttributionBo
 import { AuthOAuthCallbackBootstrap } from "@/components/AuthOAuthCallbackBootstrap";
 import { StoreBillingBootstrap } from "@/components/StoreBillingBootstrap";
 import { BadgeUnlockCelebration } from "@/components/BadgeUnlockCelebration";
+import { IOSPlatformBootstrap } from "@/components/IOSPlatformBootstrap";
 import { MainNavChrome } from "@/components/MainNavChrome";
 import MealPlansPage from "./pages/MealPlansPage";
 // Lazy load secondary pages — main nav (/meal-plans) stays eager so navigation never hangs on Suspense
@@ -125,6 +126,7 @@ const App = () => {
                     <StoreBillingBootstrap />
                     <NotificationBootstrap />
                     <BadgeUnlockCelebration />
+                    <IOSPlatformBootstrap />
                     <AppContent />
                     </MealPlanProvider>
                   </PremiumGateProvider>
