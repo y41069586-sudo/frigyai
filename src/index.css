@@ -164,10 +164,10 @@ All colors MUST be HSL.
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
-  /* Scroll padding under floating tab bar + accessory FAB + home indicator */
+  /* Scroll padding under fixed BottomNavigation (bottom offset + pill + FAB) + home indicator */
   .pb-bottom-nav {
-    padding-bottom: calc(8.25rem + env(safe-area-inset-bottom, 0px));
-    scroll-padding-bottom: calc(8.25rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .safe-top {
@@ -400,29 +400,4 @@ All colors MUST be HSL.
       will-change: opacity;
     }
   }
-}
-
-/* ── BlurView (real backdrop-filter — iOS Capacitor + web) ── */
-.frigy-blur-view {
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* iOS WKWebView: blur on the shell itself (nested backdrop layers often sample nothing). */
-.frigy-blur-view--ios {
-  overflow: visible;
-  isolation: auto;
-}
-
-.frigy-blur-view__backdrop {
-  z-index: 0;
-}
-
-.frigy-blur-view__sheen {
-  z-index: 1;
-}
-
-.frigy-blur-view__content {
-  position: relative;
-  z-index: 2;
 }

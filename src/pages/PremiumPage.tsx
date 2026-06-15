@@ -20,8 +20,6 @@ import { waitForPremiumAfterPurchase } from '@/lib/subscriptionRefresh';
 import { SubscriptionLegalLinks } from '@/components/SubscriptionLegalLinks';
 import { useStoreOfferingPrices } from '@/hooks/useStoreOfferingPrices';
 import { formatPremiumTrialHint } from '@/lib/paywallPricing';
-import { cn } from '@/lib/utils';
-import { GlassNavBar } from '@/components/ui/BlurView';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -232,7 +230,8 @@ const PremiumPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-area-inset overflow-x-hidden">
-      <GlassNavBar className="z-50 border-border/30" innerClassName="w-full px-3 py-3 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border/30 safe-top">
+        <div className="w-full px-3 py-3 flex items-center justify-between">
           <div className="flex items-center min-w-0">
             <Button
               variant="ghost"
@@ -262,7 +261,8 @@ const PremiumPage = () => {
               {loading ? '...' : t.premiumLabel2}
             </Button>
           )}
-      </GlassNavBar>
+        </div>
+      </nav>
 
       <div className="w-full px-4 py-6 overflow-x-hidden">
         <motion.div

@@ -1,10 +1,8 @@
 import { createRoot } from "react-dom/client";
-import { Capacitor } from "@capacitor/core";
 import { MotionConfig } from "framer-motion";
 import App from "./App.tsx";
 import "./index.css";
 import { usesStoreBilling } from "@/lib/billingPlatform";
-import { bootstrapIOSPlatformClass, disableNativeServiceWorker, isIOSNative } from "@/lib/platformUi";
 import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending } from "@/lib/oauthPending";
 import { readCachedStoreOfferingPrices } from "@/lib/storeOfferingPricesCache";
 import { isStoreBillingConfigured, prefetchStoreOfferingPrices } from "@/lib/storeBilling";
@@ -47,12 +45,6 @@ function clearStaleDevAuthFlags(): void {
 void clearDevClientCaches();
 clearStaleDevAuthFlags();
 clearStaleOAuthPendingIfIdle();
-bootstrapIOSPlatformClass();
-void disableNativeServiceWorker();
-
-if (typeof window !== "undefined" && !Capacitor.isNativePlatform() && !isIOSNative()) {
-  void import("virtual:pwa-register");
-}
 
 // Warm paywall price cache from localStorage, then prefetch RevenueCat in background (native).
 readCachedStoreOfferingPrices();

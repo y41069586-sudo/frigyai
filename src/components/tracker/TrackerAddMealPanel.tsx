@@ -8,7 +8,6 @@ import {
   type MealFocusKey,
 } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
-import { BlurOverlay, BlurView } from "@/components/ui/BlurView";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -801,26 +800,26 @@ export function TrackerAddMealPanel({
         <AnimatePresence>
           {selectedRecipe && (
             <>
-              <motion.div
+              <motion.button
+                type="button"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20"
-              >
-                <BlurOverlay className="h-full w-full" onClick={() => setSelectedRecipe(null)} aria-label={copy.detailsClose} />
-              </motion.div>
+                className="absolute inset-0 z-20 bg-black/25"
+                aria-label={copy.detailsClose}
+                onClick={() => setSelectedRecipe(null)}
+              />
               <motion.div
                 initial={bottomSheetFrom(isMobile)}
                 animate={bottomSheetTo(isMobile)}
                 exit={bottomSheetExit(isMobile)}
                 transition={bottomSheetTransition(isMobile)}
-                className="absolute inset-x-0 bottom-0 z-30 max-h-[82vh] rounded-t-[1.9rem]"
+                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white"
                 style={{
                   paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
                   boxShadow: "0 -18px 48px -18px rgba(15,40,30,0.28)",
                 }}
               >
-                <BlurView variant="sheet" intensity={64} className="flex max-h-[82vh] flex-col overflow-hidden rounded-t-[1.9rem]">
                 <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: PALETTE.textMuted }}>
@@ -882,31 +881,30 @@ export function TrackerAddMealPanel({
                     {copy.add}
                   </button>
                 </div>
-                </BlurView>
               </motion.div>
             </>
           )}
           {loggedListOpen && (
             <>
-              <motion.div
+              <motion.button
+                type="button"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20"
-              >
-                <BlurOverlay className="h-full w-full" onClick={() => setLoggedListOpen(false)} aria-label={copy.close} />
-              </motion.div>
+                className="absolute inset-0 z-20 bg-black/25"
+                aria-label={copy.close}
+                onClick={() => setLoggedListOpen(false)}
+              />
               <motion.div
                 initial={bottomSheetFrom(isMobile)}
                 animate={bottomSheetTo(isMobile)}
                 exit={bottomSheetExit(isMobile)}
                 transition={bottomSheetTransition(isMobile)}
-                className="absolute inset-x-0 bottom-0 z-30 max-h-[min(72vh,calc(100%-5rem))] rounded-t-[1.75rem] safe-bottom"
+                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom"
                 style={{
                   boxShadow: "0 -16px 40px -12px rgba(30, 215, 138, 0.35)",
                 }}
               >
-                <BlurView variant="sheet" intensity={64} className="flex max-h-[min(72vh,calc(100%-5rem))] flex-col overflow-hidden rounded-t-[1.75rem] safe-bottom">
                 <motion.div
                   className="flex items-center justify-between border-b px-4 py-3"
                   style={{ borderColor: PALETTE.border }}
@@ -974,7 +972,6 @@ export function TrackerAddMealPanel({
                     ))
                   )}
                 </ul>
-                </BlurView>
               </motion.div>
             </>
           )}

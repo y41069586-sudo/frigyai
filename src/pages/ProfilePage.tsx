@@ -35,7 +35,6 @@ import { isReferralAdmin } from "@/lib/admin";
 import { clearOnboardingForLogout } from "@/components/onboarding/utils";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { cn } from "@/lib/utils";
-import { GlassNavBar } from "@/components/ui/BlurView";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
@@ -235,7 +234,8 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-[#F7FAF7] safe-area-inset">
       {promoCodeDialog}
-      <GlassNavBar as="header" className="z-50 border-slate-200/40" innerClassName="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-[#F7FAF7]/90 backdrop-blur-md safe-top">
+        <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
           <Button
             variant="ghost"
             size="icon"
@@ -245,7 +245,8 @@ const ProfilePage = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-[17px] font-bold tracking-[-0.02em]">{t.settings}</h1>
-      </GlassNavBar>
+        </div>
+      </header>
 
       <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-md flex-col px-4 py-6">
         <div className="space-y-6">

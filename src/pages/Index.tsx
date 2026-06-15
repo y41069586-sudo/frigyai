@@ -13,7 +13,6 @@ import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
-import { AppScrollShell } from "@/components/layout/AppScrollShell";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
 import { FRIGY_TRACKER_SETTINGS_UPDATED } from "@/lib/frigyStorageSync";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
@@ -34,8 +33,6 @@ import {
 import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
 import { resolveMealFocusKey, type MealFocusKey } from "@/lib/mealFocus";
-import { cn } from "@/lib/utils";
-import { BlurView } from "@/components/ui/BlurView";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
 import {
@@ -654,7 +651,9 @@ const Index = () => {
     return (
       <>
         <PageLoader />
-        {showBootstrapBottomNav ? <BottomNavigation /> : null}
+        {showBootstrapBottomNav ? (
+          <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
+        ) : null}
       </>
     );
   }
@@ -706,11 +705,12 @@ const Index = () => {
   }
 
   return (
-    <>
-    <AppScrollShell className="bg-[#FFFFFF]" scrollClassName="px-4 pt-9 sm:px-6 sm:pt-11 safe-top">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_55%,transparent_100%)]" />
+    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#FFFFFF]">
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)]" />
 
-      <div className="relative mx-auto flex w-full max-w-full flex-col space-y-8 pb-bottom-nav sm:max-w-md lg:max-w-2xl">
+      {/* Main Content — single scroll container (fixes stuck scroll at tracker height on mobile) */}
+      <main className="dashboard-scroll-main relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pb-bottom-nav pt-9 sm:px-6 sm:pt-11 safe-top [-webkit-overflow-scrolling:touch]">
+        <div className="mx-auto flex w-full max-w-full flex-col space-y-8 sm:max-w-md lg:max-w-2xl">
           
           {/* Header - Clean & Modern */}
           <motion.header
@@ -725,19 +725,16 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-2 flex-shrink-0">
-              <motion.div whileTap={{ scale: 0.95 }}>
-                <BlurView
-                  variant="pill"
-                  as="button"
-                  type="button"
-                  onClick={() => setShowWeightDialog(true)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full"
-                  aria-label={t.weightProgress}
-                  title={t.weightProgress}
-                >
-                  <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
-                </BlurView>
-              </motion.div>
+              <motion.button
+                type="button"
+                onClick={() => setShowWeightDialog(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]"
+                whileTap={{ scale: 0.95 }}
+                aria-label={t.weightProgress}
+                title={t.weightProgress}
+              >
+                <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
+              </motion.button>
 
               {currentStreak > 0 && (
                 <motion.button
@@ -755,30 +752,22 @@ const Index = () => {
                 </motion.button>
               )}
 
-              <motion.div whileTap={{ scale: 0.95 }}>
-                <BlurView
-                  variant="pill"
-                  as="button"
-                  type="button"
-                  onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full"
-                  title="AI Chatbot"
-                >
-                  <Bot className="w-4 h-4 text-primary" />
-                </BlurView>
-              </motion.div>
+              <motion.button
+                onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors"
+                whileTap={{ scale: 0.95 }}
+                title="AI Chatbot"
+              >
+                <Bot className="w-4 h-4 text-primary" />
+              </motion.button>
 
-              <motion.div whileTap={{ scale: 0.95 }}>
-                <BlurView
-                  variant="pill"
-                  as="button"
-                  type="button"
-                  onClick={() => navigate('/profile')}
-                  className="flex h-10 w-10 items-center justify-center rounded-full"
-                >
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                </BlurView>
-              </motion.div>
+              <motion.button
+                onClick={() => navigate('/profile')}
+                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center"
+                whileTap={{ scale: 0.95 }}
+              >
+                <Settings className="w-4 h-4 text-muted-foreground" />
+              </motion.button>
             </div>
           </motion.header>
 
@@ -803,10 +792,15 @@ const Index = () => {
               }}
             />
         </div>
-    </AppScrollShell>
+      </main>
 
       {user && (
         <MacroTracker onSetupComplete={() => reloadSettings(false)} />
+      )}
+
+      {/* Bottom Navigation - Show for all logged in users */}
+      {user && !shouldHideBottomNavForFirstPlan() && (
+        <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
       )}
 
       <Dialog
@@ -891,7 +885,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-    </>
+    </div>
   );
 };
 
