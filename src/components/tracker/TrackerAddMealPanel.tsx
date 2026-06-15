@@ -8,6 +8,7 @@ import {
   type MealFocusKey,
 } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
+import { iosGlass } from "@/lib/liquidGlass";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -805,7 +806,7 @@ export function TrackerAddMealPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 bg-black/25"
+                className="absolute inset-0 z-20 bg-black/25 ios-glass-overlay"
                 aria-label={copy.detailsClose}
                 onClick={() => setSelectedRecipe(null)}
               />
@@ -814,7 +815,10 @@ export function TrackerAddMealPanel({
                 animate={bottomSheetTo(isMobile)}
                 exit={bottomSheetExit(isMobile)}
                 transition={bottomSheetTransition(isMobile)}
-                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white"
+                className={cn(
+                  "absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white",
+                  iosGlass.sheet,
+                )}
                 style={{
                   paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
                   boxShadow: "0 -18px 48px -18px rgba(15,40,30,0.28)",
@@ -891,7 +895,7 @@ export function TrackerAddMealPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 bg-black/25"
+                className="absolute inset-0 z-20 bg-black/25 ios-glass-overlay"
                 aria-label={copy.close}
                 onClick={() => setLoggedListOpen(false)}
               />
@@ -900,7 +904,10 @@ export function TrackerAddMealPanel({
                 animate={bottomSheetTo(isMobile)}
                 exit={bottomSheetExit(isMobile)}
                 transition={bottomSheetTransition(isMobile)}
-                className="absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom"
+                className={cn(
+                  "absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom",
+                  iosGlass.sheet,
+                )}
                 style={{
                   boxShadow: "0 -16px 40px -12px rgba(30, 215, 138, 0.35)",
                 }}

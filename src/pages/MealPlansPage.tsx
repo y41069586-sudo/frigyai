@@ -31,6 +31,7 @@ import {
   type MealPlanPreferences,
 } from '@/lib/mealPlanPreferences';
 import { cn } from '@/lib/utils';
+import { iosGlass } from '@/lib/liquidGlass';
 import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { localizeMealTypeLabel, localizeWeekdayLabel, cleanMealDisplayName } from '@/lib/mealI18n';
@@ -561,7 +562,7 @@ const MealPlansPage = () => {
   return (
     <>
       <div className="min-h-screen bg-[#F2FFF8] safe-area-inset">
-      <nav className="sticky top-0 z-[60] bg-[#F2FFF8]/95 border-b border-primary/15 safe-top sm:bg-[#F2FFF8]/90 sm:backdrop-blur-lg">
+      <nav className={cn("sticky top-0 z-[60] bg-[#F2FFF8]/95 border-b border-primary/15 safe-top sm:bg-[#F2FFF8]/90 sm:backdrop-blur-lg", iosGlass.navBar)}>
         <div className="container mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex min-w-0 items-center">
             {!isFirstPlanFlow && (

@@ -20,6 +20,8 @@ import { waitForPremiumAfterPurchase } from '@/lib/subscriptionRefresh';
 import { SubscriptionLegalLinks } from '@/components/SubscriptionLegalLinks';
 import { useStoreOfferingPrices } from '@/hooks/useStoreOfferingPrices';
 import { formatPremiumTrialHint } from '@/lib/paywallPricing';
+import { cn } from '@/lib/utils';
+import { iosGlass } from '@/lib/liquidGlass';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -230,7 +232,7 @@ const PremiumPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-area-inset overflow-x-hidden">
-      <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border/30 safe-top">
+      <nav className={cn("sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border/30 safe-top", iosGlass.navBar)}>
         <div className="w-full px-3 py-3 flex items-center justify-between">
           <div className="flex items-center min-w-0">
             <Button

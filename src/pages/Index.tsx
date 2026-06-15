@@ -33,6 +33,8 @@ import {
 import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
 import { resolveMealFocusKey, type MealFocusKey } from "@/lib/mealFocus";
+import { cn } from "@/lib/utils";
+import { iosGlass } from "@/lib/liquidGlass";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
 import {
@@ -728,7 +730,10 @@ const Index = () => {
               <motion.button
                 type="button"
                 onClick={() => setShowWeightDialog(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]"
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]",
+                  iosGlass.headerPill,
+                )}
                 whileTap={{ scale: 0.95 }}
                 aria-label={t.weightProgress}
                 title={t.weightProgress}
@@ -754,7 +759,10 @@ const Index = () => {
 
               <motion.button
                 onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors"
+                className={cn(
+                  "w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors",
+                  iosGlass.headerPill,
+                )}
                 whileTap={{ scale: 0.95 }}
                 title="AI Chatbot"
               >
@@ -763,7 +771,10 @@ const Index = () => {
 
               <motion.button
                 onClick={() => navigate('/profile')}
-                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center"
+                className={cn(
+                  "w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center",
+                  iosGlass.headerPill,
+                )}
                 whileTap={{ scale: 0.95 }}
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
