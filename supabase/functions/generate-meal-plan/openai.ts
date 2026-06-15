@@ -17,6 +17,7 @@ import {
   buildRegenerationUserPrompt,
   buildEverydayDishExample,
   buildSimpleFoodStyleBlock,
+  buildCalorieAwareDishBlock,
 } from "./dietPrompts.ts";
 import { formatPriorDishesForPrompt } from "./variety.ts";
 import { buildMealPlanPrefsPromptBlock } from "./mealPlanPrefs.ts";
@@ -128,13 +129,14 @@ function buildCompactSystemPrompt(params: {
     `Nutrition expert. JSON only (${L.lang}). Exactly 7 days: ${L.days.join(", ")}.`,
     `Exactly ${params.mealsPerDay} meals per day. Complete week — no empty days.`,
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
+    buildCalorieAwareDishBlock(params.targets.dailyCalories, params.mealsPerDay, params.lang),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Ingredient amounts MUST be realistic purchase units (e.g. "150g", "200ml", "2 Stück") — never only "1 Portion".`,
     `Ingredient price = estimated EUR cost for that exact amount in a German supermarket (typically €0.20–€4.50 per line).`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
     `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
-    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
+    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal). No smoothies.`,
     buildNoPorkConstraintBlock(params.lang),
     params.dietBlock,
     params.bannedBlock,

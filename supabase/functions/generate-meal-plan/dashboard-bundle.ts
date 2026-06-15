@@ -1437,6 +1437,52 @@ export function dishMaximumKcal(
   return Number.POSITIVE_INFINITY;
 }
 
+const MAX_MEAL_SHARE_BY_MPD: Record<number, number> = {
+  3: 0.48,
+  4: 0.42,
+  5: 0.36,
+  6: 0.32,
+};
+
+/** Heavy dishes (wrap, schnitzel, …) cannot fit an unrealistically small daily budget. */
+export function dishFitsDailyBudget(
+  name: string,
+  mealType: string,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  const min = dishMinimumKcal(name, mealType, dailyCalories, mealsPerDay);
+  const maxShare = MAX_MEAL_SHARE_BY_MPD[mealsPerDay] ?? 0.4;
+  return min <= dailyCalories * maxShare + 20;
+}
+
+export function mealCaloriesUnrealisticForDish(
+  meal: { name?: string; type?: string; calories?: number; protein?: number; carbs?: number; fat?: number },
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  const kcal =
+    typeof meal.calories === "number" && meal.calories > 0
+      ? meal.calories
+      : (Number(meal.protein) || 0) * 4 + (Number(meal.carbs) || 0) * 4 + (Number(meal.fat) || 0) * 9;
+  const min = dishMinimumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay);
+  const max = dishMaximumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories);
+  if (min > 0 && kcal < min * 0.9) return true;
+  if (Number.isFinite(max) && kcal > max * 1.12) return true;
+  if (!dishFitsDailyBudget(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay)) {
+    return true;
+  }
+  return false;
+}
+
+export function mealsViolateDishRealism(
+  meals: Array<{ name?: string; type?: string; calories?: number; protein?: number; carbs?: number; fat?: number }>,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  return meals.some((meal) => mealCaloriesUnrealisticForDish(meal, dailyCalories, mealsPerDay));
+}
+
 export function aiMacrosUnrealisticForDishes(
   meals: Array<{ name?: string; type?: string; protein?: number; carbs?: number; fat?: number }>,
   dailyCalories: number,
@@ -1738,10 +1784,17 @@ export function syncDay(
 
   if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length) && !unrealisticAi) {
     meals = scaleMealsToDailyTargets(meals, t);
-    if (mealExceedsDailyShare(meals, t.dailyCalories, mealsPerDay)) {
+    if (
+      mealExceedsDailyShare(meals, t.dailyCalories, mealsPerDay) ||
+      mealsViolateDishRealism(meals, t.dailyCalories, mealsPerDay)
+    ) {
       meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
     }
   } else {
+    meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
+  }
+
+  if (mealsViolateDishRealism(meals, t.dailyCalories, mealsPerDay)) {
     meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
   }
 
@@ -2280,13 +2333,14 @@ function buildCompactSystemPrompt(params: {
     `Nutrition expert. JSON only (${L.lang}). Exactly 7 days: ${L.days.join(", ")}.`,
     `Exactly ${params.mealsPerDay} meals per day. Complete week — no empty days.`,
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
+    buildCalorieAwareDishBlock(params.targets.dailyCalories, params.mealsPerDay, params.lang),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Ingredient amounts MUST be realistic purchase units (e.g. "150g", "200ml", "2 Stück") — never only "1 Portion".`,
     `Ingredient price = estimated EUR cost for that exact amount in a German supermarket (typically €0.20–€4.50 per line).`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
     `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
-    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
+    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal). No smoothies.`,
     buildNoPorkConstraintBlock(params.lang),
     params.dietBlock,
     params.bannedBlock,
@@ -2988,6 +3042,16 @@ export async function buildPlan(
     varietySeed: input.varietySeed,
     mealPlanPrefs: input.mealPlanPrefs,
   });
+  plan = swapUnrealisticDishNames(
+    plan,
+    input.targets,
+    input.mealsPerDay,
+    input.lang,
+    input.prefs,
+    input.safetyCtx,
+    input.varietySeed ?? "",
+    input.mealPlanPrefs,
+  );
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
@@ -3768,6 +3832,41 @@ export function buildEverydayDishExample(lang: Lang): string {
   if (lang === "de") return "Reis mit Hackfleisch";
   if (lang === "fr") return "Riz bœuf haché";
   return "Chicken and rice";
+}
+
+export function buildCalorieAwareDishBlock(
+  dailyCalories: number,
+  mealsPerDay: number,
+  lang: Lang,
+): string {
+  const perMeal = Math.round(dailyCalories / Math.max(mealsPerDay, 1));
+  if (lang === "de") {
+    if (dailyCalories <= 1400) {
+      return [
+        `KALORIEN-BUDGET: Nur ${dailyCalories} kcal/Tag (~${perMeal} kcal/Mahlzeit).`,
+        "Wähle LEICHTE Gerichte: Suppe, Salat, Joghurt, Obst, Omelett, Gemüsepfanne.",
+        "VERBOTEN bei diesem Budget: Wrap, Burger, Schnitzel, Pizza, Pasta große Portion, Leberkäse-Semmel.",
+        "Jedes Gericht muss zum Budget passen — nicht denselben Wrap mit unrealistisch wenigen kcal.",
+      ].join(" ");
+    }
+    if (dailyCalories <= 1800) {
+      return [
+        `KALORIEN-BUDGET: ${dailyCalories} kcal/Tag (~${perMeal} kcal/Mahlzeit).`,
+        "Hauptmahlzeiten moderat (Salat, Reis mit Gemüse, Omelett, leichte Pfanne).",
+        "Keine doppelten schweren Gerichte (max. 1× Wrap/Burger/Schnitzel pro Woche).",
+      ].join(" ");
+    }
+    return [
+      `KALORIEN-BUDGET: ${dailyCalories} kcal/Tag.`,
+      "Hauptmahlzeiten dürfen kräftiger sein (450–750 kcal), Snacks leichter (150–350 kcal).",
+      "Gerichtname und Portionsgröße müssen zusammenpassen — keine Fantasie-kcal.",
+    ].join(" ");
+  }
+  return [
+    `CALORIE BUDGET: ${dailyCalories} kcal/day (~${perMeal} kcal/meal).`,
+    "Pick dishes that realistically fit the budget — no heavy wrap/burger on a 1200 kcal day.",
+    "Snack smaller, main meals larger; dish names must match portion realism.",
+  ].join(" ");
 }
 
 export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {

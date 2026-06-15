@@ -99,6 +99,52 @@ export function dishMaximumKcal(
   return Number.POSITIVE_INFINITY;
 }
 
+const MAX_MEAL_SHARE_BY_MPD: Record<number, number> = {
+  3: 0.48,
+  4: 0.42,
+  5: 0.36,
+  6: 0.32,
+};
+
+/** Heavy dishes (wrap, schnitzel, …) cannot fit an unrealistically small daily budget. */
+export function dishFitsDailyBudget(
+  name: string,
+  mealType: string,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  const min = dishMinimumKcal(name, mealType, dailyCalories, mealsPerDay);
+  const maxShare = MAX_MEAL_SHARE_BY_MPD[mealsPerDay] ?? 0.4;
+  return min <= dailyCalories * maxShare + 20;
+}
+
+export function mealCaloriesUnrealisticForDish(
+  meal: { name?: string; type?: string; calories?: number; protein?: number; carbs?: number; fat?: number },
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  const kcal =
+    typeof meal.calories === "number" && meal.calories > 0
+      ? meal.calories
+      : (Number(meal.protein) || 0) * 4 + (Number(meal.carbs) || 0) * 4 + (Number(meal.fat) || 0) * 9;
+  const min = dishMinimumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay);
+  const max = dishMaximumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories);
+  if (min > 0 && kcal < min * 0.9) return true;
+  if (Number.isFinite(max) && kcal > max * 1.12) return true;
+  if (!dishFitsDailyBudget(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay)) {
+    return true;
+  }
+  return false;
+}
+
+export function mealsViolateDishRealism(
+  meals: Array<{ name?: string; type?: string; calories?: number; protein?: number; carbs?: number; fat?: number }>,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  return meals.some((meal) => mealCaloriesUnrealisticForDish(meal, dailyCalories, mealsPerDay));
+}
+
 export function aiMacrosUnrealisticForDishes(
   meals: Array<{ name?: string; type?: string; protein?: number; carbs?: number; fat?: number }>,
   dailyCalories: number,

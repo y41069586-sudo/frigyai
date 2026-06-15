@@ -11,6 +11,7 @@ import {
   dishCalorieWeightHint,
   dishMaximumKcal,
   dishMinimumKcal,
+  mealsViolateDishRealism,
 } from "./mealCalorieHints.ts";
 import { sanitizeMealInstructions } from "./planMealSanitize.ts";
 import type {
@@ -307,10 +308,17 @@ export function syncDay(
 
   if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length) && !unrealisticAi) {
     meals = scaleMealsToDailyTargets(meals, t);
-    if (mealExceedsDailyShare(meals, t.dailyCalories, mealsPerDay)) {
+    if (
+      mealExceedsDailyShare(meals, t.dailyCalories, mealsPerDay) ||
+      mealsViolateDishRealism(meals, t.dailyCalories, mealsPerDay)
+    ) {
       meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
     }
   } else {
+    meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
+  }
+
+  if (mealsViolateDishRealism(meals, t.dailyCalories, mealsPerDay)) {
     meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
   }
 
