@@ -21,7 +21,7 @@ import {
   viewportPanelTransition,
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
-import { glassModalClasses, glassOverlayClasses, glassSheetClasses } from "@/lib/liquidGlass";
+import { BlurOverlay, BlurView } from "@/components/ui/BlurView";
 import { localizeMealTypeLabel, cleanMealDisplayName, getCookingPhaseLabel } from "@/lib/mealI18n";
 import { normalizeMealTypeForSave } from "@/lib/mealFocus";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
@@ -204,16 +204,19 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
     <AnimatePresence onExitComplete={() => { if (!open) setDisplayMeal(null); }}>
       {open && activeMeal && (
         <>
-          <motion.button
-            type="button"
-            aria-label={btn.close}
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            onClick={() => onOpenChange(false)}
-            className={glassOverlayClasses("fixed inset-0 z-[60] bg-black/45")}
-          />
+            className="fixed inset-0 z-[60]"
+          >
+            <BlurOverlay
+              className="h-full w-full"
+              onClick={() => onOpenChange(false)}
+              aria-label={btn.close}
+            />
+          </motion.div>
 
           <motion.div
             role="dialog"
@@ -224,15 +227,14 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             exit={viewportPanelExit(isMobile)}
             transition={viewportPanelTransition(isMobile)}
             className={cn(
-              glassModalClasses(
-                "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
-              ),
+              "fixed z-[61] flex flex-col overflow-hidden shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
               !isMobile && "gpu-smooth",
               isMobile
-                ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5.75rem,env(safe-area-inset-bottom,0px)+4.75rem)] rounded-[1.75rem] border border-primary/15"
-                : "left-1/2 top-1/2 max-h-[88vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-primary/20",
+                ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5.75rem,env(safe-area-inset-bottom,0px)+4.75rem)] rounded-[1.75rem]"
+                : "left-1/2 top-1/2 max-h-[88vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl",
             )}
           >
+            <BlurView variant="modal" intensity={64} className="flex h-full min-h-0 flex-col overflow-hidden rounded-[inherit]">
             <div className={cn("shrink-0", !isMobile && "pt-2")}>
               <div className={cn("flex items-start gap-2 px-5", isMobile ? "pb-2 pt-3" : "px-6 pt-4")}>
                 <div className="min-w-0 flex-1">
@@ -353,11 +355,11 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               </section>
             </div>
 
-            <div
+            <BlurView
+              variant="sheet"
+              intensity={56}
               className={cn(
-                glassSheetClasses(
-                  "absolute inset-x-0 bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl",
-                ),
+                "absolute inset-x-0 bottom-0 z-10 border-t border-white/25",
                 "gap-3 px-5 pt-3",
                 "pb-[max(0.75rem,env(safe-area-inset-bottom,0px)+0.5rem)]",
                 isMobile ? "grid grid-cols-2" : "flex items-center",
@@ -399,7 +401,8 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
               >
                 {btn.close}
               </Button>
-            </div>
+            </BlurView>
+            </BlurView>
           </motion.div>
         </>
       )}

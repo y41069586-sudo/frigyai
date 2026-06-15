@@ -34,8 +34,7 @@ import { AIChatbot } from "@/components/AIChatbot";
 import { PageLoader } from "@/components/PageLoader";
 import { resolveMealFocusKey, type MealFocusKey } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
-import { glassHeaderPillClassName } from "@/lib/liquidGlass";
-import { useIOSPlatform } from "@/hooks/useIOSPlatform";
+import { BlurView } from "@/components/ui/BlurView";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 import { useGamification } from "@/hooks/useGamification";
 import {
@@ -95,7 +94,6 @@ const Index = () => {
   );
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   const { t, language } = useLanguage();
-  const ios = useIOSPlatform();
   const timeLocale = getAppLocale(language);
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
   const [trackerGoalsTick, setTrackerGoalsTick] = useState(0);
@@ -729,19 +727,19 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-2 flex-shrink-0">
-              <motion.button
-                type="button"
-                onClick={() => setShowWeightDialog(true)}
-                className={glassHeaderPillClassName(
-                  ios,
-                  "flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]",
-                )}
-                whileTap={{ scale: 0.95 }}
-                aria-label={t.weightProgress}
-                title={t.weightProgress}
-              >
-                <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
-              </motion.button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <BlurView
+                  variant="pill"
+                  as="button"
+                  type="button"
+                  onClick={() => setShowWeightDialog(true)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full"
+                  aria-label={t.weightProgress}
+                  title={t.weightProgress}
+                >
+                  <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
+                </BlurView>
+              </motion.div>
 
               {currentStreak > 0 && (
                 <motion.button
@@ -759,28 +757,30 @@ const Index = () => {
                 </motion.button>
               )}
 
-              <motion.button
-                onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-                className={glassHeaderPillClassName(
-                  ios,
-                  "w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors",
-                )}
-                whileTap={{ scale: 0.95 }}
-                title="AI Chatbot"
-              >
-                <Bot className="w-4 h-4 text-primary" />
-              </motion.button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <BlurView
+                  variant="pill"
+                  as="button"
+                  type="button"
+                  onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full"
+                  title="AI Chatbot"
+                >
+                  <Bot className="w-4 h-4 text-primary" />
+                </BlurView>
+              </motion.div>
 
-              <motion.button
-                onClick={() => navigate('/profile')}
-                className={glassHeaderPillClassName(
-                  ios,
-                  "w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center",
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Settings className="w-4 h-4 text-muted-foreground" />
-              </motion.button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <BlurView
+                  variant="pill"
+                  as="button"
+                  type="button"
+                  onClick={() => navigate('/profile')}
+                  className="flex h-10 w-10 items-center justify-center rounded-full"
+                >
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                </BlurView>
+              </motion.div>
             </div>
           </motion.header>
 
