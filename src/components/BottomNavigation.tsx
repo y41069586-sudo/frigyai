@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { iosGlass, iosGlassFabRing, iosGlassTabBarBase } from "@/lib/liquidGlass";
+import { glassFabRingClassName, glassTabBarClassName, iosGlass } from "@/lib/liquidGlass";
+import { useIOSPlatform } from "@/hooks/useIOSPlatform";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
@@ -41,6 +42,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
   const [searchParams] = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const isMobile = useIsMobile();
+  const ios = useIOSPlatform();
 
   useEffect(() => {
     setMounted(true);
@@ -89,11 +91,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
     >
       <div
-        className={cn(
-          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible rounded-full px-2.5 py-1.5 pr-1.5",
-          iosGlassTabBarBase(),
-          iosGlass.tabBar,
-        )}
+        className={glassTabBarClassName(ios)}
       >
         {ITEMS.map((item) => {
           const active = isTabActive(item.id);
@@ -141,7 +139,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           whileTap={{ scale: 0.94 }}
           className={cn(
             "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4",
-            iosGlassFabRing(),
+            glassFabRingClassName(ios),
             iosGlass.fab,
             trackerActive
               ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"

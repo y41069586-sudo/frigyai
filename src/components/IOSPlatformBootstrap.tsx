@@ -1,11 +1,7 @@
-import { useEffect } from "react";
-import { bootstrapIOSPlatformClass } from "@/lib/platformUi";
+import { useIOSPlatformBootstrap } from "@/hooks/useIOSPlatform";
 
-/** Ensures `html.platform-ios` is set once Capacitor bridge is ready. */
+/** Ensures iOS detection retries and subscribed components re-render when ready. */
 export function IOSPlatformBootstrap() {
-  useEffect(() => {
-    bootstrapIOSPlatformClass();
-  }, []);
-
+  useIOSPlatformBootstrap();
   return null;
 }

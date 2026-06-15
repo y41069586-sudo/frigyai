@@ -8,7 +8,7 @@ import {
   type MealFocusKey,
 } from "@/lib/mealFocus";
 import { cn } from "@/lib/utils";
-import { iosGlass, iosGlassOverlayBase, iosGlassSheetBase } from "@/lib/liquidGlass";
+import { glassOverlayClasses, glassSheetClasses } from "@/lib/liquidGlass";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -806,7 +806,7 @@ export function TrackerAddMealPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className={cn("absolute inset-0 z-20 bg-black/25", iosGlassOverlayBase(), "ios-glass-overlay")}
+                className={glassOverlayClasses("absolute inset-0 z-20 bg-black/25")}
                 aria-label={copy.detailsClose}
                 onClick={() => setSelectedRecipe(null)}
               />
@@ -816,9 +816,9 @@ export function TrackerAddMealPanel({
                 exit={bottomSheetExit(isMobile)}
                 transition={bottomSheetTransition(isMobile)}
                 className={cn(
-                  "absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white",
-                  iosGlassSheetBase(),
-                  iosGlass.sheet,
+                  glassSheetClasses(
+                    "absolute inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-[1.9rem] bg-white",
+                  ),
                 )}
                 style={{
                   paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
@@ -896,7 +896,7 @@ export function TrackerAddMealPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className={cn("absolute inset-0 z-20 bg-black/25", iosGlassOverlayBase(), "ios-glass-overlay")}
+                className={glassOverlayClasses("absolute inset-0 z-20 bg-black/25")}
                 aria-label={copy.close}
                 onClick={() => setLoggedListOpen(false)}
               />
@@ -906,9 +906,9 @@ export function TrackerAddMealPanel({
                 exit={bottomSheetExit(isMobile)}
                 transition={bottomSheetTransition(isMobile)}
                 className={cn(
-                  "absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom",
-                  iosGlassSheetBase(),
-                  iosGlass.sheet,
+                  glassSheetClasses(
+                    "absolute inset-x-0 bottom-0 z-30 flex max-h-[min(72vh,calc(100%-5rem))] flex-col rounded-t-[1.75rem] bg-white safe-bottom",
+                  ),
                 )}
                 style={{
                   boxShadow: "0 -16px 40px -12px rgba(30, 215, 138, 0.35)",

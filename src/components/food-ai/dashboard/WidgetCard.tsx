@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { iosGlass, iosGlassCardBase } from "@/lib/liquidGlass";
+import { glassCardClassName } from "@/lib/liquidGlass";
+import { useIOSPlatform } from "@/hooks/useIOSPlatform";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { entryFrom, entryTo, dashboardScrollTransition, dashboardScrollViewport } from "@/lib/motionPresets";
 import {
@@ -23,14 +24,16 @@ export type WidgetCardProps = {
   skipEntrance?: boolean;
 };
 
-const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
-  glass:
-    `${dashboardCardBorder} bg-white/88 ${dashboardCardShadow} sm:bg-white/72 sm:backdrop-blur-xl dark:bg-white/[0.06] ${iosGlassCardBase()} ${iosGlass.card}`,
+const variantStyles = (ios: boolean): Record<NonNullable<WidgetCardProps["variant"]>, string> => ({
+  glass: glassCardClassName(
+    ios,
+    `${dashboardCardBorder} bg-white/88 ${dashboardCardShadow} sm:bg-white/72 sm:backdrop-blur-xl dark:bg-white/[0.06]`,
+  ),
   soft:
     `${dashboardCardBorder} bg-card/96 ${dashboardCardShadow} sm:bg-card/82 sm:backdrop-blur-md`,
   gradient:
     `${dashboardCardBorder} bg-gradient-to-br from-primary/[0.05] via-white/[0.98] to-muted/[0.16] ${dashboardCardShadow} sm:backdrop-blur-sm dark:from-primary/[0.08] dark:via-white/[0.04]`,
-};
+});
 
 export function WidgetCard({
   children,
@@ -42,6 +45,8 @@ export function WidgetCard({
   skipEntrance = false,
 }: WidgetCardProps) {
   const isMobile = useIsMobile();
+  const ios = useIOSPlatform();
+  const styles = variantStyles(ios);
 
   return (
     <motion.div
@@ -61,7 +66,7 @@ export function WidgetCard({
         "relative w-full min-w-0 overflow-hidden rounded-2xl p-2.5 min-[360px]:p-3 sm:rounded-[1.35rem] sm:p-4 transition-shadow duration-300 touch-manipulation",
         !isMobile && "sm:will-change-transform",
         interactive && onClick && `cursor-pointer ${dashboardCardShadowHover}`,
-        variantStyles[variant],
+        styles[variant],
         className,
       )}
     >

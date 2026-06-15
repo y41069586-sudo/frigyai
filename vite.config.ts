@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false,
       devOptions: {
         // Never install Workbox in `vite dev`; a stale SW can serve old chunk names
         // (e.g. Index_<oldhash>.js) and break lazy-loaded routes after rebuilds.

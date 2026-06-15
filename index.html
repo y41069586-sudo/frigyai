@@ -35,24 +35,24 @@
     <meta name="twitter:image" content="https://app.frigy.app/pwa-512x512.png" />
     
     <link rel="canonical" href="https://app.frigy.app/" />
-  </head>
 
-  <body>
     <script>
       (function () {
+        var APPLE = /iPhone|iPad|iPod/i;
         function isCapacitorIOS() {
+          var ua = navigator.userAgent || "";
+          if (!APPLE.test(ua)) return false;
+          if (location.protocol === "capacitor:") return true;
+          if (location.hostname === "localhost") return true;
           var cap = window.Capacitor;
           if (cap && cap.getPlatform && cap.getPlatform() === "ios") return true;
-          var ua = navigator.userAgent || "";
-          var apple = /iPhone|iPad|iPod/i.test(ua);
-          var native = cap && cap.isNativePlatform && cap.isNativePlatform();
-          var capacitorHost =
-            location.protocol === "capacitor:" ||
-            (location.hostname === "localhost" && native);
-          return apple && (native || capacitorHost);
+          if (cap && cap.isNativePlatform && cap.isNativePlatform()) return true;
+          return false;
         }
         function mark() {
-          if (isCapacitorIOS()) document.documentElement.classList.add("platform-ios");
+          if (!isCapacitorIOS()) return;
+          document.documentElement.classList.add("platform-ios");
+          window.__FRIGY_IOS_NATIVE__ = true;
         }
         mark();
         document.addEventListener("DOMContentLoaded", mark);
@@ -60,10 +60,13 @@
         var n = 0;
         var t = setInterval(function () {
           mark();
-          if (++n > 50) clearInterval(t);
-        }, 50);
+          if (++n > 80) clearInterval(t);
+        }, 25);
       })();
     </script>
+  </head>
+
+  <body>
     <div id="root">
       <div
         id="app-boot-loader"

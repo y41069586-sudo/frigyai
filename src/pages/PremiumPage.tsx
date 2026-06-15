@@ -21,7 +21,7 @@ import { SubscriptionLegalLinks } from '@/components/SubscriptionLegalLinks';
 import { useStoreOfferingPrices } from '@/hooks/useStoreOfferingPrices';
 import { formatPremiumTrialHint } from '@/lib/paywallPricing';
 import { cn } from '@/lib/utils';
-import { iosGlass, iosGlassNavBarBase } from '@/lib/liquidGlass';
+import { glassNavBarClasses } from '@/lib/liquidGlass';
 
 const PremiumPage = () => {
   const { user, session, subscriptionStatus, checkSubscription } = useAuth();
@@ -232,7 +232,7 @@ const PremiumPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-area-inset overflow-x-hidden">
-      <nav className={cn("sticky top-0 z-50 backdrop-blur-lg border-b border-border/30 safe-top", "bg-background/80", iosGlassNavBarBase(), iosGlass.navBar)}>
+      <nav className={glassNavBarClasses("sticky top-0 z-50 backdrop-blur-lg border-b border-border/30 safe-top bg-background/80")}>
         <div className="w-full px-3 py-3 flex items-center justify-between">
           <div className="flex items-center min-w-0">
             <Button

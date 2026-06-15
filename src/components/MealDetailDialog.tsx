@@ -21,7 +21,7 @@ import {
   viewportPanelTransition,
 } from "@/lib/motionPresets";
 import { cn } from "@/lib/utils";
-import { iosGlass, iosGlassModalBase, iosGlassOverlayBase, iosGlassSheetBase } from "@/lib/liquidGlass";
+import { glassModalClasses, glassOverlayClasses, glassSheetClasses } from "@/lib/liquidGlass";
 import { localizeMealTypeLabel, cleanMealDisplayName, getCookingPhaseLabel } from "@/lib/mealI18n";
 import { normalizeMealTypeForSave } from "@/lib/mealFocus";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
@@ -212,7 +212,7 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={() => onOpenChange(false)}
-            className={cn("fixed inset-0 z-[60] bg-black/45", iosGlassOverlayBase(), "ios-glass-overlay")}
+            className={glassOverlayClasses("fixed inset-0 z-[60] bg-black/45")}
           />
 
           <motion.div
@@ -224,9 +224,9 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
             exit={viewportPanelExit(isMobile)}
             transition={viewportPanelTransition(isMobile)}
             className={cn(
-              "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
-              iosGlassModalBase(),
-              iosGlass.modal,
+              glassModalClasses(
+                "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
+              ),
               !isMobile && "gpu-smooth",
               isMobile
                 ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5.75rem,env(safe-area-inset-bottom,0px)+4.75rem)] rounded-[1.75rem] border border-primary/15"
@@ -355,9 +355,9 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
 
             <div
               className={cn(
-                "absolute inset-x-0 bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl",
-                iosGlassSheetBase(),
-                iosGlass.sheet,
+                glassSheetClasses(
+                  "absolute inset-x-0 bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl",
+                ),
                 "gap-3 px-5 pt-3",
                 "pb-[max(0.75rem,env(safe-area-inset-bottom,0px)+0.5rem)]",
                 isMobile ? "grid grid-cols-2" : "flex items-center",
