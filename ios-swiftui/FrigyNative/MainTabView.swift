@@ -26,6 +26,11 @@ struct MainTabView: View {
             .tabItem {
                 Label("Shopping", systemImage: "cart")
             }
+
+            GlassDemoView()
+                .tabItem {
+                    Label("Glass", systemImage: "sparkles")
+                }
         }
     }
 }
