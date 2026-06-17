@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct RootView: View {
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppRouter.self) private var router
 
     var body: some View {
-        switch appState.route {
+        switch router.rootRoute {
         case .loading:
             ProgressView("Loading...")
                 .progressViewStyle(.circular)
@@ -22,10 +22,22 @@ struct RootView: View {
 }
 
 struct OnboardingContainerView: View {
+    @Environment(AppRouter.self) private var router
+
     var body: some View {
         NavigationStack {
-            Text("Onboarding (SwiftUI)")
-                .navigationTitle("Welcome")
+            VStack(spacing: 16) {
+                Text("Onboarding (SwiftUI)")
+                    .font(.title2.bold())
+                Text("OnboardingCoordinator lands in Phase 3.")
+                    .foregroundStyle(.secondary)
+                Button("Mark onboarding complete (dev)") {
+                    router.completeOnboarding()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .navigationTitle("Welcome")
         }
     }
 }
@@ -33,8 +45,7 @@ struct OnboardingContainerView: View {
 struct AuthContainerView: View {
     var body: some View {
         NavigationStack {
-            Text("Auth (SwiftUI)")
-                .navigationTitle("Sign In")
+            AuthSpikeView()
         }
     }
 }

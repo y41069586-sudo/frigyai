@@ -2,14 +2,18 @@ import SwiftUI
 
 @main
 struct FrigyNativeApp: App {
-    @StateObject private var appState = AppState()
+    @State private var router = AppRouter()
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environmentObject(appState)
+                .environment(router)
+                .environment(router.tabCoordinator)
                 .task {
-                    await appState.bootstrap()
+                    await router.bootstrap()
+                }
+                .onOpenURL { url in
+                    router.handleIncomingURL(url)
                 }
         }
     }

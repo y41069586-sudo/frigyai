@@ -47,7 +47,6 @@ struct GlassTabBar: View {
                         .font(.system(size: 22, weight: .semibold))
                     Text(tab.title)
                         .font(.caption2.weight(.bold))
-                        .lineLimit(1)
                 }
                 .padding(.vertical, 10)
                 .padding(.horizontal, 4)

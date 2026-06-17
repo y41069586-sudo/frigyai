@@ -1,46 +1,46 @@
 # Frigy iOS Native (SwiftUI) Rebuild
 
-This folder contains the native SwiftUI rebuild scaffold for Frigy.
-
-## Scope
-
-- Full iOS app rewrite in SwiftUI (replacing Capacitor WebView app on iOS).
-- Backend remains Supabase + RevenueCat.
-- Feature parity target with current React/Capacitor app.
+Native SwiftUI app replacing the Capacitor WebView on iOS. **UI feature ports are paused** until navigation/auth architecture is validated on device.
 
 ## Requirements
 
 - **Xcode 26**
-- **Deployment target: iOS 26** (required for `.glassEffect()`, `GlassEffectContainer`, `glassEffectID`)
+- **Deployment target: iOS 26**
 
-When creating the Xcode project, set **iOS Deployment Target** to **26.0** under target → General → Minimum Deployments.
+## Generate Xcode project (Mac)
 
-## Current status
+```bash
+cd ios-swiftui
+cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
+# Set SUPABASE_URL and SUPABASE_ANON_KEY
+./scripts/generate-xcodeproj.sh
+open FrigyNative.xcodeproj
+```
 
-Scaffold only (architecture + core app shell):
+## Architecture (current)
 
-- `FrigyNativeApp.swift` app entry
-- Root routing (auth/onboarding/main tabs)
-- Native tab shell with **Liquid Glass morphing tab bar** (`GlassTabBar`, no `TabView`)
-- Service protocols + placeholder implementations
-- `GlassComponents.swift` — reusable Liquid Glass UI (native iOS 26 APIs only)
-- `MainShellView.swift` — Home / Plans / Shopping + tracker sheet
-- `Core/MacroCalculator.swift` — port of onboarding macro math
-- Migration plan: `docs/SWIFTUI_MIGRATION_PLAN.md`
+| Layer | Files |
+|-------|-------|
+| Root routing | `Navigation/AppRouter.swift`, `RootView.swift` |
+| Tabs + paths | `Navigation/MainTabCoordinator.swift`, `MainShellView.swift` |
+| Tab roots | `Navigation/TabRoots.swift` |
+| Deep links | `Navigation/DeepLinkParser.swift`, `Navigation/AppRoute.swift` |
+| Auth spike | `Services/SupabaseAuthService.swift`, `Screens/AuthSpikeView.swift` |
+| Glass UI | `Navigation/GlassTabBar.swift`, `GlassComponents.swift` |
 
-### Liquid Glass guidelines (iOS 26)
+See `docs/SWIFTUI_ARCHITECTURE_REPORT.md` and `docs/SWIFTUI_MIGRATION_PLAN.md`.
 
-- Use `.glassEffect()`, `GlassEffectContainer`, and `.glassEffectID()` only — no `.ultraThinMaterial` or custom blur stacks.
-- Apply `.glassEffect()` as the **last** modifier on a view.
-- Put adjacent glass controls in a `GlassEffectContainer` so surfaces merge correctly; do not stack glass on glass.
-- Reserve glass for functional chrome (buttons, toolbars, navigation, overlays), not body text backgrounds.
-- Test with **Settings → Accessibility → Display & Text Size → Reduce Transparency** enabled; labels and controls must stay readable (system APIs handle the fallback).
+## Manual QA checklist
 
-## Next milestones
+1. **Tab state:** Enter text in dashboard field → switch tabs → text must remain.
+2. **Push:** “Push Profile” → back → switch tabs → path preserved per tab.
+3. **Deep link:** Auth screen test buttons; Universal Link to `/profile`.
+4. **Auth:** Apple Sign In + Google OAuth with real Supabase keys on device.
 
-1. Create Xcode project (iOS 26 target) and wire these files into target.
-2. Implement auth (Supabase session, signup/signin, Apple Sign-In).
-3. Implement premium/paywall + restore purchases via RevenueCat.
-4. Implement dashboard + tracker + meal plan screens.
-5. Implement camera/scan flow.
-6. Migration QA and App Store rollout.
+## Tests
+
+```bash
+# In Xcode: Product → Test (FrigyNativeTests)
+```
+
+Covers `DeepLinkParser` and `MainTabCoordinator` routing logic.

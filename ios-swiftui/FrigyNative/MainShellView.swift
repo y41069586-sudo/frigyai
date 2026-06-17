@@ -1,44 +1,42 @@
 import SwiftUI
 
-/// Root shell for authenticated users. Uses a custom glass tab bar instead of `TabView`
-/// so selection morphing works via `glassEffectID`.
+/// Root shell for authenticated users. Uses `TabView` with a hidden system tab bar so each
+/// tab root (and its `NavigationPath`) stays alive across tab switches.
 struct MainShellView: View {
-    @State private var selection: AppTab = .home
-    @State private var showTracker = false
+    @Environment(AppRouter.self) private var router
+    @Environment(MainTabCoordinator.self) private var tabCoordinator
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            tabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        @Bindable var tabCoordinator = tabCoordinator
 
-            GlassTabBar(selection: $selection) {
-                showTracker = true
+        TabView(selection: $tabCoordinator.selectedTab) {
+            HomeTabRoot()
+                .tag(AppTab.home)
+
+            PlansTabRoot()
+                .tag(AppTab.plans)
+
+            ShoppingTabRoot()
+                .tag(AppTab.shopping)
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            GlassTabBar(selection: $tabCoordinator.selectedTab) {
+                tabCoordinator.openTracker()
             }
         }
-        .sheet(isPresented: $showTracker) {
+        .sheet(isPresented: $tabCoordinator.showTrackerSheet) {
             NavigationStack {
                 TrackerLogMealView()
             }
         }
     }
-
-    @ViewBuilder
-    private var tabContent: some View {
-        switch selection {
-        case .home:
-            HomeDashboardView()
-        case .plans:
-            MealPlansView()
-        case .shopping:
-            ShoppingListView()
-        }
-    }
 }
 
 #if DEBUG
-struct GlassPreviewShell: View {
-    var body: some View {
-        MainShellView()
-    }
+#Preview {
+    MainShellView()
+        .environment(AppRouter())
+        .environment(MainTabCoordinator())
 }
 #endif

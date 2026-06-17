@@ -1,0 +1,85 @@
+name: FrigyNative
+options:
+  bundleIdPrefix: com.frigyapp
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Release: Config/Release.xcconfig
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.29.0
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  FrigyNative:
+    type: application
+    platform: iOS
+    sources:
+      - path: FrigyNative
+        excludes:
+          - "**/*.example"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.frigyapp.app
+        INFOPLIST_FILE: FrigyNative/Info.plist
+        CODE_SIGN_ENTITLEMENTS: FrigyNative/FrigyNative.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0.0
+        ENABLE_PREVIEWS: YES
+    dependencies:
+      - package: Supabase
+        product: Supabase
+      - package: Supabase
+        product: Auth
+    info:
+      path: FrigyNative/Info.plist
+      properties:
+        CFBundleDisplayName: Frigy
+        CFBundleURLTypes:
+          - CFBundleURLName: com.frigyapp.app
+            CFBundleURLSchemes:
+              - frigy
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+
+  FrigyNativeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FrigyNativeTests
+    dependencies:
+      - target: FrigyNative
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.frigyapp.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  FrigyNative:
+    build:
+      targets:
+        FrigyNative: all
+        FrigyNativeTests: [test]
+    test:
+      targets:
+        - FrigyNativeTests

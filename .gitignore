@@ -27,3 +27,6 @@ vite.config.ts.timestamp-*
 *.njsproj
 *.sln
 *.sw?
+
+# SwiftUI native secrets (local Supabase keys)
+ios-swiftui/Config/Secrets.xcconfig

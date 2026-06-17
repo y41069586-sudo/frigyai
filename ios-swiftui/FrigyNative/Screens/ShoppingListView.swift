@@ -1,20 +1,30 @@
 import SwiftUI
 
 struct ShoppingListView: View {
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Shopping list")
-                        .font(.title2.bold())
+    @Environment(MainTabCoordinator.self) private var tabCoordinator
+    @State private var draftNote = ""
 
-                    Text("Shopping gap logic ports from `shoppingGap.ts` in Phase 6.")
-                        .foregroundStyle(.secondary)
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Shopping list")
+                    .font(.title2.bold())
+
+                Text("Tab activation count: \(tabCoordinator.tabActivationCounts[.shopping, default: 0])")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+
+                TextField("Shopping tab state test", text: $draftNote)
+                    .textFieldStyle(.roundedBorder)
+
+                Button("Push category") {
+                    tabCoordinator.pushShopping(.category("produce"))
                 }
-                .padding()
-                .padding(.bottom, 96)
+                .buttonStyle(.bordered)
             }
-            .navigationTitle("Shopping")
+            .padding()
+            .padding(.bottom, 96)
         }
+        .navigationTitle("Shopping")
     }
 }
