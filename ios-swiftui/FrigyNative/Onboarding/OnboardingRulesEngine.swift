@@ -1,6 +1,6 @@
 import Foundation
 
-protocol OnboardingRulesEngine {
+protocol OnboardingRulesEngine: Sendable {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep?
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool
 }

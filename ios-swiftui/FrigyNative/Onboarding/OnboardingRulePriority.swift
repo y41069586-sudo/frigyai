@@ -20,7 +20,7 @@ enum OnboardingRulePriority {
     }
 }
 
-struct NamedOnboardingRules {
+struct NamedOnboardingRules: Sendable {
     let name: String
     let priority: Int
     let role: OnboardingRuleRole

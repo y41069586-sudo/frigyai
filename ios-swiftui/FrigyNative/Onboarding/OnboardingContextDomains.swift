@@ -106,6 +106,12 @@ extension OnboardingContext: Codable {
         }
 
         // Legacy flat payload
+        auth = OnboardingAuthContext()
+        profile = OnboardingProfileContext()
+        referral = OnboardingReferralContext()
+        monetization = OnboardingMonetizationContext()
+        progress = OnboardingProgressContext()
+
         auth.hasAccount = try container.decodeIfPresent(Bool.self, forKey: .hasAccount) ?? false
         auth.isAuthenticated = try container.decodeIfPresent(Bool.self, forKey: .isAuthenticated) ?? false
         monetization.isPremium = try container.decodeIfPresent(Bool.self, forKey: .isPremium) ?? false
@@ -118,9 +124,9 @@ extension OnboardingContext: Codable {
             profile.draft = legacyProfile
             if let legacyCode = legacyProfile.referralCode, !legacyCode.isEmpty {
                 referral.setInput(legacyCode, for: .localPending)
-                syncReferralToProfile()
             }
         }
+        syncReferralToProfile()
     }
 
     func encode(to encoder: Encoder) throws {

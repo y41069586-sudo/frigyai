@@ -22,7 +22,7 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
 
     init(
         route: OnboardingRulesEngine = MacroRouteOnboardingRules(),
-        gates: [NamedOnboardingRules] = CompositeOnboardingRulesEngine.defaultGates
+        gates: [NamedOnboardingRules]? = nil
     ) {
         self.routeModule = NamedOnboardingRules(
             name: "MacroRoute",
@@ -30,29 +30,34 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
             role: .route,
             engine: route
         )
-        self.gateModules = OnboardingRulesPipeline.normalizeGates(gates)
+        self.gateModules = OnboardingRulesPipeline.normalizeGates(gates ?? Self.makeDefaultGates())
     }
 
-    static let defaultGates: [NamedOnboardingRules] = [
-        NamedOnboardingRules(
-            name: "Auth",
-            priority: OnboardingRulePriority.gateAuth,
-            role: .gate,
-            engine: AuthOnboardingRules()
-        ),
-        NamedOnboardingRules(
-            name: "Monetization",
-            priority: OnboardingRulePriority.gateMonetization,
-            role: .gate,
-            engine: MonetizationOnboardingRules()
-        ),
-        NamedOnboardingRules(
-            name: "Referral",
-            priority: OnboardingRulePriority.gateReferral,
-            role: .gate,
-            engine: ReferralOnboardingRules()
-        ),
-    ]
+    static func makeDefaultGates() -> [NamedOnboardingRules] {
+        [
+            NamedOnboardingRules(
+                name: "Auth",
+                priority: OnboardingRulePriority.gateAuth,
+                role: .gate,
+                engine: AuthOnboardingRules()
+            ),
+            NamedOnboardingRules(
+                name: "Monetization",
+                priority: OnboardingRulePriority.gateMonetization,
+                role: .gate,
+                engine: MonetizationOnboardingRules()
+            ),
+            NamedOnboardingRules(
+                name: "Referral",
+                priority: OnboardingRulePriority.gateReferral,
+                role: .gate,
+                engine: ReferralOnboardingRules()
+            ),
+        ]
+    }
+
+    @available(*, deprecated, renamed: "makeDefaultGates()")
+    static var defaultGates: [NamedOnboardingRules] { makeDefaultGates() }
 
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
         explainNext(from: step, context: context).chosen

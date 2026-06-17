@@ -229,6 +229,20 @@ enum AuthServiceError: LocalizedError {
     }
 }
 
+private func authPresentationAnchor() -> ASPresentationAnchor {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) {
+        return window
+    }
+    if let window = scenes.first?.windows.first {
+        return window
+    }
+    if let scene = scenes.first {
+        return ASPresentationAnchor(windowScene: scene)
+    }
+    return ASPresentationAnchor()
+}
+
 private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private let completion: (Result<ASAuthorizationAppleIDCredential, Error>) -> Void
 
@@ -249,10 +263,7 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        authPresentationAnchor()
     }
 }
 
@@ -260,10 +271,7 @@ private final class WebAuthContextProvider: NSObject, ASWebAuthenticationPresent
     static let shared = WebAuthContextProvider()
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        authPresentationAnchor()
     }
 }
 

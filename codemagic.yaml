@@ -25,7 +25,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
-        ANDROID_VERSION_CODE: "37"
+        ANDROID_VERSION_CODE: "38"
 
     scripts:
       - name: Verify build environment
