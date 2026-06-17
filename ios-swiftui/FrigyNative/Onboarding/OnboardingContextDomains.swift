@@ -1,6 +1,11 @@
 import Foundation
 
 // MARK: - Domain-split context (mitigates uncontrolled growth)
+//
+// Source of truth map: see `OnboardingStateField` in OnboardingFlowTelemetry.swift
+// - backend: isAuthenticated, hasAccount, isPremium (via ExternalGate)
+// - localCache: completedSteps, profile.draft fields
+// - derived: hasReferralCode (from profile.draft.referralCode)
 
 struct OnboardingAuthContext: Codable, Equatable {
     var hasAccount: Bool = false

@@ -41,6 +41,11 @@ struct OnboardingSkeletonView: View {
                     OnboardingFlowDebugView(snapshot: coordinator.flowDebugSnapshot())
                     #endif
 
+                    OnboardingFlowTelemetryView(
+                        traces: coordinator.recentTraces,
+                        onExport: { coordinator.exportTelemetryJSON() }
+                    )
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Flow validation").font(.headline)
                         Button("Simulate referral deep link") {

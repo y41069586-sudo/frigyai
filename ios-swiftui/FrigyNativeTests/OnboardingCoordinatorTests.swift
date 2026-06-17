@@ -43,6 +43,14 @@ struct OnboardingRulesEngineTests {
         #expect(allowed == false)
     }
 
+    @Test func premiumSkipsPaywall() {
+        let engine = CompositeOnboardingRulesEngine()
+        var context = OnboardingContext.initial
+        context.monetization.isPremium = true
+        let next = engine.nextStep(from: .goalSelection, context: context)
+        #expect(next == .done)
+    }
+
     @Test func flowDebuggerIdentifiesDetailLayer() {
         var context = OnboardingContext.initial
         context.auth.isAuthenticated = true
@@ -121,12 +129,30 @@ struct OnboardingCoordinatorTests {
 
     @Test @MainActor func markCompleteClearsPersistedState() async throws {
         let persistence = InMemoryOnboardingPersistence()
-        let coordinator = OnboardingCoordinator(persistence: persistence)
+        let telemetry = OnboardingFlowTelemetry()
+        let coordinator = OnboardingCoordinator(
+            persistence: persistence,
+            telemetry: telemetry
+        )
         coordinator.resumeFromLastStep()
         coordinator.markComplete()
 
         #expect(persistence.isMarkedComplete())
         #expect(persistence.load() == nil)
+        #expect(telemetry.traces.isEmpty == false)
+    }
+
+    @Test @MainActor func telemetryRecordsRuleProvenanceOnNext() async throws {
+        let telemetry = OnboardingFlowTelemetry()
+        let coordinator = OnboardingCoordinator(telemetry: telemetry)
+        coordinator.resumeFromLastStep()
+        _ = coordinator.next()
+
+        let trace = telemetry.traces.last
+        #expect(trace?.action == .next)
+        #expect(trace?.from == .welcome)
+        #expect(trace?.to == .accountCreation)
+        #expect(trace?.decisions.contains { $0.module == "MacroRoute" } == true)
     }
 }
 

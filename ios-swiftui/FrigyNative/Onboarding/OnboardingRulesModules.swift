@@ -1,99 +1,183 @@
 import Foundation
 
-// MARK: - Modular rules (mitigates DefaultOnboardingRulesEngine drift)
+// MARK: - Traced rules evaluation
 
-/// Macro routing between high-level onboarding milestones.
-struct MacroRouteOnboardingRules: OnboardingRulesEngine {
-    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
-        switch step {
-        case .welcome:
-            return context.hasReferralCode ? .referralCode : .accountCreation
-        case .referralCode:
-            return .accountCreation
-        case .accountCreation:
-            return context.isAuthenticated ? .profileSetup : nil
-        case .profileSetup:
-            return .goalSelection
-        case .goalSelection:
-            return context.isPremium ? .done : .paywall
-        case .paywall:
-            return .done
-        case .done:
-            return nil
-        default:
-            return nil
-        }
-    }
-
-    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool { true }
+struct OnboardingRulesExplanation {
+    var chosen: OnboardingStep?
+    var alternatives: [OnboardingStep]
+    var decisions: [OnboardingRuleDecision]
 }
 
-/// Auth gates for protected steps.
-struct AuthOnboardingRules: OnboardingRulesEngine {
-    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
-
-    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
-        switch step {
-        case .profileSetup, .paywall:
-            return context.isAuthenticated
-        default:
-            return true
-        }
-    }
-}
-
-/// Monetization gates — extension point for paywall variants / A/B.
-struct MonetizationOnboardingRules: OnboardingRulesEngine {
-    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
-
-    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
-        switch step {
-        case .paywall:
-            return !context.isPremium || context.isAuthenticated
-        default:
-            return true
-        }
-    }
-}
-
-/// Referral entry rules — extension point for region-specific invite flows.
-struct ReferralOnboardingRules: OnboardingRulesEngine {
-    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
-
-    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
-        switch step {
-        case .referralCode:
-            return true
-        default:
-            return true
-        }
-    }
-}
-
-/// Composes route + gate modules. Add new rule modules here instead of growing one switch.
+/// Execution order (documented):
+/// 1. **Route** (`MacroRouteOnboardingRules`, priority 0) — proposes macro `nextStep`
+/// 2. **Linear flow** (`OnboardingFlow`, priority 5) — proposes detail `nextStep` when inside profile collection
+/// 3. **Gates** (priority 10+) — evaluated in array order; **all** must allow entry:
+///    - `AuthOnboardingRules` (10)
+///    - `MonetizationOnboardingRules` (20)
+///    - `ReferralOnboardingRules` (30)
+/// 4. **StepGuard** (priority 100) — protected-step completion check
 struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
-    private let route: OnboardingRulesEngine
-    private let gates: [OnboardingRulesEngine]
+    private let routeModule: NamedOnboardingRules
+    private let gateModules: [NamedOnboardingRules]
 
     init(
         route: OnboardingRulesEngine = MacroRouteOnboardingRules(),
-        gates: [OnboardingRulesEngine] = [
-            AuthOnboardingRules(),
-            MonetizationOnboardingRules(),
-            ReferralOnboardingRules(),
-        ]
+        gates: [NamedOnboardingRules] = CompositeOnboardingRulesEngine.defaultGates
     ) {
-        self.route = route
-        self.gates = gates
+        self.routeModule = NamedOnboardingRules(name: "MacroRoute", priority: 0, role: .route, engine: route)
+        self.gateModules = gates
     }
 
+    static let defaultGates: [NamedOnboardingRules] = [
+        NamedOnboardingRules(name: "Auth", priority: 10, role: .gate, engine: AuthOnboardingRules()),
+        NamedOnboardingRules(name: "Monetization", priority: 20, role: .gate, engine: MonetizationOnboardingRules()),
+        NamedOnboardingRules(name: "Referral", priority: 30, role: .gate, engine: ReferralOnboardingRules()),
+    ]
+
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
-        route.nextStep(from: step, context: context)
+        explainNext(from: step, context: context).chosen
     }
 
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
-        gates.allSatisfy { $0.canEnter(step: step, context: context) }
+        explainCanEnter(step: step, context: context).allowed
     }
+
+    func explainNext(from step: OnboardingStep, context: OnboardingContext) -> OnboardingRulesExplanation {
+        if step == .profileSetup {
+            let chosen = OnboardingFlow.detailedProfileSteps.first
+            return OnboardingRulesExplanation(
+                chosen: chosen,
+                alternatives: [],
+                decisions: [
+                    OnboardingRuleDecision(
+                        module: "OnboardingFlow",
+                        role: .linearFlow,
+                        priority: 5,
+                        result: "enter_detail",
+                        detail: "profileSetup → \(chosen?.rawValue ?? "nil")"
+                    ),
+                ]
+            )
+        }
+
+        if OnboardingFlow.isDetailedProfileStep(step), let linear = OnboardingFlow.next(after: step) {
+            return OnboardingRulesExplanation(
+                chosen: linear,
+                alternatives: [],
+                decisions: [
+                    OnboardingRuleDecision(
+                        module: "OnboardingFlow",
+                        role: .linearFlow,
+                        priority: 5,
+                        result: "linear_next",
+                        detail: "\(step.rawValue) → \(linear.rawValue)"
+                    ),
+                ]
+            )
+        }
+
+        let chosen = routeModule.engine.nextStep(from: step, context: context)
+        var alternatives: [OnboardingStep] = []
+        var detail: String?
+
+        if step == .welcome {
+            alternatives = context.hasReferralCode ? [.accountCreation] : [.referralCode]
+            detail = context.hasReferralCode ? "hasReferralCode=true" : "hasReferralCode=false"
+        } else if step == .goalSelection {
+            alternatives = context.isPremium ? [.paywall] : [.done]
+            detail = context.isPremium ? "isPremium=true" : "isPremium=false"
+        }
+
+        if step == .paywall, chosen == nil {
+            return OnboardingRulesExplanation(
+                chosen: .done,
+                alternatives: [],
+                decisions: [
+                    OnboardingRuleDecision(
+                        module: "Coordinator",
+                        role: .route,
+                        priority: 1,
+                        result: "paywall_fallback",
+                        detail: "paywall → done"
+                    ),
+                ]
+            )
+        }
+
+        return OnboardingRulesExplanation(
+            chosen: chosen,
+            alternatives: alternatives,
+            decisions: [
+                OnboardingRuleDecision(
+                    module: routeModule.name,
+                    role: .route,
+                    priority: routeModule.priority,
+                    result: chosen.map { "route_to:\($0.rawValue)" } ?? "no_route",
+                    detail: detail
+                ),
+            ]
+        )
+    }
+
+    func explainCanEnter(step: OnboardingStep, context: OnboardingContext) -> (allowed: Bool, decisions: [OnboardingRuleDecision]) {
+        var decisions: [OnboardingRuleDecision] = []
+
+        for module in gateModules {
+            let allowed = module.engine.canEnter(step: step, context: context)
+            decisions.append(
+                OnboardingRuleDecision(
+                    module: module.name,
+                    role: .gate,
+                    priority: module.priority,
+                    result: allowed ? "allow" : "deny",
+                    detail: allowed ? nil : "blocked entry to \(step.rawValue)"
+                )
+            )
+            if !allowed {
+                return (false, decisions)
+            }
+        }
+
+        return (true, decisions)
+    }
+
+    func explainTransition(
+        from: OnboardingStep,
+        to proposed: OnboardingStep?,
+        context: OnboardingContext
+    ) -> [OnboardingRuleDecision] {
+        var decisions = explainNext(from: from, context: context).decisions
+
+        if let proposed {
+            let gateEval = explainCanEnter(step: proposed, context: context)
+            decisions.append(contentsOf: gateEval.decisions)
+
+            let guardAllowed = StepGuard.validateTransition(
+                from: from,
+                to: proposed,
+                context: context,
+                rules: self
+            )
+            decisions.append(
+                OnboardingRuleDecision(
+                    module: "StepGuard",
+                    role: .stepGuard,
+                    priority: 100,
+                    result: guardAllowed ? "allow" : "deny",
+                    detail: guardAllowed ? nil : "protected transition \(from.rawValue) → \(proposed.rawValue)"
+                )
+            )
+        }
+
+        return decisions
+    }
+}
+
+struct NamedOnboardingRules {
+    let name: String
+    let priority: Int
+    let role: OnboardingRuleRole
+    let engine: OnboardingRulesEngine
 }
 
 /// Default engine used by the coordinator — composite under the hood.
@@ -125,4 +209,64 @@ enum StepGuard {
             return false
         }
     }
+}
+
+// MARK: - Macro / domain rule modules
+
+/// Macro routing between high-level onboarding milestones.
+struct MacroRouteOnboardingRules: OnboardingRulesEngine {
+    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
+        switch step {
+        case .welcome:
+            return context.hasReferralCode ? .referralCode : .accountCreation
+        case .referralCode:
+            return .accountCreation
+        case .accountCreation:
+            return context.isAuthenticated ? .profileSetup : nil
+        case .profileSetup:
+            return .goalSelection
+        case .goalSelection:
+            return context.isPremium ? .done : .paywall
+        case .paywall:
+            return .done
+        case .done:
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool { true }
+}
+
+struct AuthOnboardingRules: OnboardingRulesEngine {
+    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
+
+    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
+        switch step {
+        case .profileSetup, .paywall:
+            return context.isAuthenticated
+        default:
+            return true
+        }
+    }
+}
+
+struct MonetizationOnboardingRules: OnboardingRulesEngine {
+    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
+
+    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
+        switch step {
+        case .paywall:
+            return !context.isPremium || context.isAuthenticated
+        default:
+            return true
+        }
+    }
+}
+
+struct ReferralOnboardingRules: OnboardingRulesEngine {
+    func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
+
+    func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool { true }
 }

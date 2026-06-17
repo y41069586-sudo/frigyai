@@ -7,26 +7,26 @@ final class OnboardingCoordinator {
     private(set) var context: OnboardingContext
 
     private let persistence: OnboardingPersistenceProtocol
-    private let rules: OnboardingRulesEngine
+    private let rules: CompositeOnboardingRulesEngine
+    private let telemetry: OnboardingFlowTelemetry
 
     init(
         context: OnboardingContext = .initial,
-        rules: OnboardingRulesEngine = DefaultOnboardingRulesEngine(),
+        rules: CompositeOnboardingRulesEngine = DefaultOnboardingRulesEngine(),
         persistence: OnboardingPersistenceProtocol = UserDefaultsOnboardingPersistence(),
+        telemetry: OnboardingFlowTelemetry = .shared,
         startStep: OnboardingStep = OnboardingFlow.macroEntryStep
     ) {
         self.context = context
         self.rules = rules
         self.persistence = persistence
+        self.telemetry = telemetry
         self.currentStep = startStep
     }
 
     var userProfile: UserProfileDraft {
         get { context.userProfile ?? .empty }
-        set {
-            context.userProfile = newValue
-            context.syncReferralFlag()
-        }
+        set { context.userProfile = newValue }
     }
 
     var isComplete: Bool {
@@ -54,6 +54,10 @@ final class OnboardingCoordinator {
         resolveProposedNextStep() != nil || currentStep == .paywall
     }
 
+    var recentTraces: [OnboardingTransitionTrace] {
+        telemetry.traces
+    }
+
     // MARK: - External gate
 
     func refreshContext(using gate: OnboardingExternalGate) async {
@@ -73,15 +77,32 @@ final class OnboardingCoordinator {
     // MARK: - Lifecycle
 
     func resumeFromLastStep() {
+        let previous = currentStep
+
         guard !persistence.isMarkedComplete() else {
             currentStep = .done
+            recordTrace(
+                action: .resume,
+                from: previous,
+                to: .done,
+                allowed: true,
+                blockReason: nil,
+                proposedSource: "marked_complete"
+            )
             return
         }
 
         if let saved = persistence.load() {
             currentStep = saved.currentStep
             context = saved.context
-            context.syncReferralFlag()
+            recordTrace(
+                action: .resume,
+                from: previous,
+                to: currentStep,
+                allowed: true,
+                blockReason: nil,
+                proposedSource: "persisted_state"
+            )
             return
         }
 
@@ -94,6 +115,15 @@ final class OnboardingCoordinator {
         } else {
             currentStep = OnboardingFlow.macroEntryStep
         }
+
+        recordTrace(
+            action: .resume,
+            from: previous,
+            to: currentStep,
+            allowed: true,
+            blockReason: nil,
+            proposedSource: "cold_start"
+        )
     }
 
     func persistState() {
@@ -109,71 +139,154 @@ final class OnboardingCoordinator {
 
     @discardableResult
     func next() -> OnboardingStep {
+        let from = currentStep
+
         if currentStep == .macroPreview {
             userProfile.recalculateMacrosIfPossible()
             context.userProfile = userProfile
         }
 
-        if currentStep == .profileSetup {
-            currentStep = OnboardingFlow.detailedProfileSteps.first ?? .gender
-            persistState()
-            return currentStep
-        }
-
         guard let proposed = resolveProposedNextStep() else {
             complete()
+            recordTrace(
+                action: .next,
+                from: from,
+                to: .done,
+                allowed: true,
+                blockReason: nil,
+                proposedSource: "complete()"
+            )
             return currentStep
         }
 
-        guard StepGuard.validateTransition(
-            from: currentStep,
+        let explanation = rules.explainNext(from: from, context: context)
+        let allowed = StepGuard.validateTransition(
+            from: from,
             to: proposed,
             context: context,
             rules: rules
-        ) else {
+        )
+
+        guard allowed else {
+            recordTrace(
+                action: .next,
+                from: from,
+                to: proposed,
+                allowed: false,
+                blockReason: flowDebugSnapshot().blockReason ?? "transition_blocked",
+                proposedSource: explanation.decisions.first?.detail
+            )
             return currentStep
         }
 
-        context.completedSteps.insert(currentStep)
+        context.completedSteps.insert(from)
         currentStep = proposed
         persistState()
+
+        recordTrace(
+            action: .next,
+            from: from,
+            to: proposed,
+            allowed: true,
+            blockReason: nil,
+            proposedSource: explanation.decisions.first?.result
+        )
         return currentStep
     }
 
     @discardableResult
     func back() -> OnboardingStep {
-        if let previous = OnboardingFlow.back(before: currentStep) {
-            currentStep = previous
-            persistState()
+        let from = currentStep
+        guard let previous = OnboardingFlow.back(before: currentStep) else {
+            recordTrace(
+                action: .back,
+                from: from,
+                to: nil,
+                allowed: false,
+                blockReason: "no_previous_step",
+                proposedSource: nil
+            )
+            return currentStep
         }
+
+        currentStep = previous
+        persistState()
+        recordTrace(
+            action: .back,
+            from: from,
+            to: previous,
+            allowed: true,
+            blockReason: nil,
+            proposedSource: "OnboardingFlow.back"
+        )
         return currentStep
     }
 
     func jump(to step: OnboardingStep) {
-        guard rules.canEnter(step: step, context: context) else { return }
+        let from = currentStep
+        let allowed = rules.canEnter(step: step, context: context)
+        guard allowed else {
+            recordTrace(
+                action: .jump,
+                from: from,
+                to: step,
+                allowed: false,
+                blockReason: "canEnter denied",
+                proposedSource: "jump"
+            )
+            return
+        }
+
         currentStep = step
         persistState()
+        recordTrace(
+            action: .jump,
+            from: from,
+            to: step,
+            allowed: true,
+            blockReason: nil,
+            proposedSource: "jump"
+        )
     }
 
     func applyPendingReferralCode(_ code: String?) {
         guard let code, !code.isEmpty else { return }
+        let from = currentStep
         var profile = userProfile
         profile.referralCode = code
         userProfile = profile
         UserDefaults.standard.set(code, forKey: "pendingReferralCode")
         currentStep = .welcome
         persistState()
+        recordTrace(
+            action: .deepLink,
+            from: from,
+            to: .welcome,
+            allowed: true,
+            blockReason: nil,
+            proposedSource: "referral_code:\(code)"
+        )
     }
 
     func markComplete() {
+        let from = currentStep
         currentStep = .done
         context.completedSteps.insert(.paywall)
         persistence.markComplete()
         UserDefaults.standard.removeObject(forKey: "pendingReferralCode")
+        recordTrace(
+            action: .next,
+            from: from,
+            to: .done,
+            allowed: true,
+            blockReason: nil,
+            proposedSource: "markComplete"
+        )
     }
 
     func resetForDevelopment() {
         persistence.clear()
+        telemetry.clear()
         context = .initial
         currentStep = OnboardingFlow.macroEntryStep
     }
@@ -192,27 +305,48 @@ final class OnboardingCoordinator {
         )
     }
 
+    func exportTelemetryJSON() -> String? {
+        telemetry.exportJSON()
+    }
+
     // MARK: - Private
 
     private func resolveProposedNextStep() -> OnboardingStep? {
-        if OnboardingFlow.isDetailedProfileStep(currentStep),
-           let linear = OnboardingFlow.next(after: currentStep) {
-            return linear
-        }
-
-        if let rulesNext = rules.nextStep(from: currentStep, context: context) {
-            return rulesNext
-        }
-
-        if currentStep == .paywall {
-            return .done
-        }
-
-        return nil
+        rules.explainNext(from: currentStep, context: context).chosen
     }
 
     private func complete() {
         currentStep = .done
         persistState()
+    }
+
+    private func recordTrace(
+        action: OnboardingTransitionAction,
+        from: OnboardingStep,
+        to: OnboardingStep?,
+        allowed: Bool,
+        blockReason: String?,
+        proposedSource: String?
+    ) {
+        let decisions = rules.explainTransition(from: from, to: to, context: context)
+        telemetry.record(
+            OnboardingTransitionTrace(
+                id: UUID(),
+                timestamp: Date(),
+                action: action,
+                from: from,
+                to: to,
+                flowLayer: OnboardingFlowDebugger.snapshot(
+                    currentStep: from,
+                    context: context,
+                    rules: rules
+                ).flowLayer,
+                allowed: allowed,
+                blockReason: blockReason,
+                proposedSource: proposedSource,
+                decisions: decisions,
+                contextSnapshot: OnboardingTelemetryContextSnapshot(context: context)
+            )
+        )
     }
 }
