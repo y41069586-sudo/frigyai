@@ -78,7 +78,6 @@ import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep
 import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
 import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
-import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
 import {
   isEmailNotConfirmed,
@@ -1965,14 +1964,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           <ShoppingListStep
             userData={userData}
             setUserData={setUserData}
-            onBack={currentIndex > 0 ? goBack : undefined}
-            onNext={goNext}
-          />
-        );
-
-      case "data-consent":
-        return (
-          <DataConsentStep
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
           />
@@ -4690,7 +4681,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </div>
             </motion.div>
           )}
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "referral-code", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

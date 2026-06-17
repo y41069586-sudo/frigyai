@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, Lock, Bell, Crown, Loader2, X } from "lucide-react";
-import { PaywallExclusiveOfferModal } from "@/components/onboarding/components/PaywallExclusiveOfferModal";
+import { Check, ChevronDown, Lock, Bell, Crown, Loader2 } from "lucide-react";
 import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
 import { cn } from "@/lib/utils";
 import { Language, useLanguage } from "@/contexts/LanguageContext";
@@ -245,7 +244,6 @@ export function OnboardingPaywallStep({
 }: OnboardingPaywallStepProps) {
   const { t: globalT } = useLanguage();
   const [plan, setPlan] = useState<PaywallBillingPlan>("monthly");
-  const [exclusiveOfferOpen, setExclusiveOfferOpen] = useState(false);
   const t = copy[language];
   const billingDate = useMemo(() => formatBillingDate(language), [language]);
   const isMonthly = plan === "monthly";
@@ -302,6 +300,8 @@ export function OnboardingPaywallStep({
     },
   ];
 
+  const fallbackPriceLabel = language === "de" ? "Preis im App Store" : language === "fr" ? "Prix dans l’App Store" : "Price in App Store";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -318,28 +318,6 @@ export function OnboardingPaywallStep({
           <ChevronDown className="h-5 w-5 rotate-90" strokeWidth={2.2} />
         </button>
       ) : null}
-
-      <button
-        type="button"
-        onClick={() => setExclusiveOfferOpen(true)}
-        className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6] text-[#6B7280] transition-colors hover:bg-[#E5E7EB] hover:text-[#0a0a0a] touch-manipulation sm:right-5"
-        aria-label="Exklusives Angebot"
-      >
-        <X className="h-5 w-5" strokeWidth={2.2} />
-      </button>
-
-      <PaywallExclusiveOfferModal
-        open={exclusiveOfferOpen}
-        language={language}
-        regularYearlyPrice={storePrices?.yearly}
-        promoYearlyPrice={storePrices?.yearlyPromo}
-        pricesLoading={needsStorePrices && storePricesLoading}
-        checkoutLoading={isCheckoutLoading}
-        onClose={() => setExclusiveOfferOpen(false)}
-        onClaimPromoYearly={async () => {
-          await onCheckout("yearly_promo");
-        }}
-      />
 
       <motion.div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pt-[max(1.5rem,env(safe-area-inset-top)+0.5rem)] sm:px-5">
         <div className="min-h-[clamp(2.5rem,8vh,4.5rem)] shrink-0" aria-hidden />
@@ -450,8 +428,8 @@ export function OnboardingPaywallStep({
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.monthly}</p>
-                <StorePriceLine
-                  priceString={monthlyPriceString}
+              <StorePriceLine
+                  priceString={monthlyPriceString ?? fallbackPriceLabel}
                   loading={needsStorePrices && storePricesLoading}
                 />
               </div>
@@ -472,7 +450,7 @@ export function OnboardingPaywallStep({
               <div className="min-w-0 pr-0.5">
                 <p className="text-[13px] font-semibold text-[#374151]">{t.yearly}</p>
                 <StorePriceLine
-                  priceString={yearlyPriceString}
+                  priceString={yearlyPriceString ?? fallbackPriceLabel}
                   loading={needsStorePrices && storePricesLoading}
                 />
               </div>
@@ -503,7 +481,7 @@ export function OnboardingPaywallStep({
           <motion.button
             type="button"
             whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
-            disabled={isCheckoutLoading || isRestoreLoading || isPromoRedeemLoading || !pricesReady}
+            disabled={isCheckoutLoading || isRestoreLoading || isPromoRedeemLoading}
             onClick={() => void onCheckout(plan)}
             className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl py-4 text-[17px] font-bold text-[#0a0a0a] touch-manipulation disabled:opacity-70"
             style={{

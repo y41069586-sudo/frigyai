@@ -4,7 +4,9 @@ import { ChottuLinkNative } from "@/lib/chottuLinkNative";
 import { getStoredInfluencerRef } from "@/lib/referralAttribution";
 
 function isChottuLinkConfigured(): boolean {
-  return Boolean((import.meta.env.VITE_CHOTTULINK_API_KEY as string | undefined)?.trim());
+  const apiKey = (import.meta.env.VITE_CHOTTULINK_API_KEY as string | undefined)?.trim();
+  const iosTrackingEnabled = (import.meta.env.VITE_ENABLE_CHOTTULINK_IOS_TRACKING as string | undefined) === "1";
+  return Boolean(apiKey) && iosTrackingEnabled;
 }
 
 /** Link ChottuLink install attribution to the logged-in Supabase user (iOS only for now). */
