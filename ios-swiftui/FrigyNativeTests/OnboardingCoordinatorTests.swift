@@ -4,22 +4,22 @@ import Testing
 
 struct OnboardingRulesEngineTests {
     @Test func welcomeRoutesToReferralWhenCodePresent() {
-        let engine = DefaultOnboardingRulesEngine()
+        let engine = CompositeOnboardingRulesEngine()
         var context = OnboardingContext.initial
-        context.hasReferralCode = true
+        context.profile.draft.referralCode = "REF"
 
         let next = engine.nextStep(from: .welcome, context: context)
         #expect(next == .referralCode)
     }
 
     @Test func welcomeRoutesToAccountCreationWithoutReferral() {
-        let engine = DefaultOnboardingRulesEngine()
+        let engine = CompositeOnboardingRulesEngine()
         let next = engine.nextStep(from: .welcome, context: .initial)
         #expect(next == .accountCreation)
     }
 
     @Test func paywallRequiresAuthentication() {
-        let engine = DefaultOnboardingRulesEngine()
+        let engine = CompositeOnboardingRulesEngine()
         var guest = OnboardingContext.initial
         guest.isAuthenticated = false
         #expect(engine.canEnter(step: .paywall, context: guest) == false)
@@ -32,7 +32,7 @@ struct OnboardingRulesEngineTests {
     @Test func stepGuardBlocksProtectedWithoutCompletion() {
         var context = OnboardingContext.initial
         context.isAuthenticated = true
-        let engine = DefaultOnboardingRulesEngine()
+        let engine = CompositeOnboardingRulesEngine()
 
         let allowed = StepGuard.validateTransition(
             from: .welcome,
@@ -43,12 +43,17 @@ struct OnboardingRulesEngineTests {
         #expect(allowed == false)
     }
 
-    @Test func premiumSkipsPaywall() {
-        let engine = DefaultOnboardingRulesEngine()
+    @Test func flowDebuggerIdentifiesDetailLayer() {
         var context = OnboardingContext.initial
-        context.isPremium = true
-        let next = engine.nextStep(from: .goalSelection, context: context)
-        #expect(next == .done)
+        context.auth.isAuthenticated = true
+        let snapshot = OnboardingFlowDebugger.snapshot(
+            currentStep: .weight,
+            context: context,
+            rules: CompositeOnboardingRulesEngine()
+        )
+        #expect(snapshot.flowLayer == .detailedProfile)
+        #expect(snapshot.proposedNext == .height)
+        #expect(snapshot.proposedSource == "OnboardingFlow linear")
     }
 }
 

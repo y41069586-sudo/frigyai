@@ -63,63 +63,6 @@ struct UserProfileDraft: Codable, Equatable {
     }
 }
 
-/// Runtime flags that drive the rules engine.
-struct OnboardingContext: Codable, Equatable {
-    var hasAccount: Bool
-    var isAuthenticated: Bool
-    var hasReferralCode: Bool
-    var isPremium: Bool
-    var completedSteps: Set<OnboardingStep>
-    var userProfile: UserProfileDraft?
-
-    static let initial = OnboardingContext(
-        hasAccount: false,
-        isAuthenticated: false,
-        hasReferralCode: false,
-        isPremium: false,
-        completedSteps: [],
-        userProfile: .empty
-    )
-
-    mutating func syncReferralFlag() {
-        hasReferralCode = !(userProfile?.referralCode?.isEmpty ?? true)
-    }
-}
-
-// MARK: - Codable for Set<OnboardingStep>
-
-extension OnboardingContext {
-    private enum CodingKeys: String, CodingKey {
-        case hasAccount
-        case isAuthenticated
-        case hasReferralCode
-        case isPremium
-        case completedSteps
-        case userProfile
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        hasAccount = try container.decode(Bool.self, forKey: .hasAccount)
-        isAuthenticated = try container.decode(Bool.self, forKey: .isAuthenticated)
-        hasReferralCode = try container.decode(Bool.self, forKey: .hasReferralCode)
-        isPremium = try container.decode(Bool.self, forKey: .isPremium)
-        let rawSteps = try container.decode([String].self, forKey: .completedSteps)
-        completedSteps = Set(rawSteps.compactMap(OnboardingStep.init(rawValue:)))
-        userProfile = try container.decodeIfPresent(UserProfileDraft.self, forKey: .userProfile)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(hasAccount, forKey: .hasAccount)
-        try container.encode(isAuthenticated, forKey: .isAuthenticated)
-        try container.encode(hasReferralCode, forKey: .hasReferralCode)
-        try container.encode(isPremium, forKey: .isPremium)
-        try container.encode(completedSteps.map(\.rawValue).sorted(), forKey: .completedSteps)
-        try container.encodeIfPresent(userProfile, forKey: .userProfile)
-    }
-}
-
 /// External auth/subscription/referral signals (injected from AppRouter).
 protocol OnboardingExternalGate {
     func isAuthenticated() async -> Bool

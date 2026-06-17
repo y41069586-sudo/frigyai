@@ -57,9 +57,9 @@ final class OnboardingCoordinator {
     // MARK: - External gate
 
     func refreshContext(using gate: OnboardingExternalGate) async {
-        context.isAuthenticated = await gate.isAuthenticated()
-        context.hasAccount = context.isAuthenticated
-        context.isPremium = await gate.isPremium()
+        context.auth.isAuthenticated = await gate.isAuthenticated()
+        context.auth.hasAccount = context.auth.isAuthenticated
+        context.monetization.isPremium = await gate.isPremium()
 
         if let referral = gate.fetchReferral() {
             var profile = userProfile
@@ -67,7 +67,6 @@ final class OnboardingCoordinator {
             userProfile = profile
         }
 
-        context.syncReferralFlag()
         persistState()
     }
 
@@ -180,9 +179,17 @@ final class OnboardingCoordinator {
     }
 
     func setAuthenticatedForDevelopment(_ value: Bool) {
-        context.isAuthenticated = value
-        context.hasAccount = value
+        context.auth.isAuthenticated = value
+        context.auth.hasAccount = value
         persistState()
+    }
+
+    func flowDebugSnapshot() -> OnboardingFlowDebugSnapshot {
+        OnboardingFlowDebugger.snapshot(
+            currentStep: currentStep,
+            context: context,
+            rules: rules
+        )
     }
 
     // MARK: - Private
