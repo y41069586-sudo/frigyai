@@ -21,10 +21,12 @@ Scaffold only (architecture + core app shell):
 
 - `FrigyNativeApp.swift` app entry
 - Root routing (auth/onboarding/main tabs)
-- Native tab shell
+- Native tab shell with **Liquid Glass morphing tab bar** (`GlassTabBar`, no `TabView`)
 - Service protocols + placeholder implementations
 - `GlassComponents.swift` — reusable Liquid Glass UI (native iOS 26 APIs only)
-- `GlassDemoView` — demo tab in `MainTabView` (last tab: **Glass**)
+- `MainShellView.swift` — Home / Plans / Shopping + tracker sheet
+- `Core/MacroCalculator.swift` — port of onboarding macro math
+- Migration plan: `docs/SWIFTUI_MIGRATION_PLAN.md`
 
 ### Liquid Glass guidelines (iOS 26)
 

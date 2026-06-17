@@ -98,9 +98,12 @@ struct GlassDemoView: View {
             GlassDemoBackground()
 
             VStack(spacing: 32) {
+                Text("Liquid Glass")
+                    .font(.title.bold())
+
                 GlassCard {
-                    Text("Liquid Glass")
-                        .font(.title.bold())
+                    Label("Functional chrome only", systemImage: "sparkles")
+                        .font(.headline)
                 }
 
                 GlassActionButton(title: "Aktion", systemImage: "sparkles") {}

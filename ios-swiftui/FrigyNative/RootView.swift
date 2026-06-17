@@ -16,7 +16,7 @@ struct RootView: View {
             AuthContainerView()
 
         case .main:
-            MainTabView()
+            MainShellView()
         }
     }
 }
