@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Basis: einzelnes Glass-Element
 
 struct GlassCard<Content: View>: View {
-    @ViewContent var content: () -> Content
+    @ViewBuilder var content: () -> Content
 
     var body: some View {
         content()

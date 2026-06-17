@@ -7,7 +7,7 @@ Native SwiftUI app replacing the Capacitor WebView on iOS. **UI feature ports ar
 - **Xcode 26**
 - **Deployment target: iOS 26**
 
-## Generate Xcode project (Mac)
+## Generate Xcode project (Mac or Codemagic)
 
 ```bash
 cd ios-swiftui
@@ -16,6 +16,10 @@ cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
 ./scripts/generate-xcodeproj.sh
 open FrigyNative.xcodeproj
 ```
+
+**Codemagic:** Workflow **iOS Native SwiftUI Build** runs `scripts/codemagic-prepare-native-ios.sh` (XcodeGen + Secrets from `VITE_SUPABASE_*`). No npm/Vite step.
+
+See `docs/NATIVE_IOS_TESTFLIGHT_TASKS.md` for the TestFlight checklist.
 
 ## Architecture (current)
 

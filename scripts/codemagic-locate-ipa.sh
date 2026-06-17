@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT="${CM_BUILD_DIR:-$(pwd)}"
 CANDIDATES=(
+  "$ROOT/ios-swiftui/build/ios/ipa"
   "$ROOT/ios/App/build/ios/ipa"
   "$ROOT/build/ios/ipa"
   "$HOME/build/ios/ipa"

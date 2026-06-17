@@ -1,4 +1,4 @@
-# Frigy — iOS + Android (Capacitor). Setup: docs/CODEMAGIC.md + codemagic.env.example
+# Frigy — iOS + Android (Capacitor) + Native SwiftUI. Setup: docs/CODEMAGIC.md + codemagic.env.example
 
 workflows:
   android-build:
@@ -220,6 +220,103 @@ workflows:
 
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+
+  ios-swiftui-build:
+    name: iOS Native SwiftUI Build
+
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    environment:
+      xcode: 26.4
+      groups:
+        - frigy
+      ios_signing:
+        provisioning_profiles:
+          - Frigy
+        certificates:
+          - frigy_distribution
+      vars:
+        XCODE_SCHEME: FrigyNative
+        BUNDLE_ID: com.frigyapp.app
+        XCODE_PROJECT: ios-swiftui/FrigyNative.xcodeproj
+        VITE_APP_WEB_HOST: app.frigy.app
+        OAUTH_REDIRECT_SCHEME: frigy
+        OAUTH_CALLBACK_HOST: callback
+        IOS_BUILD_NUMBER: "36"
+
+    scripts:
+      - name: Verify native SwiftUI build environment
+        script: bash scripts/codemagic-verify-native-env.sh
+
+      - name: Generate Xcode project and Secrets.xcconfig
+        script: bash scripts/codemagic-prepare-native-ios.sh
+
+      - name: Resolve Swift packages
+        script: |
+          set -e
+          xcodebuild -resolvePackageDependencies \
+            -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
+            -scheme "$XCODE_SCHEME"
+
+      - name: Set up code signing
+        script: |
+          set -e
+          xcode-project use-profiles \
+            --project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-method app-store \
+            --code-signing-setup-verbose-logging
+
+      - name: Verify signing profile
+        script: |
+          set -e
+          echo "=== Code signing settings ==="
+          xcodebuild -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" -scheme "$XCODE_SCHEME" -showBuildSettings 2>/dev/null \
+            | grep -E 'PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' || true
+          PROFILE_SPEC=$(xcodebuild -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" -scheme "$XCODE_SCHEME" -showBuildSettings 2>/dev/null \
+            | sed -n 's/^[[:space:]]*PROVISIONING_PROFILE_SPECIFIER = //p' | head -1)
+          echo "PROVISIONING_PROFILE_SPECIFIER=${PROFILE_SPEC:-<empty>}"
+          if [ "$PROFILE_SPEC" = "Doaa Attia" ] || [ -z "$PROFILE_SPEC" ]; then
+            echo ""
+            echo "ERROR: Provisioning profile is missing or still 'Doaa Attia' (old profile without Associated Domains)."
+            echo "Fix: Apple → new App Store profile → Codemagic Fetch → reference Frigy → rebuild."
+            exit 1
+          fi
+          echo "Signing profile OK: $PROFILE_SPEC"
+
+      - name: Set iOS build number
+        script: |
+          set -e
+          bash scripts/codemagic-set-ios-build.sh
+
+      - name: Build IPA
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/ios-swiftui"
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
+            --scheme "$XCODE_SCHEME" \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --disable-xcpretty
+
+      - name: Verify IPA artifact
+        script: |
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-36}"
+          bash scripts/codemagic-locate-ipa.sh
+
+    artifacts:
+      - ios-swiftui/build/ios/ipa/*.ipa
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log

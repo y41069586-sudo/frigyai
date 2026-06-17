@@ -26,16 +26,30 @@ patch_pbxproj() {
 
 patch_pbxproj "$ROOT/ios/App/App.xcodeproj/project.pbxproj"
 patch_pbxproj "$ROOT/ios/App.xcodeproj/project.pbxproj"
+patch_pbxproj "$ROOT/ios-swiftui/FrigyNative.xcodeproj/project.pbxproj"
 
 cd "$ROOT/ios/App"
-if command -v agvtool >/dev/null 2>&1; then
-  agvtool new-version -all "$BUILD_NUM" || true
+if [ -d "$ROOT/ios/App" ] && command -v agvtool >/dev/null 2>&1; then
+  (cd "$ROOT/ios/App" && agvtool new-version -all "$BUILD_NUM") || true
+fi
+
+if [ -d "$ROOT/ios-swiftui/FrigyNative.xcodeproj" ]; then
+  cd "$ROOT/ios-swiftui"
+  if command -v agvtool >/dev/null 2>&1; then
+    agvtool new-version -all "$BUILD_NUM" || true
+  fi
 fi
 
 ACTUAL_BUILD="$(
-  grep -m1 'CURRENT_PROJECT_VERSION' "$ROOT/ios/App/App.xcodeproj/project.pbxproj" \
-    | sed 's/.*CURRENT_PROJECT_VERSION = //' \
-    | tr -d ' ;'
+  if [ -f "$ROOT/ios-swiftui/FrigyNative.xcodeproj/project.pbxproj" ]; then
+    grep -m1 'CURRENT_PROJECT_VERSION' "$ROOT/ios-swiftui/FrigyNative.xcodeproj/project.pbxproj" \
+      | sed 's/.*CURRENT_PROJECT_VERSION = //' \
+      | tr -d ' ;'
+  else
+    grep -m1 'CURRENT_PROJECT_VERSION' "$ROOT/ios/App/App.xcodeproj/project.pbxproj" \
+      | sed 's/.*CURRENT_PROJECT_VERSION = //' \
+      | tr -d ' ;'
+  fi
 )"
 
 echo "iOS CFBundleVersion set to $BUILD_NUM (pbxproj reports: ${ACTUAL_BUILD:-unknown})"
