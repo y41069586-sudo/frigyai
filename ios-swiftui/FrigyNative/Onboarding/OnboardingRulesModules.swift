@@ -24,14 +24,34 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
         route: OnboardingRulesEngine = MacroRouteOnboardingRules(),
         gates: [NamedOnboardingRules] = CompositeOnboardingRulesEngine.defaultGates
     ) {
-        self.routeModule = NamedOnboardingRules(name: "MacroRoute", priority: 0, role: .route, engine: route)
-        self.gateModules = gates
+        self.routeModule = NamedOnboardingRules(
+            name: "MacroRoute",
+            priority: OnboardingRulePriority.route,
+            role: .route,
+            engine: route
+        )
+        self.gateModules = OnboardingRulesPipeline.normalizeGates(gates)
     }
 
     static let defaultGates: [NamedOnboardingRules] = [
-        NamedOnboardingRules(name: "Auth", priority: 10, role: .gate, engine: AuthOnboardingRules()),
-        NamedOnboardingRules(name: "Monetization", priority: 20, role: .gate, engine: MonetizationOnboardingRules()),
-        NamedOnboardingRules(name: "Referral", priority: 30, role: .gate, engine: ReferralOnboardingRules()),
+        NamedOnboardingRules(
+            name: "Auth",
+            priority: OnboardingRulePriority.gateAuth,
+            role: .gate,
+            engine: AuthOnboardingRules()
+        ),
+        NamedOnboardingRules(
+            name: "Monetization",
+            priority: OnboardingRulePriority.gateMonetization,
+            role: .gate,
+            engine: MonetizationOnboardingRules()
+        ),
+        NamedOnboardingRules(
+            name: "Referral",
+            priority: OnboardingRulePriority.gateReferral,
+            role: .gate,
+            engine: ReferralOnboardingRules()
+        ),
     ]
 
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
@@ -171,13 +191,6 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
 
         return decisions
     }
-}
-
-struct NamedOnboardingRules {
-    let name: String
-    let priority: Int
-    let role: OnboardingRuleRole
-    let engine: OnboardingRulesEngine
 }
 
 /// Default engine used by the coordinator — composite under the hood.

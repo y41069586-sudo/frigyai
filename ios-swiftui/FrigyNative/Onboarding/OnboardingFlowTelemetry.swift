@@ -33,7 +33,7 @@ enum OnboardingStateField: String, CaseIterable {
     var derivedFrom: String? {
         switch self {
         case .hasReferralCode:
-            return "profile.draft.referralCode"
+            return "referral.resolved (ReferralCodeResolver)"
         default:
             return nil
         }
@@ -62,12 +62,17 @@ struct OnboardingTelemetryContextSnapshot: Codable, Equatable {
     var isAuthenticated: Bool
     var isPremium: Bool
     var hasReferralCode: Bool
+    var referralSource: String?
+    var referralSuppressed: [String]
     var completedStepCount: Int
 
     init(context: OnboardingContext) {
         isAuthenticated = context.isAuthenticated
         isPremium = context.isPremium
         hasReferralCode = context.hasReferralCode
+        referralSource = context.referral.resolved?.source.rawValue
+        referralSuppressed = ReferralCodeResolver.suppressedAlternatives(context.referral.inputs)
+            .map { "\($0.source.rawValue):\($0.code)" }
         completedStepCount = context.completedSteps.count
     }
 }

@@ -66,9 +66,7 @@ final class OnboardingCoordinator {
         context.monetization.isPremium = await gate.isPremium()
 
         if let referral = gate.fetchReferral() {
-            var profile = userProfile
-            profile.referralCode = referral
-            userProfile = profile
+            context.setReferralInput(referral, for: .localPending)
         }
 
         persistState()
@@ -108,9 +106,7 @@ final class OnboardingCoordinator {
 
         context = .initial
         if let pendingRef = UserDefaults.standard.string(forKey: "pendingReferralCode"), !pendingRef.isEmpty {
-            var profile = userProfile
-            profile.referralCode = pendingRef
-            userProfile = profile
+            context.setReferralInput(pendingRef, for: .localPending)
             currentStep = .welcome
         } else {
             currentStep = OnboardingFlow.macroEntryStep
@@ -252,19 +248,30 @@ final class OnboardingCoordinator {
     func applyPendingReferralCode(_ code: String?) {
         guard let code, !code.isEmpty else { return }
         let from = currentStep
-        var profile = userProfile
-        profile.referralCode = code
-        userProfile = profile
+        context.setReferralInput(code, for: .deepLink)
         UserDefaults.standard.set(code, forKey: "pendingReferralCode")
         currentStep = .welcome
         persistState()
+
+        let suppressed = ReferralCodeResolver.suppressedAlternatives(context.referral.inputs)
+            .map { "\($0.source.rawValue):\($0.code)" }
+            .joined(separator: ",")
+        let sourceDetail = context.referral.resolved.map { "source:\($0.source.rawValue)" }
+        let proposedSource = [
+            "referral_code:\(code)",
+            sourceDetail,
+            suppressed.isEmpty ? nil : "suppressed:\(suppressed)",
+        ]
+            .compactMap { $0 }
+            .joined(separator: " ")
+
         recordTrace(
             action: .deepLink,
             from: from,
             to: .welcome,
             allowed: true,
             blockReason: nil,
-            proposedSource: "referral_code:\(code)"
+            proposedSource: proposedSource
         )
     }
 

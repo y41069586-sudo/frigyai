@@ -6,7 +6,7 @@ struct OnboardingRulesEngineTests {
     @Test func welcomeRoutesToReferralWhenCodePresent() {
         let engine = CompositeOnboardingRulesEngine()
         var context = OnboardingContext.initial
-        context.profile.draft.referralCode = "REF"
+        context.setReferralInput("REF", for: .localPending)
 
         let next = engine.nextStep(from: .welcome, context: context)
         #expect(next == .referralCode)
@@ -63,6 +63,89 @@ struct OnboardingRulesEngineTests {
         #expect(snapshot.proposedNext == .height)
         #expect(snapshot.proposedSource == "OnboardingFlow linear")
     }
+
+    @Test func normalizeGatesSortsRegardlessOfInjectionOrder() {
+        let shuffled: [NamedOnboardingRules] = [
+            NamedOnboardingRules(
+                name: "Referral",
+                priority: OnboardingRulePriority.gateReferral,
+                role: .gate,
+                engine: ReferralOnboardingRules()
+            ),
+            NamedOnboardingRules(
+                name: "Auth",
+                priority: OnboardingRulePriority.gateAuth,
+                role: .gate,
+                engine: AuthOnboardingRules()
+            ),
+            NamedOnboardingRules(
+                name: "Monetization",
+                priority: OnboardingRulePriority.gateMonetization,
+                role: .gate,
+                engine: MonetizationOnboardingRules()
+            ),
+        ]
+
+        let sorted = OnboardingRulesPipeline.normalizeGates(shuffled)
+        #expect(sorted.map(\.name) == ["Auth", "Monetization", "Referral"])
+    }
+
+    @Test func compositeEngineAcceptsUnsortedGateInjection() {
+        let shuffled: [NamedOnboardingRules] = [
+            NamedOnboardingRules(
+                name: "Referral",
+                priority: OnboardingRulePriority.gateReferral,
+                role: .gate,
+                engine: ReferralOnboardingRules()
+            ),
+            NamedOnboardingRules(
+                name: "Auth",
+                priority: OnboardingRulePriority.gateAuth,
+                role: .gate,
+                engine: AuthOnboardingRules()
+            ),
+            NamedOnboardingRules(
+                name: "Monetization",
+                priority: OnboardingRulePriority.gateMonetization,
+                role: .gate,
+                engine: MonetizationOnboardingRules()
+            ),
+        ]
+
+        let engine = CompositeOnboardingRulesEngine(gates: shuffled)
+        var guest = OnboardingContext.initial
+        guest.isAuthenticated = false
+        #expect(engine.canEnter(step: .paywall, context: guest) == false)
+    }
+
+    @Test func referralResolverPrefersDeepLinkOverLocalPending() {
+        var context = OnboardingContext.initial
+        context.setReferralInput("LOCAL", for: .localPending)
+        context.setReferralInput("DEEP", for: .deepLink)
+
+        #expect(context.referral.resolved?.code == "DEEP")
+        #expect(context.referral.resolved?.source == .deepLink)
+        #expect(context.userProfile?.referralCode == "DEEP")
+    }
+
+    @Test func referralResolverPrefersBackendOverDeepLink() {
+        var context = OnboardingContext.initial
+        context.setReferralInput("DEEP", for: .deepLink)
+        context.setReferralInput("BACKEND", for: .backendAttribution)
+
+        #expect(context.referral.resolved?.code == "BACKEND")
+        #expect(context.referral.resolved?.source == .backendAttribution)
+    }
+
+    @Test func referralResolverReportsSuppressedAlternatives() {
+        var context = OnboardingContext.initial
+        context.setReferralInput("LOCAL", for: .localPending)
+        context.setReferralInput("DEEP", for: .deepLink)
+
+        let suppressed = ReferralCodeResolver.suppressedAlternatives(context.referral.inputs)
+        #expect(suppressed.count == 1)
+        #expect(suppressed.first?.code == "LOCAL")
+    }
 }
 
 struct OnboardingCoordinatorTests {
@@ -101,6 +184,19 @@ struct OnboardingCoordinatorTests {
         #expect(coordinator.currentStep == .welcome)
         #expect(coordinator.userProfile.referralCode == "INVITE42")
         #expect(coordinator.context.hasReferralCode)
+        #expect(coordinator.context.referral.resolved?.source == .deepLink)
+    }
+
+    @Test @MainActor func referralDeepLinkTelemetryIncludesSuppressedSources() async throws {
+        let telemetry = OnboardingFlowTelemetry()
+        let coordinator = OnboardingCoordinator(telemetry: telemetry)
+        coordinator.resumeFromLastStep()
+        coordinator.context.setReferralInput("OLDLOCAL", for: .localPending)
+        coordinator.applyPendingReferralCode("INVITE42")
+
+        let trace = telemetry.traces.last
+        #expect(trace?.proposedSource?.contains("suppressed:") == true)
+        #expect(trace?.contextSnapshot.referralSource == ReferralSource.deepLink.rawValue)
     }
 
     @Test @MainActor func persistAndResumeAfterCrash() async throws {
