@@ -94,7 +94,7 @@ import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligi
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
 import { useStorePromoRedeem } from "@/hooks/useStorePromoRedeem";
-import { prefetchStoreOfferingPrices } from "@/lib/storeBilling";
+import { prefetchStoreOfferingPrices, restoreStorePurchases } from "@/lib/storeBilling";
 import { supabase } from "@/integrations/supabase/client";
 import { isAppleSignInAvailable, waitForAppleSignInSession } from "@/lib/appleSignIn";
 import {
@@ -723,6 +723,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   /** Apple: native on iOS, OAuth fallback on Android/web — always offer in onboarding. */
   const showAppleSignIn = true;
   const [paywallCheckoutLoading, setPaywallCheckoutLoading] = useState(false);
+  const [paywallRestoreLoading, setPaywallRestoreLoading] = useState(false);
   const authSubmitLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
@@ -1021,6 +1022,43 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
       }
     } finally {
       setPaywallCheckoutLoading(false);
+    }
+  };
+
+  const handlePaywallRestore = async () => {
+    if (paywallRestoreLoading) return;
+    lightTap();
+    if (!session?.access_token) {
+      toast({
+        title: t.error,
+        description: t.onboardingPleaseLoginToProceed,
+        variant: "destructive",
+      });
+      return;
+    }
+    setPaywallRestoreLoading(true);
+    try {
+      const result = await restoreStorePurchases(session.access_token);
+      const active = await waitForPremiumAfterPurchase(
+        checkSubscription,
+        session.access_token,
+        4,
+      );
+      if (result.ok || active) {
+        markEverPremium();
+        localStorage.setItem("onboardingComplete", "true");
+        exitToFirstWeekPlan();
+        return;
+      }
+      if (result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setPaywallRestoreLoading(false);
     }
   };
 
@@ -4238,6 +4276,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               language={language}
               onBack={goBack}
               onCheckout={handlePaywallCheckout}
+              onRestorePurchases={handlePaywallRestore}
               onRedeemPromoCode={() => {
                 lightTap();
                 startPaywallPromoRedeem();
@@ -4246,12 +4285,14 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
                 await signOut();
               }}
               isCheckoutLoading={paywallCheckoutLoading}
+              isRestoreLoading={paywallRestoreLoading}
               isPromoRedeemLoading={paywallPromoRedeemLoading}
               storePrices={storePrices}
               storePricesLoading={storePricesLoading}
               storePricesError={storePricesError}
               onReloadStorePrices={reloadStorePrices}
               trialEligible={resolveTrialEligibleFromLocal()}
+              showRestorePurchases
             />
           </>
         );

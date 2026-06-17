@@ -74,7 +74,9 @@ const AppContent = () => {
           <Routes location={location}>
             <Route path="/" element={<LazyRoute><Index /></LazyRoute>} />
             <Route path="/meal-plans" element={<MealPlansPage />} />
-            <Route path="/onboarding-preview" element={<LazyRoute><OnboardingPreviewPage /></LazyRoute>} />
+            {import.meta.env.DEV ? (
+              <Route path="/onboarding-preview" element={<LazyRoute><OnboardingPreviewPage /></LazyRoute>} />
+            ) : null}
             <Route path="/signup" element={<LazyRoute><SignupDeepLinkPage /></LazyRoute>} />
             <Route path="/invite" element={<LazyRoute><SignupDeepLinkPage /></LazyRoute>} />
             <Route path="/scan" element={<LazyRoute><ScanPage /></LazyRoute>} />

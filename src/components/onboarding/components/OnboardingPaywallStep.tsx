@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronDown, Lock, Bell, Crown, Loader2, X } from "lucide-react";
 import { PaywallExclusiveOfferModal } from "@/components/onboarding/components/PaywallExclusiveOfferModal";
+import { SubscriptionLegalLinks } from "@/components/SubscriptionLegalLinks";
 import { cn } from "@/lib/utils";
 import { Language, useLanguage } from "@/contexts/LanguageContext";
 import { getAppLocale } from "@/lib/mealPlanLanguage";
@@ -28,7 +28,7 @@ type OnboardingPaywallStepProps = {
   onReloadStorePrices?: () => void;
   /** False after trial or any prior subscription — hides trial timeline & intro offer UI. */
   trialEligible?: boolean;
-  /** Standalone renew paywall only — hidden during first-time onboarding. */
+  /** Show Restore Purchases on native store builds (Guideline 3.1.2). */
   showRestorePurchases?: boolean;
 };
 
@@ -241,12 +241,10 @@ export function OnboardingPaywallStep({
   storePricesError = false,
   onReloadStorePrices,
   trialEligible = true,
-  showRestorePurchases = false,
+  showRestorePurchases = usesStoreBilling(),
 }: OnboardingPaywallStepProps) {
   const { t: globalT } = useLanguage();
-  const navigate = useNavigate();
   const [plan, setPlan] = useState<PaywallBillingPlan>("monthly");
-  const [legalDetailsExpanded, setLegalDetailsExpanded] = useState(false);
   const [exclusiveOfferOpen, setExclusiveOfferOpen] = useState(false);
   const t = copy[language];
   const billingDate = useMemo(() => formatBillingDate(language), [language]);
@@ -537,7 +535,7 @@ export function OnboardingPaywallStep({
           {showStoreRestore && (
             <button
               type="button"
-              disabled={isCheckoutLoading || storeActionBusy || !pricesReady}
+              disabled={isCheckoutLoading || isRestoreLoading || isPromoRedeemLoading}
               onClick={() => void onRestorePurchases?.()}
               className="mt-1 w-full py-2.5 text-center text-[14px] font-semibold text-[#374151] underline underline-offset-2 transition-colors hover:text-[#0a0a0a] disabled:opacity-60"
             >
@@ -556,70 +554,22 @@ export function OnboardingPaywallStep({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setLegalDetailsExpanded((open) => !open)}
-            aria-expanded={legalDetailsExpanded}
-            aria-label={legalDetailsExpanded ? t.legalToggleHide : t.legalToggleShow}
-            className="mt-3 flex w-full items-center justify-center py-1.5 text-[#9CA3AF] transition-colors hover:text-[#6B7280] touch-manipulation"
-          >
-            <ChevronDown
-              className={cn(
-                "h-5 w-5 shrink-0 transition-transform duration-200",
-                legalDetailsExpanded && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </button>
+          <div className="mt-4 space-y-2 border-t border-[#E5E7EB] pt-4">
+            <p className="text-center text-[12px] font-medium leading-snug text-[#6B7280]">
+              {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice ?? "—"}
+              {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
+            </p>
 
-          <AnimatePresence initial={false}>
-            {legalDetailsExpanded && (
-              <motion.div
-                key="paywall-legal-details"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <p className="mt-2 text-center text-[12px] font-medium leading-snug text-[#6B7280]">
-                  {t.subscriptionName} · {selectedPlanLabel} · {selectedPrice ?? "—"}
-                  {showMonthlyTrialUi ? ` · ${t.trialBadge}` : ""}
-                </p>
+            <p className="text-center text-[11px] leading-relaxed text-[#9CA3AF]">
+              {t.autoRenewStore}
+            </p>
 
-                <p className="mt-2 text-center text-[11px] leading-relaxed text-[#9CA3AF]">
-                  {t.autoRenewStore}
-                </p>
+            <SubscriptionLegalLinks className="text-[#6B7280]" />
 
-                <nav
-                  className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-medium"
-                  aria-label={t.terms}
-                >
-                  <button
-                    type="button"
-                    onClick={() => navigate("/legal/agb")}
-                    className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
-                  >
-                    {t.terms}
-                  </button>
-                  <span className="text-[#D1D5DB]" aria-hidden>
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/legal/datenschutz")}
-                    className="text-[#6B7280] underline underline-offset-2 hover:text-[#374151]"
-                  >
-                    {t.privacy}
-                  </button>
-                </nav>
-
-                <p className="mt-3 pb-1 text-center text-[13px] leading-snug text-[#9CA3AF]">
-                  {footerText}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <p className="pb-1 text-center text-[13px] leading-snug text-[#9CA3AF]">
+              {footerText}
+            </p>
+          </div>
         </div>
       </div>
     </motion.div>

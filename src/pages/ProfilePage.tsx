@@ -38,11 +38,12 @@ import { cn } from "@/lib/utils";
 import { canManageStoreSubscription, isSubscriptionActive } from "@/lib/subscription";
 import { buildPremiumPricingRoute, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
-import { openStoreSubscriptionManagement, isStoreBillingConfigured } from "@/lib/storeBilling";
+import { openStoreSubscriptionManagement, isStoreBillingConfigured, restoreStorePurchases } from "@/lib/storeBilling";
 import { usesStoreBilling } from "@/lib/billingPlatform";
 import { useStorePromoRedeem } from "@/hooks/useStorePromoRedeem";
 import { markEverPremium } from "@/lib/trialEligibility";
-import { PRIVACY_POLICY_URL } from "@/lib/legalUrls";
+import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
+import { APP_BUILD, APP_VERSION } from "@/lib/appVersion";
 
 function SettingsGroup({
   title,
@@ -127,6 +128,7 @@ const ProfilePage = () => {
   const { t, language } = useLanguage();
   const dateLocale = getAppLocale(language);
   const [refreshing, setRefreshing] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -160,6 +162,38 @@ const ProfilePage = () => {
     await checkSubscription();
     setRefreshing(false);
     toast({ title: t.success, description: t.subscriptionRefreshed });
+  };
+
+  const handleRestorePurchases = async () => {
+    if (restoreLoading || !session?.access_token) {
+      if (!session?.access_token) {
+        toast({ title: t.error, variant: "destructive" });
+      }
+      return;
+    }
+    setRestoreLoading(true);
+    try {
+      const result = await restoreStorePurchases(session.access_token);
+      const active = await waitForPremiumAfterPurchase(
+        checkSubscription,
+        session.access_token,
+        4,
+      );
+      if (result.ok || active) {
+        markEverPremium();
+        toast({ title: t.success, description: t.premiumActive });
+        return;
+      }
+      if (result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setRestoreLoading(false);
+    }
   };
 
   const handleManageSubscription = async () => {
@@ -336,6 +370,14 @@ const ProfilePage = () => {
                 onClick={() => void startPromoRedeem()}
               />
             )}
+            {usesStoreBilling() && (
+              <SettingsRow
+                icon={RefreshCw}
+                label={t.restorePurchases}
+                description={restoreLoading ? t.loading : undefined}
+                onClick={() => void handleRestorePurchases()}
+              />
+            )}
             {canManageSubscription && (
               <SettingsRow
                 icon={CreditCard}
@@ -438,7 +480,9 @@ const ProfilePage = () => {
               {t.privacyPolicy}
             </button>
           </nav>
-          <p className="mt-4 text-[10px] text-muted-foreground/60">Frigy v1.0.0</p>
+          <p className="mt-4 text-[10px] text-muted-foreground/60">
+            Frigy v{APP_VERSION} ({APP_BUILD})
+          </p>
         </footer>
       </main>
     </div>

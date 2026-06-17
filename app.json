@@ -7,11 +7,11 @@
     "scheme": "frigy",
     "android": {
       "package": "com.frigy.app",
-      "versionCode": 33
+      "versionCode": 34
     },
     "ios": {
       "bundleIdentifier": "com.frigyapp.app",
-      "buildNumber": "33"
+      "buildNumber": "34"
     },
     "extra": {
       "eas": {
