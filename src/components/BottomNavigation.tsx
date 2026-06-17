@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import LiquidGlass from "@/components/LiquidGlass";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
@@ -87,10 +88,13 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       aria-label={t.ariaMainNavigation}
       className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
     >
-      <div
+      <LiquidGlass
+        variant="regular"
+        safeAreaEdge="bottom"
+        borderRadius={999}
         className={cn(
-          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible rounded-full border border-gray-200/90 bg-white/95 px-2.5 py-1.5 pr-1.5",
-          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-gray-700/50 dark:bg-background/92 sm:dark:bg-background/80",
+          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible px-2.5 py-1.5 pr-1.5",
+          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)]",
         )}
       >
         {ITEMS.map((item) => {
@@ -147,7 +151,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
         >
           <Plus className="h-8 w-8 stroke-[3]" />
         </motion.button>
-      </div>
+      </LiquidGlass>
     </nav>
   );
 
