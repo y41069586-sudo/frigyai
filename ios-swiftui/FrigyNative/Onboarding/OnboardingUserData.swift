@@ -1,73 +1,28 @@
 import Foundation
 
-/// Subset of `UserData` from `src/components/onboarding/types.ts` — enough for persistence + macro preview.
-struct OnboardingUserData: Codable, Equatable {
-    var name: String = ""
-    var referralCode: String?
-    var heightCm: Double = 170
-    var weightKg: Double = 70
-    var age: Int = 25
-    var gender: String?
-    var goalMode: String = "lose"
-    var targetWeightKg: Double = 65
-    var weeklyGoalKg: Double = 0.5
-    var activityLevel: String?
-    var dietaryPreferences: [String] = []
-    var healthGoals: [String] = []
-    var allergies: [String] = []
-    var dailyCalories: Int = 0
-    var dailyProtein: Int = 0
-    var dailyCarbs: Int = 0
-    var dailyFat: Int = 0
+struct OnboardingPersistedState: Codable, Equatable {
+    var currentStep: OnboardingStep
+    var context: OnboardingContext
+    var updatedAt: Date
 
-    static let `default` = OnboardingUserData()
+    /// Legacy field kept for migration from earlier scaffold snapshots.
+    var userData: OnboardingUserData?
 
-    mutating func recalculateMacrosIfPossible() {
-        guard age >= MacroCalculator.minOnboardingAge else { return }
-
-        let parsedGender: MacroCalculator.Gender = switch gender {
-        case "female": .female
-        case "non-binary": .nonBinary
-        default: .male
-        }
-
-        let activity: MacroCalculator.ActivityLevel = switch activityLevel {
-        case "low": .low
-        case "high": .high
-        default: .medium
-        }
-
-        let mode: MacroCalculator.GoalMode = switch goalMode {
-        case "maintain": .maintain
-        case "gain": .gain
-        default: .lose
-        }
-
-        let result = MacroCalculator.calculateMacros(
-            MacroCalculator.Input(
-                weightKg: weightKg,
-                heightCm: heightCm,
-                age: age,
-                gender: parsedGender,
-                activityLevel: activity,
-                goalMode: mode,
-                weeklyGoalKg: weeklyGoalKg,
-                targetWeightKg: targetWeightKg
-            )
-        )
-
-        dailyCalories = result.dailyCalories
-        dailyProtein = result.dailyProtein
-        dailyCarbs = result.dailyCarbs
-        dailyFat = result.dailyFat
+    init(
+        currentStep: OnboardingStep,
+        context: OnboardingContext,
+        updatedAt: Date = Date(),
+        userData: OnboardingUserData? = nil
+    ) {
+        self.currentStep = currentStep
+        self.context = context
+        self.updatedAt = updatedAt
+        self.userData = userData
     }
 }
 
-struct OnboardingPersistedState: Codable, Equatable {
-    var currentStep: OnboardingStep
-    var userData: OnboardingUserData
-    var updatedAt: Date
-}
+/// Backwards-compatible alias used by early scaffold code.
+typealias OnboardingUserData = UserProfileDraft
 
 protocol OnboardingPersistenceProtocol {
     func load() -> OnboardingPersistedState?
@@ -83,7 +38,10 @@ struct UserDefaultsOnboardingPersistence: OnboardingPersistenceProtocol {
 
     func load() -> OnboardingPersistedState? {
         guard let data = UserDefaults.standard.data(forKey: stateKey) else { return nil }
-        return try? JSONDecoder().decode(OnboardingPersistedState.self, from: data)
+        if let decoded = try? JSONDecoder().decode(OnboardingPersistedState.self, from: data) {
+            return migrateIfNeeded(decoded)
+        }
+        return nil
     }
 
     func save(_ state: OnboardingPersistedState) {
@@ -103,5 +61,14 @@ struct UserDefaultsOnboardingPersistence: OnboardingPersistenceProtocol {
     func markComplete() {
         UserDefaults.standard.set(true, forKey: completeKey)
         UserDefaults.standard.removeObject(forKey: stateKey)
+    }
+
+    private func migrateIfNeeded(_ state: OnboardingPersistedState) -> OnboardingPersistedState {
+        var migrated = state
+        if migrated.context.userProfile == nil, let legacy = migrated.userData {
+            migrated.context.userProfile = legacy
+        }
+        migrated.context.syncReferralFlag()
+        return migrated
     }
 }

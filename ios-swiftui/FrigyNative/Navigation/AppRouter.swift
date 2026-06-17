@@ -42,6 +42,7 @@ final class AppRouter {
             }
 
             onboardingCoordinator.resumeFromLastStep()
+            await onboardingCoordinator.refreshContext(using: makeOnboardingGate())
             applyQueuedReferralIfNeeded()
             rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
             flushPendingDeepLinkWhileOnboarding()
@@ -204,5 +205,12 @@ final class AppRouter {
         default:
             break
         }
+    }
+
+    private func makeOnboardingGate() -> OnboardingExternalGate {
+        LiveOnboardingExternalGate(
+            authService: authService,
+            subscriptionService: subscriptionService
+        )
     }
 }

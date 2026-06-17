@@ -51,6 +51,9 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case structuredMode2 = "structured-mode-2"
     case structuredMode3 = "structured-mode-3"
     case saveProgress = "save-progress"
+    case accountCreation = "account-creation"
+    case profileSetup = "profile-setup"
+    case goalSelection = "goal-selection"
     case paywall
     case premiumHint = "premium-hint"
     case celebration
@@ -61,8 +64,11 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
 
 /// Production onboarding order from `onboardingSteps` in `types.ts`.
 enum OnboardingFlow {
-    static let activeSteps: [OnboardingStep] = [
-        .splash,
+    /// Macro-level entry managed by `DefaultOnboardingRulesEngine`.
+    static let macroEntryStep: OnboardingStep = .welcome
+
+    /// Body/profile data collection (entered from `.profileSetup`).
+    static let detailedProfileSteps: [OnboardingStep] = [
         .gender,
         .birthdate,
         .weight,
@@ -82,21 +88,37 @@ enum OnboardingFlow {
         .referralCode,
         .analyzing,
         .macroPreview,
-        .saveProgress,
-        .paywall,
     ]
 
+    /// Legacy full linear flow (splash-based) — kept for backwards-compatible persistence.
+    static let activeSteps: [OnboardingStep] = [.splash] + detailedProfileSteps + [.saveProgress, .paywall]
+
+    static func isDetailedProfileStep(_ step: OnboardingStep) -> Bool {
+        detailedProfileSteps.contains(step)
+    }
+
     static func index(of step: OnboardingStep) -> Int? {
-        activeSteps.firstIndex(of: step)
+        if let idx = detailedProfileSteps.firstIndex(of: step) { return idx }
+        if step == .profileSetup { return 0 }
+        if step == .goalSelection { return detailedProfileSteps.count }
+        return activeSteps.firstIndex(of: step)
     }
 
     static func next(after step: OnboardingStep) -> OnboardingStep? {
-        guard let index = index(of: step), index + 1 < activeSteps.count else { return nil }
+        if let index = detailedProfileSteps.firstIndex(of: step), index + 1 < detailedProfileSteps.count {
+            return detailedProfileSteps[index + 1]
+        }
+        if step == .macroPreview { return .accountCreation }
+        guard let index = activeSteps.firstIndex(of: step), index + 1 < activeSteps.count else { return nil }
         return activeSteps[index + 1]
     }
 
     static func back(before step: OnboardingStep) -> OnboardingStep? {
-        guard let index = index(of: step), index > 0 else { return nil }
+        if let index = detailedProfileSteps.firstIndex(of: step), index > 0 {
+            return detailedProfileSteps[index - 1]
+        }
+        if step == .accountCreation { return .macroPreview }
+        guard let index = activeSteps.firstIndex(of: step), index > 0 else { return nil }
         return activeSteps[index - 1]
     }
 }

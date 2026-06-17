@@ -3,13 +3,30 @@ import Foundation
 @MainActor
 @Observable
 final class OnboardingCoordinator {
-    private(set) var currentStep: OnboardingStep = .splash
-    var userData = OnboardingUserData.default
+    private(set) var currentStep: OnboardingStep
+    private(set) var context: OnboardingContext
 
     private let persistence: OnboardingPersistenceProtocol
+    private let rules: OnboardingRulesEngine
 
-    init(persistence: OnboardingPersistenceProtocol = UserDefaultsOnboardingPersistence()) {
+    init(
+        context: OnboardingContext = .initial,
+        rules: OnboardingRulesEngine = DefaultOnboardingRulesEngine(),
+        persistence: OnboardingPersistenceProtocol = UserDefaultsOnboardingPersistence(),
+        startStep: OnboardingStep = OnboardingFlow.macroEntryStep
+    ) {
+        self.context = context
+        self.rules = rules
         self.persistence = persistence
+        self.currentStep = startStep
+    }
+
+    var userProfile: UserProfileDraft {
+        get { context.userProfile ?? .empty }
+        set {
+            context.userProfile = newValue
+            context.syncReferralFlag()
+        }
     }
 
     var isComplete: Bool {
@@ -21,12 +38,12 @@ final class OnboardingCoordinator {
     }
 
     var stepCount: Int {
-        OnboardingFlow.activeSteps.count
+        OnboardingFlow.detailedProfileSteps.count + 4
     }
 
     var progressFraction: Double {
         guard stepCount > 0 else { return 0 }
-        return Double(stepIndex + 1) / Double(stepCount)
+        return Double(min(stepIndex + 1, stepCount)) / Double(stepCount)
     }
 
     var canGoBack: Bool {
@@ -34,7 +51,24 @@ final class OnboardingCoordinator {
     }
 
     var canGoNext: Bool {
-        OnboardingFlow.next(after: currentStep) != nil
+        resolveProposedNextStep() != nil || currentStep == .paywall
+    }
+
+    // MARK: - External gate
+
+    func refreshContext(using gate: OnboardingExternalGate) async {
+        context.isAuthenticated = await gate.isAuthenticated()
+        context.hasAccount = context.isAuthenticated
+        context.isPremium = await gate.isPremium()
+
+        if let referral = gate.fetchReferral() {
+            var profile = userProfile
+            profile.referralCode = referral
+            userProfile = profile
+        }
+
+        context.syncReferralFlag()
+        persistState()
     }
 
     // MARK: - Lifecycle
@@ -47,24 +81,26 @@ final class OnboardingCoordinator {
 
         if let saved = persistence.load() {
             currentStep = saved.currentStep
-            userData = saved.userData
+            context = saved.context
+            context.syncReferralFlag()
             return
         }
 
+        context = .initial
         if let pendingRef = UserDefaults.standard.string(forKey: "pendingReferralCode"), !pendingRef.isEmpty {
-            userData.referralCode = pendingRef
-            if OnboardingFlow.index(of: .referralCode) != nil {
-                currentStep = .referralCode
-            }
+            var profile = userProfile
+            profile.referralCode = pendingRef
+            userProfile = profile
+            currentStep = .welcome
         } else {
-            currentStep = OnboardingFlow.activeSteps.first ?? .splash
+            currentStep = OnboardingFlow.macroEntryStep
         }
     }
 
     func persistState() {
         let snapshot = OnboardingPersistedState(
             currentStep: currentStep,
-            userData: userData,
+            context: context,
             updatedAt: Date()
         )
         persistence.save(snapshot)
@@ -75,15 +111,32 @@ final class OnboardingCoordinator {
     @discardableResult
     func next() -> OnboardingStep {
         if currentStep == .macroPreview {
-            userData.recalculateMacrosIfPossible()
+            userProfile.recalculateMacrosIfPossible()
+            context.userProfile = userProfile
         }
 
-        if let nextStep = OnboardingFlow.next(after: currentStep) {
-            currentStep = nextStep
-        } else if currentStep == .paywall {
-            currentStep = .done
+        if currentStep == .profileSetup {
+            currentStep = OnboardingFlow.detailedProfileSteps.first ?? .gender
+            persistState()
+            return currentStep
         }
 
+        guard let proposed = resolveProposedNextStep() else {
+            complete()
+            return currentStep
+        }
+
+        guard StepGuard.validateTransition(
+            from: currentStep,
+            to: proposed,
+            context: context,
+            rules: rules
+        ) else {
+            return currentStep
+        }
+
+        context.completedSteps.insert(currentStep)
+        currentStep = proposed
         persistState()
         return currentStep
     }
@@ -98,30 +151,61 @@ final class OnboardingCoordinator {
     }
 
     func jump(to step: OnboardingStep) {
-        guard OnboardingFlow.index(of: step) != nil || step == .done else { return }
+        guard rules.canEnter(step: step, context: context) else { return }
         currentStep = step
         persistState()
     }
 
     func applyPendingReferralCode(_ code: String?) {
         guard let code, !code.isEmpty else { return }
-        userData.referralCode = code
+        var profile = userProfile
+        profile.referralCode = code
+        userProfile = profile
         UserDefaults.standard.set(code, forKey: "pendingReferralCode")
-        if OnboardingFlow.index(of: .referralCode) != nil {
-            currentStep = .referralCode
-        }
+        currentStep = .welcome
         persistState()
     }
 
     func markComplete() {
         currentStep = .done
+        context.completedSteps.insert(.paywall)
         persistence.markComplete()
         UserDefaults.standard.removeObject(forKey: "pendingReferralCode")
     }
 
     func resetForDevelopment() {
         persistence.clear()
-        userData = .default
-        currentStep = .splash
+        context = .initial
+        currentStep = OnboardingFlow.macroEntryStep
+    }
+
+    func setAuthenticatedForDevelopment(_ value: Bool) {
+        context.isAuthenticated = value
+        context.hasAccount = value
+        persistState()
+    }
+
+    // MARK: - Private
+
+    private func resolveProposedNextStep() -> OnboardingStep? {
+        if OnboardingFlow.isDetailedProfileStep(currentStep),
+           let linear = OnboardingFlow.next(after: currentStep) {
+            return linear
+        }
+
+        if let rulesNext = rules.nextStep(from: currentStep, context: context) {
+            return rulesNext
+        }
+
+        if currentStep == .paywall {
+            return .done
+        }
+
+        return nil
+    }
+
+    private func complete() {
+        currentStep = .done
+        persistState()
     }
 }

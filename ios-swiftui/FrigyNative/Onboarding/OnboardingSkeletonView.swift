@@ -14,13 +14,16 @@ struct OnboardingSkeletonView: View {
 
                 Group {
                     LabeledContent("Step", value: coordinator.currentStep.rawValue)
-                    LabeledContent("Index", value: "\(coordinator.stepIndex + 1) / \(coordinator.stepCount)")
+                    LabeledContent("Authenticated", value: coordinator.context.isAuthenticated ? "yes" : "no")
+                    LabeledContent("Premium", value: coordinator.context.isPremium ? "yes" : "no")
+                    LabeledContent("Referral", value: coordinator.context.hasReferralCode ? "yes" : "no")
+                    LabeledContent("Completed", value: "\(coordinator.context.completedSteps.count)")
                     ProgressView(value: coordinator.progressFraction)
-                    if let ref = coordinator.userData.referralCode {
-                        LabeledContent("Referral", value: ref)
+                    if let ref = coordinator.userProfile.referralCode {
+                        LabeledContent("Code", value: ref)
                     }
-                    if coordinator.userData.dailyCalories > 0 {
-                        LabeledContent("Kcal", value: "\(coordinator.userData.dailyCalories)")
+                    if coordinator.userProfile.dailyCalories > 0 {
+                        LabeledContent("Kcal", value: "\(coordinator.userProfile.dailyCalories)")
                     }
                 }
                 .font(.footnote.monospaced())
@@ -30,7 +33,7 @@ struct OnboardingSkeletonView: View {
                         .disabled(!coordinator.canGoBack)
                     Button("Next") { router.onboardingNext() }
                         .buttonStyle(.borderedProminent)
-                        .disabled(!coordinator.canGoNext && coordinator.currentStep != .paywall)
+                        .disabled(!coordinator.canGoNext)
                 }
 
                 Divider()
@@ -39,6 +42,9 @@ struct OnboardingSkeletonView: View {
                     Text("Flow validation").font(.headline)
                     Button("Simulate referral deep link") {
                         router.handle(deepLink: .signup(referralCode: "TESTREF"))
+                    }
+                    Button("Mark authenticated (dev)") {
+                        coordinator.setAuthenticatedForDevelopment(true)
                     }
                     Button("Jump to paywall") {
                         coordinator.jump(to: .paywall)
