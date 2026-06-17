@@ -23,6 +23,7 @@ import { AuthOAuthCallbackBootstrap } from "@/components/AuthOAuthCallbackBootst
 import { StoreBillingBootstrap } from "@/components/StoreBillingBootstrap";
 import { BadgeUnlockCelebration } from "@/components/BadgeUnlockCelebration";
 import { MainNavChrome } from "@/components/MainNavChrome";
+import { LiquidGlassDefs } from "@/components/LiquidGlass";
 import MealPlansPage from "./pages/MealPlansPage";
 // Lazy load secondary pages — main nav (/meal-plans) stays eager so navigation never hangs on Suspense
 const Index = lazyWithReload(() => import("./pages/Index"));
@@ -108,6 +109,7 @@ const AppContent = () => {
 const App = () => {
   return (
     <SupabaseErrorBoundary>
+      <LiquidGlassDefs />
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>

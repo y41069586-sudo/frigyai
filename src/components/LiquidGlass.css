@@ -1,0 +1,101 @@
+.liquid-glass {
+  --lg-blur: 20px;
+  --lg-saturate: 180%;
+  --lg-bg: rgba(255, 255, 255, 0.14);
+  --lg-border: rgba(255, 255, 255, 0.35);
+  --lg-highlight: rgba(255, 255, 255, 0.55);
+  --lg-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --lg-radius: 20px;
+  --lg-solid-fallback: #1c1c1e;
+
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--lg-radius);
+  background: var(--lg-bg);
+  -webkit-backdrop-filter: saturate(var(--lg-saturate)) blur(var(--lg-blur));
+  backdrop-filter: saturate(var(--lg-saturate)) blur(var(--lg-blur));
+  box-shadow:
+    var(--lg-shadow),
+    inset 0 1px 0 var(--lg-highlight),
+    inset 0 0 0 1px var(--lg-border);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Variant: clear - more transparent, less frosted, used over media-rich backgrounds */
+.liquid-glass--clear {
+  --lg-bg: rgba(255, 255, 255, 0.05);
+  --lg-blur: 12px;
+}
+
+/* Semantic tint, e.g. for a primary action - pass via the `tint` prop */
+.liquid-glass--tinted {
+  background: linear-gradient(var(--lg-tint-overlay), var(--lg-tint-overlay)), var(--lg-bg);
+}
+
+/* Interactive press feedback, mirrors .interactive() on the native API */
+.liquid-glass--interactive {
+  cursor: pointer;
+}
+
+.liquid-glass--interactive:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 var(--lg-highlight),
+    inset 0 0 0 1px var(--lg-border);
+}
+
+@media (hover: hover) {
+  .liquid-glass--interactive:hover {
+    --lg-bg: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Groups multiple glass elements so blur isn't stacked/recomputed per child */
+.glass-group {
+  display: flex;
+  gap: 12px;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .liquid-glass {
+    --lg-bg: rgba(32, 32, 34, 0.4);
+    --lg-border: rgba(255, 255, 255, 0.12);
+    --lg-highlight: rgba(255, 255, 255, 0.16);
+    --lg-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Accessibility: Reduce Transparency -> solid background, no blur */
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--lg-solid-fallback);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass {
+    transition: none;
+  }
+}
+
+/* Optional enhancement: real displacement refraction.
+   Only takes effect where backdrop-filter: url() is supported (Chromium/Android).
+   On iOS WKWebView this class is never applied (see supportsRefraction check in .tsx),
+   so Safari always gets the clean blur above instead. */
+.liquid-glass--refract {
+  backdrop-filter: url(#liquid-glass-refraction) saturate(var(--lg-saturate)) blur(calc(var(--lg-blur) * 0.4));
+}
+
+/* Use when the glass surface sits at the screen edge (tab bar, header) */
+.liquid-glass--safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.liquid-glass--safe-top {
+  padding-top: max(12px, env(safe-area-inset-top));
+}
