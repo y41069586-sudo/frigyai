@@ -89,12 +89,11 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
     >
       <LiquidGlass
-        variant="regular"
+        variant="clear"
         safeAreaEdge="bottom"
         borderRadius={999}
         className={cn(
-          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible px-2.5 py-1.5 pr-1.5",
-          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)]",
+          "liquid-tabbar pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible px-2.5 py-1.5 pr-1.5",
         )}
       >
         {ITEMS.map((item) => {
@@ -111,7 +110,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               {active && (
                 <motion.div
                   layoutId={isMobile ? undefined : "bottom-nav-active-pill"}
-                  className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
+                  className="liquid-tab-active absolute inset-0 rounded-full"
                   transition={
                     isMobile
                       ? { duration: 0.16, ease: [0.22, 1, 0.36, 1] }

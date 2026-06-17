@@ -99,3 +99,41 @@
 .liquid-glass--safe-top {
   padding-top: max(12px, env(safe-area-inset-top));
 }
+
+/* Bottom tab bar: keep base very transparent (no gray slab). */
+.liquid-tabbar {
+  --lg-bg: rgba(255, 255, 255, 0.04);
+  --lg-border: rgba(255, 255, 255, 0.18);
+  --lg-highlight: rgba(255, 255, 255, 0.22);
+  --lg-blur: 22px;
+  --lg-saturate: 190%;
+  --lg-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+}
+
+/* Active tab gets the true liquid capsule and animated movement. */
+.liquid-tab-active {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: saturate(210%) blur(18px);
+  backdrop-filter: saturate(210%) blur(18px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+    0 6px 16px rgba(0, 0, 0, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  .liquid-tabbar {
+    --lg-bg: rgba(24, 24, 27, 0.16);
+    --lg-border: rgba(255, 255, 255, 0.12);
+    --lg-highlight: rgba(255, 255, 255, 0.12);
+    --lg-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+  }
+
+  .liquid-tab-active {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      0 8px 20px rgba(0, 0, 0, 0.26);
+  }
+}
