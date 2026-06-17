@@ -22,6 +22,7 @@ open FrigyNative.xcodeproj
 | Layer | Files |
 |-------|-------|
 | Root routing | `Navigation/AppRouter.swift`, `RootView.swift` |
+| Onboarding state machine | `Onboarding/OnboardingCoordinator.swift`, `OnboardingStep.swift` |
 | Tabs + paths | `Navigation/MainTabCoordinator.swift`, `MainShellView.swift` |
 | Tab roots | `Navigation/TabRoots.swift` |
 | Deep links | `Navigation/DeepLinkParser.swift`, `Navigation/AppRoute.swift` |

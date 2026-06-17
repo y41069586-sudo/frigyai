@@ -11,12 +11,14 @@ final class AppRouter {
     var authStatusMessage: String?
 
     let tabCoordinator = MainTabCoordinator()
+    let onboardingCoordinator = OnboardingCoordinator()
     let authService: AuthServiceProtocol
     let subscriptionService: SubscriptionServiceProtocol
 
     init(
         authService: AuthServiceProtocol? = nil,
-        subscriptionService: SubscriptionServiceProtocol = MockSubscriptionService()
+        subscriptionService: SubscriptionServiceProtocol = MockSubscriptionService(),
+        onboardingCoordinator: OnboardingCoordinator = OnboardingCoordinator()
     ) {
         #if canImport(Supabase)
         self.authService = authService ?? (SupabaseConfig.isConfigured ? SupabaseAuthService.shared : MockAuthService())
@@ -24,6 +26,7 @@ final class AppRouter {
         self.authService = authService ?? MockAuthService()
         #endif
         self.subscriptionService = subscriptionService
+        self.onboardingCoordinator = onboardingCoordinator
     }
 
     func bootstrap() async {
@@ -32,27 +35,55 @@ final class AppRouter {
 
         do {
             _ = try await authService.restoreSession()
-            let hasOnboarding = UserDefaults.standard.bool(forKey: "onboardingComplete")
 
-            guard hasOnboarding else {
-                rootRoute = .onboarding
-                flushPendingDeepLinkIfNeeded()
+            guard !onboardingCoordinator.isComplete else {
+                try await routeAfterOnboarding()
                 return
             }
 
-            guard try await authService.currentSession() != nil else {
-                rootRoute = .auth
-                return
-            }
-
-            isPremium = try await subscriptionService.refreshPremiumState()
-            rootRoute = .main
-            flushPendingDeepLinkIfNeeded()
+            onboardingCoordinator.resumeFromLastStep()
+            applyQueuedReferralIfNeeded()
+            rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
+            flushPendingDeepLinkWhileOnboarding()
+            return
         } catch {
             authStatusMessage = error.localizedDescription
             rootRoute = .auth
         }
     }
+
+    // MARK: - Onboarding navigation
+
+    func onboardingNext() {
+        let step = onboardingCoordinator.next()
+        rootRoute = .onboarding(step: step)
+
+        if step == .done {
+            Task { await finishOnboardingFlow() }
+        }
+    }
+
+    func onboardingBack() {
+        let step = onboardingCoordinator.back()
+        rootRoute = .onboarding(step: step)
+    }
+
+    func finishOnboardingFlow() async {
+        onboardingCoordinator.markComplete()
+        do {
+            try await routeAfterOnboarding()
+        } catch {
+            authStatusMessage = error.localizedDescription
+            rootRoute = .auth
+        }
+    }
+
+    func completeOnboarding() {
+        onboardingCoordinator.markComplete()
+        Task { await bootstrap() }
+    }
+
+    // MARK: - Deep links
 
     func handleIncomingURL(_ url: URL) {
         Task { await handleIncomingURLAsync(url) }
@@ -86,41 +117,58 @@ final class AppRouter {
             }
 
         case .signup(let ref), .onboardingReferral(let ref):
-            if let ref, !ref.isEmpty {
-                UserDefaults.standard.set(ref, forKey: "pendingReferralCode")
-            }
-            if rootRoute == .main {
+            onboardingCoordinator.applyPendingReferralCode(ref)
+            if case .main = rootRoute {
                 tabCoordinator.open(deepLink)
             } else {
                 pendingDeepLink = deepLink
-                rootRoute = .onboarding
+                rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
             }
 
         case .subscriptionSuccess:
-            if rootRoute == .main {
+            if case .main = rootRoute {
                 tabCoordinator.selectTab(.home)
             } else {
                 pendingDeepLink = deepLink
             }
 
         default:
-            guard rootRoute == .main else {
+            if case .main = rootRoute {
+                tabCoordinator.open(deepLink)
+            } else {
                 pendingDeepLink = deepLink
-                return
             }
-            tabCoordinator.open(deepLink)
         }
-    }
-
-    func completeOnboarding() {
-        UserDefaults.standard.set(true, forKey: "onboardingComplete")
-        Task { await bootstrap() }
     }
 
     func signOut() async {
         try? await authService.signOut()
         tabCoordinator.popToRootAllTabs()
         rootRoute = .auth
+    }
+
+    // MARK: - Private
+
+    private func routeAfterOnboarding() async throws {
+        guard try await authService.currentSession() != nil else {
+            rootRoute = .auth
+            return
+        }
+
+        isPremium = try await subscriptionService.refreshPremiumState()
+        rootRoute = .main
+        flushPendingDeepLinkIfNeeded()
+    }
+
+    private func applyQueuedReferralIfNeeded() {
+        if let ref = UserDefaults.standard.string(forKey: "pendingReferralCode") {
+            onboardingCoordinator.applyPendingReferralCode(ref)
+        }
+    }
+
+    private func flushPendingDeepLinkWhileOnboarding() {
+        guard case .signup = pendingDeepLink else { return }
+        pendingDeepLink = nil
     }
 
     private func completeAuthFlowAfterCallback() async {
@@ -130,9 +178,15 @@ final class AppRouter {
                 rootRoute = .auth
                 return
             }
-            isPremium = try await subscriptionService.refreshPremiumState()
-            rootRoute = .main
-            flushPendingDeepLinkIfNeeded()
+
+            if onboardingCoordinator.isComplete {
+                isPremium = try await subscriptionService.refreshPremiumState()
+                rootRoute = .main
+                flushPendingDeepLinkIfNeeded()
+            } else {
+                onboardingCoordinator.resumeFromLastStep()
+                rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
+            }
         } catch {
             authStatusMessage = error.localizedDescription
             rootRoute = .auth
@@ -140,7 +194,7 @@ final class AppRouter {
     }
 
     private func flushPendingDeepLinkIfNeeded() {
-        guard rootRoute == .main, let pendingDeepLink else { return }
+        guard case .main = rootRoute, let pendingDeepLink else { return }
         self.pendingDeepLink = nil
         tabCoordinator.open(pendingDeepLink)
 

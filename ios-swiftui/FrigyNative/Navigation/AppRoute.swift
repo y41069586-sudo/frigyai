@@ -27,7 +27,7 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
 /// Top-level app destinations outside tab stacks.
 enum AppRoute: Hashable {
     case loading
-    case onboarding
+    case onboarding(step: OnboardingStep)
     case auth
     case main
 }

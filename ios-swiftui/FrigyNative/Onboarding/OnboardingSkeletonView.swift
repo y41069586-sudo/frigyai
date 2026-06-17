@@ -1,0 +1,67 @@
+import SwiftUI
+
+/// Minimal onboarding shell — validates coordinator + router only (no step UI polish).
+struct OnboardingSkeletonView: View {
+    @Environment(AppRouter.self) private var router
+
+    private var coordinator: OnboardingCoordinator { router.onboardingCoordinator }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Onboarding Coordinator")
+                    .font(.title2.bold())
+
+                Group {
+                    LabeledContent("Step", value: coordinator.currentStep.rawValue)
+                    LabeledContent("Index", value: "\(coordinator.stepIndex + 1) / \(coordinator.stepCount)")
+                    ProgressView(value: coordinator.progressFraction)
+                    if let ref = coordinator.userData.referralCode {
+                        LabeledContent("Referral", value: ref)
+                    }
+                    if coordinator.userData.dailyCalories > 0 {
+                        LabeledContent("Kcal", value: "\(coordinator.userData.dailyCalories)")
+                    }
+                }
+                .font(.footnote.monospaced())
+
+                HStack {
+                    Button("Back") { router.onboardingBack() }
+                        .disabled(!coordinator.canGoBack)
+                    Button("Next") { router.onboardingNext() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!coordinator.canGoNext && coordinator.currentStep != .paywall)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Flow validation").font(.headline)
+                    Button("Simulate referral deep link") {
+                        router.handle(deepLink: .signup(referralCode: "TESTREF"))
+                    }
+                    Button("Jump to paywall") {
+                        coordinator.jump(to: .paywall)
+                        router.rootRoute = .onboarding(step: .paywall)
+                    }
+                    Button("Reset onboarding (dev)") {
+                        coordinator.resetForDevelopment()
+                        router.rootRoute = .onboarding(step: coordinator.currentStep)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Onboarding")
+        }
+    }
+}
+
+#if DEBUG
+#Preview {
+    OnboardingSkeletonView()
+        .environment(AppRouter())
+}
+#endif
