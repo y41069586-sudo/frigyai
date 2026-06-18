@@ -23,7 +23,7 @@ struct OnboardingFlowTelemetryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(traces.suffix(5).reversed()) { trace in
+                ForEach(Array(traces.suffix(5).reversed())) { trace in
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(trace.action.rawValue): \(trace.from.rawValue) → \(trace.to?.rawValue ?? "—")")
                             .font(.caption2.monospaced())

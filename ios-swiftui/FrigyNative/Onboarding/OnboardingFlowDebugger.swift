@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Flow debug model (mitigates dual-flow confusion)
 
-enum OnboardingFlowLayer: String, Equatable {
+enum OnboardingFlowLayer: String, Codable, Equatable {
     case macro
     case detailedProfile
     case terminal

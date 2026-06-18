@@ -242,7 +242,7 @@ private enum AuthPresentationAnchor {
         if let scene = scenes.first {
             return ASPresentationAnchor(windowScene: scene)
         }
-        return UIWindow()
+        fatalError("No UIWindowScene available for auth presentation.")
     }
 }
 
