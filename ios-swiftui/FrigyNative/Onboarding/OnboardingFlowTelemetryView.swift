@@ -27,7 +27,8 @@ struct OnboardingFlowTelemetryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(recentTraces, id: \.id) { trace in
+                ForEach(Array(recentTraces.indices), id: \.self) { index in
+                    let trace = recentTraces[index]
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(trace.action.rawValue): \(trace.from.rawValue) → \(trace.to?.rawValue ?? "—")")
                             .font(.caption2.monospaced())
@@ -39,7 +40,8 @@ struct OnboardingFlowTelemetryView: View {
                             Text(block).font(.caption2).foregroundStyle(.red)
                         }
 
-                        ForEach(trace.decisions, id: \.id) { decision in
+                        ForEach(Array(trace.decisions.indices), id: \.self) { decisionIndex in
+                            let decision = trace.decisions[decisionIndex]
                             Text("  [\(decision.priority)] \(decision.module).\(decision.role.rawValue): \(decision.result)")
                                 .font(.caption2.monospaced())
                                 .foregroundStyle(.secondary)
