@@ -5,6 +5,10 @@ struct OnboardingFlowTelemetryView: View {
     let traces: [OnboardingTransitionTrace]
     var onExport: (() -> String?)?
 
+    private var recentTraces: [OnboardingTransitionTrace] {
+        Array(traces.suffix(5).reversed())
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -23,7 +27,7 @@ struct OnboardingFlowTelemetryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(Array(traces.suffix(5).reversed())) { trace in
+                ForEach(recentTraces, id: \.id) { trace in
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(trace.action.rawValue): \(trace.from.rawValue) → \(trace.to?.rawValue ?? "—")")
                             .font(.caption2.monospaced())
@@ -35,7 +39,7 @@ struct OnboardingFlowTelemetryView: View {
                             Text(block).font(.caption2).foregroundStyle(.red)
                         }
 
-                        ForEach(trace.decisions) { decision in
+                        ForEach(trace.decisions, id: \.id) { decision in
                             Text("  [\(decision.priority)] \(decision.module).\(decision.role.rawValue): \(decision.result)")
                                 .font(.caption2.monospaced())
                                 .foregroundStyle(.secondary)

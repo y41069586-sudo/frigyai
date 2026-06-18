@@ -25,7 +25,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
-        ANDROID_VERSION_CODE: "40"
+        ANDROID_VERSION_CODE: "41"
 
     scripts:
       - name: Verify build environment
@@ -132,7 +132,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
-        IOS_BUILD_NUMBER: "39"
+        IOS_BUILD_NUMBER: "41"
 
     scripts:
       - name: Verify build environment
@@ -215,7 +215,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-39}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-41}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
@@ -252,7 +252,7 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
-        IOS_BUILD_NUMBER: "39"
+        IOS_BUILD_NUMBER: "41"
 
     scripts:
       - name: Verify native SwiftUI build environment
@@ -312,7 +312,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-39}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-41}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
