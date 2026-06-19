@@ -70,6 +70,7 @@ protocol OnboardingExternalGate {
     func fetchReferral() -> String?
 }
 
+@MainActor
 struct LiveOnboardingExternalGate: OnboardingExternalGate {
     let authService: AuthServiceProtocol
     let subscriptionService: SubscriptionServiceProtocol

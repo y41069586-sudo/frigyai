@@ -10,6 +10,7 @@ struct AuthCallbackResult {
     let message: String
 }
 
+@MainActor
 protocol AuthServiceProtocol {
     func restoreSession() async throws -> UserSession?
     func currentSession() async throws -> UserSession?
@@ -19,11 +20,13 @@ protocol AuthServiceProtocol {
     func handleOAuthCallback(url: URL) async -> AuthCallbackResult?
 }
 
+@MainActor
 protocol SubscriptionServiceProtocol {
     func refreshPremiumState() async throws -> Bool
     func restorePurchases() async throws -> Bool
 }
 
+@MainActor
 final class MockAuthService: AuthServiceProtocol {
     func restoreSession() async throws -> UserSession? { nil }
     func currentSession() async throws -> UserSession? { nil }
@@ -35,6 +38,7 @@ final class MockAuthService: AuthServiceProtocol {
     func handleOAuthCallback(url: URL) async -> AuthCallbackResult? { nil }
 }
 
+@MainActor
 final class MockSubscriptionService: SubscriptionServiceProtocol {
     func refreshPremiumState() async throws -> Bool { false }
     func restorePurchases() async throws -> Bool { false }
