@@ -13,9 +13,9 @@ struct GlassTabBar: View {
         HStack(alignment: .bottom, spacing: 10) {
             GlassEffectContainer(spacing: 4) {
                 HStack(spacing: 4) {
-                    ForEach(AppTab.allCases) { tab in
-                        tabButton(tab)
-                    }
+                    tabButton(.home)
+                    tabButton(.plans)
+                    tabButton(.shopping)
                 }
             }
 

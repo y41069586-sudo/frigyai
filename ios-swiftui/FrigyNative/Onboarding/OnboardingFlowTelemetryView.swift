@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// QA / TestFlight trace viewer — UI must not branch on flow layer; read-only observability.
+#if DEBUG
+/// QA trace viewer — DEBUG builds only to avoid SwiftUI ForEach issues in Release archive.
 struct OnboardingFlowTelemetryView: View {
     let traces: [OnboardingTransitionTrace]
     var onExport: (() -> String?)?
@@ -57,7 +58,6 @@ struct OnboardingFlowTelemetryView: View {
     }
 }
 
-#if DEBUG
 #Preview {
     OnboardingFlowTelemetryView(traces: [])
 }

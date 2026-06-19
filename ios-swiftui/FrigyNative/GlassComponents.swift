@@ -91,6 +91,7 @@ private struct GlassDemoBackground: View {
 
 // MARK: - Demo-Screen
 
+#if DEBUG
 struct GlassDemoView: View {
     var body: some View {
         ZStack {
@@ -114,3 +115,4 @@ struct GlassDemoView: View {
         }
     }
 }
+#endif

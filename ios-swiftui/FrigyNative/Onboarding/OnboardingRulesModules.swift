@@ -16,7 +16,7 @@ struct OnboardingRulesExplanation {
 ///    - `MonetizationOnboardingRules` (20)
 ///    - `ReferralOnboardingRules` (30)
 /// 4. **StepGuard** (priority 100) — protected-step completion check
-struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
+struct CompositeOnboardingRulesEngine: OnboardingRulesEngine, Sendable {
     private let routeModule: NamedOnboardingRules
     private let gateModules: [NamedOnboardingRules]
 
@@ -232,7 +232,7 @@ enum StepGuard {
 // MARK: - Macro / domain rule modules
 
 /// Macro routing between high-level onboarding milestones.
-struct MacroRouteOnboardingRules: OnboardingRulesEngine {
+struct MacroRouteOnboardingRules: OnboardingRulesEngine, Sendable {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
         switch step {
         case .welcome:
@@ -257,7 +257,7 @@ struct MacroRouteOnboardingRules: OnboardingRulesEngine {
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool { true }
 }
 
-struct AuthOnboardingRules: OnboardingRulesEngine {
+struct AuthOnboardingRules: OnboardingRulesEngine, Sendable {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
 
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
@@ -270,7 +270,7 @@ struct AuthOnboardingRules: OnboardingRulesEngine {
     }
 }
 
-struct MonetizationOnboardingRules: OnboardingRulesEngine {
+struct MonetizationOnboardingRules: OnboardingRulesEngine, Sendable {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
 
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
@@ -283,7 +283,7 @@ struct MonetizationOnboardingRules: OnboardingRulesEngine {
     }
 }
 
-struct ReferralOnboardingRules: OnboardingRulesEngine {
+struct ReferralOnboardingRules: OnboardingRulesEngine, Sendable {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? { nil }
 
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool { true }

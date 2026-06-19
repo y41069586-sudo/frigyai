@@ -43,15 +43,17 @@ struct OnboardingFlowDebugView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    @ViewBuilder
     private func edgeList(_ edges: [OnboardingFlowEdge], highlights: Set<String>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(edges) { edge in
-                Text("\(edge.from.rawValue) → \(edge.to.rawValue) [\(edge.label)]")
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(highlights.contains(edge.id) ? Color.green : Color.secondary)
+        Text(
+            edges.map { edge in
+                let marker = highlights.contains(edge.id) ? "▸ " : "  "
+                return "\(marker)\(edge.from.rawValue) → \(edge.to.rawValue) [\(edge.label)]"
             }
-        }
+            .joined(separator: "\n")
+        )
+        .font(.caption2.monospaced())
+        .foregroundStyle(Color.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 #endif

@@ -39,7 +39,6 @@ struct OnboardingSkeletonView: View {
 
                     #if DEBUG
                     OnboardingFlowDebugView(snapshot: coordinator.flowDebugSnapshot())
-                    #endif
 
                     OnboardingFlowTelemetryView(
                         traces: coordinator.recentTraces,
@@ -64,6 +63,7 @@ struct OnboardingSkeletonView: View {
                         }
                     }
                     .buttonStyle(.bordered)
+                    #endif
                 }
                 .padding()
             }
