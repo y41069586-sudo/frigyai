@@ -64,6 +64,7 @@ struct UserProfileDraft: Codable, Equatable {
 }
 
 /// External auth/subscription/referral signals (injected from AppRouter).
+@MainActor
 protocol OnboardingExternalGate {
     func isAuthenticated() async -> Bool
     func isPremium() async -> Bool
@@ -89,6 +90,7 @@ struct LiveOnboardingExternalGate: OnboardingExternalGate {
     }
 }
 
+@MainActor
 struct StaticOnboardingExternalGate: OnboardingExternalGate {
     var authenticated: Bool = false
     var premium: Bool = false
