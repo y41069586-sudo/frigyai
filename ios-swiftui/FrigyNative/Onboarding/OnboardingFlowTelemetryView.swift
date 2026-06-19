@@ -27,32 +27,45 @@ struct OnboardingFlowTelemetryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(Array(recentTraces.indices), id: \.self) { index in
-                    let trace = recentTraces[index]
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(trace.action.rawValue): \(trace.from.rawValue) → \(trace.to?.rawValue ?? "—")")
-                            .font(.caption2.monospaced())
-                        Text("layer=\(trace.flowLayer.rawValue) allowed=\(trace.allowed)")
-                            .font(.caption2)
-                            .foregroundStyle(trace.allowed ? .secondary : .red)
-
-                        if let block = trace.blockReason {
-                            Text(block).font(.caption2).foregroundStyle(.red)
-                        }
-
-                        ForEach(Array(trace.decisions.indices), id: \.self) { decisionIndex in
-                            let decision = trace.decisions[decisionIndex]
-                            Text("  [\(decision.priority)] \(decision.module).\(decision.role.rawValue): \(decision.result)")
-                                .font(.caption2.monospaced())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
+                traceRows(recentTraces)
             }
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private func traceRows(_ traces: [OnboardingTransitionTrace]) -> some View {
+        for trace in traces {
+            traceRow(trace)
+        }
+    }
+
+    @ViewBuilder
+    private func traceRow(_ trace: OnboardingTransitionTrace) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(trace.action.rawValue): \(trace.from.rawValue) → \(trace.to?.rawValue ?? "—")")
+                .font(.caption2.monospaced())
+            Text("layer=\(trace.flowLayer.rawValue) allowed=\(trace.allowed)")
+                .font(.caption2)
+                .foregroundStyle(trace.allowed ? .secondary : .red)
+
+            if let block = trace.blockReason {
+                Text(block).font(.caption2).foregroundStyle(.red)
+            }
+
+            decisionRows(trace.decisions)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func decisionRows(_ decisions: [OnboardingRuleDecision]) -> some View {
+        for decision in decisions {
+            Text("  [\(decision.priority)] \(decision.module).\(decision.role.rawValue): \(decision.result)")
+                .font(.caption2.monospaced())
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

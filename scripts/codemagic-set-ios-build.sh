@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="${CM_BUILD_DIR:-$(pwd)}"
-IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-41}"
+IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-42}"
 BUILD_NUM="$IOS_BUILD_NUMBER"
 
 if [ -n "${CM_BUILD_NUMBER:-}" ] && [ "$CM_BUILD_NUMBER" -gt "$BUILD_NUM" ]; then
