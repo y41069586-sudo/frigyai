@@ -2,6 +2,7 @@ import Capacitor
 import UIKit
 import UserNotifications
 
+@MainActor
 final class FrigyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(
         _ application: UIApplication,
