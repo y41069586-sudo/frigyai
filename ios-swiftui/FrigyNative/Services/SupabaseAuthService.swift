@@ -158,7 +158,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
                     continuation.resume(throwing: AuthServiceError.oauthCancelled)
                     return
                 }
-                Task {
+                Task { @MainActor in
                     do {
                         _ = try await self.client.auth.session(from: callbackURL)
                         continuation.resume()
@@ -168,11 +168,13 @@ final class SupabaseAuthService: AuthServiceProtocol {
                 }
             }
 
-            session.presentationContextProvider = WebAuthContextProvider.shared
-            session.prefersEphemeralWebBrowserSession = false
-            self.webAuthSession = session
-            if !session.start() {
-                continuation.resume(throwing: AuthServiceError.oauthStartFailed)
+            Task { @MainActor in
+                session.presentationContextProvider = WebAuthContextProvider.shared
+                session.prefersEphemeralWebBrowserSession = false
+                self.webAuthSession = session
+                if !session.start() {
+                    continuation.resume(throwing: AuthServiceError.oauthStartFailed)
+                }
             }
         }
     }
@@ -187,10 +189,12 @@ final class SupabaseAuthService: AuthServiceProtocol {
             let delegate = AppleSignInDelegate { result in
                 continuation.resume(with: result)
             }
-            self.appleSignInDelegate = delegate
-            controller.delegate = delegate
-            controller.presentationContextProvider = delegate
-            controller.performRequests()
+            Task { @MainActor in
+                self.appleSignInDelegate = delegate
+                controller.delegate = delegate
+                controller.presentationContextProvider = delegate
+                controller.performRequests()
+            }
         }
     }
 
@@ -270,7 +274,12 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
     }
 
     nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        MainActor.assumeIsolated { AuthPresentationAnchor.current() }
+        if Thread.isMainThread {
+            return MainActor.assumeIsolated { AuthPresentationAnchor.current() }
+        }
+        return DispatchQueue.main.sync {
+            MainActor.assumeIsolated { AuthPresentationAnchor.current() }
+        }
     }
 }
 
@@ -278,7 +287,12 @@ private final class WebAuthContextProvider: NSObject, ASWebAuthenticationPresent
     static let shared = WebAuthContextProvider()
 
     nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        MainActor.assumeIsolated { AuthPresentationAnchor.current() }
+        if Thread.isMainThread {
+            return MainActor.assumeIsolated { AuthPresentationAnchor.current() }
+        }
+        return DispatchQueue.main.sync {
+            MainActor.assumeIsolated { AuthPresentationAnchor.current() }
+        }
     }
 }
 

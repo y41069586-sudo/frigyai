@@ -24,6 +24,7 @@ struct OnboardingPersistedState: Codable, Equatable {
 /// Backwards-compatible alias used by early scaffold code.
 typealias OnboardingUserData = UserProfileDraft
 
+@MainActor
 protocol OnboardingPersistenceProtocol {
     func load() -> OnboardingPersistedState?
     func save(_ state: OnboardingPersistedState)
@@ -32,6 +33,7 @@ protocol OnboardingPersistenceProtocol {
     func markComplete()
 }
 
+@MainActor
 struct UserDefaultsOnboardingPersistence: OnboardingPersistenceProtocol {
     private let stateKey = "onboardingPersistedState"
     private let completeKey = "onboardingComplete"

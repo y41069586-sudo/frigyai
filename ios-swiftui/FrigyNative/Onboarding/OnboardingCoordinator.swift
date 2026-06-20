@@ -291,6 +291,7 @@ final class OnboardingCoordinator {
         )
     }
 
+    #if DEBUG
     func resetForDevelopment() {
         persistence.clear()
         telemetry.clear()
@@ -303,6 +304,7 @@ final class OnboardingCoordinator {
         context.auth.hasAccount = value
         persistState()
     }
+    #endif
 
     func flowDebugSnapshot() -> OnboardingFlowDebugSnapshot {
         OnboardingFlowDebugger.snapshot(

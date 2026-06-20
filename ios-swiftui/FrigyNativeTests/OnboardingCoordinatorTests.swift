@@ -253,6 +253,7 @@ struct OnboardingCoordinatorTests {
 }
 
 /// Test double — in-memory persistence for coordinator tests.
+@MainActor
 final class InMemoryOnboardingPersistence: OnboardingPersistenceProtocol {
     private var snapshot: OnboardingPersistedState?
     private var complete = false

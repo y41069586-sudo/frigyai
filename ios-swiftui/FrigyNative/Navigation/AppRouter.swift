@@ -11,7 +11,7 @@ final class AppRouter {
     var authStatusMessage: String?
 
     let tabCoordinator = MainTabCoordinator()
-    let onboardingCoordinator = OnboardingCoordinator()
+    let onboardingCoordinator: OnboardingCoordinator
     let authService: AuthServiceProtocol
     let subscriptionService: SubscriptionServiceProtocol
 
