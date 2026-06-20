@@ -1,25 +1,37 @@
 # Frigy iOS Native (SwiftUI) Rebuild
 
-Native SwiftUI app replacing the Capacitor WebView on iOS. **UI feature ports are paused** until navigation/auth architecture is validated on device.
+Native SwiftUI shell hosting the **full Frigy web app** via Capacitor (same React UI + native plugins as `ios-build`). SwiftUI scaffold code remains for incremental native screen ports.
 
 ## Requirements
 
 - **Xcode 26**
 - **Deployment target: iOS 26**
+- **Node 22** (CI builds Vite `dist/` and bundles into the app)
 
-## Generate Xcode project (Mac or Codemagic)
+## Codemagic (recommended)
+
+Workflow **iOS Native SwiftUI Build** (`ios-swiftui-build`):
+
+1. `npm run build` → Vite `dist/`
+2. `cap sync ios` → copy `public/` + `capacitor.config.json` into `FrigyNative/`
+3. XcodeGen + archive → TestFlight
+
+Same env vars as **iOS Build** (`frigy` group + RevenueCat keys).
+
+## Generate Xcode project (Mac, optional)
 
 ```bash
+# From repo root — bundle web assets first:
+npm ci --legacy-peer-deps && npm run build
+bash scripts/codemagic-sync-web-for-native-ios.sh
+
 cd ios-swiftui
 cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
-# Set SUPABASE_URL and SUPABASE_ANON_KEY
 ./scripts/generate-xcodeproj.sh
 open FrigyNative.xcodeproj
 ```
 
-**Codemagic:** Workflow **iOS Native SwiftUI Build** runs `scripts/codemagic-prepare-native-ios.sh` (XcodeGen + Secrets from `VITE_SUPABASE_*`). No npm/Vite step.
-
-See `docs/NATIVE_IOS_TESTFLIGHT_TASKS.md` for the TestFlight checklist.
+Without `FrigyNative/public/`, the app falls back to the SwiftUI onboarding skeleton (dev only).
 
 ## Architecture (current)
 

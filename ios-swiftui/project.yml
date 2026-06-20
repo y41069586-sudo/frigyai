@@ -15,6 +15,11 @@ configFiles:
   Release: Config/Release.xcconfig
 
 packages:
+  CapApp-SPM:
+    path: CapApp-SPM
+  ChottuLinkSDK:
+    url: https://github.com/ConnectingDotsInfotech/chottulink-ios-sdk
+    from: 1.1.0
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.29.0
@@ -35,6 +40,14 @@ targets:
       - path: FrigyNative
         excludes:
           - "**/*.example"
+          - public/**
+          - capacitor.config.json
+    resources:
+      - path: FrigyNative/public
+        buildPhase: resources
+        type: folder
+      - path: FrigyNative/capacitor.config.json
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.frigyapp.app
@@ -45,6 +58,10 @@ targets:
         MARKETING_VERSION: 1.0.0
         ENABLE_PREVIEWS: YES
     dependencies:
+      - package: CapApp-SPM
+        product: CapApp-SPM
+      - package: ChottuLinkSDK
+        product: ChottuLinkSDK
       - package: Supabase
         product: Supabase
       - package: Supabase
@@ -53,6 +70,7 @@ targets:
       path: FrigyNative/Info.plist
       properties:
         CFBundleDisplayName: Frigy
+        CAPACITOR_DEBUG: "$(CAPACITOR_DEBUG)"
         CFBundleURLTypes:
           - CFBundleURLName: com.frigyapp.app
             CFBundleURLSchemes:
@@ -60,11 +78,18 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: "Frigy uses the camera to recognize ingredients in your fridge and pantry."
+        NSPhotoLibraryUsageDescription: "Frigy can analyze photos from your gallery to recognize ingredients."
+        NSUserNotificationsUsageDescription: "Frigy sends optional reminders for meals, water, and your goals."
+        UIBackgroundModes:
+          - remote-notification
         ITSAppUsesNonExemptEncryption: false
 
   FrigyNativeTests:
