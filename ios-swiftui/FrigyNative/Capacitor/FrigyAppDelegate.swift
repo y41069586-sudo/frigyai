@@ -2,31 +2,46 @@ import Capacitor
 import UIKit
 import UserNotifications
 
-@MainActor
-final class FrigyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    func application(
+final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
+    nonisolated func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        UNUserNotificationCenter.current().delegate = self
+        if Thread.isMainThread {
+            MainActor.assumeIsolated {
+                UNUserNotificationCenter.current().delegate = self
+            }
+        } else {
+            DispatchQueue.main.sync {
+                MainActor.assumeIsolated {
+                    UNUserNotificationCenter.current().delegate = self
+                }
+            }
+        }
         return true
     }
 
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    nonisolated func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
         NotificationCenter.default.post(
             name: .capacitorDidRegisterForRemoteNotifications,
             object: deviceToken
         )
     }
 
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    nonisolated func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
         NotificationCenter.default.post(
             name: .capacitorDidFailToRegisterForRemoteNotifications,
             object: error
         )
     }
 
-    func application(
+    nonisolated func application(
         _ app: UIApplication,
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
@@ -34,7 +49,7 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
         ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 
-    func application(
+    nonisolated func application(
         _ application: UIApplication,
         continue userActivity: NSUserActivity,
         restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
@@ -45,7 +60,11 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
         }
         return ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
     }
+}
 
+@MainActor
+extension FrigyAppDelegate: UNUserNotificationCenterDelegate {
+    @MainActor
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,

@@ -121,35 +121,44 @@ public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
         }
     }
 
-    public func chottuLink(didInitializeWith configuration: CLConfiguration) {
-        notifyListeners("initializationSuccess", data: [
-            "apiKey": configuration.apiKey,
-        ], retainUntilConsumed: true)
+    nonisolated public func chottuLink(didInitializeWith configuration: CLConfiguration) {
+        Task { @MainActor in
+            notifyListeners("initializationSuccess", data: [
+                "apiKey": configuration.apiKey,
+            ], retainUntilConsumed: true)
+        }
     }
 
-    public func chottuLink(didFailToInitializeWith error: any Error) {
-        notifyListeners("deepLinkFailed", data: [
-            "error": error.localizedDescription,
-            "errorCode": Double((error as NSError).code),
-        ], retainUntilConsumed: true)
+    nonisolated public func chottuLink(didFailToInitializeWith error: any Error) {
+        Task { @MainActor in
+            notifyListeners("deepLinkFailed", data: [
+                "error": error.localizedDescription,
+                "errorCode": Double((error as NSError).code),
+            ], retainUntilConsumed: true)
+        }
     }
 
-    public func chottuLink(didResolveDeepLink link: URL, metadata: [String : Any]?) {
-        notifyListeners("deepLinkResolved", data: [
-            "url": link.absoluteString,
-            "metadata": stringMetadata(metadata),
-        ], retainUntilConsumed: true)
+    nonisolated public func chottuLink(didResolveDeepLink link: URL, metadata: [String: Any]?) {
+        let metadataStrings = stringMetadata(metadata)
+        Task { @MainActor in
+            notifyListeners("deepLinkResolved", data: [
+                "url": link.absoluteString,
+                "metadata": metadataStrings,
+            ], retainUntilConsumed: true)
+        }
     }
 
-    public func chottuLink(didFailToResolveDeepLink originalURL: URL?, error: any Error) {
-        notifyListeners("deepLinkFailed", data: [
-            "originalUrl": originalURL?.absoluteString as Any,
-            "error": error.localizedDescription,
-            "errorCode": Double((error as NSError).code),
-        ], retainUntilConsumed: true)
+    nonisolated public func chottuLink(didFailToResolveDeepLink originalURL: URL?, error: any Error) {
+        Task { @MainActor in
+            notifyListeners("deepLinkFailed", data: [
+                "originalUrl": originalURL?.absoluteString as Any,
+                "error": error.localizedDescription,
+                "errorCode": Double((error as NSError).code),
+            ], retainUntilConsumed: true)
+        }
     }
 
-    private func stringMetadata(_ metadata: [String: Any]?) -> [String: String] {
+    nonisolated private func stringMetadata(_ metadata: [String: Any]?) -> [String: String] {
         guard let metadata else { return [:] }
         return metadata.reduce(into: [String: String]()) { result, entry in
             result[entry.key] = String(describing: entry.value)

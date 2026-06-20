@@ -261,7 +261,10 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
         self.completion = completion
     }
 
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+    nonisolated func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
             completion(.failure(AuthServiceError.missingAppleIdentityToken))
             return
@@ -269,7 +272,10 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
         completion(.success(credential))
     }
 
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+    nonisolated func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithError error: Error
+    ) {
         completion(.failure(error))
     }
 

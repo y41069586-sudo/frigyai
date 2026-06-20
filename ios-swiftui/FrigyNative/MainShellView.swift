@@ -7,9 +7,9 @@ struct MainShellView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
     var body: some View {
-        @Bindable var tabCoordinator = tabCoordinator
+        @Bindable var coordinator = tabCoordinator
 
-        TabView(selection: $tabCoordinator.selectedTab) {
+        TabView(selection: $coordinator.selectedTab) {
             HomeTabRoot()
                 .tag(AppTab.home)
 
@@ -21,11 +21,11 @@ struct MainShellView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            GlassTabBar(selection: $tabCoordinator.selectedTab) {
-                tabCoordinator.openTracker()
+            GlassTabBar(selection: $coordinator.selectedTab) {
+                coordinator.openTracker()
             }
         }
-        .sheet(isPresented: $tabCoordinator.showTrackerSheet) {
+        .sheet(isPresented: $coordinator.showTrackerSheet) {
             NavigationStack {
                 TrackerLogMealView()
             }

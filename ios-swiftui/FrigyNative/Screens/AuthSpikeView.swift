@@ -37,12 +37,14 @@ struct AuthSpikeView: View {
                 }
             }
 
+            #if DEBUG
             Section("Deep Link Tests") {
                 deepLinkButton("Open Profile", link: .home(.profile))
                 deepLinkButton("Open Shopping Tab", link: .tab(.shopping))
                 deepLinkButton("Open Tracker", link: .openTracker)
                 deepLinkButton("Subscription Success", link: .subscriptionSuccess)
             }
+            #endif
         }
         .navigationTitle("Sign In")
         .task { await refreshSessionLabel() }

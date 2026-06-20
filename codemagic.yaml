@@ -25,7 +25,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
-        ANDROID_VERSION_CODE: "50"
+        ANDROID_VERSION_CODE: "51"
 
     scripts:
       - name: Verify build environment
@@ -132,7 +132,7 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
-        IOS_BUILD_NUMBER: "50"
+        IOS_BUILD_NUMBER: "51"
 
     scripts:
       - name: Verify build environment
@@ -215,7 +215,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-50}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
@@ -260,7 +260,7 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
-        IOS_BUILD_NUMBER: "50"
+        IOS_BUILD_NUMBER: "51"
 
     scripts:
       - name: Verify build environment
@@ -271,6 +271,15 @@ workflows:
 
       - name: Generate Xcode project and Secrets.xcconfig
         script: bash scripts/codemagic-prepare-native-ios.sh
+
+      - name: Verify web bundle in FrigyNative
+        script: |
+          set -e
+          test -f "$CM_BUILD_DIR/ios-swiftui/FrigyNative/public/index.html" \
+            || (echo "ERROR: FrigyNative/public missing — web sync step failed" && exit 1)
+          test -f "$CM_BUILD_DIR/ios-swiftui/FrigyNative/capacitor.config.json" \
+            || (echo "ERROR: capacitor.config.json missing" && exit 1)
+          echo "Web bundle OK"
 
       - name: Resolve Swift packages
         script: |
@@ -323,7 +332,7 @@ workflows:
 
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-50}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
           bash scripts/codemagic-locate-ipa.sh
 
     artifacts:
