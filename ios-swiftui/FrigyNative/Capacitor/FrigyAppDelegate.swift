@@ -46,7 +46,9 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        onMainActor {
+            ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        }
     }
 
     nonisolated func application(
@@ -58,7 +60,18 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
               let url = userActivity.webpageURL else {
             return false
         }
-        return ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
+        return onMainActor {
+            ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
+        }
+    }
+
+    private nonisolated func onMainActor<T>(_ work: @MainActor () -> T) -> T {
+        if Thread.isMainThread {
+            return MainActor.assumeIsolated(work)
+        }
+        return DispatchQueue.main.sync {
+            MainActor.assumeIsolated(work)
+        }
     }
 }
 
