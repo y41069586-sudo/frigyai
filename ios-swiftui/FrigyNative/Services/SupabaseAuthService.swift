@@ -266,17 +266,32 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
         didCompleteWithAuthorization authorization: ASAuthorization
     ) {
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            completion(.failure(AuthServiceError.missingAppleIdentityToken))
+            invokeCompletion(.failure(AuthServiceError.missingAppleIdentityToken))
             return
         }
-        completion(.success(credential))
+        invokeCompletion(.success(credential))
     }
 
     nonisolated func authorizationController(
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        completion(.failure(error))
+        invokeCompletion(.failure(error))
+    }
+
+    // ASAuthorizationController delivers delegate callbacks on the main queue, but these
+    // methods are `nonisolated`. Hop onto the main actor before touching the
+    // @MainActor-isolated `completion` so the project compiles under Swift 6.
+    private nonisolated func invokeCompletion(
+        _ result: Result<ASAuthorizationAppleIDCredential, Error>
+    ) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { completion(result) }
+        } else {
+            DispatchQueue.main.sync {
+                MainActor.assumeIsolated { completion(result) }
+            }
+        }
     }
 
     nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {

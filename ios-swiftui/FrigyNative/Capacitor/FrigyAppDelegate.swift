@@ -46,7 +46,11 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        // UIKit delivers this callback on the main thread; hop onto the main actor
+        // so the @MainActor-isolated ApplicationDelegateProxy can be used under Swift 6.
+        MainActor.assumeIsolated {
+            ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        }
     }
 
     nonisolated func application(
@@ -54,11 +58,13 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         continue userActivity: NSUserActivity,
         restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
     ) -> Bool {
-        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
-              let url = userActivity.webpageURL else {
-            return false
+        MainActor.assumeIsolated {
+            guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+                  let url = userActivity.webpageURL else {
+                return false
+            }
+            return ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
         }
-        return ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
     }
 }
 
