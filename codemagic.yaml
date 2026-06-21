@@ -1,4 +1,4 @@
-# Frigy — iOS + Android (Capacitor) + Native SwiftUI. Setup: docs/CODEMAGIC.md + codemagic.env.example
+# Frigy — iOS + Android (Capacitor) + Native SwiftUI (ios-swiftui/). Setup: docs/CODEMAGIC.md + codemagic.env.example
  
 workflows:
  
@@ -212,7 +212,6 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       xcode: 26.4
-      node: 22
       groups:
         - frigy
       ios_signing:
@@ -221,35 +220,18 @@ workflows:
         certificates:
           - frigy_distribution
       vars:
-        NPM_CONFIG_LEGACY_PEER_DEPS: "true"
         XCODE_SCHEME: FrigyNative
         BUNDLE_ID: com.frigyapp.app
         XCODE_PROJECT: ios-swiftui/FrigyNative.xcodeproj
-        VITE_REVENUECAT_ENTITLEMENT_ID: premium
-        VITE_APPLE_BUNDLE_ID: com.frigyapp.app
-        VITE_APPLE_CLIENT_ID: com.frigyapp.app
-        VITE_APPLE_REDIRECT_URI: https://app.frigy.app/auth/callback
-        VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
-        VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
         IOS_BUILD_NUMBER: "51"
     scripts:
       - name: Verify build environment
-        script: bash scripts/codemagic-verify-env.sh
-      - name: Build web app and sync Capacitor bundle
-        script: bash scripts/codemagic-sync-web-for-native-ios.sh
+        script: bash scripts/codemagic-verify-native-env.sh
       - name: Generate Xcode project and Secrets.xcconfig
         script: bash scripts/codemagic-prepare-native-ios.sh
-      - name: Verify web bundle in FrigyNative
-        script: |
-          set -e
-          test -f "$CM_BUILD_DIR/ios-swiftui/FrigyNative/public/index.html" \
-            || (echo "ERROR: FrigyNative/public missing — web sync step failed" && exit 1)
-          test -f "$CM_BUILD_DIR/ios-swiftui/FrigyNative/capacitor.config.json" \
-            || (echo "ERROR: capacitor.config.json missing" && exit 1)
-          echo "Web bundle OK"
       - name: Resolve Swift packages
         script: |
           set -e
