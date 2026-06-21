@@ -3,7 +3,7 @@ import Capacitor
 import ChottuLinkSDK
 
 @objc(ChottuLinkPlugin)
-public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
+public class ChottuLinkPlugin: CAPPlugin, @preconcurrency CAPBridgedPlugin, ChottuLinkDelegate {
     public let identifier = "ChottuLinkPlugin"
     public let jsName = "ChottuLink"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -98,7 +98,7 @@ public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
             eventName: call.getString("eventName") ?? "conversion",
             productId: call.getString("productId"),
             transactionId: call.getString("transactionId"),
-            metadata: call.getObject("metadata") as? [String: Any]
+            metadata: call.getObject("metadata") as [String: Any]?
         )
 
         Task { @MainActor in
