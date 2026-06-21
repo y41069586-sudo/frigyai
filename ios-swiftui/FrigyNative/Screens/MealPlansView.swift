@@ -1,30 +1,293 @@
 import SwiftUI
 
+// MARK: - Model
+
+struct DayPlan: Identifiable {
+    let id = UUID()
+    let weekday: String
+    let shortDay: String
+    let isToday: Bool
+    var meals: [PlannedMeal]
+    var totalCal: Int { meals.reduce(0) { $0 + $1.calories } }
+}
+
+struct PlannedMeal: Identifiable {
+    let id = UUID()
+    let category: MealCategory
+    let name: String
+    let calories: Int
+    let duration: Int // minutes
+    let tags: [String]
+}
+
+// MARK: - View
+
 struct MealPlansView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
-    @State private var draftNote = ""
+
+    @State private var selectedDayIndex = 0
+
+    private let weekPlan: [DayPlan] = makeDemoWeek()
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Weekly meal plan")
-                    .font(.title2.bold())
-
-                Text("Tab activation count: \(tabCoordinator.tabActivationCounts[.plans, default: 0])")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-
-                TextField("Plans tab state test", text: $draftNote)
-                    .textFieldStyle(.roundedBorder)
-
-                Button("Push Reminders") {
-                    tabCoordinator.pushPlans(.reminders)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Wochenplan")
+                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .foregroundColor(Color(hex: "#1F2937"))
+                        Text("KI-generierter Ernährungsplan")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "#9CA3AF"))
+                    }
+                    Spacer()
+                    Button {
+                        tabCoordinator.pushPlans(.preferences)
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color(hex: "#39D47F"))
+                            .frame(width: 40, height: 40)
+                            .background(Color(hex: "#DCFEEF"))
+                            .clipShape(Circle())
+                    }
                 }
-                .buttonStyle(.bordered)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+                // Day selector
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(weekPlan.indices, id: \.self) { i in
+                                let day = weekPlan[i]
+                                Button {
+                                    withAnimation(.spring(duration: 0.3)) {
+                                        selectedDayIndex = i
+                                    }
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Text(day.shortDay)
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(selectedDayIndex == i ? .white : Color(hex: "#9CA3AF"))
+                                        Text(day.weekday.prefix(2).uppercased())
+                                            .font(.system(size: 17, weight: .bold))
+                                            .foregroundColor(selectedDayIndex == i ? .white : Color(hex: "#1F2937"))
+                                        if day.isToday {
+                                            Circle()
+                                                .fill(selectedDayIndex == i ? .white : Color(hex: "#75FBB2"))
+                                                .frame(width: 5, height: 5)
+                                        }
+                                    }
+                                    .frame(width: 52, height: 70)
+                                    .background(
+                                        selectedDayIndex == i
+                                        ? LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .top, endPoint: .bottom)
+                                        : LinearGradient(colors: [.white, .white], startPoint: .top, endPoint: .bottom)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .shadow(color: selectedDayIndex == i ? Color(hex: "#39D47F").opacity(0.3) : .black.opacity(0.04), radius: 6, y: 3)
+                                }
+                                .buttonStyle(.plain)
+                                .id(i)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 4)
+                    }
+                    .onAppear {
+                        proxy.scrollTo(selectedDayIndex, anchor: .center)
+                    }
+                }
+
+                // Day stats strip
+                let day = weekPlan[selectedDayIndex]
+                HStack(spacing: 0) {
+                    dayStat("Kalorien", value: "\(day.totalCal) kcal")
+                    Divider().frame(height: 28)
+                    dayStat("Mahlzeiten", value: "\(day.meals.count)")
+                    Divider().frame(height: 28)
+                    dayStat("Ø Zeit", value: "\(day.meals.map(\.duration).reduce(0, +) / max(1, day.meals.count)) min")
+                }
+                .padding(.vertical, 12)
+                .background(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+                .padding(.horizontal, 20)
+
+                // Meals of selected day
+                VStack(spacing: 12) {
+                    if day.meals.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "calendar.badge.plus")
+                                .font(.system(size: 40))
+                                .foregroundColor(Color(hex: "#BCFDDC"))
+                            Text("Noch kein Plan für diesen Tag")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color(hex: "#6B7280"))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(32)
+                    } else {
+                        ForEach(day.meals) { meal in
+                            PlannedMealCard(meal: meal)
+                                .padding(.horizontal, 20)
+                        }
+                    }
+                }
+
+                // Weekly nutrition summary
+                WeeklySummaryCard(week: weekPlan)
+                    .padding(.horizontal, 20)
+
+                Spacer().frame(height: 100)
             }
-            .padding()
-            .padding(.bottom, 96)
         }
-        .navigationTitle("Plans")
+        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func dayStat(_ label: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(Color(hex: "#1F2937"))
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#9CA3AF"))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Planned Meal Card
+
+struct PlannedMealCard: View {
+    let meal: PlannedMeal
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(hex: "#F2FFF8"))
+                    .frame(width: 52, height: 52)
+                Image(systemName: meal.category.icon)
+                    .font(.system(size: 22))
+                    .foregroundColor(Color(hex: "#39D47F"))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(meal.category.rawValue)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color(hex: "#9CA3AF"))
+                Text(meal.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color(hex: "#1F2937"))
+                HStack(spacing: 8) {
+                    Label("\(meal.calories) kcal", systemImage: "flame.fill")
+                    Label("\(meal.duration) min", systemImage: "clock.fill")
+                }
+                .font(.system(size: 12))
+                .foregroundColor(Color(hex: "#6B7280"))
+                if !meal.tags.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(meal.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(Color(hex: "#39D47F"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "#DCFEEF"))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+}
+
+// MARK: - Weekly summary
+
+struct WeeklySummaryCard: View {
+    let week: [DayPlan]
+    private var avgCal: Int {
+        let total = week.reduce(0) { $0 + $1.totalCal }
+        return total / max(1, week.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Wochenübersicht")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(Color(hex: "#1F2937"))
+
+            HStack(spacing: 4) {
+                ForEach(week) { day in
+                    VStack(spacing: 4) {
+                        let frac = avgCal > 0 ? min(1.0, Double(day.totalCal) / Double(avgCal + 200)) : 0
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .bottom, endPoint: .top))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: max(8, CGFloat(frac) * 48))
+                            .frame(maxHeight: 48, alignment: .bottom)
+                        Text(day.shortDay.prefix(2))
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(Color(hex: "#9CA3AF"))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 60, alignment: .bottom)
+
+            HStack {
+                Text("Ø \(avgCal) kcal / Tag")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(hex: "#39D47F"))
+                Spacer()
+                Text("Ziel: \(avgCal + 50) kcal")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#9CA3AF"))
+            }
+        }
+        .padding(16)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+}
+
+// MARK: - Demo data
+
+private func makeDemoWeek() -> [DayPlan] {
+    let calendar = Calendar.current
+    let today = Date()
+    let weekday = calendar.component(.weekday, from: today)
+    let startOfWeek = calendar.date(byAdding: .day, value: -(weekday - 2), to: today) ?? today
+
+    let dayNames = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+    let shortNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+    return (0..<7).map { i in
+        let date = calendar.date(byAdding: .day, value: i, to: startOfWeek) ?? today
+        let isToday = calendar.isDateInToday(date)
+        let dayNum = calendar.component(.day, from: date)
+
+        let meals: [PlannedMeal] = i < 5 ? [
+            PlannedMeal(category: .breakfast, name: "Haferflocken mit Beeren", calories: 320, duration: 5, tags: ["Vegan", "High Protein"]),
+            PlannedMeal(category: .lunch, name: "Hähnchen-Quinoa Bowl", calories: 520, duration: 20, tags: ["High Protein"]),
+            PlannedMeal(category: .snack, name: "Griechischer Joghurt", calories: 130, duration: 0, tags: ["Proteinreich"]),
+            PlannedMeal(category: .dinner, name: "Lachs mit Gemüse", calories: 480, duration: 25, tags: ["Omega-3"]),
+        ] : []
+
+        return DayPlan(weekday: dayNames[i], shortDay: "\(shortNames[i]) \(dayNum)", isToday: isToday, meals: meals)
     }
 }

@@ -1,74 +1,267 @@
 import SwiftUI
 
-/// Minimal onboarding shell — validates coordinator + router only (no step UI polish).
+/// Routes the current onboarding step to its dedicated screen view.
 struct OnboardingSkeletonView: View {
     @Environment(AppRouter.self) private var router
-
     private var coordinator: OnboardingCoordinator { router.onboardingCoordinator }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Onboarding Coordinator")
-                        .font(.title2.bold())
+        let step = coordinator.currentStep
+        let progress = coordinator.progressFraction
+        let canGoBack = coordinator.canGoBack
 
-                    Group {
-                        LabeledContent("Step", value: coordinator.currentStep.rawValue)
-                        LabeledContent("Authenticated", value: coordinator.context.isAuthenticated ? "yes" : "no")
-                        LabeledContent("Premium", value: coordinator.context.isPremium ? "yes" : "no")
-                        LabeledContent("Referral", value: coordinator.context.hasReferralCode ? "yes" : "no")
-                        LabeledContent("Completed", value: "\(coordinator.context.completedSteps.count)")
-                        ProgressView(value: coordinator.progressFraction)
-                        if let ref = coordinator.userProfile.referralCode {
-                            LabeledContent("Code", value: ref)
-                        }
-                        if coordinator.userProfile.dailyCalories > 0 {
-                            LabeledContent("Kcal", value: "\(coordinator.userProfile.dailyCalories)")
-                        }
+        Group {
+            switch step {
+            case .splash:
+                SplashStepView(onNext: next)
+
+            case .welcome, .goal, .motivation, .successStats, .tutorialTransition,
+                 .fridgeIntro, .scanFeedback, .howItWorks, .tutorial, .trackerIntro,
+                 .bodyBasics, .intro, .comparison, .transformation:
+                GenericInfoStepView(
+                    step: step,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .languageSelect:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .nameInput:
+                NameInputStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
                     }
-                    .font(.footnote.monospaced())
+                )
 
-                    HStack {
-                        Button("Back") { router.onboardingBack() }
-                            .disabled(!coordinator.canGoBack)
-                        Button("Next") { router.onboardingNext() }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(!coordinator.canGoNext)
+            case .permissions, .notificationPrefs:
+                PermissionsStepView(
+                    step: step,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .gender:
+                GenderStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
                     }
+                )
 
-                    #if DEBUG
-                    OnboardingFlowDebugView(snapshot: coordinator.flowDebugSnapshot())
-
-                    OnboardingFlowTelemetryView(
-                        traces: coordinator.recentTraces,
-                        onExport: { coordinator.exportTelemetryJSON() }
-                    )
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Flow validation").font(.headline)
-                        Button("Simulate referral deep link") {
-                            router.handle(deepLink: .signup(referralCode: "TESTREF"))
-                        }
-                        Button("Mark authenticated (dev)") {
-                            coordinator.setAuthenticatedForDevelopment(true)
-                        }
-                        Button("Jump to paywall") {
-                            coordinator.jump(to: .paywall)
-                            router.rootRoute = .onboarding(step: .paywall)
-                        }
-                        Button("Reset onboarding (dev)") {
-                            coordinator.resetForDevelopment()
-                            router.rootRoute = .onboarding(step: coordinator.currentStep)
-                        }
+            case .birthdate:
+                BirthdateStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
                     }
-                    .buttonStyle(.bordered)
-                    #endif
-                }
-                .padding()
+                )
+
+            case .weight:
+                WeightStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .height:
+                HeightStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .activity:
+                ActivityStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .mainGoal:
+                MainGoalStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .targetWeight:
+                TargetWeightStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .goalPreview:
+                GoalPreviewStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .speedSelect:
+                SpeedSelectStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .healthGoals:
+                HealthGoalsStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .dietaryPreferences:
+                DietaryPreferencesStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .allergies:
+                AllergiesStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .weeklyPlan, .weeklyPlanPreview:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .scanFridge, .shoppingList:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .referralCode:
+                ReferralCodeStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: { profile in
+                        coordinator.userProfile = profile
+                        coordinator.persistState()
+                        next()
+                    }
+                )
+
+            case .cookingTime, .cookingExperience, .planningSetup:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .analyzing:
+                AnalyzingStepView(onNext: next)
+
+            case .macroPreview:
+                MacroPreviewStepView(
+                    profile: coordinator.userProfile,
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .goalMode, .goalSelection, .appModeChoice,
+                 .spontanMode1, .spontanMode2,
+                 .structuredMode1, .structuredMode2, .structuredMode3:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .saveProgress, .accountCreation:
+                AccountCreationStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .profileSetup:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .premiumHint:
+                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .paywall:
+                PaywallStepView(onNext: next)
+
+            case .celebration:
+                CelebrationStepView(onNext: next)
+
+            case .done:
+                Color(hex: "#FBFFFD").ignoresSafeArea()
+                    .onAppear { Task { await router.finishOnboardingFlow() } }
             }
-            .navigationTitle("Onboarding")
         }
+        .transition(.asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        ))
+        .animation(.spring(duration: 0.35), value: step)
+    }
+
+    private func next() {
+        router.onboardingNext()
+    }
+
+    private func back() {
+        router.onboardingBack()
     }
 }
 

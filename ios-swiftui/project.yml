@@ -2,7 +2,7 @@ name: FrigyNative
 options:
   bundleIdPrefix: com.frigyapp
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "17.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
@@ -15,8 +15,6 @@ configFiles:
   Release: Config/Release.xcconfig
 
 packages:
-  CapApp-SPM:
-    path: CapApp-SPM
   ChottuLinkSDK:
     url: https://github.com/ConnectingDotsInfotech/chottulink-ios-sdk
     from: 1.1.0
@@ -35,7 +33,7 @@ settings:
     # fully audited for Sendable/actor isolation.
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
@@ -50,12 +48,8 @@ targets:
           - "**/*.example"
           - public/**
           - capacitor.config.json
-    resources:
-      - path: FrigyNative/public
-        buildPhase: resources
-        type: folder
-      - path: FrigyNative/capacitor.config.json
-        buildPhase: resources
+          - Capacitor/**
+    resources: []
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.frigyapp.app
@@ -66,8 +60,6 @@ targets:
         MARKETING_VERSION: 1.0.0
         ENABLE_PREVIEWS: YES
     dependencies:
-      - package: CapApp-SPM
-        product: CapApp-SPM
       - package: ChottuLinkSDK
         product: ChottuLinkSDK
       - package: Supabase
@@ -78,7 +70,6 @@ targets:
       path: FrigyNative/Info.plist
       properties:
         CFBundleDisplayName: Frigy
-        CAPACITOR_DEBUG: "$(CAPACITOR_DEBUG)"
         CFBundleURLTypes:
           - CFBundleURLName: com.frigyapp.app
             CFBundleURLSchemes:

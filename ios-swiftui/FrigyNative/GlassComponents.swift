@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Basis: einzelnes Glass-Element
+// MARK: - GlassCard
 
 struct GlassCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
@@ -8,11 +8,24 @@ struct GlassCard<Content: View>: View {
     var body: some View {
         content()
             .padding(20)
-            .glassEffect(.regular, in: .rect(cornerRadius: 24))
+            .modifier(GlassCardModifier())
     }
 }
 
-// MARK: - Getönter, interaktiver Glass-Button
+private struct GlassCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        } else {
+            content
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+        }
+    }
+}
+
+// MARK: - GlassActionButton
 
 struct GlassActionButton: View {
     let title: String
@@ -25,13 +38,26 @@ struct GlassActionButton: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
         }
-        // .tint() = semantische Bedeutung, .interactive() = Scale/Bounce on tap
-        .glassEffect(.regular.tint(.blue).interactive(), in: .capsule)
+        .modifier(GlassButtonModifier())
     }
 }
 
-// MARK: - Mehrere Elemente, die verschmelzen + morphen
+private struct GlassButtonModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(.regular.tint(.blue).interactive(), in: .capsule)
+        } else {
+            content
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+        }
+    }
+}
 
+// MARK: - GlassToolbar (iOS 26 only demo)
+
+@available(iOS 26, *)
 struct GlassToolbar: View {
     @Namespace private var glassNamespace
     @State private var expanded = false
@@ -64,9 +90,11 @@ struct GlassToolbar: View {
     }
 }
 
-// MARK: - Demo-Hintergrund (ersetzbar durch Image("background") aus Assets)
+// MARK: - Demo
 
-private struct GlassDemoBackground: View {
+#if DEBUG
+@available(iOS 26, *)
+struct GlassDemoView: View {
     var body: some View {
         ZStack {
             LinearGradient(
@@ -78,37 +106,18 @@ private struct GlassDemoBackground: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 220, weight: .ultraLight))
-                .foregroundStyle(.white.opacity(0.12))
-                .rotationEffect(.degrees(-18))
-                .offset(x: 40, y: -80)
-        }
-        .ignoresSafeArea()
-    }
-}
-
-// MARK: - Demo-Screen
-
-#if DEBUG
-struct GlassDemoView: View {
-    var body: some View {
-        ZStack {
-            // Content-Ebene: Hintergrund, über den das Glas refraktiert
-            GlassDemoBackground()
+            .ignoresSafeArea()
 
             VStack(spacing: 32) {
                 Text("Liquid Glass")
                     .font(.title.bold())
 
                 GlassCard {
-                    Label("Functional chrome only", systemImage: "sparkles")
+                    Label("Frigy", systemImage: "sparkles")
                         .font(.headline)
                 }
 
                 GlassActionButton(title: "Aktion", systemImage: "sparkles") {}
-
                 GlassToolbar()
             }
             .padding()

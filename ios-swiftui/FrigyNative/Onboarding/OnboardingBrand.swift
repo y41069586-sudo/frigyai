@@ -1,0 +1,246 @@
+import SwiftUI
+
+// MARK: - Brand colors
+
+enum FrigyBrand {
+    static let primary      = Color(hex: "#75FBB2")
+    static let primaryDark  = Color(hex: "#39D47F")
+    static let primaryDeep  = Color(hex: "#2EB56D")
+    static let bg           = Color(hex: "#FBFFFD")
+    static let selectedBg   = Color(hex: "#DCFEEF")
+    static let text         = Color(hex: "#1F2937")
+    static let textMuted    = Color(hex: "#6B7280")
+    static let borderMint   = Color(hex: "#6EECC0")
+    static let cardBorder   = Color(hex: "#BCFDDC")
+
+    static var buttonGradient: LinearGradient {
+        LinearGradient(
+            colors: [primary, primaryDark],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+    }
+
+    static var buttonDisabledGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color(hex: "#DFF9EA"), Color(hex: "#C8F4DD")],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+    }
+}
+
+// MARK: - Color hex init
+
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 6:
+            (a, r, g, b) = (255, (int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
+// MARK: - Shared onboarding components
+
+struct OnboardingContinueButton: View {
+    let title: String
+    let isEnabled: Bool
+    let action: () -> Void
+
+    init(_ title: String = "Weiter", isEnabled: Bool = true, action: @escaping () -> Void) {
+        self.title = title
+        self.isEnabled = isEnabled
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: { if isEnabled { action() } }) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(isEnabled ? AnyShapeStyle(FrigyBrand.buttonGradient) : AnyShapeStyle(FrigyBrand.buttonDisabledGradient))
+            .foregroundColor(isEnabled ? .white : Color(hex: "#4AE896"))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .shadow(color: isEnabled ? Color(hex: "#4AE896").opacity(0.5) : .clear, radius: 12, y: 6)
+        }
+        .disabled(!isEnabled)
+        .animation(.easeInOut(duration: 0.18), value: isEnabled)
+    }
+}
+
+struct OnboardingBackButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(FrigyBrand.primaryDark)
+                .frame(width: 40, height: 40)
+                .background(Color.white.opacity(0.8))
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        }
+    }
+}
+
+struct OnboardingProgressBar: View {
+    let fraction: Double
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(FrigyBrand.borderMint.opacity(0.3))
+                    .frame(height: 3)
+                Capsule()
+                    .fill(FrigyBrand.primaryDark)
+                    .frame(width: max(geo.size.width * fraction, 0), height: 3)
+                    .animation(.spring(duration: 0.4), value: fraction)
+            }
+        }
+        .frame(height: 3)
+    }
+}
+
+struct OnboardingQuestion: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 22, weight: .bold, design: .default))
+            .foregroundColor(FrigyBrand.text)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+    }
+}
+
+struct OnboardingInputCard<Content: View>: View {
+    let content: () -> Content
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        content()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .frame(maxWidth: 320)
+            .background(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(FrigyBrand.borderMint, lineWidth: 1)
+            )
+            .shadow(color: FrigyBrand.primaryDark.opacity(0.18), radius: 22, y: 10)
+    }
+}
+
+struct OnboardingSelectionCard: View {
+    let title: String
+    let subtitle: String?
+    let systemImage: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    init(_ title: String, subtitle: String? = nil, systemImage: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        self.isSelected = isSelected
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isSelected ? FrigyBrand.primary : FrigyBrand.selectedBg.opacity(0.5))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: systemImage)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(isSelected ? .white : FrigyBrand.primaryDark)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(FrigyBrand.text)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 13))
+                            .foregroundColor(FrigyBrand.textMuted)
+                    }
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(FrigyBrand.primaryDark)
+                        .font(.system(size: 20))
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? FrigyBrand.selectedBg : .white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isSelected ? FrigyBrand.primary : FrigyBrand.cardBorder, lineWidth: isSelected ? 1.5 : 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.01 : 1)
+        .animation(.spring(duration: 0.2), value: isSelected)
+    }
+}
+
+// MARK: - Step scaffold
+
+struct OnboardingStepScaffold<Content: View>: View {
+    let progress: Double
+    let onBack: (() -> Void)?
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Nav bar
+            HStack {
+                if let back = onBack {
+                    OnboardingBackButton(action: back)
+                } else {
+                    Color.clear.frame(width: 40, height: 40)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            // Progress
+            OnboardingProgressBar(fraction: progress)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+            content
+        }
+        .background(FrigyBrand.bg.ignoresSafeArea())
+    }
+}
