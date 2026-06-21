@@ -77,7 +77,7 @@ struct TrackerLogMealView: View {
                                     foodRow(food)
                                 }
                                 if recentFoods.filter({ $0.name.localizedCaseInsensitiveContains(searchText) }).isEmpty {
-                                    Text("Keine Treffer für „\(searchText)"")
+                                    Text("Keine Treffer für \"\(searchText)\"")
                                         .font(.system(size: 14))
                                         .foregroundColor(Color(hex: "#9CA3AF"))
                                         .padding(.top, 8)
