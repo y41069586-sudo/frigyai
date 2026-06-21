@@ -10,17 +10,21 @@ final class OnboardingCoordinator {
     private let rules: CompositeOnboardingRulesEngine
     private let telemetry: OnboardingFlowTelemetry
 
+    // `persistence` / `telemetry` default to nil and are resolved inside this
+    // (main-actor) init body — their @MainActor initializer / static can't be
+    // referenced from a nonisolated default-argument context (Xcode 26 MainActor
+    // default isolation).
     init(
         context: OnboardingContext = .initial,
         rules: CompositeOnboardingRulesEngine = DefaultOnboardingRulesEngine(),
-        persistence: OnboardingPersistenceProtocol = UserDefaultsOnboardingPersistence(),
-        telemetry: OnboardingFlowTelemetry = .shared,
+        persistence: OnboardingPersistenceProtocol? = nil,
+        telemetry: OnboardingFlowTelemetry? = nil,
         startStep: OnboardingStep = OnboardingFlow.macroEntryStep
     ) {
         self.context = context
         self.rules = rules
-        self.persistence = persistence
-        self.telemetry = telemetry
+        self.persistence = persistence ?? UserDefaultsOnboardingPersistence()
+        self.telemetry = telemetry ?? .shared
         self.currentStep = startStep
     }
 

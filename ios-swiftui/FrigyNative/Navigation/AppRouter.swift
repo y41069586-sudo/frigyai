@@ -15,18 +15,22 @@ final class AppRouter {
     let authService: AuthServiceProtocol
     let subscriptionService: SubscriptionServiceProtocol
 
+    // Defaults are nil and the concrete instances are built inside the (main-actor)
+    // init body. Default-argument expressions are evaluated in a nonisolated context,
+    // so calling these @MainActor initializers there is a hard error under Xcode 26's
+    // MainActor-by-default isolation.
     init(
         authService: AuthServiceProtocol? = nil,
-        subscriptionService: SubscriptionServiceProtocol = MockSubscriptionService(),
-        onboardingCoordinator: OnboardingCoordinator = OnboardingCoordinator()
+        subscriptionService: SubscriptionServiceProtocol? = nil,
+        onboardingCoordinator: OnboardingCoordinator? = nil
     ) {
         #if canImport(Supabase)
         self.authService = authService ?? (SupabaseConfig.isConfigured ? SupabaseAuthService.shared : MockAuthService())
         #else
         self.authService = authService ?? MockAuthService()
         #endif
-        self.subscriptionService = subscriptionService
-        self.onboardingCoordinator = onboardingCoordinator
+        self.subscriptionService = subscriptionService ?? MockSubscriptionService()
+        self.onboardingCoordinator = onboardingCoordinator ?? OnboardingCoordinator()
     }
 
     func bootstrap() async {
