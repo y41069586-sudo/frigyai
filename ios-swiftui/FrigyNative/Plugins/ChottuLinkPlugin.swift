@@ -113,7 +113,7 @@ public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
             return
         }
 
-        let data = call.getObject("data") as? [String: Any]
+        let data = call.getObject("data") as [String: Any]?
 
         Task { @MainActor in
             ChottuLink.trackEvent(name: name, data: data)

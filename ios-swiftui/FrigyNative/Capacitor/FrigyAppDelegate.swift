@@ -69,8 +69,7 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
 }
 
 @MainActor
-extension FrigyAppDelegate: UNUserNotificationCenterDelegate {
-    @MainActor
+extension FrigyAppDelegate: @preconcurrency UNUserNotificationCenterDelegate {
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
