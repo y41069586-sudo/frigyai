@@ -1,13 +1,12 @@
 # Frigy — iOS + Android (Capacitor) + Native SwiftUI. Setup: docs/CODEMAGIC.md + codemagic.env.example
-
+ 
 workflows:
+ 
   android-build:
     name: Android Build
-
     max_build_duration: 120
     # mac_mini_m2: 500 free min/month on personal accounts. linux_x2 needs billing enabled.
     instance_type: mac_mini_m2
-
     environment:
       xcode: latest
       node: 22
@@ -26,22 +25,18 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
         ANDROID_VERSION_CODE: "51"
-
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-env.sh
-
       - name: Install dependencies
         script: |
           set -e
           npm ci --legacy-peer-deps
-
       - name: Build web app (Vite → dist/)
         script: |
           set -e
           npm run build
           test -d dist || (echo "ERROR: dist/ missing after vite build" && exit 1)
-
       - name: Sync Capacitor Android
         script: |
           set -e
@@ -52,7 +47,6 @@ workflows:
             echo "ERROR: applicationId must be com.frigy.app for Google Play."
             exit 1
           fi
-
       - name: Set Android version code
         script: |
           set -e
@@ -68,18 +62,16 @@ workflows:
             sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" "$GRADLE_FILE"
           fi
           echo "Android versionCode=${BUILD_NUM}"
-
       - name: Verify Android release signing
         script: |
           set -e
           if [ -z "${CM_KEYSTORE_PATH:-}" ] || [ ! -f "${CM_KEYSTORE_PATH}" ]; then
             echo "ERROR: No release keystore on build machine."
             echo "Fix: Codemagic → Code signing identities → Android keystore with reference 'frigy_android'"
-            echo "      and android_signing in codemagic.yaml must use the same reference name."
+            echo "     and android_signing in codemagic.yaml must use the same reference name."
             exit 1
           fi
           echo "Release keystore OK: ${CM_KEYSTORE_PATH} (alias=${CM_KEY_ALIAS:-unset})"
-
       - name: Build AAB + APK (release)
         script: |
           set -e
@@ -89,22 +81,18 @@ workflows:
           ./gradlew bundleRelease assembleRelease --no-daemon
           test -f app/build/outputs/bundle/release/app-release.aab || (echo "ERROR: AAB not found" && exit 1)
           test -f app/build/outputs/apk/release/app-release.apk || (echo "ERROR: APK not found" && exit 1)
-
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
       - android/app/build/outputs/apk/release/*.apk
-
     publishing:
       scripts:
         - name: Build info
           script: echo "AAB + APK ready — download from Artifacts."
-
+ 
   ios-build:
     name: iOS Build
-
     max_build_duration: 120
     instance_type: mac_mini_m2
-
     environment:
       xcode: 26.4
       node: 22
@@ -133,22 +121,18 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
         IOS_BUILD_NUMBER: "51"
-
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-env.sh
-
       - name: Install dependencies
         script: |
           set -e
           npm ci --legacy-peer-deps
-
       - name: Build web app (Vite → dist/)
         script: |
           set -e
           npm run build
           test -d dist || (echo "ERROR: dist/ missing after vite build" && exit 1)
-
       - name: Sync Capacitor iOS
         script: |
           set -e
@@ -163,14 +147,12 @@ workflows:
           if ! grep -q "RevenuecatPurchasesCapacitor\|purchases-capacitor" ios/App/CapApp-SPM/Package.swift; then
             echo "WARNING: RevenueCat not in CapApp-SPM — IAP may fail on device."
           fi
-
       - name: Resolve Swift packages
         script: |
           set -e
           xcodebuild -resolvePackageDependencies \
             -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             -scheme "$XCODE_SCHEME"
-
       - name: Set up code signing
         script: |
           set -e
@@ -179,7 +161,6 @@ workflows:
             --export-options-plist "$HOME/export_options.plist" \
             --archive-method app-store \
             --code-signing-setup-verbose-logging
-
       - name: Verify signing profile
         script: |
           set -e
@@ -197,12 +178,10 @@ workflows:
             exit 1
           fi
           echo "Signing profile OK: $PROFILE_SPEC"
-
       - name: Set iOS build number
         script: |
           set -e
           bash scripts/codemagic-set-ios-build.sh
-
       - name: Build IPA
         script: |
           set -e
@@ -210,32 +189,27 @@ workflows:
             --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
             --export-options-plist "$HOME/export_options.plist" \
-            --archive-flags="-destination 'generic/platform=iOS'" \
+            --archive-flags="-destination 'generic/platform=iOS' SWIFT_STRICT_CONCURRENCY=minimal" \
             --disable-xcpretty
-
       - name: Verify IPA artifact
         script: |
           export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
           bash scripts/codemagic-locate-ipa.sh
-
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log
-
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-
+ 
   ios-swiftui-build:
     name: iOS Native SwiftUI Build
-
     max_build_duration: 120
     instance_type: mac_mini_m2
-
     environment:
       xcode: 26.4
       node: 22
@@ -261,17 +235,13 @@ workflows:
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
         IOS_BUILD_NUMBER: "51"
-
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-env.sh
-
       - name: Build web app and sync Capacitor bundle
         script: bash scripts/codemagic-sync-web-for-native-ios.sh
-
       - name: Generate Xcode project and Secrets.xcconfig
         script: bash scripts/codemagic-prepare-native-ios.sh
-
       - name: Verify web bundle in FrigyNative
         script: |
           set -e
@@ -280,14 +250,12 @@ workflows:
           test -f "$CM_BUILD_DIR/ios-swiftui/FrigyNative/capacitor.config.json" \
             || (echo "ERROR: capacitor.config.json missing" && exit 1)
           echo "Web bundle OK"
-
       - name: Resolve Swift packages
         script: |
           set -e
           xcodebuild -resolvePackageDependencies \
             -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
             -scheme "$XCODE_SCHEME"
-
       - name: Set up code signing
         script: |
           set -e
@@ -296,7 +264,6 @@ workflows:
             --export-options-plist "$HOME/export_options.plist" \
             --archive-method app-store \
             --code-signing-setup-verbose-logging
-
       - name: Verify signing profile
         script: |
           set -e
@@ -313,12 +280,10 @@ workflows:
             exit 1
           fi
           echo "Signing profile OK: $PROFILE_SPEC"
-
       - name: Set iOS build number
         script: |
           set -e
           bash scripts/codemagic-set-ios-build.sh
-
       - name: Build IPA
         script: |
           set -e
@@ -327,20 +292,17 @@ workflows:
             --project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
             --export-options-plist "$HOME/export_options.plist" \
-            --archive-flags="-destination 'generic/platform=iOS'" \
+            --archive-flags="-destination 'generic/platform=iOS' SWIFT_STRICT_CONCURRENCY=minimal" \
             --disable-xcpretty
-
       - name: Verify IPA artifact
         script: |
           export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
           bash scripts/codemagic-locate-ipa.sh
-
     artifacts:
       - ios-swiftui/build/ios/ipa/*.ipa
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log
-
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
