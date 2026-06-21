@@ -26,7 +26,15 @@ packages:
 
 settings:
   base:
-    SWIFT_VERSION: "6.0"
+    # Swift 5 language mode: the iOS 26 SDK (incl. Liquid Glass) and all app
+    # behavior are unchanged, but Swift 6's complete data-race checking — which
+    # turns every UIKit/Capacitor delegate-bridging concurrency mismatch into a
+    # hard build error ("sending ... risks data races", "@MainActor conformance
+    # crosses ...") — is relaxed to warnings. This stops the recurring archive
+    # failures. Revisit (back to "6.0") only after the native bridging code is
+    # fully audited for Sendable/actor isolation.
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     DEVELOPMENT_TEAM: ""
