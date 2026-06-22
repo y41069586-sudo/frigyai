@@ -177,8 +177,16 @@ struct TrackerLogMealView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(Color(hex: "#6B7280"))
             Button {
-                // Add meal
-                dismiss()
+                Task {
+                    await TrackerDataService.shared.addFoodEntry(
+                        name: food.name,
+                        calories: food.kcal,
+                        protein: 0, carbs: 0, fat: 0,
+                        portion: food.per,
+                        category: selectedCategory
+                    )
+                    dismiss()
+                }
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 22))

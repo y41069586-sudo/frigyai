@@ -169,6 +169,9 @@ struct HomeDashboardView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task { await reload() }
         .refreshable { await reload() }
+        .onChange(of: tabCoordinator.showTrackerSheet) { _, isShowing in
+            if !isShowing { Task { await reload() } }
+        }
     }
 
     private func quickAction(_ label: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
