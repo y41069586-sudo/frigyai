@@ -18,18 +18,47 @@ struct OnboardingSkeletonView: View {
             case .welcome:
                 WelcomeStepView(onNext: next, onSignIn: { router.navigateToAuth() })
 
-            case .goal, .motivation, .successStats, .tutorialTransition,
-                 .fridgeIntro, .scanFeedback, .howItWorks, .tutorial, .trackerIntro,
-                 .bodyBasics, .intro, .comparison, .transformation:
-                GenericInfoStepView(
-                    step: step,
-                    progress: progress,
-                    onBack: canGoBack ? back : nil,
-                    onNext: next
-                )
+            case .goal:
+                GoalStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .motivation:
+                MotivationStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .successStats:
+                SuccessStatsStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .tutorialTransition:
+                TutorialTransitionStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .fridgeIntro:
+                FridgeIntroStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .scanFeedback:
+                ScanFeedbackStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .howItWorks:
+                HowItWorksStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .tutorial:
+                TutorialStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .trackerIntro:
+                TrackerIntroStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .bodyBasics:
+                BodyBasicsStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .intro:
+                IntroStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .comparison:
+                ComparisonStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .transformation:
+                TransformationStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .languageSelect:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+                LanguageSelectStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .nameInput:
                 NameInputStepView(
@@ -192,7 +221,7 @@ struct OnboardingSkeletonView: View {
                 )
 
             case .weeklyPlan:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+                WeeklyPlanStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .weeklyPlanPreview:
                 WeeklyPlanPreviewStepView(
@@ -227,8 +256,14 @@ struct OnboardingSkeletonView: View {
                     }
                 )
 
-            case .cookingTime, .cookingExperience, .planningSetup:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+            case .cookingTime:
+                CookingTimeStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .cookingExperience:
+                CookingExperienceStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .planningSetup:
+                PlanningSetupStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .analyzing:
                 AnalyzingStepView(onNext: next)
@@ -248,10 +283,17 @@ struct OnboardingSkeletonView: View {
                     onNext: next
                 )
 
-            case .goalMode, .appModeChoice,
-                 .spontanMode1, .spontanMode2,
-                 .structuredMode1, .structuredMode2, .structuredMode3:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+            case .goalMode:
+                GoalModeStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .appModeChoice:
+                AppModeChoiceStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .spontanMode1, .spontanMode2:
+                SpontanModeStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+
+            case .structuredMode1, .structuredMode2, .structuredMode3:
+                StructuredModeStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .saveProgress, .accountCreation:
                 AccountCreationStepView(
@@ -268,7 +310,7 @@ struct OnboardingSkeletonView: View {
                 )
 
             case .premiumHint:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+                PremiumHintStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .paywall:
                 PaywallStepView(onNext: next)
