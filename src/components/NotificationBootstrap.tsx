@@ -6,6 +6,7 @@ import {
   resyncYesterdayBalanceNotificationForUser,
   syncRemindersFromStorage,
 } from "@/lib/notifications";
+import { FRIGY_LANGUAGE_CHANGED_EVENT } from "@/lib/mealPlanLanguage";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useReminders } from "@/hooks/useReminders";
 
@@ -34,16 +35,20 @@ export function NotificationBootstrap() {
       if (syncInFlight.current) return;
       syncInFlight.current = true;
       try {
-        // Resync every app-open so varied daily notifications stay fresh.
-        // syncRemindersFromStorage cancels stale ones and reschedules the next
-        // 30 days with different messages before re-scheduling.
         await syncRemindersFromStorage();
       } finally {
         syncInFlight.current = false;
       }
     };
 
+    // Sync on app-open so the 30-day pool stays fresh.
     void runSync();
+
+    // When the user changes language, cancel the old pre-scheduled notifications
+    // (which used the previous language) and reschedule with the new language.
+    const onLanguageChange = () => void runSync();
+    window.addEventListener(FRIGY_LANGUAGE_CHANGED_EVENT, onLanguageChange);
+    return () => window.removeEventListener(FRIGY_LANGUAGE_CHANGED_EVENT, onLanguageChange);
   }, []);
 
   return null;
