@@ -13,7 +13,7 @@ struct OnboardingSkeletonView: View {
         Group {
             switch step {
             case .splash:
-                SplashStepView(onNext: next)
+                SplashStepView(onNext: next, onSignIn: { router.navigateToAuth() })
 
             case .welcome:
                 WelcomeStepView(onNext: next, onSignIn: { router.navigateToAuth() })
