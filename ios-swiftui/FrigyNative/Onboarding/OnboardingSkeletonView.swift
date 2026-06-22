@@ -15,7 +15,10 @@ struct OnboardingSkeletonView: View {
             case .splash:
                 SplashStepView(onNext: next)
 
-            case .welcome, .goal, .motivation, .successStats, .tutorialTransition,
+            case .welcome:
+                WelcomeStepView(onNext: next, onSignIn: { router.navigateToAuth() })
+
+            case .goal, .motivation, .successStats, .tutorialTransition,
                  .fridgeIntro, .scanFeedback, .howItWorks, .tutorial, .trackerIntro,
                  .bodyBasics, .intro, .comparison, .transformation:
                 GenericInfoStepView(

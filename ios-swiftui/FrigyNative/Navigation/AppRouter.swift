@@ -146,6 +146,10 @@ final class AppRouter {
         }
     }
 
+    func navigateToAuth() {
+        rootRoute = .auth
+    }
+
     func signOut() async {
         try? await authService.signOut()
         tabCoordinator.popToRootAllTabs()
