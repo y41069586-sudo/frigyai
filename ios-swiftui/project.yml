@@ -40,6 +40,12 @@ settings:
     # Required for App Store archive: build all slices (arm64 + arm64e), not just
     # the active architecture of the build host.
     ONLY_ACTIVE_ARCH: NO
+    # Explicit module dependencies to avoid module cache corruption
+    CLANG_ENABLE_MODULES: YES
+    CLANG_MODULES_AUTOLINK: YES
+    ENABLE_STRICT_OBJC_MSGSEND: YES
+    # Enable whole module optimization for Release builds only (set in config files)
+    GCC_OPTIMIZATION_LEVEL: 3
 
 targets:
   FrigyNative:

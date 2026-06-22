@@ -233,12 +233,20 @@ workflows:
         script: bash scripts/codemagic-verify-native-env.sh
       - name: Generate Xcode project and Secrets.xcconfig
         script: bash scripts/codemagic-prepare-native-ios.sh
+      - name: Clean Swift package cache
+        script: |
+          set -e
+          echo "Clearing Swift package manager cache..."
+          rm -rf ~/.swiftpm/cache 2>/dev/null || true
+          rm -rf ~/Library/Caches/com.apple.dt.Xcode/SourceKitCache 2>/dev/null || true
+          echo "Swift package cache cleaned"
       - name: Resolve Swift packages
         script: |
           set -e
           xcodebuild -resolvePackageDependencies \
             -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
-            -scheme "$XCODE_SCHEME"
+            -scheme "$XCODE_SCHEME" \
+            -verbose
       - name: Set up code signing
         script: |
           set -e
@@ -263,10 +271,17 @@ workflows:
             exit 1
           fi
           echo "Signing profile OK: $PROFILE_SPEC"
+      - name: Verify build settings
+        script: bash scripts/codemagic-verify-swiftui-build-settings.sh
       - name: Set iOS build number
         script: |
           set -e
           bash scripts/codemagic-set-ios-build.sh
+      - name: Clean build cache
+        script: |
+          set -e
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*FrigyNative* 2>/dev/null || true
+          rm -rf ~/Library/Caches/com.apple.dt.Xcode 2>/dev/null || true
       - name: Build IPA
         script: |
           set -e
@@ -275,7 +290,7 @@ workflows:
             --project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
             --export-options-plist "$HOME/export_options.plist" \
-            --archive-flags="-destination generic/platform=iOS" \
+            --archive-flags="-destination generic/platform=iOS SWIFT_VERSION=5.0 SWIFT_STRICT_CONCURRENCY=minimal" \
             --disable-xcpretty
       - name: Verify IPA artifact
         script: |

@@ -51,6 +51,7 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         MainActor.assumeIsolated {
             ApplicationDelegateProxy.shared.application(app, open: url, options: options)
         }
+        return true
     }
 
     nonisolated func application(
@@ -58,7 +59,7 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         continue userActivity: NSUserActivity,
         restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
     ) -> Bool {
-        MainActor.assumeIsolated {
+        return MainActor.assumeIsolated {
             guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
                   let url = userActivity.webpageURL else {
                 return false

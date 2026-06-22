@@ -46,6 +46,10 @@ if ! command -v xcodegen >/dev/null 2>&1; then
 fi
 
 cd "$NATIVE_DIR"
+echo "Cleaning stale Xcode build artifacts before project generation..."
+rm -rf FrigyNative.xcodeproj 2>/dev/null || true
+
+echo "Generating FrigyNative.xcodeproj with XcodeGen..."
 xcodegen generate
 test -d FrigyNative.xcodeproj || (echo "ERROR: FrigyNative.xcodeproj not generated" && exit 1)
 echo "Generated $NATIVE_DIR/FrigyNative.xcodeproj"
