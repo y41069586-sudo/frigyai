@@ -193,7 +193,7 @@ struct ShoppingListView: View {
                 Spacer().frame(height: 100)
             }
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .frigyBackground()
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showAddItem) {
             AddShoppingItemSheet { name, cat in
@@ -276,9 +276,7 @@ struct ShoppingItemRow: View {
             }
         }
         .padding(12)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 13))
-        .shadow(color: .black.opacity(0.03), radius: 3, y: 1)
+        .glassCard(cornerRadius: 13)
     }
 }
 
@@ -302,8 +300,7 @@ struct CheckedItemRow: View {
             Spacer()
         }
         .padding(10)
-        .background(Color(hex: "#F9FAFB"))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCard(cornerRadius: 12)
     }
 }
 

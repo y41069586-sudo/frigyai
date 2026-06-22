@@ -103,13 +103,7 @@ struct MealPlansView: View {
                                         }
                                     }
                                     .frame(width: 52, height: 70)
-                                    .background(
-                                        selectedDayIndex == i
-                                        ? LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .top, endPoint: .bottom)
-                                        : LinearGradient(colors: [.white, .white], startPoint: .top, endPoint: .bottom)
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .shadow(color: selectedDayIndex == i ? Color(hex: "#39D47F").opacity(0.3) : .black.opacity(0.04), radius: 6, y: 3)
+                                    .modifier(DaySelectionBackground(isSelected: selectedDayIndex == i))
                                 }
                                 .buttonStyle(.plain)
                                 .id(i)
@@ -133,9 +127,7 @@ struct MealPlansView: View {
                     dayStat("Ø Zeit", value: "\(day.meals.map(\.duration).reduce(0, +) / max(1, day.meals.count)) min")
                 }
                 .padding(.vertical, 12)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+                .glassCard(cornerRadius: 16)
                 .padding(.horizontal, 20)
 
                 // Meals of selected day
@@ -166,7 +158,7 @@ struct MealPlansView: View {
                 Spacer().frame(height: 100)
             }
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .frigyBackground()
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -255,9 +247,7 @@ struct PlannedMealCard: View {
             Spacer()
         }
         .padding(14)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .glassCard(cornerRadius: 18)
     }
 }
 
@@ -305,9 +295,23 @@ struct WeeklySummaryCard: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .glassCard(cornerRadius: 18)
+    }
+}
+
+// MARK: - Day selection modifier
+
+private struct DaySelectionBackground: ViewModifier {
+    let isSelected: Bool
+    func body(content: Content) -> some View {
+        if isSelected {
+            content
+                .background(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .top, endPoint: .bottom))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: Color(hex: "#39D47F").opacity(0.3), radius: 6, y: 3)
+        } else {
+            content.glassCard(cornerRadius: 16)
+        }
     }
 }
 
