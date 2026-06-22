@@ -211,7 +211,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
-      xcode: 26.4
+      xcode: latest
       groups:
         - frigy
       ios_signing:
@@ -226,6 +226,7 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
+        # Minimum build number — CM_BUILD_NUMBER wins when it exceeds this value.
         IOS_BUILD_NUMBER: "51"
     scripts:
       - name: Verify build environment
@@ -274,7 +275,7 @@ workflows:
             --project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
             --scheme "$XCODE_SCHEME" \
             --export-options-plist "$HOME/export_options.plist" \
-            --archive-flags="-destination 'generic/platform=iOS' SWIFT_STRICT_CONCURRENCY=minimal" \
+            --archive-flags="-destination generic/platform=iOS" \
             --disable-xcpretty
       - name: Verify IPA artifact
         script: |
@@ -283,6 +284,7 @@ workflows:
     artifacts:
       - ios-swiftui/build/ios/ipa/*.ipa
       - build/ios/ipa/*.ipa
+      - $HOME/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log
     publishing:
@@ -290,3 +292,5 @@ workflows:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        expire_build_submitted_for_review: true

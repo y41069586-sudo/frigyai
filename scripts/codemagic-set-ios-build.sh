@@ -28,16 +28,12 @@ patch_pbxproj "$ROOT/ios/App/App.xcodeproj/project.pbxproj"
 patch_pbxproj "$ROOT/ios/App.xcodeproj/project.pbxproj"
 patch_pbxproj "$ROOT/ios-swiftui/FrigyNative.xcodeproj/project.pbxproj"
 
-cd "$ROOT/ios/App"
 if [ -d "$ROOT/ios/App" ] && command -v agvtool >/dev/null 2>&1; then
   (cd "$ROOT/ios/App" && agvtool new-version -all "$BUILD_NUM") || true
 fi
 
 if [ -d "$ROOT/ios-swiftui/FrigyNative.xcodeproj" ]; then
-  cd "$ROOT/ios-swiftui"
-  if command -v agvtool >/dev/null 2>&1; then
-    agvtool new-version -all "$BUILD_NUM" || true
-  fi
+  (cd "$ROOT/ios-swiftui" && agvtool new-version -all "$BUILD_NUM") || true
 fi
 
 ACTUAL_BUILD="$(
