@@ -36,12 +36,19 @@ struct HomeDashboardView: View {
     @Environment(AppRouter.self) private var router
 
     @State private var meals: [LoggedMeal] = []
+    // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
+    @State private var targets = MacroTargets.default
 
-    // Demo target macros from onboarding — in production from AppRouter / Supabase
-    private let targetCalories = 1900
-    private let targetProtein  = 130
-    private let targetCarbs    = 210
-    private let targetFat      = 65
+    private var targetCalories: Int { targets.calories }
+    private var targetProtein:  Int { targets.protein }
+    private var targetCarbs:    Int { targets.carbs }
+    private var targetFat:      Int { targets.fat }
+
+    private func reload() async {
+        let result = await TrackerDataService.shared.loadToday()
+        meals = result.meals
+        targets = result.targets
+    }
 
     private var consumed: (kcal: Int, protein: Int, carbs: Int, fat: Int) {
         (
@@ -160,6 +167,8 @@ struct HomeDashboardView: View {
         }
         .background(Color(hex: "#FBFFFD").ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task { await reload() }
+        .refreshable { await reload() }
     }
 
     private func quickAction(_ label: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
