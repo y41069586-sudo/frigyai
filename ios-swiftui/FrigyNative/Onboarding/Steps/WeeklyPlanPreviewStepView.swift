@@ -38,7 +38,7 @@ struct WeeklyPlanPreviewStepView: View {
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundColor(idx == 0 ? .white : FrigyBrand.textMuted)
                                         .frame(width: 38, height: 38)
-                                        .background(idx == 0 ? FrigyBrand.buttonGradient : AnyShapeStyle(Color.clear))
+                                        .background(idx == 0 ? AnyShapeStyle(FrigyBrand.buttonGradient) : AnyShapeStyle(Color.clear))
                                         .clipShape(Circle())
                                         .overlay(
                                             Circle().stroke(idx == 0 ? Color.clear : FrigyBrand.cardBorder, lineWidth: 1)
