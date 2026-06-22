@@ -26,6 +26,9 @@ struct MealPlansView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
     @State private var selectedDayIndex = 0
+    @State private var isGenerating = false
+    @State private var bannerMessage: String?
+    @State private var bannerIsError = false
 
     private let weekPlan: [DayPlan] = makeDemoWeek()
 
@@ -44,18 +47,36 @@ struct MealPlansView: View {
                     }
                     Spacer()
                     Button {
-                        tabCoordinator.pushPlans(.preferences)
+                        Task { await generatePlan() }
                     } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(hex: "#39D47F"))
-                            .frame(width: 40, height: 40)
-                            .background(Color(hex: "#DCFEEF"))
-                            .clipShape(Circle())
+                        if isGenerating {
+                            ProgressView()
+                                .frame(width: 40, height: 40)
+                        } else {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Color(hex: "#39D47F"))
+                                .frame(width: 40, height: 40)
+                                .background(Color(hex: "#DCFEEF"))
+                                .clipShape(Circle())
+                        }
                     }
+                    .disabled(isGenerating)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
+
+                if let msg = bannerMessage {
+                    Text(msg)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(bannerIsError ? Color(hex: "#EF4444") : Color(hex: "#39D47F"))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(bannerIsError ? Color(hex: "#FEF2F2") : Color(hex: "#DCFEEF"))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal, 20)
+                }
 
                 // Day selector
                 ScrollViewReader { proxy in
@@ -147,6 +168,31 @@ struct MealPlansView: View {
         }
         .background(Color(hex: "#FBFFFD").ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func generatePlan() async {
+        isGenerating = true
+        bannerMessage = nil
+        let targets = MacroTargets.default
+        if let plan = await TrackerDataService.shared.generateMealPlan(
+            calories: targets.calories,
+            protein: targets.protein,
+            carbs: targets.carbs,
+            fat: targets.fat
+        ) {
+            bannerIsError = false
+            bannerMessage = plan.prefix(120).description
+        } else {
+            bannerIsError = true
+            bannerMessage = "Plan konnte nicht generiert werden. Bitte versuche es erneut."
+        }
+        isGenerating = false
+        if !bannerIsError {
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                bannerMessage = nil
+            }
+        }
     }
 
     private func dayStat(_ label: String, value: String) -> some View {
