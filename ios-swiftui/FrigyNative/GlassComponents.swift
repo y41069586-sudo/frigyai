@@ -55,7 +55,7 @@ private struct GlassButtonModifier: ViewModifier {
     }
 }
 
-// MARK: - GlassToolbar (iOS 26 only)
+// MARK: - GlassToolbar (iOS 26 only demo)
 
 @available(iOS 26, *)
 struct GlassToolbar: View {
@@ -90,65 +90,6 @@ struct GlassToolbar: View {
     }
 }
 
-// MARK: - Frigy Design System
-
-extension View {
-    /// Mint → sky → ice gradient background for all Frigy screens.
-    func frigyBackground() -> some View {
-        background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.33, green: 0.83, blue: 0.58),
-                    Color(red: 0.45, green: 0.82, blue: 0.98),
-                    Color(red: 0.94, green: 0.97, blue: 1.0)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
-    }
-
-    /// Liquid Glass card: glassEffect on iOS 26, ultraThinMaterial + shadow fallback.
-    func glassCard(cornerRadius: CGFloat = 20) -> some View {
-        modifier(FrigyGlassCardModifier(cornerRadius: cornerRadius))
-    }
-
-    /// Circular glass button: interactive glassEffect on iOS 26, tinted circle fallback.
-    func glassCircleButton() -> some View {
-        modifier(FrigyGlassCircleModifier())
-    }
-}
-
-struct FrigyGlassCardModifier: ViewModifier {
-    let cornerRadius: CGFloat
-
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
-        }
-    }
-}
-
-private struct FrigyGlassCircleModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content
-                .glassEffect(.regular.interactive(), in: .circle)
-        } else {
-            content
-                .background(Color(hex: "#DCFEEF"))
-                .clipShape(Circle())
-        }
-    }
-}
-
 // MARK: - Demo
 
 #if DEBUG
@@ -158,9 +99,9 @@ struct GlassDemoView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.33, green: 0.83, blue: 0.58),
-                    Color(red: 0.45, green: 0.82, blue: 0.98),
-                    Color(red: 0.94, green: 0.97, blue: 1.0),
+                    Color(red: 0.12, green: 0.45, blue: 0.95),
+                    Color(red: 0.55, green: 0.22, blue: 0.82),
+                    Color(red: 0.98, green: 0.45, blue: 0.18),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

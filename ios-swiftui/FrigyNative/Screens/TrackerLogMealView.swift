@@ -39,7 +39,7 @@ struct TrackerLogMealView: View {
                     }
                 }
             }
-            .frigyBackground()
+            .background(Color(hex: "#FBFFFD").ignoresSafeArea())
             .navigationTitle("\(selectedCategory.rawValue) tracken")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Lebensmittel suchen...")
@@ -195,7 +195,9 @@ struct TrackerLogMealView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassCard(cornerRadius: 16)
+            .background(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
         }
         .buttonStyle(.plain)
     }
@@ -244,7 +246,9 @@ struct TrackerLogMealView: View {
             }
         }
         .padding(12)
-        .glassCard(cornerRadius: 14)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.03), radius: 3, y: 1)
     }
 
     private func loadFoods() async {

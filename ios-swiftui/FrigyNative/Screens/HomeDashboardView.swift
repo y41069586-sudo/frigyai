@@ -117,11 +117,14 @@ struct HomeDashboardView: View {
                     }
                     Spacer()
                     Button { tabCoordinator.pushHome(.profile) } label: {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(hex: "#39D47F"))
-                            .frame(width: 44, height: 44)
-                            .glassCircleButton()
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: "#DCFEEF"))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Color(hex: "#39D47F"))
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -189,7 +192,7 @@ struct HomeDashboardView: View {
                 Spacer().frame(height: 100)
             }
         }
-        .frigyBackground()
+        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await reload() }
         .refreshable { await reload() }
@@ -201,11 +204,14 @@ struct HomeDashboardView: View {
     private func quickAction(_ label: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(color)
-                    .frame(width: 50, height: 50)
-                    .modifier(QuickActionIconModifier(color: color))
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(color.opacity(0.18))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(color.opacity(0.9))
+                }
                 Text(label)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Color(hex: "#6B7280"))
@@ -215,19 +221,6 @@ struct HomeDashboardView: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct QuickActionIconModifier: ViewModifier {
-    let color: Color
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
-        } else {
-            content
-                .background(color.opacity(0.18))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
     }
 }
 
@@ -287,7 +280,9 @@ struct CalorieRingCard: View {
             }
         }
         .padding(18)
-        .glassCard(cornerRadius: 22)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .shadow(color: Color(hex: "#39D47F").opacity(0.1), radius: 16, y: 6)
     }
 
     private func statRow(_ label: String, value: String, color: Color) -> some View {
@@ -351,7 +346,9 @@ struct EmptyMealsCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(24)
-        .glassCard(cornerRadius: 20)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(hex: "#BCFDDC"), lineWidth: 1))
     }
 }
 
@@ -418,7 +415,9 @@ struct MealRow: View {
                 .foregroundColor(Color(hex: "#6B7280"))
         }
         .padding(12)
-        .glassCard(cornerRadius: 14)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if let onDelete {
                 Button(role: .destructive, action: onDelete) {
