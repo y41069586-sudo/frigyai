@@ -183,9 +183,9 @@ struct WeightProgressView: View {
             VStack(spacing: 20) {
                 // Current weight card
                 HStack(spacing: 20) {
-                    statCard("Aktuell", value: "\(entries.last?.kg ?? 0, specifier: "%.1f") kg", icon: "scalemass.fill")
-                    statCard("Start", value: "\(entries.first?.kg ?? 0, specifier: "%.1f") kg", icon: "flag.fill")
-                    statCard("Verlust", value: "\(abs((entries.first?.kg ?? 0) - (entries.last?.kg ?? 0)), specifier: "%.1f") kg", icon: "arrow.down.circle.fill")
+                    statCard("Aktuell", value: String(format: "%.1f kg", entries.last?.kg ?? 0), icon: "scalemass.fill")
+                    statCard("Start", value: String(format: "%.1f kg", entries.first?.kg ?? 0), icon: "flag.fill")
+                    statCard("Verlust", value: String(format: "%.1f kg", abs((entries.first?.kg ?? 0) - (entries.last?.kg ?? 0))), icon: "arrow.down.circle.fill")
                 }
                 .padding(.horizontal, 20)
 

@@ -46,7 +46,7 @@ final class ChottuLinkService: NSObject {
     }
 }
 
-extension ChottuLinkService: @preconcurrency ChottuLinkDelegate {
+extension ChottuLinkService: ChottuLinkDelegate {
     nonisolated func chottuLink(didInitializeWith configuration: CLConfiguration) {}
 
     nonisolated func chottuLink(didFailToInitializeWith error: any Error) {
