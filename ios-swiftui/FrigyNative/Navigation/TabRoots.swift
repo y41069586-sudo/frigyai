@@ -331,7 +331,7 @@ struct ChatBubble: View {
                     : LinearGradient(colors: [.white, .white], startPoint: .leading, endPoint: .trailing))
                 .clipShape(RoundedRectangle(cornerRadius: 18))
                 .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: isUser ? .trailing : .leading)
+                .containerRelativeFrame(.horizontal) { width, _ in width * 0.75 }
             if !isUser { Spacer() }
         }
     }

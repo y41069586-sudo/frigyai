@@ -241,10 +241,10 @@ enum AuthServiceError: LocalizedError {
 private enum AuthPresentationAnchor {
     static func current() -> ASPresentationAnchor {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) {
+        if let window = scenes.first(where: { $0.activationState == .foregroundActive })?.keyWindow {
             return window
         }
-        if let window = scenes.first?.windows.first {
+        if let window = scenes.first?.keyWindow {
             return window
         }
         if let scene = scenes.first {
