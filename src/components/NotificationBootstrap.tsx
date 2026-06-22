@@ -34,6 +34,9 @@ export function NotificationBootstrap() {
       if (syncInFlight.current) return;
       syncInFlight.current = true;
       try {
+        // Resync every app-open so varied daily notifications stay fresh.
+        // syncRemindersFromStorage cancels stale ones and reschedules the next
+        // 30 days with different messages before re-scheduling.
         await syncRemindersFromStorage();
       } finally {
         syncInFlight.current = false;
