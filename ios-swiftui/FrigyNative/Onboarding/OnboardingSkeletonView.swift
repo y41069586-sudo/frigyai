@@ -191,11 +191,29 @@ struct OnboardingSkeletonView: View {
                     }
                 )
 
-            case .weeklyPlan, .weeklyPlanPreview:
+            case .weeklyPlan:
                 GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
-            case .scanFridge, .shoppingList:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+            case .weeklyPlanPreview:
+                WeeklyPlanPreviewStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .scanFridge:
+                ScanFridgeStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .shoppingList:
+                ShoppingListIntroStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
 
             case .referralCode:
                 ReferralCodeStepView(
@@ -223,7 +241,14 @@ struct OnboardingSkeletonView: View {
                     onNext: next
                 )
 
-            case .goalMode, .goalSelection, .appModeChoice,
+            case .goalSelection:
+                GoalSelectionStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
+            case .goalMode, .appModeChoice,
                  .spontanMode1, .spontanMode2,
                  .structuredMode1, .structuredMode2, .structuredMode3:
                 GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
@@ -236,7 +261,11 @@ struct OnboardingSkeletonView: View {
                 )
 
             case .profileSetup:
-                GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
+                ProfileSetupStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
 
             case .premiumHint:
                 GenericInfoStepView(step: step, progress: progress, onBack: canGoBack ? back : nil, onNext: next)
