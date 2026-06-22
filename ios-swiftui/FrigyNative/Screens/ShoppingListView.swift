@@ -18,7 +18,7 @@ struct ShoppingItem: Identifiable, Codable, Equatable {
     }
 }
 
-enum ShoppingCategory: String, CaseIterable {
+enum ShoppingCategory: String, CaseIterable, Codable {
     case produce    = "Obst & Gemüse"
     case protein    = "Protein"
     case dairy      = "Milchprodukte"

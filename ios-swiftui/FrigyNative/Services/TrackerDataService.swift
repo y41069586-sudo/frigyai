@@ -20,6 +20,16 @@ struct WeightPoint: Identifiable {
     let kg: Double
 }
 
+/// A unique food previously logged by the user — drives the tracker's recent-foods list.
+struct RecentFood: Identifiable {
+    let id: String   // Supabase food_entries.id of the most-recent logged occurrence
+    let name: String
+    let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+}
+
 /// An earned achievement badge.
 struct EarnedBadge: Identifiable {
     let id: String
@@ -69,6 +79,7 @@ final class TrackerDataService {
             .value {
             meals = rows.map { row in
                 LoggedMeal(
+                    entryId: row.id,
                     name: row.name,
                     calories: Int(row.calories.rounded()),
                     protein: Int(row.protein.rounded()),
@@ -123,6 +134,63 @@ final class TrackerDataService {
         )
         do {
             try await ctx.client.from("food_entries").insert(payload).execute()
+            return true
+        } catch {
+            return false
+        }
+        #else
+        return false
+        #endif
+    }
+
+    // MARK: - Recent foods (for tracker autocomplete)
+
+    func loadRecentFoods() async -> [RecentFood] {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return [] }
+        guard let rows: [FoodEntryRow] = try? await ctx.client
+            .from("food_entries")
+            .select()
+            .eq("user_id", value: ctx.userId)
+            .order("created_at", ascending: false)
+            .limit(100)
+            .execute()
+            .value else { return [] }
+
+        var seen = Set<String>()
+        var result: [RecentFood] = []
+        for row in rows {
+            let key = row.name.lowercased().trimmingCharacters(in: .whitespaces)
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            result.append(RecentFood(
+                id: row.id,
+                name: row.name,
+                calories: Int(row.calories.rounded()),
+                protein: Int(row.protein.rounded()),
+                carbs: Int(row.carbs.rounded()),
+                fat: Int(row.fat.rounded())
+            ))
+            if result.count >= 20 { break }
+        }
+        return result
+        #else
+        return []
+        #endif
+    }
+
+    /// Delete a food entry by its Supabase row ID. Only deletes the current user's entries.
+    @discardableResult
+    func deleteFoodEntry(id: String) async -> Bool {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return false }
+        do {
+            try await ctx.client
+                .from("food_entries")
+                .delete()
+                .eq("id", value: id)
+                .eq("user_id", value: ctx.userId)
+                .execute()
             return true
         } catch {
             return false
@@ -233,6 +301,38 @@ final class TrackerDataService {
             let (data, _) = try await URLSession.shared.data(for: request)
             let reply = try JSONDecoder().decode(ChatReply.self, from: data)
             return reply.message
+        } catch {
+            return nil
+        }
+        #else
+        return nil
+        #endif
+    }
+
+    // MARK: - Meal plan generation
+
+    /// Calls the `generate-meal-plan` edge function. Returns raw JSON on success, nil on failure.
+    func generateMealPlan(calories: Int, protein: Int, carbs: Int, fat: Int) async -> String? {
+        #if canImport(Supabase)
+        guard SupabaseConfig.isConfigured,
+              let base = SupabaseConfig.urlString,
+              let anonKey = SupabaseConfig.anonKey,
+              let session = try? await SupabaseAuthService.shared.client.auth.session,
+              let url = URL(string: "\(base)/functions/v1/generate-meal-plan") else { return nil }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try? JSONEncoder().encode(MealPlanRequest(
+            calories: calories, protein: protein, carbs: carbs, fat: fat, days: 7
+        ))
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+            return String(data: data, encoding: .utf8)
         } catch {
             return nil
         }
@@ -352,6 +452,14 @@ private struct WeightInsert: Encodable {
     let user_id: String
     let weight: Double
     let recorded_at: String
+}
+
+private struct MealPlanRequest: Encodable {
+    let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+    let days: Int
 }
 
 private struct ChatRequest: Encodable {

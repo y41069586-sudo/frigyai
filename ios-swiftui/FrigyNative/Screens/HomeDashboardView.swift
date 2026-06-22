@@ -3,7 +3,8 @@ import SwiftUI
 // MARK: - Model
 
 struct LoggedMeal: Identifiable {
-    let id = UUID()
+    var id: UUID
+    var entryId: String   // Supabase food_entries.id — used for deletion
     var name: String
     var calories: Int
     var protein: Int
@@ -11,6 +12,19 @@ struct LoggedMeal: Identifiable {
     var fat: Int
     var time: String
     var category: MealCategory
+
+    init(entryId: String = "", name: String, calories: Int, protein: Int,
+         carbs: Int, fat: Int, time: String = "", category: MealCategory) {
+        self.id = UUID()
+        self.entryId = entryId
+        self.name = name
+        self.calories = calories
+        self.protein = protein
+        self.carbs = carbs
+        self.fat = fat
+        self.time = time
+        self.category = category
+    }
 }
 
 enum MealCategory: String, CaseIterable {
@@ -48,6 +62,15 @@ struct HomeDashboardView: View {
         let result = await TrackerDataService.shared.loadToday()
         meals = result.meals
         targets = result.targets
+    }
+
+    private func deleteMeal(_ meal: LoggedMeal) {
+        guard !meal.entryId.isEmpty else { return }
+        withAnimation { meals.removeAll { $0.id == meal.id } }
+        Task {
+            await TrackerDataService.shared.deleteFoodEntry(id: meal.entryId)
+            await reload()
+        }
     }
 
     private var consumed: (kcal: Int, protein: Int, carbs: Int, fat: Int) {
@@ -155,7 +178,11 @@ struct HomeDashboardView: View {
                         ForEach(MealCategory.allCases, id: \.self) { category in
                             let categoryMeals = meals.filter { $0.category == category }
                             if !categoryMeals.isEmpty {
-                                MealCategorySection(category: category, meals: categoryMeals)
+                                MealCategorySection(
+                                    category: category,
+                                    meals: categoryMeals,
+                                    onDelete: deleteMeal
+                                )
                             }
                         }
                     }
@@ -330,6 +357,7 @@ struct EmptyMealsCard: View {
 struct MealCategorySection: View {
     let category: MealCategory
     let meals: [LoggedMeal]
+    var onDelete: ((LoggedMeal) -> Void)? = nil
 
     private var totalCal: Int { meals.reduce(0) { $0 + $1.calories } }
 
@@ -347,7 +375,7 @@ struct MealCategorySection: View {
 
             VStack(spacing: 6) {
                 ForEach(meals) { meal in
-                    MealRow(meal: meal)
+                    MealRow(meal: meal, onDelete: onDelete != nil ? { onDelete?(meal) } : nil)
                 }
             }
         }
@@ -356,6 +384,7 @@ struct MealCategorySection: View {
 
 struct MealRow: View {
     let meal: LoggedMeal
+    var onDelete: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -363,7 +392,7 @@ struct MealRow: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(hex: "#F2FFF8"))
                     .frame(width: 40, height: 40)
-                Image(systemName: "fork.knife")
+                Image(systemName: meal.category.icon)
                     .font(.system(size: 16))
                     .foregroundColor(Color(hex: "#39D47F"))
             }
@@ -372,9 +401,11 @@ struct MealRow: View {
                 Text(meal.name)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color(hex: "#1F2937"))
-                Text("P \(meal.protein)g · K \(meal.carbs)g · F \(meal.fat)g")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                if meal.protein > 0 || meal.carbs > 0 || meal.fat > 0 {
+                    Text("P \(meal.protein)g · K \(meal.carbs)g · F \(meal.fat)g")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                }
             }
 
             Spacer()
@@ -387,5 +418,12 @@ struct MealRow: View {
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if let onDelete {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Löschen", systemImage: "trash")
+                }
+            }
+        }
     }
 }
