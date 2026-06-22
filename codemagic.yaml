@@ -120,9 +120,9 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
-        # Shared App Store Connect app (com.frigyapp.app) with ios-swiftui-build —
-        # keep this floor in sync; ASC rejects re-uploading an existing version+build.
-        IOS_BUILD_NUMBER: "52"
+        # ios-build uses floor 100+; ios-swiftui-build uses floor 200+ so the two
+        # workflows never collide in the shared ASC app (com.frigyapp.app).
+        IOS_BUILD_NUMBER: "100"
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-env.sh
@@ -207,9 +207,10 @@ workflows:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        # Full Capacitor app (all web features) → TestFlight on every successful build.
-        submit_to_testflight: true
-        expire_build_submitted_for_review: true
+        # ios-build does NOT submit to TestFlight — ios-swiftui-build (native app) is
+        # the primary TestFlight build. Both share com.frigyapp.app; ASC rejects two
+        # uploads with the same version+build, so only one workflow submits.
+        submit_to_testflight: false
 
   ios-swiftui-build:
     name: iOS Native SwiftUI Build
@@ -232,9 +233,9 @@ workflows:
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
         # Minimum build number — CM_BUILD_NUMBER wins when it exceeds this value.
-        # Shared App Store Connect app (com.frigyapp.app) with ios-build — keep in
-        # sync; ASC rejects re-uploading an existing version+build (1.0.0 / 51 used).
-        IOS_BUILD_NUMBER: "52"
+        # Uses floor 200+ so it never collides with ios-build (floor 100+).
+        # Only this workflow submits to TestFlight (ios-build does not).
+        IOS_BUILD_NUMBER: "200"
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-native-env.sh

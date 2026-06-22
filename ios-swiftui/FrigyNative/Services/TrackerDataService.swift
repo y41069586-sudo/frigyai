@@ -241,6 +241,41 @@ final class TrackerDataService {
         #endif
     }
 
+    // MARK: - User settings
+
+    func loadUserEmail() async -> String? {
+        #if canImport(Supabase)
+        return try? await SupabaseAuthService.shared.client.auth.session.user.email
+        #else
+        return nil
+        #endif
+    }
+
+    @discardableResult
+    func saveTargets(_ targets: MacroTargets) async -> Bool {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return false }
+        let payload = TrackerSettingsUpsert(
+            user_id: ctx.userId,
+            daily_calories: Double(targets.calories),
+            daily_protein: Double(targets.protein),
+            daily_carbs: Double(targets.carbs),
+            daily_fat: Double(targets.fat)
+        )
+        do {
+            try await ctx.client
+                .from("user_tracker_settings")
+                .upsert(payload, onConflict: "user_id")
+                .execute()
+            return true
+        } catch {
+            return false
+        }
+        #else
+        return false
+        #endif
+    }
+
     // MARK: - Private
 
     #if canImport(Supabase)
@@ -303,6 +338,14 @@ private struct FoodEntryInsert: Encodable {
     let portion: String?
     let meal_type: String
     let date: String
+}
+
+private struct TrackerSettingsUpsert: Encodable {
+    let user_id: String
+    let daily_calories: Double
+    let daily_protein: Double
+    let daily_carbs: Double
+    let daily_fat: Double
 }
 
 private struct WeightInsert: Encodable {

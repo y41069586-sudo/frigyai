@@ -2,12 +2,20 @@ import SwiftUI
 
 // MARK: - Model
 
-struct ShoppingItem: Identifiable {
-    let id = UUID()
+struct ShoppingItem: Identifiable, Codable, Equatable {
+    var id: UUID
     var name: String
     var amount: String
     var category: ShoppingCategory
-    var isChecked: Bool = false
+    var isChecked: Bool
+
+    init(id: UUID = UUID(), name: String, amount: String = "", category: ShoppingCategory, isChecked: Bool = false) {
+        self.id = id
+        self.name = name
+        self.amount = amount
+        self.category = category
+        self.isChecked = isChecked
+    }
 }
 
 enum ShoppingCategory: String, CaseIterable {
@@ -43,10 +51,27 @@ enum ShoppingCategory: String, CaseIterable {
 
 // MARK: - View
 
+private let shoppingItemsKey = "frigy.shoppingItems.v1"
+
 struct ShoppingListView: View {
-    @State private var items: [ShoppingItem] = demoItems()
+    @State private var items: [ShoppingItem] = Self.loadItems()
     @State private var newItemName = ""
     @State private var showAddItem = false
+
+    private static func loadItems() -> [ShoppingItem] {
+        guard let data = UserDefaults.standard.data(forKey: shoppingItemsKey),
+              let saved = try? JSONDecoder().decode([ShoppingItem].self, from: data),
+              !saved.isEmpty else {
+            return demoItems()
+        }
+        return saved
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(data, forKey: shoppingItemsKey)
+        }
+    }
 
     private var unchecked: [ShoppingItem] { items.filter { !$0.isChecked } }
     private var checked: [ShoppingItem] { items.filter { $0.isChecked } }
@@ -138,6 +163,7 @@ struct ShoppingListView: View {
 
                         Button {
                             items.removeAll { $0.isChecked }
+                            save()
                         } label: {
                             Label("Erledigte entfernen", systemImage: "trash")
                                 .font(.system(size: 13, weight: .medium))
@@ -171,9 +197,11 @@ struct ShoppingListView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showAddItem) {
             AddShoppingItemSheet { name, cat in
-                items.append(ShoppingItem(name: name, amount: "", category: cat))
+                items.append(ShoppingItem(name: name, category: cat))
+                save()
             }
         }
+        .onChange(of: items) { save() }
     }
 
     private func toggle(_ item: ShoppingItem) {
