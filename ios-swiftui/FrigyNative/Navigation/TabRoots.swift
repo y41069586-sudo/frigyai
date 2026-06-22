@@ -623,9 +623,13 @@ struct AddWeightSheet: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
                         .background(
-                            text.isEmpty
-                            ? Color(hex: "#BCFDDC")
-                            : LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .leading, endPoint: .trailing)
+                            LinearGradient(
+                                colors: text.isEmpty
+                                    ? [Color(hex: "#BCFDDC"), Color(hex: "#BCFDDC")]
+                                    : [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
