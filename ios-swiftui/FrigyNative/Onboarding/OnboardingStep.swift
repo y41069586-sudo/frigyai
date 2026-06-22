@@ -65,7 +65,7 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
 /// Production onboarding order from `onboardingSteps` in `types.ts`.
 enum OnboardingFlow {
     /// Macro-level entry managed by `DefaultOnboardingRulesEngine`.
-    static let macroEntryStep: OnboardingStep = .welcome
+    static let macroEntryStep: OnboardingStep = .splash
 
     /// Body/profile data collection (entered from `.profileSetup`).
     static let detailedProfileSteps: [OnboardingStep] = [
