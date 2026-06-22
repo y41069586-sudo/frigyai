@@ -229,6 +229,12 @@ workflows:
         # Minimum build number — CM_BUILD_NUMBER wins when it exceeds this value.
         IOS_BUILD_NUMBER: "51"
     scripts:
+      - name: Fetch latest commits from remote
+        script: |
+          set -e
+          git fetch origin
+          git reset --hard origin/claude/liquid-glass-swift-kiwkbk
+          echo "Checked out latest commits from remote"
       - name: Verify build environment
         script: bash scripts/codemagic-verify-native-env.sh
       - name: Generate Xcode project and Secrets.xcconfig
