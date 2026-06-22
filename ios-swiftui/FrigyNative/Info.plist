@@ -12,6 +12,8 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Frigy</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -41,19 +43,18 @@
 	<string>$(OAUTH_REDIRECT_SCHEME)</string>
 	<key>OAUTH_CALLBACK_HOST</key>
 	<string>$(OAUTH_CALLBACK_HOST)</string>
-	<!-- Camera — required for barcode scanning and food photo logging -->
 	<key>NSCameraUsageDescription</key>
 	<string>Frigy braucht die Kamera, um Barcodes zu scannen und Fotos deiner Mahlzeiten für die KI-Analyse aufzunehmen.</string>
-	<!-- Photo Library — required for selecting food photos from gallery -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Wähle Fotos deiner Mahlzeiten aus der Bibliothek aus, damit Frigy die Nährwerte per KI berechnen kann.</string>
-	<!-- Push notifications — required for meal reminders -->
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Frigy sendet dir Erinnerungen für deine Mahlzeiten und Fortschritts-Updates.</string>
-	<!-- Export compliance — app uses HTTPS/TLS only, no proprietary encryption -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<!-- Allow WKWebView to load app bundle resources (localhost) -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

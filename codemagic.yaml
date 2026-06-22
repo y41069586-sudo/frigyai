@@ -211,7 +211,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
-      xcode: latest
+      xcode: 26.4
       groups:
         - frigy
       ios_signing:

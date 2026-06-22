@@ -44,8 +44,6 @@ settings:
     CLANG_ENABLE_MODULES: YES
     CLANG_MODULES_AUTOLINK: YES
     ENABLE_STRICT_OBJC_MSGSEND: YES
-    # Enable whole module optimization for Release builds only (set in config files)
-    GCC_OPTIMIZATION_LEVEL: 3
 
 targets:
   FrigyNative:
@@ -58,7 +56,9 @@ targets:
           - public/**
           - capacitor.config.json
           - Capacitor/**
-    resources: []
+    resources:
+      - path: FrigyNative/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.frigyapp.app
@@ -84,21 +84,31 @@ targets:
             CFBundleURLSchemes:
               - frigy
         UILaunchScreen: {}
+        # iPhone: portrait only (food-tracking UX is vertical)
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSCameraUsageDescription: "Frigy uses the camera to recognize ingredients in your fridge and pantry."
-        NSPhotoLibraryUsageDescription: "Frigy can analyze photos from your gallery to recognize ingredients."
-        NSUserNotificationsUsageDescription: "Frigy sends optional reminders for meals, water, and your goals."
+        # Supabase + OAuth — values injected by Secrets.xcconfig on Codemagic
+        SUPABASE_URL: "$(SUPABASE_URL)"
+        SUPABASE_ANON_KEY: "$(SUPABASE_ANON_KEY)"
+        APP_WEB_HOST: "$(APP_WEB_HOST)"
+        OAUTH_REDIRECT_SCHEME: "$(OAUTH_REDIRECT_SCHEME)"
+        OAUTH_CALLBACK_HOST: "$(OAUTH_CALLBACK_HOST)"
+        # Usage descriptions — required by App Store Review (German: app primary language)
+        NSCameraUsageDescription: "Frigy braucht die Kamera, um Barcodes zu scannen und Fotos deiner Mahlzeiten für die KI-Analyse aufzunehmen."
+        NSPhotoLibraryUsageDescription: "Wähle Fotos deiner Mahlzeiten aus der Bibliothek aus, damit Frigy die Nährwerte per KI berechnen kann."
+        NSUserNotificationsUsageDescription: "Frigy sendet dir Erinnerungen für deine Mahlzeiten und Fortschritts-Updates."
         UIBackgroundModes:
           - remote-notification
+        # Export compliance — app uses HTTPS/TLS only, no proprietary encryption
         ITSAppUsesNonExemptEncryption: false
+        # Allow WKWebView to load local bundle resources (needed if Capacitor is ever re-enabled)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
 
   FrigyNativeTests:
     type: bundle.unit-test
