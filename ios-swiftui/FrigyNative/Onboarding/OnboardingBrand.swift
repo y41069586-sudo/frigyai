@@ -144,13 +144,11 @@ struct OnboardingInputCard<Content: View>: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
             .frame(maxWidth: 320)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .frigyCard(cornerRadius: 24)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(FrigyBrand.borderMint, lineWidth: 1)
+                    .stroke(FrigyBrand.borderMint.opacity(0.6), lineWidth: 1)
             )
-            .shadow(color: FrigyBrand.primaryDark.opacity(0.18), radius: 22, y: 10)
     }
 }
 
@@ -198,14 +196,7 @@ struct OnboardingSelectionCard: View {
                 }
             }
             .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? FrigyBrand.selectedBg : .white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(isSelected ? FrigyBrand.primary : FrigyBrand.cardBorder, lineWidth: isSelected ? 1.5 : 1)
-                    )
-            )
+            .modifier(FrigySelectionCardBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.01 : 1)
@@ -241,6 +232,6 @@ struct OnboardingStepScaffold<Content: View>: View {
 
             content
         }
-        .background(FrigyBrand.bg.ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
     }
 }

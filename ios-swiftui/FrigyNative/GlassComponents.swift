@@ -90,6 +90,98 @@ struct GlassToolbar: View {
     }
 }
 
+// MARK: - App-wide Liquid Glass utilities
+
+/// Mint radial glow background that makes glass effects visible.
+struct FrigyGlassBackground: View {
+    var body: some View {
+        ZStack {
+            Color(hex: "#FBFFFD")
+            VStack {
+                RadialGradient(
+                    colors: [Color(hex: "#75FBB2").opacity(0.18), .clear],
+                    center: .top, startRadius: 0, endRadius: 360
+                )
+                .frame(height: 360)
+                Spacer()
+            }
+        }
+    }
+}
+
+extension View {
+    /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
+    func frigyCard(cornerRadius: CGFloat = 16) -> some View {
+        modifier(FrigyCardModifier(cornerRadius: cornerRadius))
+    }
+
+    /// Liquid Glass circle button on iOS 26+; mint fill circle on older OS.
+    func frigyCircleButton() -> some View {
+        modifier(FrigyCircleButtonModifier())
+    }
+}
+
+/// Glass (or mint fill) background for selection cards with selected-state tint.
+struct FrigySelectionCardBackground: ViewModifier {
+    let isSelected: Bool
+    var cornerRadius: CGFloat = 16
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(
+                    isSelected
+                        ? .regular.tint(FrigyBrand.primary.opacity(0.22))
+                        : .regular,
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(isSelected ? FrigyBrand.primary : Color.clear, lineWidth: 1.5)
+                )
+        } else {
+            content
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .fill(isSelected ? FrigyBrand.selectedBg : .white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius)
+                                .stroke(
+                                    isSelected ? FrigyBrand.primary : FrigyBrand.cardBorder,
+                                    lineWidth: isSelected ? 1.5 : 1
+                                )
+                        )
+                )
+        }
+    }
+}
+
+private struct FrigyCardModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .background(.white)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+        }
+    }
+}
+
+private struct FrigyCircleButtonModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            content
+                .background(FrigyBrand.selectedBg)
+                .clipShape(Circle())
+        }
+    }
+}
+
 // MARK: - Demo
 
 #if DEBUG

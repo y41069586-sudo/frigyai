@@ -140,9 +140,7 @@ struct ProfileView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+                .frigyCard(cornerRadius: 16)
                 .padding(.horizontal, 20)
 
                 Button {
@@ -161,7 +159,7 @@ struct ProfileView: View {
                 Spacer().frame(height: 32)
             }
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("Profil")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -335,7 +333,7 @@ struct SubscriptionView: View {
                 Spacer().frame(height: 32)
             }
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("Abonnement")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -352,9 +350,7 @@ struct SubscriptionView: View {
             Spacer()
         }
         .padding(14)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.03), radius: 3, y: 1)
+        .frigyCard(cornerRadius: 12)
     }
 }
 
@@ -376,7 +372,7 @@ struct PrivacyView: View {
             }
             .padding(.top, 16)
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("Datenschutz")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -393,9 +389,7 @@ struct PrivacyView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.03), radius: 4, y: 2)
+        .frigyCard(cornerRadius: 14)
     }
 }
 
@@ -516,15 +510,13 @@ struct WeightProgressView: View {
                         .padding(.horizontal, 20)
                     }
                     .padding(.vertical, 16)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
-                    .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+                    .frigyCard(cornerRadius: 18)
                     .padding(.horizontal, 20)
                 }
             }
             .padding(.top, 8)
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("Gewichtsverlauf")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -564,9 +556,7 @@ struct WeightProgressView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        .frigyCard(cornerRadius: 14)
     }
 }
 
@@ -638,7 +628,7 @@ struct AddWeightSheet: View {
 
                 Spacer()
             }
-            .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+            .background(FrigyGlassBackground().ignoresSafeArea())
             .navigationTitle("Gewicht")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -704,7 +694,7 @@ struct ChatbotView: View {
             .background(.white)
             .overlay(Divider(), alignment: .top)
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("KI-Ernährungscoach")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -810,15 +800,13 @@ struct BadgesView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(16)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+                    .frigyCard(cornerRadius: 16)
                     .opacity(unlocked ? 1 : 0.5)
                 }
             }
             .padding(20)
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("Abzeichen")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -853,7 +841,7 @@ struct MealDetailView: View {
             }
             .padding(20)
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .navigationTitle("Mahlzeit")
         .navigationBarTitleDisplayMode(.inline)
     }

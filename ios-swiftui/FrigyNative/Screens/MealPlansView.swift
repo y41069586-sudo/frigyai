@@ -133,9 +133,7 @@ struct MealPlansView: View {
                     dayStat("Ø Zeit", value: "\(day.meals.map(\.duration).reduce(0, +) / max(1, day.meals.count)) min")
                 }
                 .padding(.vertical, 12)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+                .frigyCard(cornerRadius: 16)
                 .padding(.horizontal, 20)
 
                 // Meals of selected day
@@ -166,7 +164,7 @@ struct MealPlansView: View {
                 Spacer().frame(height: 100)
             }
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -255,9 +253,7 @@ struct PlannedMealCard: View {
             Spacer()
         }
         .padding(14)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .frigyCard(cornerRadius: 18)
     }
 }
 
@@ -305,9 +301,7 @@ struct WeeklySummaryCard: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .frigyCard(cornerRadius: 18)
     }
 }
 

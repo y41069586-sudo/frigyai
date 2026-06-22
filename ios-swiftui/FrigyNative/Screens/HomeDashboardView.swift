@@ -117,14 +117,11 @@ struct HomeDashboardView: View {
                     }
                     Spacer()
                     Button { tabCoordinator.pushHome(.profile) } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Color(hex: "#DCFEEF"))
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color(hex: "#39D47F"))
-                        }
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color(hex: "#39D47F"))
+                            .frame(width: 44, height: 44)
+                            .frigyCircleButton()
                     }
                 }
                 .padding(.horizontal, 20)
@@ -192,7 +189,7 @@ struct HomeDashboardView: View {
                 Spacer().frame(height: 100)
             }
         }
-        .background(Color(hex: "#FBFFFD").ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await reload() }
         .refreshable { await reload() }
@@ -280,9 +277,7 @@ struct CalorieRingCard: View {
             }
         }
         .padding(18)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .shadow(color: Color(hex: "#39D47F").opacity(0.1), radius: 16, y: 6)
+        .frigyCard(cornerRadius: 22)
     }
 
     private func statRow(_ label: String, value: String, color: Color) -> some View {
@@ -346,9 +341,8 @@ struct EmptyMealsCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(24)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(hex: "#BCFDDC"), lineWidth: 1))
+        .frigyCard(cornerRadius: 20)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(hex: "#BCFDDC").opacity(0.6), lineWidth: 1))
     }
 }
 
@@ -415,9 +409,7 @@ struct MealRow: View {
                 .foregroundColor(Color(hex: "#6B7280"))
         }
         .padding(12)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        .frigyCard(cornerRadius: 14)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if let onDelete {
                 Button(role: .destructive, action: onDelete) {
