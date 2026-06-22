@@ -105,7 +105,9 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
         var alternatives: [OnboardingStep] = []
         var detail: String?
 
-        if step == .splash || step == .welcome {
+        if step == .splash {
+            alternatives = OnboardingFlow.detailedProfileSteps.first.map { [$0] } ?? []
+        } else if step == .welcome {
             alternatives = context.hasReferralCode ? [.accountCreation] : [.referralCode]
             detail = context.hasReferralCode ? "hasReferralCode=true" : "hasReferralCode=false"
         } else if step == .goalSelection {
@@ -235,7 +237,9 @@ enum StepGuard {
 struct MacroRouteOnboardingRules: OnboardingRulesEngine {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
         switch step {
-        case .splash, .welcome:
+        case .splash:
+            return OnboardingFlow.detailedProfileSteps.first
+        case .welcome:
             return context.hasReferralCode ? .referralCode : .accountCreation
         case .referralCode:
             return .accountCreation
