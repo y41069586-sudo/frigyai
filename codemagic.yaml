@@ -291,8 +291,8 @@ workflows:
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*FrigyNative* 2>/dev/null || true
       - name: Archive
         script: |
-          set -e
           ARCHIVE_PATH="$HOME/FrigyNative.xcarchive"
+          LOG_FILE="/tmp/archive_build.log"
           echo "Archiving to $ARCHIVE_PATH ..."
           xcodebuild archive \
             -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
@@ -302,13 +302,17 @@ workflows:
             SWIFT_VERSION=5.0 \
             SWIFT_STRICT_CONCURRENCY=minimal \
             CODE_SIGN_STYLE=Automatic \
-            -allowProvisioningUpdates \
-            2>&1 | tee /tmp/archive_build.log
-          if [ ! -d "$ARCHIVE_PATH" ]; then
-            echo "=== ARCHIVE FAILED — last 200 lines of output ==="
-            tail -200 /tmp/archive_build.log || true
-            echo "=== Searching for 'error:' ==="
-            grep -n "error:" /tmp/archive_build.log | tail -50 || true
+            -allowProvisioningUpdates > "$LOG_FILE" 2>&1
+          ARCH_STATUS=$?
+          if [ $ARCH_STATUS -ne 0 ]; then
+            echo ""
+            echo "=== ARCHIVE FAILED (exit code: $ARCH_STATUS) ==="
+            echo ""
+            echo "=== Last 400 lines of output ==="
+            tail -400 "$LOG_FILE"
+            echo ""
+            echo "=== All 'error:' lines ==="
+            grep "error:" "$LOG_FILE" || echo "(no 'error:' lines)"
             exit 1
           fi
           echo "Archive created: $ARCHIVE_PATH"
