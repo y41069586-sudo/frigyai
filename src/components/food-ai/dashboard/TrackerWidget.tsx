@@ -140,7 +140,7 @@ export function TrackerWidget({
               <button
                 type="button"
                 {...openTrackerTap}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/15 active:scale-95"
+                className="lg-control lg-control--circle flex h-9 w-9 shrink-0 items-center justify-center text-primary"
                 aria-label={t.changeGoal}
               >
                 <Pencil className="h-4 w-4" strokeWidth={2.2} />
@@ -300,10 +300,8 @@ function MealSlotButton({
       transition={{ delay: delay + 0.08 + index * 0.04, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       {...tap}
       className={cn(
-        "flex min-h-[78px] flex-col items-center justify-center gap-1.5 rounded-[1.25rem] border-0 px-1.5 py-3 text-center transition-all sm:min-h-[84px]",
-        logged
-          ? "bg-gradient-to-b from-primary/10 to-primary/[0.06] text-primary shadow-[0_8px_24px_-8px_rgba(57,212,127,0.28)] active:scale-[0.97]"
-          : "bg-white text-foreground shadow-[0_4px_18px_-4px_rgba(15,23,42,0.12)] hover:shadow-[0_8px_24px_-6px_rgba(15,23,42,0.16)] active:scale-[0.97] dark:bg-white/[0.96]",
+        "lg-control flex min-h-[78px] flex-col items-center justify-center gap-1.5 rounded-[1.25rem] px-1.5 py-3 text-center sm:min-h-[84px]",
+        logged ? "lg-control--active text-primary" : "text-foreground",
       )}
       aria-label={`${addMealLabel} ${slot.label}`}
     >
