@@ -158,7 +158,9 @@ struct TrackerLogMealView: View {
                     isSearching = true
                     try? await Task.sleep(nanoseconds: 350_000_000)
                     guard !Task.isCancelled else { return }
-                    searchResults = await searchOpenFoodFacts(query: newVal)
+                    let results = await searchOpenFoodFacts(query: newVal)
+                    guard !Task.isCancelled else { return }
+                    searchResults = results
                     isSearching = false
                 }
             } else {

@@ -70,8 +70,10 @@ struct MealPlansView: View {
                                         .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1).blendMode(.overlay))
                                 )
                                 .shadow(color: FrigyBrand.primaryDeep.opacity(0.3), radius: 8, y: 4)
+                                .opacity(isGenerating ? 0.6 : 1)
                         }
                         .buttonStyle(.plain)
+                        .disabled(isGenerating)
                     }
                 }
                 .padding(.horizontal, 20)
