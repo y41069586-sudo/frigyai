@@ -70,6 +70,8 @@ struct HomeDashboardView: View {
     @State private var meals: [LoggedMeal] = []
     // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
     @State private var targets = MacroTargets.default
+    @State private var aiPrompt = ""
+    @FocusState private var aiFocused: Bool
 
     private var consumed: (kcal: Int, protein: Int, carbs: Int, fat: Int) {
         (
@@ -110,7 +112,8 @@ struct HomeDashboardView: View {
                 header
                 calorieCard
                 mealSlotsSection
-                weeklyPlanCard
+                weeklyPlanWidget
+                aiChatWidget
                 Spacer().frame(height: 110)
             }
             .padding(.horizontal, 20)
@@ -321,35 +324,138 @@ struct HomeDashboardView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Weekly plan card
+    // MARK: - Weekly plan widget (port of WeeklyPlanWidget.tsx)
 
-    private var weeklyPlanCard: some View {
+    private var weekDays: [(short: String, isToday: Bool)] {
+        let symbols = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+        // Calendar.weekday: Sunday = 1 … Saturday = 7 → map to Monday-based index.
+        let todayIdx = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        return symbols.enumerated().map { (index, short) in (short, index == todayIdx) }
+    }
+
+    private var weeklyPlanWidget: some View {
         Button { tabCoordinator.selectedTab = .plans } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(FrigyBrand.selectedBg)
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "calendar")
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundColor(FrigyBrand.primaryDeep)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(FrigyBrand.primary.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "calendar")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(FrigyBrand.primaryDeep)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Wochenplan")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(Color(hex: "#1F2937"))
+                        Text(weekdayText)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(FrigyBrand.primaryDark.opacity(0.8))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(FrigyBrand.primary.opacity(0.4))
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Wochenplan")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(Color(hex: "#1F2937"))
-                    Text(weekdayText)
-                        .font(.system(size: 13, weight: .medium))
+
+                Text("Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren.")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "#6B7280"))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(FrigyBrand.primary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                HStack(spacing: 0) {
+                    ForEach(weekDays, id: \.short) { day in
+                        VStack(spacing: 6) {
+                            Circle()
+                                .fill(day.isToday ? FrigyBrand.primary : FrigyBrand.cardBorder)
+                                .frame(width: day.isToday ? 8 : 6, height: day.isToday ? 8 : 6)
+                            Text(day.short)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(day.isToday ? FrigyBrand.primaryDark : Color(hex: "#9CA3AF"))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+
+                HStack(spacing: 6) {
+                    Text("Plan ansehen")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(FrigyBrand.primaryDark)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(FrigyBrand.primaryDark)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "#C4C9D0"))
             }
             .padding(18)
-            .frigyCard(cornerRadius: 22)
+            .frigyCard(cornerRadius: 26)
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - AI chat widget (port of AiChatPromptWidget.tsx)
+
+    private var aiChatWidget: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(FrigyBrand.primary.opacity(0.12))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(FrigyBrand.primaryDeep)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("KI-BERATER")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                    Text("Frag deinen Coach")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(Color(hex: "#1F2937"))
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("Wie viele Kalorien sollte ich essen?", text: $aiPrompt)
+                    .font(.system(size: 14))
+                    .focused($aiFocused)
+                    .submitLabel(.send)
+                    .onSubmit { submitAi() }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 11)
+                    .realGlass(in: RoundedRectangle(cornerRadius: 14), interactive: false)
+
+                Button { submitAi() } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 42, height: 42)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(LinearGradient(
+                                    colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                ))
+                                .overlay(RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
+                        )
+                        .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 8, y: 4)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .frigyCard(cornerRadius: 22)
+    }
+
+    private func submitAi() {
+        aiPrompt = ""
+        aiFocused = false
+        tabCoordinator.pushHome(.chatbot)
     }
 }
