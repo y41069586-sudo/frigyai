@@ -12,45 +12,84 @@ struct TrackerLogMealView: View {
     @State private var prefillFood: ScannedFood?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                categoryPicker
-
-                Divider()
-
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        scanOptions
-                            .padding(.horizontal, 16)
-                            .padding(.top, 8)
-
-                        if isLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 40)
-                        } else if !searchText.isEmpty {
-                            searchResults
-                                .padding(.horizontal, 16)
-                        } else {
-                            recentFoodsSection
-                        }
-
-                        Spacer().frame(height: 32)
+        VStack(spacing: 0) {
+            // Custom header
+            HStack(spacing: 0) {
+                Button { dismiss() } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Schließen")
+                            .font(.system(size: 15, weight: .medium))
                     }
+                    .foregroundColor(FrigyBrand.primaryDark)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 100, alignment: .leading)
+                Spacer()
+                Text("\(selectedCategory.rawValue) tracken")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                Color.clear.frame(width: 100, height: 1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            // Search bar
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(FrigyBrand.textMuted)
+                TextField("Lebensmittel suchen...", text: $searchText)
+                    .font(.system(size: 15))
+                    .foregroundColor(FrigyBrand.text)
+                if !searchText.isEmpty {
+                    Button { searchText = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(FrigyBrand.textMuted)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .background(FrigyGlassBackground().ignoresSafeArea())
-            .navigationTitle("\(selectedCategory.rawValue) tracken")
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Lebensmittel suchen...")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Schließen") { dismiss() }
-                        .foregroundColor(Color(hex: "#39D47F"))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 4)
+
+            categoryPicker
+
+            Divider()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    scanOptions
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+
+                    if isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                    } else if !searchText.isEmpty {
+                        searchResults
+                            .padding(.horizontal, 16)
+                    } else {
+                        recentFoodsSection
+                    }
+
+                    Spacer().frame(height: 32)
                 }
             }
-            .task { await loadFoods() }
         }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .task { await loadFoods() }
         .sheet(isPresented: $showBarcodeScanner) {
             BarcodeScannerView { scanned in
                 showBarcodeScanner = false
@@ -335,59 +374,153 @@ struct ManualFoodEntrySheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Lebensmittel") {
-                    TextField("Name", text: $name)
-                }
-
-                Section("Nährwerte (pro Portion)") {
-                    macroField("Kalorien (kcal)", text: $caloriesText)
-                    macroField("Protein (g)", text: $proteinText)
-                    macroField("Kohlenhydrate (g)", text: $carbsText)
-                    macroField("Fett (g)", text: $fatText)
-                }
-
-                Section("Kategorie") {
-                    Picker("Mahlzeit", selection: $category) {
-                        ForEach(MealCategory.allCases, id: \.self) { cat in
-                            Label(cat.rawValue, systemImage: cat.icon).tag(cat)
-                        }
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Button("Abbrechen") { dismiss() }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(FrigyBrand.primaryDark)
+                    .frame(width: 100, alignment: .leading)
+                Spacer()
+                Text(prefill != nil ? "Produkt hinzufügen" : "Manuell eingeben")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        ProgressView().tint(FrigyBrand.primaryDark)
+                    } else {
+                        Text("Hinzufügen")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(canSave ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
                     }
                 }
+                .disabled(!canSave || isSaving)
+                .buttonStyle(.plain)
+                .frame(width: 100, alignment: .trailing)
             }
-            .navigationTitle(prefill != nil ? "Produkt hinzufügen" : "Manuell eingeben")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Abbrechen") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("LEBENSMITTEL")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .padding(.bottom, 10)
+                        TextField("Name eingeben", text: $name)
+                            .font(.system(size: 16))
+                            .foregroundColor(FrigyBrand.text)
+                    }
+                    .padding(16)
+                    .frigyCard(cornerRadius: 16)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("NÄHRWERTE (PRO PORTION)")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .padding(.bottom, 4)
+                        VStack(spacing: 0) {
+                            macroRow("Kalorien", unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
+                            Divider().padding(.leading, 8)
+                            macroRow("Protein",  unit: "g",    text: $proteinText,  color: Color(hex: "#60A5FA"))
+                            Divider().padding(.leading, 8)
+                            macroRow("Kohlenhydrate", unit: "g", text: $carbsText,  color: Color(hex: "#FBBF24"))
+                            Divider().padding(.leading, 8)
+                            macroRow("Fett",     unit: "g",    text: $fatText,      color: Color(hex: "#F87171"))
+                        }
+                    }
+                    .padding(16)
+                    .frigyCard(cornerRadius: 16)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("MAHLZEIT")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(MealCategory.allCases, id: \.self) { cat in
+                                    Button {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { category = cat }
+                                    } label: {
+                                        Label(cat.rawValue, systemImage: cat.icon)
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(category == cat ? .white : FrigyBrand.primaryDark)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 9)
+                                            .background(
+                                                Capsule()
+                                                    .fill(category == cat
+                                                          ? AnyShapeStyle(LinearGradient(
+                                                              colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
+                                                          : AnyShapeStyle(.ultraThinMaterial))
+                                                    .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1))
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .frigyCard(cornerRadius: 16)
+
                     Button {
                         Task { await save() }
                     } label: {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Text("Hinzufügen")
-                                .fontWeight(.semibold)
-                        }
+                        Text(isSaving ? "Wird gespeichert..." : "Hinzufügen")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(canSave
+                                          ? AnyShapeStyle(LinearGradient(
+                                              colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                              startPoint: .topLeading, endPoint: .bottomTrailing))
+                                          : AnyShapeStyle(FrigyBrand.cardBorder))
+                                    .overlay(RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(canSave ? 0.35 : 0), lineWidth: 1).blendMode(.overlay))
+                            )
+                            .shadow(color: canSave ? FrigyBrand.primaryDeep.opacity(0.28) : .clear, radius: 12, y: 6)
                     }
                     .disabled(!canSave || isSaving)
+                    .buttonStyle(.plain)
+
+                    Spacer().frame(height: 32)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
             }
         }
+        .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
-    private func macroField(_ label: String, text: Binding<String>) -> some View {
+    private func macroRow(_ label: String, unit: String, text: Binding<String>, color: Color) -> some View {
         HStack {
             Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(FrigyBrand.text)
             Spacer()
             TextField("0", text: text)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 80)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(color)
+                .frame(width: 70)
+            Text(unit)
+                .font(.system(size: 12))
+                .foregroundColor(FrigyBrand.textMuted)
+                .frame(width: 28, alignment: .leading)
         }
+        .padding(.vertical, 10)
     }
 
     private func save() async {
