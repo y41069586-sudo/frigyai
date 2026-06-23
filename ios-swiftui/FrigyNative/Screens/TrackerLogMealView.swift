@@ -236,7 +236,7 @@ struct TrackerLogMealView: View {
                 }
             }
             if searchResults.isEmpty && !isSearching {
-                Text("Keine Ergebnisse für „\(searchText)"")
+                Text("Keine Ergebnisse für „\(searchText)“")
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "#9CA3AF"))
                     .padding(.top, 4)
