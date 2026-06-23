@@ -40,7 +40,7 @@ enum OnboardingFlowGraph {
         OnboardingFlowEdge(from: .welcome, to: .referralCode, label: "has referral"),
         OnboardingFlowEdge(from: .welcome, to: .accountCreation, label: "no referral"),
         OnboardingFlowEdge(from: .referralCode, to: .accountCreation, label: "continue"),
-        OnboardingFlowEdge(from: .accountCreation, to: .profileSetup, label: "authenticated"),
+        OnboardingFlowEdge(from: .accountCreation, to: .paywall, label: "always"),
         OnboardingFlowEdge(from: .profileSetup, to: .goalSelection, label: "macro"),
         OnboardingFlowEdge(from: .profileSetup, to: .gender, label: "enter detail"),
         OnboardingFlowEdge(from: .macroPreview, to: .accountCreation, label: "detail exit"),

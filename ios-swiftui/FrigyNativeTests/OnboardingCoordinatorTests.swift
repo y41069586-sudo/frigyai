@@ -18,15 +18,28 @@ struct OnboardingRulesEngineTests {
         #expect(next == .accountCreation)
     }
 
-    @Test func paywallRequiresAuthentication() {
+    @Test func paywallIsOpenToUnauthenticatedUsers() {
+        // Paywall no longer requires auth — users who skip accountCreation must
+        // still be able to reach and complete the paywall step.
         let engine = CompositeOnboardingRulesEngine()
         var guest = OnboardingContext.initial
         guest.isAuthenticated = false
-        #expect(engine.canEnter(step: .paywall, context: guest) == false)
+        #expect(engine.canEnter(step: .paywall, context: guest) == true)
 
         var authed = OnboardingContext.initial
         authed.isAuthenticated = true
         #expect(engine.canEnter(step: .paywall, context: authed) == true)
+    }
+
+    @Test func profileSetupStillRequiresAuthentication() {
+        let engine = CompositeOnboardingRulesEngine()
+        var guest = OnboardingContext.initial
+        guest.isAuthenticated = false
+        #expect(engine.canEnter(step: .profileSetup, context: guest) == false)
+
+        var authed = OnboardingContext.initial
+        authed.isAuthenticated = true
+        #expect(engine.canEnter(step: .profileSetup, context: authed) == true)
     }
 
     @Test func stepGuardBlocksProtectedWithoutCompletion() {
@@ -115,7 +128,8 @@ struct OnboardingRulesEngineTests {
         let engine = CompositeOnboardingRulesEngine(gates: shuffled)
         var guest = OnboardingContext.initial
         guest.isAuthenticated = false
-        #expect(engine.canEnter(step: .paywall, context: guest) == false)
+        // paywall is open; profileSetup is still guarded by auth
+        #expect(engine.canEnter(step: .profileSetup, context: guest) == false)
     }
 
     @Test func referralResolverPrefersDeepLinkOverLocalPending() {

@@ -289,6 +289,14 @@ final class OnboardingCoordinator {
         )
     }
 
+    /// Called after the user successfully signs in during AccountCreation so the
+    /// context reflects the new auth state before `next()` routes to paywall.
+    func didAuthenticate() {
+        context.auth.isAuthenticated = true
+        context.auth.hasAccount = true
+        persistState()
+    }
+
     /// Clears all persisted onboarding state and restarts from the first step.
     /// Used when a returning user has no active session — they go through onboarding
     /// again and can sign in via the AccountCreation step.

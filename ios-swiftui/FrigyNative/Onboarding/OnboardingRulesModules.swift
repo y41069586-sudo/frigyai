@@ -244,7 +244,9 @@ struct MacroRouteOnboardingRules: OnboardingRulesEngine {
         case .referralCode:
             return .accountCreation
         case .accountCreation:
-            return context.isAuthenticated ? .profileSetup : nil
+            // Profile was already collected before accountCreation in the new flow,
+            // so skip profileSetup and go directly to the monetisation gate.
+            return .paywall
         case .profileSetup:
             return .goalSelection
         case .goalSelection:
@@ -266,7 +268,10 @@ struct AuthOnboardingRules: OnboardingRulesEngine {
 
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
         switch step {
-        case .profileSetup, .paywall:
+        case .profileSetup:
+            // profileSetup still requires auth (legacy entry path).
+            // paywall is intentionally open so users who skip accountCreation
+            // can still reach it and subscribe.
             return context.isAuthenticated
         default:
             return true

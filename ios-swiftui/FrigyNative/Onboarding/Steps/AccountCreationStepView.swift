@@ -125,6 +125,7 @@ struct AccountCreationStepView: View {
         Task {
             do {
                 _ = try await router.authService.signInWithApple()
+                router.onboardingCoordinator.didAuthenticate()
                 onNext()
             } catch {
                 errorMessage = error.localizedDescription
@@ -139,6 +140,7 @@ struct AccountCreationStepView: View {
         Task {
             do {
                 try await router.authService.signInWithGoogle()
+                router.onboardingCoordinator.didAuthenticate()
                 onNext()
             } catch {
                 errorMessage = error.localizedDescription
