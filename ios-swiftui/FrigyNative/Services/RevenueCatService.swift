@@ -23,6 +23,7 @@ enum RevenueCatConfig {
 /// Launch-time configuration hook that is safe to call whether or not the
 /// RevenueCat SDK is linked into this build.
 enum RevenueCatBootstrap {
+    @MainActor
     static func configureIfNeeded() {
         #if canImport(RevenueCat)
         RevenueCatSubscriptionService.configureIfNeeded()
