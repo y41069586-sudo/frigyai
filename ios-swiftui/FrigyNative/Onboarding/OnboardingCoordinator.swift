@@ -95,7 +95,9 @@ final class OnboardingCoordinator {
         }
 
         if let saved = persistence.load() {
-            currentStep = saved.currentStep
+            // Migrate the legacy ".welcome" feature-list entry screen (not part of the
+            // web flow) to the mascot splash, so resumed users see the correct first screen.
+            currentStep = saved.currentStep == .welcome ? .splash : saved.currentStep
             context = saved.context
             recordTrace(
                 action: .resume,
@@ -109,12 +111,12 @@ final class OnboardingCoordinator {
         }
 
         context = .initial
+        // Always enter at the mascot splash (matches the web onboarding). A pending
+        // referral code is kept in context but no longer diverts to a separate screen.
         if let pendingRef = UserDefaults.standard.string(forKey: "pendingReferralCode"), !pendingRef.isEmpty {
             context.setReferralInput(pendingRef, for: .localPending)
-            currentStep = .welcome
-        } else {
-            currentStep = OnboardingFlow.macroEntryStep
         }
+        currentStep = OnboardingFlow.macroEntryStep
 
         recordTrace(
             action: .resume,
@@ -254,7 +256,7 @@ final class OnboardingCoordinator {
         let from = currentStep
         context.setReferralInput(code, for: .deepLink)
         UserDefaults.standard.set(code, forKey: "pendingReferralCode")
-        currentStep = .welcome
+        currentStep = .splash
         persistState()
 
         let suppressed = ReferralCodeResolver.suppressedAlternatives(context.referral.inputs)
@@ -272,7 +274,7 @@ final class OnboardingCoordinator {
         recordTrace(
             action: .deepLink,
             from: from,
-            to: .welcome,
+            to: .splash,
             allowed: true,
             blockReason: nil,
             proposedSource: proposedSource
