@@ -235,7 +235,7 @@ workflows:
         # Minimum build number — CM_BUILD_NUMBER wins when it exceeds this value.
         # Uses floor 200+ so it never collides with ios-build (floor 100+).
         # Only this workflow submits to TestFlight (ios-build does not).
-        IOS_BUILD_NUMBER: "219"
+        IOS_BUILD_NUMBER: "221"
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-native-env.sh
@@ -289,53 +289,21 @@ workflows:
         script: |
           set -e
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*FrigyNative* 2>/dev/null || true
-      - name: Archive
-        script: |
-          ARCHIVE_PATH="$HOME/FrigyNative.xcarchive"
-          LOG_FILE="/tmp/archive_build.log"
-          echo "Archiving to $ARCHIVE_PATH ..."
-          xcodebuild archive \
-            -project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
-            -scheme "$XCODE_SCHEME" \
-            -destination "generic/platform=iOS" \
-            -archivePath "$ARCHIVE_PATH" \
-            SWIFT_VERSION=5.0 \
-            SWIFT_STRICT_CONCURRENCY=minimal \
-            CODE_SIGN_STYLE=Automatic \
-            -allowProvisioningUpdates > "$LOG_FILE" 2>&1
-          ARCH_STATUS=$?
-          if [ $ARCH_STATUS -ne 0 ]; then
-            echo ""
-            echo "=== ARCHIVE FAILED (exit code: $ARCH_STATUS) ==="
-            echo ""
-            echo "=== Last 400 lines of output ==="
-            tail -400 "$LOG_FILE"
-            echo ""
-            echo "=== All 'error:' lines ==="
-            grep "error:" "$LOG_FILE" || echo "(no 'error:' lines)"
-            exit 1
-          fi
-          echo "Archive created: $ARCHIVE_PATH"
-      - name: Export IPA
+      - name: Build IPA
         script: |
           set -e
-          ARCHIVE_PATH="$HOME/FrigyNative.xcarchive"
-          EXPORT_PATH="$HOME/build/ios/ipa"
-          mkdir -p "$EXPORT_PATH"
-          xcodebuild -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
-            -exportOptionsPlist "$HOME/export_options.plist" \
-            -exportPath "$EXPORT_PATH" \
-            -allowProvisioningUpdates
-          echo "IPA exported to $EXPORT_PATH"
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/ios-swiftui/FrigyNative.xcodeproj" \
+            --scheme "$XCODE_SCHEME" \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-flags="-destination 'generic/platform=iOS' SWIFT_VERSION=5.0 SWIFT_STRICT_CONCURRENCY=minimal CODE_SIGN_STYLE=Automatic" \
+            --disable-xcpretty
       - name: Verify IPA artifact
         script: |
           export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
           bash scripts/codemagic-locate-ipa.sh
     artifacts:
-      - $HOME/build/ios/ipa/*.ipa
-      - $HOME/FrigyNative.xcarchive/**
-      - /tmp/archive_build.log
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
