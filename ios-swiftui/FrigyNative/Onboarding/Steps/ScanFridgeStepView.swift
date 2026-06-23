@@ -5,76 +5,107 @@ struct ScanFridgeStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    @State private var scanPulse = false
+    @State private var pulseScale: CGFloat = 1.0
+    @State private var floatOffset: CGFloat = 0
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            Spacer()
-
-            VStack(spacing: 32) {
-                // Animated scan icon
-                ZStack {
-                    Circle()
-                        .fill(FrigyBrand.primary.opacity(0.12))
-                        .frame(width: 120, height: 120)
-                        .scaleEffect(scanPulse ? 1.15 : 1.0)
-                        .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: scanPulse)
-
-                    Circle()
-                        .fill(FrigyBrand.primary.opacity(0.22))
-                        .frame(width: 88, height: 88)
-
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 36, weight: .semibold))
-                        .foregroundColor(FrigyBrand.primaryDark)
-                }
-                .onAppear { scanPulse = true }
-
-                VStack(spacing: 8) {
-                    Text("Kühlschrank scannen")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(FrigyBrand.text)
-                        .multilineTextAlignment(.center)
-
-                    Text("Frigy erkennt deine Zutaten automatisch und schlägt passende Rezepte vor.")
-                        .font(.system(size: 15))
-                        .foregroundColor(FrigyBrand.textMuted)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                        .padding(.horizontal, 32)
-                }
-
-                VStack(spacing: 10) {
-                    featureRow("camera.fill",        "Foto aufnehmen oder hochladen")
-                    featureRow("sparkles",           "KI erkennt Lebensmittel")
-                    featureRow("fork.knife",         "Passende Rezepte werden vorgeschlagen")
-                    featureRow("cart.badge.plus",    "Fehlende Zutaten ergänzen")
-                }
-                .padding(.horizontal, 24)
+            // Question with mint highlight
+            Group {
+                Text("Erkenne deine ") +
+                Text("Zutaten")
+                    .foregroundColor(FrigyBrand.primaryDeep)
+                    .underline(color: FrigyBrand.primary)
             }
+            .font(.system(size: 19, weight: .semibold))
+            .foregroundColor(FrigyBrand.text)
+            .tracking(-0.5)
+            .padding(.horizontal, 20)
+            .padding(.top, 4)
+            .padding(.bottom, 4)
+
+            // Subtitle
+            Text("Scanne später deinen Kühlschrank — Frigy erkennt, was du hast und was für deinen Plan noch fehlt.")
+                .font(.system(size: 15))
+                .foregroundColor(Color(hex: "#7C9388"))
+                .lineSpacing(3)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
 
             Spacer()
 
-            OnboardingContinueButton("Verstanden", action: onNext)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
+            // Camera hero illustration
+            cameraHero
+
+            Spacer()
+
+            // Bottom bar
+            VStack(spacing: 0) {
+                Divider().overlay(Color.black.opacity(0.06))
+                OnboardingContinueButton(action: onNext)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, max(20, 16))
+                .background(FrigyBrand.bg)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) {
+                pulseScale = 1.08
+            }
+            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
+                floatOffset = -4
+            }
         }
     }
 
-    private func featureRow(_ icon: String, _ label: String) -> some View {
-        HStack(spacing: 14) {
+    private var cameraHero: some View {
+        ZStack {
+            // Outer glow ring
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [Color(hex: "#6EECC0").opacity(0.25), Color(hex: "#6EECC0").opacity(0)],
+                        center: .center, startRadius: 0, endRadius: 100
+                    )
+                )
+                .frame(width: 200, height: 200)
+                .scaleEffect(pulseScale)
+
+            // Floor shadow
+            Ellipse()
+                .fill(
+                    RadialGradient(
+                        colors: [Color(hex: "#4AE896").opacity(0.25), .clear],
+                        center: .center, startRadius: 0, endRadius: 80
+                    )
+                )
+                .frame(width: 180, height: 22)
+                .blur(radius: 2)
+                .offset(y: 78)
+
+            // Camera box (floating)
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(FrigyBrand.selectedBg)
-                    .frame(width: 38, height: 38)
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(FrigyBrand.primaryDark)
+                RoundedRectangle(cornerRadius: 40)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "#FBFFFD"), FrigyBrand.primary],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 140, height: 140)
+                    .shadow(
+                        color: Color(hex: "#4AE896").opacity(0.55),
+                        radius: 28, y: 10
+                    )
+
+                Image(systemName: "camera")
+                    .font(.system(size: 56, weight: .light))
+                    .foregroundColor(.white)
             }
-            Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(FrigyBrand.text)
-            Spacer()
+            .offset(y: floatOffset)
         }
+        .frame(width: 200, height: 200)
+        .frame(maxWidth: .infinity)
     }
 }

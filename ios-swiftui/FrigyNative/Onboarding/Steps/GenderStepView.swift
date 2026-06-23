@@ -18,52 +18,74 @@ struct GenderStepView: View {
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
+            // Question header
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Was ist dein biologisches Geschlecht?")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundColor(FrigyBrand.text)
+                    .tracking(-0.5)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 4)
+                    .padding(.bottom, 12)
+            }
+
             Spacer()
 
-            VStack(spacing: 32) {
-                OnboardingQuestion(text: "Was ist dein biologisches Geschlecht?")
+            // Gender image cards
+            HStack(spacing: 16) {
+                genderCard(id: "male", imageName: "GenderMale", label: "Männlich")
+                genderCard(id: "female", imageName: "GenderFemale", label: "Weiblich")
+            }
+            .frame(maxWidth: 300)
+            .padding(.horizontal, 20)
 
-                VStack(spacing: 20) {
-                    HStack(spacing: 16) {
-                        genderCard(id: "male", imageName: "GenderMale", label: "Männlich")
-                        genderCard(id: "female", imageName: "GenderFemale", label: "Weiblich")
-                    }
-                    .padding(.horizontal, 24)
-
-                    Button {
-                        draft.gender = draft.gender == "non-binary" ? nil : "non-binary"
-                    } label: {
-                        HStack(spacing: 12) {
-                            ZStack {
+            // Non-binary option
+            Button {
+                draft.gender = draft.gender == "non-binary" ? nil : "non-binary"
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(draft.gender == "non-binary" ? FrigyBrand.primary : Color.white)
+                            .frame(width: 20, height: 20)
+                            .overlay(
                                 RoundedRectangle(cornerRadius: 5)
-                                    .fill(draft.gender == "non-binary" ? FrigyBrand.primary : .white)
-                                    .frame(width: 20, height: 20)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 5)
-                                            .stroke(draft.gender == "non-binary" ? FrigyBrand.primaryDark : FrigyBrand.borderMint, lineWidth: 2)
+                                    .stroke(
+                                        draft.gender == "non-binary" ? FrigyBrand.primary : FrigyBrand.cardBorder,
+                                        lineWidth: 2
                                     )
-                                if draft.gender == "non-binary" {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            Text("Non-Binär / Divers")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(FrigyBrand.text.opacity(draft.gender == "non-binary" ? 1 : 0.8))
+                            )
+                        if draft.gender == "non-binary" {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .animation(.easeInOut(duration: 0.2), value: draft.gender == "non-binary")
+
+                    Text("Non-Binär / Divers")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(FrigyBrand.text.opacity(draft.gender == "non-binary" ? 1.0 : 0.8))
+                        .tracking(-0.3)
                 }
             }
+            .buttonStyle(.plain)
+            .padding(.top, 24)
 
             Spacer()
 
-            OnboardingContinueButton(isEnabled: draft.gender != nil) {
-                onNext(draft)
+            // Continue button with border separator
+            VStack(spacing: 0) {
+                Divider()
+                    .overlay(Color.black.opacity(0.06))
+                OnboardingContinueButton(isEnabled: draft.gender != nil) {
+                    onNext(draft)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, max(20, 16))
+                .background(FrigyBrand.bg)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
         }
     }
 
@@ -80,18 +102,30 @@ struct GenderStepView: View {
                     .aspectRatio(1, contentMode: .fit)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(selected ? FrigyBrand.primary : Color.clear, lineWidth: 3)
+                            .stroke(
+                                selected ? FrigyBrand.selectedBg : Color.clear,
+                                lineWidth: 3
+                            )
                             .padding(-3)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(
+                                selected ? FrigyBrand.primary : Color.clear,
+                                lineWidth: 2
+                            )
+                            .padding(-5)
                     )
 
                 Text(label)
                     .font(.system(size: 15, weight: selected ? .semibold : .medium))
-                    .foregroundColor(FrigyBrand.text.opacity(selected ? 1 : 0.7))
+                    .foregroundColor(FrigyBrand.text.opacity(selected ? 1.0 : 0.7))
                     .tracking(-0.3)
             }
-            .scaleEffect(selected ? 1.03 : 1)
+            .scaleEffect(selected ? 1.03 : 1.0)
+            .opacity(selected ? 1.0 : 0.88)
         }
         .buttonStyle(.plain)
-        .animation(.spring(duration: 0.22), value: selected)
+        .animation(.spring(duration: 0.2), value: selected)
     }
 }

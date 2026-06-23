@@ -7,6 +7,8 @@ struct AllergiesStepView: View {
     let onNext: (UserProfileDraft) -> Void
 
     @State private var draft: UserProfileDraft
+    @State private var otherText: String = ""
+    @FocusState private var otherFocused: Bool
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
@@ -16,80 +18,152 @@ struct AllergiesStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private let options: [(id: String, icon: String, label: String)] = [
-        ("none",        "checkmark.circle.fill", "Keine"),
-        ("gluten",      "wheat",                  "Gluten"),
-        ("lactose",     "drop.fill",              "Laktose"),
-        ("nuts",        "leaf.circle.fill",        "Nüsse"),
-        ("eggs",        "circle.fill",             "Eier"),
-        ("soy",         "plant.fill",              "Soja"),
-        ("shellfish",   "fish.fill",               "Meeresfrüchte"),
-        ("fish",        "fish.circle.fill",        "Fisch"),
+    private let options: [(id: String, emoji: String, title: String, isNone: Bool, isOther: Bool)] = [
+        ("none",      "✅", "Keine Allergien",    true, false),
+        ("peanuts",   "🥜", "Erdnüsse",           false, false),
+        ("tree-nuts", "🌰", "Schalenfrüchte",     false, false),
+        ("milk",      "🥛", "Milch",              false, false),
+        ("eggs",      "🥚", "Eier",               false, false),
+        ("fish",      "🐟", "Fisch",              false, false),
+        ("shellfish", "🦐", "Schalentiere",       false, false),
+        ("soy",       "🫘", "Soja",               false, false),
+        ("wheat",     "🌾", "Weizen",             false, false),
+        ("other",     "✏️", "Andere",             false, true),
     ]
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
+            // Question
+            Text("Hast du Allergien oder Unverträglichkeiten?")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(FrigyBrand.text)
+                .tracking(-0.5)
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
+
+            // Option cards (scrollable)
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    Spacer().frame(height: 12)
+                VStack(spacing: 10) {
+                    ForEach(options, id: \.id) { opt in
+                        allergyCard(opt)
 
-                    OnboardingQuestion(text: "Hast du Unverträglichkeiten\noder Allergien?")
-
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        ForEach(options, id: \.id) { opt in
-                            let selected = draft.allergies.contains(opt.id)
-                            Button {
-                                if opt.id == "none" {
-                                    draft.allergies = selected ? [] : ["none"]
-                                } else {
-                                    draft.allergies.removeAll { $0 == "none" }
-                                    if selected {
-                                        draft.allergies.removeAll { $0 == opt.id }
-                                    } else {
-                                        draft.allergies.append(opt.id)
-                                    }
-                                }
-                            } label: {
-                                VStack(spacing: 8) {
-                                    Image(systemName: opt.icon)
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundColor(selected ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
-                                    Text(opt.label)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(FrigyBrand.text)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(selected ? FrigyBrand.selectedBg : .white)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .stroke(selected ? FrigyBrand.primary : FrigyBrand.cardBorder, lineWidth: selected ? 1.5 : 1)
-                                        )
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .scaleEffect(selected ? 1.02 : 1)
-                            .animation(.spring(duration: 0.2), value: selected)
+                        // Inline "Other" text field
+                        if opt.isOther && draft.allergies.contains("other") {
+                            allergyOtherField
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
-                    .padding(.horizontal, 24)
-
-                    Spacer().frame(height: 100)
+                    Color.clear.frame(height: 16)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .animation(.easeInOut(duration: 0.22), value: draft.allergies.contains("other"))
             }
-            .overlay(alignment: .bottom) {
-                VStack(spacing: 0) {
-                    LinearGradient(colors: [FrigyBrand.bg.opacity(0), FrigyBrand.bg], startPoint: .top, endPoint: .bottom)
-                        .frame(height: 32)
-                    OnboardingContinueButton {
-                        onNext(draft)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 40)
-                    .background(FrigyBrand.bg)
+
+            // Bottom bar
+            VStack(spacing: 0) {
+                Divider().overlay(Color.black.opacity(0.06))
+                OnboardingContinueButton(isEnabled: !draft.allergies.isEmpty) {
+                    onNext(draft)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, max(20, 16))
+                .background(FrigyBrand.bg)
+            }
+        }
+    }
+
+    private func allergyCard(_ opt: (id: String, emoji: String, title: String, isNone: Bool, isOther: Bool)) -> some View {
+        let isSelected = draft.allergies.contains(opt.id)
+        return Button {
+            toggle(id: opt.id, isNone: opt.isNone, isOther: opt.isOther)
+        } label: {
+            HStack(spacing: 16) {
+                // Emoji icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(isSelected ? Color(hex: "#C0FFD9") : Color(hex: "#EAFFF5"))
+                        .frame(width: 40, height: 40)
+                    Text(opt.emoji)
+                        .font(.system(size: 20))
+                }
+
+                // Title
+                Text(opt.title)
+                    .font(.system(size: 15.5, weight: .medium))
+                    .foregroundColor(FrigyBrand.text)
+                    .tracking(-0.3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Checkmark
+                ZStack {
+                    Circle()
+                        .fill(FrigyBrand.primary)
+                        .frame(width: 28, height: 28)
+                        .shadow(color: Color(hex: "#6EECC0").opacity(0.6), radius: 5, y: 2)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .opacity(isSelected ? 1 : 0)
+                .scaleEffect(isSelected ? 1 : 0.6)
+                .animation(.spring(duration: 0.18), value: isSelected)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(isSelected ? FrigyBrand.selectedBg : Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(
+                                isSelected ? FrigyBrand.primary : Color(hex: "#D1D5DB"),
+                                lineWidth: 1.5
+                            )
+                    )
+                    .shadow(
+                        color: isSelected ? Color(hex: "#6EECC0").opacity(0.35) : Color.black.opacity(0.02),
+                        radius: isSelected ? 8 : 1, y: isSelected ? 3 : 1
+                    )
+            )
+            .scaleEffect(isSelected ? 1.02 : 1)
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(duration: 0.18), value: isSelected)
+    }
+
+    private var allergyOtherField: some View {
+        TextField("Beschreibe deine Allergie…", text: $otherText)
+            .font(.system(size: 15))
+            .foregroundColor(FrigyBrand.text)
+            .focused($otherFocused)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(FrigyBrand.bg)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(FrigyBrand.borderMint, lineWidth: 1.5)
+            )
+            .shadow(color: Color(hex: "#6EECC0").opacity(0.2), radius: 7, y: 2)
+            .onAppear { otherFocused = true }
+    }
+
+    private func toggle(id: String, isNone: Bool, isOther: Bool) {
+        if isNone {
+            let has = draft.allergies.contains("none")
+            draft.allergies = has ? [] : ["none"]
+        } else {
+            draft.allergies.removeAll { $0 == "none" }
+            let has = draft.allergies.contains(id)
+            if has {
+                draft.allergies.removeAll { $0 == id }
+                if isOther { otherText = "" }
+            } else {
+                draft.allergies.append(id)
             }
         }
     }

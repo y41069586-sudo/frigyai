@@ -7,8 +7,8 @@ struct BirthdateStepView: View {
     let onNext: (UserProfileDraft) -> Void
 
     @State private var draft: UserProfileDraft
-    @State private var birthdate: Date?
-    @State private var showDatePicker = false
+    @State private var inputText: String = ""
+    @FocusState private var isFocused: Bool
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
@@ -18,100 +18,151 @@ struct BirthdateStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private var minDate: Date {
-        Calendar.current.date(byAdding: .year, value: -100, to: Date()) ?? Date()
+    // MARK: - Validation
+    private var parsedResult: BirthdateParseResult? {
+        parseBirthdateInput(inputText)
     }
 
-    private var maxDate: Date {
-        Calendar.current.date(byAdding: .year, value: -13, to: Date()) ?? Date()
+    private var canProceed: Bool { parsedResult == .valid }
+    private var showTooYoung: Bool { parsedResult == .tooYoung }
+    private var showInvalid: Bool {
+        !inputText.isEmpty && parsedResult != nil && parsedResult == .invalid
     }
 
-    private var ageText: String? {
-        guard let bd = birthdate else { return nil }
-        let comps = Calendar.current.dateComponents([.year], from: bd, to: Date())
-        guard let age = comps.year, age >= 13 else { return nil }
-        return "\(age) Jahre alt"
+    private var helperColor: Color {
+        showTooYoung || showInvalid ? Color(hex: "#DC2626") : FrigyBrand.textMuted
     }
 
-    private var formatted: String {
-        guard let bd = birthdate else { return "Datum wählen" }
-        let fmt = DateFormatter()
-        fmt.dateStyle = .long
-        fmt.locale = Locale(identifier: "de_DE")
-        return fmt.string(from: bd)
+    private var helperText: String {
+        if showTooYoung { return "Du musst mindestens 13 Jahre alt sein." }
+        if showInvalid { return "Bitte ein gültiges Datum eingeben." }
+        return "Format: TT.MM.JJJJ"
     }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
+            // Question
+            Text("Wann wurdest du geboren?")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(FrigyBrand.text)
+                .tracking(-0.5)
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
+
             Spacer()
 
-            VStack(spacing: 32) {
-                OnboardingQuestion(text: "Wann wurdest du geboren?")
+            // Date input card
+            VStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24)
+                                .stroke(FrigyBrand.borderMint, lineWidth: 1)
+                        )
+                        .shadow(color: Color(hex: "#39D47F").opacity(0.12), radius: 18, y: 8)
 
-                VStack(spacing: 16) {
-                    Button {
-                        showDatePicker.toggle()
-                    } label: {
-                        HStack {
-                            Image(systemName: "calendar")
-                                .foregroundColor(FrigyBrand.primaryDark)
-                                .font(.system(size: 18))
-                            Text(formatted)
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(birthdate == nil ? FrigyBrand.textMuted : FrigyBrand.text)
-                            Spacer()
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 14))
-                                .foregroundColor(FrigyBrand.textMuted)
-                                .rotationEffect(.degrees(showDatePicker ? 180 : 0))
+                    TextField("16.05.2002", text: $inputText)
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(FrigyBrand.text)
+                        .multilineTextAlignment(.center)
+                        .keyboardType(.numberPad)
+                        .focused($isFocused)
+                        .onChange(of: inputText) { newVal in
+                            inputText = sanitizeBirthdateInput(newVal)
+                            updateDraftFromInput()
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 16)
-                        .frame(maxWidth: 320)
-                        .background(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(FrigyBrand.borderMint, lineWidth: 1)
-                        )
-                        .shadow(color: FrigyBrand.primaryDark.opacity(0.12), radius: 16, y: 8)
-                    }
-                    .buttonStyle(.plain)
-                    .animation(.easeInOut(duration: 0.2), value: showDatePicker)
-
-                    if showDatePicker {
-                        DatePicker("", selection: Binding(
-                            get: { birthdate ?? maxDate },
-                            set: { birthdate = $0 }
-                        ), in: minDate...maxDate, displayedComponents: .date)
-                        .datePickerStyle(.wheel)
-                        .labelsHidden()
-                        .frame(maxWidth: 320)
-                        .background(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-
-                    if let age = ageText {
-                        Text(age)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(FrigyBrand.primaryDark)
-                    }
                 }
+                .frame(maxWidth: 320)
+                .frame(height: 64)
+
+                Text(helperText)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(helperColor)
+                    .multilineTextAlignment(.center)
+                    .animation(.easeInOut(duration: 0.15), value: helperText)
             }
+            .padding(.horizontal, 20)
 
             Spacer()
 
-            OnboardingContinueButton(isEnabled: ageText != nil) {
-                var updated = draft
-                if let bd = birthdate {
-                    let comps = Calendar.current.dateComponents([.year], from: bd, to: Date())
-                    updated.age = comps.year ?? 25
+            // Bottom bar
+            VStack(spacing: 0) {
+                Divider().overlay(Color.black.opacity(0.06))
+                OnboardingContinueButton(isEnabled: canProceed) {
+                    onNext(draft)
                 }
-                onNext(updated)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, max(20, 16))
+                .background(FrigyBrand.bg)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+        }
+        .onAppear { isFocused = true }
+    }
+
+    // MARK: - Helpers
+
+    private func sanitizeBirthdateInput(_ raw: String) -> String {
+        let digits = raw.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
+        let limited = String(digits.prefix(8))
+        var parts: [String] = []
+        if limited.count > 0 { parts.append(String(limited.prefix(2))) }
+        if limited.count > 2 { parts.append(String(limited.dropFirst(2).prefix(2))) }
+        if limited.count > 4 { parts.append(String(limited.dropFirst(4).prefix(4))) }
+        return parts.joined(separator: ".")
+    }
+
+    private enum BirthdateParseResult {
+        case valid, invalid, tooYoung
+    }
+
+    private func parseBirthdateInput(_ value: String) -> BirthdateParseResult? {
+        guard !value.isEmpty else { return nil }
+        let regex = try? NSRegularExpression(pattern: #"^\d{2}\.\d{2}\.\d{4}$"#)
+        let range = NSRange(value.startIndex..., in: value)
+        guard regex?.firstMatch(in: value, range: range) != nil else {
+            return nil
+        }
+        let parts = value.split(separator: ".")
+        guard parts.count == 3,
+              let day = Int(parts[0]),
+              let month = Int(parts[1]),
+              let year = Int(parts[2]) else { return .invalid }
+
+        let currentYear = Calendar.current.component(.year, from: Date())
+        guard year >= currentYear - 100 else { return .invalid }
+        guard month >= 1, month <= 12 else { return .invalid }
+
+        // Days in month
+        var comps = DateComponents()
+        comps.year = year; comps.month = month
+        guard let monthDate = Calendar.current.date(from: comps),
+              let range = Calendar.current.range(of: .day, in: .month, for: monthDate) else { return .invalid }
+        guard day >= 1, day <= range.count else { return .invalid }
+
+        var dobComps = DateComponents()
+        dobComps.day = day; dobComps.month = month; dobComps.year = year
+        guard let dob = Calendar.current.date(from: dobComps) else { return .invalid }
+
+        let age = Calendar.current.dateComponents([.year], from: dob, to: Date()).year ?? 0
+        if age < 13 { return .tooYoung }
+        if age > 100 { return .invalid }
+        return .valid
+    }
+
+    private func updateDraftFromInput() {
+        guard parsedResult == .valid else { return }
+        let parts = inputText.split(separator: ".")
+        guard parts.count == 3,
+              let day = Int(parts[0]), let month = Int(parts[1]), let year = Int(parts[2]) else { return }
+        var dobComps = DateComponents()
+        dobComps.day = day; dobComps.month = month; dobComps.year = year
+        if let dob = Calendar.current.date(from: dobComps) {
+            draft.age = Calendar.current.dateComponents([.year], from: dob, to: Date()).year ?? 25
         }
     }
 }
