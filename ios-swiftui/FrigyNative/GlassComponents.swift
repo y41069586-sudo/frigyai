@@ -374,6 +374,62 @@ struct FrigyGlassBackground: View {
     }
 }
 
+/// Custom navigation header — replaces the system nav bar in every pushed screen and sheet.
+struct FrigyNavBar: View {
+    let title: String
+    var showBack: Bool = true
+    var dismissLabel: String = "Zurück"
+    var trailingIcon: String? = nil
+    var trailingAction: (() -> Void)? = nil
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Group {
+                if showBack {
+                    Button { dismiss() } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 15, weight: .semibold))
+                            Text(dismissLabel)
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                        .foregroundColor(FrigyBrand.primaryDark)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 80, alignment: .leading)
+
+            Spacer()
+            Text(title)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(FrigyBrand.text)
+            Spacer()
+
+            Group {
+                if let icon = trailingIcon, let action = trailingAction {
+                    Button(action: action) {
+                        Image(systemName: icon)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(FrigyBrand.primaryDark)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(FrigyBrand.primary.opacity(0.15)))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 80, alignment: .trailing)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+    }
+}
+
 extension View {
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
     func frigyCard(cornerRadius: CGFloat = 16) -> some View {

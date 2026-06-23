@@ -9,6 +9,7 @@ struct FrigyNativeApp: App {
             RootView()
                 .environment(router)
                 .environment(router.tabCoordinator)
+                .preferredColorScheme(.light)
                 .task {
                     await router.bootstrap()
                 }

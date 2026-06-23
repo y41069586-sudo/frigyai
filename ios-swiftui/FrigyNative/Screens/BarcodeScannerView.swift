@@ -26,34 +26,41 @@ struct BarcodeScannerView: View {
     enum CameraStatus { case checking, ready, denied }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack(alignment: .topLeading) {
+            Color.black.ignoresSafeArea()
 
-                switch cameraStatus {
-                case .checking:
-                    ProgressView().tint(.white)
+            switch cameraStatus {
+            case .checking:
+                ProgressView().tint(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                case .ready:
-                    CameraPreviewView(onScan: handleScan)
-                        .ignoresSafeArea()
-                    scanOverlay
+            case .ready:
+                CameraPreviewView(onScan: handleScan)
+                    .ignoresSafeArea()
+                scanOverlay
 
-                case .denied:
-                    permissionDeniedView
-                }
+            case .denied:
+                permissionDeniedView
             }
-            .navigationTitle("Barcode scannen")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Abbrechen") { dismiss() }
-                        .foregroundColor(.white)
+
+            // Close button overlay
+            Button { dismiss() } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Schließen")
+                        .font(.system(size: 14, weight: .medium))
                 }
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color.black.opacity(0.45)))
             }
-            .task { await checkPermission() }
+            .buttonStyle(.plain)
+            .padding(.top, 56)
+            .padding(.leading, 20)
         }
+        .task { await checkPermission() }
     }
 
     // MARK: - Overlay

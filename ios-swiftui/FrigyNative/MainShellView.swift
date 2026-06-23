@@ -27,9 +27,7 @@ struct MainShellView: View {
             }
         }
         .sheet(isPresented: $coordinator.showTrackerSheet) {
-            NavigationStack {
-                TrackerLogMealView()
-            }
+            TrackerLogMealView()
         }
     }
 }

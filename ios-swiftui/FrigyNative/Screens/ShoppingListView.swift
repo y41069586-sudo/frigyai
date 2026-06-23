@@ -310,40 +310,127 @@ struct AddShoppingItemSheet: View {
     @State private var selectedCategory: ShoppingCategory = .produce
     @FocusState private var focused: Bool
 
+    private var canAdd: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Artikel") {
-                    TextField("Name eingeben", text: $name)
-                        .focused($focused)
-                }
-                Section("Kategorie") {
-                    Picker("Kategorie", selection: $selectedCategory) {
-                        ForEach(ShoppingCategory.allCases, id: \.self) { cat in
-                            Label(cat.rawValue, systemImage: cat.icon).tag(cat)
-                        }
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Button("Abbrechen") { dismiss() }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(FrigyBrand.primaryDark)
+                    .frame(width: 100, alignment: .leading)
+                Spacer()
+                Text("Artikel hinzufügen")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                Button("Hinzufügen") {
+                    if canAdd {
+                        onAdd(name.trimmingCharacters(in: .whitespaces), selectedCategory)
+                        dismiss()
                     }
-                    .pickerStyle(.inline)
                 }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(canAdd ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
+                .disabled(!canAdd)
+                .buttonStyle(.plain)
+                .frame(width: 100, alignment: .trailing)
             }
-            .navigationTitle("Artikel hinzufügen")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Abbrechen") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Hinzufügen") {
-                        if !name.trimmingCharacters(in: .whitespaces).isEmpty {
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("ARTIKEL")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .padding(.bottom, 10)
+                        TextField("Name eingeben", text: $name)
+                            .font(.system(size: 16))
+                            .foregroundColor(FrigyBrand.text)
+                            .focused($focused)
+                    }
+                    .padding(16)
+                    .frigyCard(cornerRadius: 16)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("KATEGORIE")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted)
+
+                        VStack(spacing: 0) {
+                            ForEach(ShoppingCategory.allCases, id: \.self) { cat in
+                                Button {
+                                    selectedCategory = cat
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(selectedCategory == cat
+                                                      ? FrigyBrand.primary.opacity(0.2)
+                                                      : FrigyBrand.primary.opacity(0.08))
+                                                .frame(width: 32, height: 32)
+                                            Image(systemName: cat.icon)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundColor(FrigyBrand.primaryDark)
+                                        }
+                                        Text(cat.rawValue)
+                                            .font(.system(size: 15))
+                                            .foregroundColor(FrigyBrand.text)
+                                        Spacer()
+                                        if selectedCategory == cat {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 18))
+                                                .foregroundColor(FrigyBrand.primaryDark)
+                                        }
+                                    }
+                                    .padding(14)
+                                }
+                                .buttonStyle(.plain)
+                                if cat != ShoppingCategory.allCases.last {
+                                    Divider().padding(.leading, 58)
+                                }
+                            }
+                        }
+                        .frigyCard(cornerRadius: 16)
+                    }
+
+                    Button {
+                        if canAdd {
                             onAdd(name.trimmingCharacters(in: .whitespaces), selectedCategory)
                             dismiss()
                         }
+                    } label: {
+                        Text("Hinzufügen")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(canAdd
+                                          ? AnyShapeStyle(LinearGradient(
+                                              colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                              startPoint: .topLeading, endPoint: .bottomTrailing))
+                                          : AnyShapeStyle(FrigyBrand.cardBorder))
+                                    .overlay(RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(canAdd ? 0.35 : 0), lineWidth: 1).blendMode(.overlay))
+                            )
+                            .shadow(color: canAdd ? FrigyBrand.primaryDeep.opacity(0.28) : .clear, radius: 12, y: 6)
                     }
-                    .fontWeight(.semibold)
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(!canAdd)
+                    .buttonStyle(.plain)
+
+                    Spacer().frame(height: 32)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
             }
         }
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .onAppear { focused = true }
     }
 }

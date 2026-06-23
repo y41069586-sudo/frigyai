@@ -72,6 +72,10 @@ struct HomeDashboardView: View {
     @State private var targets = MacroTargets.default
     @State private var aiPrompt = ""
     @FocusState private var aiFocused: Bool
+    @State private var waterGlasses: Int = 0
+    private let waterGoal = 8
+    private let waterKey = "frigy.water.glasses"
+    private let waterDateKey = "frigy.water.date"
 
     private var consumed: (kcal: Int, protein: Int, carbs: Int, fat: Int) {
         (
@@ -112,6 +116,7 @@ struct HomeDashboardView: View {
                 header
                 calorieCard
                 mealSlotsSection
+                waterWidget
                 weeklyPlanWidget
                 aiChatWidget
                 Spacer().frame(height: 110)
@@ -121,7 +126,7 @@ struct HomeDashboardView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .task { await reload() }
+        .task { await reload(); loadWater() }
         .refreshable { await reload() }
         .onChange(of: tabCoordinator.showTrackerSheet) { _, isShowing in
             if !isShowing { Task { await reload() } }
@@ -447,6 +452,99 @@ struct HomeDashboardView: View {
                         .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 8, y: 4)
                 }
                 .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .frigyCard(cornerRadius: 22)
+    }
+
+    // MARK: - Water widget
+
+    private func loadWater() {
+        let today = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+        let storedDate = UserDefaults.standard.double(forKey: waterDateKey)
+        if storedDate == today {
+            waterGlasses = UserDefaults.standard.integer(forKey: waterKey)
+        } else {
+            waterGlasses = 0
+            UserDefaults.standard.set(today, forKey: waterDateKey)
+            UserDefaults.standard.set(0, forKey: waterKey)
+        }
+    }
+
+    private func setWater(_ v: Int) {
+        waterGlasses = max(0, min(waterGoal, v))
+        UserDefaults.standard.set(waterGlasses, forKey: waterKey)
+    }
+
+    private var waterWidget: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: "#BFDBFE").opacity(0.5))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color(hex: "#3B82F6"))
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("WASSER")
+                        .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                        .foregroundColor(FrigyBrand.textMuted)
+                    Text("\(waterGlasses) / \(waterGoal) Gläser")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(FrigyBrand.text)
+                }
+                Spacer()
+                HStack(spacing: 6) {
+                    Button { setWater(waterGlasses - 1) } label: {
+                        Image(systemName: "minus")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(waterGlasses > 0 ? Color(hex: "#3B82F6") : Color(hex: "#D1D5DB"))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Color(hex: "#EFF6FF")))
+                    }
+                    .buttonStyle(.plain).disabled(waterGlasses == 0)
+                    Button { setWater(waterGlasses + 1) } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(waterGlasses < waterGoal ? .white : Color(hex: "#D1D5DB"))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(waterGlasses < waterGoal ? Color(hex: "#3B82F6") : Color(hex: "#E0F2FE")))
+                    }
+                    .buttonStyle(.plain).disabled(waterGlasses >= waterGoal)
+                }
+            }
+            HStack(spacing: 6) {
+                ForEach(0..<waterGoal, id: \.self) { i in
+                    Image(systemName: i < waterGlasses ? "drop.fill" : "drop")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(i < waterGlasses ? Color(hex: "#3B82F6") : Color(hex: "#BFDBFE"))
+                        .frame(maxWidth: .infinity)
+                        .animation(.spring(duration: 0.3), value: waterGlasses)
+                }
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(hex: "#BFDBFE").opacity(0.4)).frame(height: 6)
+                    Capsule()
+                        .fill(LinearGradient(colors: [Color(hex: "#93C5FD"), Color(hex: "#3B82F6")],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(6, geo.size.width * Double(waterGlasses) / Double(waterGoal)), height: 6)
+                        .animation(.spring(duration: 0.4), value: waterGlasses)
+                }
+            }
+            .frame(height: 6)
+            if waterGlasses >= waterGoal {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill").foregroundColor(Color(hex: "#3B82F6"))
+                    Text("Tagesziel erreicht! Super!")
+                        .font(.system(size: 13, weight: .semibold)).foregroundColor(Color(hex: "#3B82F6"))
+                }
+            } else {
+                Text("\(waterGoal - waterGlasses) Gläser bis zum Tagesziel")
+                    .font(.system(size: 12, weight: .medium)).foregroundColor(FrigyBrand.textMuted)
             }
         }
         .padding(16)
