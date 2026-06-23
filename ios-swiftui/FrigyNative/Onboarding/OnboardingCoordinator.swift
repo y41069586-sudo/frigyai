@@ -144,7 +144,10 @@ final class OnboardingCoordinator {
         let from = currentStep
 
         if currentStep == .macroPreview {
-            userProfile.recalculateMacrosIfPossible()
+            // Keep user-adjusted macros; only auto-recalculate when untouched.
+            if !userProfile.macrosManuallyEdited {
+                userProfile.recalculateMacrosIfPossible()
+            }
             context.userProfile = userProfile
         }
 
@@ -160,6 +163,12 @@ final class OnboardingCoordinator {
             )
             return currentStep
         }
+
+        // Mark the current step complete BEFORE validating the transition.
+        // Protected steps (accountCreation/paywall) require their `from` step to
+        // be completed; inserting afterwards would deadlock the linear flow
+        // (e.g. macroPreview → accountCreation could never proceed).
+        context.completedSteps.insert(from)
 
         let explanation = rules.explainNext(from: from, context: context)
         let allowed = StepGuard.validateTransition(
@@ -181,7 +190,6 @@ final class OnboardingCoordinator {
             return currentStep
         }
 
-        context.completedSteps.insert(from)
         currentStep = proposed
         persistState()
 

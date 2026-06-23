@@ -232,6 +232,10 @@ struct OnboardingStepScaffold<Content: View>: View {
 
             content
         }
+        // Constrain the column on large screens (iPad) so spacing/alignment stay
+        // phone-like and centered instead of stretching edge-to-edge.
+        .frame(maxWidth: 540)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
     }
 }

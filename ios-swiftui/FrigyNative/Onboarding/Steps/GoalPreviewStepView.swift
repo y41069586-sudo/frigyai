@@ -126,25 +126,31 @@ struct GoalPreviewStepView: View {
                 ctx.stroke(badPath, with: .color(Color(hex: "#E5E7EB")),
                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round, dash: [6, 7]))
 
+                // Smooth, symmetric ease-in-out S-curve (control points scale with
+                // width so it stays smooth on every device, incl. iPad).
+                let dx = x1 - x0
+                let c1 = CGPoint(x: x0 + dx * 0.5, y: yStart)
+                let c2 = CGPoint(x: x1 - dx * 0.5, y: yEnd)
+
                 // Area fill under success curve
                 var areaPath = Path()
                 areaPath.move(to: CGPoint(x: x0, y: yStart))
-                areaPath.addCurve(to: CGPoint(x: x1, y: yEnd),
-                                  control1: CGPoint(x: x0 + 90, y: yStart),
-                                  control2: CGPoint(x: x1 - 90, y: yEnd))
+                areaPath.addCurve(to: CGPoint(x: x1, y: yEnd), control1: c1, control2: c2)
                 areaPath.addLine(to: CGPoint(x: x1, y: yBot))
                 areaPath.addLine(to: CGPoint(x: x0, y: yBot))
                 areaPath.closeSubpath()
-                ctx.fill(areaPath, with: .color(FrigyBrand.primary.opacity(0.22)))
+                ctx.fill(areaPath, with: .linearGradient(
+                    Gradient(colors: [FrigyBrand.primary.opacity(0.30), FrigyBrand.primary.opacity(0.02)]),
+                    startPoint: CGPoint(x: 0, y: yTop),
+                    endPoint: CGPoint(x: 0, y: yBot)
+                ))
 
                 // Success curve
                 var mainPath = Path()
                 mainPath.move(to: CGPoint(x: x0, y: yStart))
-                mainPath.addCurve(to: CGPoint(x: x1, y: yEnd),
-                                  control1: CGPoint(x: x0 + 90, y: yStart),
-                                  control2: CGPoint(x: x1 - 90, y: yEnd))
+                mainPath.addCurve(to: CGPoint(x: x1, y: yEnd), control1: c1, control2: c2)
                 ctx.stroke(mainPath, with: .color(FrigyBrand.primaryDark),
-                           style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                           style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round))
 
                 // Start dot
                 ctx.fill(Path(ellipseIn: CGRect(x: x0 - 5, y: yStart - 5, width: 10, height: 10)), with: .color(.white))

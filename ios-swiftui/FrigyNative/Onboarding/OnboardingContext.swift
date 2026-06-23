@@ -19,10 +19,14 @@ struct UserProfileDraft: Codable, Equatable {
     var dailyProtein: Int = 0
     var dailyCarbs: Int = 0
     var dailyFat: Int = 0
+    /// Set once the user manually overrides their macro plan on the preview step,
+    /// so auto-recalculation no longer clobbers their values.
+    var macrosManuallyEdited: Bool = false
 
     static let empty = UserProfileDraft()
 
     mutating func recalculateMacrosIfPossible() {
+        guard !macrosManuallyEdited else { return }
         guard age >= MacroCalculator.minOnboardingAge else { return }
 
         let parsedGender: MacroCalculator.Gender = switch gender {
@@ -60,6 +64,16 @@ struct UserProfileDraft: Codable, Equatable {
         dailyProtein = result.dailyProtein
         dailyCarbs = result.dailyCarbs
         dailyFat = result.dailyFat
+    }
+
+    // Persist every field except the transient `macrosManuallyEdited` flag.
+    // Omitting it from the keys lets older saved state decode cleanly (the
+    // property simply keeps its default `false`).
+    private enum CodingKeys: String, CodingKey {
+        case name, referralCode, heightCm, weightKg, age, gender, goalMode
+        case targetWeightKg, weeklyGoalKg, activityLevel
+        case dietaryPreferences, healthGoals, allergies
+        case dailyCalories, dailyProtein, dailyCarbs, dailyFat
     }
 }
 

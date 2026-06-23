@@ -32,6 +32,25 @@ struct SpeedSelectStepView: View {
     private var displayMax: Double { isMetric ? maxKg : maxKg / kgPerLb }
     private var unitLabel: String { isMetric ? "kg" : "lbs" }
 
+    /// Discrete step in display units so the slider lands on clean values
+    /// (e.g. exactly 0,5 kg) instead of drifting to 0,6 from free dragging.
+    private var displayStep: Double { isMetric ? 0.05 : 0.1 }
+
+    private func snapDisplay(_ v: Double) -> Double {
+        let snapped = (v / displayStep).rounded() * displayStep
+        return max(displayMin, min(displayMax, snapped))
+    }
+
+    /// Formats a display value with the fewest decimals needed (0,5 — not 0,50).
+    private func formatValue(_ v: Double) -> String {
+        let snapped = snapDisplay(v)
+        let twoDecimals = String(format: "%.2f", snapped)
+        if twoDecimals.hasSuffix("0") {
+            return String(format: "%.1f", snapped)
+        }
+        return twoDecimals
+    }
+
     private var directionLabel: String {
         draft.goalMode == "gain" ? "Geschwindigkeit der Gewichtszunahme pro Woche"
             : "Geschwindigkeit der Gewichtsabnahme pro Woche"
@@ -73,9 +92,10 @@ struct SpeedSelectStepView: View {
 
                 // Large value display
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(String(format: "%.1f", displayValue))
+                    Text(formatValue(displayValue))
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
+                        .contentTransition(.numericText())
                         .scaleEffect(sliderActive ? 1.06 : 1)
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: sliderActive)
                     Text(unitLabel)
@@ -88,10 +108,11 @@ struct SpeedSelectStepView: View {
                 // Mint slider
                 MintPaceSlider(
                     value: Binding(
-                        get: { displayValue },
+                        get: { snapDisplay(displayValue) },
                         set: { newVal in
-                            let kg = isMetric ? newVal : newVal * kgPerLb
-                            draft.weeklyGoalKg = max(minKg, min(maxKg, (kg * 100).rounded() / 100))
+                            let snapped = snapDisplay(newVal)
+                            let kg = isMetric ? snapped : snapped * kgPerLb
+                            draft.weeklyGoalKg = max(minKg, min(maxKg, (kg * 1000).rounded() / 1000))
                         }
                     ),
                     min: displayMin,

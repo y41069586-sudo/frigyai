@@ -273,7 +273,11 @@ struct OnboardingSkeletonView: View {
                     profile: coordinator.userProfile,
                     progress: progress,
                     onBack: canGoBack ? back : nil,
-                    onNext: next
+                    onNext: { edited in
+                        coordinator.userProfile = edited
+                        coordinator.persistState()
+                        next()
+                    }
                 )
 
             case .goalSelection:
@@ -327,7 +331,9 @@ struct OnboardingSkeletonView: View {
             insertion: .move(edge: .trailing).combined(with: .opacity),
             removal: .move(edge: .leading).combined(with: .opacity)
         ))
-        .animation(.spring(duration: 0.35), value: step)
+        // Gentle, well-damped spring: smooth on-device without the overshoot
+        // jitter a stiffer spring produces on phones.
+        .animation(.spring(response: 0.45, dampingFraction: 0.86), value: step)
     }
 
     private func next() {
