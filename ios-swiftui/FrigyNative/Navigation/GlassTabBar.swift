@@ -1,129 +1,116 @@
 import SwiftUI
 
-/// Native bottom navigation bar — uses Liquid Glass on iOS 26+,
-/// falls back to a translucent material bar on iOS 17–25.
+/// Bottom navigation — faithful port of the web `BottomNavigation.tsx`:
+/// a floating, centered, rounded glass "pill" containing Home / Plan / Einkauf
+/// plus a raised green circular "+" tracker button on the right edge.
+/// Uses real iOS 26 Liquid Glass as the material, NOT the native iOS tab bar.
 struct GlassTabBar: View {
     @Binding var selection: AppTab
     var onTrackerTap: () -> Void
 
+    private let trackerSize: CGFloat = 54
+
     var body: some View {
-        if #available(iOS 26, *) {
-            GlassTabBariOS26(selection: $selection, onTrackerTap: onTrackerTap)
-        } else {
-            GlassTabBarFallback(selection: $selection, onTrackerTap: onTrackerTap)
+        HStack(spacing: 4) {
+            tabButton(.home)
+            tabButton(.plans)
+            tabButton(.shopping)
+            // Reserve horizontal room for the raised "+" button so tabs don't
+            // slide underneath it. The button itself is an overlay (below) so it
+            // can pop above the pill without stretching the pill's height.
+            Color.clear.frame(width: trackerSize - 6, height: 48)
         }
-    }
-}
-
-// MARK: - iOS 26+ Liquid Glass variant
-
-@available(iOS 26, *)
-private struct GlassTabBariOS26: View {
-    @Binding var selection: AppTab
-    var onTrackerTap: () -> Void
-
-    @Namespace private var tabGlassNamespace
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            GlassEffectContainer(spacing: 4) {
-                HStack(spacing: 4) {
-                    tabButton(.home)
-                    tabButton(.plans)
-                    tabButton(.shopping)
-                }
-            }
-            trackerButton
+        .padding(.leading, 8)
+        .padding(.trailing, 6)
+        .padding(.vertical, 6)
+        .frame(maxWidth: 440)
+        .background(pillBackground)
+        .overlay(alignment: .trailing) {
+            trackerButton.offset(x: -2, y: -12)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
-        .safeAreaPadding(.bottom, 4)
+        .padding(.bottom, 4)
     }
 
+    // MARK: - Pill background (real Liquid Glass)
+
     @ViewBuilder
+    private var pillBackground: some View {
+        if #available(iOS 26, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(Capsule().stroke(Color.white.opacity(0.4), lineWidth: 1))
+                .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+        }
+    }
+
+    // MARK: - Tab button
+
     private func tabButton(_ tab: AppTab) -> some View {
-        Button {
-            withAnimation(.bouncy) { selection = tab }
+        let active = selection == tab
+        return Button {
+            withAnimation(.easeOut(duration: 0.16)) { selection = tab }
         } label: {
-            ZStack {
-                if selection == tab {
-                    Capsule()
-                        .fill(.clear)
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                        .glassEffectID("activeTabCapsule", in: tabGlassNamespace)
-                }
-                VStack(spacing: 2) {
-                    Image(systemName: tab.systemImage)
-                        .font(.system(size: 22, weight: .semibold))
-                    Text(tab.title)
-                        .font(.caption2.weight(.bold))
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 4)
-                .frame(maxWidth: .infinity)
+            VStack(spacing: 2) {
+                Image(systemName: tab.systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(active ? FrigyBrand.primaryDark : Color(hex: "#9CA3AF"))
+                Text(tab.shortTitle)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(active ? FrigyBrand.text : Color(hex: "#9CA3AF"))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(selection == tab ? Color.primary : Color.secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background {
+                if active {
+                    Capsule().fill(FrigyBrand.primary.opacity(0.18))
+                }
+            }
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tab.title)
-        .accessibilityAddTraits(selection == tab ? .isSelected : [])
+        .accessibilityLabel(tab.shortTitle)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
+
+    // MARK: - Tracker (+) button — raised green circle with white ring
 
     private var trackerButton: some View {
         Button(action: onTrackerTap) {
             Image(systemName: "plus")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 26, weight: .heavy))
                 .foregroundStyle(.white)
-                .frame(width: 62, height: 62)
+                .frame(width: trackerSize, height: trackerSize)
+                .modifier(TrackerButtonStyle())
+                .padding(4)
+                .background(Circle().fill(.white))
+                .shadow(color: FrigyBrand.primaryDeep.opacity(0.35), radius: 10, y: 5)
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Mahlzeit tracken")
-        .glassEffect(.regular.tint(.green).interactive(), in: .circle)
     }
 }
 
-// MARK: - iOS 17–25 fallback
-
-private struct GlassTabBarFallback: View {
-    @Binding var selection: AppTab
-    var onTrackerTap: () -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(AppTab.allCases) { tab in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { selection = tab }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.systemImage)
-                            .font(.system(size: 22, weight: .semibold))
-                        Text(tab.title)
-                            .font(.caption2.weight(.bold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .foregroundStyle(selection == tab ? Color.primary : Color.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(tab.title)
-                .accessibilityAddTraits(selection == tab ? .isSelected : [])
-            }
-
-            Button(action: onTrackerTap) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(Color.green)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Mahlzeit tracken")
-            .frame(width: 72)
-            .padding(.bottom, 4)
+private struct TrackerButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(.regular.tint(FrigyBrand.primaryDeep).interactive(), in: .circle)
+        } else {
+            content
+                .background(
+                    Circle().fill(LinearGradient(
+                        colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                )
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
-        .overlay(Divider(), alignment: .top)
     }
 }

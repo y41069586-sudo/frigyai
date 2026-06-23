@@ -22,6 +22,15 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
         case .shopping: "cart.fill"
         }
     }
+
+    /// Short German labels matching the web BottomNavigation (Start / Plan / Einkauf).
+    var shortTitle: String {
+        switch self {
+        case .home: "Start"
+        case .plans: "Plan"
+        case .shopping: "Einkauf"
+        }
+    }
 }
 
 /// Top-level app destinations outside tab stacks.
